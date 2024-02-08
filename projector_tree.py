@@ -35,7 +35,6 @@ if __name__ == '__main__':
     plot = True
     kind = 'slice'
     num = 45
-    middle_zidx = int(num/2)
 
     _, gridded_den, gridded_T, gridded_P, gridded_Vx, gridded_Vy, gridded_Vz, gridded_V, _, x_radii, y_radii, z_radii = make_grid(num)
 
@@ -43,8 +42,7 @@ if __name__ == '__main__':
         flat_den = projector(gridded_den, x_radii, y_radii, z_radii)
     
     if kind =='slice':
-        idx_slice = middle_zidx 
-        z_slice = int(z_radii[idx_slice])
+        idx_slice = int(len(z_radii)/2)
 
         flat_den = gridded_den[:,:,idx_slice]
         flat_P = gridded_P[:,:,idx_slice]
@@ -60,7 +58,7 @@ if __name__ == '__main__':
         T_plot = np.nan_to_num(T_plot, neginf = 0)
 
         # import coordinates shock zone
-        shockzone = np.loadtxt(f'shockzone_z{(z_slice)}_num{num}.txt')
+        shockzone = np.loadtxt(f'shockzone_num{num}.txt')
 
     if plot:
         fig, ax = plt.subplots(1,1)
@@ -80,8 +78,8 @@ if __name__ == '__main__':
             plt.savefig('Figs/denproj.png')
         if kind == 'slice':
             plt.plot(shockzone[0], shockzone[1], 'ks', c = 'k', markerfacecolor='none', ms=6, markeredgecolor='k')
-            plt.title(f'Density slice, z={z_slice} ' + r' $N_{cell}$'+ f'= {num}')
-            plt.savefig(f'Figs/denslice_z{z_slice}_num{num}.png')
+            plt.title(f'Density slice, z={np.round(z_radii[idx_slice],3)} ' + r' $N_{cell}$'+ f'= {num}')
+            plt.savefig(f'Figs/denslice_num{num}.png')
 
             # Plot pressure
             fig1, ax1 = plt.subplots(1,1)
@@ -91,8 +89,8 @@ if __name__ == '__main__':
             plt.plot(shockzone[0], shockzone[1], 'ks', c = 'k', markerfacecolor='none', ms=6, markeredgecolor='k')
             cb1 = plt.colorbar(img1)
             cb1.set_label(r'$log_{10}$ P', fontsize = 14)
-            plt.title(f'Pressure slice, z={z_slice} ' + r' $N_{cell}$'+ f'= {num}')
-            plt.savefig(f'Figs/Pslice_z{z_slice}_num{num}.png')
+            plt.title(f'Pressure slice, z={np.round(z_radii[idx_slice],3)} ' + r' $N_{cell}$'+ f'= {num}')
+            plt.savefig(f'Figs/Pslice_num{num}.png')
 
             # Plot temperature
             fig2, ax2 = plt.subplots(1,1)
@@ -102,8 +100,8 @@ if __name__ == '__main__':
             plt.plot(shockzone[0], shockzone[1], 'ks', c = 'k', markerfacecolor='none', ms=6, markeredgecolor='k')
             cb2 = plt.colorbar(img2)
             cb2.set_label(r'$log_{10}$ T', fontsize = 14)
-            plt.title(f'Temperature slice, z={z_slice} ' + r' $N_{cell}$'+ f'= {num}')
-            plt.savefig(f'Figs/Tslice_z{z_slice}_num{num}.png')
+            plt.title(f'Temperature slice, z={np.round(z_radii[idx_slice],3)} ' + r' $N_{cell}$'+ f'= {num}')
+            plt.savefig(f'Figs/Tslice_num{num}.png')
 
 
         # if kind == 'slice':

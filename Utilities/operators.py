@@ -4,12 +4,28 @@ sys.path.append('/Users/paolamartire/shocks')
 import numpy as np
 from scipy.spatial import KDTree
 
-def the_nearest(x_array, y_array, z_array, xyz):
+def the_nearest(x_array, y_array, z_array, xyz, dim_cell):
     """ Gives the coordinates of the nearest point to the selected point of coordinates xyz=[x,y,z]."""
-    # find the coordinates indexes of the selected point 
-    i = np.argmin(np.abs(x_array-xyz[0]))
-    j = np.argmin(np.abs(y_array-xyz[1]))
-    k = np.argmin(np.abs(z_array-xyz[2]))
+    # filter only bunch of nearer neighbours otherwise the for loop lasts forever
+    indexes_x = np.where(np.abs(x_array-xyz[0])< 2*dim_cell)
+    indexes_x = indexes_x[0]
+    indexes_y = np.where(np.abs(y_array-xyz[1])< 2*dim_cell)
+    indexes_y = indexes_y[0]
+    indexes_z = np.where(np.abs(z_array-xyz[2])< 2*dim_cell)
+    indexes_z = indexes_z[0]
+
+    # find the lowest distance to take the nearest point
+    temp = 1e8
+    for idxi in indexes_x:
+        for idxj in indexes_y:
+            for idxk in indexes_z:
+                dist = np.linalg.norm(xyz - [x_array[idxi], y_array[idxj], z_array[idxk]])
+                if dist < temp:
+                    temp = dist
+                    indexes = [idxi,idxj,idxk]
+    i = indexes[0]
+    j = indexes[1]
+    k = indexes[2]
 
     return i,j,k 
 
@@ -67,7 +83,8 @@ def zero_interpolator(x_array, y_array, z_array, f_coord, xyz):
     """  
     Piecewise-constant interpolation: returns the field value at the nearest available point.
     """
-    i,j,k = the_nearest(x_array, y_array, z_array, xyz)
+    dx = (x_array[-1]-x_array[0])/len(x_array)
+    i,j,k = the_nearest(x_array, y_array, z_array, xyz, dx)
     f_value = f_coord[i,j,k]
     return f_value
 
