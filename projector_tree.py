@@ -75,33 +75,33 @@ if __name__ == '__main__':
 
         if kind == 'projection':
             plt.title('Density projection')
-            plt.savefig('Figs/denproj.png')
+            plt.savefig('denproj.png')
         if kind == 'slice':
-            plt.plot(shockzone[0], shockzone[1], 'ks', c = 'k', markerfacecolor='none', ms=6, markeredgecolor='k')
+            #plt.plot(shockzone[0], shockzone[1], 'ks', c = 'k', markerfacecolor='none', ms=6, markeredgecolor='k')
             plt.title(f'Density slice, z={np.round(z_radii[idx_slice],3)} ' + r' $N_{cell}$'+ f'= {num}')
-            plt.savefig(f'Figs/denslice_num{num}.png')
+            plt.savefig(f'denslice_num{num}.png')
 
             # Plot pressure
             fig1, ax1 = plt.subplots(1,1)
             ax1.set_xlabel('X', fontsize = 14)
             ax1.set_ylabel('Y', fontsize = 14)
             img1 = ax1.pcolormesh(x_radii, y_radii, P_plot.T, cmap = 'jet')#, vmin = 0, vmax = 0.4)
-            plt.plot(shockzone[0], shockzone[1], 'ks', c = 'k', markerfacecolor='none', ms=6, markeredgecolor='k')
+            #plt.plot(shockzone[0], shockzone[1], 'ks', c = 'k', markerfacecolor='none', ms=6, markeredgecolor='k')
             cb1 = plt.colorbar(img1)
             cb1.set_label(r'$log_{10}$ P', fontsize = 14)
             plt.title(f'Pressure slice, z={np.round(z_radii[idx_slice],3)} ' + r' $N_{cell}$'+ f'= {num}')
-            plt.savefig(f'Figs/Pslice_num{num}.png')
+            plt.savefig(f'Pslice_num{num}.png')
 
             # Plot temperature
             fig2, ax2 = plt.subplots(1,1)
             ax2.set_xlabel('X', fontsize = 14)
             ax2.set_ylabel('Y', fontsize = 14)
             img2 = ax2.pcolormesh(x_radii, y_radii, T_plot.T, cmap = 'jet')
-            plt.plot(shockzone[0], shockzone[1], 'ks', c = 'k', markerfacecolor='none', ms=6, markeredgecolor='k')
+            #plt.plot(shockzone[0], shockzone[1], 'ks', c = 'k', markerfacecolor='none', ms=6, markeredgecolor='k')
             cb2 = plt.colorbar(img2)
             cb2.set_label(r'$log_{10}$ T', fontsize = 14)
             plt.title(f'Temperature slice, z={np.round(z_radii[idx_slice],3)} ' + r' $N_{cell}$'+ f'= {num}')
-            plt.savefig(f'Figs/Tslice_num{num}.png')
+            plt.savefig(f'Tslice_num{num}.png')
 
 
         # if kind == 'slice':
@@ -125,14 +125,14 @@ if __name__ == '__main__':
         #     cb.set_label(r'$log_{10} V_y$', fontsize = 14)
         #     plt.savefig(f'Figs/Vyslice_z{z_slice}.png')
 
-        #     fig, ax4 = plt.subplots(1,1)
-        #     V_plot = np.log10(flat_V)
-        #     V_plot = np.nan_to_num(flat_V, neginf = 0)
-        #     ax4.set_xlabel('X', fontsize = 14)
-        #     ax4.set_ylabel('Y', fontsize = 14)
-        #     img = ax4.pcolormesh(x_radii, y_radii, V_plot.T, cmap = 'jet')
-        #     cb = plt.colorbar(img)
-        #     cb.set_label(r'$log_{10} V$', fontsize = 14)
-        #     plt.savefig(f'Figs/Vslice_z{z_slice}.png')
+            fig, ax4 = plt.subplots(1,1)
+            V_plot = np.log10(flat_V)
+            V_plot = np.nan_to_num(flat_V, neginf = 0)
+            ax4.set_xlabel('X', fontsize = 14)
+            ax4.set_ylabel('Y', fontsize = 14)
+            img = ax4.pcolormesh(x_radii, y_radii, V_plot.T, cmap = 'jet')
+            cb = plt.colorbar(img)
+            cb.set_label(r'$log_{10} V$', fontsize = 14)
+            plt.savefig(f'Figs/Vslice_num{num}_nok.png')
 
         plt.show()

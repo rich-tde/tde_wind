@@ -15,7 +15,7 @@ import Utilities.prelude
 gamma = 5/3
 mach_min = 1.3
 num = 45
-cross_section = True
+cross_section = False
 
 ##
 # FUNCTIONS
@@ -43,8 +43,8 @@ def condition3(x_array, y_array, z_array, Tgrid, Pgrid, idx, ds, deltax, mach_mi
     k = idx[2]
     xyz = [x_array[i], y_array[j], z_array[k]]
     # You suppose that the cells have the same dimension is x,y,z
-    post = xyz + ds*deltax
-    pre = xyz - ds*deltax
+    post = xyz - ds*deltax
+    pre = xyz + ds*deltax
 
     Tpost = zero_interpolator(x_array, y_array, z_array, Tgrid, post)
     Tpre = zero_interpolator(x_array, y_array, z_array, Tgrid, pre)
@@ -54,12 +54,12 @@ def condition3(x_array, y_array, z_array, Tgrid, Pgrid, idx, ds, deltax, mach_mi
     delta_logT = np.log(Tpost)-np.log(Tpre)
     Tjump = temperature_bump(mach_min, gamma)
     Tjump = np.log(Tjump)
-    ratioT = - delta_logT / Tjump # we take the - because we are in the lab (NOT shock) frame
+    ratioT = delta_logT / Tjump 
 
     delta_logP = np.log(Ppost)-np.log(Ppre)
     Pjump = pressure_bump(mach_min, gamma)
     Pjump = np.log(Pjump)
-    ratioP = - delta_logP / Pjump # we take the - because we are in the lab (NOT shock) frame
+    ratioP = delta_logP / Pjump 
     
     if np.logical_and(ratioT >= 1, ratioP >= 1): 
         return True
@@ -97,6 +97,7 @@ if __name__ == '__main__':
     X_shock = []
     Y_shock = []
     Z_shock = []
+    T_shock = []
 
     for i in range(1, len(x_radii)-1):
         for j in range(1,len(y_radii)-1):
@@ -115,6 +116,8 @@ if __name__ == '__main__':
                     shock_diry.append(ds[1])
                     shock_dirz.append(ds[2])
                     div_shock.append(shock)
+                    T_shock.append(gridded_T[i,j,k])
+
 
 
     if cross_section == True:
@@ -127,6 +130,8 @@ if __name__ == '__main__':
             file.write(' '.join(map(str, Z_shock)) + '\n')
             file.write('# div v \n') 
             file.write(' '.join(map(str, div_shock)) + '\n')
+            file.write('# T \n') 
+            file.write(' '.join(map(str, T_shock)) + '\n')
             file.close()
 
         with open(f'shockdir_num{num}.txt', 'a') as fileds:
