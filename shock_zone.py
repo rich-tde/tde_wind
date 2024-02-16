@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from grid_maker import make_grid
-from Utilities.operators import calc_div, calc_grad, zero_interpolator, tree_interpolator
+from Utilities.operators import calc_div, calc_grad, tree_interpolator
 import Utilities.prelude
 
 
@@ -43,13 +43,10 @@ def condition3(x_array, y_array, z_array, Tgrid, Pgrid, idx, ds, deltax, mach_mi
     k = idx[2]
     xyz = [x_array[i], y_array[j], z_array[k]]
     # You suppose that the cells have the same dimension is x,y,z
-    post = xyz - ds*deltax
     pre = xyz + ds*deltax
+    post = xyz - ds*deltax
 
-    Tpost = zero_interpolator(x_array, y_array, z_array, Tgrid, post)
-    Tpre = zero_interpolator(x_array, y_array, z_array, Tgrid, pre)
-    Ppost = zero_interpolator(x_array, y_array, z_array, Pgrid, post)
-    Ppre = zero_interpolator(x_array, y_array, z_array, Pgrid, pre)
+    Tpre, Ppre, Tpost, Ppost  = tree_interpolator(pre, post)
 
     delta_logT = np.log(Tpost)-np.log(Tpre)
     Tjump = temperature_bump(mach_min, gamma)
@@ -118,10 +115,8 @@ if __name__ == '__main__':
                     div_shock.append(shock)
                     T_shock.append(gridded_T[i,j,k])
 
-
-
     if cross_section == True:
-        with open(f'shockzone_num{num}.txt', 'a') as file:
+        with open(f'shockzone_num{num}.txt', 'w') as file:
             file.write(f'# Coordinates of the points in the shock zone at z = {z_radii[middle_zidx]}, num = {num}, mach_min = {mach_min} \n#X \n') 
             file.write(' '.join(map(str, X_shock)) + '\n')
             file.write('# Y \n') 
@@ -134,7 +129,7 @@ if __name__ == '__main__':
             file.write(' '.join(map(str, T_shock)) + '\n')
             file.close()
 
-        with open(f'shockdir_num{num}.txt', 'a') as fileds:
+        with open(f'shockdir_num{num}.txt', 'w') as fileds:
             fileds.write('# shock  x direction \n') 
             fileds.write(' '.join(map(str, shock_dirx)) + '\n')
             fileds.write('# shock  y direction \n') 
