@@ -95,11 +95,11 @@ def zero_interpolator(x_array, y_array, z_array, f_coord, xyz):
     return f_value
 
 def tree_interpolator(pre, post):
-    X = np.load('data/CMx.npy')
-    Y = np.load('data/CMy.npy')
-    Z = np.load('data/CMz.npy')
-    Den = np.load('data/Den.npy')
-    P = np.load('data/P.npy')
+    X = np.load('data_sim/CMx.npy')
+    Y = np.load('data_sim/CMy.npy')
+    Z = np.load('data_sim/CMz.npy')
+    Den = np.load('data_sim/Den.npy')
+    P = np.load('data_sim/P.npy')
 
     # make a tree
     sim_value = [X, Y, Z] 

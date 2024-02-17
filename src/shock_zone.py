@@ -4,9 +4,8 @@ sys.path.append('/Users/paolamartire/shocks')
 import numpy as np
 import matplotlib.pyplot as plt
 
-from grid_maker import make_grid
+from src.grid_maker import make_grid
 from Utilities.operators import calc_div, calc_grad, tree_interpolator
-import Utilities.prelude
 
 
 ##
@@ -42,13 +41,12 @@ def condition3(x_array, y_array, z_array, Tgrid, Pgrid, idx, ds, deltax, mach_mi
     j = idx[1]
     k = idx[2]
     xyz = [x_array[i], y_array[j], z_array[k]]
-    # You suppose that the cells have the same dimension is x,y,z
     pre = xyz + ds*deltax
     post = xyz - ds*deltax
 
     Tpre, Ppre, Tpost, Ppost  = tree_interpolator(pre, post)
 
-    delta_logT = np.log(Tpost)-np.log(Tpre)
+    delta_logT = np.log(Tpost) - np.log(Tpre)
     Tjump = temperature_bump(mach_min, gamma)
     Tjump = np.log(Tjump)
     ratioT = delta_logT / Tjump 
@@ -98,7 +96,7 @@ if __name__ == '__main__':
 
     for i in range(1, len(x_radii)-1):
         for j in range(1,len(y_radii)-1):
-            for k in range(middle_zidx, middle_zidx+1):#len(1, z_radii)-1):
+            for k in range(middle_zidx-4, middle_zidx+4):#len(1, z_radii)-1):
                 # we don't consider the first and last point of the tree
                 idx = [i,j,k]
                 ds = shock_direction(x_radii, y_radii, z_radii, gridded_T, idx)
@@ -114,9 +112,9 @@ if __name__ == '__main__':
                     shock_dirz.append(ds[2])
                     div_shock.append(shock)
                     T_shock.append(gridded_T[i,j,k])
-
+                    
     if cross_section == True:
-        with open(f'shockzone_num{num}.txt', 'w') as file:
+        with open(f'shockzone_zidx{middle_zidx}.txt', 'w') as file:
             file.write(f'# Coordinates of the points in the shock zone at z = {z_radii[middle_zidx]}, num = {num}, mach_min = {mach_min} \n#X \n') 
             file.write(' '.join(map(str, X_shock)) + '\n')
             file.write('# Y \n') 
@@ -128,11 +126,10 @@ if __name__ == '__main__':
             file.write('# T \n') 
             file.write(' '.join(map(str, T_shock)) + '\n')
             file.close()
-
-        with open(f'shockdir_num{num}.txt', 'w') as fileds:
-            fileds.write('# shock  x direction \n') 
+        with open(f'shockdir_zidx{middle_zidx}.txt', 'w') as fileds:
+            fileds.write('# shock x direction \n') 
             fileds.write(' '.join(map(str, shock_dirx)) + '\n')
-            fileds.write('# shock  y direction \n') 
+            fileds.write('# shock y direction \n') 
             fileds.write(' '.join(map(str, shock_diry)) + '\n')
             fileds.write('# shock z direction \n') 
             fileds.write(' '.join(map(str, shock_dirz)) + '\n')
