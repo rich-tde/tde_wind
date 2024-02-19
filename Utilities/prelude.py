@@ -34,8 +34,10 @@ en_den_converter = Msol_to_g / (Rsol_to_cm  * t**2 ) # Energy Density converter
 NSIDE = 4
     
 # Plotting
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import colorcet
+mpl.rcParams['figure.dpi'] = 100
 plt.rcParams['text.usetex'] = True
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['figure.figsize'] = [8 , 6]
