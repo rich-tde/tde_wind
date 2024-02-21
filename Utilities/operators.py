@@ -2,8 +2,6 @@ import sys
 sys.path.append('/Users/paolamartire/shocks')
 
 import numpy as np
-from scipy.spatial import KDTree
-
 
 def select_neighbours(sim_tree, point, select):
     """ Find the prevoius/next point in one (cartesian) direction """
