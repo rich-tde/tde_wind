@@ -1,7 +1,8 @@
 import numpy as np
+
 # User lines
 import sys
-sys.path.append('/Users/paolamartire/tde_comparison')
+sys.path.append('/Users/paolamartire/shocks')
 
 
 # Constants
