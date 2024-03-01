@@ -64,7 +64,7 @@ def make_tree(filename):
     if all(T) == 0:
         print('all T=0, bro. Compute by myself!')
         T = P/Den
-    R = np.sqrt(X**2 + Y**2 + Z**2)
+    Vol = np.load(f'{filename}/Vol.npy')
 
     # Mask to avoid values at the borders.
     # Xmask, Ymask, Zmask = mask(X, Y, Z, lim, kind = 'slice', choose_coord)
@@ -73,7 +73,7 @@ def make_tree(filename):
     sim_value = np.transpose(sim_value) #array of shape (number_points, 3)
     sim_tree = KDTree(sim_value) 
 
-    return sim_tree, X, Y, Z, R, VX, VY, VZ, Den, P, T
+    return sim_tree, X, Y, Z, Vol, VX, VY, VZ, Den, P, T
 
 def select_neighbours(sim_tree, point, delta, select):
     """ Find the prevoius/next point in one (cartesian) direction.
