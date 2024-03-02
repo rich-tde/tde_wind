@@ -93,7 +93,7 @@ def select_neighbours(sim_tree, point, delta, select):
     idxx, idyy, idzz: int.
                      (Tree) indexes of the previous/next point searched.
     """
-    if select == 'pre':
+    if select == 'before':
         delta = - delta
 
     x_point = point[0]
@@ -142,8 +142,8 @@ def calc_div(sim_tree, X, Y, Z, fx_tree, fy_tree, fz_tree, point, delta, kind_in
         point = [x_point, y_point, z_point]
     
     # Find tree indexes of the pre/post neighbours.
-    prex, prey, prez = select_neighbours(sim_tree, point, delta, 'pre')
-    postx, posty, postz = select_neighbours(sim_tree, point, delta, 'post')
+    prex, prey, prez = select_neighbours(sim_tree, point, delta, 'before')
+    postx, posty, postz = select_neighbours(sim_tree, point, delta, 'after')
 
     # Find the values of/in these points.
     pre_xcoord = X[prex]
@@ -190,8 +190,8 @@ def calc_grad(sim_tree, X, Y, Z, f_tree, point, delta, kind_info = 'point'):
         point = [x_point, y_point, z_point]
 
     # Find tree indexes of the pre/post neighbours.
-    prex, prey, prez = select_neighbours(sim_tree, point, delta, 'pre')
-    postx, posty, postz = select_neighbours(sim_tree, point, delta, 'post')
+    prex, prey, prez = select_neighbours(sim_tree, point, delta, 'before')
+    postx, posty, postz = select_neighbours(sim_tree, point, delta, 'after')
 
     # Find the values of/in these points.
     pre_xcoord = X[prex]
@@ -213,5 +213,5 @@ def calc_grad(sim_tree, X, Y, Z, f_tree, point, delta, kind_info = 'point'):
     delta_fy = (fpost_y-fpre_y)/ (post_ycoord-pre_ycoord)
     delta_fz = (fpost_z-fpre_z) / (post_zcoord-pre_zcoord)
 
-    grad = [delta_fx, delta_fy, delta_fz]
+    grad = np.array([delta_fx, delta_fy, delta_fz])
     return grad
