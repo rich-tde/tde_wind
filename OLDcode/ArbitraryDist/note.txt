@@ -1,0 +1,4 @@
+Here you compute gradient/shock algorithm with a fixed step (step = 0.039, in the folder "005" you have the plot with step=0.05).
+You have the condition on ds: if ds=0 (aka on the external pre-shock cells), you skip them.
+
+NOds show the shockzone if you don't put the if condition on the ds=0
