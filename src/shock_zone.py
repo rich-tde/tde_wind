@@ -1,11 +1,11 @@
-# import sys
-# sys.path.append('/Users/paolamartire/shocks')
-import Utilities.prelude
-import pickle 
+import sys
+sys.path.append('/Users/paolamartire/shocks')
 
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import pickle 
+import Utilities.prelude
 from Utilities.operators import make_tree, calc_grad, calc_div
 
 ##
@@ -14,7 +14,7 @@ from Utilities.operators import make_tree, calc_grad, calc_div
 
 gamma_chosen = 5/3
 mach_min = 1.3
-save = False
+save = True
 
 ##
 # FUNCTIONS
@@ -203,7 +203,7 @@ if __name__ == '__main__':
     Z_shock = np.array(Z_shock)
 
     if save == True:
-        with open(f'shockzone.txt', 'w') as file:
+        with open(f'Tshockzone.txt', 'w') as file:
             file.write(f'# Coordinates of the points in the shock zone, mach_min = {mach_min} \n# X \n') 
             file.write(' '.join(map(str, X_shock)) + '\n')
             file.write('# Y \n') 
@@ -215,7 +215,7 @@ if __name__ == '__main__':
             file.write('# T \n') 
             file.write(' '.join(map(str, T_shock)) + '\n')
             file.close()
-        with open(f'shockdir.txt', 'w') as fileds:
+        with open(f'Tshockdir.txt', 'w') as fileds:
             fileds.write('# shock x direction \n') 
             fileds.write(' '.join(map(str, shock_dirx)) + '\n')
             fileds.write('# shock y direction \n') 
@@ -223,7 +223,7 @@ if __name__ == '__main__':
             fileds.write('# shock z direction \n') 
             fileds.write(' '.join(map(str, shock_dirz)) + '\n')
             fileds.close()
-        with open('shockbool.pkl', 'wb') as filebool:
+        with open('Tshockbool.pkl', 'wb') as filebool:
             pickle.dump(are_u_shock, filebool)
     
     plt.figure(figsize=(10,10))
@@ -236,5 +236,5 @@ if __name__ == '__main__':
     plt.grid()
     plt.title('Shock zone, z=0', fontsize = 18)
     if save == True: 
-        plt.savefig('Figs/4shockzone.png')
+        plt.savefig('Figs/T4shockzone.png')
     plt.show()
