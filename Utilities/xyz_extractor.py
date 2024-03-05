@@ -101,7 +101,7 @@ def extractor(filename):
     return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P
 
 if __name__ == '__main__':
-    name = 'final'
+    name = '0'
     path = f'sedov/{name}/'
     X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P = extractor(f'{path}sedov_{name}.h5')
 
