@@ -7,8 +7,9 @@ sys.path.append('/Users/paolamartire/shocks')
 import numpy as np
 from scipy.spatial import KDTree
 import h5py
+import math
 
-def mask(X, Y, Z, lim, kind, choose_coord):
+def mask(X, Y, Z, Vol, VX, VY, VZ, Den, P, T, lim, kind, choose_coord):
     """ Mask the data to take a (symmetric) slice or a cross section.
     Parameters
     -----------
@@ -47,8 +48,15 @@ def mask(X, Y, Z, lim, kind, choose_coord):
     Xmask = X[mask]
     Ymask = Y[mask]
     Zmask = Z[mask]
+    Volmask = Vol[mask]
+    VXmask = VX[mask]
+    VYmask = VY[mask]
+    VZmask = VZ[mask]
+    Denmask = Den[mask]
+    Pmask = P[mask]
+    Tmask = T[mask]
 
-    return Xmask, Ymask, Zmask
+    return Xmask, Ymask, Zmask, Volmask, VXmask, VYmask, VZmask, Denmask, Pmask, Tmask
 
 def make_tree(filename):
     """ Load data from simulation and build the tree. """
@@ -66,8 +74,9 @@ def make_tree(filename):
         T = P/Den
     Vol = np.load(f'{filename}/Vol.npy')
 
-    # Mask to avoid values at the borders.
-    # Xmask, Ymask, Zmask = mask(X, Y, Z, lim, kind = 'slice', choose_coord)
+    # Mask to avoid values at the borders
+#     lim = 0.98
+#     X, Y, Z, Vol, VX, VY, VZ, Den, P, T = mask(X, Y, Z, Vol, VX, VY, VZ, Den, P, T, lim, kind = 'slice', choose_coord = 'what')
         
     sim_value = [X, Y, Z] 
     sim_value = np.transpose(sim_value) #array of shape (number_points, 3)
@@ -75,7 +84,170 @@ def make_tree(filename):
 
     return sim_tree, X, Y, Z, Vol, VX, VY, VZ, Den, P, T
 
-def select_neighbours(sim_tree, point, delta, select):
+# def select_neighbours(sim_tree, point, delta, select):
+#     """ Find the prevoius/next point in one (cartesian) direction.
+#     Parameters
+#     -----------
+#     sim_tree: nDarray.
+#             Tree where to search the point
+#     point: array.
+#             Coordinates [x,y,z] of the starting point.
+#     delta: float.
+#             Step between 2 neighbours.
+#     select: str.
+#             If 'pre' --> you search the previous points respectively in x,y,z direction
+#             otherwise --> you search the next points respectively in x,y,z direction
+#     Returns
+#     -----------
+#     idxx, idyy, idzz: int.
+#                      (Tree) indexes of the previous/next point searched.
+#     """
+#     if select == 'before':
+#         delta = - delta
+
+#     x_point = point[0]
+#     y_point = point[1]
+#     z_point = point[2]
+    
+#     # new points 
+#     neigh_x = [x_point + delta, y_point, z_point]
+#     neigh_y = [x_point, y_point + delta, z_point]
+#     neigh_z = [x_point, y_point, z_point + delta]
+
+#     _, idxx  = sim_tree.query(neigh_x)
+#     _, idxy  = sim_tree.query(neigh_y)
+#     _, idxz  = sim_tree.query(neigh_z)
+    
+#     return idxx, idxy, idxz
+
+
+# def calc_div(sim_tree, X, Y, Z, fx_tree, fy_tree, fz_tree, point, delta, kind_info = 'point'):
+#     """ Compute the divergence.
+#     Parameters
+#     -----------
+#     sim_tree: nDarray.
+#             Tree where to search the point.
+#     X, Y, Z: arrays (all of the SAME lenght)
+#             Coordinates of the points of the tree.
+#     fx_tree, fy_tree, fz_tree: arrays of len=len(X).
+#             Components of the quantity f of the tree.
+#     point: array.
+#             Starting point.
+#     delta: float.
+#             Step between 2 neighbours.
+#     kind_info: str.
+#             Tell you if points is given in cartesian coordinates ('point') or if you have its tree index ('idx')
+#     Returns
+#     -----------
+#     div_f: float.
+#             Divergence of f.
+#       """
+#     # Search the coordinates of the point if you don't have it.
+#     if kind_info == 'idx':
+#         _, idx = sim_tree.query(point)
+#         x_point = X[idx]
+#         y_point = Y[idx]
+#         z_point = Z[idx]
+#         point = [x_point, y_point, z_point]
+    
+#     # Find tree indexes of the pre/post neighbours.
+#     prex, prey, prez = select_neighbours(sim_tree, point, delta, 'before')
+#     postx, posty, postz = select_neighbours(sim_tree, point, delta, 'after')
+
+#     # Find the values of/in these points.
+#     pre_xcoord = X[prex]
+#     fpre_x = fx_tree[prex]
+#     post_xcoord = X[postx]
+#     fpost_x = fx_tree[postx]
+
+#     pre_ycoord = Y[prey]
+#     fpre_y = fy_tree[prey]
+#     post_ycoord = Y[posty]
+#     fpost_y = fy_tree[posty]
+
+#     pre_zcoord = Z[prez]
+#     fpre_z = fz_tree[prez]
+#     post_zcoord = Z[postz]
+#     fpost_z = fz_tree[postz]
+
+#     delta_fx = (fpost_x-fpre_x) / (post_xcoord-pre_xcoord)
+#     delta_fy = (fpost_y-fpre_y)/ (post_ycoord-pre_ycoord)
+#     delta_fz = (fpost_z-fpre_z) / (post_zcoord-pre_zcoord)
+
+#     div_f = delta_fx + delta_fy + delta_fz
+#     return div_f
+
+    
+# def calc_grad(sim_tree, X, Y, Z, f_tree, point, delta, kind_info = 'point'):
+#     """ Compute the gradient.
+#     Parameters
+#     -----------
+#     As the ones of calc_div except
+#     f_tree: array of len=len(X)-
+#             Quantity f of the tree.
+#     Returns
+#     -----------
+#     grad: array.
+#         Gradient of f.
+#     """
+#     # Search the coordinates of the point if you don't have it.
+#     if kind_info == 'idx':
+#         _, idx = sim_tree.query(point)
+#         x_point = X[idx]
+#         y_point = Y[idx]
+#         z_point = Z[idx]
+#         point = [x_point, y_point, z_point]
+
+#     # Find tree indexes of the pre/post neighbours.
+#     prex, prey, prez = select_neighbours(sim_tree, point, delta, 'before')
+#     postx, posty, postz = select_neighbours(sim_tree, point, delta, 'after')
+
+#     # Find the values of/in these points.
+#     pre_xcoord = X[prex]
+#     fpre_x = f_tree[prex]
+#     post_xcoord = X[postx]
+#     fpost_x = f_tree[postx]
+
+#     pre_ycoord = Y[prey]
+#     fpre_y = f_tree[prey]
+#     post_ycoord = Y[posty]
+#     fpost_y = f_tree[posty]
+
+#     pre_zcoord = Z[prez]
+#     fpre_z = f_tree[prez]
+#     post_zcoord = Z[postz]
+#     fpost_z = f_tree[postz]
+
+#     delta_fx = (fpost_x-fpre_x) / (post_xcoord-pre_xcoord)
+#     delta_fy = (fpost_y-fpre_y)/ (post_ycoord-pre_ycoord)
+#     delta_fz = (fpost_z-fpre_z) / (post_zcoord-pre_zcoord)
+
+#     grad = np.array([delta_fx, delta_fy, delta_fz])
+#     return grad
+
+#####################
+def select_near(sim_tree, X, Y, Z, point, delta, choice):
+     x_point = point[0]
+     y_point = point[1]
+     z_point = point[2]
+     k = 0.6
+     distance = 0
+     while distance == 0:
+        if choice == 'x':
+                new_point = [x_point + k * delta, y_point, z_point]
+        elif choice == 'y':
+                new_point = [x_point, y_point +  k * delta, z_point]
+        elif choice == 'z':
+                new_point = [x_point, y_point, z_point +  k * delta]
+        _, idx  = sim_tree.query(new_point)
+        check_point = np.array([X[idx], Y[idx], Z[idx]])
+        distance = math.dist(point, check_point)
+        #print(choice, distance, k)
+        k += 0.1
+
+     return idx
+
+def select_neighbours(sim_tree, X, Y, Z, point, deltax, select):
     """ Find the prevoius/next point in one (cartesian) direction.
     Parameters
     -----------
@@ -91,28 +263,23 @@ def select_neighbours(sim_tree, point, delta, select):
     Returns
     -----------
     idxx, idyy, idzz: int.
-                     (Tree) indexes of the previous/next point searched.
+         (Tree) indexes of the previous/next point searched.
     """
+    deltay = deltax
+    deltaz = deltax
     if select == 'before':
-        delta = - delta
+        deltax = - deltax
+        deltay = - deltay
+        deltaz = - deltaz
 
-    x_point = point[0]
-    y_point = point[1]
-    z_point = point[2]
-    
-    # new points 
-    neigh_x = [x_point + delta, y_point, z_point]
-    neigh_y = [x_point, y_point + delta, z_point]
-    neigh_z = [x_point, y_point, z_point + delta]
-
-    _, idxx  = sim_tree.query(neigh_x)
-    _, idxy  = sim_tree.query(neigh_y)
-    _, idxz  = sim_tree.query(neigh_z)
+    idxx = select_near(sim_tree, X, Y, Z, point, deltax, 'x')
+    idxy = select_near(sim_tree, X, Y, Z, point, deltay, 'y')
+    idxz = select_near(sim_tree, X, Y, Z, point, deltaz, 'z')
     
     return idxx, idxy, idxz
 
 
-def calc_div(sim_tree, X, Y, Z, fx_tree, fy_tree, fz_tree, point, delta, kind_info = 'point'):
+def calc_div(sim_tree, X, Y, Z, fx_tree, fy_tree, fz_tree, point, deltax, kind_info = 'point'):
     """ Compute the divergence.
     Parameters
     -----------
@@ -142,8 +309,9 @@ def calc_div(sim_tree, X, Y, Z, fx_tree, fy_tree, fz_tree, point, delta, kind_in
         point = [x_point, y_point, z_point]
     
     # Find tree indexes of the pre/post neighbours.
-    prex, prey, prez = select_neighbours(sim_tree, point, delta, 'before')
-    postx, posty, postz = select_neighbours(sim_tree, point, delta, 'after')
+    
+    prex, prey, prez = select_neighbours(sim_tree, X, Y, Z, point, deltax, 'before')
+    postx, posty, postz = select_neighbours(sim_tree, X, Y, Z, point, deltax, 'after')
 
     # Find the values of/in these points.
     pre_xcoord = X[prex]
@@ -169,7 +337,7 @@ def calc_div(sim_tree, X, Y, Z, fx_tree, fy_tree, fz_tree, point, delta, kind_in
     return div_f
 
     
-def calc_grad(sim_tree, X, Y, Z, f_tree, point, delta, kind_info = 'point'):
+def calc_grad(sim_tree, X, Y, Z, f_tree, point, deltax, kind_info = 'point'):
     """ Compute the gradient.
     Parameters
     -----------
@@ -190,8 +358,8 @@ def calc_grad(sim_tree, X, Y, Z, f_tree, point, delta, kind_info = 'point'):
         point = [x_point, y_point, z_point]
 
     # Find tree indexes of the pre/post neighbours.
-    prex, prey, prez = select_neighbours(sim_tree, point, delta, 'before')
-    postx, posty, postz = select_neighbours(sim_tree, point, delta, 'after')
+    prex, prey, prez = select_neighbours(sim_tree, X, Y, Z, point, deltax, 'before')
+    postx, posty, postz = select_neighbours(sim_tree, X, Y, Z, point, deltax, 'after')
 
     # Find the values of/in these points.
     pre_xcoord = X[prex]
