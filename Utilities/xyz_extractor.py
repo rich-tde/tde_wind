@@ -101,19 +101,21 @@ def extractor(filename):
     return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P
 
 if __name__ == '__main__':
-    X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P = extractor('data/sedov_100.h5')
+    name = 'final'
+    path = f'sedov/{name}/'
+    X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P = extractor(f'{path}sedov_{name}.h5')
 
     # Save to another file.
-    np.save('CMx', X)   
-    np.save('CMy', Y) 
-    np.save('CMz', Z) 
-    np.save('Den', Den)
-    np.save('Vx', Vx)   
-    np.save('Vy', Vy) 
-    np.save('Vz', Vz)
-    np.save('Vol', Vol)
-    np.save('Mass', Mass)   
-    np.save('IE', IE) 
-    np.save('T', T)
-    np.save('P', P) 
+    np.save(f'{path}CMx', X)   
+    np.save(f'{path}CMy', Y) 
+    np.save(f'{path}CMz', Z) 
+    np.save(f'{path}Den', Den)
+    np.save(f'{path}Vx', Vx)   
+    np.save(f'{path}Vy', Vy) 
+    np.save(f'{path}Vz', Vz)
+    np.save(f'{path}Vol', Vol)
+    np.save(f'{path}Mass', Mass)   
+    np.save(f'{path}IE', IE) 
+    np.save(f'{path}T', T)
+    np.save(f'{path}P', P) 
             
