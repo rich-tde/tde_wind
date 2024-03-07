@@ -13,7 +13,7 @@ sys.path.append('/Users/paolamartire/shocks')
 import numpy as np
 from datetime import datetime
 import h5py
-import prelude
+import Utilities.prelude
 
 #%% Extract Energy
 # snapshot233= "/Users/paolamartire/data_sim/.h5"
@@ -51,7 +51,7 @@ def days_since_distruption(filename):
     Mbh = 1e6 # * Msol
     time = np.array(f['Time'])
     days = time.sum()*t / (24*60*60)
-    return days
+    return time, days
 
 
 #%% 
@@ -86,7 +86,7 @@ def days_since_distruption(filename):
 #%%
 if __name__ == '__main__':
     # days322 = linear_fit_days(322)
-    time = days_since_distruption('data_sim/sedov_100.h5')
+    time = days_since_distruption('sedov/100/sedov_100.h5')
     print(time)
         
     
