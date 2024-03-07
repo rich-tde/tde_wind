@@ -60,19 +60,19 @@ def mask(X, Y, Z, Vol, VX, VY, VZ, Den, P, T, lim, kind, choose_coord):
 
 def make_tree(filename):
     """ Load data from simulation and build the tree. """
-    X = np.load(f'{filename}/CMx_844.npy')
-    Y = np.load(f'{filename}/CMy_844.npy')
-    Z = np.load(f'{filename}/CMz_844.npy')
-    VX = np.load(f'{filename}/Vx_844.npy')
-    VY = np.load(f'{filename}/Vy_844.npy')
-    VZ = np.load(f'{filename}/Vz_844.npy')
-    Den = np.load(f'{filename}/Den_844.npy')
-    P = np.load(f'{filename}/P_844.npy')
-    T = np.load(f'{filename}/T_844.npy')
+    X = np.load(f'{filename}/CMx_683.npy')
+    Y = np.load(f'{filename}/CMy_683.npy')
+    Z = np.load(f'{filename}/CMz_683.npy')
+    VX = np.load(f'{filename}/Vx_683.npy')
+    VY = np.load(f'{filename}/Vy_683.npy')
+    VZ = np.load(f'{filename}/Vz_683.npy')
+    Den = np.load(f'{filename}/Den_683.npy')
+    P = np.load(f'{filename}/P_683.npy')
+    T = np.load(f'{filename}/T_683.npy')
     if all(T) == 0:
         print('all T=0, bro. Compute by myself!')
         T = P/Den
-    Vol = np.load(f'{filename}/Vol_844.npy')
+    Vol = np.load(f'{filename}/Vol_683.npy')
 
     # Mask to avoid values at the borders
 #     lim = 0.98
