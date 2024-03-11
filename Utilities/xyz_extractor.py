@@ -54,6 +54,7 @@ def extractor(filename):
     IE = []
     T = []
     P = []
+    Star = []
     
     # Iterate over ranks
     for key in keys:
@@ -80,6 +81,7 @@ def extractor(filename):
             # rad_data = f[key]
             T_data = f[key]['Temperature']
             P_data = f[key]['Pressure']
+            star_data = f[key]['tracers']['Star']
 
             for i in range(len(P_data)):
                 X.append(x_data[i])
@@ -94,16 +96,17 @@ def extractor(filename):
                 Mass.append(vol_data[i] * den_data[i])
                 T.append(T_data[i])
                 P.append(P_data[i])
+                Star.append(star_data[i])
 
 
     # Close the file
     f.close()
-    return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P
+    return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, Star
 
 if __name__ == '__main__':
     name = '683'
     path = f'TDE/{name}/snap_{name}'
-    X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P = extractor(f'{path}.h5')
+    X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, Star = extractor(f'{path}.h5')
 
     # Save to another file.
     # np.save(f'{path}CMx', X)   
@@ -118,4 +121,5 @@ if __name__ == '__main__':
     # np.save(f'{path}IE', IE) 
     # np.save(f'{path}T', T)
     # np.save(f'{path}P', P) 
+    # np.save(f'{path}Star', Star) 
             

@@ -1,6 +1,0 @@
-# shock x direction 
-
-# shock y direction 
-
-# shock z direction 
-

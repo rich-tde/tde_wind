@@ -58,11 +58,12 @@ import math
 
 #     return Xmask, Ymask, Zmask, Volmask, VXmask, VYmask, VZmask, Denmask, Pmask, Tmask
 
-def make_tree(filename, snap):
+def make_tree(filename, snap, is_tde):
     """ Load data from simulation and build the tree. """
     X = np.load(f'{filename}/CMx_{snap}.npy')
     Y = np.load(f'{filename}/CMy_{snap}.npy')
     Z = np.load(f'{filename}/CMz_{snap}.npy')
+    Vol = np.load(f'{filename}/Vol_{snap}.npy')
     VX = np.load(f'{filename}/Vx_{snap}.npy')
     VY = np.load(f'{filename}/Vy_{snap}.npy')
     VZ = np.load(f'{filename}/Vz_{snap}.npy')
@@ -72,7 +73,12 @@ def make_tree(filename, snap):
     if all(T) == 0:
         print('all T=0, bro. Compute by myself!')
         T = P/Den
-    Vol = np.load(f'{filename}/Vol_{snap}.npy')
+    if is_tde:
+        Star = np.load(f'{filename}/Star_{snap}.npy')
+        for i,den in enumerate(Den):
+            cell_star = Star[i]
+            if ((1-cell_star) > 1e-3):
+                den = 0 
 
     sim_value = [X, Y, Z] 
     sim_value = np.transpose(sim_value) #array of shape (number_points, 3)
