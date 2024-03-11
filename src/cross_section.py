@@ -5,7 +5,7 @@ Project quantities or do cross sections.
 
 """
 import sys
-sys.path.append('/Users/paolamartire/tde_comparison')
+sys.path.append('/Users/paolamartire/shocks')
 
 
 import numpy as np
@@ -16,7 +16,7 @@ from Utilities.operators import make_tree
 import Utilities.prelude as prel
 
 z_chosen = 0
-delta = 0.039
+delta = 20#0.039
 
 # shockzone = np.loadtxt(f'shockzone.txt')
 # x_zone = shockzone[0]
@@ -26,15 +26,18 @@ delta = 0.039
 # zone_cross_x = x_zone[slice_zone]
 # zone_cross_y = y_zone[slice_zone]
 
-shocksurface = np.loadtxt(f'shocksurface.txt')
-x_surf = shocksurface[0]
-y_surf = shocksurface[1]
-z_surf = shocksurface[2]
-slice_surf = np.logical_and(z_surf<z_chosen+delta, z_surf>z_chosen-delta)
-surf_cross_x = x_surf[slice_surf]
-surf_cross_y = y_surf[slice_surf]
+# shocksurface = np.loadtxt(f'shocksurface.txt')
+# x_surf = shocksurface[0]
+# y_surf = shocksurface[1]
+# z_surf = shocksurface[2]
+# slice_surf = np.logical_and(z_surf<z_chosen+delta, z_surf>z_chosen-delta)
+# surf_cross_x = x_surf[slice_surf]
+# surf_cross_y = y_surf[slice_surf]
 
-sim_tree, X, Y, Z, VX, VY, VZ, Den, Press, Temp = make_tree()
+folder = 'TDE'
+snap = '683'
+path = f'{folder}/{snap}'
+sim_tree, X, Y, Z, Vol, VX, VY, VZ, Den, Press, Temp = make_tree(path, snap)
 
 slice = np.logical_and(Z<z_chosen+delta, Z>z_chosen-delta)
 cross_x = X[slice]
@@ -48,9 +51,9 @@ ax.set_xlabel('X', fontsize = 14)
 ax.set_ylabel('Y', fontsize = 14)
 img = ax.scatter(cross_x, cross_y, c = logcross_den, cmap = 'jet')
 # ax.plot(zone_cross_x, zone_cross_y, 'ks', markerfacecolor='none', ms = 5, markeredgecolor='b')
-ax.plot(surf_cross_x, surf_cross_y, 'ks', markerfacecolor='none', ms = 5, markeredgecolor='k')
+#ax.plot(surf_cross_x, surf_cross_y, 'ks', markerfacecolor='none', ms = 5, markeredgecolor='k')
 cb = plt.colorbar(img)
 cb.set_label(r'$log_{10}$ Density', fontsize = 14)
 plt.title(f'Sedov blastwave, z = {z_chosen}')
-plt.savefig('dencrossect.png')
+plt.savefig('dencrossectTDE.png')
 plt.show()
