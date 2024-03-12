@@ -126,7 +126,7 @@ def select_near_1d(sim_tree, X, Y, Z, point, delta, coord):
         k += 0.1
         # check if you're going too long with these iterarions
         if k>100:
-            print('lots of iterations!', distance)
+            print('lots of iterations for div/grad!', distance)
             distance = 1
 
      return idx
