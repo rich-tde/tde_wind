@@ -54,6 +54,7 @@ def extractor(filename):
     IE = []
     T = []
     P = []
+    cs = []
     Star = []
     
     # Iterate over ranks
@@ -67,46 +68,48 @@ def extractor(filename):
             end_time = datetime.now()
             print('Duration: {}'.format(end_time - start_time))
             # For some reason, having the collumns into variables is way faster.
-            x_data = f[key]['CMx']
-            y_data = f[key]['CMy']
-            z_data = f[key]['CMz']
-            den_data = f[key]['Density']
+            # x_data = f[key]['CMx']
+            # y_data = f[key]['CMy']
+            # z_data = f[key]['CMz']
+            # den_data = f[key]['Density']
             
-            vx_data = f[key]['Vx']
-            vy_data = f[key]['Vy']
-            vz_data = f[key]['Vz']
-            vol_data = f[key]['Volume']
+            # vx_data = f[key]['Vx']
+            # vy_data = f[key]['Vy']
+            # vz_data = f[key]['Vz']
+            # vol_data = f[key]['Volume']
             
-            ie_data = f[key]['InternalEnergy']
+            # ie_data = f[key]['InternalEnergy']
             # rad_data = f[key]
-            T_data = f[key]['Temperature']
-            P_data = f[key]['Pressure']
-            star_data = f[key]['tracers']['Star']
+            # T_data = f[key]['Temperature']
+            # P_data = f[key]['Pressure']
+            cs_data = f[key]['SoundSpeed']
+            # star_data = f[key]['tracers']['Star']
 
-            for i in range(len(P_data)):
-                X.append(x_data[i])
-                Y.append(y_data[i])
-                Z.append(z_data[i])
-                Den.append(den_data[i])
-                Vx.append(vx_data[i])
-                Vy.append(vy_data[i])
-                Vz.append(vz_data[i])
-                Vol.append(vol_data[i])
-                IE.append(ie_data[i])
-                Mass.append(vol_data[i] * den_data[i])
-                T.append(T_data[i])
-                P.append(P_data[i])
-                Star.append(star_data[i])
+            for i in range(len(cs_data)):
+                # X.append(x_data[i])
+                # Y.append(y_data[i])
+                # Z.append(z_data[i])
+                # Den.append(den_data[i])
+                # Vx.append(vx_data[i])
+                # Vy.append(vy_data[i])
+                # Vz.append(vz_data[i])
+                # Vol.append(vol_data[i])
+                # IE.append(ie_data[i])
+                # Mass.append(vol_data[i] * den_data[i])
+                # T.append(T_data[i])
+                # P.append(P_data[i])
+                cs.append(cs_data[i])
+                # Star.append(star_data[i])
 
 
     # Close the file
     f.close()
-    return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, Star
+    return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, cs, Star
 
 if __name__ == '__main__':
-    name = '683'
-    path = f'TDE/{name}/snap_{name}'
-    X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, Star = extractor(f'{path}.h5')
+    name = '100'
+    path = f'sedov/{name}/snap_{name}'
+    X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, cs, Star = extractor(f'{path}.h5')
 
     # Save to another file.
     # np.save(f'{path}CMx', X)   
@@ -122,4 +125,5 @@ if __name__ == '__main__':
     # np.save(f'{path}T', T)
     # np.save(f'{path}P', P) 
     # np.save(f'{path}Star', Star) 
+    np.save(f'{path}cs', cs) 
             

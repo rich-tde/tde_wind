@@ -7,7 +7,7 @@ sys.path.append('/Users/paolamartire/shocks')
 import numpy as np
 import h5py
 from datetime import datetime
-snapshot881 = "data/sedov_100.h5"
+snapshot683 = "sedov/100/snap_100.h5"
 
 def h5printR(item, leading = ''):
     for key in item:
@@ -20,13 +20,13 @@ def h5printR(item, leading = ''):
 # Print structure of a `.h5` file            
 def h5print(filename):
     with h5py.File(filename, 'r') as h:
-        # print(filename)
-        # h5printR(h, '  ')
-        a = h['rank1']['Temperature']
-        for i in range(len(a)):
-            print(a[i])
+        print(filename)
+        h5printR(h, '  ')
+        # a = h['rank1']['Temperature']
+        # for i in range(len(a)):
+        #     print(a[i][0])
         
-h5print(snapshot881)
+h5print(snapshot683)
 
     
     
