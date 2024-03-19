@@ -58,7 +58,7 @@ import math
 
 #     return Xmask, Ymask, Zmask, Volmask, VXmask, VYmask, VZmask, Denmask, Pmask, Tmask
 
-def make_tree(filename, snap, is_tde):
+def make_tree(filename, snap, is_tde, int_energy = False):
     """ Load data from simulation and build the tree. """
     X = np.load(f'{filename}/CMx_{snap}.npy')
     Y = np.load(f'{filename}/CMy_{snap}.npy')
@@ -67,6 +67,9 @@ def make_tree(filename, snap, is_tde):
     VX = np.load(f'{filename}/Vx_{snap}.npy')
     VY = np.load(f'{filename}/Vy_{snap}.npy')
     VZ = np.load(f'{filename}/Vz_{snap}.npy')
+    if int_energy:
+        IE = np.load(f'{filename}/IE_{snap}.npy')
+        # Mass = np.load(f'{filename}/Mass_{snap}.npy')
     Den = np.load(f'{filename}/Den_{snap}.npy')
     P = np.load(f'{filename}/P_{snap}.npy')
     T = np.load(f'{filename}/T_{snap}.npy')
@@ -84,10 +87,13 @@ def make_tree(filename, snap, is_tde):
     sim_value = np.transpose(sim_value) #array of shape (number_points, 3)
     sim_tree = KDTree(sim_value) 
 
-    return sim_tree, X, Y, Z, Vol, VX, VY, VZ, Den, P, T
+    if int_energy:
+        return sim_tree, X, Y, Z, Vol, VX, VY, VZ, IE, Den, P, T
+    else: 
+        return sim_tree, X, Y, Z, Vol, VX, VY, VZ, Den, P, T
 
 def select_near_1d(sim_tree, X, Y, Z, point, delta, coord):
-     """ Find (within the tree) the nearest cell along one direction to the one chosen. 
+    """ Find (within the tree) the nearest cell along one direction to the one chosen. 
      Parameters
      -----------
      sim_tree: tree.
@@ -105,15 +111,15 @@ def select_near_1d(sim_tree, X, Y, Z, point, delta, coord):
      idx: int.
         Tree index of the queried nearest cell.
     """
-     x_point = point[0]
-     y_point = point[1]
-     z_point = point[2]
+    x_point = point[0]
+    y_point = point[1]
+    z_point = point[2]
 
-     # move in the choosen direction till you query in the tree a point different from the starting one.
-     # (i.e. its distance from the starting point is not 0)
-     k = 0.6
-     distance = 0
-     while np.abs(distance)<1e-5:
+    # move in the choosen direction till you query in the tree a point different from the starting one.
+    # (i.e. its distance from the starting point is not 0)
+    k = 0.6
+    distance = 0
+    while np.abs(distance)<1e-5:
         if coord == 'x':
                 new_point = [x_point + k * delta, y_point, z_point]
         elif coord == 'y':
@@ -124,12 +130,12 @@ def select_near_1d(sim_tree, X, Y, Z, point, delta, coord):
         check_point = np.array([X[idx], Y[idx], Z[idx]])
         distance = math.dist(point, check_point)
         k += 0.1
-        # check if you're going too long with these iterarions
+        # check if you're going too long with these iterations
         if k>100:
-            print('lots of iterations for div/grad!', distance)
+            print('lots of iterations for div/grad for point', point)
             distance = 1
-
-     return idx
+    
+    return idx
 
 def select_neighbours(sim_tree, X, Y, Z, point, delta, select):
     """ Find the previous (next) points in the 3 cartesian directions.
