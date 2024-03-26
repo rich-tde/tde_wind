@@ -131,7 +131,7 @@ def select_near_1d(sim_tree, X, Y, Z, point, delta, coord):
         check_point = np.array([X[idx], Y[idx], Z[idx]])
         distance = math.dist(point, check_point)
         k += 0.1
-        # check if you're going too long with these iterations
+        # check if you're going too long with these iterations. Exit from the loop (and you'll discard that point)
         if k > 100*hundreds:
             print(f'lots of iterations for div/grad in {coord} for point {point}. Skip')
             distance = 1
@@ -245,3 +245,38 @@ def calc_grad(sim_tree, X, Y, Z, f_tree, point, delta):
 
     grad = np.array([delta_fx, delta_fy, delta_fz])
     return grad
+
+def calc_multiple_grad(sim_tree, X, Y, Z, f_array, point, delta):
+    """ Find gradients of all the quantities you need."""
+    # Find tree indexes of the previous and next neighbours in all the directions.
+    prex, prey, prez = select_neighbours(sim_tree, X, Y, Z, point, delta, 'before')
+    postx, posty, postz = select_neighbours(sim_tree, X, Y, Z, point, delta, 'after')
+
+    # Find the coordinates in these points.
+    pre_xcoord = X[prex]
+    post_xcoord = X[postx]
+    pre_ycoord = Y[prey]
+    post_ycoord = Y[posty]
+    pre_zcoord = Z[prez]
+    post_zcoord = Z[postz]
+
+    # Find the values of f in these points.
+    gradients = []
+    for f_tree in f_array:
+        fpre_x = f_tree[prex]
+        fpost_x = f_tree[postx]
+
+        fpre_y = f_tree[prey]
+        fpost_y = f_tree[posty]
+
+        fpre_z = f_tree[prez]
+        fpost_z = f_tree[postz]
+
+        delta_fx = (fpost_x-fpre_x) / (post_xcoord-pre_xcoord)
+        delta_fy = (fpost_y-fpre_y)/ (post_ycoord-pre_ycoord)
+        delta_fz = (fpost_z-fpre_z) / (post_zcoord-pre_zcoord)
+
+        grad = np.array([delta_fx, delta_fy, delta_fz])
+        gradients.append(grad)
+
+    return gradients

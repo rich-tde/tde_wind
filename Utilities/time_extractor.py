@@ -26,7 +26,7 @@ import Utilities.prelude
 # box, cycle, time, mpi, rank0 ... rank99.
 # This iterates over all the ranks
 
-def days_since_distruption(filename):
+def days_since_distruption(filename, choose = 'day'):
     '''
     Loads the file, extracts specific kinetic and potential energies 
     
@@ -51,6 +51,9 @@ def days_since_distruption(filename):
     Mbh = 1e6 # * Msol
     time = np.array(f['Time'])
     days = time.sum()*t / (24*60*60)
+    t_fall = 40 * (Mbh/1e6)**(0.5) # days EMR+20 p13
+    if choose == 'tfb':
+        days /= t_fall
     return time, days
 
 
