@@ -119,7 +119,6 @@ def select_near_1d(sim_tree, X, Y, Z, point, delta, coord):
     # (i.e. its distance from the starting point is not 0)
     k = 0.6
     distance = 0
-    hundreds = 1
     while np.abs(distance)<1e-5:
         if coord == 'x':
                 new_point = [x_point + k * delta, y_point, z_point]
@@ -132,7 +131,7 @@ def select_near_1d(sim_tree, X, Y, Z, point, delta, coord):
         distance = math.dist(point, check_point)
         k += 0.1
         # check if you're going too long with these iterations. Exit from the loop (and you'll discard that point)
-        if k > 100*hundreds:
+        if k > 100:
             print(f'lots of iterations for div/grad in {coord} for point {point}. Skip')
             distance = 1
     

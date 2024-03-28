@@ -63,7 +63,7 @@ def shock_direction(grad_temp):
     return ds
  
 def find_prepost(sim_tree, X, Y, Z, point, ds, delta, direction):
-    """
+    """ Find the previous/next point along the shock direction.
     Parameters
     -----------
     point: array.
@@ -73,11 +73,11 @@ def find_prepost(sim_tree, X, Y, Z, point, ds, delta, direction):
     delta: float.
         Step to do to search.
     direction: str.
-        Choose pre or post shock.
+        Choose if you want to move towards the 'pre' or 'post' shock region.
     Returns
     -----------
     idx: int.
-        Index of the pre/post shock point
+        Tree index of the previous/next point along the shock direction.
     """
     if direction == 'post':
         delta = - delta
