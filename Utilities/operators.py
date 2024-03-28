@@ -8,6 +8,7 @@ import numpy as np
 from scipy.spatial import KDTree
 import h5py
 import math
+import Utilities.prelude as prel
 
 # def mask(X, Y, Z, Vol, VX, VY, VZ, Den, P, T, lim, kind, choose_coord):
 #     """ Mask the data to take a (symmetric) slice or a cross section.
@@ -67,16 +68,22 @@ def make_tree(filename, snap, is_tde, int_energy = False):
     VX = np.load(f'{filename}/Vx_{snap}.npy')
     VY = np.load(f'{filename}/Vy_{snap}.npy')
     VZ = np.load(f'{filename}/Vz_{snap}.npy')
+    Den = np.load(f'{filename}/Den_{snap}.npy')
+    # Mass = np.load(f'{filename}/Mass_{snap}.npy')
     if int_energy:
         IE = np.load(f'{filename}/IE_{snap}.npy')
-        # Mass = np.load(f'{filename}/Mass_{snap}.npy')
-    Den = np.load(f'{filename}/Den_{snap}.npy')
+        # convert from energy/mass to energy density
+        IE *= Den 
+        # if is_tde:
+        #     IE *= prel.en_den_converter
+             
     P = np.load(f'{filename}/P_{snap}.npy')
     T = np.load(f'{filename}/T_{snap}.npy')
     if all(T) == 0:
         print('all T=0, bro. Compute by myself!')
         T = P/Den
     if is_tde:
+        #Den *= prel.den_converter
         Star = np.load(f'{filename}/Star_{snap}.npy')
         for i,den in enumerate(Den):
             cell_star = Star[i]
