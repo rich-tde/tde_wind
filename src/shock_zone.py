@@ -16,13 +16,21 @@ from Utilities.time_extractor import days_since_distruption
 gamma = 5/3
 mach_min = 1.3
 save = True
-m = 6
-snap = '196'
-path = f'TDE/{snap}'
-is_tde = True
-Mbh = 10**m 
-Rt =  Mbh**(1/3) # Msol = 1, Rsol = 1
-apocenter = 2 * Rt * Mbh**(1/3)
+snap = 'final'
+folder = 'sedov'
+path = f'{folder}/{snap}'
+if folder == 'TDE':
+    is_tde = False
+    m = 6
+    Mbh = 10**m 
+    Rt =  Mbh**(1/3) # Msol = 1, Rsol = 1
+    apocenter = 2 * Rt * Mbh**(1/3)
+    delta_cs = 2
+else:
+    is_tde = False
+    apocenter = 1
+    delta_cs = 0.02
+
 
 ##
 # FUNCTIONS
@@ -156,7 +164,10 @@ def shock_zone(divv, gradT, gradrho, cond3):
 ##
     
 if __name__ == '__main__':
-    _, days = days_since_distruption(f'{path}/snap_{snap}.h5', 'tfb')
+    if folder == 'TDE':
+        _, days = days_since_distruption(f'{path}/snap_{snap}.h5', 'tfb')
+    else:
+        time, _ = days_since_distruption(f'{path}/snap_{snap}.h5')
     sim_tree, X, Y, Z, Vol, VX, VY, VZ, Den, Press, Temp = make_tree(path, snap, is_tde)
     print('Tree built')
     dim_cell = (3*Vol/(4*np.pi))**(1/3)
@@ -250,19 +261,25 @@ if __name__ == '__main__':
             pickle.dump(are_u_shock, filebool)
         
     cross_sec = 0
-    delta_cs = 2
 
     # Plotting
     plt.figure(figsize=(14,7))
-    img = plt.scatter(X[::200]/apocenter, Y[::200]/apocenter, c = np.log10(Temp[::200]), alpha = 0.5)#, vmin = 2, vmax = 8)
-    cbar = plt.colorbar(img)
-    cbar.set_label(r'$\log_{10}$Temperature', fontsize = 18)
-    plt.plot(X_shock/apocenter, Y_shock/apocenter, 'ks',  markerfacecolor='none', ms=5, markeredgecolor='k', label = 'shock zone')
-    plt.xlabel(r'X [x/$R_a$]', fontsize = 18)
-    plt.ylabel(r'Y [x/$R_a$]', fontsize = 18)
-    plt.ylim(-0.3, 0.2)
-    plt.xlim(-1,0.05)
-    plt.title(r'Shock zone (projection) t/t$_{fb}$= ' + f'{np.round(days,3)}', fontsize = 18)
+    plt.plot(X_shock[np.abs(Z_shock-cross_sec)<delta_cs]/apocenter, Y_shock[np.abs(Z_shock-cross_sec)<delta_cs]/apocenter, 'ks',  markerfacecolor='none', ms=5, markeredgecolor='k', label = 'shock zone')
+    if folder == 'sedov':
+        plt.xlabel(r'X [x]', fontsize = 18)
+        plt.ylabel(r'Y [y]', fontsize = 18)
+        plt.xlim(-1.1, 1.1)
+        plt.ylim(-1.1, 1.1)
+        plt.title(r'Shock zone (projection) t= ' + f'{np.round(time,5)}', fontsize = 18)
+    else:
+        img = plt.scatter(X[::200]/apocenter, Y[::200]/apocenter, c = np.log10(Temp[::200]), alpha = 0.5)#, vmin = 2, vmax = 8)
+        cbar = plt.colorbar(img)
+        cbar.set_label(r'$\log_{10}$Temperature', fontsize = 18)
+        plt.xlabel(r'X [x/$R_a$]', fontsize = 18)
+        plt.ylabel(r'Y [y/$R_a$]', fontsize = 18)
+        plt.xlim(-1,0.05)
+        plt.ylim(-0.3, 0.2)
+        plt.title(r'Shock zone (projection) t/t$_{fb}$= ' + f'{np.round(days,5)}', fontsize = 18)
     plt.grid()
     if save:
         plt.savefig(f'Figs/{snap}/shockzone_{snap}.png')

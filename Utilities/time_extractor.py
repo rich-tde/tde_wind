@@ -50,7 +50,8 @@ def days_since_distruption(filename, choose = 'day'):
     t = np.sqrt(Rsol**3 / (Msol*G )) # Follows from G=1
     Mbh = 1e6 # * Msol
     time = np.array(f['Time'])
-    days = time.sum()*t / (24*60*60)
+    time = time.sum()
+    days = time*t / (24*60*60)
     t_fall = 40 * (Mbh/1e6)**(0.5) # days EMR+20 p13
     if choose == 'tfb':
         days /= t_fall
@@ -89,7 +90,7 @@ def days_since_distruption(filename, choose = 'day'):
 #%%
 if __name__ == '__main__':
     # days322 = linear_fit_days(322)
-    time = days_since_distruption('sedov/100/sedov_100.h5')
+    time, _ = days_since_distruption('sedov/100/snap_100.h5')
     print(time)
         
     
