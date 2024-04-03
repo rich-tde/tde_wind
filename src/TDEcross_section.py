@@ -24,7 +24,7 @@ snap = '196'
 path = f'{folder}/{snap}'
 time, tfb = days_since_distruption(f'{path}/snap_{snap}.h5', choose = 'tfb')
 
-sim_tree, X, Y, Z, Vol, VX, VY, VZ, Den, Press, Temp = make_tree(path, snap, is_tde)
+sim_tree, X, Y, Z, Vol, VX, VY, VZ, Den, Press, Temp = make_tree(path, snap, is_tde, int_energy=False)
 
 
 z_chosen = 0
