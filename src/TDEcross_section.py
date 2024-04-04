@@ -26,7 +26,6 @@ time, tfb = days_since_distruption(f'{path}/snap_{snap}.h5', choose = 'tfb')
 
 sim_tree, X, Y, Z, Vol, VX, VY, VZ, Den, Press, Temp = make_tree(path, snap, is_tde, int_energy=False)
 
-
 z_chosen = 0
 delta = 0.3
 cross_x = X[np.abs(Z-z_chosen)<delta]
