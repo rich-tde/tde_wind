@@ -52,12 +52,14 @@ def extractor(filename):
     IE = []
     T = []
     P = []
+    
     DrhoDx = []
     DrhoDy = []
     DrhoDz = []
     DrhoDxLimited = []
     DrhoDyLimited =[]
     DrhoDzLimited = []
+
     DpDx = []
     DpDy = []
     DpDz = []
