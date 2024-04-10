@@ -52,6 +52,7 @@ def extractor(filename):
     IE = []
     T = []
     P = []
+    Diss = []
     
     DrhoDx = []
     DrhoDy = []
@@ -78,25 +79,20 @@ def extractor(filename):
             # Skip whatever is not a mpi rank
             continue
         else:
-            # Sanity Check
-            # Timing
-            end_time = datetime.now()
-            print('Duration: {}'.format(end_time - start_time))
-
             x_data = f[key]['CMx']
             y_data = f[key]['CMy']
             z_data = f[key]['CMz']
             den_data = f[key]['Density']
-            
             vx_data = f[key]['Vx']
             vy_data = f[key]['Vy']
             vz_data = f[key]['Vz']
             vol_data = f[key]['Volume']
-            
             ie_data = f[key]['InternalEnergy']
             rad_data = f[key]
             T_data = f[key]['Temperature']
             P_data = f[key]['Pressure']
+            Diss_data = f[key]['Dissipation']
+
             DrhoDx_data = f[key]['DrhoDx']
             DrhoDy_data = f[key]['DrhoDy']
             DrhoDz_data = f[key]['DrhoDz']
@@ -116,6 +112,9 @@ def extractor(filename):
             # star_data = f[key]['tracers']['Star']
 
             for i in range(len(x_data)):
+                if i%20_000 == 0:
+                    print(i)
+                    
                 X.append(x_data[i])
                 Y.append(y_data[i])
                 Z.append(z_data[i])
@@ -128,6 +127,8 @@ def extractor(filename):
                 Mass.append(vol_data[i] * den_data[i])
                 T.append(T_data[i])
                 P.append(P_data[i])
+                Diss.append(Diss_data[i])
+
                 DrhoDx.append(DrhoDx_data[i])
                 DrhoDy.append(DrhoDy_data[i])
                 DrhoDz.append(DrhoDz_data[i])
@@ -149,12 +150,12 @@ def extractor(filename):
 
     # Close the file
     f.close()
-    return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited
+    return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss
 
 if __name__ == '__main__':
-    name = '100'
-    path = f'sedov/{name}/'
-    X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited = extractor(f'snap_100_grad.h5')
+    name = '196'
+    path = f'TDE/{name}/'
+    X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss = extractor(f'{path}/snap_{name}_grad.h5')
 
     # Save to another file.
     np.save(f'{path}CMx_{name}', X)   
@@ -169,6 +170,7 @@ if __name__ == '__main__':
     np.save(f'{path}IE_{name}', IE) 
     np.save(f'{path}T_{name}', T)
     np.save(f'{path}P_{name}', P) 
+    np.save(f'{path}Diss_{name}', Diss) 
 
     np.save(f'{path}DrhoDx_{name}', DrhoDx)   
     np.save(f'{path}DrhoDy_{name}', DrhoDy) 

@@ -59,7 +59,7 @@ import Utilities.prelude as prel
 
 #     return Xmask, Ymask, Zmask, Volmask, VXmask, VYmask, VZmask, Denmask, Pmask, Tmask
 
-def make_tree(filename, snap, is_tde, int_energy = False):
+def make_tree(filename, snap, is_tde, energy = False):
     """ Load data from simulation and build the tree. """
     X = np.load(f'{filename}/CMx_{snap}.npy')
     Y = np.load(f'{filename}/CMy_{snap}.npy')
@@ -70,12 +70,13 @@ def make_tree(filename, snap, is_tde, int_energy = False):
     VZ = np.load(f'{filename}/Vz_{snap}.npy')
     Den = np.load(f'{filename}/Den_{snap}.npy')
     # Mass = np.load(f'{filename}/Mass_{snap}.npy')
-    if int_energy:
+    if energy:
         IE = np.load(f'{filename}/IE_{snap}.npy')
         # convert from energy/mass to energy density
         IE *= Den 
         # if is_tde:
         #     IE *= prel.en_den_converter
+        Diss = np.load(f'{filename}/Diss_{snap}.npy')
              
     P = np.load(f'{filename}/P_{snap}.npy')
     T = np.load(f'{filename}/T_{snap}.npy')
@@ -94,8 +95,8 @@ def make_tree(filename, snap, is_tde, int_energy = False):
     sim_value = np.transpose(sim_value) #array of shape (number_points, 3)
     sim_tree = KDTree(sim_value) 
 
-    if int_energy:
-        return sim_tree, X, Y, Z, Vol, VX, VY, VZ, IE, Den, P, T
+    if energy:
+        return sim_tree, X, Y, Z, Vol, VX, VY, VZ, IE, Den, P, T, Diss
     else: 
         return sim_tree, X, Y, Z, Vol, VX, VY, VZ, Den, P, T
 
