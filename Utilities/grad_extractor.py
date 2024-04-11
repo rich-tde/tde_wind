@@ -17,7 +17,7 @@ import os
 # This iterates over all the ranks
 
 
-def extractor(filename):
+def extractor(folder, filename):
     '''
     Loads the file, extracts quantites from it. 
     '''
@@ -71,7 +71,7 @@ def extractor(filename):
     divV = []
     divVLimited = []
 
-    #Star = []
+    Star = []
     
     # Iterate over ranks
     for key in keys:
@@ -109,7 +109,8 @@ def extractor(filename):
 
             divV_data = f[key]['divV']
             divVLimited_data = f[key]['divVLimited']
-            # star_data = f[key]['tracers']['Star']
+            if folder == 'TDE':
+                star_data = f[key]['tracers']['Star']
 
             for i in range(len(x_data)):
                 if i%20_000 == 0:
@@ -145,17 +146,26 @@ def extractor(filename):
 
                 divV.append(divV_data[i])
                 divVLimited.append(divVLimited_data[i])
-                # Star.append(star_data[i]) #mass of the disrupted star for TDE
+                if folder == 'TDE':
+                    Star.append(star_data[i]) #mass of the disrupted star for TDE
 
 
     # Close the file
     f.close()
-    return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss
+    if folder == 'TDE':
+        return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star
+    else:
+        return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss
 
 if __name__ == '__main__':
     name = '196'
-    path = f'TDE/{name}/'
-    X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss = extractor(f'{path}/snap_{name}_grad.h5')
+    folder = 'TDE'
+    path = f'{folder}/{name}/'
+    
+    if folder == 'TDE':
+        X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star = extractor(folder, f'{path}/snap_{name}_grad.h5')
+    else:
+        X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss = extractor(folder, f'{path}/snap_{name}_grad.h5')
 
     # Save to another file.
     np.save(f'{path}CMx_{name}', X)   
@@ -189,5 +199,6 @@ if __name__ == '__main__':
     np.save(f'{path}DivV_{name}', divV) 
     np.save(f'{path}divVLimited_{name}', divVLimited) 
 
-    # np.save(f'{path}Star_{name}', Star) 
+    if folder == 'TDE':
+        np.save(f'{path}Star_{name}', Star) 
             

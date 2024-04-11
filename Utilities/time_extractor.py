@@ -90,8 +90,8 @@ def days_since_distruption(filename, choose = 'day'):
 #%%
 if __name__ == '__main__':
     # days322 = linear_fit_days(322)
-    time, _ = days_since_distruption('sedov/100/snap_100.h5')
-    print(time)
+    time, _ = days_since_distruption('snap_195.h5')
+    #print(time)
         
     
     
