@@ -53,9 +53,10 @@ def make_tree(filename, snap, is_tde, energy = False):
         return sim_tree, X, Y, Z, Vol, VX, VY, VZ, Den, P, T
 
 
-def f_interp(sim_tree, f_tree, X, Y, Z, point):
+def f_interp(tree, f_tree, X, Y, Z, point):
     """ Interpolate a function using the 4 nearest points. """
-    idx_neigh, _ = sim_tree.query(point, k = 4)
+    _, idx_neigh = tree.query(point, k = 4)
+    idx_neigh = np.array([int(i) for i in idx_neigh])
     x_tointerp = X[idx_neigh]
     y_tointerp = Y[idx_neigh]
     z_tointerp = Z[idx_neigh]

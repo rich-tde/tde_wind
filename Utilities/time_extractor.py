@@ -26,7 +26,7 @@ import Utilities.prelude
 # box, cycle, time, mpi, rank0 ... rank99.
 # This iterates over all the ranks
 
-def days_since_distruption(filename, choose = 'day'):
+def days_since_distruption(filename, m=0, choose = 'day'):
     '''
     Loads the file, extracts specific kinetic and potential energies 
     
@@ -48,7 +48,7 @@ def days_since_distruption(filename, choose = 'day'):
     Msol = 1.98847e30 # kg
     Rsol = 6.957e8 # m
     t = np.sqrt(Rsol**3 / (Msol*G )) # Follows from G=1
-    Mbh = 1e6 # * Msol
+    Mbh = 10**m # * Msol
     time = np.array(f['Time'])
     time = time.sum()
     days = time*t / (24*60*60)
@@ -90,8 +90,9 @@ def days_since_distruption(filename, choose = 'day'):
 #%%
 if __name__ == '__main__':
     # days322 = linear_fit_days(322)
-    time, _ = days_since_distruption('snap_195.h5')
-    #print(time)
+    m = 5
+    time, days = days_since_distruption('TDE/196/snap_196.h5', m)
+    print(time, days)
         
     
     
