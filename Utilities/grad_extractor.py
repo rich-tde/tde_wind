@@ -27,18 +27,8 @@ def extractor(folder, filename):
     f = h5py.File(filename, "r")
     # HDF5 are dicts, get the keys.
     keys = f.keys() 
-    # List to store the length of each rank
-    lengths = []
     # List with keys that don't hold relevant data
     not_ranks = ['Box', 'Cycle', 'Time', 'mpi']
-    
-    for key in keys:
-        if key in not_ranks:
-            # Skip whatever is not a mpi rank
-            continue
-        else:
-            # Store the length of the dataset
-            lengths.append(len(f[key]['X']))
     
     X = []
     Y = []
@@ -72,6 +62,7 @@ def extractor(folder, filename):
     divVLimited = []
 
     Star = []
+    Entropy = []
     
     # Iterate over ranks
     for key in keys:
@@ -88,7 +79,6 @@ def extractor(folder, filename):
             vz_data = f[key]['Vz']
             vol_data = f[key]['Volume']
             ie_data = f[key]['InternalEnergy']
-            rad_data = f[key]
             T_data = f[key]['Temperature']
             P_data = f[key]['Pressure']
             Diss_data = f[key]['Dissipation']
@@ -106,13 +96,14 @@ def extractor(folder, filename):
             DpDxLimited_data = f[key]['DpDxLimited']
             DpDyLimited_data = f[key]['DpDyLimited']
             DpDzLimited_data = f[key]['DpDzLimited']
-
             divV_data = f[key]['divV']
             divVLimited_data = f[key]['divVLimited']
+            
             if folder == 'TDE':
                 star_data = f[key]['tracers']['Star']
+                entropy_data = f[key]['tracers']['Entropy']
 
-            for i in range(len(x_data)):
+            for i in range(len(entropy_data)):
                 if i%20_000 == 0:
                     print(i)
                     
@@ -146,14 +137,16 @@ def extractor(folder, filename):
 
                 divV.append(divV_data[i])
                 divVLimited.append(divVLimited_data[i])
+
                 if folder == 'TDE':
                     Star.append(star_data[i]) #mass of the disrupted star for TDE
+                    Entropy.append(entropy_data[i]) 
 
 
     # Close the file
     f.close()
     if folder == 'TDE':
-        return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star
+        return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star, Entropy
     else:
         return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss
 
@@ -163,7 +156,7 @@ if __name__ == '__main__':
     path = f'{folder}/{name}/'
     
     if folder == 'TDE':
-        X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star = extractor(folder, f'{path}/snap_{name}_grad.h5')
+        X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star, Entropy = extractor(folder, f'{path}/snap_{name}_grad.h5')
     else:
         X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss = extractor(folder, f'{path}/snap_{name}_grad.h5')
 
@@ -201,4 +194,5 @@ if __name__ == '__main__':
 
     if folder == 'TDE':
         np.save(f'{path}Star_{name}', Star) 
-            
+        np.save(f'{path}Entropy_{name}', Entropy) 
+

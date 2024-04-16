@@ -91,7 +91,7 @@ def days_since_distruption(filename, m=0, choose = 'day'):
 if __name__ == '__main__':
     # days322 = linear_fit_days(322)
     m = 5
-    time, days = days_since_distruption('TDE/196/snap_196.h5', m)
+    time, days = days_since_distruption('TDE/196/snap_196.h5', m, 'tfb')
     print(time, days)
         
     

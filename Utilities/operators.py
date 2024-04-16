@@ -77,6 +77,7 @@ def make_tree(filename, snap, is_tde, energy = False):
         # if is_tde:
         #     IE *= prel.en_den_converter
         Diss = np.load(f'{filename}/Diss_{snap}.npy')
+        Entropy = np.load(f'{filename}/Entropy_{snap}.npy')
              
     P = np.load(f'{filename}/P_{snap}.npy')
     T = np.load(f'{filename}/T_{snap}.npy')
@@ -96,7 +97,7 @@ def make_tree(filename, snap, is_tde, energy = False):
     sim_tree = KDTree(sim_value) 
 
     if energy:
-        return sim_tree, X, Y, Z, Vol, VX, VY, VZ, IE, Den, P, T, Diss
+        return sim_tree, X, Y, Z, Vol, VX, VY, VZ, IE, Den, P, T, Diss, Entropy
     else: 
         return sim_tree, X, Y, Z, Vol, VX, VY, VZ, Den, P, T
 
