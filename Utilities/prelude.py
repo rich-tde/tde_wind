@@ -33,7 +33,6 @@ import matplotlib.pyplot as plt
 import colorcet
 mpl.rcParams['figure.dpi'] = 100
 plt.rcParams['text.usetex'] = True
-plt.rcParams['figure.dpi'] = 300
 plt.rcParams['figure.figsize'] = [8 , 6]
 plt.rcParams['font.family'] = 'Times New Roman'
 plt.rcParams['axes.facecolor']= 'whitesmoke'
