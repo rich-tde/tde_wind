@@ -5,12 +5,10 @@ import sys
 sys.path.append('/Users/paolamartire/shocks')
 
 import numpy as np
-#from scipy.spatial import KDTree
+from scipy.spatial import KDTree
 import h5py
 import math
 import Utilities.prelude as prel
-import numba
-from numba_kdtree import KDTree
 
 # def mask(X, Y, Z, Vol, VX, VY, VZ, Den, P, T, lim, kind, choose_coord):
 #     """ Mask the data to take a (symmetric) slice or a cross section.
