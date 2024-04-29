@@ -80,7 +80,7 @@ def extractor(filename):
             ie_data = f[key]['InternalEnergy']
             T_data = f[key]['Temperature']
             P_data = f[key]['Pressure']
-            cs_data = f[key]['SoundSpeed']
+            #cs_data = f[key]['SoundSpeed']
             star_data = f[key]['tracers']['Star']
             entropy_data = f[key]['tracers']['Entropy']
 
@@ -97,20 +97,20 @@ def extractor(filename):
                 Mass.append(vol_data[i] * den_data[i])
                 T.append(T_data[i])
                 P.append(P_data[i])
-                cs.append(cs_data[i])
+                #cs.append(cs_data[i])
                 Star.append(star_data[i]) #mass of the disrupted star for TDE
                 Entropy.append(entropy_data[i])
 
 
     # Close the file
     f.close()
-    return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, cs, Star, Entropy
+    return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, Star, Entropy
 
 if __name__ == '__main__':
-    name = '196'
+    name = '210'
     path = 'TDE'
     path = f'{path}/{name}/'
-    X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, cs, Star, Entropy = extractor(f'{path}snap_{name}.h5')
+    X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, Star, Entropy = extractor(f'{path}snap_{name}.h5')
 
     # Save to another file.
     np.save(f'{path}CMx_{name}', X)   
@@ -125,7 +125,7 @@ if __name__ == '__main__':
     np.save(f'{path}IE_{name}', IE) 
     np.save(f'{path}T_{name}', T)
     np.save(f'{path}P_{name}', P) 
-    np.save(f'{path}cs_{name}', cs) 
+    # np.save(f'{path}cs_{name}', cs) 
     np.save(f'{path}Star_{name}', Star) 
     np.save(f'{path}Entropy_{name}', Entropy) 
                 
