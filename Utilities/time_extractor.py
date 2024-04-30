@@ -53,6 +53,7 @@ def days_since_distruption(filename, m=0, choose = 'day'):
     time = time.sum()
     days = time*t / (24*60*60)
     t_fall = 40 * (Mbh/1e6)**(0.5) # days EMR+20 p13
+    print(f'days after disruption: {days}, t_fall: {t_fall}')
     if choose == 'tfb':
         days /= t_fall
     return time, days
@@ -92,7 +93,7 @@ if __name__ == '__main__':
     # days322 = linear_fit_days(322)
     m = 5
     time, days = days_since_distruption('TDE/196/snap_196.h5', m, 'tfb')
-    print(time, days)
+    print(f'in simualtion time: {time}, in our time: {days}')
         
     
     
