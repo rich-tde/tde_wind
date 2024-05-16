@@ -87,17 +87,17 @@ def make_tree(filename, snap, is_tde, energy = False):
     if is_tde:
         #Den *= prel.den_converter
         Star = np.load(f'{filename}/Star_{snap}.npy')
-        for i,den in enumerate(Den):
+        for i,rho in enumerate(Den):
             cell_star = Star[i]
             if ((1-cell_star) > 1e-3):
-                den = 0 
+                rho = 0 
 
     sim_value = [X, Y, Z] 
     sim_value = np.transpose(sim_value) #array of shape (number_points, 3)
     sim_tree = KDTree(sim_value) 
 
     if energy:
-        return sim_tree, X, Y, Z, Vol, VX, VY, VZ, IE, Den, P, T, Diss, Entropy
+        return sim_tree, X, Y, Z, Vol, VX, VY, VZ, Den, P, T, IE, Diss, Entropy
     else: 
         return sim_tree, X, Y, Z, Vol, VX, VY, VZ, Den, P, T
 
