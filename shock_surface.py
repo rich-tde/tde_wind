@@ -194,16 +194,13 @@ def shock_surface(sim_tree, X, Y, Z, Temp, Press, Den, are_u_shock, x_zone, y_zo
     (output: indeces referring to the shockzonefile) 
     and its pre/post shock cells (output: tree indeces).
     """
-    surface_Tmach = []
-    surface_Pmach = []
-    surface_Denmach = []
+    print((len(x_zone)))
     # loop over all the cells in the shock zone
     with Pool() as pool:
         args = [(i, sim_tree, X, Y, Z, Temp, are_u_shock, x_zone, y_zone, z_zone, all_idx, div, dir) for i in range(len(x_zone))]
         results = pool.starmap(parallel_tracer, args)
 
     results = [i for i in results if i != None]
-    print(results)
     results = np.transpose(results)
     indeces = results[0]
     indeces_pre = results[1]
