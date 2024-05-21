@@ -107,7 +107,7 @@ def extractor(filename):
     return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, Star, Entropy
 
 if __name__ == '__main__':
-    name = '210'
+    name = '196'
     path = 'TDE'
     path = f'{path}/{name}/'
     X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, Star, Entropy = extractor(f'{path}snap_{name}.h5')
