@@ -27,18 +27,8 @@ def extractor(filename):
     f = h5py.File(filename, "r")
     # HDF5 are dicts, get the keys.
     keys = f.keys() 
-    # List to store the length of each rank
-    lengths = []
     # List with keys that don't hold relevant data
     not_ranks = ['Box', 'Cycle', 'Time', 'mpi']
-    
-    for key in keys:
-        if key in not_ranks:
-            # Skip whatever is not a mpi rank
-            continue
-        else:
-            # Store the length of the dataset
-            lengths.append(len(f[key]['X']))
     
     X = []
     Y = []
@@ -107,7 +97,7 @@ def extractor(filename):
     return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, Star, Entropy
 
 if __name__ == '__main__':
-    name = '260'
+    name = '250'
     path = 'TDE'
     path = f'{path}/{name}/'
     X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, Star, Entropy = extractor(f'{path}snap_{name}.h5')

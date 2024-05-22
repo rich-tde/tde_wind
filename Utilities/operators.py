@@ -69,7 +69,7 @@ def make_tree(filename, snap, is_tde, energy = False):
     VY = np.load(f'{filename}/Vy_{snap}.npy')
     VZ = np.load(f'{filename}/Vz_{snap}.npy')
     Den = np.load(f'{filename}/Den_{snap}.npy')
-    # Mass = np.load(f'{filename}/Mass_{snap}.npy')
+    Mass = np.load(f'{filename}/Mass_{snap}.npy')
     if energy:
         IE = np.load(f'{filename}/IE_{snap}.npy')
         # convert from energy/mass to energy density
@@ -97,9 +97,9 @@ def make_tree(filename, snap, is_tde, energy = False):
     sim_tree = KDTree(sim_value) 
 
     if energy:
-        return sim_tree, X, Y, Z, Vol, VX, VY, VZ, Den, P, T, IE, Diss, Entropy
+        return sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, IE, Diss, Entropy
     else: 
-        return sim_tree, X, Y, Z, Vol, VX, VY, VZ, Den, P, T
+        return sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T
 
 def select_near_1d(sim_tree, X, Y, Z, point, delta, coord):
     """ Find (within the tree) the nearest cell along one direction to the one chosen. 

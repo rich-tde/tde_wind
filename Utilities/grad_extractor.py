@@ -151,7 +151,7 @@ def extractor(folder, filename):
         return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss
 
 if __name__ == '__main__':
-    name = '265'
+    name = '196'
     folder = 'TDE'
     path = f'{folder}/{name}/'
     
@@ -195,4 +195,6 @@ if __name__ == '__main__':
     if folder == 'TDE':
         np.save(f'{path}Star_{name}', Star) 
         np.save(f'{path}Entropy_{name}', Entropy) 
+    
+    print('Done')
 
