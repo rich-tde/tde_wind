@@ -6,6 +6,9 @@ Created on Fri Feb 24 17:06:56 2023
 import sys
 sys.path.append('/Users/paolamartire/shocks')
 
+from Utilities.isalice import isalice
+alice, plot = isalice()
+
 import numpy as np
 import h5py
 from datetime import datetime
