@@ -154,7 +154,7 @@ def extractor(folder, filename):
         return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss
 
 if __name__ == '__main__':
-    name = '196'
+    name = '150'
     folder = 'TDE'
     path = f'{folder}/{name}/'
     
