@@ -17,7 +17,7 @@ import h5py
 # box, cycle, time, mpi, rank0 ... rank99.
 # This iterates over all the ranks
 
-def extractor(folder, filename):
+def extractor(filename):
     '''
     Loads the file, extracts quantites from it. 
     '''
@@ -97,11 +97,10 @@ def extractor(folder, filename):
             divV_data = f[key]['divV']
             divVLimited_data = f[key]['divVLimited']
             
-            if folder == 'TDE':
-                star_data = f[key]['tracers']['Star']
-                entropy_data = f[key]['tracers']['Entropy']
+            star_data = f[key]['tracers']['Star']
+            entropy_data = f[key]['tracers']['Entropy']
 
-            for i in range(len(entropy_data)):
+            for i in range(len(x_data)):
                 if i%20_000 == 0:
                     print(i)
                     
@@ -136,17 +135,13 @@ def extractor(folder, filename):
                 divV.append(divV_data[i])
                 divVLimited.append(divVLimited_data[i])
 
-                if folder == 'TDE':
-                    Star.append(star_data[i]) #mass of the disrupted star for TDE
-                    Entropy.append(entropy_data[i]) 
+                Star.append(star_data[i]) #mass of the disrupted star for TDE
+                Entropy.append(entropy_data[i]) 
 
 
     # Close the file
     f.close()
-    if folder == 'TDE':
-        return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star, Entropy
-    else:
-        return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss
+    return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss
 
 if __name__ == '__main__':
     name = '150'
@@ -157,11 +152,8 @@ if __name__ == '__main__':
         path = f'{sim}/{name}/'
     file = f'{path}/snap_{name}_grad.h5'
     
-    if sim == 'TDE':
-        X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star, Entropy = extractor(path, file)
-    else:
-        X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss = extractor(path, file)
-
+    X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star, Entropy = extractor(file)
+    
     # Save to another file.
     np.save(f'{path}CMx_{name}', X)   
     np.save(f'{path}CMy_{name}', Y) 
