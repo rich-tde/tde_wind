@@ -3,29 +3,23 @@ Created on Fri Feb 24 17:06:56 2023
 
 @author: konstantinos, paola 
 """
-import sys
-sys.path.append('/Users/paolamartire/shocks')
-
 from Utilities.isalice import isalice
 alice, plot = isalice()
+if not alice:
+    import sys
+    sys.path.append('/Users/paolamartire/shocks')
 
 import numpy as np
 import h5py
-from datetime import datetime
-import os
-
 
 ## File structure is
 # box, cycle, time, mpi, rank0 ... rank99.
 # This iterates over all the ranks
 
-
 def extractor(folder, filename):
     '''
     Loads the file, extracts quantites from it. 
     '''
-    # Timing start
-    start_time = datetime.now()
     # Read File
     f = h5py.File(filename, "r")
     # HDF5 are dicts, get the keys.
@@ -155,13 +149,17 @@ def extractor(folder, filename):
 
 if __name__ == '__main__':
     name = '150'
-    folder = 'TDE'
-    path = f'{folder}/{name}/'
+    sim = 'TDE'
+    if alice:
+        path = f'/data1/martirep/shocks/{sim}/{name}/'
+    else: 
+        path = f'{sim}/{name}/'
+    file = f'{path}/snap_{name}_grad.h5'
     
-    if folder == 'TDE':
-        X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star, Entropy = extractor(folder, f'{path}/snap_{name}_grad.h5')
+    if sim == 'TDE':
+        X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star, Entropy = extractor(path, file)
     else:
-        X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss = extractor(folder, f'{path}/snap_{name}_grad.h5')
+        X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss = extractor(path, file)
 
     # Save to another file.
     np.save(f'{path}CMx_{name}', X)   
@@ -195,7 +193,7 @@ if __name__ == '__main__':
     np.save(f'{path}DivV_{name}', divV) 
     np.save(f'{path}divVLimited_{name}', divVLimited) 
 
-    if folder == 'TDE':
+    if sim == 'TDE':
         np.save(f'{path}Star_{name}', Star) 
         np.save(f'{path}Entropy_{name}', Entropy) 
     
