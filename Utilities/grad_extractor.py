@@ -148,9 +148,9 @@ if __name__ == '__main__':
     name = '150'
     sim = 'TDE'
     if alice:
-        path = f'/data1/martirep/shocks/{sim}/{name}/'
+        path = f'/data1/martirep/shocks/{sim}/{name}'
     else: 
-        path = f'{sim}/{name}/'
+        path = f'{sim}/{name}'
     file = f'{path}/snap_{name}_grad.h5'
     
     X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star, Entropy = extractor(file)
