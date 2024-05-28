@@ -26,7 +26,7 @@ import Utilities.prelude
 # box, cycle, time, mpi, rank0 ... rank99.
 # This iterates over all the ranks
 
-def days_since_distruption(filename, m=0, choose = 'day'):
+def days_since_distruption(filename, m, mstar, rstar, choose = 'day'):
     '''
     Loads the file, extracts specific kinetic and potential energies 
     
@@ -52,7 +52,7 @@ def days_since_distruption(filename, m=0, choose = 'day'):
     time = np.array(f['Time'])
     time = time.sum()
     days = time*t / (24*60*60)
-    t_fall = 40 * (Mbh/1e6)**(0.5) # days EMR+20 p13
+    t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(rstar, 3/2)
     print(f'days after disruption: {days}, t_fall: {t_fall}')
     if choose == 'tfb':
         days /= t_fall
