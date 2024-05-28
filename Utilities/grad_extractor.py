@@ -22,6 +22,7 @@ def extractor(filename):
     Loads the file, extracts quantites from it. 
     '''
     # Read File
+    print(f'Extracting from {filename}')
     f = h5py.File(filename, "r")
     # HDF5 are dicts, get the keys.
     keys = f.keys() 
