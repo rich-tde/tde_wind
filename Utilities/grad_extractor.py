@@ -142,7 +142,7 @@ def extractor(filename):
 
     # Close the file
     f.close()
-    return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss
+    return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star, Entropy
 
 if __name__ == '__main__':
     name = '150'
@@ -187,9 +187,8 @@ if __name__ == '__main__':
     np.save(f'{path}DivV_{name}', divV) 
     np.save(f'{path}divVLimited_{name}', divVLimited) 
 
-    if sim == 'TDE':
-        np.save(f'{path}Star_{name}', Star) 
-        np.save(f'{path}Entropy_{name}', Entropy) 
+    np.save(f'{path}Star_{name}', Star) 
+    np.save(f'{path}Entropy_{name}', Entropy) 
     
     print('Done')
 
