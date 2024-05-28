@@ -145,50 +145,51 @@ def extractor(filename):
     return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star, Entropy
 
 if __name__ == '__main__':
-    name = '150'
-    sim = 'TDE'
-    if alice:
-        path = f'/data1/martirep/shocks/{sim}/{name}'
-    else: 
-        path = f'{sim}/{name}'
-    file = f'{path}/snap_{name}_grad.h5'
-    
-    X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star, Entropy = extractor(file)
-    
-    # Save to another file.
-    np.save(f'{path}CMx_{name}', X)   
-    np.save(f'{path}CMy_{name}', Y) 
-    np.save(f'{path}CMz_{name}', Z) 
-    np.save(f'{path}Den_{name}', Den)
-    np.save(f'{path}Vx_{name}', Vx)   
-    np.save(f'{path}Vy_{name}', Vy) 
-    np.save(f'{path}Vz_{name}', Vz)
-    np.save(f'{path}Vol_{name}', Vol)
-    np.save(f'{path}Mass_{name}', Mass)   
-    np.save(f'{path}IE_{name}', IE) 
-    np.save(f'{path}T_{name}', T)
-    np.save(f'{path}P_{name}', P) 
-    np.save(f'{path}Diss_{name}', Diss) 
+    names = np.arange(152,265)
+    for name in names:
+        sim = 'TDE'
+        if alice:
+            path = f'/data1/martirep/shocks/{sim}/{name}/'
+        else: 
+            path = f'{sim}/{name}/'
+        file = f'{path}snap_{name}_grad.h5'
+        
+        X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star, Entropy = extractor(file)
+        
+        # Save to another file.
+        np.save(f'{path}CMx_{name}', X)   
+        np.save(f'{path}CMy_{name}', Y) 
+        np.save(f'{path}CMz_{name}', Z) 
+        np.save(f'{path}Den_{name}', Den)
+        np.save(f'{path}Vx_{name}', Vx)   
+        np.save(f'{path}Vy_{name}', Vy) 
+        np.save(f'{path}Vz_{name}', Vz)
+        np.save(f'{path}Vol_{name}', Vol)
+        np.save(f'{path}Mass_{name}', Mass)   
+        np.save(f'{path}IE_{name}', IE) 
+        np.save(f'{path}T_{name}', T)
+        np.save(f'{path}P_{name}', P) 
+        np.save(f'{path}Diss_{name}', Diss) 
 
-    np.save(f'{path}DrhoDx_{name}', DrhoDx)   
-    np.save(f'{path}DrhoDy_{name}', DrhoDy) 
-    np.save(f'{path}DrhoDz_{name}', DrhoDz) 
-    np.save(f'{path}DrhoDxLimited_{name}', DrhoDxLimited) 
-    np.save(f'{path}DrhoDyLimited_{name}', DrhoDyLimited) 
-    np.save(f'{path}DrhoDzLimited_{name}', DrhoDzLimited) 
+        np.save(f'{path}DrhoDx_{name}', DrhoDx)   
+        np.save(f'{path}DrhoDy_{name}', DrhoDy) 
+        np.save(f'{path}DrhoDz_{name}', DrhoDz) 
+        np.save(f'{path}DrhoDxLimited_{name}', DrhoDxLimited) 
+        np.save(f'{path}DrhoDyLimited_{name}', DrhoDyLimited) 
+        np.save(f'{path}DrhoDzLimited_{name}', DrhoDzLimited) 
 
-    np.save(f'{path}DpDx_{name}', DpDx)   
-    np.save(f'{path}DpDy_{name}', DpDy) 
-    np.save(f'{path}DpDz_{name}', DpDz) 
-    np.save(f'{path}DpDxLimited_{name}', DpDxLimited) 
-    np.save(f'{path}DpDyLimited_{name}', DpDyLimited) 
-    np.save(f'{path}DpDzLimited_{name}', DpDzLimited) 
+        np.save(f'{path}DpDx_{name}', DpDx)   
+        np.save(f'{path}DpDy_{name}', DpDy) 
+        np.save(f'{path}DpDz_{name}', DpDz) 
+        np.save(f'{path}DpDxLimited_{name}', DpDxLimited) 
+        np.save(f'{path}DpDyLimited_{name}', DpDyLimited) 
+        np.save(f'{path}DpDzLimited_{name}', DpDzLimited) 
 
-    np.save(f'{path}DivV_{name}', divV) 
-    np.save(f'{path}divVLimited_{name}', divVLimited) 
+        np.save(f'{path}DivV_{name}', divV) 
+        np.save(f'{path}divVLimited_{name}', divVLimited) 
 
-    np.save(f'{path}Star_{name}', Star) 
-    np.save(f'{path}Entropy_{name}', Entropy) 
-    
-    print('Done')
+        np.save(f'{path}Star_{name}', Star) 
+        np.save(f'{path}Entropy_{name}', Entropy) 
+        
+        print(f'Done {name}')
 
