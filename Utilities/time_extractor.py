@@ -40,8 +40,6 @@ def days_since_distruption(filename, m, mstar, rstar, choose = 'day'):
     days: float, days since the distruption begun.
     
     '''
-    # Timing start
-    start_time = datetime.now()
     # Read File
     f = h5py.File(filename, "r")
     G = 6.6743e-11 # SI
