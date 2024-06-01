@@ -3,12 +3,10 @@ Created on Fri Feb 24 17:06:56 2023
 
 @author: konstantinos, paola 
 """
-# from Utilities.isalice import isalice
-# alice, plot = isalice()
-alice = True
-if not alice:
-    import sys
-    sys.path.append('/Users/paolamartire/shocks')
+import sys
+sys.path.append('/Users/paolamartire/shocks')
+from Utilities.isalice import isalice
+alice, plot = isalice()
 
 import numpy as np
 import h5py

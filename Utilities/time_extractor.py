@@ -9,18 +9,11 @@ Created on Mon Nov 21 21:51:56 2022
 #%% Imports
 import sys
 sys.path.append('/Users/paolamartire/shocks')
+from Utilities.isalice import isalice
+alice, plot = isalice()
 
 import numpy as np
-from datetime import datetime
 import h5py
-import Utilities.prelude
-
-#%% Extract Energy
-# snapshot233= "/Users/paolamartire/data_sim/.h5"
-# snapshot254= "/Users/paolamartire/data_sim/.h5"
-# snapshot263 = "/Users/paolamartire/data_sim/.h5"
-# snapshot277 = "/Users/paolamartire/data_sim/.h5"
-#%% Get Energies
 
 ## File structure is
 # box, cycle, time, mpi, rank0 ... rank99.
@@ -51,47 +44,31 @@ def days_since_distruption(filename, m, mstar, rstar, choose = 'day'):
     time = time.sum()
     days = time*t / (24*60*60)
     t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(rstar, 3/2)
-    print(f'days after disruption: {days}, t_fall: {t_fall}')
+    print(f'days after disruption: {days} // t_fall: {t_fall} // sim_time: {time}')
     if choose == 'tfb':
         days /= t_fall
-    return time, days
+    return days
 
-
-#%% 
-# def linear_fit_days(x):
-#     '''
-#     Converts from snapshot number to the more 
-#     intuitive days since distruption metric. 
-    
-#     Uses a linear fit from snapshots 243, 881, and,
-#     254 and thus could prove to not be 100% accurate.
-    
-#     Parameters
-#     ----------
-#     x : int,
-#         Snapshot number to convert from.
-
-#     Returns
-#     -------
-#     y : int,
-#         Days since distruption.
-
-#     '''
-#     days233= days_since_distruption(snapshot233)
-#     days254 = days_since_distruption(snapshot254)
-#     days263 = days_since_distruption(snapshot263)
-#     days277 = days_since_distruption(snapshot277)
-#     snaps = [233, 254, 263, 277]
-#     days = [days233, days254, days263, days277]
-#     time_fit = np.polyfit(snaps, days, deg=1)
-#     y = time_fit[0]*x + time_fit[1]
-#     return y
 #%%
 if __name__ == '__main__':
-    # days322 = linear_fit_days(322)
-    m = 5
-    time, days = days_since_distruption('TDE/196/snap_196.h5', m, 'tfb')
-    print(f'in simualtion time: {time}, in our time: {days}')
+    choose = 'tfb'
+    snap = 170
+    m = 4
+    Mbh = 10**m
+    beta = 1
+    mstar = .5
+    Rstar = .47
+    n = 1.5
+    check = ''
+    if alice:
+            prepath = f'/data1/martirep/shocks/shock_capturing/'
+    else: 
+        prepath = f'TDE'
+
+    path = f'{prepath}/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}Compton{check}'
+    days = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose)
+    if choose == 'tfb':
+        print(f'In fallback time: {days}')
         
     
     
