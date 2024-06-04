@@ -36,12 +36,12 @@ def make_cfr(R, x0=0, y0=0):
     cfr = (xcfr-x0)**2 + (ycfr-y0)**2 - R**2
     return xcfr, ycfr, cfr
 
-def keplerian_orbit(theta, a):
+def keplerian_orbit(theta, a, ecc=1):
     # we expect theta as from the function to_cylindric, i.e. clockwise. 
     # You have to mirror it to get the angle for the usual polar coordinates.
     theta = -theta
     p = 2 * a
-    radius = p / (1 + np.cos(theta))
+    radius = p / (1 + ecc * np.cos(theta))
     return radius
 
 def orbital_energy(r, v_xy, G, M):
