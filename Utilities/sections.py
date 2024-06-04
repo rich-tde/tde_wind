@@ -26,7 +26,7 @@ def tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radi
     else:
         return condition_coord
 
-def transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen):
+def transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen, coord = False):
     # Find the transverse plane to the orbit with respect to the tangent plane at the chosen point
     x_chosen, y_chosen = orb.from_cylindric(theta_chosen, radius_chosen)
     _, m = tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen, coeff_ang = True)
@@ -39,7 +39,14 @@ def transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, r
         condition_coord = np.logical_and(condition_coord, y_data < 0)
     else:
         condition_coord = np.logical_and(condition_coord, y_data > 0)
-    return condition_coord
+    if coord:
+        x_onplane = (x_data[condition_coord]-x_chosen) * np.arctan(m) #projection on the transverse axis
+        # just a check when you'll plot to be sure that x_chosen is at the origin, i.e. x0 = 0
+        idx = np.argmin(np.abs(x_data[condition_coord]-x_chosen)) #should be the index of x_chosen
+        x0 = x_onplane[idx]
+        return condition_coord, x_onplane, x0
+    else:
+        return condition_coord
 
 
 def radial_plane(x_data, y_data, dim_data, theta_chosen):
