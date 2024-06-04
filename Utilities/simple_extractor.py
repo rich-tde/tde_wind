@@ -45,7 +45,7 @@ def extractor(filename):
     IE = []
     T = []
     P = []
-    cs = []
+    #cs = []
     Star = []
     Entropy = []
     
@@ -58,7 +58,7 @@ def extractor(filename):
             # Sanity Check
             # Timing
             end_time = datetime.now()
-            print('Duration: {}'.format(end_time - start_time))
+            print('Time passed: {}'.format(end_time - start_time))
 
             x_data = f[key]['CMx']
             y_data = f[key]['CMy']
@@ -94,31 +94,44 @@ def extractor(filename):
                 Star.append(star_data[i]) #mass of the disrupted star for TDE
                 Entropy.append(entropy_data[i])
 
-
     # Close the file
     f.close()
     return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, Star, Entropy
 
 if __name__ == '__main__':
-    name = '250'
-    path = 'TDE'
-    path = f'{path}/{name}/'
-    X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, Star, Entropy = extractor(f'{path}snap_{name}.h5')
+    snap = 164
+    m = 4
+    Mbh = 10**m
+    beta = 1
+    mstar = .5
+    Rstar = .47
+    n = 1.5
+    check = 'Compton'
+    if alice:
+            prepath = f'/data1/martirep/shocks/shock_capturing/'
+    else: 
+        prepath = f'TDE'
+    
+    path = f'{prepath}/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{check}/{snap}/'
+    file = f'{path}snap_{snap}.h5'
+
+    X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, Star, Entropy = extractor(file)
 
     # Save to another file.
-    np.save(f'{path}CMx_{name}', X)   
-    np.save(f'{path}CMy_{name}', Y) 
-    np.save(f'{path}CMz_{name}', Z) 
-    np.save(f'{path}Den_{name}', Den)
-    np.save(f'{path}Vx_{name}', Vx)   
-    np.save(f'{path}Vy_{name}', Vy) 
-    np.save(f'{path}Vz_{name}', Vz)
-    np.save(f'{path}Vol_{name}', Vol)
-    np.save(f'{path}Mass_{name}', Mass)   
-    np.save(f'{path}IE_{name}', IE) 
-    np.save(f'{path}T_{name}', T)
-    np.save(f'{path}P_{name}', P) 
-    # np.save(f'{path}cs_{name}', cs) 
-    np.save(f'{path}Star_{name}', Star) 
-    np.save(f'{path}Entropy_{name}', Entropy) 
+    np.save(f'{path}CMx_{snap}', X)   
+    np.save(f'{path}CMy_{snap}', Y) 
+    np.save(f'{path}CMz_{snap}', Z) 
+    np.save(f'{path}Den_{snap}', Den)
+    np.save(f'{path}Vx_{snap}', Vx)   
+    np.save(f'{path}Vy_{snap}', Vy) 
+    np.save(f'{path}Vz_{snap}', Vz)
+    np.save(f'{path}Vol_{snap}', Vol)
+    np.save(f'{path}Mass_{snap}', Mass)   
+    np.save(f'{path}IE_{snap}', IE) 
+    np.save(f'{path}T_{snap}', T)
+    np.save(f'{path}P_{snap}', P) 
+    np.save(f'{path}Star_{snap}', Star) 
+    np.save(f'{path}Entropy_{snap}', Entropy) 
+    # np.save(f'{path}cs_{snap}', cs) 
+    print('Done')
                 

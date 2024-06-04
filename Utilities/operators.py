@@ -10,54 +10,24 @@ import h5py
 import math
 import Utilities.prelude as prel
 
-# def mask(X, Y, Z, Vol, VX, VY, VZ, Den, P, T, lim, kind, choose_coord):
-#     """ Mask the data to take a (symmetric) slice or a cross section.
-#     Parameters
-#     -----------
-#     X,Y,Z: arrays.
-#             Coordinates of all your points
-#     lim: float.
-#             Boudery of your (symmetric) slice/cross section.
-#     kind: str.
-#             Choose between cross section or slice.
-#     choose_coord: str.
-#             Choose the coordinate to be limited for the cross section.
-#     Returns
-#     -----------
-#     Xmask, Ymask, Zmask: arrays.
-#             Masked coordinates.
-#     """
-#     if kind == 'slice':
-#         # we should apply it to avoid the boarders of the simulation
-#         maskx = np.abs(X) < lim
-#         masky = np.abs(Y) < lim
-#         maskz = np.abs(Z) < lim
-#         mask = np.logical_and(np.logical_and(maskx, masky), maskz)
-
-#     elif kind == 'cross':
-#         # Chooses the coordinate to be limited
-#         if choose_coord == 'X':
-#             coord = X
-#         elif choose_coord == 'Y':
-#             coord = Y
-#         elif choose_coord == 'Z':
-#             coord = Z  
-#         R = np.sqrt(X**2 + Y**2 + Z**2)
-#         delta = np.mean(R)
-#         mask = np.logical_and(coord< lim + delta, coord> lim - delta)
-
-#     Xmask = X[mask]
-#     Ymask = Y[mask]
-#     Zmask = Z[mask]
-#     Volmask = Vol[mask]
-#     VXmask = VX[mask]
-#     VYmask = VY[mask]
-#     VZmask = VZ[mask]
-#     Denmask = Den[mask]
-#     Pmask = P[mask]
-#     Tmask = T[mask]
-
-#     return Xmask, Ymask, Zmask, Volmask, VXmask, VYmask, VZmask, Denmask, Pmask, Tmask
+class data_snap:
+    # create a class to be used in make_tree so that it gives just one output.
+    def __init__(self, sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, IE = None, Diss = None, Entropy = None):
+        self.sim_tree = sim_tree
+        self.X = X
+        self.Y = Y
+        self.Z = Z
+        self.Vol = Vol
+        self.VX = VX
+        self.VY = VY
+        self.VZ = VZ
+        self.Mass = Mass
+        self.Den = Den
+        self.Press = P
+        self.Temp = T
+        self.IE = IE
+        self.Diss = Diss
+        self.Entropy = Entropy
 
 def make_tree(filename, snap, is_tde, energy = False):
     """ Load data from simulation and build the tree. """
@@ -97,9 +67,10 @@ def make_tree(filename, snap, is_tde, energy = False):
     sim_tree = KDTree(sim_value) 
 
     if energy:
-        return sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, IE, Diss, Entropy
+        data = data_snap(sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, IE, Diss, Entropy)
     else: 
-        return sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T
+        data = data_snap(sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T)
+    return data
 
 def select_near_1d(sim_tree, X, Y, Z, point, delta, coord):
     """ Find (within the tree) the nearest cell along one direction to the one chosen. 

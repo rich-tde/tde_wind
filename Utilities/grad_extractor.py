@@ -145,13 +145,22 @@ def extractor(filename):
 if __name__ == '__main__':
     names = np.arange(152,265)
     for name in names:
-        sim = 'TDE'
+        snap = 169
+        m = 4
+        Mbh = 10**m
+        beta = 1
+        mstar = .5
+        Rstar = .47
+        n = 1.5
+        check = ''
         if alice:
-            path = f'/data1/martirep/shocks/{sim}/{name}/'
+                prepath = f'/data1/martirep/shocks/shock_capturing/'
         else: 
-            path = f'{sim}/{name}/'
-        file = f'{path}snap_{name}_grad.h5'
+            prepath = f'TDE'
         
+        path = f'{prepath}/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}Compton{check}/{snap}'
+        file = f'{path}/snap_{snap}_grad.h5'
+
         X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star, Entropy = extractor(file)
         
         # Save to another file.
