@@ -21,11 +21,15 @@ def tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radi
     # Search where you are in the orbit to then find the previous point
     x_chosen, y_chosen = orb.from_cylindric(theta_chosen, radius_chosen)
     idx_chosen = np.argmin(np.abs(y_chosen - y_orbit)) # orizontal parabola --> unique y values
+    if idx_chosen == 0:
+        idx_chosen += 1
+    elif idx_chosen == len(y_orbit)-1:
+        idx_chosen -= 1
     if np.abs(theta_chosen)<1e-4: #i.e. x=Rchosen, which should be pericenter --> draw vertical line
         m = 1e10 #infty
         condition_coord = np.abs(x_data-radius_chosen) < dim_data 
     else:
-        m = (y_orbit[idx_chosen] - y_orbit[idx_chosen-1]) / (x_orbit[idx_chosen] - x_orbit[idx_chosen-1])
+        m = (y_orbit[idx_chosen+1] - y_orbit[idx_chosen-1]) / (x_orbit[idx_chosen+1] - x_orbit[idx_chosen-1])
         ideal_y_value = y_chosen + m * (x_data-x_chosen)
         condition_coord = np.abs(y_data - ideal_y_value) < dim_data
     if coeff_ang:

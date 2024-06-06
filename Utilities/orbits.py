@@ -5,6 +5,8 @@ Find orbits for TDEs.
 """
 
 import numpy as np
+from Utilities.sections import radial_plane, transverse_plane
+from Utilities.operators import sort_list, median_array
 
 def to_cylindric(x,y):
     radius = np.sqrt(x**2+y**2)
@@ -36,18 +38,106 @@ def make_cfr(R, x0=0, y0=0):
     cfr = (xcfr-x0)**2 + (ycfr-y0)**2 - R**2
     return xcfr, ycfr, cfr
 
-def keplerian_orbit(theta, a, ecc=1):
+def keplerian_orbit(theta, apo, a, ecc=1):
     # we expect theta as from the function to_cylindric, i.e. clockwise. 
     # You have to mirror it to get the angle for the usual polar coordinates.
     theta = -theta
-    p = 2 * a
-    radius = p / (1 + ecc * np.cos(theta))
+    if ecc == 1:
+        p = 2 * a
+        radius = p / (1 + ecc * np.cos(theta))
+    else:
+        radius = apo * (1 - ecc**2) / (1 + ecc * np.cos(theta))
     return radius
+
+def find_maximum(x_mid, y_mid, dim_mid, den_mid, theta_params):
+    # find the orbit given by maxima density points
+    # It's better to give theta_params than theta_arr, so that you can adjust the step
+    theta0, thetaf, step = theta_params[0], theta_params[1], theta_params[2]
+    if step < 0.1:
+        step = 0.1
+    theta_arr = np.arange(theta0, thetaf, step)
+    radius_arr = np.zeros(len(theta_arr))
+    for i,theta_cm in enumerate(theta_arr):
+        condition_Rplane = radial_plane(x_mid, y_mid, dim_mid, theta_cm)
+        idx_cm = np.argmax(den_mid[condition_Rplane])
+        x_cm = x_mid[condition_Rplane][idx_cm]
+        y_cm = y_mid[condition_Rplane][idx_cm]
+        radius_arr[i] = np.sqrt(x_cm**2 + y_cm**2)
+    return theta_arr, radius_arr
+
+def find_stream_boundaries(x_mid, y_mid, dim_mid, den_mid, x_orbit, y_orbit, theta_cm, radius_cm, threshold = 0.33):
+    # find the normal plane 
+    condition_coord, x_onplane, _ = transverse_plane(x_mid, y_mid, dim_mid, x_orbit, y_orbit, theta_cm, radius_cm, coord = True)
+    x_plane = x_mid[condition_coord]
+    y_plane = y_mid[condition_coord]
+    den_plane = den_mid[condition_coord]
+
+    # restrict to not keep points too far away
+    condition_x = np.abs(x_onplane) < 20
+    x_onplane = x_onplane[condition_x]
+    x_plane = x_plane[condition_x]
+    y_plane = y_plane[condition_x]
+    den_plane = den_plane[condition_x]
+
+    # sort 
+    x_onplane = list(x_onplane)
+    x_onplane_sorted = sorted(x_onplane)
+    x_plane_sorted = sort_list(x_plane, x_onplane)
+    y_plane_sorted = sort_list(y_plane, x_onplane)
+    den_plane_sorted = sort_list(den_plane, x_onplane)
+    den_median_plane_sorted = median_array(den_plane_sorted)
+
+    # find the cm of the plane
+    idx_cm = np.argmax(den_plane_sorted)    
+    x_cm = x_plane_sorted[idx_cm]
+    y_cm = y_plane_sorted[idx_cm]
+    den_cm = den_plane_sorted[idx_cm]
+    
+    # walk before and after the cm till you find a density 3 times smaller
+    idx_step = idx_cm
+    den_tube = den_cm
+    while den_tube > threshold * den_cm and idx_step > 0:
+        idx_step -= 1
+        den_tube = den_median_plane_sorted[idx_step] #den_plane_sorted[idx_step]
+    idx_before = idx_step+1
+    x_low = x_plane_sorted[idx_before]
+    y_low = y_plane_sorted[idx_before]
+    den_low = den_tube
+
+    idx_step = idx_cm
+    den_tube = den_cm
+    while den_tube > threshold * den_cm and idx_step < len(den_plane_sorted) - 1:
+        idx_step += 1
+        den_tube  = den_median_plane_sorted[idx_step] #den_plane_sorted[idx_step]
+    idx_after = idx_step-1
+    x_high = x_plane_sorted[idx_after]
+    y_high = y_plane_sorted[idx_after]
+    den_high = den_tube
+    width = x_onplane_sorted[idx_after] - x_onplane_sorted[idx_before]
+    return x_cm, y_cm, den_cm, x_low, y_low, den_low, x_high, y_high, den_high, width
+
+def find_width_stream(x_mid, y_mid, dim_mid, den_mid, theta_params):
+    theta_arr, r_orbit = find_maximum(x_mid, y_mid, dim_mid, den_mid, theta_params)
+    x_orbit, y_orbit = from_cylindric(theta_arr, r_orbit) 
+    cm = np.zeros((3,len(theta_arr)))
+    upper_tube = np.zeros((3,len(theta_arr)))
+    lower_tube = np.zeros((3,len(theta_arr)))
+    width = np.zeros(len(theta_arr))
+    for i,theta in enumerate(theta_arr):
+        x_cm, y_cm, den_cm, x_low, y_low, den_low, x_high, y_high, den_high, w = \
+            find_stream_boundaries(x_mid, y_mid, dim_mid, den_mid, x_orbit, y_orbit, theta, r_orbit[i])
+        cm[0][i], cm[1][i], cm[2][i] = x_cm, y_cm, den_cm
+        lower_tube[0][i], lower_tube[1][i], lower_tube[2][i] = x_low, y_low, den_low
+        upper_tube[0][i], upper_tube[1][i], upper_tube[2][i] = x_high, y_high, den_high
+        width[i] = w
+    return theta_arr, cm, upper_tube, lower_tube, width
 
 def orbital_energy(r, v_xy, G, M):
     # no angular momentum??
-    energy = G*M/r - 0.5 * v_xy**2
+    potential = -G * M / r
+    energy = 0.5 * v_xy**2 + potential
     return energy
+
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt

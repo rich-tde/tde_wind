@@ -10,6 +10,24 @@ import h5py
 import math
 import Utilities.prelude as prel
 
+def sort_list(list_passive, leading_list):
+    """ Sort list_passive based on the order of leading_list. """
+    zipped_pairs = zip(leading_list, list_passive)
+    z = [x for _, x in sorted(zipped_pairs)]
+    return np.array(z)
+
+def median_array(points, window_size = 7):
+    n = len(points)
+    half_window = window_size // 2
+    
+    medians = np.copy(points) 
+    
+    for i in range(half_window, n-half_window): #I don't care of the first/last points
+        window = points[i-half_window:i+window_size]
+        median = np.median(window)
+        medians[i]= median
+    
+    return np.array(medians)
 class data_snap:
     # create a class to be used in make_tree so that it gives just one output.
     def __init__(self, sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, IE = None, Diss = None, Entropy = None):
