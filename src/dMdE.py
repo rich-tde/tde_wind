@@ -35,7 +35,7 @@ Rsol = 7e8 #6.957e8 # m
 t = np.sqrt(Rsol**3 / (Msol*G_SI ))
 c = 3e8 / (7e8/t)
 
-M_bh = 10**m
+Mbh = 10**m
 Rs = 2*G*Mbh / c**2
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
@@ -45,7 +45,6 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
 path = f'TDE/{folder}{check}/{snap}'
 saving_path = f'Figs/{folder}/{check}'
 print(f'We are in: {path}, \nWe save in: {saving_path}')
-normalization = 30.7
 
 #
 ## MAIN
@@ -64,10 +63,10 @@ if do:
     tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
     Rcyl = np.sqrt(data.X**2 + data.Y**2)
     Vcyl = np.sqrt(data.VX**2 + data.VY**2)
-    orbital_enegy = orb.orbital_energy(Rcyl, Vcyl, G, M_bh)
+    orbital_enegy = orb.orbital_energy(Rcyl, Vcyl, G, Mbh)
 
     # Normalisation
-    norm = M_bh/Rt * (M_bh/Rstar)**(-1/3)
+    norm = Mbh/Rt * (Mbh/Rstar)**(-1/3)
     print('Normalization for energy:', norm)
 
     # Section at the midplane
@@ -85,7 +84,7 @@ if do:
         idx = np.where((OE_mid > bins[i]) & (OE_mid < bins[i+1]))
         mass_sum[i] = np.sum(Mass_mid[idx])
     # dM/dE
-    dm_dE = mass_sum / np.diff(bins)
+    dm_dE = mass_sum / (np.diff(bins) * norm) # multiply by norm because we normalised the energy
 
     if save:
         try:
@@ -95,7 +94,7 @@ if do:
         except FileNotFoundError:
             with open(f'data/{folder}/{np.round(tfb,1)}.txt','a') as fstart:
                 # if file doesn'exist
-                file.write(f'# Energy bins normalised (norm = {normalization}) \n')
+                file.write(f'# Energy bins normalised (norm = {norm}) \n')
                 file.write((' '.join(map(str, bins)) + '\n'))
 
         with open(f'data/{folder}/dMdE.txt','a') as file:
@@ -121,7 +120,8 @@ if do:
         ax[1].set_xlabel(r'X [$R_\odot$]', fontsize = 18)
         ax[1].set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
 
-        plt.title(f'check: {check}, ' + r't/t$_{fb}$ = ' + str(np.round(tfb,3)), fontsize = 16)
+        plt.suptitle(f'check: {check}, ' + r't/t$_{fb}$ = ' + str(np.round(tfb,3)), fontsize = 16)
+        plt.tight_layout()
         if save:
             plt.savefig(f'{saving_path}/EnM_{snap}.png')
         plt.show()

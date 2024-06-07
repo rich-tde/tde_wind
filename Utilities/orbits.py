@@ -6,30 +6,7 @@ Find orbits for TDEs.
 
 import numpy as np
 from Utilities.sections import radial_plane, transverse_plane
-from Utilities.operators import sort_list, median_array
-
-def to_cylindric(x,y):
-    radius = np.sqrt(x**2+y**2)
-    if np.abs(x.any()) > 1e-5: # numerical version of x.any()!= 0:
-        theta_coord = np.arctan2(y,x)
-    else:
-        if np.abs(y.any()) < 1e-5:
-            theta_coord = 0
-        elif y.any()>0:
-            theta_coord = np.pi/2
-        else:
-            theta_coord = -np.pi/2
-    # theta_coord go from -pi to pi with negative values in the 3rd and 4th quadrant. You want to mirror 
-    theta_broadcasted = -theta_coord
-    return theta_broadcasted, radius
-
-def from_cylindric(theta, r):
-    # we expect theta as from the function to_cylindric, i.e. clockwise. 
-    # You have to mirror it to get the angle for the usual polar coordinates.
-    theta = -theta
-    x = r * np.cos(theta)
-    y = r * np.sin(theta)
-    return x, y
+from Utilities.operators import sort_list, median_array, from_cylindric, to_cylindric
 
 def make_cfr(R, x0=0, y0=0):
     x = np.linspace(-R, R, 100)

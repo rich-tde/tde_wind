@@ -2,7 +2,7 @@ import sys
 sys.path.append('/Users/paolamartire/shocks')
 
 import numpy as np
-from Utilities import orbits as orb
+from Utilities.operators import from_cylindric
 
 def make_slices(all_data, condition):
     """
@@ -12,14 +12,14 @@ def make_slices(all_data, condition):
 
 def rotation(x_data, y_data, m):
     theta = np.arctan2(m,1)
-    theta = -theta # we need the - in front of theta to be consistent with the function orb.to_cylindric, where we change the orientation of the angle
+    theta = -theta # we need the - in front of theta to be consistent with the function to_cylindric, where we change the orientation of the angle
     matrix_rotation = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]]) 
     x_onplane, y_onplane = np.dot(matrix_rotation, np.array([x_data, y_data])) 
     return x_onplane, y_onplane
 
 def tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen, coeff_ang = False):
     # Search where you are in the orbit to then find the previous point
-    x_chosen, y_chosen = orb.from_cylindric(theta_chosen, radius_chosen)
+    x_chosen, y_chosen = from_cylindric(theta_chosen, radius_chosen)
     idx_chosen = np.argmin(np.abs(y_chosen - y_orbit)) # orizontal parabola --> unique y values
     if idx_chosen == 0:
         idx_chosen += 1
@@ -39,7 +39,7 @@ def tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radi
 
 def transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen, coord = False):
     # Find the transverse plane to the orbit with respect to the tangent plane at the chosen point
-    x_chosen, y_chosen = orb.from_cylindric(theta_chosen, radius_chosen)
+    x_chosen, y_chosen = from_cylindric(theta_chosen, radius_chosen)
     _, m = tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen, coeff_ang = True)
     inv_m = -1/m
     ideal_y_value = y_chosen + inv_m * (x_data-x_chosen)
@@ -69,7 +69,7 @@ def radial_plane(x_data, y_data, dim_data, theta_chosen):
         condition_coord = np.abs(x_data) < dim_data  # vertical line
         condition_coord = np.logical_and(condition_coord, y_data > 0) # only the upper part
     else:
-        # we need the - in front of theta to be consistent with the function orb.to_cylindric, where we change the orientation of the angle
+        # we need the - in front of theta to be consistent with the function to_cylindric, where we change the orientation of the angle
         m = np.tan(-theta_chosen)
         condition_coord = np.abs(y_data - m * x_data) < dim_data 
         if theta_chosen == 0:
