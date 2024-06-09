@@ -93,7 +93,7 @@ def find_stream_boundaries(x_mid, y_mid, dim_mid, den_mid, x_orbit, y_orbit, the
     width = x_onplane_sorted[idx_after] - x_onplane_sorted[idx_before]
     return x_cm, y_cm, den_cm, x_low, y_low, den_low, x_high, y_high, den_high, width
 
-def find_width_stream(x_mid, y_mid, dim_mid, den_mid, theta_params):
+def find_width_stream(x_mid, y_mid, dim_mid, den_mid, theta_params, threshold = 0.33):
     theta_arr, r_orbit = find_maximum(x_mid, y_mid, dim_mid, den_mid, theta_params)
     x_orbit, y_orbit = from_cylindric(theta_arr, r_orbit) 
     cm = np.zeros((3,len(theta_arr)))
@@ -102,7 +102,7 @@ def find_width_stream(x_mid, y_mid, dim_mid, den_mid, theta_params):
     width = np.zeros(len(theta_arr))
     for i,theta in enumerate(theta_arr):
         x_cm, y_cm, den_cm, x_low, y_low, den_low, x_high, y_high, den_high, w = \
-            find_stream_boundaries(x_mid, y_mid, dim_mid, den_mid, x_orbit, y_orbit, theta, r_orbit[i])
+            find_stream_boundaries(x_mid, y_mid, dim_mid, den_mid, x_orbit, y_orbit, theta, r_orbit[i], threshold)
         cm[0][i], cm[1][i], cm[2][i] = x_cm, y_cm, den_cm
         lower_tube[0][i], lower_tube[1][i], lower_tube[2][i] = x_low, y_low, den_low
         upper_tube[0][i], upper_tube[1][i], upper_tube[2][i] = x_high, y_high, den_high
