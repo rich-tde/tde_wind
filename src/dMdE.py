@@ -21,7 +21,7 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'Compton' # 'Compton' or 'ComptonHiRes' or 'ComptonRes20'
+check = 'Low' # 'Compton' or 'ComptonHiRes' or 'ComptonRes20'
 snap = '115'
 is_tde = True
 

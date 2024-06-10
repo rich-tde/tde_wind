@@ -25,10 +25,10 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = '' # '' or 'HiRes' or 'Res20'
+check = 'Low' # 'Low' or 'HiRes' or 'Res20'
 snap = '115'
 is_tde = True
-threshold =  1/10
+threshold =  1/3
 
 #
 ## Constants
@@ -144,70 +144,68 @@ width_over_r = width / cm_r
 
 if save:
     try:
-        file = open(f'data/{folder}/width_time%.1f'%{tfb}+'_thr{threshold}.txt', 'r')
+        file = open(f'data/{folder}/width_time{np.round(tfb,1)}_thr{np.round(threshold,1)}.txt', 'r')
         # Perform operations on the file
         file.close()
     except FileNotFoundError:
-        with open(f'data/{folder}/width_time%.1f'%{tfb}+'_thr{threshold}.txt','a') as fstart:
+        with open(f'data/{folder}/width_time{np.round(tfb,1)}_thr{np.round(threshold,1)}.txt','a') as fstart:
             # if file exist
             fstart.write(f'# theta \n')
             fstart.write((' '.join(map(str, theta_arr)) + '\n'))
 
-    with open(f'data/{folder}/width_time%.1f'%{tfb}+'_thr{threshold}.txt','a') as file:
+    with open(f'data/{folder}/width_time{np.round(tfb,1)}_thr{np.round(threshold,1)}.txt','a') as file:
         file.write(f'# {check}, snap {snap} \n')
         file.write((' '.join(map(str, width)) + '\n'))
 #%% 
 if plot:
-    # Plot width on density
-    vdenmax = 5e-8
-    vdenmin = threshold * vdenmax
-    fig, ax = plt.subplots(1,2, figsize = (12,5))
-    img = ax[0].scatter(X_midplane, Y_midplane, c = Den_midplane, s = 0.1, cmap = 'viridis', vmin = vdenmin, vmax = vdenmax)
-    ax[0].plot(cm[0], cm[1], c = 'k')
-    ax[0].plot(upper_tube[0], upper_tube[1], linestyle = 'dotted', c = 'k')
-    ax[0].plot(lower_tube[0], lower_tube[1],  '--', c = 'k')
-    ax[0].set_xlim(-60,20)
-    ax[0].set_ylim(-40,40)
-    ax[0].set_xlabel(r'X [$R_\odot$]', fontsize = 18)
-    ax[0].set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
+    if do:
+        # Plot width on density
+        vdenmax = 5e-8
+        vdenmin = threshold * vdenmax
+        fig, ax = plt.subplots(1,2, figsize = (12,5))
+        img = ax[0].scatter(X_midplane, Y_midplane, c = Den_midplane, s = 0.1, cmap = 'viridis', vmin = vdenmin, vmax = vdenmax)
+        ax[0].plot(cm[0], cm[1], c = 'k')
+        ax[0].plot(upper_tube[0], upper_tube[1], linestyle = 'dotted', c = 'k')
+        ax[0].plot(lower_tube[0], lower_tube[1],  '--', c = 'k')
+        ax[0].set_xlim(-60,20)
+        ax[0].set_ylim(-40,40)
+        ax[0].set_xlabel(r'X [$R_\odot$]', fontsize = 18)
+        ax[0].set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
+        # Plot orbits
+        img1 = ax[1].scatter(X_midplane, Y_midplane, c = Den_midplane, s = 0.1, cmap = 'viridis', vmin = vdenmin, vmax = vdenmax)
+        cbar1 = plt.colorbar(img1)
+        cbar1.set_label(r'Density', fontsize = 16)
+        ax[1].plot(x_K_orbit, y_K_orbit, c = 'b', label = 'Keplerian orbit')
+        ax[1].plot(x_Witta_orbit, y_Witta_orbit, c = 'k', linestyle = '--', label = 'Witta orbit')
+        ax[1].plot(cm[0], cm[1], c = 'r', linestyle = '--', label = 'Maxima density')
+        ax[1].set_xlim(-60,20)
+        ax[1].set_ylim(-40, 40)
+        ax[1].set_xlabel(r'X [$R_\odot$]', fontsize = 18)
+        ax[1].legend(loc = 'upper left')
+        plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,3)) + f', threshold: {np.round(threshold, 1)}, check: {check}', fontsize = 16)
+        plt.savefig(f'{saving_path}/width&orb{snap}_thr{np.round(threshold,1)}.png')
+        plt.show()
 
-    # Plot orbits
-    img1 = ax[1].scatter(X_midplane, Y_midplane, c = Den_midplane, s = 0.1, cmap = 'viridis', vmin = vdenmin, vmax = vdenmax)
-    cbar1 = plt.colorbar(img1)
-    cbar1.set_label(r'Density', fontsize = 16)
-    ax[1].plot(x_K_orbit, y_K_orbit, c = 'b', label = 'Keplerian orbit')
-    ax[1].plot(x_Witta_orbit, y_Witta_orbit, c = 'k', linestyle = '--', label = 'Witta orbit')
-    ax[1].plot(cm[0], cm[1], c = 'r', linestyle = '--', label = 'Maxima density')
-    ax[1].set_xlim(-60,20)
-    ax[1].set_ylim(-40, 40)
-    ax[1].set_xlabel(r'X [$R_\odot$]', fontsize = 18)
-    ax[1].legend(loc = 'upper left')
-    plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,3)) + f', threshold: {np.round(threshold, 2)}, check: {check}', fontsize = 16)
-    plt.savefig(f'{saving_path}/width&orb{snap}_thr{threshold}.png')
-    plt.show()
-
-    # Plot width over r
-    plt.figure(figsize=(6,4))
-    plt.plot(theta_arr * radians, width, c = 'k')
-    plt.xlabel(r'$\theta$', fontsize = 14)
-    plt.ylabel(r'Width [$R_\odot$]', fontsize = 14)
-    plt.xlim(-3/4*np.pi, 3/4*np.pi)
-    plt.ylim(-5,20)
-    plt.grid()
-
-    plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,3)) + f', check: {check}, threshold: {threshold}', fontsize = 16)
-    plt.tight_layout()
-    plt.savefig(f'{saving_path}/width_theta{snap}_thr{threshold}.png')
-    plt.show()
+        # Plot width over r
+        plt.figure(figsize=(6,4))
+        plt.plot(theta_arr * radians, width, c = 'k')
+        plt.xlabel(r'$\theta$', fontsize = 14)
+        plt.ylabel(r'Width [$R_\odot$]', fontsize = 14)
+        plt.xlim(-3/4*np.pi, 3/4*np.pi)
+        plt.ylim(-5,20)
+        plt.grid()
+        plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,3)) + f', check: {check}, threshold: {np.round(threshold,1)}', fontsize = 16)
+        plt.tight_layout()
+        plt.savefig(f'{saving_path}/width_theta{snap}_thr{np.round(threshold,1)}.png')
+        plt.show()
 
     if compare:
-        datawidth5 = np.loadtxt(f'data/{folder}/width_time0.5_thr{threshold}.txt')
+        datawidth5 = np.loadtxt(f'data/{folder}/width_time0.5_thr{np.round(threshold,1)}.txt')
         theta_width = datawidth5[0]
         widthC5 = datawidth5[1]
         widthHiRes5 = datawidth5[2]
         widthRes205 = datawidth5[3]
-
-        datawidth7 = np.loadtxt(f'data/{folder}/width_time0.7_thr{threshold}.txt')
+        datawidth7 = np.loadtxt(f'data/{folder}/width_time0.7_thr{np.round(threshold,1)}.txt')
         widthC7 = datawidth7[1]
         widthHiRes7 = datawidth7[2]
 
@@ -223,9 +221,9 @@ if plot:
         plt.xlim(-3/4*np.pi, 3/4*np.pi)
         plt.ylim(0,15)
         plt.grid()
-        plt.suptitle(f'Threshold: {threshold}', fontsize = 16)
+        plt.suptitle(f'Threshold: {np.round(threshold,1)}', fontsize = 16)
         if save:
-            plt.savefig(f'Figs/{folder}/width_comparison_thr{threshold}.png')
+            plt.savefig(f'Figs/{folder}/width_comparison_thr{np.round(threshold,1)}.png')
         plt.show()
 
         ratio5 = 1 - widthHiRes5/widthC5
@@ -242,7 +240,8 @@ if plot:
         plt.ylim(-0.2,0.95)
         plt.legend()
         plt.grid()
-        plt.suptitle(f'Threshold: {threshold}', fontsize = 16)
+        plt.suptitle(f'Threshold: {np.round(threshold,1)}', fontsize = 16)
         if save:
-            plt.savefig(f'Figs/{folder}/Deltawidth_thr{threshold}.png')
+            plt.savefig(f'Figs/{folder}/Deltawidth_thr{np.round(threshold,1)}.png')
         plt.show()
+# %%
