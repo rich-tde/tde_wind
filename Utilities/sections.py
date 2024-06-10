@@ -10,8 +10,11 @@ def make_slices(all_data, condition):
     """
     return [data[condition] for data in all_data]
 
-def rotation(x_data, y_data, m):
+def rotation(x_data, y_data, m, early = False):
     theta = np.arctan2(m,1)
+    if early:
+    # you are in the second quadrant. In the usual (i.e. counterclockwise) coordinate system, you have to add pi to the angle given by arctan2
+        theta += np.pi
     theta = -theta # we need the - in front of theta to be consistent with the function to_cylindric, where we change the orientation of the angle
     matrix_rotation = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]]) 
     x_onplane, y_onplane = np.dot(matrix_rotation, np.array([x_data, y_data])) 
@@ -51,9 +54,12 @@ def transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, r
     else:
         condition_coord = np.logical_and(condition_coord, y_data > 0)
     if coord:
+        early = False
         x_trasl = x_data[condition_coord] - x_chosen
         y_trasl = y_data[condition_coord] - y_chosen
-        x_onplane = rotation(x_trasl, y_trasl, inv_m)[0]
+        if np.logical_and(inv_m<0, np.logical_and(x_chosen < 0, y_chosen > 0)):
+            early = True
+        x_onplane = rotation(x_trasl, y_trasl, inv_m, early)[0]
         # just a check when you'll plot to be sure that x_chosen is at the origin, i.e. x0 = 0
         idx = np.argmin(np.abs(x_data[condition_coord]-x_chosen)) #should be the index of x_chosen
         x0 = x_onplane[idx]
@@ -62,10 +68,10 @@ def transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, r
         return condition_coord
 
 def radial_plane(x_data, y_data, dim_data, theta_chosen):
-    if np.abs(theta_chosen - np.pi/2) < 0.1: # if theta is close to pi/2
+    if np.abs(theta_chosen - np.pi/2) < 1e-4: # if theta is close to pi/2
         condition_coord = np.abs(x_data) < dim_data  # vertical line
         condition_coord = np.logical_and(condition_coord, y_data < 0) # only the lower part
-    elif np.abs(theta_chosen + np.pi/2) < 0.1: # if theta is close to -pi/2
+    elif np.abs(theta_chosen + np.pi/2) < 1e-4: # if theta is close to -pi/2
         condition_coord = np.abs(x_data) < dim_data  # vertical line
         condition_coord = np.logical_and(condition_coord, y_data > 0) # only the upper part
     else:

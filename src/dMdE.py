@@ -44,8 +44,8 @@ R0 = 0.6 * Rp
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
 path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
-saving_path = f'Figs/{folder}/{check}'
-print(f'We are in: {path}, \nWe save in: {saving_path}')
+saving_fig = f'Figs/{folder}/{check}'
+print(f'We are in: {path}, \nWe save in: {saving_fig}')
 
 #
 ## MAIN
@@ -139,7 +139,7 @@ if do:
         plt.suptitle(f'check: {check}, ' + r't/t$_{fb}$ = ' + str(np.round(tfb,3)), fontsize = 16)
         plt.tight_layout()
         if save:
-            plt.savefig(f'{saving_path}/EnM_{snap}.png')
+            plt.savefig(f'{saving_fig}/EnM_{snap}.png')
         plt.show()
 #%%
 if compare_times:
@@ -158,7 +158,7 @@ if compare_times:
     plt.yscale('log')
     plt.legend()
     if save:
-        plt.savefig(f'{saving_path}/dMdE_times.png')
+        plt.savefig(f'{saving_fig}/dMdE_times.png')
     plt.show()
 
 #%%

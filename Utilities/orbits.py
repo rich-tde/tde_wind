@@ -5,6 +5,8 @@ Find orbits for TDEs.
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy.ndimage import gaussian_filter1d
 from Utilities.sections import radial_plane, transverse_plane
 from Utilities.operators import sort_list, median_array, from_cylindric, to_cylindric
 
@@ -40,6 +42,7 @@ def find_maximum(x_mid, y_mid, dim_mid, den_mid, theta_params):
         x_cm = x_mid[condition_Rplane][idx_cm]
         y_cm = y_mid[condition_Rplane][idx_cm]
         radius_arr[i] = np.sqrt(x_cm**2 + y_cm**2)
+    #r_smooth = gaussian_filter1d(radius_arr, 3)
     return theta_arr, radius_arr
 
 def find_stream_boundaries(x_mid, y_mid, dim_mid, den_mid, x_orbit, y_orbit, theta_cm, radius_cm, threshold = 0.33):
@@ -91,6 +94,25 @@ def find_stream_boundaries(x_mid, y_mid, dim_mid, den_mid, x_orbit, y_orbit, the
     y_high = y_plane_sorted[idx_after]
     den_high = den_tube
     width = x_onplane_sorted[idx_after] - x_onplane_sorted[idx_before]
+
+    # plot to check
+    # vminrho = -8
+    # vmaxrho = -7.2
+    # x_chosen, y_chosen = from_cylindric(theta_cm, radius_cm)
+    # plt.figure(figsize = (12,8))
+    # img = plt.scatter(x_mid, y_mid, c = np.log10(den_mid), s = .1, cmap = 'viridis', vmin = vminrho, vmax = vmaxrho)
+    # #cbar = plt.colorbar(img)
+    # plt.scatter(0,0,s=40, c= 'k')
+    # plt.plot(x_orbit, y_orbit, c = 'r')
+    # plt.scatter([x_low, x_high], [y_low, y_high], c = ['b', 'r'], s = 4)
+    # plt.scatter(x_plane, y_plane, s = 0.1, c = 'k')
+    # plt.scatter(x_chosen, y_chosen, marker = 'x', s = 27, c = 'b')
+    # plt.xlim(-200,30)
+    # plt.ylim(-60,70)
+    # #plt.xlabel(r'X [$R_\odot$]', fontsize = 18)
+    # plt.ylabel(r'Y [$R_\odot$]', fontsize = 18)
+    # plt.show()
+
     return x_cm, y_cm, den_cm, x_low, y_low, den_low, x_high, y_high, den_high, width
 
 def find_width_stream(x_mid, y_mid, dim_mid, den_mid, theta_params, threshold = 0.33):
@@ -107,6 +129,8 @@ def find_width_stream(x_mid, y_mid, dim_mid, den_mid, theta_params, threshold = 
         lower_tube[0][i], lower_tube[1][i], lower_tube[2][i] = x_low, y_low, den_low
         upper_tube[0][i], upper_tube[1][i], upper_tube[2][i] = x_high, y_high, den_high
         width[i] = w
+    # upper_tube = gaussian_filter1d(upper_tube, 6)
+    # lower_tube = gaussian_filter1d(lower_tube, 6)
     return theta_arr, cm, upper_tube, lower_tube, width
 
 def orbital_energy(r, v_xy, G, M):
@@ -114,7 +138,6 @@ def orbital_energy(r, v_xy, G, M):
     potential = -G * M / r
     energy = 0.5 * v_xy**2 + potential
     return energy
-
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
