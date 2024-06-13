@@ -1,14 +1,19 @@
 """
 Recurrent operators.
+1) Obtain polar coordinates for the orbital plane that go clockwise:
+from -pi in -x to second, first, fourth and third (pi) quadrant.
+2) Sort one list according to the order of another one.
+3) Compute the median of an array.
+4) Make a tree from the simulation data.
+5) Find the nearest cells.
+6) Compute the div/grad for old stuff.
 """
 import sys
 sys.path.append('/Users/paolamartire/shocks')
 
 import numpy as np
 from scipy.spatial import KDTree
-import h5py
 import math
-import Utilities.prelude as prel
 
 def to_cylindric(x,y):
     radius = np.sqrt(x**2+y**2)

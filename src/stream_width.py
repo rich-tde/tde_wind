@@ -138,7 +138,7 @@ if plot:
     plt.show()
 
 #%%
-theta_arr, cm, upper_tube, lower_tube, width  = orb.find_width_stream(X_midplane, Y_midplane, dim_midplane, Den_midplane, theta_params, threshold=threshold)
+theta_arr, cm, upper_tube, lower_tube, width, ncells  = orb.find_width_stream(X_midplane, Y_midplane, dim_midplane, Den_midplane, theta_params, threshold=threshold)
 cm_r = np.sqrt(cm[0]**2 + cm[1]**2)
 width_over_r = width / cm_r
 
@@ -154,19 +154,22 @@ if save:
             fstart.write((' '.join(map(str, theta_arr)) + '\n'))
 
     with open(f'data/{folder}/width_time{np.round(tfb,1)}_thr{np.round(threshold,1)}.txt','a') as file:
-        file.write(f'# {check}, snap {snap} \n')
+        file.write(f'# {check}, snap {snap} width \n')
         file.write((' '.join(map(str, width)) + '\n'))
+        file.write(f'# {check}, snap {snap} Ncells \n')
+        file.write((' '.join(map(str, ncells)) + '\n'))
+        file.write(f'################################ \n')
 #%% 
 if plot:
     if do:
-        vdenmax = 8e-7
+        vdenmax = 5e-8
         vdenmin = threshold * vdenmax
-        plt.figure(figsize = (16,5))
+        plt.figure(figsize = (16,4))
         img = plt.scatter(X_midplane, Y_midplane, c = Den_midplane, s = 0.1, cmap = 'viridis', vmin = vdenmin, vmax = vdenmax)
         plt.contour(xcfr, ycfr, cfr, [0], linestyles = 'dotted', colors = 'k')
-        plt.plot(cm[0], cm[1], '-o', c = 'k')
+        plt.plot(cm[0], cm[1], c = 'k')
         plt.plot(upper_tube[0], upper_tube[1], linestyle = 'dotted', c = 'k')
-        plt.plot(lower_tube[0], lower_tube[1],  '-o', c = 'k')
+        plt.plot(lower_tube[0], lower_tube[1],  '--', c = 'k')
         plt.xlim(-apo, 30)
         plt.ylim(-50,70)
         plt.xlabel(r'X [$R_\odot$]', fontsize = 18)
@@ -207,6 +210,9 @@ if plot:
         # Plot width over r
         plt.figure(figsize=(6,4))
         plt.plot(theta_arr * radians, width, c = 'k')
+        img = plt.scatter(theta_arr * radians, width, c = ncells, vmin=20, vmax=100, cmap = 'viridis')
+        cbar = plt.colorbar(img)
+        cbar.set_label(r'Ncells', fontsize = 16)
         plt.xlabel(r'$\theta$', fontsize = 14)
         plt.ylabel(r'Width [$R_\odot$]', fontsize = 14)
         plt.xlim(-3/4*np.pi, 3/4*np.pi)
@@ -265,3 +271,6 @@ if plot:
             plt.savefig(f'Figs/{folder}/Deltawidth_thr{np.round(threshold,1)}.png')
         plt.show()
 # %%
+theta_arr, cm, upper_tube, lower_tube, width, ncells  = orb.find_width_stream(X_midplane, Y_midplane, dim_midplane, Den_midplane, theta_params, threshold=threshold)
+cm_r = np.sqrt(cm[0]**2 + cm[1]**2)
+width_over_r = width / cm_r
