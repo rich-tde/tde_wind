@@ -14,6 +14,7 @@ sys.path.append('/Users/paolamartire/shocks')
 import numpy as np
 from scipy.spatial import KDTree
 import math
+import Utilities.prelude
 
 def to_cylindric(x,y):
     radius = np.sqrt(x**2+y**2)

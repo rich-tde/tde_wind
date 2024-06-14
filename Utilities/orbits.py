@@ -6,7 +6,7 @@ Measure the width and the height of the stream.
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter1d
-from Utilities.sections import radial_plane, transverse_plane
+from Utilities.sections import make_slices, radial_plane, transverse_plane
 from Utilities.operators import sort_list, median_array, from_cylindric, to_cylindric
 
 def make_cfr(R, x0=0, y0=0):
@@ -51,7 +51,7 @@ def find_width_boundaries(x_data, y_data, dim_data, den_data, x_orbit, y_orbit, 
     y_plane = y_data[condition_coord]
     den_plane = den_data[condition_coord]
 
-    # restrict to not keep points too far away
+    # restrict to not keep points too far away. Important for theta=0 or you take the stream at apocenter
     condition_x = np.abs(x_onplane) < 20
     x_onplane = x_onplane[condition_x]
     x_plane = x_plane[condition_x]
@@ -71,6 +71,7 @@ def find_width_boundaries(x_data, y_data, dim_data, den_data, x_orbit, y_orbit, 
     x_cm = x_plane_sorted[idx_cm]
     y_cm = y_plane_sorted[idx_cm]
     den_cm = den_plane_sorted[idx_cm]
+    print('den_cm', den_cm)
     
     # walk before and after the cm till you find a density 3 times smaller
     idx_step = idx_cm
@@ -109,7 +110,7 @@ def find_width_boundaries(x_data, y_data, dim_data, den_data, x_orbit, y_orbit, 
     # plt.scatter(x_chosen, y_chosen, marker = 'x', s = 27, c = 'b')
     # plt.xlim(-200,30)
     # plt.ylim(-60,70)
-    # #plt.xlabel(r'X [$R_\odot$]', fontsize = 18)
+    # plt.xlabel(r'X [$R_\odot$]', fontsize = 18)
     # plt.ylabel(r'Y [$R_\odot$]', fontsize = 18)
     # plt.show()
     return x_cm, y_cm, den_cm, x_low, y_low, den_low, x_high, y_high, den_high, width, ncells
@@ -181,6 +182,107 @@ def find_height_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, 
     # plt.ylabel(r'Z [$R_\odot$]', fontsize = 18)
     # plt.show()
     return x0, den_cm, x_low, z_low, den_low, x_high, z_high, den_high, height, ncells
+
+def find_stream_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, y_orbit, theta_cm, radius_cm, threshold = 0.33):
+    # find the transverse plane 
+    condition_T, x_Tplane, x0 = transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_cm, radius_cm, coord = True)
+    x_plane, y_plane, z_plane, den_plane, dim_plane = make_slices([x_data, y_data, z_data, den_data, dim_data], condition_T)
+    # find transverse line (on midplane)
+    midplane = np.abs(z_plane) < dim_plane
+    x_mid, x_T_mid, y_mid, den_mid = make_slices([x_plane, x_Tplane, y_plane, den_plane], midplane)
+
+    # restrict to not keep points too far away. Important for theta=0 or you take the stream at apocenter
+    condition_x = np.abs(x_T_mid) < 20
+    x_mid = x_mid[condition_x]
+    x_T_mid = x_T_mid[condition_x]
+    y_mid = y_mid[condition_x]
+    den_mid = den_mid[condition_x]
+
+    # sort 
+    x_T_mid = list(x_T_mid)
+    x_Tmid_sorted = sorted(x_T_mid)
+    x_mid_sorted = sort_list(x_mid, x_T_mid)
+    y_mid_sorted = sort_list(y_mid, x_T_mid)
+    den_mid_sorted = sort_list(den_mid, x_T_mid)
+    den_median_mid_sorted = median_array(den_mid_sorted)
+
+    # find the cm of the plane
+    idx_cm = np.argmax(den_mid_sorted) #den_median_mid_sorted
+    x_cm, y_cm, den_cm = x_mid_sorted[idx_cm], y_mid_sorted[idx_cm], den_mid_sorted[idx_cm]
+    
+    # Walk before and after the cm till you find a density 3 times smaller
+    # Lower boundary
+    idx_step = idx_cm
+    den_tube = den_cm
+    while den_tube > threshold * den_cm and idx_step > 0:
+        idx_step -= 1
+        den_tube = den_median_mid_sorted[idx_step] #den_mid_sorted[idx_step]
+    idx_before = idx_step+1
+    x_low, x_T_low, y_low, den_low_w = x_mid_sorted[idx_before], x_Tmid_sorted[idx_before], y_mid_sorted[idx_before], den_tube
+
+    # Upper boundary
+    idx_step = idx_cm
+    den_tube = den_cm
+    while den_tube > threshold * den_cm and idx_step < len(den_mid_sorted) - 1:
+        idx_step += 1
+        den_tube  = den_median_mid_sorted[idx_step] #den_mid_sorted[idx_step]
+    idx_after = idx_step-1
+    x_up, x_T_up, y_up, den_up_w = x_mid_sorted[idx_after], x_Tmid_sorted[idx_after], y_mid_sorted[idx_after], den_tube
+    
+    # Compute the width
+    width = x_T_up - x_T_low
+    ncells_w = idx_after - idx_before + 1 # +1 because ideces start from 0
+
+    # Z direction
+    # take point on the vertical axis
+    # x_Tplane_vert, z_vert, den_vert = make_slices([x_Tplane, z_plane, den_plane], vertical)
+    vertical = np.abs(x_Tplane-x0) < dim_plane #or x_plane-x_cm
+    z_vert, den_vert = make_slices([z_plane, den_plane], vertical)
+
+    # sort 
+    z_vert = list(z_vert)
+    z_vert_sorted = sorted(z_vert)
+    # x_vert_sorted = sort_list(x_plane_vert, z_vert)
+    den_vert_sorted = sort_list(den_vert, z_vert)
+    den_median_vert_sorted = median_array(den_vert_sorted)
+
+    # Find the cm of the plane (you are assuming that the cm found before is at z=0)
+    idx_cm = np.argmin(np.abs(z_vert_sorted))    
+
+    # Lower boundary in height
+    idx_step = idx_cm
+    den_tube = den_cm
+    while den_tube > threshold * den_cm and idx_step > 0:
+        idx_step -= 1
+        den_tube = den_median_vert_sorted[idx_step] #den_vert_sorted[idx_step]
+    idx_before = idx_step + 1
+    # x_low = x_vert_sorted[idx_before]
+    z_low, den_low_h = z_vert_sorted[idx_before], den_tube
+
+    # Upper boundary in height
+    idx_step = idx_cm
+    den_tube = den_cm
+    while den_tube > threshold * den_cm and idx_step < len(den_vert_sorted) - 1:
+        idx_step += 1
+        den_tube  = den_median_vert_sorted[idx_step] #den_vert_sorted[idx_step]
+    idx_after = idx_step-1
+    z_up, den_up_h = z_vert_sorted[idx_after], den_tube
+
+    # Compute the height
+    height = z_up - z_low 
+    ncells_h = idx_after - idx_before + 1 # +1 because ideces start from 0
+
+    # Wrap. Assumption: z=0 for upper/lower tube for width, xplane=x0~0 for upper/lower tube for height
+    cm = np.array([x_cm, y_cm, den_cm])
+    lower_tube_w = np.array([x_low, x_T_low, y_low, den_low_w])
+    upper_tube_w = np.array([x_up, x_T_up, y_up, den_up_w])
+    lower_tube_h = np.array([z_low, den_low_h])
+    upper_tube_h = np.array([z_up, den_up_h])
+    w_params = np.array([width, ncells_w])
+    h_params = np.array([height, ncells_h])
+
+    return cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params
+     
 
 def find_width_stream(x_data, y_data, dim_data, den_data, theta_params, threshold = 0.33):
     theta_arr, r_orbit = find_maximum(x_data, y_data, dim_data, den_data, theta_params)
