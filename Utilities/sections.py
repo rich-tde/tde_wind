@@ -25,9 +25,9 @@ def rotation(x_data, y_data, m, angle = False):
     x_onplane, y_onplane = np.dot(matrix_rotation, np.array([x_data, y_data])) 
     return x_onplane, y_onplane
 
-def tangent_vector(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen):
+def tangent_vector(x_orbit, y_orbit, theta_chosen, radius_chosen):
     # find the components of the tangent vector to the orbit at the chosen point
-    x_chosen, y_chosen = from_cylindric(theta_chosen, radius_chosen)
+    _, y_chosen = from_cylindric(theta_chosen, radius_chosen)
     idx_chosen = np.argmin(np.abs(y_chosen - y_orbit)) # orizontal parabola --> unique y values
     if idx_chosen == 0:
         idx_chosen += 1
@@ -36,7 +36,36 @@ def tangent_vector(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, rad
     x_coord_tg = x_orbit[idx_chosen+1] - x_orbit[idx_chosen-1]
     y_coord_tg = y_orbit[idx_chosen+1] - y_orbit[idx_chosen-1]
     vec_tg = np.array([x_coord_tg, y_coord_tg])
-    return vec_tg
+    vers_tg = vec_tg / np.linalg.norm(vec_tg)
+    return vers_tg
+        
+# def Ryan_transverse_plane(x_data, y_data,  x_orbit, y_orbit, theta_chosen, radius_chosen, coord = False):
+#     vers_tg = tangent_vector(x_orbit, y_orbit, theta_chosen, radius_chosen)
+#     # Find the points orthogonal to the tangent vector at the chosen point
+#     x_chosen, y_chosen = from_cylindric(theta_chosen, radius_chosen)
+#     x_data_trasl = x_data - x_chosen
+#     y_data_trasl = y_data - y_chosen
+#     data_trasl = np.transpose([x_data_trasl, y_data_trasl])
+#     data_trasl /= np.linalg.norm(data_trasl)
+#     dot_product = np.dot(data_trasl, vers_tg)
+#     condition_tra = np.abs(dot_product) < 5e-8
+
+#     #y_rot = rotation(x_data_trasl, y_data_trasl, theta_chosen, angle=True)[1]
+#     #condition_dist = np.abs(y_rot)<1
+#     #condition_tra = np.logical_and(condition_tra, condition_dist)
+#     if theta_chosen < 0:
+#         conditon_y = y_data>0
+#     else:
+#         conditon_y = y_data<0
+#     condition_coord = np.logical_and(condition_tra, conditon_y)
+#     if coord:
+#         x_norm = x_data_trasl[condition_coord]
+#         y_norm = y_data_trasl[condition_coord]
+#         x_onplane = rotation(x_norm, y_norm, theta_chosen, angle=True)[0]
+#         x0 = x_onplane[np.argmin(np.abs(x_onplane))]
+#         return condition_coord, x_onplane, x0
+#     else:
+#         return condition_coord
 
 def tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen, coeff_ang = False):
     # Search where you are in the orbit to then find the previous point
@@ -58,34 +87,19 @@ def tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radi
     else:
         return condition_coord
 
-def transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen, vec_tg, coord = False):
-    # Find the points orthogonal to the tangent vector at the chosen point
-    x_chosen, y_chosen = from_cylindric(theta_chosen, radius_chosen)
-    x_data_trasl = x_data - x_chosen
-    y_data_trasl = y_data - y_chosen
-    dot_product = np.dot(np.array([x_data_trasl, y_data_trasl]), vec_tg)
-    condition_coord = np.abs(dot_product) < 0.1
-    if coord:
-        x_norm = x_data_trasl[condition_coord]
-        y_norm = y_data_trasl[condition_coord]
-        x_onplane = rotation(x_norm, y_norm, theta_chosen, angle=True)[0]
-        return condition_coord, x_onplane, x_onplane
-    else:
-        return condition_coord
-
-def working_transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen, coord = False):
+def transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen, coord = False):
     # Find the transverse plane to the orbit with respect to the tangent plane at the chosen point
     x_chosen, y_chosen = from_cylindric(theta_chosen, radius_chosen)
     _, m = tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen, coeff_ang = True)
     inv_m = -1/m
     ideal_y_value = y_chosen + inv_m * (x_data-x_chosen)
     condition_coord = np.abs(y_data - ideal_y_value) < dim_data
-    if np.abs(m) < 0.1: # if m is close to 0
+    if np.abs(m) < 0.1: # if m is close to 0, take a vertical line
         print('m is close to 0, theta: ', theta_chosen)
         condition_coord = np.abs(x_data-x_chosen) < dim_data #condition_coord = np.logical_and(condition_coord, y_data >= 0)
-        if theta_chosen<0:
+        if theta_chosen < 0:
             condition_coord = np.logical_and(condition_coord, y_data > 0)
-        elif theta_chosen>0:
+        elif theta_chosen >0:
             condition_coord = np.logical_and(condition_coord, y_data < 0)
     elif np.logical_and(theta_chosen > 0, theta_chosen != np.pi): # if theta is in the third or fourth quadrant
         condition_coord = np.logical_and(condition_coord, y_data < 0)

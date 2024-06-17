@@ -12,6 +12,7 @@ from Utilities.operators import make_tree
 import Utilities.sections as sec
 import Utilities.orbits as orb
 from Utilities.time_extractor import days_since_distruption
+import Utilities.prelude
 matplotlib.rcParams['figure.dpi'] = 150
 
 #
@@ -25,8 +26,8 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
-snap = '164'
+check = 'Low' # 'Low' or 'HiRes' or 'Res20'
+snap = '199'
 is_tde = True
 threshold =  1/3
 
@@ -75,10 +76,10 @@ def Witta_orbit(theta_data):
 ## MAIN
 #
 
-do = True
+do = False
 plot = True
-save = False
-compare = False
+save = True
+compare = True
 theta_lim =  np.pi
 step = 0.1
 theta_params = [-theta_lim, theta_lim, step]
@@ -124,41 +125,61 @@ theta_cm, r_cm = orb.find_maximum(X_midplane, Y_midplane, dim_midplane, Den_midp
 x_cm, y_cm = orb.from_cylindric(theta_cm, r_cm)
 
 #%%
-if plot:
-    plt.figure(figsize=(7,4))
-    #plt.scatter(X_midplane, Y_midplane, c = np.log10(Den_midplane), cmap = 'viridis', s=1, vmin =-8, vmax = -7)
-    plt.plot(x_Witta_orbit, y_Witta_orbit, c = 'b',  label='Witta orbit')
-    plt.plot(x_K_orbit, y_K_orbit, c = 'r',  label='Keplerian orbit')
-    plt.plot(x_cm, y_cm, c = 'g', label='Density maxima')
-    plt.xlim(-60,40)
-    plt.ylim(-40, 40)
-    plt.xlabel(r'X [$R_\odot$]', fontsize = 18)
-    plt.ylabel(r'Y [$R_\odot$]', fontsize = 18)
-    plt.legend()
-    plt.show()
+# if plot:
+#     plt.figure(figsize=(7,4))
+#     #plt.scatter(X_midplane, Y_midplane, c = np.log10(Den_midplane), cmap = 'viridis', s=1, vmin =-8, vmax = -7)
+#     plt.plot(x_Witta_orbit, y_Witta_orbit, c = 'b',  label='Witta orbit')
+#     plt.plot(x_K_orbit, y_K_orbit, c = 'r',  label='Keplerian orbit')
+#     plt.plot(x_cm, y_cm, c = 'g', label='Density maxima')
+#     plt.xlim(-60,40)
+#     plt.ylim(-40, 40)
+#     plt.xlabel(r'X [$R_\odot$]', fontsize = 18)
+#     plt.ylabel(r'Y [$R_\odot$]', fontsize = 18)
+#     plt.legend()
+#     plt.show()
 
 #%%
-theta_arr, cm, upper_tube, lower_tube, width, ncells  = orb.find_width_stream(X_midplane, Y_midplane, dim_midplane, Den_midplane, theta_params, threshold=threshold)
-cm_r = np.sqrt(cm[0]**2 + cm[1]**2)
-width_over_r = width / cm_r
+if do:
+    theta_arr, cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params  = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Den, theta_params, threshold=threshold)
 
-if save:
-    try:
-        file = open(f'data/{folder}/width_time{np.round(tfb,1)}_thr{np.round(threshold,1)}.txt', 'r')
-        # Perform operations on the file
-        file.close()
-    except FileNotFoundError:
-        with open(f'data/{folder}/width_time{np.round(tfb,1)}_thr{np.round(threshold,1)}.txt','a') as fstart:
-            # if file exist
-            fstart.write(f'# theta \n')
-            fstart.write((' '.join(map(str, theta_arr)) + '\n'))
+    if save:
+        try:
+            file = open(f'data/{folder}/width_time{np.round(tfb,1)}_thr{np.round(threshold,1)}.txt', 'r')
+            # Perform operations on the file
+            file.close()
+        except FileNotFoundError:
+            with open(f'data/{folder}/width_time{np.round(tfb,1)}_thr{np.round(threshold,1)}.txt','a') as fstart:
+                # if file exist
+                fstart.write(f'# theta \n')
+                fstart.write((' '.join(map(str, theta_arr)) + '\n'))
 
-    with open(f'data/{folder}/width_time{np.round(tfb,1)}_thr{np.round(threshold,1)}.txt','a') as file:
-        file.write(f'# {check}, snap {snap} width \n')
-        file.write((' '.join(map(str, width)) + '\n'))
-        file.write(f'# {check}, snap {snap} Ncells \n')
-        file.write((' '.join(map(str, ncells)) + '\n'))
-        file.write(f'################################ \n')
+        with open(f'data/{folder}/width_time{np.round(tfb,1)}_thr{np.round(threshold,1)}.txt','a') as file:
+            file.write(f'# {check}, snap {snap} width \n')
+            file.write((' '.join(map(str, w_params[0])) + '\n'))
+            file.write(f'# {check}, snap {snap} Ncells \n')
+            file.write((' '.join(map(str, w_params[1])) + '\n'))
+            file.write(f'################################ \n')
+
+        # same for height
+        try:
+            file = open(f'data/{folder}/height_time{np.round(tfb,1)}_thr{np.round(threshold,1)}.txt', 'r')
+            # Perform operations on the file
+            file.close()
+        except FileNotFoundError:
+            with open(f'data/{folder}/height_time{np.round(tfb,1)}_thr{np.round(threshold,1)}.txt','a') as fstart:
+                # if file exist
+                fstart.write(f'# theta \n')
+                fstart.write((' '.join(map(str, theta_arr)) + '\n'))
+
+        with open(f'data/{folder}/height_time{np.round(tfb,1)}_thr{np.round(threshold,1)}.txt','a') as file:
+            file.write(f'# {check}, snap {snap} height \n')
+            file.write((' '.join(map(str, h_params[0])) + '\n'))
+            file.write(f'# {check}, snap {snap} Ncells \n')
+            file.write((' '.join(map(str, h_params[1])) + '\n'))
+            file.write(f'################################ \n')
+
+
+
 #%% 
 if plot:
     if do:
@@ -167,9 +188,9 @@ if plot:
         plt.figure(figsize = (16,4))
         img = plt.scatter(X_midplane, Y_midplane, c = Den_midplane, s = 0.1, cmap = 'viridis', vmin = vdenmin, vmax = vdenmax)
         plt.contour(xcfr, ycfr, cfr, [0], linestyles = 'dotted', colors = 'k')
-        plt.plot(cm[0], cm[1], c = 'k')
-        plt.plot(upper_tube[0], upper_tube[1], linestyle = 'dotted', c = 'k')
-        plt.plot(lower_tube[0], lower_tube[1],  '--', c = 'k')
+        plt.plot(cm[:,0], cm[:,1], c = 'k')
+        plt.plot(upper_tube_w[:,0], upper_tube_w[:,1], linestyle = 'dotted', c = 'k')
+        plt.plot(lower_tube_w[:,0], lower_tube_w[:,1],  '--', c = 'k')
         plt.xlim(-apo, 30)
         plt.ylim(-50,70)
         plt.xlabel(r'X [$R_\odot$]', fontsize = 18)
@@ -209,8 +230,8 @@ if plot:
 
         # Plot width over r
         plt.figure(figsize=(6,4))
-        plt.plot(theta_arr * radians, width, c = 'k')
-        img = plt.scatter(theta_arr * radians, width, c = ncells, vmin=20, vmax=100, cmap = 'viridis')
+        plt.plot(theta_arr * radians, w_params[0], c = 'k')
+        img = plt.scatter(theta_arr * radians, w_params[0], c = w_params[1], vmin=20, vmax=100, cmap = 'viridis')
         cbar = plt.colorbar(img)
         cbar.set_label(r'Ncells', fontsize = 16)
         plt.xlabel(r'$\theta$', fontsize = 14)
@@ -220,48 +241,64 @@ if plot:
         plt.grid()
         plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,3)) + f', check: {check}, threshold: {np.round(threshold,1)}', fontsize = 16)
         plt.tight_layout()
-        plt.savefig(f'{saving_path}/width_theta{snap}_thr{np.round(threshold,1)}.png')
+        #plt.savefig(f'{saving_path}/width_theta{snap}_thr{np.round(threshold,1)}.png')
         plt.show()
 
     if compare:
         datawidth5 = np.loadtxt(f'data/{folder}/width_time0.5_thr{np.round(threshold,1)}.txt')
         theta_width = datawidth5[0]
-        widthC5 = datawidth5[1]
-        widthHiRes5 = datawidth5[2]
-        widthRes205 = datawidth5[3]
+        widthL5 = datawidth5[1]
+        NcellL5 = datawidth5[2]
+        widthHiRes5 = datawidth5[3]
+        NcellHiRes5 = datawidth5[4]
+        widthRes205 = datawidth5[5]
+        NcellRes205 = datawidth5[6]
         datawidth7 = np.loadtxt(f'data/{folder}/width_time0.7_thr{np.round(threshold,1)}.txt')
-        widthC7 = datawidth7[1]
-        widthHiRes7 = datawidth7[2]
+        widthL7 = datawidth7[1]
+        NcellL7 = datawidth7[2]
+        widthHiRes7 = datawidth7[3]
+        NcellHiRes7 = datawidth7[4]
 
-        plt.figure(figsize=(6,4))
-        plt.plot(theta_width, widthC5, '--', c = 'r', label = 'Low 0.5')
-        plt.plot(theta_width, widthC7, c = 'r', label = 'Low 0.7')
-        plt.plot(theta_width, widthHiRes5, '--', c = 'b', label = 'HiRes 0.5')
-        plt.plot(theta_width, widthHiRes7, c = 'b', label = 'HiRes 0.7')
-        plt.plot(theta_width, widthRes205, '--', c = 'g',  label = 'Res20 0.5')
-        plt.legend()
-        plt.xlabel(r'$\theta$', fontsize = 14)
-        plt.ylabel(r'Width [$R_\odot$]', fontsize = 14)
-        plt.xlim(-3/4*np.pi, 3/4*np.pi)
-        plt.ylim(0,15)
-        plt.grid()
+        fig, ax = plt.subplots(2,1, figsize = (10,7))
+        ax[0].plot(theta_width, widthL5, '--', c = 'r', label = 'Low 0.5')
+        ax[0].plot(theta_width, widthL7, c = 'r', label = 'Low 0.7')
+        ax[0].plot(theta_width, widthHiRes5, '--', c = 'b', label = 'Middle 0.5')
+        ax[0].plot(theta_width, widthHiRes7, c = 'b', label = 'Middle 0.7')
+        ax[0].plot(theta_width, widthRes205, '--', c = 'g',  label = 'High 0.5')
+        ax[0].legend()
+        ax[0].set_xlabel(r'$\theta$', fontsize = 14)
+        ax[0].set_ylabel(r'Width [$R_\odot$]', fontsize = 14)
+        ax[0].set_xlim(-3/4*np.pi, 3/4*np.pi)
+        ax[0].set_ylim(0,15)
+        ax[0].grid()
+        ax[1].plot(theta_width, NcellL5, '--', c = 'r', label = 'Low 0.5')
+        ax[1].plot(theta_width, NcellL7, c = 'r', label = 'Low 0.7')
+        ax[1].plot(theta_width, NcellHiRes5,  '--', c = 'b', label = 'Middle 0.5')
+        ax[1].plot(theta_width, NcellHiRes7, c = 'b', label = 'Middle 0.7')
+        ax[1].plot(theta_width, NcellRes205, '--', c = 'g',  label = 'High 0.5')
+        ax[1].legend(loc= 'upper left')
+        ax[1].set_xlim(-3/4*np.pi, 3/4*np.pi)
+        ax[1].set_ylim(0,150)
+        ax[1].set_xlabel(r'$\theta$', fontsize = 14)
+        ax[1].set_ylabel(r'N$_{cell}$', fontsize = 14)
+        ax[1].grid()
         plt.suptitle(f'Threshold: {np.round(threshold,1)}', fontsize = 16)
         if save:
             plt.savefig(f'Figs/{folder}/width_comparison_thr{np.round(threshold,1)}.png')
         plt.show()
 
-        ratio5 = 1 - widthHiRes5/widthC5
-        ratio5Res20 = 1 - widthRes205/widthC5
+        ratio5 = 1 - widthHiRes5/widthL5
+        ratio5Res20 = 1 - widthRes205/widthL5
         ratio5Res20middle = 1 - widthRes205/widthHiRes5
-        ratio7 = 1- widthHiRes7/widthC7
+        ratio7 = 1- widthHiRes7/widthL7
 
-        plt.figure(figsize=(6,4))
+        plt.figure(figsize=(8,6))
         plt.plot(theta_width, ratio5, '--', c = 'b', label = r'Middle - Low t/t$_{fb}=$ 0.5')
         #plt.plot(theta_width, ratio5Res20, '--', c = 'green', label = r'High - Low t/t$_{fb}=$ 0.5')
         plt.plot(theta_width, ratio5Res20middle, '--', c = 'green', label = r'High - Middle t/t$_{fb}=$ 0.5')
         plt.plot(theta_width, ratio7, c = 'b', label = r'Middle - Low t/t$_{fb}=$ 0.7')
         plt.xlabel(r'$\theta$', fontsize = 14)
-        plt.ylabel(r'1-$H_{hr}/H_{lr}$', fontsize = 14)
+        plt.ylabel(r'1-$\Delta/\Delta_{ref}$', fontsize = 14)
         plt.xlim(-3/4*np.pi, 3/4*np.pi)
         plt.ylim(-0.2,0.95)
         plt.legend()
@@ -270,7 +307,67 @@ if plot:
         if save:
             plt.savefig(f'Figs/{folder}/Deltawidth_thr{np.round(threshold,1)}.png')
         plt.show()
-# %%
-theta_arr, cm, upper_tube, lower_tube, width, ncells  = orb.find_width_stream(X_midplane, Y_midplane, dim_midplane, Den_midplane, theta_params, threshold=threshold)
-cm_r = np.sqrt(cm[0]**2 + cm[1]**2)
-width_over_r = width / cm_r
+
+        dataheight5 = np.loadtxt(f'data/{folder}/height_time0.5_thr{np.round(threshold,1)}.txt')
+        theta_height = dataheight5[0]
+        heightL5 = dataheight5[1]
+        NhcellL5 = dataheight5[2]
+        heightHiRes5 = dataheight5[3]
+        NhcellHiRes5 = dataheight5[4]
+        heightRes205 = dataheight5[5]
+        NhcellRes205 = dataheight5[6]
+        dataheight7 = np.loadtxt(f'data/{folder}/height_time0.7_thr{np.round(threshold,1)}.txt')
+        heightC7 = dataheight7[1]
+        NhcellL7 = dataheight7[2]
+        heightHiRes7 = dataheight7[3]
+        NhcellHiRes7 = dataheight7[4]
+
+        fig, ax = plt.subplots(2,1, figsize = (10,7))
+        ax[0].plot(theta_height, heightL5, '--', c = 'r', label = 'Low 0.5')
+        ax[0].plot(theta_height, heightC7, c = 'r', label = 'Low 0.7')
+        ax[0].plot(theta_height, heightHiRes5, '--', c = 'b', label = 'Middle 0.5')
+        ax[0].plot(theta_height, heightHiRes7, c = 'b', label = 'Middle 0.7')
+        ax[0].plot(theta_height, heightRes205, '--', c = 'g',  label = 'High 0.5')
+        ax[0].legend()
+        ax[0].set_xlabel(r'$\theta$', fontsize = 14)
+        ax[0].set_ylabel(r'Height [$R_\odot$]', fontsize = 14)
+        ax[0].set_xlim(-3/4*np.pi, 3/4*np.pi)
+        ax[0].set_ylim(-0.1,7.5)
+        ax[0].grid()
+        ax[1].plot(theta_height, NhcellL5, '--', c = 'r', label = 'Low 0.5')
+        ax[1].plot(theta_height, NhcellL7, c = 'r', label = 'Low 0.7')
+        ax[1].plot(theta_height, NhcellHiRes5,  '--', c = 'b', label = 'Middle 0.5')
+        ax[1].plot(theta_height, NhcellHiRes7, c = 'b', label = 'Middle 0.7')
+        ax[1].plot(theta_height, NhcellRes205, '--', c = 'g',  label = 'High 0.5')
+        ax[1].legend(loc= 'upper left')
+        ax[1].set_xlim(-3/4*np.pi, 3/4*np.pi)
+        ax[1].set_ylim(0,100)
+        ax[1].set_xlabel(r'$\theta$', fontsize = 14)
+        ax[1].set_ylabel(r'N$_{cell}$', fontsize = 14)
+        ax[1].grid()
+        plt.suptitle(f'Threshold: {np.round(threshold,1)}', fontsize = 16)
+        if save:
+            plt.savefig(f'Figs/{folder}/H_comparison_thr{np.round(threshold,1)}.png')
+        plt.show()
+
+        ratio5 = 1 - heightHiRes5/heightL5
+        ratio5Res20 = 1 - heightRes205/heightL5
+        ratio5Res20middle = 1 - heightRes205/heightHiRes5
+        ratio7 = 1- heightHiRes7/heightC7
+
+        plt.figure(figsize=(8,6))
+        plt.plot(theta_height, ratio5, '--', c = 'b', label = r'Middle - Low t/t$_{fb}=$ 0.5')
+        #plt.plot(theta_height, ratio5Res20, '--', c = 'green', label = r'High - Low t/t$_{fb}=$ 0.5')
+        plt.plot(theta_height, ratio5Res20middle, '--', c = 'green', label = r'High - Middle t/t$_{fb}=$ 0.5')
+        plt.plot(theta_height, ratio7, c = 'b', label = r'Middle - Low t/t$_{fb}=$ 0.7')
+        plt.xlabel(r'$\theta$', fontsize = 14)
+        plt.ylabel(r'1-$H/H_{ref}$', fontsize = 14)
+        plt.xlim(-3/4*np.pi, 3/4*np.pi)
+        plt.ylim(-0.5,1)
+        plt.legend()
+        plt.grid()
+        plt.suptitle(f'Threshold: {np.round(threshold,1)}', fontsize = 16)
+        if save:
+            plt.savefig(f'Figs/{folder}/DeltaH_thr{np.round(threshold,1)}.png')
+        plt.show()
+

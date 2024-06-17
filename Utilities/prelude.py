@@ -40,4 +40,5 @@ plt.rcParams['xtick.direction'] = 'in'
 plt.rcParams['ytick.direction'] = 'in'
 plt.rcParams['xtick.labelsize'] = 15
 plt.rcParams['ytick.labelsize'] = 15
+plt.tight_layout()
 AEK = '#F1C410'
