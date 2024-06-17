@@ -26,7 +26,7 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'Low' # 'Low' or 'HiRes' or 'Res20'
+check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
 snap = '199'
 is_tde = True
 threshold =  1/3
@@ -76,10 +76,10 @@ def Witta_orbit(theta_data):
 ## MAIN
 #
 
-do = False
+do = True
 plot = True
-save = True
-compare = True
+save = False
+compare = False
 theta_lim =  np.pi
 step = 0.1
 theta_params = [-theta_lim, theta_lim, step]
@@ -189,8 +189,8 @@ if plot:
         img = plt.scatter(X_midplane, Y_midplane, c = Den_midplane, s = 0.1, cmap = 'viridis', vmin = vdenmin, vmax = vdenmax)
         plt.contour(xcfr, ycfr, cfr, [0], linestyles = 'dotted', colors = 'k')
         plt.plot(cm[:,0], cm[:,1], c = 'k')
-        plt.plot(upper_tube_w[:,0], upper_tube_w[:,1], linestyle = 'dotted', c = 'k')
-        plt.plot(lower_tube_w[:,0], lower_tube_w[:,1],  '--', c = 'k')
+        plt.plot(upper_tube_w[:,0], upper_tube_w[:,2], linestyle = 'dotted', c = 'k')
+        plt.plot(lower_tube_w[:,0], lower_tube_w[:,2],  '--', c = 'k')
         plt.xlim(-apo, 30)
         plt.ylim(-50,70)
         plt.xlabel(r'X [$R_\odot$]', fontsize = 18)
@@ -206,8 +206,8 @@ if plot:
         # ax[0].plot(cm[0], cm[1], c = 'k')
         # ax[0].plot(upper_tube[0], upper_tube[1], linestyle = 'dotted', c = 'k')
         # ax[0].plot(lower_tube[0], lower_tube[1],  '--', c = 'k')
-        # # ax[0].set_xlim(-60,20)
-        # # ax[0].set_ylim(-40,40)
+        # ax[0].set_xlim(-60,20)
+        # ax[0].set_ylim(-40,40)
         # ax[0].set_xlim(-apo, -200)
         # ax[0].set_ylim(0,70)
         # ax[0].set_xlabel(r'X [$R_\odot$]', fontsize = 18)
@@ -241,7 +241,8 @@ if plot:
         plt.grid()
         plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,3)) + f', check: {check}, threshold: {np.round(threshold,1)}', fontsize = 16)
         plt.tight_layout()
-        #plt.savefig(f'{saving_path}/width_theta{snap}_thr{np.round(threshold,1)}.png')
+        if save:
+            plt.savefig(f'{saving_path}/width_theta{snap}_thr{np.round(threshold,1)}.png')
         plt.show()
 
     if compare:

@@ -10,19 +10,16 @@ def make_slices(all_data, condition):
     """
     return [data[condition] for data in all_data]
 
-def rotation(x_data, y_data, m, angle = False):
+def rotation(x_data, y_data, param, angle = False):
     """ Rotate your data so that the line y = m*x is horizontal.
     We have to take into account the fact that the angle given by arctan2 goes from -pi to pi, but is counterclockwise, while our orbits are clockwise."""
     if angle:
-        theta = m
+        theta = -param # you have the angles, but it's clockwise (from the function to_cylindric)
     else:
-        theta = np.arctan2(m,1)
-        # if early:
-        # # you are in the second quadrant, x<0. In the usual (i.e. counterclockwise) coordinate system, you have to add pi to the angle given by arctan2
-        #     theta += np.pi
+        theta = np.arctan2(param,1)
         theta = -theta # to be consistent with our orbit (function to_cylindric)
-    matrix_rotation = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]]) 
-    x_onplane, y_onplane = np.dot(matrix_rotation, np.array([x_data, y_data])) 
+    x_onplane = x_data * np.cos(theta) - y_data * np.sin(theta)
+    y_onplane = x_data * np.sin(theta) + y_data * np.cos(theta)
     return x_onplane, y_onplane
 
 def tangent_vector(x_orbit, y_orbit, theta_chosen, radius_chosen):
@@ -39,33 +36,41 @@ def tangent_vector(x_orbit, y_orbit, theta_chosen, radius_chosen):
     vers_tg = vec_tg / np.linalg.norm(vec_tg)
     return vers_tg
         
-# def Ryan_transverse_plane(x_data, y_data,  x_orbit, y_orbit, theta_chosen, radius_chosen, coord = False):
-#     vers_tg = tangent_vector(x_orbit, y_orbit, theta_chosen, radius_chosen)
-#     # Find the points orthogonal to the tangent vector at the chosen point
-#     x_chosen, y_chosen = from_cylindric(theta_chosen, radius_chosen)
-#     x_data_trasl = x_data - x_chosen
-#     y_data_trasl = y_data - y_chosen
-#     data_trasl = np.transpose([x_data_trasl, y_data_trasl])
-#     data_trasl /= np.linalg.norm(data_trasl)
-#     dot_product = np.dot(data_trasl, vers_tg)
-#     condition_tra = np.abs(dot_product) < 5e-8
+def transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen, coord = False):
+    """
+    Find the transverse plane to the orbit at the chosen point.
+    If coord is True, it returns the coordinates of the data in the plane with respect to the new coordinates system,
+    i.e. the one that have versor (tg_vect, Zhat X tg_vect, Zhat).
+    """
+    vers_tg = tangent_vector(x_orbit, y_orbit, theta_chosen, radius_chosen)
+    # Find the points orthogonal to the tangent vector at the chosen point
+    x_chosen, y_chosen = from_cylindric(theta_chosen, radius_chosen)
+    x_data_trasl = x_data - x_chosen
+    y_data_trasl = y_data - y_chosen
+    data_trasl = np.transpose([x_data_trasl, y_data_trasl])
+    #data_trasl /= np.linalg.norm(data_trasl)
+    dot_product = np.dot(data_trasl, vers_tg) #that's the projection of the data on the tangent vector
+    condition_tra = np.abs(dot_product) < dim_data 
 
-#     #y_rot = rotation(x_data_trasl, y_data_trasl, theta_chosen, angle=True)[1]
-#     #condition_dist = np.abs(y_rot)<1
-#     #condition_tra = np.logical_and(condition_tra, condition_dist)
-#     if theta_chosen < 0:
-#         conditon_y = y_data>0
-#     else:
-#         conditon_y = y_data<0
-#     condition_coord = np.logical_and(condition_tra, conditon_y)
-#     if coord:
-#         x_norm = x_data_trasl[condition_coord]
-#         y_norm = y_data_trasl[condition_coord]
-#         x_onplane = rotation(x_norm, y_norm, theta_chosen, angle=True)[0]
-#         x0 = x_onplane[np.argmin(np.abs(x_onplane))]
-#         return condition_coord, x_onplane, x0
-#     else:
-#         return condition_coord
+    if theta_chosen < 0:
+        conditon_y = y_data>0
+    else:
+        conditon_y = y_data<0
+    condition_coord = np.logical_and(condition_tra, conditon_y)
+    if coord:
+        #Find the versors in 3D
+        zhat = np.array([0,0,1])
+        yRhat = np.array([vers_tg[0], vers_tg[1],0]) # points in the direction of the orbit
+        xRhat = np.cross(zhat, vers_tg) # points outwards
+        xRhat /= np.linalg.norm(xRhat)
+        vers_norm = np.array([xRhat[0], xRhat[1]])
+        #Find the coordinates of the data in the new system
+        x_onplane = np.dot(data_trasl[condition_coord], vers_norm)
+        # y_onplane = np.dot(data_trasl[condition_coord], vers_tg)
+        x0 = x_onplane[np.argmin(np.abs(x_onplane))]
+        return condition_coord, x_onplane, x0
+    else:
+        return condition_coord
 
 def tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen, coeff_ang = False):
     # Search where you are in the orbit to then find the previous point
@@ -87,7 +92,7 @@ def tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radi
     else:
         return condition_coord
 
-def transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen, coord = False):
+def busy_transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen, coord = False):
     # Find the transverse plane to the orbit with respect to the tangent plane at the chosen point
     x_chosen, y_chosen = from_cylindric(theta_chosen, radius_chosen)
     _, m = tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen, coeff_ang = True)
