@@ -99,16 +99,16 @@ def extractor(filename):
     return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, Star, Entropy
 
 if __name__ == '__main__':
-    snap = 117
+    snap = 0
     m = 4
     Mbh = 10**m
     beta = 1
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = 'ComptonRes20'
+    check = 'HiRes'
     if alice:
-            prepath = f'/data1/martirep/shocks/shock_capturing/'
+        prepath = f'/data1/martirep/shocks/shock_capturing/'
     else: 
         prepath = f'TDE'
     

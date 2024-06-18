@@ -22,7 +22,28 @@ def rotation(x_data, y_data, param, angle = False):
     y_onplane = x_data * np.sin(theta) + y_data * np.cos(theta)
     return x_onplane, y_onplane
 
-def tangent_vector(x_orbit, y_orbit, theta_chosen, radius_chosen):
+def radial_plane(x_data, y_data, dim_data, theta_chosen):
+    if np.abs(theta_chosen - np.pi/2) < 1e-4: # if theta is close to pi/2
+        condition_coord = np.abs(x_data) < dim_data  # vertical line
+        condition_coord = np.logical_and(condition_coord, y_data < 0) # only the lower part
+    elif np.abs(theta_chosen + np.pi/2) < 1e-4: # if theta is close to -pi/2
+        condition_coord = np.abs(x_data) < dim_data  # vertical line
+        condition_coord = np.logical_and(condition_coord, y_data > 0) # only the upper part
+    else:
+        # we need the - in front of theta to be consistent with the function to_cylindric, where we change the orientation of the angle
+        m = np.tan(-theta_chosen)
+        condition_coord = np.abs(y_data - m * x_data) < dim_data 
+        if theta_chosen == 0:
+            condition_coord = np.logical_and(condition_coord, x_data >= 0)
+        elif np.abs(theta_chosen) == np.pi:
+            condition_coord = np.logical_and(condition_coord, x_data < 0)
+        elif np.logical_and(theta_chosen > 0, theta_chosen != np.pi): # if theta is in the third or fourth quadrant
+            condition_coord = np.logical_and(condition_coord, y_data < 0)
+        else:
+            condition_coord = np.logical_and(condition_coord, y_data > 0)
+    return condition_coord
+
+def tangent_versor(x_orbit, y_orbit, theta_chosen, radius_chosen):
     # find the components of the tangent vector to the orbit at the chosen point
     _, y_chosen = from_cylindric(theta_chosen, radius_chosen)
     idx_chosen = np.argmin(np.abs(y_chosen - y_orbit)) # orizontal parabola --> unique y values
@@ -42,7 +63,7 @@ def transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, r
     If coord is True, it returns the coordinates of the data in the plane with respect to the new coordinates system,
     i.e. the one that have versor (tg_vect, Zhat X tg_vect, Zhat).
     """
-    vers_tg = tangent_vector(x_orbit, y_orbit, theta_chosen, radius_chosen)
+    vers_tg = tangent_versor(x_orbit, y_orbit, theta_chosen, radius_chosen)
     # Find the points orthogonal to the tangent vector at the chosen point
     x_chosen, y_chosen = from_cylindric(theta_chosen, radius_chosen)
     x_data_trasl = x_data - x_chosen
@@ -92,56 +113,4 @@ def tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radi
     else:
         return condition_coord
 
-def busy_transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen, coord = False):
-    # Find the transverse plane to the orbit with respect to the tangent plane at the chosen point
-    x_chosen, y_chosen = from_cylindric(theta_chosen, radius_chosen)
-    _, m = tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, theta_chosen, radius_chosen, coeff_ang = True)
-    inv_m = -1/m
-    ideal_y_value = y_chosen + inv_m * (x_data-x_chosen)
-    condition_coord = np.abs(y_data - ideal_y_value) < dim_data
-    if np.abs(m) < 0.1: # if m is close to 0, take a vertical line
-        print('m is close to 0, theta: ', theta_chosen)
-        condition_coord = np.abs(x_data-x_chosen) < dim_data #condition_coord = np.logical_and(condition_coord, y_data >= 0)
-        if theta_chosen < 0:
-            condition_coord = np.logical_and(condition_coord, y_data > 0)
-        elif theta_chosen >0:
-            condition_coord = np.logical_and(condition_coord, y_data < 0)
-    elif np.logical_and(theta_chosen > 0, theta_chosen != np.pi): # if theta is in the third or fourth quadrant
-        condition_coord = np.logical_and(condition_coord, y_data < 0)
-    elif theta_chosen<0:
-        condition_coord = np.logical_and(condition_coord, y_data > 0)
-    if coord:
-        # early = False
-        x_trasl = x_data[condition_coord] - x_chosen
-        y_trasl = y_data[condition_coord] - y_chosen
-        idx = np.argmin(np.abs(x_data[condition_coord] - x_chosen)) #should be the index of x_chosen
-        x_trasl[idx] = 0 #if u can avoid it, better
-        y_trasl[idx] = 0 #if u can avoid it, better
-        x_onplane = rotation(x_trasl, y_trasl, inv_m)[0]
-        # just a check when you'll plot to be sure that x_chosen is at the origin, i.e. x0 = 0
-        x0 = x_onplane[idx]
-        return condition_coord, x_onplane, x0
-    else:
-        return condition_coord
 
-
-def radial_plane(x_data, y_data, dim_data, theta_chosen):
-    if np.abs(theta_chosen - np.pi/2) < 1e-4: # if theta is close to pi/2
-        condition_coord = np.abs(x_data) < dim_data  # vertical line
-        condition_coord = np.logical_and(condition_coord, y_data < 0) # only the lower part
-    elif np.abs(theta_chosen + np.pi/2) < 1e-4: # if theta is close to -pi/2
-        condition_coord = np.abs(x_data) < dim_data  # vertical line
-        condition_coord = np.logical_and(condition_coord, y_data > 0) # only the upper part
-    else:
-        # we need the - in front of theta to be consistent with the function to_cylindric, where we change the orientation of the angle
-        m = np.tan(-theta_chosen)
-        condition_coord = np.abs(y_data - m * x_data) < dim_data 
-        if theta_chosen == 0:
-            condition_coord = np.logical_and(condition_coord, x_data >= 0)
-        elif np.abs(theta_chosen) == np.pi:
-            condition_coord = np.logical_and(condition_coord, x_data < 0)
-        elif np.logical_and(theta_chosen > 0, theta_chosen != np.pi): # if theta is in the third or fourth quadrant
-            condition_coord = np.logical_and(condition_coord, y_data < 0)
-        else:
-            condition_coord = np.logical_and(condition_coord, y_data > 0)
-    return condition_coord

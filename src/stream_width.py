@@ -26,10 +26,10 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'Low' # 'Low' or 'HiRes' or 'Res20'
+check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
 snap = '199'
 is_tde = True
-threshold =  1/3
+threshold =  1/10
 
 #
 ## Constants
@@ -120,9 +120,6 @@ theta_arr_kep = np.arange(-np.pi, np.pi, 0.01)
 Witta_r = Witta_orbit(theta_arr_kep)
 x_Witta_orbit, y_Witta_orbit = orb.from_cylindric(theta_arr_kep, Witta_r) 
 
-# Density maxima orbit
-theta_cm, r_cm = orb.find_maximum(X_midplane, Y_midplane, dim_midplane, Den_midplane, theta_params)
-x_cm, y_cm = orb.from_cylindric(theta_cm, r_cm)
 
 #%%
 # if plot:
@@ -140,7 +137,7 @@ x_cm, y_cm = orb.from_cylindric(theta_cm, r_cm)
 
 #%%
 if do:
-    theta_arr, cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params  = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Den, theta_params, threshold=threshold)
+    theta_arr, cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params  = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Den, theta_params, Rt, threshold=threshold)
 
     if save:
         try:
@@ -150,12 +147,10 @@ if do:
         except FileNotFoundError:
             with open(f'data/{folder}/width_time{np.round(tfb,1)}_thr{np.round(threshold,1)}.txt','a') as fstart:
                 # if file exist
-                print('hi')
                 fstart.write(f'# theta \n')
                 fstart.write((' '.join(map(str, theta_arr)) + '\n'))
 
         with open(f'data/{folder}/width_time{np.round(tfb,1)}_thr{np.round(threshold,1)}.txt','a') as file:
-            print('a')
             file.write(f'# {check}, snap {snap} width \n')
             file.write((' '.join(map(str, w_params[0])) + '\n'))
             file.write(f'# {check}, snap {snap} Ncells \n')
@@ -179,7 +174,6 @@ if do:
             file.write(f'# {check}, snap {snap} Ncells \n')
             file.write((' '.join(map(str, h_params[1])) + '\n'))
             file.write(f'################################ \n')
-
 
 
 #%% 
@@ -279,9 +273,9 @@ if plot:
         ax[1].plot(theta_width, NcellHiRes5,  '--', c = 'b', label = 'Middle 0.5')
         ax[1].plot(theta_width, NcellHiRes7, c = 'b', label = 'Middle 0.7')
         ax[1].plot(theta_width, NcellRes205, '--', c = 'g',  label = 'High 0.5')
-        ax[1].legend(loc= 'upper left')
+        ax[1].legend(loc= 'lower left')
         ax[1].set_xlim(-3/4*np.pi, 3/4*np.pi)
-        ax[1].set_ylim(0,150)
+        ax[1].set_ylim(0,200)
         ax[1].set_xlabel(r'$\theta$', fontsize = 14)
         ax[1].set_ylabel(r'N$_{cell}$', fontsize = 14)
         ax[1].grid()
@@ -335,16 +329,16 @@ if plot:
         ax[0].set_xlabel(r'$\theta$', fontsize = 14)
         ax[0].set_ylabel(r'Height [$R_\odot$]', fontsize = 14)
         ax[0].set_xlim(-3/4*np.pi, 3/4*np.pi)
-        ax[0].set_ylim(-0.1,7.5)
+        ax[0].set_ylim(-0.1,10)
         ax[0].grid()
         ax[1].plot(theta_height, NhcellL5, '--', c = 'r', label = 'Low 0.5')
         ax[1].plot(theta_height, NhcellL7, c = 'r', label = 'Low 0.7')
         ax[1].plot(theta_height, NhcellHiRes5,  '--', c = 'b', label = 'Middle 0.5')
         ax[1].plot(theta_height, NhcellHiRes7, c = 'b', label = 'Middle 0.7')
         ax[1].plot(theta_height, NhcellRes205, '--', c = 'g',  label = 'High 0.5')
-        ax[1].legend(loc= 'upper left')
+        ax[1].legend(loc= 'lower left')
         ax[1].set_xlim(-3/4*np.pi, 3/4*np.pi)
-        ax[1].set_ylim(0,100)
+        ax[1].set_ylim(0,200)
         ax[1].set_xlabel(r'$\theta$', fontsize = 14)
         ax[1].set_ylabel(r'N$_{cell}$', fontsize = 14)
         ax[1].grid()
