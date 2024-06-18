@@ -26,7 +26,7 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
+check = 'Low' # 'Low' or 'HiRes' or 'Res20'
 snap = '199'
 is_tde = True
 threshold =  1/3
@@ -76,10 +76,10 @@ def Witta_orbit(theta_data):
 ## MAIN
 #
 
-do = True
+do = False
 plot = True
-save = False
-compare = False
+save = True
+compare = True
 theta_lim =  np.pi
 step = 0.1
 theta_params = [-theta_lim, theta_lim, step]
@@ -150,10 +150,12 @@ if do:
         except FileNotFoundError:
             with open(f'data/{folder}/width_time{np.round(tfb,1)}_thr{np.round(threshold,1)}.txt','a') as fstart:
                 # if file exist
+                print('hi')
                 fstart.write(f'# theta \n')
                 fstart.write((' '.join(map(str, theta_arr)) + '\n'))
 
         with open(f'data/{folder}/width_time{np.round(tfb,1)}_thr{np.round(threshold,1)}.txt','a') as file:
+            print('a')
             file.write(f'# {check}, snap {snap} width \n')
             file.write((' '.join(map(str, w_params[0])) + '\n'))
             file.write(f'# {check}, snap {snap} Ncells \n')

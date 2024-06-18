@@ -27,7 +27,7 @@ def keplerian_orbit(theta, apo, a, ecc=1):
         radius = apo * (1 - ecc**2) / (1 + ecc * np.cos(theta))
     return radius
 
-def find_maximum(x_mid, y_mid, dim_mid, den_mid, theta_params):
+def find_maximum(x_mid, y_mid, dim_mid, den_mid, theta_params, Rt):
     # find the orbit given by maxima density points
     # It's better to give theta_params than theta_arr, so that you can adjust the step
     theta_arr = np.arange(*theta_params)
@@ -37,6 +37,8 @@ def find_maximum(x_mid, y_mid, dim_mid, den_mid, theta_params):
     radius_arr = np.zeros(len(theta_arr))
     for i,theta_cm in enumerate(theta_arr):
         condition_Rplane = radial_plane(x_mid, y_mid, dim_mid, theta_cm)
+        condition_distance = np.sqrt(x_mid**2 + y_mid**2) > Rt # to avoid the center
+        condition_Rplane = np.logical_and(condition_Rplane, condition_distance)
         idx_cm = np.argmax(den_mid[condition_Rplane])
         x_cm = x_mid[condition_Rplane][idx_cm]
         y_cm = y_mid[condition_Rplane][idx_cm]
