@@ -4,13 +4,12 @@ sys.path.append('/Users/paolamartire/shocks')
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from scipy.integrate import odeint
 import os
 from Utilities.basic_units import radians
 
 from Utilities.operators import make_tree
 import Utilities.sections as sec
-import Utilities.orbits as orb
+import src.orbits as orb
 from Utilities.time_extractor import days_since_distruption
 import Utilities.prelude
 matplotlib.rcParams['figure.dpi'] = 150
@@ -29,7 +28,7 @@ n = 1.5
 check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
 snap = '199'
 is_tde = True
-threshold =  1/10
+threshold =  1/3
 
 #
 ## Constants
@@ -57,21 +56,7 @@ print(f'We are in: {path}, \nWe save in: {saving_path}')
 # FUNCTIONS
 ##
 
-def parameters_orbit(p, a):
-    En = G * Mbh * (p**2 * (a-Rs) - a**2 * (p-Rs)) / ((a**2-p**2) * (p-Rs) * (a-Rs))
-    L = np.sqrt(2 * a**2 * (En + G*Mbh/(a-Rs)))
-    return En, L
 
-def solvr(x, theta):
-    _, L = parameters_orbit(Rp, apo)
-    u,y = x
-    res =  np.array([y, (-u + G * Mbh / ((1 - Rs*u) * L)**2)])
-    return res
-
-def Witta_orbit(theta_data):
-    u,y = odeint(solvr, [0, 0], theta_data).T 
-    r = 1/u
-    return r
 #
 ## MAIN
 #
@@ -82,7 +67,7 @@ save = True
 compare = True
 theta_lim =  np.pi
 step = 0.1
-theta_params = [-theta_lim, theta_lim, step]
+theta_arr = np.arange(-theta_lim, theta_lim, step)
 
 #%% Load data
 data = make_tree(path, snap, is_tde, energy = False)
@@ -116,9 +101,9 @@ r_orbit = orb.keplerian_orbit(theta_arr_kep, apo, a = Rp, ecc = ecc)
 x_K_orbit, y_K_orbit = orb.from_cylindric(theta_arr_kep, r_orbit) 
 
 # Witta
-theta_arr_kep = np.arange(-np.pi, np.pi, 0.01)
-Witta_r = Witta_orbit(theta_arr_kep)
-x_Witta_orbit, y_Witta_orbit = orb.from_cylindric(theta_arr_kep, Witta_r) 
+# theta_arr_kep = np.arange(-np.pi, np.pi, 0.01)
+# Witta_r = Witta_orbit(theta_arr_kep)
+# x_Witta_orbit, y_Witta_orbit = orb.from_cylindric(theta_arr_kep, Witta_r) 
 
 
 #%%
@@ -137,7 +122,7 @@ x_Witta_orbit, y_Witta_orbit = orb.from_cylindric(theta_arr_kep, Witta_r)
 
 #%%
 if do:
-    theta_arr, cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params  = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Den, theta_params, Rt, threshold=threshold)
+    cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params  = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Den, theta_arr, Rt, threshold=threshold)
 
     if save:
         try:
@@ -265,7 +250,7 @@ if plot:
         ax[0].legend()
         ax[0].set_xlabel(r'$\theta$', fontsize = 14)
         ax[0].set_ylabel(r'Width [$R_\odot$]', fontsize = 14)
-        ax[0].set_xlim(-3/4*np.pi, 3/4*np.pi)
+        ax[0].set_xlim(theta_width[2], theta_width[55])
         ax[0].set_ylim(0,15)
         ax[0].grid()
         ax[1].plot(theta_width, NcellL5, '--', c = 'r', label = 'Low 0.5')
@@ -273,8 +258,8 @@ if plot:
         ax[1].plot(theta_width, NcellHiRes5,  '--', c = 'b', label = 'Middle 0.5')
         ax[1].plot(theta_width, NcellHiRes7, c = 'b', label = 'Middle 0.7')
         ax[1].plot(theta_width, NcellRes205, '--', c = 'g',  label = 'High 0.5')
-        ax[1].legend(loc= 'lower left')
-        ax[1].set_xlim(-3/4*np.pi, 3/4*np.pi)
+        ax[1].legend()
+        ax[1].set_xlim(theta_width[2], theta_width[55])
         ax[1].set_ylim(0,200)
         ax[1].set_xlabel(r'$\theta$', fontsize = 14)
         ax[1].set_ylabel(r'N$_{cell}$', fontsize = 14)
@@ -296,7 +281,7 @@ if plot:
         plt.plot(theta_width, ratio7, c = 'b', label = r'Middle - Low t/t$_{fb}=$ 0.7')
         plt.xlabel(r'$\theta$', fontsize = 14)
         plt.ylabel(r'1-$\Delta/\Delta_{ref}$', fontsize = 14)
-        plt.xlim(-3/4*np.pi, 3/4*np.pi)
+        plt.xlim(theta_width[2], theta_width[55])
         plt.ylim(-0.2,0.95)
         plt.legend()
         plt.grid()
@@ -328,7 +313,7 @@ if plot:
         ax[0].legend()
         ax[0].set_xlabel(r'$\theta$', fontsize = 14)
         ax[0].set_ylabel(r'Height [$R_\odot$]', fontsize = 14)
-        ax[0].set_xlim(-3/4*np.pi, 3/4*np.pi)
+        ax[0].set_xlim(theta_width[2], theta_width[55])
         ax[0].set_ylim(-0.1,10)
         ax[0].grid()
         ax[1].plot(theta_height, NhcellL5, '--', c = 'r', label = 'Low 0.5')
@@ -336,9 +321,9 @@ if plot:
         ax[1].plot(theta_height, NhcellHiRes5,  '--', c = 'b', label = 'Middle 0.5')
         ax[1].plot(theta_height, NhcellHiRes7, c = 'b', label = 'Middle 0.7')
         ax[1].plot(theta_height, NhcellRes205, '--', c = 'g',  label = 'High 0.5')
-        ax[1].legend(loc= 'lower left')
-        ax[1].set_xlim(-3/4*np.pi, 3/4*np.pi)
-        ax[1].set_ylim(0,200)
+        ax[1].legend()
+        ax[1].set_xlim(theta_height[2], theta_height[55])
+        ax[1].set_ylim(0,80)
         ax[1].set_xlabel(r'$\theta$', fontsize = 14)
         ax[1].set_ylabel(r'N$_{cell}$', fontsize = 14)
         ax[1].grid()
@@ -359,7 +344,7 @@ if plot:
         plt.plot(theta_height, ratio7, c = 'b', label = r'Middle - Low t/t$_{fb}=$ 0.7')
         plt.xlabel(r'$\theta$', fontsize = 14)
         plt.ylabel(r'1-$H/H_{ref}$', fontsize = 14)
-        plt.xlim(-3/4*np.pi, 3/4*np.pi)
+        plt.xlim(theta_height[2], theta_height[55])
         plt.ylim(-0.5,1)
         plt.legend()
         plt.grid()
