@@ -94,7 +94,8 @@ def find_stream_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, 
     den_median_mid_sorted = median_array(den_mid_sorted)
 
     # find the cm of the plane
-    idx_cm = np.argmin(np.abs())#np.argmax(den_mid_sorted) 
+    idx_cm = np.argmin(np.abs(x_mid_sorted-x_orbit[idx]))#np.argmax(den_mid_sorted) 
+    print('x cm difference: ', x_mid_sorted[idx_cm]-x_orbit[idx])
     x_cm, y_cm, den_cm = x_mid_sorted[idx_cm], y_mid_sorted[idx_cm], den_mid_sorted[idx_cm]
     
     # Walk before and after the cm till you find a density 3 times smaller
