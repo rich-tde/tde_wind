@@ -1,12 +1,12 @@
 """ 
-Find different kind of orbits for TDEs. 
+Find different kind of orbits (and their derivatives) for TDEs. 
 Measure the width and the height of the stream.
 """
-
+import sys
+sys.path.append('/Users/paolamartire/shocks')
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.integrate import odeint
-# from scipy.ndimage import gaussian_filter1d
+from scipy.integrate import trapezoid, odeint
 from Utilities.sections import make_slices, radial_plane, transverse_plane
 from Utilities.operators import sort_list, median_array, from_cylindric, to_cylindric
 
@@ -17,15 +17,15 @@ def make_cfr(R, x0=0, y0=0):
     cfr = (xcfr-x0)**2 + (ycfr-y0)**2 - R**2
     return xcfr, ycfr, cfr
 
-def keplerian_orbit(theta, apo, a, ecc=1):
+def keplerian_orbit(theta, a, Rp, ecc=1):
     # we expect theta as from the function to_cylindric, i.e. clockwise. 
     # You have to mirror it to get the angle for the usual polar coordinates.
     theta = -theta
     if ecc == 1:
-        p = 2 * a
-        radius = p / (1 + ecc * np.cos(theta))
+        p = 2 * Rp
     else:
-        radius = apo * (1 - ecc**2) / (1 + ecc * np.cos(theta))
+        p = a * (1 - ecc**2) 
+    radius = p / (1 + ecc * np.cos(theta))
     return radius
 
 # def parameters_orbit(p, a, Mbh, c=1, G=1):
@@ -44,6 +44,18 @@ def keplerian_orbit(theta, apo, a, ecc=1):
 #     u,y = odeint(solvr, [0, 0], theta_data).T 
 #     r = 1/u
 #     return r
+
+def deriv_an_orbit(theta, a, Rp, ecc, choose):
+    # we need the - in front of theta to be consistent with the function to_cylindric, where we change the orientation of the angle
+    theta = -theta
+    if choose == 'Keplerian':
+        if ecc == 1:
+            p = 2 * Rp
+        else:
+            p = a * (1 - ecc**2)
+        dr_dtheta = p * np.sin(theta)/ (1 + ecc * np.cos(theta))**2
+    # elif choose == 'Witta':
+    return dr_dtheta
 
 def find_maximum(x_mid, y_mid, dim_mid, den_mid, theta_arr, Rt, window_size=3):
     """ Find the maxima density points in a plane (midplane)"""
@@ -68,21 +80,17 @@ def find_maximum(x_mid, y_mid, dim_mid, den_mid, theta_arr, Rt, window_size=3):
         
     return x_cm, y_cm
 
-def find_stream_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, y_orbit, idx, threshold = 0.33):
+def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, y_orbit, idx, threshold = 0.33):
     # Find the transverse plane 
     condition_T, x_Tplane, x0 = transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, idx, coord = True)
     x_plane, y_plane, z_plane, dim_plane, den_plane = make_slices([x_data, y_data, z_data, dim_data, den_data], condition_T)
-    # Find transverse line (on midplane)
+    # Find transverse orbital line (transverse intersect midplane)
     midplane = np.abs(z_plane) < dim_plane
     x_mid, x_T_mid, y_mid, dim_mid, den_mid = make_slices([x_plane, x_Tplane, y_plane, dim_plane, den_plane], midplane)
 
     # Restrict to not keep points too far away. Important for theta=0 or you take the stream at apocenter
     condition_x = np.abs(x_T_mid) < 20
-    x_mid = x_mid[condition_x]
-    x_T_mid = x_T_mid[condition_x]
-    y_mid = y_mid[condition_x]
-    dim_mid = dim_mid[condition_x]
-    den_mid = den_mid[condition_x]
+    x_mid, x_T_mid, y_mid, dim_mid, den_mid = make_slices([x_mid, x_T_mid, y_mid, dim_mid, den_mid], condition_x)
 
     # Sort in x_T
     x_T_mid = list(x_T_mid)
@@ -93,19 +101,19 @@ def find_stream_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, 
     den_mid_sorted = sort_list(den_mid, x_T_mid)
     den_median_mid_sorted = median_array(den_mid_sorted)
 
-    # find the cm of the plane
-    idx_cm = np.argmin(np.abs(x_mid_sorted-x_orbit[idx]))#np.argmax(den_mid_sorted) 
-    print('x cm difference: ', x_mid_sorted[idx_cm]-x_orbit[idx])
+    # Find the idx of the cm of the plane
+    idx_cm = np.argmin(np.abs(x_mid_sorted-x_orbit[idx]))
+    # print('Check if x_orbit[idx] is the min of x_min_sorted: difference = ', x_mid_sorted[idx_cm]-x_orbit[idx])
     x_cm, y_cm, den_cm = x_mid_sorted[idx_cm], y_mid_sorted[idx_cm], den_mid_sorted[idx_cm]
     
-    # Walk before and after the cm till you find a density 3 times smaller
+    # Walk before and after the cm till you find the threshold density 
     # Lower boundary
     idx_step = idx_cm
     den_tube = den_cm
     while den_tube > threshold * den_cm and idx_step > 0:
         idx_step -= 1
-        den_tube = den_median_mid_sorted[idx_step] #den_mid_sorted[idx_step]
-    idx_before = idx_step+1
+        den_tube = den_median_mid_sorted[idx_step] 
+    idx_before = idx_step+1 # because the last step has density < threshold
     x_low, x_T_low, y_low, den_low_w = x_mid_sorted[idx_before], x_Tmid_sorted[idx_before], y_mid_sorted[idx_before], den_tube
 
     # Upper boundary
@@ -113,23 +121,22 @@ def find_stream_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, 
     den_tube = den_cm
     while den_tube > threshold * den_cm and idx_step < len(den_mid_sorted) - 1:
         idx_step += 1
-        den_tube  = den_median_mid_sorted[idx_step] #den_mid_sorted[idx_step]
-    idx_after = idx_step-1
+        den_tube  = den_median_mid_sorted[idx_step] 
+    idx_after = idx_step-1 # because the last step has density < threshold
     x_up, x_T_up, y_up, den_up_w = x_mid_sorted[idx_after], x_Tmid_sorted[idx_after], y_mid_sorted[idx_after], den_tube
     
     # Compute the width
     width = x_T_up - x_T_low
-    dim_cell_mean = (dim_mid_sorted[idx_after] + dim_mid_sorted[idx_before]) / 2
-    # ncells_w = idx_after - idx_before + 1 # +1 because ideces start from 0
-    ncells_w = int(width / dim_cell_mean) # round to the nearest integer
+    width = np.max([width, dim_mid_sorted[idx_cm]]) # to avoid 0 width
+    dim_cell_mean = np.mean(dim_mid_sorted[idx_before:idx_after+1])
+    ncells_w = np.round(width/dim_cell_mean, 0) # round to the nearest integer
 
-    # Z direction
-    # take point on the vertical axis
-    # x_Tplane_vert, z_vert, den_vert = make_slices([x_Tplane, z_plane, den_plane], vertical)
+    # Find transverse vertical line (transverse intersect xT=0)
+    print('x0 in follow_the_stream = ', x0)
     vertical = np.abs(x_Tplane-x0) < dim_plane #or x_plane-x_cm
     z_vert, dim_vert, den_vert = make_slices([z_plane, dim_plane, den_plane], vertical)
 
-    # sort 
+    # Sort 
     z_vert = list(z_vert)
     z_vert_sorted = sorted(z_vert)
     # x_vert_sorted = sort_list(x_plane_vert, z_vert)
@@ -156,14 +163,15 @@ def find_stream_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, 
     while den_tube > threshold * den_cm and idx_step < len(den_vert_sorted) - 1:
         idx_step += 1
         den_tube  = den_median_vert_sorted[idx_step] #den_vert_sorted[idx_step]
-    idx_after = idx_step-1
+    idx_after = idx_step - 1
     z_up, den_up_h = z_vert_sorted[idx_after], den_tube
 
     # Compute the height
     height = z_up - z_low 
-    #ncells_h = idx_after - idx_before + 1 # +1 because ideces start from 0
-    dim_cell_mean = (dim_vert_sorted[idx_after] + dim_vert_sorted[idx_before]) / 2
-    ncells_h = int(height / dim_cell_mean) # round to the nearest integer
+    height = np.max([height, dim_vert_sorted[idx_cm]]) # to avoid 0 height
+    dim_cell_mean = np.mean(dim_vert_sorted[idx_before:idx_after+1])
+    ncells_h = np.round(height/dim_cell_mean, 0) # round to the nearest integer
+
     # Wrap. Assumption: z=0 for upper/lower tube for width, xplane=x0~0 for upper/lower tube for height
     cm = np.array([x_cm, y_cm, den_cm])
     lower_tube_w = np.array([x_low, x_T_low, y_low, den_low_w])
@@ -176,19 +184,21 @@ def find_stream_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, 
     return cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params
 
 def follow_the_stream(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt, threshold = 1./3):
+    """ Find width and height all along the stream """
+    # Find the center of mass of the stream (in the midplane) for each theta
     midplane = np.abs(z_data) < dim_data
     x_mid, y_mid, dim_mid, den_mid = make_slices([x_data, y_data, dim_data, den_data], midplane)
     x_orbit, y_orbit = find_maximum(x_mid, y_mid, dim_mid, den_mid, theta_arr, Rt)
     cm = []
     lower_tube_w = []
     upper_tube_w = []
+    w_params = []
     lower_tube_h = []
     upper_tube_h = []
-    w_params = []
     h_params = []
     for i in range(len(theta_arr)):
         cm_i, lower_tube_w_i, upper_tube_w_i, lower_tube_h_i, upper_tube_h_i, w_params_i, h_params_i = \
-            find_stream_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, y_orbit, i, threshold)
+            find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, y_orbit, i, threshold)
         cm.append(cm_i)
         lower_tube_w.append(lower_tube_w_i)
         upper_tube_w.append(upper_tube_w_i)
@@ -205,6 +215,58 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt,
     h_params = np.transpose(np.array(h_params)) # line 1: height, line 2: ncells
     return cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params
 
+def deriv_maxima(theta_arr, x_orbit, y_orbit):
+    # Find the idx where the orbit starts to decrease too much (i.e. the stream is not there anymore)
+    for i in range(len(y_orbit)):
+        if y_orbit[i] <= y_orbit[i-1] - 5:
+            idx = i
+    theta_arr, x_orbit, y_orbit = theta_arr[:idx], x_orbit[:idx], y_orbit[:idx]
+    # Find the numerical derivative of r with respect to theta. 
+    # Shift theta to start from 0 and compute the arclenght
+    theta_shift = theta_arr-theta_arr[0] 
+    r_orbit = np.sqrt(x_orbit**2 + y_orbit**2)
+    dr_dtheta = np.zeros(len(theta_arr))
+    for i in range(len(theta_shift)):
+        dr_dtheta[i] = trapezoid(r_orbit[:i+1], theta_shift[:i+1])
+
+    return dr_dtheta, idx
+
+def find_arclenght(theta_arr, orbit, a, Rp, ecc, choose):
+    """ 
+    Compute the arclenght of the orbit
+    Parameters
+    ----------
+    theta_arr : array
+        The angles of the orbit
+    orbit : array
+        The orbit. 
+        If choose is Keplerian/Witta, it is the radius(thetas). 
+        If choose is Maxima, it is the x and y of the maxima.
+    a, Rp, ecc : float
+        The parameters of the orbit
+    choose : str
+        The kind of orbit. It can be 'Keplerian', 'Witta', 'Maxima'
+    Returns
+    -------
+    s : array
+        The arclenght of the orbit
+    """
+    if choose == 'Maxima':
+        drdtheta, idx = deriv_maxima(theta_arr, orbit[0], orbit[1])
+        r_orbit = np.sqrt(orbit[0][:idx]**2 + orbit[1][:idx]**2)
+    elif choose == 'Keplerian' or choose == 'Witta':
+        drdtheta = deriv_an_orbit(theta_arr, a, Rp, ecc, choose)
+        r_orbit = orbit
+        idx = len(r_orbit) # to keep the whole orbit
+
+    ds = np.sqrt(r_orbit**2 + drdtheta**2)
+    theta_arr = theta_arr[:idx]-theta_arr[0] # to start from 0
+    s = np.zeros(len(theta_arr))
+    for i in range(len(theta_arr)):
+        s[i] = trapezoid(ds[:i+1], theta_arr[:i+1])
+
+    return s, idx
+
 def orbital_energy(r, v_xy, G, M):
     # no angular momentum??
     potential = -G * M / r
@@ -213,27 +275,38 @@ def orbital_energy(r, v_xy, G, M):
 
 
 if __name__ == '__main__':
+    from Utilities.operators import make_tree
     import matplotlib.pyplot as plt
+    from src.orbits import follow_the_stream, make_cfr
+    G = 1
+    m = 4
+    Mbh = 10**m
+    beta = 1
+    mstar = .5
+    Rstar = .47
+    n = 1.5
+    check = 'Low'
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
+    snap = '164'
+    path = f'TDE/{folder}{check}/{snap}'
+    Rt = Rstar * (Mbh/mstar)**(1/3)
+    theta_lim = np.pi
+    step = 0.02
+    theta_params = [-theta_lim, theta_lim, step]
+    theta_arr = np.arange(*theta_params)
+    xcfr, ycfr, cfr = make_cfr(Rt)
+    data = make_tree(path, snap, is_tde = True, energy = False)
+    dim_cell = data.Vol**(1/3)
 
-    # Test clockwise polar coordinates 
-    R0 = 1
-    xcfr0, ycfr0, cfr0 = make_cfr(R0)
-    theta = np.array([-np.pi, -np.pi/4, 0, np.pi/4, np.pi/2, 3])
-    colors = ['b', 'g', 'r', 'orchid', 'y', 'c']
-    x, y = from_cylindric(theta, R0)
-    plt.xlim(-2*R0, 2*R0)
-    plt.ylim(-2*R0, 2*R0)
-    plt.scatter(x,y, c = colors)
-    plt.contour(xcfr0, ycfr0, cfr0, [0], linestyles = 'dotted', colors = 'k')
-    plt.title('To cartesian coordinates')
+    cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params  = follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Den, theta_arr, Rt, threshold=1/3)
+
+    plt.plot(cm[:,0], cm[:,1],  c = 'k', label = 'Orbit')
+    plt.plot(lower_tube_w[:,0], lower_tube_w[:,2], '--', c = 'k',label = 'Lower tube')
+    plt.plot(upper_tube_w[:,0], upper_tube_w[:,2], '-.', c = 'k', label = 'Upper tube')
+
+    plt.xlim(-300,30)
+    plt.ylim(-80,80)
+    plt.legend()
     plt.show()
 
-    # Test from polar to cartesian
-    plt.figure()
-    x2 = np.array([1, 0, -1, 0])
-    y2 = np.array([0, 1, 0, -1])
-    colors = ['b', 'g', 'r', 'orchid']
-    theta2, r2 = to_cylindric(x2,y2)
-    plt.scatter(theta2, r2,  c=colors)
-    plt.title('To polar coordinates')
-    plt.show()
+    

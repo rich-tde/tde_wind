@@ -76,7 +76,7 @@ def transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, idx, coord = Fa
         x_onplane = np.dot(data_trasl[condition_coord], vers_norm)
         # y_onplane = np.dot(data_trasl[condition_coord], vers_tg)
         x0 = np.min(np.abs(x_onplane))
-        print(f'Check if you have the 0 on the transverse line. x0: {x0}')
+        # print(f'Check if you have the 0 on the transverse line. x0: {x0}')
         return condition_coord, x_onplane, x0
     else:
         return condition_coord
@@ -100,8 +100,6 @@ def tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, idx):
     return condition_coord
 
 if __name__ == '__main__':
-    import sys
-    sys.path.append('/Users/paolamartire/shocks')
     from Utilities.operators import make_tree
     import matplotlib.pyplot as plt
     from src.orbits import follow_the_stream, make_cfr
@@ -126,7 +124,7 @@ if __name__ == '__main__':
     dim_cell = data.Vol**(1/3)
 
     cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params  = follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Den, theta_arr, Rt, threshold=1/3)
-    #%%
+    
     for idx in range(3, len(theta_arr), 8):
         condition_rad = radial_plane(data.X, data.Y, dim_cell, theta_arr[idx])
         X_rad, Y_rad, Z_rad = \
