@@ -54,6 +54,8 @@ def transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, idx, coord = Fa
     """
     # Put the data in the reference system of the chosen point
     x_chosen, y_chosen = x_orbit[idx], y_orbit[idx]
+    r_chosen = np.array([x_chosen, y_chosen])
+    r_data = np.transpose(np.array([x_data, y_data]))
     x_data_trasl = x_data - x_chosen
     y_data_trasl = y_data - y_chosen
     data_trasl = np.transpose([x_data_trasl, y_data_trasl])
@@ -62,7 +64,7 @@ def transverse_plane(x_data, y_data, dim_data, x_orbit, y_orbit, idx, coord = Fa
     dot_product = np.dot(data_trasl, vers_tg) #that's the projection of the data on the tangent vector
     condition_tra = np.abs(dot_product) < dim_data 
     # Take points in the same quadrant as the chosen point
-    condition_pos = (y_data * y_chosen > 0) & (x_data * x_chosen > 0) 
+    condition_pos = np.dot(r_data,r_chosen) > 0
 
     condition_coord = np.logical_and(condition_tra, condition_pos)
     if coord:
@@ -147,14 +149,14 @@ if __name__ == '__main__':
         Y_tg_midplane = Y_tg[np.abs(Z_tg) < dim_cell[condition_tg]]
                              
         plt.figure(figsize=(10,5))
-        plt.plot(cm[:,0], cm[:,1], '--', c = 'orange', label = 'Orbit')
+        plt.plot(cm[:,0], cm[:,1],  c = 'b', label = 'Orbit')
         plt.contour(xcfr, ycfr, cfr, [0], linestyles = 'dotted', colors = 'k')
         plt.plot(x_orbit_sm, y_orbit_sm, c = 'orange', label = 'Smoothed orbit')
         plt.scatter(X_rad_midplane, Y_rad_midplane, s=.1, alpha = 0.8, c = 'b', label = 'Radial plane')
         plt.scatter(X_tra_midplane, Y_tra_midplane, s=.1, alpha = 0.8, c = 'r', label = 'Transverse plane')
         plt.scatter(X_tg_midplane, Y_tg_midplane, s=.1, alpha = 0.8, c = 'g', label = 'Tangent plane')
-        plt.scatter([0,cm[idx,0]], [0,cm[idx,1]], c = 'r', s=10)
-        plt.quiver(cm[idx,0], cm[idx,1], vec_tg[0], vec_tg[1], width = 2e-3, scale = 0.1, scale_units='xy', color='k')
+        plt.scatter([0,x_orbit_sm[idx]], [0,y_orbit_sm[idx]], c = ['k', 'r'], s=10)
+        plt.quiver(x_orbit_sm[idx], y_orbit_sm[idx], vec_tg[0], vec_tg[1], width = 2e-3, scale = 0.1, scale_units='xy', color='k')
         plt.xlim(-200,20)
         plt.ylim(-60,60)
         plt.legend()

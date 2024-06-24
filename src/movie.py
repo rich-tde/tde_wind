@@ -16,7 +16,7 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
 path = f'Figs/{folder}/multiple/wH'
 output_path = f'Figs/{folder}/movie_wH.mp4'
 
-start = 2
+start = 9
 slow_down_factor = 6  # Increase this value to make the video slower
 
 ffmpeg_command = (

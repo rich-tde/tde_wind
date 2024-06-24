@@ -65,8 +65,9 @@ do = False
 plot = True
 save = True
 compare = True
+analytic = True
 theta_lim =  np.pi
-step = 0.1
+step = 0.02
 theta_arr = np.arange(-theta_lim, theta_lim, step)
 
 #%% Load data
@@ -94,16 +95,6 @@ yR0 = np.linspace(-R0, R0, 100)
 xcfr0, ycfr0 = np.meshgrid(xR0,yR0)
 cfr0 = xcfr0**2 + ycfr0**2 - R0**2
 
-# Parabolic Keplerian orbit
-ecc = 1
-theta_arr_kep = np.arange(0, 2*np.pi, 0.01)
-r_orbit = orb.keplerian_orbit(theta_arr_kep, apo, a = Rp, ecc = ecc)
-x_K_orbit, y_K_orbit = orb.from_cylindric(theta_arr_kep, r_orbit) 
-
-# Witta
-# theta_arr_kep = np.arange(-np.pi, np.pi, 0.01)
-# Witta_r = Witta_orbit(theta_arr_kep)
-# x_Witta_orbit, y_Witta_orbit = orb.from_cylindric(theta_arr_kep, Witta_r) 
 
 
 #%%
@@ -250,8 +241,8 @@ if plot:
         ax[0].legend()
         ax[0].set_xlabel(r'$\theta$', fontsize = 14)
         ax[0].set_ylabel(r'Width [$R_\odot$]', fontsize = 14)
-        ax[0].set_xlim(theta_width[2], theta_width[55])
-        ax[0].set_ylim(0,15)
+        ax[0].set_xlim(theta_width[10], theta_width[-1])
+        ax[0].set_ylim(0,40)
         ax[0].grid()
         ax[1].plot(theta_width, NcellL5, '--', c = 'r', label = 'Low 0.5')
         ax[1].plot(theta_width, NcellL7, c = 'r', label = 'Low 0.7')
@@ -259,8 +250,8 @@ if plot:
         ax[1].plot(theta_width, NcellHiRes7, c = 'b', label = 'Middle 0.7')
         ax[1].plot(theta_width, NcellRes205, '--', c = 'g',  label = 'High 0.5')
         ax[1].legend()
-        ax[1].set_xlim(theta_width[2], theta_width[55])
-        ax[1].set_ylim(0,200)
+        ax[1].set_xlim(theta_width[10], theta_width[-1])
+        ax[1].set_ylim(0,100)
         ax[1].set_xlabel(r'$\theta$', fontsize = 14)
         ax[1].set_ylabel(r'N$_{cell}$', fontsize = 14)
         ax[1].grid()
@@ -281,7 +272,7 @@ if plot:
         plt.plot(theta_width, ratio7, c = 'b', label = r'Middle - Low t/t$_{fb}=$ 0.7')
         plt.xlabel(r'$\theta$', fontsize = 14)
         plt.ylabel(r'1-$\Delta/\Delta_{ref}$', fontsize = 14)
-        plt.xlim(theta_width[2], theta_width[55])
+        plt.xlim(theta_width[10], theta_width[-1])
         plt.ylim(-0.2,0.95)
         plt.legend()
         plt.grid()
@@ -313,7 +304,7 @@ if plot:
         ax[0].legend()
         ax[0].set_xlabel(r'$\theta$', fontsize = 14)
         ax[0].set_ylabel(r'Height [$R_\odot$]', fontsize = 14)
-        ax[0].set_xlim(theta_width[2], theta_width[55])
+        ax[0].set_xlim(theta_height[9], theta_height[-1])
         ax[0].set_ylim(-0.1,10)
         ax[0].grid()
         ax[1].plot(theta_height, NhcellL5, '--', c = 'r', label = 'Low 0.5')
@@ -322,8 +313,8 @@ if plot:
         ax[1].plot(theta_height, NhcellHiRes7, c = 'b', label = 'Middle 0.7')
         ax[1].plot(theta_height, NhcellRes205, '--', c = 'g',  label = 'High 0.5')
         ax[1].legend()
-        ax[1].set_xlim(theta_height[2], theta_height[55])
-        ax[1].set_ylim(0,80)
+        ax[1].set_xlim(theta_height[10], theta_height[-1])
+        ax[1].set_ylim(0,40)
         ax[1].set_xlabel(r'$\theta$', fontsize = 14)
         ax[1].set_ylabel(r'N$_{cell}$', fontsize = 14)
         ax[1].grid()
@@ -344,8 +335,8 @@ if plot:
         plt.plot(theta_height, ratio7, c = 'b', label = r'Middle - Low t/t$_{fb}=$ 0.7')
         plt.xlabel(r'$\theta$', fontsize = 14)
         plt.ylabel(r'1-$H/H_{ref}$', fontsize = 14)
-        plt.xlim(theta_height[2], theta_height[55])
-        plt.ylim(-0.5,1)
+        plt.xlim(theta_height[10], theta_height[-1])
+        plt.ylim(-0.7,1)
         plt.legend()
         plt.grid()
         plt.suptitle(f'Threshold: {np.round(threshold,1)}', fontsize = 16)
@@ -353,3 +344,16 @@ if plot:
             plt.savefig(f'Figs/{folder}/DeltaH_thr{np.round(threshold,1)}.png')
         plt.show()
 
+    # if analytic:
+    #     plt.figure(figsize=(8,6))
+    #     plt.plot(theta_width, widthL5, '--', c = 'r', label = 'Low 0.5')
+    #     plt.plot(theta_width, widthL7, c = 'r', label = 'Low 0.7')
+    #     plt.plot(theta_width, widthHiRes5, '--', c = 'b', label = 'Middle 0.5')
+    #     plt.plot(theta_width, widthHiRes7, c = 'b', label = 'Middle 0.7')
+    #     plt.plot(theta_width, widthRes205, '--', c = 'g',  label = 'High 0.5')
+    #     plt.legend()
+    #     plt.set_xlabel(r'$\theta$', fontsize = 14)
+    #     plt.set_ylabel(r'Width [$R_\odot$]', fontsize = 14)
+    #     plt.set_xlim(theta_width[10], theta_width[-1])
+    #     plt.set_ylim(0,40)
+    #     plt.grid()
