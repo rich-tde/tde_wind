@@ -87,12 +87,23 @@ def find_radial_maximum(x_data, y_data, z_data, dim_mid, den_mid, theta_arr, Rt,
 def find_transverse_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt):
     """ Find the maxima density points in a plane (transverse)"""
     x_orbit_rad, y_orbit_rad, z_orbit_rad = find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt)
+    x_cmTR = np.zeros(len(theta_arr))
+    y_cmTR = np.zeros(len(theta_arr))
+    z_cmTR = np.zeros(len(theta_arr))
+    for idx in range(len(theta_arr)):
+        condition_T, x_T, _ = transverse_plane(x_data, y_data, dim_data, x_orbit_rad, y_orbit_rad, idx, coord = True)
+        # condition to not go too far away. Important for theta = 0
+        x_plane, y_plane, z_plane, den_plane = make_slices([x_data, y_data, z_data, den_data], condition_T)
+        condition_x = np.abs(x_T) < 20
+        x_plane, y_plane, z_plane, den_plane = make_slices([x_plane, y_plane, z_plane, den_plane], condition_x)
+        idx_cm = np.argmax(den_plane)
+        x_cmTR[idx], y_cmTR[idx], z_cmTR[idx] = x_plane[idx_cm], y_plane[idx_cm], z_plane[idx_cm]
     x_cm = np.zeros(len(theta_arr))
     y_cm = np.zeros(len(theta_arr))
     z_cm = np.zeros(len(theta_arr))
     for idx in range(len(theta_arr)):
-        condition_T, x_T, _ = transverse_plane(x_data, y_data, dim_data, x_orbit_rad, y_orbit_rad, idx, coord = True)
-        # condition to not go too far away
+        condition_T, x_T, _ = transverse_plane(x_data, y_data, dim_data, x_cmTR, y_cmTR, idx, coord = True)
+        # condition to not go too far away. Important for theta = 0
         x_plane, y_plane, z_plane, den_plane = make_slices([x_data, y_data, z_data, den_data], condition_T)
         condition_x = np.abs(x_T) < 20
         x_plane, y_plane, z_plane, den_plane = make_slices([x_plane, y_plane, z_plane, den_plane], condition_x)
@@ -215,10 +226,13 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, 
 
     return cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params
 
-def follow_the_stream(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt, threshold = 1./3):
+def follow_the_stream(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt, path = None, threshold = 1./3):
     """ Find width and height all along the stream """
     # Find the center of mass of the stream (in the midplane) for each theta
-    x_orbit, y_orbit, z_orbit = find_transverse_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt)
+    try:
+        streamLow = np.load(f'data/{folder}/stream_{check}.npy')
+    except:
+        x_orbit, y_orbit, z_orbit = find_transverse_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt)
     cm = []
     lower_tube_w = []
     upper_tube_w = []
