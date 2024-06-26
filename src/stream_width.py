@@ -64,8 +64,9 @@ print(f'We are in: {path}, \nWe save in: {saving_path}')
 do = False
 plot = True
 save = True
-compare = True
-analytic = True
+compare = False
+fast = True
+analytic = False
 theta_lim =  np.pi
 step = 0.02
 theta_arr = np.arange(-theta_lim, theta_lim, step)
@@ -345,16 +346,40 @@ if plot:
             plt.savefig(f'Figs/{folder}/DeltaH_thr{np.round(threshold,1)}.png')
         plt.show()
 
-    # if analytic:
-    #     plt.figure(figsize=(8,6))
-    #     plt.plot(theta_width, widthL5, '--', c = 'r', label = 'Low 0.5')
-    #     plt.plot(theta_width, widthL7, c = 'r', label = 'Low 0.7')
-    #     plt.plot(theta_width, widthHiRes5, '--', c = 'b', label = 'Middle 0.5')
-    #     plt.plot(theta_width, widthHiRes7, c = 'b', label = 'Middle 0.7')
-    #     plt.plot(theta_width, widthRes205, '--', c = 'g',  label = 'High 0.5')
-    #     plt.legend()
-    #     plt.set_xlabel(r'$\theta$', fontsize = 14)
-    #     plt.set_ylabel(r'Width [$R_\odot$]', fontsize = 14)
-    #     plt.set_xlim(theta_width[10], theta_width[-1])
-    #     plt.set_ylim(0,40)
-    #     plt.grid()
+    if fast:
+        datawidth7 = np.loadtxt(f'data/{folder}/width_time0.7_thr{np.round(threshold,1)}.txt')
+        widthL7 = datawidth7[1]
+        NcellL7 = datawidth7[2]
+        widthHiRes7 = datawidth7[3]
+        NcellHiRes7 = datawidth7[4]
+
+        dataheight7 = np.loadtxt(f'data/{folder}/height_time0.7_thr{np.round(threshold,1)}.txt')
+        theta_height = dataheight7[0]
+        heightC7 = dataheight7[1]
+        NhcellL7 = dataheight7[2]
+        heightHiRes7 = dataheight7[3]
+        NhcellHiRes7 = dataheight7[4]
+
+        plt.plot(theta_height, widthL7, c = 'r', label = 'Low 0.7')
+        plt.plot(theta_height, widthHiRes7, c = 'b', label = 'Middle 0.7')
+        plt.legend()
+        plt.xlabel(r'$\theta$', fontsize = 14)
+        plt.ylabel(r'Width [$R_\odot$]', fontsize = 14)
+        plt.xlim(-2.8, 2.8)
+        plt.ylim(0,10)
+        plt.grid()
+        plt.suptitle(f'Threshold: {np.round(threshold,1)}', fontsize = 16)
+        plt.show()
+
+        plt.plot(theta_height, heightC7, c = 'r', label = 'Low 0.7')
+        plt.plot(theta_height, heightHiRes7, c = 'b', label = 'Middle 0.7')
+        plt.legend()
+        plt.xlabel(r'$\theta$', fontsize = 14)
+        plt.ylabel(r'Height [$R_\odot$]', fontsize = 14)
+        plt.xlim(-2.8, 2.8)
+        plt.ylim(-0.1,3)
+        plt.grid()
+        plt.suptitle(f'Threshold: {np.round(threshold,1)}', fontsize = 16)
+        plt.show()
+
+        

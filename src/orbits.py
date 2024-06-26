@@ -231,8 +231,8 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt,
     # Find the center of mass of the stream (in the midplane) for each theta
     try:
         streamLow = np.load(path)
-        print('existing file')
-        x_orbit, y_orbit, z_orbit = streamLow[0], streamLow[1], streamLow[2]
+        print('existing file. Check the theta values')
+        x_orbit, y_orbit, z_orbit = streamLow[1], streamLow[2], streamLow[3]
     except:
         print('Computing orbit')
         x_orbit, y_orbit, z_orbit = find_transverse_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt)
