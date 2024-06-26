@@ -38,7 +38,11 @@ def from_cylindric(theta, r):
     x = r * np.cos(theta)
     y = r * np.sin(theta)
     return x, y
-    
+
+def Ryan_sampler(theta_arr):
+    theta_shift = np.pi * np.sin(theta_arr/2)
+    return theta_shift
+
 def sort_list(list_passive, leading_list):
     """ Sort list_passive based on the order of leading_list. """
     zipped_pairs = zip(leading_list, list_passive)

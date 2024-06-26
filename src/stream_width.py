@@ -113,7 +113,8 @@ cfr0 = xcfr0**2 + ycfr0**2 - R0**2
 
 #%%
 if do:
-    cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params  = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Den, theta_arr, Rt, threshold=threshold)
+    streamdata_path = f'data/{folder}/stream_{check}{snap}_{step}.npy'
+    cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params  = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Den, theta_arr, Rt, path = streamdata_path, threshold=threshold)
 
     if save:
         try:
