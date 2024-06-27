@@ -7,7 +7,7 @@ import matplotlib
 import os
 from Utilities.basic_units import radians
 
-from Utilities.operators import make_tree, Ryan_sampler
+from Utilities.operators import make_tree, Ryan_sampler, to_cylindric
 import Utilities.sections as sec
 import src.orbits as orb
 from Utilities.time_extractor import days_since_distruption
@@ -56,12 +56,11 @@ print(f'We are in: {path}, \nWe save in: {saving_path}')
 ## MAIN
 #
 
-do = True
+do = False
 plot = True
 save = True
 compare = False
-fast = False
-analytic = False
+fast = True
 theta_lim =  np.pi
 step = 0.02
 theta_init = np.arange(-theta_lim, theta_lim, step)
@@ -70,7 +69,7 @@ theta_arr = Ryan_sampler(theta_init)
 #%% Load data
 data = make_tree(path, snap, is_tde, energy = False)
 R = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
-THETA, RADIUS_cyl = orb.to_cylindric(data.X, data.Y)
+THETA, RADIUS_cyl = to_cylindric(data.X, data.Y)
 V = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
 dim_cell = data.Vol**(1/3) # according to Elad
 tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
@@ -93,7 +92,6 @@ xcfr0, ycfr0 = np.meshgrid(xR0,yR0)
 cfr0 = xcfr0**2 + ycfr0**2 - R0**2
 
 
-
 #%%
 # if plot:
 #     plt.figure(figsize=(7,4))
@@ -111,7 +109,7 @@ cfr0 = xcfr0**2 + ycfr0**2 - R0**2
 #%%
 if do:
     streamdata_path = f'data/{folder}/stream_{check}{snap}_{step}.npy'
-    cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params  = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Den, theta_arr, Rt, path = streamdata_path, threshold=threshold)
+    cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params, theta_arr  = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Den, theta_arr, Rt, path = streamdata_path, threshold=threshold)
 
     if save:
         try:
@@ -158,9 +156,9 @@ if plot:
         plt.figure(figsize = (16,4))
         img = plt.scatter(X_midplane, Y_midplane, c = Den_midplane, s = 0.1, cmap = 'viridis', vmin = vdenmin, vmax = vdenmax)
         plt.contour(xcfr, ycfr, cfr, [0], linestyles = 'dotted', colors = 'k')
-        plt.plot(cm[:,0], cm[:,1], c = 'k')
-        plt.plot(upper_tube_w[:,0], upper_tube_w[:,2], linestyle = 'dotted', c = 'k')
-        plt.plot(lower_tube_w[:,0], lower_tube_w[:,2],  '--', c = 'k')
+        plt.plot(cm[:,0], cm[:,2], c = 'k')
+        plt.plot(upper_tube_w[2:-10,0], upper_tube_w[2:-10,2], linestyle = 'dotted', c = 'k')
+        plt.plot(lower_tube_w[2:-10,0], lower_tube_w[2:-10,2],  '--', c = 'k')
         plt.xlim(-apo, 30)
         plt.ylim(-50,70)
         plt.xlabel(r'X [$R_\odot$]', fontsize = 18)
@@ -344,6 +342,7 @@ if plot:
 
     if fast:
         datawidth7 = np.loadtxt(f'data/{folder}/width_time0.7_thr{np.round(threshold,1)}.txt')
+        theta_width = datawidth7[0]
         widthL7 = datawidth7[1]
         NcellL7 = datawidth7[2]
         widthHiRes7 = datawidth7[3]
@@ -356,26 +355,43 @@ if plot:
         heightHiRes7 = dataheight7[3]
         NhcellHiRes7 = dataheight7[4]
 
-        plt.plot(theta_height, widthL7, c = 'r', label = 'Low 0.7')
-        plt.plot(theta_height, widthHiRes7, c = 'b', label = 'Middle 0.7')
-        plt.legend()
-        plt.xlabel(r'$\theta$', fontsize = 14)
-        plt.ylabel(r'Width [$R_\odot$]', fontsize = 14)
-        plt.xlim(-2.8, 2.8)
-        plt.ylim(0,10)
-        plt.grid()
+        fig, ax = plt.subplots(2,1, figsize = (10,7))
+        ax[0].plot(theta_width, widthL7, c = 'k', label = 'Low 0.7')
+        ax[0].plot(theta_width, widthHiRes7, c = 'r', label = 'Middle 0.7')
+        #ax[0].set_xlabel(r'$\theta$', fontsize = 14)
+        ax[0].set_ylabel(r'Width [$R_\odot$]', fontsize = 14)
+        ax[0].set_ylim(0,15)
+        ax[0].grid()
+        ax[0].legend()
+        ax[1].plot(theta_width, NcellL7, c = 'k', label = 'Low')
+        ax[1].plot(theta_width, NcellHiRes7, c = 'r', label = 'Middle')
+        ax[1].legend()
+        ax[1].set_ylim(0,100)
+        ax[1].set_xlabel(r'$\theta$', fontsize = 14)
+        ax[1].set_ylabel(r'N$_{cell}$', fontsize = 14)
+        ax[1].grid()
         plt.suptitle(f'Threshold: {np.round(threshold,1)}', fontsize = 16)
+        if save:
+            plt.savefig(f'Figs/{folder}/width_comparison_thr{np.round(threshold,1)}.png')
         plt.show()
 
-        plt.plot(theta_height, heightC7, c = 'r', label = 'Low 0.7')
-        plt.plot(theta_height, heightHiRes7, c = 'b', label = 'Middle 0.7')
-        plt.legend()
-        plt.xlabel(r'$\theta$', fontsize = 14)
-        plt.ylabel(r'Height [$R_\odot$]', fontsize = 14)
-        plt.xlim(-2.8, 2.8)
-        plt.ylim(-0.1,3)
-        plt.grid()
+        fig, ax = plt.subplots(2,1, figsize = (10,7))
+        ax[0].plot(theta_height, heightC7, c = 'k', label = 'Low')
+        ax[0].plot(theta_height, heightHiRes7, c = 'r', label = 'Middle')
+        ax[0].legend()
+        # ax[0].set_xlabel(r'$\theta$', fontsize = 14)
+        ax[0].set_ylabel(r'Height [$R_\odot$]', fontsize = 14)
+        ax[0].set_ylim(-0.1,3)
+        ax[0].grid()
+        ax[1].plot(theta_height, NhcellL7, c = 'k', label = 'Low')
+        ax[1].plot(theta_height, NhcellHiRes7, c = 'r', label = 'Middle')
+        ax[1].legend()
+        ax[1].grid()
+        ax[1].set_xlabel(r'$\theta$', fontsize = 14)
+        ax[1].set_ylabel(r'N$_{cell}$', fontsize = 14)
         plt.suptitle(f'Threshold: {np.round(threshold,1)}', fontsize = 16)
+        if save:
+            plt.savefig(f'Figs/{folder}/H_comparison_thr{np.round(threshold,1)}.png')
         plt.show()
 
         

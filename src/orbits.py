@@ -57,13 +57,13 @@ def deriv_an_orbit(theta, a, Rp, ecc, choose):
     # elif choose == 'Witta':
     return dr_dtheta
 
-def find_radial_maximum(x_data, y_data, z_data, dim_mid, den_mid, theta_arr, Rt, window_size=3):
+def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt, window_size=7):
     """ Find the maxima density points in a plane (midplane)"""
     x_cm = np.zeros(len(theta_arr))
     y_cm = np.zeros(len(theta_arr))
     z_cm = np.zeros(len(theta_arr))
     for i in range(len(theta_arr)):
-        condition_Rplane = radial_plane(x_data, y_data, dim_mid, theta_arr[i])
+        condition_Rplane = radial_plane(x_data, y_data, dim_data, theta_arr[i])
         condition_distance = np.sqrt(x_data**2 + y_data**2) > Rt # to avoid the center
         condition_Rplane = np.logical_and(condition_Rplane, condition_distance)
         x_plane = x_data[condition_Rplane]
@@ -71,7 +71,7 @@ def find_radial_maximum(x_data, y_data, z_data, dim_mid, den_mid, theta_arr, Rt,
         z_plane = z_data[condition_Rplane]
         # Order for radial distance to smooth the density
         r_plane = list(np.sqrt(x_plane**2 + y_plane**2))
-        den_plane_sorted = sort_list(den_mid[condition_Rplane], r_plane)
+        den_plane_sorted = sort_list(den_data[condition_Rplane], r_plane)
         x_plane_sorted = sort_list(x_plane, r_plane)
         y_plane_sorted = sort_list(y_plane, r_plane)
         z_plane_sorted = sort_list(z_plane, r_plane)
@@ -86,6 +86,10 @@ def find_radial_maximum(x_data, y_data, z_data, dim_mid, den_mid, theta_arr, Rt,
 
 def find_transverse_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt, check_dim = False):
     """ Find the maxima density points in a plane (transverse)"""
+    # Cut a bit the data for computational reasons
+    cutting = np.abs(z_data) < 50
+    x_data, y_data, z_data, dim_data, den_data = \
+        make_slices([x_data, y_data, z_data, dim_data, den_data], cutting)
     x_orbit_rad, y_orbit_rad, z_orbit_rad = find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt)
     x_cmTR = np.zeros(len(theta_arr))
     y_cmTR = np.zeros(len(theta_arr))
@@ -239,14 +243,16 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, 
 
 def follow_the_stream(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt, path = 'none', threshold = 1./3):
     """ Find width and height all along the stream """
-    # cut a bit the data for computational reasons
-    cutting = np.abs(z_data) < 100
-    x_data, y_data, z_data, dim_data, den_data = make_slices([x_data, y_data, z_data, dim_data, den_data], cutting)
+    # Cut a bit the data for computational reasons
+    cutting = np.abs(z_data) < 50
+    x_data, y_data, z_data, dim_data, den_data = \
+        make_slices([x_data, y_data, z_data, dim_data, den_data], cutting)
     # Find the center of mass of the stream for each theta
     try:
         streamLow = np.load(path)
         print('existing file. Check the theta values')
-        x_orbit, y_orbit, z_orbit = streamLow[1], streamLow[2], streamLow[3]
+        theta_arr, x_orbit, y_orbit, z_orbit = streamLow[0], streamLow[1], streamLow[2], streamLow[3]
+        path = 'existing'
     except:
         print('Computing orbit')
         x_orbit, y_orbit, z_orbit = find_transverse_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt)
@@ -274,7 +280,10 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt,
     upper_tube_h = np.array(upper_tube_h)
     w_params = np.transpose(np.array(w_params)) # line 1: width, line 2: ncells
     h_params = np.transpose(np.array(h_params)) # line 1: height, line 2: ncells
-    return cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params
+    if path == 'existing':
+        return cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params, theta_arr
+    else:
+        return cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params
 
 def deriv_maxima(theta_arr, x_orbit, y_orbit):
     # Find the idx where the orbit starts to decrease too much (i.e. the stream is not there anymore)
