@@ -7,7 +7,7 @@ import matplotlib
 import os
 from Utilities.basic_units import radians
 
-from Utilities.operators import make_tree
+from Utilities.operators import make_tree, Ryan_sampler
 import Utilities.sections as sec
 import src.orbits as orb
 from Utilities.time_extractor import days_since_distruption
@@ -52,24 +52,20 @@ path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
 saving_path = f'Figs/{folder}/{check}'
 print(f'We are in: {path}, \nWe save in: {saving_path}')
 
-##
-# FUNCTIONS
-##
-
-
 #
 ## MAIN
 #
 
-do = False
+do = True
 plot = True
 save = True
 compare = False
-fast = True
+fast = False
 analytic = False
 theta_lim =  np.pi
 step = 0.02
-theta_arr = np.arange(-theta_lim, theta_lim, step)
+theta_init = np.arange(-theta_lim, theta_lim, step)
+theta_arr = Ryan_sampler(theta_init)
 
 #%% Load data
 data = make_tree(path, snap, is_tde, energy = False)

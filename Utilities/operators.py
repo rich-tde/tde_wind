@@ -40,7 +40,8 @@ def from_cylindric(theta, r):
     return x, y
 
 def Ryan_sampler(theta_arr):
-    theta_shift = np.pi * np.sin(theta_arr/2)
+    # theta_shift = np.pi * np.sin(theta_arr/2)
+    theta_shift =  np.pi * np.tanh(2*theta_arr/np.pi) / np.tanh(2)
     return theta_shift
 
 def sort_list(list_passive, leading_list):
@@ -61,6 +62,20 @@ def median_array(points, window_size=7):
             medians[i]= median
 
     return np.array(medians)
+
+def average_array(values, w, window_size=7):
+    n = len(values)
+    half_window = window_size // 2
+    averages = np.copy(values) 
+    
+    if half_window != 0:
+        for i in range(half_window, n-half_window): #I don't care of the first/last points
+            window = values[i-half_window:i+window_size]
+            weights = np.power(w[i-half_window:i+window_size],2)
+            average = np.average(window, weights = weights)
+            averages[i]= average
+
+    return np.array(averages)
 class data_snap:
     # create a class to be used in make_tree so that it gives just one output.
     def __init__(self, sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, IE = None, Diss = None, Entropy = None):
