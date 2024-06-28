@@ -14,7 +14,7 @@ check = 'Low'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
 snap = '164'
 path = f'TDE/{folder}{check}/{snap}'
-data = make_tree(path, snap, is_tde = True, energy = False)
+data = make_tree(path, snap, energy = False)
 points = np.array([data.X, data.Y, data.Z])
 points = np.transpose(points)
 density = data.Den
@@ -36,7 +36,8 @@ def gaussian_smoothing(points, density, tree, dim_cell):
         smoothed_density[i] = np.sum(weights * density[indices]) / np.sum(weights)
     return smoothed_density
 
-# Apply Gaussian smoothing
-smoothed_density = gaussian_smoothing(points, density, tree, dim_cell)
-np.save(f'TDE/{folder}{check}/{snap}/smoothed_Den_{snap}.npy', smoothed_density)
+if __name__ == '__main__':
+    # Apply Gaussian smoothing
+    smoothed_density = gaussian_smoothing(points, density, tree, dim_cell)
+    np.save(f'TDE/{folder}{check}/{snap}/smoothed_Den_{snap}.npy', smoothed_density)
 

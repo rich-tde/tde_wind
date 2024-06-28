@@ -7,6 +7,8 @@ import sys
 sys.path.append('/Users/paolamartire/shocks')
 from Utilities.isalice import isalice
 alice, plot = isalice()
+from Utilities.operators import make_tree
+from Utilities.gaussian_smoothing import gaussian_smoothing
 
 import numpy as np
 import h5py
@@ -142,6 +144,16 @@ def extractor(filename):
     f.close()
     return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDxLimited, DrhoDy, DrhoDyLimited, DrhoDz, DrhoDzLimited, DpDx, DpDxLimited, DpDy, DpDyLimited, DpDz, DpDzLimited, divV, divVLimited, Diss, Star, Entropy
 
+# def smoothed_extractor(path, snap):
+#     data = make_tree(path, snap, energy = False)
+#     points = np.array([data.X, data.Y, data.Z])
+#     points = np.transpose(points)
+#     density = data.Den
+#     dim_cell = data.Vol**(1/3)
+#     tree = data.sim_tree
+#     smoothed_density = gaussian_smoothing(points, density, tree, dim_cell)
+#     return smoothed_density
+
 if __name__ == '__main__':
     names = np.arange(152,265)
     for name in names:
@@ -198,5 +210,7 @@ if __name__ == '__main__':
         np.save(f'{path}Star_{name}', Star) 
         np.save(f'{path}Entropy_{name}', Entropy) 
         
-        print(f'Done {name}')
+        print(f'Done extraction {name}')
+
+
 

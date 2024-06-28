@@ -57,7 +57,7 @@ def deriv_an_orbit(theta, a, Rp, ecc, choose):
     # elif choose == 'Witta':
     return dr_dtheta
 
-def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt, window_size=7):
+def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt):
     """ Find the maxima density points in a plane (midplane)"""
     x_cm = np.zeros(len(theta_arr))
     y_cm = np.zeros(len(theta_arr))
@@ -120,6 +120,7 @@ def find_transverse_maximum(x_data, y_data, z_data, dim_data, den_data, theta_ar
     x_cm = np.zeros(len(theta_arr))
     y_cm = np.zeros(len(theta_arr))
     z_cm = np.zeros(len(theta_arr))
+    dim_cm = np.zeros(len(theta_arr))
     for idx in range(len(theta_arr)):
         condition_T, x_T, _ = transverse_plane(x_data, y_data, dim_data, x_cmTR, y_cmTR, idx, coord = True)
         # condition to not go too far away. Important for theta = 0
@@ -140,11 +141,14 @@ def find_transverse_maximum(x_data, y_data, z_data, dim_data, den_data, theta_ar
         idx_cm = np.argmax(den_plane)
         x_cm[idx], y_cm[idx], z_cm[idx] = x_plane[idx_cm], y_plane[idx_cm], z_plane[idx_cm]
         
+        if check_dim:
+            dim_plane = dim_data[condition_T]
+            dim_plane = dim_plane[condition_x]
+            dim_cm[idx] = dim_plane[idx_cm]
     if check_dim:
-        dim_plane = dim_cell[condition_T]
-        dim_plane = dim_cell[condition_x]
-        return x_cm, y_cm, z_cm, dim_plane[idx_cm]
-    return x_cm, y_cm, z_cm
+        return x_cm, y_cm, z_cm, dim_cm
+    else:
+        return x_cm, y_cm, z_cm
 
 def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, y_orbit, z_orbit, idx, threshold = 0.33):
     # Find the transverse plane 
@@ -266,7 +270,7 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, 
 
     return cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params
 
-def follow_the_stream(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt, path = 'none', threshold = 1./3):
+def follow_the_stream(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt, path = 'none', threshold = 1./3, check_dim =  False):
     """ Find width and height all along the stream """
     # Cut a bit the data for computational reasons
     cutting = np.abs(z_data) < 50
@@ -280,7 +284,7 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt,
         path = 'existing'
     except:
         print('Computing orbit')
-        x_orbit, y_orbit, z_orbit = find_transverse_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt)
+        x_orbit, y_orbit, z_orbit = find_transverse_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt, check_dim)
     cm = []
     lower_tube_w = []
     upper_tube_w = []
