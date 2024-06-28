@@ -25,9 +25,8 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
-snap = '199'
-is_tde = True
+check = 'Res20' # 'Low' or 'HiRes' or 'Res20'
+snap = '169'
 threshold =  1/3
 
 #
@@ -56,18 +55,19 @@ print(f'We are in: {path}, \nWe save in: {saving_path}')
 ## MAIN
 #
 
-do = False
+do = True
 plot = True
 save = True
 compare = False
-fast = True
+fast = False
 theta_lim =  np.pi
 step = 0.02
 theta_init = np.arange(-theta_lim, theta_lim, step)
 theta_arr = Ryan_sampler(theta_init)
 
 #%% Load data
-data = make_tree(path, snap, is_tde, energy = False)
+data = make_tree(path, snap, energy = False)
+density = np.load(f'TDE/{folder}{check}/{snap}/smoothed_Den_{snap}.npy')
 R = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
 THETA, RADIUS_cyl = to_cylindric(data.X, data.Y)
 V = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
@@ -77,7 +77,7 @@ tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose =
 #%% Cross section at midplane
 midplane = np.abs(data.Z) < dim_cell
 X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Temp_midplane = \
-    sec.make_slices([data.X, data.Y, data.Z, dim_cell, data.Den, data.Temp], midplane)
+    sec.make_slices([data.X, data.Y, data.Z, dim_cell, density, data.Temp], midplane)
 
 # cfr tidal disruption 
 xRt = np.linspace(-Rt, Rt, 100)
@@ -109,7 +109,7 @@ cfr0 = xcfr0**2 + ycfr0**2 - R0**2
 #%%
 if do:
     streamdata_path = f'data/{folder}/stream_{check}{snap}_{step}.npy'
-    cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params, theta_arr  = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Den, theta_arr, Rt, path = streamdata_path, threshold=threshold)
+    cm, lower_tube_w, upper_tube_w, lower_tube_h, upper_tube_h, w_params, h_params, theta_arr  = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, density, theta_arr, Rt, path = streamdata_path, threshold=threshold)
 
     if save:
         try:
@@ -209,8 +209,6 @@ if plot:
         plt.grid()
         plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,3)) + f', check: {check}, threshold: {np.round(threshold,1)}', fontsize = 16)
         plt.tight_layout()
-        if save:
-            plt.savefig(f'{saving_path}/width_theta{snap}_thr{np.round(threshold,1)}.png')
         plt.show()
 
     if compare:

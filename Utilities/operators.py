@@ -53,14 +53,12 @@ def sort_list(list_passive, leading_list):
 def median_array(points, window_size=7):
     n = len(points)
     half_window = window_size // 2
-    medians = np.copy(points) 
-    
+    medians = np.copy(points)
     if half_window != 0:
         for i in range(half_window, n-half_window): #I don't care of the first/last points
             window = points[i-half_window:i+window_size]
             median = np.median(window)
             medians[i]= median
-
     return np.array(medians)
 
 def average_array(values, w, window_size=7):
@@ -71,7 +69,8 @@ def average_array(values, w, window_size=7):
     if half_window != 0:
         for i in range(half_window, n-half_window): #I don't care of the first/last points
             window = values[i-half_window:i+window_size]
-            weights = np.power(w[i-half_window:i+window_size],2)
+            distances = np.abs(w[i-half_window:i+window_size]-w[i])
+            weights = np.power(distances,2)
             average = np.average(window, weights = weights)
             averages[i]= average
 
@@ -95,7 +94,7 @@ class data_snap:
         self.Diss = Diss
         self.Entropy = Entropy
 
-def make_tree(filename, snap, is_tde = False, energy = False):
+def make_tree(filename, snap, is_tde = True, energy = False):
     """ Load data from simulation and build the tree. """
     X = np.load(f'{filename}/CMx_{snap}.npy')
     Y = np.load(f'{filename}/CMy_{snap}.npy')
@@ -121,7 +120,7 @@ def make_tree(filename, snap, is_tde = False, energy = False):
         print('all T=0, bro. Compute by myself!')
         T = P/Den
     if is_tde:
-        #Den *= prel.den_converter
+        # Den *= prel.den_converter
         Star = np.load(f'{filename}/Star_{snap}.npy')
         for i,rho in enumerate(Den):
             cell_star = Star[i]

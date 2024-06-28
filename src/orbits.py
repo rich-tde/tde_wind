@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import trapezoid, odeint
 from Utilities.sections import make_slices, radial_plane, transverse_plane
-from Utilities.operators import sort_list, average_array #,median_array
+from Utilities.operators import sort_list, average_array
 
 def make_cfr(R, x0=0, y0=0):
     x = np.linspace(-R, R, 100)
@@ -69,25 +69,28 @@ def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R
         x_plane = x_data[condition_Rplane]
         y_plane = y_data[condition_Rplane]
         z_plane = z_data[condition_Rplane]
-        # Order for radial distance to smooth the density
-        r_plane = list(np.sqrt(x_plane**2 + y_plane**2))
-        den_plane_sorted = sort_list(den_data[condition_Rplane], r_plane)
-        x_plane_sorted = sort_list(x_plane, r_plane)
-        y_plane_sorted = sort_list(y_plane, r_plane)
-        z_plane_sorted = sort_list(z_plane, r_plane)
-        # den_median = median_array(den_plane_sorted, window_size)
-
-        idx_cm = np.argmax(den_plane_sorted) #np.argmax(den_median) 
-        x_cm[i] = x_plane_sorted[idx_cm]
-        y_cm[i] = y_plane_sorted[idx_cm]
-        z_cm[i] = z_plane_sorted[idx_cm]
+        den_plane = den_data[condition_Rplane]
+        ## 
+        # r_plane = list(np.sqrt(x_plane**2 + y_plane**2))
+        # den_plane = sort_list(den_data[condition_Rplane], r_plane)
+        # x_plane = sort_list(x_plane, r_plane)
+        # y_plane = sort_list(y_plane, r_plane)
+        # z_plane = sort_list(z_plane, r_plane)
+        # r_plane = sorted(r_plane)
+        # den_avg = average_array(den_plane, r_plane)
+        # idx_cm = np.argmax(den_avg) 
+        ##
+        idx_cm = np.argmax(den_plane) 
+        x_cm[i] = x_plane[idx_cm]
+        y_cm[i] = y_plane[idx_cm]
+        z_cm[i] = z_plane[idx_cm]
         
     return x_cm, y_cm, z_cm
 
 def find_transverse_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt, check_dim = False):
     """ Find the maxima density points in a plane (transverse)"""
     # Cut a bit the data for computational reasons
-    cutting = np.abs(z_data) < 50
+    cutting = np.logical_and(np.abs(z_data) < 50, np.abs(y_data) < 200)
     x_data, y_data, z_data, dim_data, den_data = \
         make_slices([x_data, y_data, z_data, dim_data, den_data], cutting)
     x_orbit_rad, y_orbit_rad, z_orbit_rad = find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, Rt)
@@ -100,8 +103,20 @@ def find_transverse_maximum(x_data, y_data, z_data, dim_data, den_data, theta_ar
         x_plane, y_plane, z_plane, den_plane = make_slices([x_data, y_data, z_data, den_data], condition_T)
         condition_x = np.abs(x_T) < 20
         x_plane, y_plane, z_plane, den_plane = make_slices([x_plane, y_plane, z_plane, den_plane], condition_x)
+        ##
+        # x_T = x_T[condition_x]
+        # x_T = list(x_T)
+        # x_plane = sort_list(x_plane, x_T)
+        # y_plane = sort_list(y_plane, x_T)
+        # z_plane = sort_list(z_plane, x_T)
+        # den_plane = sort_list(den_plane, x_T)
+        # x_T_sorted = sorted(x_T)
+        # den_aver_sorted = average_array(den_plane, x_T_sorted)
+        # idx_cm = np.argmax(den_aver_sorted)
+        ##
         idx_cm = np.argmax(den_plane)
         x_cmTR[idx], y_cmTR[idx], z_cmTR[idx] = x_plane[idx_cm], y_plane[idx_cm], z_plane[idx_cm]
+
     x_cm = np.zeros(len(theta_arr))
     y_cm = np.zeros(len(theta_arr))
     z_cm = np.zeros(len(theta_arr))
@@ -111,8 +126,20 @@ def find_transverse_maximum(x_data, y_data, z_data, dim_data, den_data, theta_ar
         x_plane, y_plane, z_plane, den_plane = make_slices([x_data, y_data, z_data, den_data], condition_T)
         condition_x = np.abs(x_T) < 20
         x_plane, y_plane, z_plane, den_plane = make_slices([x_plane, y_plane, z_plane, den_plane], condition_x)
+        ##
+        # x_T = x_T[condition_x]
+        # x_T = list(x_T)
+        # x_plane = sort_list(x_plane, x_T)
+        # y_plane = sort_list(y_plane, x_T)
+        # z_plane = sort_list(z_plane, x_T)
+        # den_plane = sort_list(den_plane, x_T)
+        # x_T_sorted = sorted(x_T)
+        # den_aver_sorted = average_array(den_plane, x_T_sorted)
+        # idx_cm = np.argmax(den_aver_sorted)
+        ##
         idx_cm = np.argmax(den_plane)
         x_cm[idx], y_cm[idx], z_cm[idx] = x_plane[idx_cm], y_plane[idx_cm], z_plane[idx_cm]
+        
     if check_dim:
         dim_plane = dim_cell[condition_T]
         dim_plane = dim_cell[condition_x]
@@ -139,8 +166,7 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, 
     z_orb_sorted = sort_list(z_orb, x_T_orb)
     dim_orb_sorted = sort_list(dim_orb, x_T_orb)
     den_orb_sorted = sort_list(den_orb, x_T_orb)
-    # den_median_orb_sorted = median_array(den_orb_sorted)
-    den_aver_orb_sorted = average_array(den_orb_sorted, x_Torb_sorted)
+    # den_aver_orb_sorted = average_array(den_orb_sorted, x_Torb_sorted)
     # r_shift = np.sqrt(x_orb_sorted**2 + y_orb_sorted**2)
 
     # Find the idx of the cm of the plane
@@ -154,10 +180,10 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, 
     den_tube = den_cm
     while den_tube > threshold * den_cm and idx_step > 0:
         idx_step -= 1
-        den_tube =  den_aver_orb_sorted[idx_step] 
-        # den_tube =  den_median_orb_sorted[idx_step] 
+        # den_tube =  den_aver_orb_sorted[idx_step] 
+        den_tube = den_orb_sorted[idx_step]
     idx_before = idx_step+1 # because the last step has density < threshold
-    x_low, x_T_low, y_low, den_low_w = x_orb_sorted[idx_before], x_Torb_sorted[idx_before], y_orb_sorted[idx_before], den_orb_sorted[idx_before]
+    x_low, x_T_low, y_low, den_low_w = x_orb_sorted[idx_before], x_Torb_sorted[idx_before], y_orb_sorted[idx_before],den_orb_sorted[idx_before]
 
     # Upper boundary
     idx_step = idx_cm
@@ -168,8 +194,8 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, 
         # if idx == 158:
         #     test.append(den_tube)
         idx_step += 1
-        den_tube =  den_aver_orb_sorted[idx_step] 
-        # den_tube =  den_median_orb_sorted[idx_step] 
+        # den_tube =  den_aver_orb_sorted[idx_step] 
+        den_tube = den_orb_sorted[idx_step]
         # r_test.append(r_shift[idx_step])
     idx_after = idx_step-1 # because the last step has density < threshold
     # if idx == 158:
@@ -197,8 +223,7 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, 
     # x_vert_sorted = sort_list(x_plane_vert, z_vert)
     dim_vert_sorted = sort_list(dim_vert, z_vert)
     den_vert_sorted = sort_list(den_vert, z_vert)
-    den_aver_vert_sorted = average_array(den_vert_sorted, z_vert_sorted)
-    # den_median_vert_sorted =  median_array(den_vert_sorted)
+    # den_aver_vert_sorted = average_array(den_vert_sorted, z_vert_sorted)
 
     # Find the cm of the plane (you are assuming that the cm found before is at z=0)
     idx_cm = np.argmin(np.abs(z_vert_sorted-z_orbit[idx]))    
@@ -208,8 +233,8 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, 
     den_tube = den_cm
     while den_tube > threshold * den_cm and idx_step > 0:
         idx_step -= 1
-        den_tube = den_aver_vert_sorted[idx_step]
-        #den_tube = den_median_vert_sorted[idx_step]
+        # den_tube = den_aver_vert_sorted[idx_step]
+        den_tube = den_vert_sorted[idx_step]
     idx_before = idx_step + 1
     # x_low = x_vert_sorted[idx_before]
     z_low, den_low_h = z_vert_sorted[idx_before], den_vert_sorted[idx_before]
@@ -219,8 +244,8 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, x_orbit, 
     den_tube = den_cm
     while den_tube > threshold * den_cm and idx_step < len(den_vert_sorted) - 1:
         idx_step += 1
-        den_tube = den_aver_vert_sorted[idx_step]
-        #den_tube = den_median_vert_sorted[idx_step] 
+        # den_tube = den_aver_vert_sorted[idx_step]
+        den_tube = den_vert_sorted[idx_step] 
     idx_after = idx_step - 1
     z_up, den_up_h = z_vert_sorted[idx_after], den_vert_sorted[idx_after]
 
