@@ -1,5 +1,6 @@
 """ 
 Find different kind of orbits (and their derivatives) for TDEs. 
+Identify the stream using density maxima points.
 Measure the width and the height of the stream.
 """
 import sys
@@ -8,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import trapezoid, odeint
 from Utilities.sections import make_slices, radial_plane, transverse_plane
-from Utilities.operators import sort_list, average_array
+from Utilities.operators import sort_list#, average_array
 
 def make_cfr(R, x0=0, y0=0):
     x = np.linspace(-R, R, 100)

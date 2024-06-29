@@ -40,6 +40,7 @@ def from_cylindric(theta, r):
     return x, y
 
 def Ryan_sampler(theta_arr):
+    """ Function to sample the angle in the orbital plane so that you have more points also at apocenter."""
     # theta_shift = np.pi * np.sin(theta_arr/2)
     theta_shift =  np.pi * np.tanh(2*theta_arr/np.pi) / np.tanh(2)
     return theta_shift
@@ -50,22 +51,22 @@ def sort_list(list_passive, leading_list):
     z = [x for _, x in sorted(zipped_pairs)]
     return np.array(z)
 
-def median_array(points, window_size=7):
-    n = len(points)
-    half_window = window_size // 2
-    medians = np.copy(points)
-    if half_window != 0:
-        for i in range(half_window, n-half_window): #I don't care of the first/last points
-            window = points[i-half_window:i+window_size]
-            median = np.median(window)
-            medians[i]= median
-    return np.array(medians)
+# def median_array(points, window_size=7):
+#     n = len(points)
+#     half_window = window_size // 2
+#     medians = np.copy(points)
+#     if half_window != 0:
+#         for i in range(half_window, n-half_window): #I don't care of the first/last points
+#             window = points[i-half_window:i+window_size]
+#             median = np.median(window)
+#             medians[i]= median
+#     return np.array(medians)
 
 def average_array(values, w, window_size=7):
+    """ Compute the weighted average of the values in a window of size window_size."""
     n = len(values)
     half_window = window_size // 2
     averages = np.copy(values) 
-    
     if half_window != 0:
         for i in range(half_window, n-half_window): #I don't care of the first/last points
             window = values[i-half_window:i+window_size]
@@ -73,7 +74,6 @@ def average_array(values, w, window_size=7):
             weights = np.power(distances,2)
             average = np.average(window, weights = weights)
             averages[i]= average
-
     return np.array(averages)
 class data_snap:
     # create a class to be used in make_tree so that it gives just one output.
