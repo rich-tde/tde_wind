@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 from Utilities.operators import make_tree
 import Utilities.sections as sec
-import Utilities.orbits as orb
+import src.orbits as orb
 from Utilities.time_extractor import days_since_distruption
 matplotlib.rcParams['figure.dpi'] = 150
 
@@ -21,8 +21,8 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'Low' # 'Compton' or 'ComptonHiRes' or 'ComptonRes20'
-snap = '115'
+check = 'Hires' # 'Low' or 'HiRes' or 'Res20'
+snap = '100'
 is_tde = True
 
 #
@@ -51,11 +51,11 @@ print(f'We are in: {path}, \nWe save in: {saving_fig}')
 ## MAIN
 #
 
-do = True
-plot = True
-save = False
+do = False
+plot = False
+save = True
 
-compare_resol = False
+compare_resol = True
 compare_times = False
 
 #%%
@@ -67,29 +67,12 @@ if do:
     Vcyl = np.sqrt(data.VX**2 + data.VY**2)
     orbital_enegy = orb.orbital_energy(Rcyl, Vcyl, G, Mbh)
 
-    # Normalisation
+    # Normalisation (what on the x axis you call \Delta E)
     norm = Mbh/Rt * (Mbh/Rstar)**(-1/3)
     print('Normalization for energy:', norm)
 
-    # Section at the midplane
-    midplane = np.abs(data.Z) < dim_cell
-    X_mid, Y_mid, VX_mid, VY_mid, Rcyl_mid, Mass_mid, Den_mid, orbital_enegy_mid = \
-        sec.make_slices([data.X, data.Y, data.VX, data.VY, Rcyl, data.Mass, data.Den, orbital_enegy], midplane)
-
-    # # Energy bins 
-    # OE_mid = orbital_enegy_mid / norm
-    # bins = np.arange(-4, 4, .1)
-    # # compute mass per bin
-    # hist, bins = np.histogram(OE_mid, bins = bins)
-    # mass_sum = np.zeros(len(bins)-1)
-    # for i in range(len(bins)-1):
-    #     idx = np.where((OE_mid > bins[i]) & (OE_mid < bins[i+1]))
-    #     mass_sum[i] = np.sum(Mass_mid[idx])
-    # # dM/dE
-    # dm_dE = mass_sum / (np.diff(bins) * norm) # multiply by norm because we normalised the energy
-
     # Energy bins 
-    OE = orbital_enegy / norm
+    OE = orbital_enegy / norm #or use orbital_energy_mid
     bins = np.arange(-2, 2, .1)
     # compute mass per bin
     hist, bins = np.histogram(OE, bins = bins)
@@ -109,7 +92,7 @@ if do:
         except FileNotFoundError:
             with open(f'data/{folder}/dMdE_time{np.round(tfb,1)}.txt','a') as fstart:
                 # if file doesn'exist
-                fstart.write(f'# Energy bins normalised (norm = {norm}) \n')
+                fstart.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
                 fstart.write((' '.join(map(str, bins[:-1])) + '\n'))
 
         with open(f'data/{folder}/dMdE_time{np.round(tfb,1)}.txt','a') as file:
@@ -119,10 +102,15 @@ if do:
 
     #%%
     if plot:
+        # Section at the midplane
+        midplane = np.abs(data.Z) < dim_cell
+        X_mid, Y_mid, VX_mid, VY_mid, Rcyl_mid, Mass_mid, Den_mid, orbital_enegy_mid = \
+            sec.make_slices([data.X, data.Y, data.VX, data.VY, Rcyl, data.Mass, data.Den, orbital_enegy], midplane)
+
         # plot the mass distribution with respect to the energy
         fig, ax = plt.subplots(1,2, figsize = (8,4))
         ax[0].scatter(bins[:-1], dm_dE, c = 'k', s = 20)
-        ax[0].set_xlabel(r'E/$\Delta E$', fontsize = 16)
+        ax[0].set_xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
         ax[0].set_ylabel('dM/dE', fontsize = 16)
         ax[0].set_xlim(-3,3)
         ax[0].set_ylim(1e-8, 2e-2)
@@ -153,7 +141,7 @@ if compare_times:
     plt.scatter(bin_plot, data2, c = 'b', s = 40, label = '0.2')
     plt.scatter(bin_plot, data3, c = 'k', s = 30, label = '0.3')
     plt.scatter(bin_plot, data4, c = 'r', s = 10, label = '0.7')
-    plt.xlabel('Energy', fontsize = 16)
+    plt.xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
     plt.ylabel('dM/dE', fontsize = 16)
     plt.yscale('log')
     plt.legend()
@@ -163,18 +151,18 @@ if compare_times:
 
 #%%
 if compare_resol:
-    time_chosen = 0.2#np.round(tfb,1)
+    time_chosen = 0.1 #np.round(tfb,1)
     data = np.loadtxt(f'data/{folder}/dMdE_time{time_chosen}.txt')
     bin_plot = data[0]
-    dataC = data[1]
-    dataHiRes = data[2]
-    dataRes20 = data[3]
+    dataL = data[1]
+    dataMiddle = data[2]
+    dataHigh = data[3]
     
     plt.figure()
-    plt.scatter(bin_plot, dataC, c = 'b', s = 35, label = 'Compton')
-    plt.scatter(bin_plot, dataHiRes, c = 'green', s = 20, label = 'HiRes0')
-    plt.scatter(bin_plot, dataRes20, c = 'r', s = 10, label = 'Res20')
-    plt.xlabel('Energy', fontsize = 16)
+    plt.scatter(bin_plot, dataL, c = 'k', s = 35, label = 'Low')
+    plt.scatter(bin_plot, dataMiddle, c = 'r', s = 20, label = 'Middle')
+    plt.scatter(bin_plot, dataHigh, c = 'b', s = 10, label = 'High')
+    plt.xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
     plt.ylabel('dM/dE', fontsize = 16)
     plt.yscale('log')
     plt.legend()

@@ -25,8 +25,9 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'Low' # 'Low' or 'HiRes' or 'Res20'
-snap = '164'
+check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
+snap = '199'
+snapL = '199'
 threshold =  1/3
 
 #
@@ -66,50 +67,38 @@ theta_init = np.arange(-theta_lim, theta_lim, step)
 theta_arr = Ryan_sampler(theta_init)
 
 #%% Load data
-data = make_tree(path, snap, energy = False)
-density = np.load(f'TDE/{folder}{check}/{snap}/smoothed_Den_{snap}.npy')
-R = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
-THETA, RADIUS_cyl = to_cylindric(data.X, data.Y)
-V = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
-dim_cell = data.Vol**(1/3) # according to Elad
-tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
-
-#%% Cross section at midplane
-midplane = np.abs(data.Z) < dim_cell
-X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Temp_midplane = \
-    sec.make_slices([data.X, data.Y, data.Z, dim_cell, density, data.Temp], midplane)
-
-# cfr tidal disruption 
-xRt = np.linspace(-Rt, Rt, 100)
-yRt = np.linspace(-Rt, Rt, 100)
-xcfr, ycfr = np.meshgrid(xRt,yRt)
-cfr = xcfr**2 + ycfr**2 - Rt**2
-
-# cfr smoothing lenght
-xR0 = np.linspace(-R0, R0, 100)
-yR0 = np.linspace(-R0, R0, 100)
-xcfr0, ycfr0 = np.meshgrid(xR0,yR0)
-cfr0 = xcfr0**2 + ycfr0**2 - R0**2
-
-
-#%%
-# if plot:
-#     plt.figure(figsize=(7,4))
-#     #plt.scatter(X_midplane, Y_midplane, c = np.log10(Den_midplane), cmap = 'viridis', s=1, vmin =-8, vmax = -7)
-#     plt.plot(x_Witta_orbit, y_Witta_orbit, c = 'b',  label='Witta orbit')
-#     plt.plot(x_K_orbit, y_K_orbit, c = 'r',  label='Keplerian orbit')
-#     plt.plot(x_cm, y_cm, c = 'g', label='Density maxima')
-#     plt.xlim(-60,40)
-#     plt.ylim(-40, 40)
-#     plt.xlabel(r'X [$R_\odot$]', fontsize = 18)
-#     plt.ylabel(r'Y [$R_\odot$]', fontsize = 18)
-#     plt.legend()
-#     plt.show()
-
-#%%
 if do:
+    data = make_tree(path, snap, energy = False)
+    density = np.load(f'TDE/{folder}{check}/{snap}/smoothed_Den_{snap}.npy')
+    R = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
+    THETA, RADIUS_cyl = to_cylindric(data.X, data.Y)
+    V = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
+    dim_cell = data.Vol**(1/3) # according to Elad
+    tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+
+    #%% Cross section at midplane
+    midplane = np.abs(data.Z) < dim_cell
+    X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Temp_midplane = \
+        sec.make_slices([data.X, data.Y, data.Z, dim_cell, density, data.Temp], midplane)
+
+    # cfr tidal disruption 
+    xRt = np.linspace(-Rt, Rt, 100)
+    yRt = np.linspace(-Rt, Rt, 100)
+    xcfr, ycfr = np.meshgrid(xRt,yRt)
+    cfr = xcfr**2 + ycfr**2 - Rt**2
+
+    # cfr smoothing lenght
+    xR0 = np.linspace(-R0, R0, 100)
+    yR0 = np.linspace(-R0, R0, 100)
+    xcfr0, ycfr0 = np.meshgrid(xR0,yR0)
+    cfr0 = xcfr0**2 + ycfr0**2 - R0**2
+
     streamdata_path = f'data/{folder}/stream_{check}{snap}_{step}.npy'
-    indeces_stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, density, theta_arr, Rt, path = streamdata_path, threshold=threshold)
+    streamL = np.load(f'data/{folder}/stream_Low{snapL}_{step}.npy')
+    indeces_orbitL = streamL[1].astype(int)
+    DenL = np.load(f'TDE/{folder}Low/{snapL}/smoothed_Den_{snapL}.npy')
+    stream_thresh = DenL[indeces_orbitL]/3
+    indeces_stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, density, theta_arr, stream_thresh, Rt, path = streamdata_path)
 
     if save:
         try:
@@ -213,11 +202,11 @@ if plot:
         ax[1].plot(theta_width, NcellRes205, '--', c = 'b',  label = 'High 0.5')
         ax[1].legend()
         ax[1].set_xlim(theta_width[30], theta_width[230])
-        ax[1].set_ylim(0,60)
+        ax[1].set_ylim(0,80)
         ax[1].set_xlabel(r'$\theta$', fontsize = 14)
         ax[1].set_ylabel(r'N$_{cell}$', fontsize = 14)
         ax[1].grid()
-        plt.suptitle(f'Threshold: {np.round(threshold,1)}', fontsize = 16)
+        plt.suptitle(f'Threshold: {np.round(threshold,1)} of Low maxima density', fontsize = 16)
         if save:
             plt.savefig(f'Figs/{folder}/width_comparison_thr{np.round(threshold,1)}.png')
         plt.show()
@@ -241,11 +230,11 @@ if plot:
         ax[1].plot(theta_height, NhcellRes205, '--', c = 'b',  label = 'High 0.5')
         ax[1].legend()
         ax[1].set_xlim(theta_height[30], theta_height[230])
-        ax[1].set_ylim(0,30)
+        ax[1].set_ylim(0,50)
         ax[1].set_xlabel(r'$\theta$', fontsize = 14)
         ax[1].set_ylabel(r'N$_{cell}$', fontsize = 14)
         ax[1].grid()
-        plt.suptitle(f'Threshold: {np.round(threshold,1)}', fontsize = 16)
+        plt.suptitle(f'Threshold: {np.round(threshold,1)} of Low maxima density', fontsize = 16)
         if save:
             plt.savefig(f'Figs/{folder}/H_comparison_thr{np.round(threshold,1)}.png')
         plt.show()
@@ -266,7 +255,7 @@ if plot:
             ax[0].set_xlabel(r'$\theta$', fontsize = 14)
             ax[0].set_ylabel(r'$\Delta_{ref}-\Delta$', fontsize = 14)
             ax[0].set_xlim(theta_width[30], theta_width[230])
-            ax[0].set_ylim(-0.1,5)
+            ax[0].set_ylim(-5,5)
             ax[0].legend()
             ax[0].grid()
             ax[1].plot(theta_height, diffh5, '--', c = 'r', label = r'Low - Middle t/t$_{fb}=$ 0.5')
@@ -275,10 +264,10 @@ if plot:
             ax[1].set_xlabel(r'$\theta$', fontsize = 14)
             ax[1].set_ylabel(r'$H_{ref} - H$', fontsize = 14)
             ax[1].set_xlim(theta_height[30], theta_height[230])
-            ax[1].set_ylim(-0.1,5)
+            ax[1].set_ylim(-2,5)
             ax[1].legend()
             ax[1].grid()
-            plt.suptitle(f'Threshold: {np.round(threshold,1)}', fontsize = 16)
+            plt.suptitle(f'Threshold: {np.round(threshold,1)} of Low maxima density', fontsize = 16)
             if save:
                 plt.savefig(f'Figs/{folder}/diffWH_thr{np.round(threshold,1)}.png')
             plt.show()
@@ -301,10 +290,10 @@ if plot:
             plt.xlabel(r'$\theta$', fontsize = 14)
             plt.ylabel(r'1-$\Delta/\Delta_{ref}$', fontsize = 14)
             plt.xlim(theta_width[30], theta_width[230])
-            plt.ylim(-0.2,0.95)
+            plt.ylim(-0.6,0.95)
             plt.legend()
             plt.grid()
-            plt.suptitle(f'Threshold: {np.round(threshold,1)}', fontsize = 16)
+            plt.suptitle(f'Threshold: {np.round(threshold,1)} of Low maxima density', fontsize = 16)
             if save:
                 plt.savefig(f'Figs/{folder}/Deltawidth_thr{np.round(threshold,1)}.png')
             plt.show()
@@ -320,7 +309,7 @@ if plot:
             plt.ylim(-0.7,1)
             plt.legend()
             plt.grid()
-            plt.suptitle(f'Threshold: {np.round(threshold,1)}', fontsize = 16)
+            plt.suptitle(f'Threshold: {np.round(threshold,1)} of Low maximum density', fontsize = 16)
             if save:
                 plt.savefig(f'Figs/{folder}/DeltaH_thr{np.round(threshold,1)}.png')
             plt.show()

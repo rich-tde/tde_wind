@@ -52,20 +52,20 @@ def days_since_distruption(filename, m, mstar, rstar, choose = 'day'):
 #%%
 if __name__ == '__main__':
     choose = 'tfb'
-    snap = 117
+    snap = 100
     m = 4
     Mbh = 10**m
     beta = 1
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = 'Res20'
+    check = 'HiRes'
     if alice:
             prepath = f'/data1/martirep/shocks/shock_capturing/'
     else: 
         prepath = f'TDE'
 
-    path = f'{prepath}/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}Compton{check}/{snap}'
+    path = f'{prepath}/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{check}/{snap}'
     days = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose)
     if choose == 'tfb':
         print(f'In fallback time: {days}')
