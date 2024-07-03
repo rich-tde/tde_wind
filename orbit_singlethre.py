@@ -92,6 +92,8 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, den_data, mass_data, the
 if __name__ == '__main__':
     from Utilities.operators import make_tree, Ryan_sampler
     import matplotlib.pyplot as plt
+    import sys
+    sys.path.append('/Users/paolamartire/shocks')
     G = 1
     m = 4
     Mbh = 10**m
@@ -118,6 +120,10 @@ if __name__ == '__main__':
     dim_cell1 = data1.Vol**(1/3)
     # dim_cell2 = data2.Vol**(1/3)
 
+    midplane = np.abs(data.Z) < dim_cell
+    X_midplane, Y_midplane, Z_midplane, dim_midplane, Mass_midplane = \
+        make_slices([data.X, data.Y, data.Z, dim_cell, data.Mass], midplane)
+
     file = f'data/{folder}/stream_{check}{snap}_{step}.npy' 
     file1 = f'data/{folder}/stream_{check1}{snap}_{step}.npy'
     # file2 = f'data/{folder}/stream_{check2}{snap2}_{step}.npy'
@@ -142,7 +148,6 @@ if __name__ == '__main__':
     plt.plot(cm_x1, cm_y1,  c = 'r', label = 'Orbit1')
     plt.plot(low_x1, low_y1, '--', c = 'r',label = 'Lower tube1')
     plt.plot(up_x1, up_y1, '-.', c = 'r', label = 'Upper tube1')
-
     plt.xlim(-100,30)
     plt.ylim(-40,40)
     plt.legend()
@@ -157,3 +162,4 @@ if __name__ == '__main__':
     plt.show()
 
     
+# %%
