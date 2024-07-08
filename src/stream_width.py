@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/Users/paolamartire/shocks')
+sys.path.append('/Users/paolamartire/shocks/')
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -25,9 +25,9 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
-snap = '199'
-snapL = '199'
+check = 'Low' # 'Low' or 'HiRes' or 'Res20'
+snap = '164'
+# snapL = '199'
 threshold =  1/3
 
 #
@@ -58,7 +58,7 @@ print(f'We are in: {path}, \nWe save in: {saving_path}')
 
 do = False
 plot = True
-save = True
+save = False
 compare = True
 Ryan =  False
 theta_lim =  np.pi
@@ -156,7 +156,7 @@ if plot:
         plt.show()
 
     if compare:
-        datawidth5 = np.loadtxt(f'data/{folder}/width_time0.5_thr{np.round(threshold,1)}.txt')
+        datawidth5 = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/width_time0.5.txt')
         theta_width = datawidth5[0]
         widthL5 = datawidth5[1]
         NcellL5 = datawidth5[2]
@@ -164,13 +164,13 @@ if plot:
         NcellHiRes5 = datawidth5[4]
         widthRes205 = datawidth5[5]
         NcellRes205 = datawidth5[6]
-        datawidth7 = np.loadtxt(f'data/{folder}/width_time0.7_thr{np.round(threshold,1)}.txt')
-        widthL7 = datawidth7[1]
-        NcellL7 = datawidth7[2]
-        widthHiRes7 = datawidth7[3]
-        NcellHiRes7 = datawidth7[4]
+        # datawidth7 = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/width_time0.7.txt')
+        # widthL7 = datawidth7[1]
+        # NcellL7 = datawidth7[2]
+        # widthHiRes7 = datawidth7[3]
+        # NcellHiRes7 = datawidth7[4]
 
-        dataheight5 = np.loadtxt(f'data/{folder}/height_time0.5_thr{np.round(threshold,1)}.txt')
+        dataheight5 = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/height_time0.5.txt')
         theta_height = dataheight5[0]
         heightL5 = dataheight5[1]
         NhcellL5 = dataheight5[2]
@@ -178,31 +178,31 @@ if plot:
         NhcellHiRes5 = dataheight5[4]
         heightRes205 = dataheight5[5]
         NhcellRes205 = dataheight5[6]
-        dataheight7 = np.loadtxt(f'data/{folder}/height_time0.7_thr{np.round(threshold,1)}.txt')
-        heightL7 = dataheight7[1]
-        NhcellL7 = dataheight7[2]
-        heightHiRes7 = dataheight7[3]
-        NhcellHiRes7 = dataheight7[4]
+        # dataheight7 = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/height_time0.7.txt')
+        # heightL7 = dataheight7[1]
+        # NhcellL7 = dataheight7[2]
+        # heightHiRes7 = dataheight7[3]
+        # NhcellHiRes7 = dataheight7[4]
 
         fig, ax = plt.subplots(2,1, figsize = (10,7))
         ax[0].plot(theta_width, widthL5, '--', c = 'k', label = 'Low 0.5')
-        ax[0].plot(theta_width, widthL7, c = 'k', label = 'Low 0.7')
+        # ax[0].plot(theta_width, widthL7, c = 'k', label = 'Low 0.7')
         ax[0].plot(theta_width, widthHiRes5, '--', c = 'r', label = 'Middle 0.5')
-        ax[0].plot(theta_width, widthHiRes7, c = 'r', label = 'Middle 0.7')
+        # ax[0].plot(theta_width, widthHiRes7, c = 'r', label = 'Middle 0.7')
         ax[0].plot(theta_width, widthRes205, '--', c = 'b',  label = 'High 0.5')
         ax[0].legend()
         ax[0].set_ylabel(r'Width [$R_\odot$]', fontsize = 14)
         ax[0].set_xlim(theta_width[30], theta_width[230])
-        ax[0].set_ylim(0,20)
+        ax[0].set_ylim(0,5)
         ax[0].grid()
         ax[1].plot(theta_width, NcellL5, '--', c = 'k', label = 'Low 0.5')
-        ax[1].plot(theta_width, NcellL7, c = 'k', label = 'Low 0.7')
+        # ax[1].plot(theta_width, NcellL7, c = 'k', label = 'Low 0.7')
         ax[1].plot(theta_width, NcellHiRes5,  '--', c = 'r', label = 'Middle 0.5')
-        ax[1].plot(theta_width, NcellHiRes7, c = 'r', label = 'Middle 0.7')
+        # ax[1].plot(theta_width, NcellHiRes7, c = 'r', label = 'Middle 0.7')
         ax[1].plot(theta_width, NcellRes205, '--', c = 'b',  label = 'High 0.5')
         ax[1].legend()
         ax[1].set_xlim(theta_width[30], theta_width[230])
-        ax[1].set_ylim(0,80)
+        ax[1].set_ylim(0,30)
         ax[1].set_xlabel(r'$\theta$', fontsize = 14)
         ax[1].set_ylabel(r'N$_{cell}$', fontsize = 14)
         ax[1].grid()
@@ -213,24 +213,24 @@ if plot:
 
         fig, ax = plt.subplots(2,1, figsize = (10,7))
         ax[0].plot(theta_height, heightL5, '--', c = 'k', label = 'Low 0.5')
-        ax[0].plot(theta_height, heightL7, c = 'k', label = 'Low 0.7')
+        # ax[0].plot(theta_height, heightL7, c = 'k', label = 'Low 0.7')
         ax[0].plot(theta_height, heightHiRes5, '--', c = 'r', label = 'Middle 0.5')
-        ax[0].plot(theta_height, heightHiRes7, c = 'r', label = 'Middle 0.7')
+        # ax[0].plot(theta_height, heightHiRes7, c = 'r', label = 'Middle 0.7')
         ax[0].plot(theta_height, heightRes205, '--', c = 'b',  label = 'High 0.5')
         ax[0].legend()
         ax[0].set_xlabel(r'$\theta$', fontsize = 14)
         ax[0].set_ylabel(r'Height [$R_\odot$]', fontsize = 14)
         ax[0].set_xlim(theta_height[30], theta_height[230])
-        ax[0].set_ylim(0,8)
+        ax[0].set_ylim(0,5)
         ax[0].grid()
         ax[1].plot(theta_height, NhcellL5, '--', c = 'k', label = 'Low 0.5')
-        ax[1].plot(theta_height, NhcellL7, c = 'k', label = 'Low 0.7')
+        # ax[1].plot(theta_height, NhcellL7, c = 'k', label = 'Low 0.7')
         ax[1].plot(theta_height, NhcellHiRes5,  '--', c = 'r', label = 'Middle 0.5')
-        ax[1].plot(theta_height, NhcellHiRes7, c = 'r', label = 'Middle 0.7')
+        # ax[1].plot(theta_height, NhcellHiRes7, c = 'r', label = 'Middle 0.7')
         ax[1].plot(theta_height, NhcellRes205, '--', c = 'b',  label = 'High 0.5')
         ax[1].legend()
         ax[1].set_xlim(theta_height[30], theta_height[230])
-        ax[1].set_ylim(0,50)
+        ax[1].set_ylim(0,55)
         ax[1].set_xlabel(r'$\theta$', fontsize = 14)
         ax[1].set_ylabel(r'N$_{cell}$', fontsize = 14)
         ax[1].grid()
@@ -276,17 +276,17 @@ if plot:
             ratio5 = 1 - widthHiRes5/widthL5
             ratio5Res20 = 1 - widthRes205/widthL5
             ratio5Res20middle = 1 - widthRes205/widthHiRes5
-            ratio7 = 1- widthHiRes7/widthL7
+            # ratio7 = 1- widthHiRes7/widthL7
             ratioh5 = 1 - heightHiRes5/heightL5
             ratioh5Res20 = 1 - heightRes205/heightL5
             ratioh5Res20middle = 1 - heightRes205/heightHiRes5
-            ratioh7 = 1- heightHiRes7/heightL7
+            # ratioh7 = 1- heightHiRes7/heightL7
 
             plt.figure(figsize=(8,6))
             plt.plot(theta_width, ratio5, '--', c = 'r', label = r'Middle - Low t/t$_{fb}=$ 0.5')
             # plt.plot(theta_width, ratio5Res20, '--', c = 'green', label = r'High - Low t/t$_{fb}=$ 0.5')
             plt.plot(theta_width, ratio5Res20middle, '--', c = 'b', label = r'High - Middle t/t$_{fb}=$ 0.5')
-            plt.plot(theta_width, ratio7, c = 'r', label = r'Middle - Low t/t$_{fb}=$ 0.7')
+            # plt.plot(theta_width, ratio7, c = 'r', label = r'Middle - Low t/t$_{fb}=$ 0.7')
             plt.xlabel(r'$\theta$', fontsize = 14)
             plt.ylabel(r'1-$\Delta/\Delta_{ref}$', fontsize = 14)
             plt.xlim(theta_width[30], theta_width[230])
@@ -302,7 +302,7 @@ if plot:
             plt.plot(theta_height, ratioh5, '--', c = 'r', label = r'Middle - Low t/t$_{fb}=$ 0.5')
             #plt.plot(theta_height, ratioh5Res20, '--', c = 'b', label = r'High - Low t/t$_{fb}=$ 0.5')
             plt.plot(theta_height, ratioh5Res20middle, '--', c = 'b', label = r'High - Middle t/t$_{fb}=$ 0.5')
-            plt.plot(theta_height, ratioh7, c = 'r', label = r'Middle - Low t/t$_{fb}=$ 0.7')
+            # plt.plot(theta_height, ratioh7, c = 'r', label = r'Middle - Low t/t$_{fb}=$ 0.7')
             plt.xlabel(r'$\theta$', fontsize = 14)
             plt.ylabel(r'1-$H/H_{ref}$', fontsize = 14)
             plt.xlim(theta_height[30], theta_height[230])
