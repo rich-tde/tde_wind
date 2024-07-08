@@ -115,7 +115,7 @@ if __name__ == '__main__':
     check = 'Low'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
     snap = '164'
-    path = f'TDE/{folder}{check}/{snap}'
+    path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
     Rt = Rstar * (Mbh/mstar)**(1/3)
     theta_lim = np.pi
     step = 0.02

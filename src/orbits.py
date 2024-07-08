@@ -55,7 +55,7 @@ def deriv_an_orbit(theta, a, Rp, ecc, choose):
             p = 2 * Rp
         else:
             p = a * (1 - ecc**2)
-        dr_dtheta = p * np.sin(theta)/ (1 + ecc * np.cos(theta))**2
+        dr_dtheta = p * ecc * np.sin(theta)/ (1 + ecc * np.cos(theta))**2
     # elif choose == 'Witta':
     return dr_dtheta
 
@@ -247,21 +247,21 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, den_data, theta_arr, den
 
 def deriv_maxima(theta_arr, x_orbit, y_orbit):
     # Find the idx where the orbit starts to decrease too much (i.e. the stream is not there anymore)
-    for i in range(len(y_orbit)):
-        if y_orbit[i] <= y_orbit[i-1] - 5:
-            idx = i
-    theta_arr, x_orbit, y_orbit = theta_arr[:idx], x_orbit[:idx], y_orbit[:idx]
+    idx = len(y_orbit)
+    # for i in range(len(y_orbit)):
+    #     if y_orbit[i] <= y_orbit[i-1] - 5:
+    #         idx = i
+    #         break
+    # theta_arr, x_orbit, y_orbit = theta_arr[:idx], x_orbit[:idx], y_orbit[:idx]
     # Find the numerical derivative of r with respect to theta. 
     # Shift theta to start from 0 and compute the arclenght
     theta_shift = theta_arr-theta_arr[0] 
     r_orbit = np.sqrt(x_orbit**2 + y_orbit**2)
-    dr_dtheta = np.zeros(len(theta_arr))
-    for i in range(len(theta_shift)):
-        dr_dtheta[i] = trapezoid(r_orbit[:i+1], theta_shift[:i+1])
+    dr_dtheta = np.gradient(r_orbit, theta_shift)
 
     return dr_dtheta, idx
 
-def find_arclenght(theta_arr, orbit, a, Rp, ecc, choose):
+def find_arclenght(theta_arr, orbit, params, choose):
     """ 
     Compute the arclenght of the orbit
     Parameters
@@ -281,10 +281,11 @@ def find_arclenght(theta_arr, orbit, a, Rp, ecc, choose):
     s : array
         The arclenght of the orbit
     """
-    if choose == 'Maxima':
+    if choose == 'maxima':
         drdtheta, idx = deriv_maxima(theta_arr, orbit[0], orbit[1])
         r_orbit = np.sqrt(orbit[0][:idx]**2 + orbit[1][:idx]**2)
     elif choose == 'Keplerian' or choose == 'Witta':
+        a, Rp, ecc = params[0], params[1], params[2]
         drdtheta = deriv_an_orbit(theta_arr, a, Rp, ecc, choose)
         r_orbit = orbit
         idx = len(r_orbit) # to keep the whole orbit
@@ -325,29 +326,54 @@ if __name__ == '__main__':
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_arr = Ryan_sampler(theta_init)
     xcfr, ycfr, cfr = make_cfr(Rt)
-    data = make_tree(path, snap, is_tde = True, energy = False)
-    dim_cell = data.Vol**(1/3)
 
-    path = f'data/{folder}/stream_{check}{snap}_{step}.npy' 
-    density = np.load(f'TDE/{folder}{check}/{snap}/smoothed_Den_{snap}.npy')
+    test_orbit = False
+    test_s = True
 
-    streamL = np.load(f'data/{folder}/stream_Low{snapL}_{step}.npy')
-    indeces_orbitL = streamL[1].astype(int)
-    DenL = np.load(f'TDE/{folder}Low/{snapL}/smoothed_Den_{snapL}.npy')
-    stream_thresh = DenL[indeces_orbitL]/3
+    if test_orbit:
+        data = make_tree(path, snap, is_tde = True, energy = False)
+        dim_cell = data.Vol**(1/3)
 
-    # indeces_stream, indeces_boundary, x_T_width, w_params, h_params  = follow_the_stream(data.X, data.Y, data.Z, dim_cell, density, theta_arr, Rt, threshold=1/3)
-    indeces_stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr  = follow_the_stream(data.X, data.Y, data.Z, dim_cell, density, theta_arr, stream_thresh, Rt, path = path, other = True)
+        path = f'data/{folder}/stream_{check}{snap}_{step}.npy' 
+        density = np.load(f'TDE/{folder}{check}/{snap}/smoothed_Den_{snap}.npy')
 
-    cm_x, cm_y = data.X[indeces_stream], data.Y[indeces_stream]
-    low_x, low_y = data.X[indeces_boundary[:,0]] , data.Y[indeces_boundary[:,0]]
-    up_x, up_y = data.X[indeces_boundary[:,1]] , data.Y[indeces_boundary[:,1]]
-    plt.plot(cm_x[30:230], cm_y[30:230],  c = 'k', label = 'Orbit')
-    plt.plot(low_x[30:230], low_y[30:230], '--', c = 'k',label = 'Lower tube')
-    plt.plot(up_x[30:230], up_y[30:230], '-.', c = 'k', label = 'Upper tube')
-    plt.xlim(-300,30)
-    plt.ylim(-80,80)
-    plt.legend()
-    plt.show()
+        streamL = np.load(f'data/{folder}/stream_Low{snapL}_{step}.npy')
+        indeces_orbitL = streamL[1].astype(int)
+        DenL = np.load(f'TDE/{folder}Low/{snapL}/smoothed_Den_{snapL}.npy')
+        stream_thresh = DenL[indeces_orbitL]/3
 
-    
+        # indeces_stream, indeces_boundary, x_T_width, w_params, h_params  = follow_the_stream(data.X, data.Y, data.Z, dim_cell, density, theta_arr, Rt, threshold=1/3)
+        indeces_stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr  = follow_the_stream(data.X, data.Y, data.Z, dim_cell, density, theta_arr, stream_thresh, Rt, path = path, other = True)
+
+        cm_x, cm_y = data.X[indeces_stream], data.Y[indeces_stream]
+        low_x, low_y = data.X[indeces_boundary[:,0]] , data.Y[indeces_boundary[:,0]]
+        up_x, up_y = data.X[indeces_boundary[:,1]] , data.Y[indeces_boundary[:,1]]
+        plt.plot(cm_x[30:230], cm_y[30:230],  c = 'k', label = 'Orbit')
+        plt.plot(low_x[30:230], low_y[30:230], '--', c = 'k',label = 'Lower tube')
+        plt.plot(up_x[30:230], up_y[30:230], '-.', c = 'k', label = 'Upper tube')
+        plt.xlim(-300,30)
+        plt.ylim(-80,80)
+        plt.legend()
+        plt.show()
+
+    if test_s:
+        params = None
+        theta_arr = np.linspace(-np.pi, 0, 100)
+        # x^2+y^2 = 1
+        x = np.cos(theta_arr)
+        y = np.sin(theta_arr)
+        r = np.sqrt(x**2 + y**2)
+        s, idx = find_arclenght(theta_arr, [x, y], params, choose = 'maxima')
+        # arclenght of a circle with keplerian
+        r_kep = keplerian_orbit(theta_arr, 1, 1, ecc = 0)
+        x_kep = r_kep * np.cos(theta_arr)
+        y_kep = r_kep * np.sin(theta_arr)
+        s_kep, _ = find_arclenght(theta_arr, r, params = [1, 1, 0], choose = 'Keplerian')
+        fig, (ax1,ax2) = plt.subplots(1,2)
+        ax1.plot(x,y, c = 'r')
+        ax1.plot(x_kep, y_kep, '--')
+        ax2.plot(theta_arr[:idx], s, c = 'r', label = 'maxima')
+        ax2.plot(theta_arr, s_kep, '--', label = 'Keplerian')
+        ax2.legend()
+        ax2.grid()
+        plt.show()
