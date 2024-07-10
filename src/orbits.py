@@ -305,8 +305,7 @@ def orbital_energy(r, v_xy, G, M):
 if __name__ == '__main__':
     from Utilities.operators import make_tree, Ryan_sampler
     import matplotlib.pyplot as plt
-    import sys
-    sys.path.append('/Users/paolamartire/shocks')
+
     G = 1
     m = 4
     Mbh = 10**m
