@@ -75,18 +75,23 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit
     # Change the condition_tra
     condition_tra = np.abs(dot_product) < max_dim
 
+    # Find the coordinates of the data in the new system and use them to cut the plane
+    # Find the versors in 3D
+    zhat = np.array([0,0,1])
+    yRhat = np.array([vers_tg[0], vers_tg[1],0]) # points in the direction of the orbit
+    xRhat = np.cross(zhat, vers_tg) # points outwards
+    xRhat /= np.linalg.norm(xRhat)
+    vers_norm = np.array([xRhat[0], xRhat[1]])
+    # New x (T) coordinate
+    x_onplaneall = np.dot(data_trasl, vers_norm)
+    condition_cut = np.abs(x_onplaneall) < 40
+    condition_tra = np.logical_and(condition_tra, condition_cut)
     if coord:
-        #Find the versors in 3D
-        zhat = np.array([0,0,1])
-        yRhat = np.array([vers_tg[0], vers_tg[1],0]) # points in the direction of the orbit
-        xRhat = np.cross(zhat, vers_tg) # points outwards
-        xRhat /= np.linalg.norm(xRhat)
-        vers_norm = np.array([xRhat[0], xRhat[1]])
-        #Find the coordinates of the data in the new system
-        x_onplane = np.dot(data_trasl[condition_tra], vers_norm)
+        x_onplane = x_onplaneall[condition_tra]
         # y_onplane = np.dot(data_trasl[condition_coord], vers_tg)
-        x0 = np.min(np.abs(x_onplane))
-        # print(f'Check if you have the 0 on the transverse line. x0: {x0}')
+        # find the T of xchosen (won't be 0 because stream points are among simulation data)
+        rad_trasl = np.sqrt(x_data_trasl**2 + y_data_trasl**2)
+        x0 = x_onplaneall[np.argmin(rad_trasl)]
         return condition_tra, x_onplane, x0
     else:
         return condition_tra
