@@ -46,10 +46,13 @@ def Ryan_sampler(theta_arr):
     return theta_shift
 
 def sort_list(list_passive, leading_list):
-    """ Sort list_passive based on the order of leading_list. """
-    zipped_pairs = zip(leading_list, list_passive)
-    z = [x for _, x in sorted(zipped_pairs)]
-    return np.array(z)
+    """ Sort list_passive based on the order of leading_list. If list_passive is a list of arrays."""
+    new_list = []
+    for arr_passive in list_passive:
+        zipped_pairs = zip(leading_list, arr_passive)
+        z = [x for _, x in sorted(zipped_pairs)]
+        new_list.append(np.array(z))
+    return new_list
 
 # def median_array(points, window_size=7):
 #     n = len(points)

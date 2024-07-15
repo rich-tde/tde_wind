@@ -46,7 +46,7 @@ def tangent_versor(x_orbit, y_orbit, idx, smooth_orbit = False):
     else:
         return vers_tg
         
-def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit, idx, coord = False):
+def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit, idx, step_ang, coord = False):
     """
     Find the transverse plane to the orbit at the chosen point.
     If coord == True, it returns the coordinates of the data in the plane with respect to the new coordinates system,
@@ -68,10 +68,15 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit
     R_chosen_mod = np.sqrt(x_chosen**2 + y_chosen**2 + z_chosen**2)
     r_data_mod = np.sqrt(x_data**2 + y_data**2)
     r_chosen_mod = np.sqrt(x_chosen**2 + y_chosen**2)
-    condition_R = np.abs(R_data_mod - R_chosen_mod) < 0.5
-    condition_r = np.abs(r_data_mod - r_chosen_mod) < 0.5
+    # condition_R = np.abs(R_data_mod - R_chosen_mod) < 0.1
+    # condition_r = np.abs(r_data_mod - r_chosen_mod) < 0.1
+    s = step_ang * r_chosen_mod
+    condition_x = np.abs(x_data - x_chosen) < s
+    condition_y = np.abs(y_data - y_chosen) < s
+    condition_z = np.abs(z_data - z_chosen) < s
+    condition_coord = np.logical_and(condition_x, np.logical_and(condition_y, condition_z))
     # Find the widest cell
-    max_dim = np.max(dim_data[condition_tra&condition_R&condition_r])
+    max_dim = np.max(dim_data[condition_tra&condition_coord])#_R&condition_r])
     # Change the condition_tra
     condition_tra = np.abs(dot_product) < max_dim
 
@@ -137,41 +142,42 @@ if __name__ == '__main__':
     data = make_tree(path, snap, is_tde = True, energy = False)
     dim_cell = data.Vol**(1/3)
 
-    stream = np.load(f'/Users/paolamartire/shocks/data/{folder}/DIMstream_{check}{snap}.npy' )
+    stream = np.load(f'/Users/paolamartire/shocks/data/{folder}/stream_{check}{snap}.npy' )
     theta_arr, x_stream, y_stream, z_stream = stream[0], stream[1], stream[2], stream[3]
       
-    idx =  100
-    condition_rad = radial_plane(data.X, data.Y, dim_cell, theta_arr[idx])
-    X_rad, Y_rad, Z_rad = \
-        make_slices([data.X, data.Y, data.Z], condition_rad)
-    X_rad_midplane = X_rad[np.abs(Z_rad) < dim_cell[condition_rad]]
-    Y_rad_midplane = Y_rad[np.abs(Z_rad) < dim_cell[condition_rad]]
+    # idx =  100
+    # condition_rad = radial_plane(data.X, data.Y, dim_cell, theta_arr[idx])
+    # X_rad, Y_rad, Z_rad = \
+    #     make_slices([data.X, data.Y, data.Z], condition_rad)
+    # X_rad_midplane = X_rad[np.abs(Z_rad) < dim_cell[condition_rad]]
+    # Y_rad_midplane = Y_rad[np.abs(Z_rad) < dim_cell[condition_rad]]
 
-    vec_tg, x_orbit_sm, y_orbit_sm = tangent_versor(x_stream, y_stream, idx, smooth_orbit = True)
+    # vec_tg, x_orbit_sm, y_orbit_sm = tangent_versor(x_stream, y_stream, idx, smooth_orbit = True)
 
-    condition_tra, x_onplane, x0 = transverse_plane(data.X, data.Y, data.Z, dim_cell, x_stream, y_stream, z_stream, idx, coord = True)
-    X_tra, Y_tra, Z_tra = \
-        make_slices([data.X, data.Y, data.Z], condition_tra)
-    X_tra_midplane = X_tra[np.abs(Z_tra) < dim_cell[condition_tra]]
-    Y_tra_midplane = Y_tra[np.abs(Z_tra) < dim_cell[condition_tra]]
-                            
-    condition_tg = tangent_plane(data.X, data.Y, dim_cell, x_stream, y_stream, idx)
-    X_tg, Y_tg, Z_tg = \
-        make_slices([data.X, data.Y, data.Z], condition_tg)
-    X_tg_midplane = X_tg[np.abs(Z_tg) < dim_cell[condition_tg]]
-    Y_tg_midplane = Y_tg[np.abs(Z_tg) < dim_cell[condition_tg]]
-                            
-    plt.plot(x_stream, y_stream,  c = 'b', label = 'Orbit')
-    plt.contour(xcfr, ycfr, cfr, [0], linestyles = 'dotted', colors = 'k')
-    plt.plot(x_orbit_sm, y_orbit_sm, c = 'orange', label = 'Smoothed orbit')
-    plt.scatter(X_rad_midplane, Y_rad_midplane, s=.1, alpha = 0.8, c = 'b', label = 'Radial plane')
-    plt.scatter(X_tra_midplane, Y_tra_midplane, s=.1, alpha = 0.8, c = 'r', label = 'Transverse plane')
-    plt.scatter(X_tg_midplane, Y_tg_midplane, s=.1, alpha = 0.8, c = 'g', label = 'Tangent plane')
-    # plt.scatter([0,x_orbit_sm[idx]], [0,y_orbit_sm[idx]], c = ['k', 'r'], s=10)
-    # plt.quiver(x_orbit_sm[idx], y_orbit_sm[idx], vec_tg[0], vec_tg[1], width = 2e-3, scale = 0.1, scale_units='xy', color='k')
-    plt.xlim(-200,20)
+    for idx in range(45,200):
+        step_ang = theta_arr[idx+1]-theta_arr[idx]
+        condition_tra, x_onplane, x0 = transverse_plane(data.X, data.Y, data.Z, dim_cell, x_stream, y_stream, z_stream, idx, step_ang, coord = True)
+        X_tra, Y_tra, Z_tra = \
+            make_slices([data.X, data.Y, data.Z], condition_tra)
+        X_tra_midplane = X_tra[np.abs(Z_tra) < dim_cell[condition_tra]]
+        Y_tra_midplane = Y_tra[np.abs(Z_tra) < dim_cell[condition_tra]]
+                                
+        condition_tg = tangent_plane(data.X, data.Y, dim_cell, x_stream, y_stream, idx)
+        X_tg, Y_tg, Z_tg = \
+            make_slices([data.X, data.Y, data.Z], condition_tg)
+        X_tg_midplane = X_tg[np.abs(Z_tg) < dim_cell[condition_tg]]
+        Y_tg_midplane = Y_tg[np.abs(Z_tg) < dim_cell[condition_tg]]
+        
+        # plt.scatter(X_rad_midplane, Y_rad_midplane, s=.1, alpha = 0.8, c = 'b', label = 'Radial plane')
+        plt.scatter(X_tra_midplane, Y_tra_midplane, s=.1, alpha = 0.8,  label = 'Transverse plane')
+        # plt.scatter(X_tg_midplane, Y_tg_midplane, s=.1, alpha = 0.8, c = 'g', label = 'Tangent plane')
+        # plt.quiver(x_orbit_sm[idx], y_orbit_sm[idx], vec_tg[0], vec_tg[1], width = 2e-3, scale = 0.1, scale_units='xy', color='k')
+    plt.plot(x_stream, y_stream,  c = 'r', label = 'Orbit')
+    plt.xlim(-300,20)
     plt.ylim(-60,60)
-    plt.legend()
+    # plt.legend()
+    plt.title(f'{np.round(theta_arr[idx],2)}', fontsize = 14)
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{check}/Transverse/{idx}.png')
     plt.show()
 
-    
+            
