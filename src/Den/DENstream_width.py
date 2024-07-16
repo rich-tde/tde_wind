@@ -8,12 +8,11 @@ import matplotlib
 import os
 from Utilities.basic_units import radians
 
-from Utilities.operators import make_tree, Ryan_sampler, to_cylindric
+from Utilities.operators import make_tree, to_cylindric
 import Utilities.sections as sec
-import src.orbits as orb
+import src.Den.DENorbits as orb
 from Utilities.time_extractor import days_since_distruption
 import Utilities.prelude
-matplotlib.rcParams['figure.dpi'] = 150
 
 #
 ## Parameters
@@ -28,7 +27,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
-snap = '164'
+snap = '199'
 
 #
 ## Constants
@@ -56,10 +55,10 @@ print(f'We are in: {path}, \nWe save in: {saving_path}')
 ## MAIN
 #
 
-do = True
+do = False
 plot = True
 save = True
-compare = False
+compare = True
 theta_lim =  np.pi
 step = 0.02
 # theta_init = np.arange(-theta_lim, theta_lim, step)
@@ -71,8 +70,6 @@ if do:
     data = make_tree(path, snap, energy = False)
     print('Tree done')
     R = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
-    THETA, RADIUS_cyl = to_cylindric(data.X, data.Y)
-    V = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
     dim_cell = data.Vol**(1/3) # according to Elad
 
     #%% Cross section at midplane
@@ -92,21 +89,21 @@ if do:
     xcfr0, ycfr0 = np.meshgrid(xR0,yR0)
     cfr0 = xcfr0**2 + ycfr0**2 - R0**2
 
-    file = f'{abspath}data/{folder}/stream_{check}{snap}.npy'
-    stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr  = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Mass, path = file, params = params)
+    file = f'{abspath}data/{folder}/DENstream_{check}{snap}.npy'
+    stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr  = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Den, data.Mass, path = file, params = params)
 
     if save:
         try:
-            file = open(f'{abspath}data/{folder}/width_time{np.round(tfb,1)}.txt', 'r')
+            file = open(f'{abspath}data/{folder}/DENwidth_time{np.round(tfb,1)}.txt', 'r')
             # Perform operations on the file
             file.close()
         except FileNotFoundError:
-            with open(f'{abspath}data/{folder}/width_time{np.round(tfb,1)}.txt','a') as fstart:
+            with open(f'{abspath}data/{folder}/DENwidth_time{np.round(tfb,1)}.txt','a') as fstart:
                 # if file exist
                 fstart.write(f'# theta \n')
                 fstart.write((' '.join(map(str, theta_arr)) + '\n'))
 
-        with open(f'{abspath}data/{folder}/width_time{np.round(tfb,1)}.txt','a') as file:
+        with open(f'{abspath}data/{folder}/DENwidth_time{np.round(tfb,1)}.txt','a') as file:
             file.write(f'# {check}, snap {snap} width \n')
             file.write((' '.join(map(str, w_params[0])) + '\n'))
             file.write(f'# {check}, snap {snap} Ncells \n')
@@ -115,16 +112,16 @@ if do:
 
         # same for height
         try:
-            file = open(f'{abspath}data/{folder}/height_time{np.round(tfb,1)}.txt', 'r')
+            file = open(f'{abspath}data/{folder}/DENheight_time{np.round(tfb,1)}.txt', 'r')
             # Perform operations on the file
             file.close()
         except FileNotFoundError:
-            with open(f'{abspath}data/{folder}/height_time{np.round(tfb,1)}.txt','a') as fstart:
+            with open(f'{abspath}data/{folder}/DENheight_time{np.round(tfb,1)}.txt','a') as fstart:
                 # if file exist
                 fstart.write(f'# theta \n')
                 fstart.write((' '.join(map(str, theta_arr)) + '\n'))
 
-        with open(f'{abspath}data/{folder}/height_time{np.round(tfb,1)}.txt','a') as file:
+        with open(f'{abspath}data/{folder}/DENheight_time{np.round(tfb,1)}.txt','a') as file:
             file.write(f'# {check}, snap {snap} height \n')
             file.write((' '.join(map(str, h_params[0])) + '\n'))
             file.write(f'# {check}, snap {snap} Ncells \n')
@@ -151,7 +148,7 @@ if plot:
         plt.show()
 
     if compare:
-        datawidth5 = np.loadtxt(f'{abspath}data/{folder}/width_time0.5.txt')
+        datawidth5 = np.loadtxt(f'{abspath}data/{folder}/DENwidth_time0.5.txt')
         theta_width = datawidth5[0]
         widthL5 = datawidth5[1]
         NcellL5 = datawidth5[2]
@@ -159,13 +156,13 @@ if plot:
         NcellHiRes5 = datawidth5[4]
         # widthRes205 = datawidth5[5]
         # NcellRes205 = datawidth5[6]
-        # datawidth7 = np.loadtxt(f'{abspath}data/{folder}/width_time0.7.txt')
-        # widthL7 = datawidth7[1]
-        # NcellL7 = datawidth7[2]
-        # widthHiRes7 = datawidth7[3]
-        # NcellHiRes7 = datawidth7[4]
+        datawidth7 = np.loadtxt(f'{abspath}data/{folder}/DENwidth_time0.7.txt')
+        widthL7 = datawidth7[1]
+        NcellL7 = datawidth7[2]
+        widthHiRes7 = datawidth7[3]
+        NcellHiRes7 = datawidth7[4]
 
-        dataheight5 = np.loadtxt(f'{abspath}data/{folder}/height_time0.5.txt')
+        dataheight5 = np.loadtxt(f'{abspath}data/{folder}/DENheight_time0.5.txt')
         theta_height = dataheight5[0]
         heightL5 = dataheight5[1]
         NhcellL5 = dataheight5[2]
@@ -173,11 +170,11 @@ if plot:
         NhcellHiRes5 = dataheight5[4]
         # heightRes205 = dataheight5[5]
         # NhcellRes205 = dataheight5[6]
-        # dataheight7 = np.loadtxt(f'{abspath}data/{folder}/height_time0.7.txt')
-        # heightL7 = dataheight7[1]
-        # NhcellL7 = dataheight7[2]
-        # heightHiRes7 = dataheight7[3]
-        # NhcellHiRes7 = dataheight7[4]
+        dataheight7 = np.loadtxt(f'{abspath}data/{folder}/DENheight_time0.7.txt')
+        heightL7 = dataheight7[1]
+        NhcellL7 = dataheight7[2]
+        heightHiRes7 = dataheight7[3]
+        NhcellHiRes7 = dataheight7[4]
 
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2, figsize = (12,7))
         ax1.plot(theta_width, widthL5, c = 'k', label = 'Low 0.5')
@@ -198,21 +195,21 @@ if plot:
         ax3.set_ylabel(r'N$_{cell}$', fontsize = 14)
         ax3.grid()
 
-        # ax2.plot(theta_width, widthL7, c = 'k', label = 'Low 0.7')
-        # ax2.plot(theta_width, widthHiRes7, c = 'r', label = 'Middle 0.7')
+        ax2.plot(theta_width, widthL7, c = 'k', label = 'Low 0.7')
+        ax2.plot(theta_width, widthHiRes7, c = 'r', label = 'Middle 0.7')
         ax2.legend()
         ax2.set_xlim(theta_width[30], theta_width[230])
         ax2.set_ylim(0,5)
         ax2.grid()
-        # ax4.plot(theta_width, NcellL7, c = 'k', label = 'Low 0.7')
-        # ax4.plot(theta_width, NcellHiRes7, c = 'r', label = 'Middle 0.7')
+        ax4.plot(theta_width, NcellL7, c = 'k', label = 'Low 0.7')
+        ax4.plot(theta_width, NcellHiRes7, c = 'r', label = 'Middle 0.7')
         ax4.legend()
         ax4.set_xlim(theta_width[30], theta_width[230])
         ax4.set_ylim(0,30)
         ax4.set_xlabel(r'$\theta$', fontsize = 14)
         ax4.grid()
         if save:
-            plt.savefig(f'{abspath}Figs/{folder}/width_comparison.png')
+            plt.savefig(f'{abspath}Figs/{folder}/DENwidth_comparison.png')
         plt.show()
 
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2, figsize = (12,7))
@@ -234,34 +231,34 @@ if plot:
         ax3.set_ylabel(r'N$_{cell}$', fontsize = 14)
         ax3.grid()
 
-        # ax2.plot(theta_height, heightL7, c = 'k', label = 'Low 0.7')
-        # ax2.plot(theta_height, heightHiRes7, c = 'r', label = 'Middle 0.7')
-        # ax4.plot(theta_height, NhcellHiRes7, c = 'r', label = 'Middle 0.7')
+        ax2.plot(theta_height, heightL7, c = 'k', label = 'Low 0.7')
+        ax2.plot(theta_height, heightHiRes7, c = 'r', label = 'Middle 0.7')
+        ax4.plot(theta_height, NhcellHiRes7, c = 'r', label = 'Middle 0.7')
         ax2.legend()
         ax2.set_xlim(theta_height[30], theta_height[230])
         ax2.set_ylim(0,3)
         ax2.grid()
-        # ax4.plot(theta_height, NhcellL7, c = 'k', label = 'Low 0.7')
+        ax4.plot(theta_height, NhcellL7, c = 'k', label = 'Low 0.7')
         ax4.legend()
         ax4.set_xlim(theta_height[30], theta_height[230])
         ax4.set_ylim(0,20)
         ax4.set_xlabel(r'$\theta$', fontsize = 14)
         ax4.grid()
         if save:
-            plt.savefig(f'{abspath}Figs/{folder}/H_comparison.png')
+            plt.savefig(f'{abspath}Figs/{folder}/DENH_comparison.png')
         plt.show()
 
         
         diff5 = np.abs(widthL5 - widthHiRes5)
         # diff5Res20middle = np.abs(widthHiRes5 - widthRes205)
-        # diff7 = np.abs(widthL7 - widthHiRes7)
+        diff7 = np.abs(widthL7 - widthHiRes7)
         diffh5 = np.abs(heightL5 - heightHiRes5)
         # diffh5Res20middle = np.abs(heightHiRes5 - heightRes205)
-        # diffh7 = np.abs(heightL7 - heightHiRes7)
+        diffh7 = np.abs(heightL7 - heightHiRes7)
         fig, ax = plt.subplots(2, 1,  figsize=(8,6))
         ax[0].plot(theta_width, diff5, c = 'r', label = r'Low - Middle t/t$_{fb}=$ 0.5')
         # ax[0].plot(theta_width, diff5Res20middle, c = 'b', label = r'Middle - High t/t$_{fb}=$ 0.5')
-        # ax[0].plot(theta_width, diff7, c = 'darkorange', label = r'Low - Middle t/t$_{fb}=$ 0.7')
+        ax[0].plot(theta_width, diff7, c = 'darkorange', label = r'Low - Middle t/t$_{fb}=$ 0.7')
         ax[0].set_ylabel(r'$\Delta_{ref}-\Delta$', fontsize = 14)
         ax[0].set_xlim(theta_width[30], theta_width[230])
         ax[0].set_ylim(-0.2,2)
@@ -269,7 +266,7 @@ if plot:
         ax[0].grid()
         ax[1].plot(theta_height, diffh5, c = 'r', label = r'Low - Middle t/t$_{fb}=$ 0.5')
         # ax[1].plot(theta_height, diffh5Res20middle, c = 'b', label = r'Middle - High t/t$_{fb}=$ 0.5')
-        # ax[1].plot(theta_height, diffh7, c = 'darkorange', label = r'Low - Middle t/t$_{fb}=$ 0.7')
+        ax[1].plot(theta_height, diffh7, c = 'darkorange', label = r'Low - Middle t/t$_{fb}=$ 0.7')
         ax[1].set_xlabel(r'$\theta$', fontsize = 14)
         ax[1].set_ylabel(r'$H_{ref} - H$', fontsize = 14)
         ax[1].set_xlim(theta_height[30], theta_height[230])
@@ -277,7 +274,7 @@ if plot:
         ax[1].legend()
         ax[1].grid()
         if save:
-            plt.savefig(f'{abspath}Figs/{folder}/diffWH.png')
+            plt.savefig(f'{abspath}Figs/{folder}/DENdiffWH.png')
         plt.show()
 
         
@@ -301,7 +298,7 @@ if plot:
         # plt.legend()
         # plt.grid()
         # if save:
-        #     plt.savefig(f'{abspath}Figs/{folder}/Deltawidth.png')
+        #     plt.savefig(f'{abspath}Figs/{folder}/Ratiowidth.png')
         # plt.show()
 
         # plt.figure(figsize=(8,6))
@@ -315,7 +312,7 @@ if plot:
         # plt.legend()
         # plt.grid()
         # if save:
-        #     plt.savefig(f'{abspath}Figs/{folder}/DeltaH.png')
+        #     plt.savefig(f'{abspath}Figs/{folder}/RatioH.png')
         # plt.show()
 
     

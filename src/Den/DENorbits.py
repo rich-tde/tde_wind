@@ -60,41 +60,28 @@ def deriv_an_orbit(theta, a, Rp, ecc, choose):
     # elif choose == 'Witta':
     return dr_dtheta
 
-@numba.njit
-def get_threshold(t_data, z_data, r_data, mass_data, dim_data, R0):
-    """ take the coordinates data of the plane. Move along x and z axis both in negative and positive direction till some value C. Increase the step and check if the amount of mass enclosed in the new boundaries is less than a few % of the previous one. If it is, stop and return the value of C"""
-    # choose the first guess of C, check not to overcome R0
-    not_toovercome = r_data[np.argmin(np.abs(t_data))]-R0
-    C = 2#np.min([not_toovercome, 2])
-    # Find the mass enclosed in the initial boundaries
-    condition = np.logical_and(np.abs(t_data) <= C, np.abs(z_data) <= C)
+def get_den_threshold(den_data, r_data, mass_data, R0):
+    # do the same as before but with the density
+    C = np.max(den_data)
+    condition = den_data >= C
     mass = mass_data[condition]
     total_mass = np.sum(mass)
     while True:
-        # update 
-        step = 2*np.mean(dim_data[condition])#2*np.max(dim_data[condition])
-        C += step
-        condition = np.logical_and(np.abs(t_data) <= C, np.abs(z_data) <= C)
-        if len(mass_data[condition]) == len(mass):
-            C += 2
-            print(C)
-        else:
-            tocheck = r_data[condition]-R0
-            if tocheck.any()<0:
-                C -= step
-                print('overcome R0')
-                break
-            mass = mass_data[condition]
-            new_mass = np.sum(mass) 
-            
-            if np.logical_and(total_mass > 0.95 * new_mass, total_mass != new_mass): # to be sure that you've done a step
-                break
-            total_mass = new_mass
-   
-    return C
+        C *= 0.98
+        condition = den_data >= C
+        tocheck = r_data[condition]-R0
+        if tocheck.any()<0:
+            print('overcome R0, go back')
+            C /= 0.98
+            break
+        mass = mass_data[condition]
+        new_mass = np.sum(mass) 
+        if np.logical_and(total_mass > 0.99 * new_mass, total_mass != new_mass): # to be sure that you've done a step
+        # if C < 1e-10:
+            break
+        total_mass = new_mass
 
-def get_den_threshold(den_data, r_data, mass_data, R0):
-    return 1
+    return C
 
 def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R0):
     """ Find the maxima density points in the radial plane for all the thetas in theta_arr"""
@@ -142,16 +129,14 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         else:
             step_ang = theta_arr[idx+1]-theta_arr[idx]
         condition_T, x_T, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, step_ang, coord = True)
-        x_plane, y_plane, z_plane, mass_plane, dim_plane, indeces_plane = \
-            make_slices([x_cut, y_cut, z_cut, mass_cut, dim_cut, indeces_cut], condition_T)
+        x_plane, y_plane, z_plane, den_plane, mass_plane, indeces_plane = \
+            make_slices([x_cut, y_cut, z_cut, den_cut, mass_cut, indeces_cut], condition_T)
         # Restrict the points to not keep points too far away.
         r_plane = np.sqrt(x_plane**2 + y_plane**2)
-        thresh = get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) #8 * Rstar * (r_stream_rad[idx]/Rp)**(1/2)
-        condition_x = np.abs(x_T) < thresh
-        condition_z = np.abs(z_plane) < thresh
-        condition = condition_x & condition_z
-        x_plane, x_T, y_plane, z_plane, mass_plane, indeces_plane = \
-            make_slices([x_plane, x_T, y_plane, z_plane, mass_plane, indeces_plane], condition)
+        den_thresh = get_den_threshold(den_plane, r_plane, mass_plane, R0) #8 * Rstar * (r_stream_rad[idx]/Rp)**(1/2)
+        condition_den = den_plane > den_thresh
+        x_plane, y_plane, z_plane, mass_plane = \
+            make_slices([x_plane, y_plane, z_plane, mass_plane], condition_den)
         # Find the center of mass
         x_cmTR[idx] = np.sum(x_plane * mass_plane) / np.sum(mass_plane)
         y_cmTR[idx]= np.sum(y_plane * mass_plane) / np.sum(mass_plane)
@@ -171,40 +156,29 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         else:
             step_ang = theta_arr[idx+1]-theta_arr[idx]
         condition_T, x_T, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, step_ang, coord = True)
-        x_plane, y_plane, z_plane, mass_plane, dim_plane, indeces_plane = \
-            make_slices([x_cut, y_cut, z_cut, mass_cut, dim_cut, indeces_cut], condition_T)
+        x_plane, y_plane, z_plane, den_plane, mass_plane, indeces_plane = \
+            make_slices([x_cut, y_cut, z_cut, den_cut, mass_cut, indeces_cut], condition_T)
         # Restrict the points to not keep points too far away.
         r_plane = np.sqrt(x_plane**2 + y_plane**2)
-        thresh = get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) #8 * Rstar * (r_cmTR[idx]/Rp)**(1/2)
-        condition_x = np.abs(x_T) < thresh
-        condition_z = np.abs(z_plane) < thresh
-        condition = condition_x & condition_z
-        x_plane, x_T, y_plane, z_plane, mass_plane, indeces_plane = \
-            make_slices([x_plane, x_T, y_plane, z_plane, mass_plane, indeces_plane], condition)
+        den_thresh = get_den_threshold(den_plane, r_plane, mass_plane, R0) #8 * Rstar * (r_cmTR[idx]/Rp)**(1/2)
+        condition_den = den_plane > den_thresh
+        x_plane, y_plane, z_plane, mass_plane = \
+            make_slices([x_plane, y_plane, z_plane, mass_plane], condition_den)
         # Find the center of mass
         x_cm[idx] = np.sum(x_plane * mass_plane) / np.sum(mass_plane)
         y_cm[idx]= np.sum(y_plane * mass_plane) / np.sum(mass_plane)
         z_cm[idx] = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
-    #     x_com = np.sum(x_plane * mass_plane) / np.sum(mass_plane)
-    #     y_com = np.sum(y_plane * mass_plane) / np.sum(mass_plane)
-    #     z_com = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
-    #     # Search in the tree the closest point to the center of mass
-    #     points = np.array([x_plane, y_plane, z_plane]).T
-    #     tree = KDTree(points)
-    #     _, idx_cm = tree.query([x_com, y_com, z_com])
-    #     indeces_cm[idx]= indeces_plane[idx_cm]
-    # indeces_cm = indeces_cm.astype(int)
 
     return x_cm, y_cm, z_cm
 
-def bound_mass(x, check_data, mass_data, m_thres):
+def bound_mass(x, den_data, mass_data, m_thres):
     """ Function to use with root finding to find the coordinate threshold to respect the wanted mass enclosed in"""
-    condition = np.abs(check_data) < x # it's either x_T or Z
+    condition = den_data >= x 
     mass = mass_data[condition]
     total_mass = np.sum(mass)
     return total_mass - m_thres
 
-def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, idx, params):
+def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, mass_data, stream, idx, params):
     """ Find the width and the height of the stream for a single theta """
     Mbh, Rstar, mstar, beta = params[0], params[1], params[2], params[3]
     Rt = Rstar * (Mbh/mstar)**(1/3)
@@ -218,24 +192,22 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     else:
         step_ang = theta_arr[idx+1]-theta_arr[idx]
     condition_T, x_Tplane, _ = transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, step_ang, coord = True)
-    x_plane, y_plane, z_plane, dim_plane, mass_plane, indeces_plane = \
-        make_slices([x_data, y_data, z_data, dim_data, mass_data, indeces], condition_T)
+    x_plane, y_plane, z_plane, dim_plane, den_plane, mass_plane, indeces_plane = \
+        make_slices([x_data, y_data, z_data, dim_data, den_data, mass_data, indeces], condition_T)
     # Restrict to not keep points too far away.
     r_cm = np.sqrt(x_stream[idx]**2 + y_stream[idx]**2)
     r_plane = np.sqrt(x_plane**2 + y_plane**2)
-    thresh = get_threshold(x_Tplane, z_plane, r_plane, mass_plane, dim_plane, R0) #8 * Rstar * (r_cm/Rp)**(1/2)
-    if (r_cm-thresh)< 0.6*Rp:
+    den_thresh = get_den_threshold(den_plane, r_plane, mass_plane, R0) #8 * Rstar * (r_cm/Rp)**(1/2)
+    condition_den = den_plane > den_thresh
+    x_plane, x_Tplane, y_plane, z_plane, r_plane, dim_plane, den_plane, mass_plane, indeces_plane = \
+        make_slices([x_plane, x_Tplane, y_plane, z_plane, r_plane, dim_plane, den_plane, mass_plane, indeces_plane], condition_den)
+    if (r_cm-R0)< 0:
         print(f'The threshold to cut the TZ plane is too broad: you overcome R0 at point #{idx} of the stream')
-    condition_x = np.abs(x_Tplane) < thresh
-    condition_z = np.abs(z_plane) < thresh
-    condition = condition_x & condition_z
-    x_plane, x_Tplane, y_plane, z_plane, dim_plane, mass_plane, indeces_plane = \
-        make_slices([x_plane, x_Tplane, y_plane, z_plane, dim_plane, mass_plane, indeces_plane], condition)
     mass_to_reach = 0.5 * np.sum(mass_plane)
     # Find the threshold for x
-    contourT = brentq(bound_mass, 0, thresh, args=(x_Tplane, mass_plane, mass_to_reach))
-    condition_contourT = np.abs(x_Tplane) < contourT
-    x_T_contourT, indeces_contourT = make_slices([x_Tplane, indeces_plane], condition_contourT)
+    contourT = brentq(bound_mass, 0, np.max(den_plane), args=(den_plane, mass_plane, mass_to_reach))
+    condition_contourT = den_plane > contourT
+    x_T_contourT, z_contourT, dim_contourT, indeces_contourT = make_slices([x_Tplane, z_plane, dim_plane, indeces_plane], condition_contourT)
 
     idx_before = np.argmin(x_T_contourT)
     idx_after = np.argmax(x_T_contourT)
@@ -244,21 +216,16 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     width = x_T_up - x_T_low
     # width = np.max([width, dim_stream[idx]]) # to avoid 0 width
 
-    # Find the threshold for z
-    contourZ = brentq(bound_mass, 0, thresh, args=(z_plane, mass_plane, mass_to_reach))
-    condition_contourZ = np.abs(z_plane) < contourZ
-    z_contourZ, indeces_contourZ = make_slices([z_plane, indeces_plane], condition_contourZ)
-    
-    idx_before = np.argmin(z_contourZ)
-    idx_after = np.argmax(z_contourZ)
-    z_low, idx_low_h = z_contourZ[idx_before], indeces_contourZ[idx_before]
-    z_up, idx_up_h = z_contourZ[idx_after], indeces_contourZ[idx_after]
+    # Find the threshold for z    
+    idx_before = np.argmin(z_contourT)
+    idx_after = np.argmax(z_contourT)
+    z_low, idx_low_h = z_contourT[idx_before], indeces_contourT[idx_before]
+    z_up, idx_up_h = z_contourT[idx_after], indeces_contourT[idx_after]
     height = z_up - z_low
     # height = np.max([height, dim_stream[idx]]) # to avoid 0 height
 
     # Compute the number of cells in width and height using the cells in the rectangle
-    rectangle = condition_contourT & condition_contourZ
-    dim_cell_mean = np.mean(dim_plane[rectangle])
+    dim_cell_mean = np.mean(dim_contourT)
     ncells_w = np.round(width/dim_cell_mean, 0) # round to the nearest integer
     ncells_h = np.round(height/dim_cell_mean, 0) # round to the nearest integer
 
@@ -267,9 +234,9 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     w_params = np.array([width, ncells_w])
     h_params = np.array([height, ncells_h])
 
-    return indeces_boundary, x_T_width, w_params, h_params, thresh
+    return indeces_boundary, x_T_width, w_params, h_params, den_thresh
 
-def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, path, params):
+def follow_the_stream(x_data, y_data, z_data, dim_data, den_data, mass_data, path, params):
     """ Find width and height all along the stream """
     # Find the stream (load it)
     stream = np.load(path)
@@ -281,7 +248,7 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, path, params)
     h_params = []
     for i in range(len(theta_arr)):
         indeces_boundary_i, x_T_width_i, w_params_i, h_params_i, _ = \
-            find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, i, params)
+            find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, mass_data, stream, i, params)
         indeces_boundary.append(indeces_boundary_i)
         x_T_width.append(x_T_width_i)
         w_params.append(w_params_i)
@@ -364,7 +331,7 @@ if __name__ == '__main__':
     n = 1.5
     check = 'HiRes'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
-    snap = '164'
+    snap = '199'
     path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
     Rt = Rstar * (Mbh/mstar)**(1/3)
     Rp = Rt / beta
@@ -408,7 +375,7 @@ if __name__ == '__main__':
 
     if make_stream:
         x_stream, y_stream, z_stream = find_transverse_com(data.X, data.Y, data.Z, dim_cell, data.Den, data.Mass, theta_arr, params)
-        np.save(f'/Users/paolamartire/shocks/data/{folder}/stream_{check}{snap}.npy', [theta_arr, x_stream, y_stream, z_stream])
+        np.save(f'/Users/paolamartire/shocks/data/{folder}/DENstream_{check}{snap}.npy', [theta_arr, x_stream, y_stream, z_stream])
 
         plt.plot(x_stream, y_stream, c = 'b', label = 'COM fix width TZ plane')
         plt.xlim(-300,20)

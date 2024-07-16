@@ -70,7 +70,7 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit
     r_chosen_mod = np.sqrt(x_chosen**2 + y_chosen**2)
     # condition_R = np.abs(R_data_mod - R_chosen_mod) < 0.1
     # condition_r = np.abs(r_data_mod - r_chosen_mod) < 0.1
-    s = step_ang * r_chosen_mod
+    s = 2*step_ang * r_chosen_mod
     condition_x = np.abs(x_data - x_chosen) < s
     condition_y = np.abs(y_data - y_chosen) < s
     condition_z = np.abs(z_data - z_chosen) < s
@@ -177,7 +177,7 @@ if __name__ == '__main__':
     plt.ylim(-60,60)
     # plt.legend()
     plt.title(f'{np.round(theta_arr[idx],2)}', fontsize = 14)
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{check}/Transverse/{idx}.png')
+    # plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{check}/Transverse/{idx}.png')
     plt.show()
 
             
