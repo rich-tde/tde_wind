@@ -61,21 +61,36 @@ def deriv_an_orbit(theta, a, Rp, ecc, choose):
     return dr_dtheta
 
 @numba.njit
-def get_den_threshold(den_data, r_data, mass_data, R0):
-    # do the same as before but with the density
-    C = np.max(den_data)
-    condition = den_data >= C
-    mass = mass_data[condition]
+def get_den_threshold(den_plane, r_plane, mass_plane, R0):
+    """ Find the threshold for the density to cut the transverse plane.
+    Parameters
+    ----------
+    den_plane, r_plane, mass_plane : array
+          The density, radial (spherical) coordinate and mass of points in the TZ plane.
+    R0 : float
+        Smoothing radius.
+    Returns
+    -------
+    C : float
+        The (lower) threshold for density.
+
+    """
+    # First guess of the threshold. Compute the mass enclosed 
+    C = np.max(den_plane)
+    condition = den_plane >= C
+    mass = mass_plane[condition]
     total_mass = np.sum(mass)
     while True:
+        # New threshold.
         C *= 0.98
-        condition = den_data >= C
-        tocheck = r_data[condition]-R0
+        condition = den_plane >= C
+        # Check if you overcome R0
+        tocheck = r_plane[condition]-R0
         if tocheck.any()<0:
             print('overcome R0, go back')
             C /= 0.98
             break
-        mass = mass_data[condition]
+        mass = mass_plane[condition]
         new_mass = np.sum(mass) 
         if np.logical_and(total_mass > 0.95 * new_mass, total_mass != new_mass): # to be sure that you've done a step
         # if C < 1e-10:
@@ -133,7 +148,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         x_plane, y_plane, z_plane, den_plane, mass_plane, indeces_plane = \
             make_slices([x_cut, y_cut, z_cut, den_cut, mass_cut, indeces_cut], condition_T)
         # Restrict the points to not keep points too far away.
-        r_plane = np.sqrt(x_plane**2 + y_plane**2)
+        r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
         den_thresh = get_den_threshold(den_plane, r_plane, mass_plane, R0) #8 * Rstar * (r_stream_rad[idx]/Rp)**(1/2)
         condition_den = den_plane > den_thresh
         x_plane, y_plane, z_plane, mass_plane = \
@@ -161,7 +176,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         x_plane, y_plane, z_plane, den_plane, mass_plane, indeces_plane = \
             make_slices([x_cut, y_cut, z_cut, den_cut, mass_cut, indeces_cut], condition_T)
         # Restrict the points to not keep points too far away.
-        r_plane = np.sqrt(x_plane**2 + y_plane**2)
+        r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
         den_thresh = get_den_threshold(den_plane, r_plane, mass_plane, R0) #8 * Rstar * (r_cmTR[idx]/Rp)**(1/2)
         condition_den = den_plane > den_thresh
         x_plane, y_plane, z_plane, mass_plane = \
@@ -199,12 +214,11 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, mass_data
         make_slices([x_data, y_data, z_data, dim_data, den_data, mass_data, indeces], condition_T)
     # Restrict to not keep points too far away.
     r_cm = np.sqrt(x_stream[idx]**2 + y_stream[idx]**2)
-    r_plane = np.sqrt(x_plane**2 + y_plane**2)
     den_thresh = thresh_cm[idx]
     # den_thresh = get_den_threshold(den_plane, r_plane, mass_plane, R0) #8 * Rstar * (r_cm/Rp)**(1/2)
     condition_den = den_plane > den_thresh
-    x_plane, x_Tplane, y_plane, z_plane, r_plane, dim_plane, den_plane, mass_plane, indeces_plane = \
-        make_slices([x_plane, x_Tplane, y_plane, z_plane, r_plane, dim_plane, den_plane, mass_plane, indeces_plane], condition_den)
+    x_plane, x_Tplane, y_plane, z_plane, dim_plane, den_plane, mass_plane, indeces_plane = \
+        make_slices([x_plane, x_Tplane, y_plane, z_plane, dim_plane, den_plane, mass_plane, indeces_plane], condition_den)
     if (r_cm-R0)< 0:
         print(f'The threshold to cut the TZ plane is too broad: you overcome R0 at point #{idx} of the stream')
     mass_to_reach = 0.5 * np.sum(mass_plane)

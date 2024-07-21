@@ -8,11 +8,12 @@ import matplotlib
 import os
 from Utilities.basic_units import radians
 
-from Utilities.operators import make_tree, to_cylindric
+from Utilities.operators import make_tree
 import Utilities.sections as sec
 import src.Den.DENorbits as orb
 from Utilities.time_extractor import days_since_distruption
 import Utilities.prelude
+from matplotlib.ticker import MultipleLocator
 
 #
 ## Parameters
@@ -223,6 +224,12 @@ if plot:
         ax6.set_ylim(0,30)
         ax6.set_xlabel(r'$\theta$', fontsize = 14)
         ax6.grid()
+
+        # List of all axes
+        axes = [ax1, ax2, ax3, ax4, ax5, ax6]
+        # Apply the tick locator to each subplot
+        for ax in axes:
+            ax.xaxis.set_major_locator(MultipleLocator(1))  # Set xticks every 1 units
         if save:
             plt.savefig(f'{abspath}Figs/{folder}/DENwidth_comparison.png')
         plt.show()
@@ -273,11 +280,16 @@ if plot:
         ax6.set_ylim(0,20)
         ax6.set_xlabel(r'$\theta$', fontsize = 14)
         ax6.grid()
+
+        # List of all axes
+        axes = [ax1, ax2, ax3, ax4, ax5, ax6]
+        # Apply the tick locator to each subplot
+        for ax in axes:
+            ax.xaxis.set_major_locator(MultipleLocator(1))  # Set xticks every 1 units
         if save:
             plt.savefig(f'{abspath}Figs/{folder}/DENH_comparison.png')
         plt.show()
 
-        
         diff5 = np.abs(widthL5 - widthHiRes5)
         # diff5Res20middle = np.abs(widthHiRes5 - widthRes205)
         diff7 = np.abs(widthL7 - widthHiRes7)

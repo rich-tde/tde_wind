@@ -61,31 +61,31 @@ def deriv_an_orbit(theta, a, Rp, ecc, choose):
     return dr_dtheta
 
 @numba.njit
-def get_threshold(t_data, z_data, r_data, mass_data, dim_data, R0):
+def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
     """ take the coordinates data of the plane. Move along x and z axis both in negative and positive direction till some value C. Increase the step and check if the amount of mass enclosed in the new boundaries is less than a few % of the previous one. If it is, stop and return the value of C"""
     # choose the first guess of C, check not to overcome R0
-    not_toovercome = r_data[np.argmin(np.abs(t_data))]-R0
+    not_toovercome = r_plane[np.argmin(np.abs(t_plane))]-R0
     C = 2#np.min([not_toovercome, 2])
     # Find the mass enclosed in the initial boundaries
-    condition = np.logical_and(np.abs(t_data) <= C, np.abs(z_data) <= C)
-    mass = mass_data[condition]
+    condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
+    mass = mass_plane[condition]
     total_mass = np.sum(mass)
     while True:
         # update 
-        step = 2*np.mean(dim_data[condition])#2*np.max(dim_data[condition])
+        step = 2*np.mean(dim_plane[condition])#2*np.max(dim_plane[condition])
         C += step
-        condition = np.logical_and(np.abs(t_data) <= C, np.abs(z_data) <= C)
-        if len(mass_data[condition]) == len(mass):
+        condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
+        if len(mass_plane[condition]) == len(mass):
             C += 2
             print(C)
         else:
-            t_tocheck = t_data[condition]
-            r_tocheck = r_data[condition]
+            t_tocheck = t_plane[condition]
+            r_tocheck = r_plane[condition]
             if r_tocheck[np.argmin(t_tocheck)] < R0:
                 C -= step
                 print('overcome R0', C)
                 break
-            mass = mass_data[condition]
+            mass = mass_plane[condition]
             new_mass = np.sum(mass) 
             
             if np.logical_and(total_mass > 0.95 * new_mass, total_mass != new_mass): # to be sure that you've done a step
@@ -143,7 +143,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         x_plane, y_plane, z_plane, mass_plane, dim_plane, indeces_plane = \
             make_slices([x_cut, y_cut, z_cut, mass_cut, dim_cut, indeces_cut], condition_T)
         # Restrict the points to not keep points too far away.
-        r_plane = np.sqrt(x_plane**2 + y_plane**2)
+        r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
         thresh = get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) #8 * Rstar * (r_stream_rad[idx]/Rp)**(1/2)
         condition_x = np.abs(x_T) < thresh
         condition_z = np.abs(z_plane) < thresh
@@ -173,7 +173,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         x_plane, y_plane, z_plane, mass_plane, dim_plane, indeces_plane = \
             make_slices([x_cut, y_cut, z_cut, mass_cut, dim_cut, indeces_cut], condition_T)
         # Restrict the points to not keep points too far away.
-        r_plane = np.sqrt(x_plane**2 + y_plane**2)
+        r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
         thresh = get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) #8 * Rstar * (r_cmTR[idx]/Rp)**(1/2)
         condition_x = np.abs(x_T) < thresh
         condition_z = np.abs(z_plane) < thresh

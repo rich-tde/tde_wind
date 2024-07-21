@@ -13,6 +13,7 @@ import Utilities.sections as sec
 import src.orbits as orb
 from Utilities.time_extractor import days_since_distruption
 import Utilities.prelude
+from matplotlib.ticker import MultipleLocator
 matplotlib.rcParams['figure.dpi'] = 150
 
 #
@@ -210,6 +211,12 @@ if plot:
         ax4.set_ylim(0,30)
         ax4.set_xlabel(r'$\theta$', fontsize = 14)
         ax4.grid()
+
+        # List of all axes
+        axes = [ax1, ax2, ax3, ax4]
+        # Apply the tick locator to each subplot
+        for ax in axes:
+            ax.xaxis.set_major_locator(MultipleLocator(1))  # Set xticks every 1 units
         if save:
             plt.savefig(f'{abspath}Figs/{folder}/width_comparison.png')
         plt.show()
@@ -246,6 +253,12 @@ if plot:
         ax4.set_ylim(0,20)
         ax4.set_xlabel(r'$\theta$', fontsize = 14)
         ax4.grid()
+
+        # List of all axes
+        axes = [ax1, ax2, ax3, ax4]
+        # Apply the tick locator to each subplot
+        for ax in axes:
+            ax.xaxis.set_major_locator(MultipleLocator(1))  # Set xticks every 1 units
         if save:
             plt.savefig(f'{abspath}Figs/{folder}/H_comparison.png')
         plt.show()
