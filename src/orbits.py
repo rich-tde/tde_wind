@@ -62,11 +62,20 @@ def deriv_an_orbit(theta, a, Rp, ecc, choose):
 
 @numba.njit
 def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
-    """ take the coordinates data of the plane. Move along x and z axis both in negative and positive direction till some value C. Increase the step and check if the amount of mass enclosed in the new boundaries is less than a few % of the previous one. If it is, stop and return the value of C"""
-    # choose the first guess of C, check not to overcome R0
-    not_toovercome = r_plane[np.argmin(np.abs(t_plane))]-R0
-    C = 2#np.min([not_toovercome, 2])
-    # Find the mass enclosed in the initial boundaries
+    """ Find the T-Z threshold to cut the transverse plane (as a square) in width and height.
+    Parameters
+    ----------
+    t_plane, z_planr, r_plane, mass_plane, dim_plane : array
+        T, Z, radial (spherical) coordinates, mass and dimension of points in the TZ plane.
+    R0 : float
+        Smoothing radius.
+    Returns
+    -------
+    C : float
+        The (upper) threshold for t and z.
+    """
+    # First guess of C and find the mass enclosed in the initial boundaries
+    C = 2 #np.min([not_toovercome, 2])
     condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
     mass = mass_plane[condition]
     total_mass = np.sum(mass)
@@ -75,19 +84,18 @@ def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
         step = 2*np.mean(dim_plane[condition])#2*np.max(dim_plane[condition])
         C += step
         condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
+        # Check that you add new points
         if len(mass_plane[condition]) == len(mass):
             C += 2
             print(C)
         else:
-            t_tocheck = t_plane[condition]
-            r_tocheck = r_plane[condition]
-            if r_tocheck[np.argmin(t_tocheck)] < R0:
+            tocheck = r_plane[condition]-R0
+            if tocheck.any()<0:
                 C -= step
                 print('overcome R0', C)
                 break
             mass = mass_plane[condition]
             new_mass = np.sum(mass) 
-            
             if np.logical_and(total_mass > 0.95 * new_mass, total_mass != new_mass): # to be sure that you've done a step
                 break
             total_mass = new_mass
@@ -101,7 +109,7 @@ def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R
     z_max = np.zeros(len(theta_arr))
     for i in range(len(theta_arr)):
         # Exclude points inside the smoothing lenght and find radial plane
-        condition_distance = np.sqrt(x_data**2 + y_data**2) > R0 
+        condition_distance = np.sqrt(x_data**2 + y_data**2 + z_data**2) > R0 
         condition_Rplane = radial_plane(x_data, y_data, dim_data, theta_arr[i])
         condition_Rplane = np.logical_and(condition_Rplane, condition_distance)
         x_plane, y_plane, z_plane, den_plane = make_slices([x_data, y_data, z_data, den_data], condition_Rplane)
@@ -118,16 +126,16 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     Mbh, Rstar, mstar, beta = params[0], params[1], params[2], params[3]
     Rt = Rstar * (Mbh/mstar)**(1/3)
     R0 = 0.6 * (Rt / beta) 
-    indeces = np.arange(len(x_data))
+    # indeces = np.arange(len(x_data))
     # Cut a bit the data for computational reasons
     cutting = np.logical_and(np.abs(z_data) < 50, np.abs(y_data) < 200)
-    x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut, indeces_cut = \
-        make_slices([x_data, y_data, z_data, dim_data, den_data, mass_data, indeces], cutting)
+    x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut = \
+        make_slices([x_data, y_data, z_data, dim_data, den_data, mass_data], cutting)
     # Find the radial maximum points to have a first guess of the stream (necessary for the threshold and the tg)
     x_stream_rad, y_stream_rad, z_stream_rad = find_radial_maximum(x_cut, y_cut, z_cut, dim_cut, den_cut, theta_arr, R0)
     print('radial done')
 
-    # First iteration: find the center of mass of each transverse plane corresponding to maxima-density stream
+    # First iteration: find the center of mass of each transverse plane of the maxima-density stream
     # indeces_cmTR = np.zeros(len(theta_arr))
     x_cmTR = np.zeros(len(theta_arr))
     y_cmTR = np.zeros(len(theta_arr))
@@ -140,16 +148,16 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         else:
             step_ang = theta_arr[idx+1]-theta_arr[idx]
         condition_T, x_T, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, step_ang, coord = True)
-        x_plane, y_plane, z_plane, mass_plane, dim_plane, indeces_plane = \
-            make_slices([x_cut, y_cut, z_cut, mass_cut, dim_cut, indeces_cut], condition_T)
-        # Restrict the points to not keep points too far away.
+        x_plane, y_plane, z_plane, mass_plane, dim_plane = \
+            make_slices([x_cut, y_cut, z_cut, mass_cut, dim_cut], condition_T)
+        # Cut the TZ plane to not keep points too far away.
         r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
         thresh = get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) #8 * Rstar * (r_stream_rad[idx]/Rp)**(1/2)
         condition_x = np.abs(x_T) < thresh
         condition_z = np.abs(z_plane) < thresh
         condition = condition_x & condition_z
-        x_plane, x_T, y_plane, z_plane, mass_plane, indeces_plane = \
-            make_slices([x_plane, x_T, y_plane, z_plane, mass_plane, indeces_plane], condition)
+        x_plane, y_plane, z_plane, mass_plane = \
+            make_slices([x_plane, y_plane, z_plane, mass_plane], condition)
         # Find the center of mass
         x_cmTR[idx] = np.sum(x_plane * mass_plane) / np.sum(mass_plane)
         y_cmTR[idx]= np.sum(y_plane * mass_plane) / np.sum(mass_plane)
@@ -170,16 +178,16 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         else:
             step_ang = theta_arr[idx+1]-theta_arr[idx]
         condition_T, x_T, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, step_ang, coord = True)
-        x_plane, y_plane, z_plane, mass_plane, dim_plane, indeces_plane = \
-            make_slices([x_cut, y_cut, z_cut, mass_cut, dim_cut, indeces_cut], condition_T)
+        x_plane, y_plane, z_plane, mass_plane, dim_plane = \
+            make_slices([x_cut, y_cut, z_cut, mass_cut, dim_cut], condition_T)
         # Restrict the points to not keep points too far away.
         r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
         thresh = get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) #8 * Rstar * (r_cmTR[idx]/Rp)**(1/2)
         condition_x = np.abs(x_T) < thresh
         condition_z = np.abs(z_plane) < thresh
         condition = condition_x & condition_z
-        x_plane, x_T, y_plane, z_plane, mass_plane, indeces_plane = \
-            make_slices([x_plane, x_T, y_plane, z_plane, mass_plane, indeces_plane], condition)
+        x_plane, y_plane, z_plane, mass_plane = \
+            make_slices([x_plane, y_plane, z_plane, mass_plane], condition)
         # Find and save the center of mass
         x_cm[idx] = np.sum(x_plane * mass_plane) / np.sum(mass_plane)
         y_cm[idx]= np.sum(y_plane * mass_plane) / np.sum(mass_plane)
@@ -208,7 +216,6 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     """ Find the width and the height of the stream for a single theta """
     Mbh, Rstar, mstar, beta = params[0], params[1], params[2], params[3]
     Rt = Rstar * (Mbh/mstar)**(1/3)
-    Rp =  Rt / beta
     R0 = 0.6 * (Rt / beta) 
     indeces = np.arange(len(x_data))
     theta_arr, x_stream, y_stream, z_stream, thresh_stream = stream[0], stream[1], stream[2], stream[3], stream[4]

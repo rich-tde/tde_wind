@@ -106,7 +106,7 @@ def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R
     z_max = np.zeros(len(theta_arr))
     for i in range(len(theta_arr)):
         # Exclude points inside the smoothing lenght and find radial plane
-        condition_distance = np.sqrt(x_data**2 + y_data**2) > R0 
+        condition_distance = np.sqrt(x_data**2 + y_data**2 + z_data**2) > R0 
         condition_Rplane = radial_plane(x_data, y_data, dim_data, theta_arr[i])
         condition_Rplane = np.logical_and(condition_Rplane, condition_distance)
         x_plane, y_plane, z_plane, den_plane = make_slices([x_data, y_data, z_data, den_data], condition_Rplane)
@@ -123,16 +123,16 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     Mbh, Rstar, mstar, beta = params[0], params[1], params[2], params[3]
     Rt = Rstar * (Mbh/mstar)**(1/3)
     R0 = 0.6 * (Rt / beta) 
-    indeces = np.arange(len(x_data))
+    # indeces = np.arange(len(x_data))
     # Cut a bit the data for computational reasons
     cutting = np.logical_and(np.abs(z_data) < 50, np.abs(y_data) < 200)
-    x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut, indeces_cut = \
-        make_slices([x_data, y_data, z_data, dim_data, den_data, mass_data, indeces], cutting)
+    x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut = \
+        make_slices([x_data, y_data, z_data, dim_data, den_data, mass_data], cutting)
     # Find the radial maximum points to have a first guess of the stream (necessary for the threshold and the tg)
     x_stream_rad, y_stream_rad, z_stream_rad = find_radial_maximum(x_cut, y_cut, z_cut, dim_cut, den_cut, theta_arr, R0)
-    print('radial done')
+    print('Radial maxima done')
 
-    # First iteration: find the center of mass of each transverse plane corresponding to maxima-density stream
+    # First iteration: find the center of mass of each transverse plane of the maxima-density stream
     # indeces_cmTR = np.zeros(len(theta_arr))
     x_cmTR = np.zeros(len(theta_arr))
     y_cmTR = np.zeros(len(theta_arr))
@@ -144,12 +144,12 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
             step_ang = theta_arr[-1]-theta_arr[-2]
         else:
             step_ang = theta_arr[idx+1]-theta_arr[idx]
-        condition_T, x_T, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, step_ang, coord = True)
-        x_plane, y_plane, z_plane, den_plane, mass_plane, indeces_plane = \
-            make_slices([x_cut, y_cut, z_cut, den_cut, mass_cut, indeces_cut], condition_T)
-        # Restrict the points to not keep points too far away.
+        condition_T, _, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, step_ang, coord = True)
+        x_plane, y_plane, z_plane, den_plane, mass_plane = \
+            make_slices([x_cut, y_cut, z_cut, den_cut, mass_cut], condition_T)
+        # Cut the TZ plane to not keep points too far away.
         r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
-        den_thresh = get_den_threshold(den_plane, r_plane, mass_plane, R0) #8 * Rstar * (r_stream_rad[idx]/Rp)**(1/2)
+        den_thresh = get_den_threshold(den_plane, r_plane, mass_plane, R0) 
         condition_den = den_plane > den_thresh
         x_plane, y_plane, z_plane, mass_plane = \
             make_slices([x_plane, y_plane, z_plane, mass_plane], condition_den)
@@ -172,12 +172,12 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
             step_ang = theta_arr[-1]-theta_arr[-2]
         else:
             step_ang = theta_arr[idx+1]-theta_arr[idx]
-        condition_T, x_T, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, step_ang, coord = True)
-        x_plane, y_plane, z_plane, den_plane, mass_plane, indeces_plane = \
-            make_slices([x_cut, y_cut, z_cut, den_cut, mass_cut, indeces_cut], condition_T)
+        condition_T, _, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, step_ang, coord = True)
+        x_plane, y_plane, z_plane, den_plane, mass_plane = \
+            make_slices([x_cut, y_cut, z_cut, den_cut, mass_cut], condition_T)
         # Restrict the points to not keep points too far away.
         r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
-        den_thresh = get_den_threshold(den_plane, r_plane, mass_plane, R0) #8 * Rstar * (r_cmTR[idx]/Rp)**(1/2)
+        den_thresh = get_den_threshold(den_plane, r_plane, mass_plane, R0) 
         condition_den = den_plane > den_thresh
         x_plane, y_plane, z_plane, mass_plane = \
             make_slices([x_plane, y_plane, z_plane, mass_plane], condition_den)
@@ -200,7 +200,6 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, mass_data
     """ Find the width and the height of the stream for a single theta """
     Mbh, Rstar, mstar, beta = params[0], params[1], params[2], params[3]
     Rt = Rstar * (Mbh/mstar)**(1/3)
-    Rp =  Rt / beta
     R0 = 0.6 * (Rt / beta) 
     indeces = np.arange(len(x_data))
     theta_arr, x_stream, y_stream, z_stream, thresh_cm = stream[0], stream[1], stream[2], stream[3], stream[4]
