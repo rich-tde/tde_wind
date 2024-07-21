@@ -68,8 +68,6 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit
     R_chosen_mod = np.sqrt(x_chosen**2 + y_chosen**2 + z_chosen**2)
     r_data_mod = np.sqrt(x_data**2 + y_data**2)
     r_chosen_mod = np.sqrt(x_chosen**2 + y_chosen**2)
-    # condition_R = np.abs(R_data_mod - R_chosen_mod) < 0.1
-    # condition_r = np.abs(r_data_mod - r_chosen_mod) < 0.1
     s = 2*step_ang * r_chosen_mod
     condition_x = np.abs(x_data - x_chosen) < s
     condition_y = np.abs(y_data - y_chosen) < s
@@ -107,7 +105,7 @@ def tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, idx):
     x_chosen, y_chosen = x_orbit[idx], y_orbit[idx]
     x_data_trasl = x_data - x_chosen
     y_data_trasl = y_data - y_chosen
-    # Find the versors in 3D
+    # Find the versors in 3D: (T,K,Z), where K = -tg_vec, so that T = KxZ= Zx(-K)= Zxtg_vec
     vers_tg = tangent_versor(x_orbit, y_orbit, idx)
     zhat = np.array([0,0,1])
     xRhat = np.cross(zhat, vers_tg) # points outwards
@@ -154,7 +152,8 @@ if __name__ == '__main__':
 
     # vec_tg, x_orbit_sm, y_orbit_sm = tangent_versor(x_stream, y_stream, idx, smooth_orbit = True)
 
-    for idx in range(45,200):
+    plt.figure(figsize = (12,4))
+    for idx in range(5,200):
         step_ang = theta_arr[idx+1]-theta_arr[idx]
         condition_tra, x_onplane, x0 = transverse_plane(data.X, data.Y, data.Z, dim_cell, x_stream, y_stream, z_stream, idx, step_ang, coord = True)
         X_tra, Y_tra, Z_tra = \
@@ -173,11 +172,12 @@ if __name__ == '__main__':
         # plt.scatter(X_tg_midplane, Y_tg_midplane, s=.1, alpha = 0.8, c = 'g', label = 'Tangent plane')
         # plt.quiver(x_orbit_sm[idx], y_orbit_sm[idx], vec_tg[0], vec_tg[1], width = 2e-3, scale = 0.1, scale_units='xy', color='k')
     plt.plot(x_stream, y_stream,  c = 'r', label = 'Orbit')
+    plt.contour(xcfr, ycfr, cfr, [0], linestyles = 'dotted', colors = 'k')
     plt.xlim(-300,20)
     plt.ylim(-60,60)
     # plt.legend()
-    plt.title(f'{np.round(theta_arr[idx],2)}', fontsize = 14)
-    # plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{check}/Transverse/{idx}.png')
+    # plt.title(f'{np.round(theta_arr[idx],2)}', fontsize = 14)
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{check}/Transverse/transverseslice.png')
     plt.show()
 
             

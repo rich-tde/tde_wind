@@ -79,10 +79,11 @@ def get_threshold(t_data, z_data, r_data, mass_data, dim_data, R0):
             C += 2
             print(C)
         else:
-            tocheck = r_data[condition]-R0
-            if tocheck.any()<0:
+            t_tocheck = t_data[condition]
+            r_tocheck = r_data[condition]
+            if r_tocheck[np.argmin(t_tocheck)] < R0:
                 C -= step
-                print('overcome R0')
+                print('overcome R0', C)
                 break
             mass = mass_data[condition]
             new_mass = np.sum(mass) 
@@ -92,9 +93,6 @@ def get_threshold(t_data, z_data, r_data, mass_data, dim_data, R0):
             total_mass = new_mass
    
     return C
-
-def get_den_threshold(den_data, r_data, mass_data, R0):
-    return 1
 
 def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R0):
     """ Find the maxima density points in the radial plane for all the thetas in theta_arr"""
@@ -163,6 +161,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     x_cm = np.zeros(len(theta_arr))
     y_cm = np.zeros(len(theta_arr))
     z_cm = np.zeros(len(theta_arr))
+    thresh_cm = np.zeros(len(theta_arr))
     for idx in range(len(theta_arr)):
         print(idx)
         # Find the transverse plane
@@ -181,10 +180,11 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         condition = condition_x & condition_z
         x_plane, x_T, y_plane, z_plane, mass_plane, indeces_plane = \
             make_slices([x_plane, x_T, y_plane, z_plane, mass_plane, indeces_plane], condition)
-        # Find the center of mass
+        # Find and save the center of mass
         x_cm[idx] = np.sum(x_plane * mass_plane) / np.sum(mass_plane)
         y_cm[idx]= np.sum(y_plane * mass_plane) / np.sum(mass_plane)
         z_cm[idx] = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
+        thresh_cm[idx] = thresh
     #     x_com = np.sum(x_plane * mass_plane) / np.sum(mass_plane)
     #     y_com = np.sum(y_plane * mass_plane) / np.sum(mass_plane)
     #     z_com = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
@@ -195,7 +195,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     #     indeces_cm[idx]= indeces_plane[idx_cm]
     # indeces_cm = indeces_cm.astype(int)
 
-    return x_cm, y_cm, z_cm
+    return x_cm, y_cm, z_cm, thresh_cm
 
 def bound_mass(x, check_data, mass_data, m_thres):
     """ Function to use with root finding to find the coordinate threshold to respect the wanted mass enclosed in"""
@@ -211,7 +211,7 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     Rp =  Rt / beta
     R0 = 0.6 * (Rt / beta) 
     indeces = np.arange(len(x_data))
-    theta_arr, x_stream, y_stream, z_stream = stream[0], stream[1], stream[2], stream[3]
+    theta_arr, x_stream, y_stream, z_stream, thresh_stream = stream[0], stream[1], stream[2], stream[3], stream[4]
     # Find the transverse plane 
     if idx == len(theta_arr)-1:
         step_ang = theta_arr[-1]-theta_arr[-2]
@@ -221,16 +221,16 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     x_plane, y_plane, z_plane, dim_plane, mass_plane, indeces_plane = \
         make_slices([x_data, y_data, z_data, dim_data, mass_data, indeces], condition_T)
     # Restrict to not keep points too far away.
-    r_cm = np.sqrt(x_stream[idx]**2 + y_stream[idx]**2)
-    r_plane = np.sqrt(x_plane**2 + y_plane**2)
-    thresh = get_threshold(x_Tplane, z_plane, r_plane, mass_plane, dim_plane, R0) #8 * Rstar * (r_cm/Rp)**(1/2)
-    if (r_cm-thresh)< 0.6*Rp:
-        print(f'The threshold to cut the TZ plane is too broad: you overcome R0 at point #{idx} of the stream')
+    r_spherical_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
+    # thresh = get_threshold(x_Tplane, z_plane, r_plane, mass_plane, dim_plane, R0) #8 * Rstar * (r_cm/Rp)**(1/2)
+    thresh = thresh_stream[idx]
     condition_x = np.abs(x_Tplane) < thresh
     condition_z = np.abs(z_plane) < thresh
     condition = condition_x & condition_z
-    x_plane, x_Tplane, y_plane, z_plane, dim_plane, mass_plane, indeces_plane = \
-        make_slices([x_plane, x_Tplane, y_plane, z_plane, dim_plane, mass_plane, indeces_plane], condition)
+    x_plane, x_Tplane, y_plane, z_plane, r_spherical_plane, dim_plane, mass_plane, indeces_plane = \
+        make_slices([x_plane, x_Tplane, y_plane, z_plane, r_spherical_plane, dim_plane, mass_plane, indeces_plane], condition)
+    if np.min(r_spherical_plane)< R0:
+        print(f'The threshold to cut the TZ plane in width is too broad: you overcome R0 at point #{idx} of the stream')
     mass_to_reach = 0.5 * np.sum(mass_plane)
     # Find the threshold for x
     contourT = brentq(bound_mass, 0, thresh, args=(x_Tplane, mass_plane, mass_to_reach))
@@ -362,9 +362,9 @@ if __name__ == '__main__':
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = 'HiRes'
+    check = 'Low'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
-    snap = '164'
+    snap = '216'
     path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
     Rt = Rstar * (Mbh/mstar)**(1/3)
     Rp = Rt / beta
@@ -407,8 +407,8 @@ if __name__ == '__main__':
         plt.show()
 
     if make_stream:
-        x_stream, y_stream, z_stream = find_transverse_com(data.X, data.Y, data.Z, dim_cell, data.Den, data.Mass, theta_arr, params)
-        np.save(f'/Users/paolamartire/shocks/data/{folder}/stream_{check}{snap}.npy', [theta_arr, x_stream, y_stream, z_stream])
+        x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(data.X, data.Y, data.Z, dim_cell, data.Den, data.Mass, theta_arr, params)
+        np.save(f'/Users/paolamartire/shocks/data/{folder}/stream_{check}{snap}.npy', [theta_arr, x_stream, y_stream, z_stream, thresh_cm])
 
         plt.plot(x_stream, y_stream, c = 'b', label = 'COM fix width TZ plane')
         plt.xlim(-300,20)

@@ -60,6 +60,7 @@ def deriv_an_orbit(theta, a, Rp, ecc, choose):
     # elif choose == 'Witta':
     return dr_dtheta
 
+@numba.njit
 def get_den_threshold(den_data, r_data, mass_data, R0):
     # do the same as before but with the density
     C = np.max(den_data)
@@ -76,7 +77,7 @@ def get_den_threshold(den_data, r_data, mass_data, R0):
             break
         mass = mass_data[condition]
         new_mass = np.sum(mass) 
-        if np.logical_and(total_mass > 0.99 * new_mass, total_mass != new_mass): # to be sure that you've done a step
+        if np.logical_and(total_mass > 0.95 * new_mass, total_mass != new_mass): # to be sure that you've done a step
         # if C < 1e-10:
             break
         total_mass = new_mass
@@ -148,6 +149,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     x_cm = np.zeros(len(theta_arr))
     y_cm = np.zeros(len(theta_arr))
     z_cm = np.zeros(len(theta_arr))
+    thresh_cm = np.zeros(len(theta_arr))
     for idx in range(len(theta_arr)):
         print(idx)
         # Find the transverse plane
@@ -168,8 +170,9 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         x_cm[idx] = np.sum(x_plane * mass_plane) / np.sum(mass_plane)
         y_cm[idx]= np.sum(y_plane * mass_plane) / np.sum(mass_plane)
         z_cm[idx] = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
+        thresh_cm[idx] = den_thresh
 
-    return x_cm, y_cm, z_cm
+    return x_cm, y_cm, z_cm, thresh_cm
 
 def bound_mass(x, den_data, mass_data, m_thres):
     """ Function to use with root finding to find the coordinate threshold to respect the wanted mass enclosed in"""
@@ -185,7 +188,7 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, mass_data
     Rp =  Rt / beta
     R0 = 0.6 * (Rt / beta) 
     indeces = np.arange(len(x_data))
-    theta_arr, x_stream, y_stream, z_stream = stream[0], stream[1], stream[2], stream[3]
+    theta_arr, x_stream, y_stream, z_stream, thresh_cm = stream[0], stream[1], stream[2], stream[3], stream[4]
     # Find the transverse plane 
     if idx == len(theta_arr)-1:
         step_ang = theta_arr[-1]-theta_arr[-2]
@@ -197,7 +200,8 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, mass_data
     # Restrict to not keep points too far away.
     r_cm = np.sqrt(x_stream[idx]**2 + y_stream[idx]**2)
     r_plane = np.sqrt(x_plane**2 + y_plane**2)
-    den_thresh = get_den_threshold(den_plane, r_plane, mass_plane, R0) #8 * Rstar * (r_cm/Rp)**(1/2)
+    den_thresh = thresh_cm[idx]
+    # den_thresh = get_den_threshold(den_plane, r_plane, mass_plane, R0) #8 * Rstar * (r_cm/Rp)**(1/2)
     condition_den = den_plane > den_thresh
     x_plane, x_Tplane, y_plane, z_plane, r_plane, dim_plane, den_plane, mass_plane, indeces_plane = \
         make_slices([x_plane, x_Tplane, y_plane, z_plane, r_plane, dim_plane, den_plane, mass_plane, indeces_plane], condition_den)
@@ -322,6 +326,9 @@ if __name__ == '__main__':
     from Utilities.operators import make_tree, Ryan_sampler
     import matplotlib.pyplot as plt
 
+    make_stream = True
+    test_s = False
+
     G = 1
     m = 4
     Mbh = 10**m
@@ -329,10 +336,6 @@ if __name__ == '__main__':
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = 'HiRes'
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
-    snap = '199'
-    path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
     Rt = Rstar * (Mbh/mstar)**(1/3)
     Rp = Rt / beta
     params = [Mbh, Rstar, mstar, beta]
@@ -341,70 +344,47 @@ if __name__ == '__main__':
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_arr = Ryan_sampler(theta_init)
     # theta_arr = theta_arr[:230]
-    data = make_tree(path, snap, is_tde = True, energy = False)
-    print('Tree done')
-    dim_cell = data.Vol**(1/3)
 
-    make_stream = True
-    make_width = False
-    compare = False
-    TZslice = False
-    test_s = False
+    check = 'HiRes'
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
+    snaps = ['164', '199', '216']
+    for snap in snaps:
+        print('############', snap)
+        path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
+        data = make_tree(path, snap, is_tde = True, energy = False)
+        print('Tree done')
+        dim_cell = data.Vol**(1/3)
 
-    if test_s:
-        params = None
-        theta_arr = np.linspace(-np.pi, 0, 100)
-        # x^2+y^2 = 1
-        x = np.cos(theta_arr)
-        y = np.sin(theta_arr)
-        r = np.sqrt(x**2 + y**2)
-        s, idx = find_arclenght(theta_arr, [x, y], params, choose = 'maxima')
-        # arclenght of a circle with keplerian
-        r_kep = keplerian_orbit(theta_arr, 1, 1, ecc = 0)
-        x_kep = r_kep * np.cos(theta_arr)
-        y_kep = r_kep * np.sin(theta_arr)
-        s_kep, _ = find_arclenght(theta_arr, r, params = [1, 1, 0], choose = 'Keplerian')
-        fig, (ax1,ax2) = plt.subplots(1,2)
-        ax1.plot(x,y, c = 'r')
-        ax1.plot(x_kep, y_kep, '--')
-        ax2.plot(theta_arr[:idx], s, c = 'r', label = 'maxima')
-        ax2.plot(theta_arr, s_kep, '--', label = 'Keplerian')
-        ax2.legend()
-        ax2.grid()
-        plt.show()
+        if test_s:
+            params = None
+            theta_arr = np.linspace(-np.pi, 0, 100)
+            # x^2+y^2 = 1
+            x = np.cos(theta_arr)
+            y = np.sin(theta_arr)
+            r = np.sqrt(x**2 + y**2)
+            s, idx = find_arclenght(theta_arr, [x, y], params, choose = 'maxima')
+            # arclenght of a circle with keplerian
+            r_kep = keplerian_orbit(theta_arr, 1, 1, ecc = 0)
+            x_kep = r_kep * np.cos(theta_arr)
+            y_kep = r_kep * np.sin(theta_arr)
+            s_kep, _ = find_arclenght(theta_arr, r, params = [1, 1, 0], choose = 'Keplerian')
+            fig, (ax1,ax2) = plt.subplots(1,2)
+            ax1.plot(x,y, c = 'r')
+            ax1.plot(x_kep, y_kep, '--')
+            ax2.plot(theta_arr[:idx], s, c = 'r', label = 'maxima')
+            ax2.plot(theta_arr, s_kep, '--', label = 'Keplerian')
+            ax2.legend()
+            ax2.grid()
+            plt.show()
 
-    if make_stream:
-        x_stream, y_stream, z_stream = find_transverse_com(data.X, data.Y, data.Z, dim_cell, data.Den, data.Mass, theta_arr, params)
-        np.save(f'/Users/paolamartire/shocks/data/{folder}/DENstream_{check}{snap}.npy', [theta_arr, x_stream, y_stream, z_stream])
+        if make_stream:
+            x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(data.X, data.Y, data.Z, dim_cell, data.Den, data.Mass, theta_arr, params)
+            np.save(f'/Users/paolamartire/shocks/data/{folder}/DENstream_{check}{snap}.npy', [theta_arr, x_stream, y_stream, z_stream, thresh_cm])
 
-        plt.plot(x_stream, y_stream, c = 'b', label = 'COM fix width TZ plane')
-        plt.xlim(-300,20)
-        plt.ylim(-60,60)
-        plt.grid()
-        # plt.legend()
-        # plt.savefig(f'/Users/paolamartire/shocks/Figs/FixTZStream{snap}.png')
-        plt.show()  
+            # plt.plot(x_stream, y_stream, c = 'b', label = 'COM fix width TZ plane')
+            # plt.xlim(-300,20)
+            # plt.ylim(-60,60)
+            # plt.grid()
+            # # plt.legend()
+            # plt.show()  
 
-    if make_width:
-        midplane = np.abs(data.Z) < dim_cell
-        X_midplane, Y_midplane, Den_midplane, Mass_midplane = make_slices([data.X, data.Y, data.Den, data.Mass], midplane)
-        file = f'/Users/paolamartire/shocks/data/{folder}/stream_{check}{snap}.npy' 
-        stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr  = follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Mass, path = file, params = params)
-        cm_x, cm_y, cm_z = stream[0], stream[1], stream[2]
-        low_x, low_y = data.X[indeces_boundary[:,0]] , data.Y[indeces_boundary[:,0]]
-        up_x, up_y = data.X[indeces_boundary[:,1]] , data.Y[indeces_boundary[:,1]]
-
-        #%%
-        plt.figure(figsize = (12,4))
-        img = plt.scatter(X_midplane, Y_midplane, c = Den_midplane, s = 1, cmap = 'viridis', alpha = 0.2, vmin = 2e-8, vmax = 6e-8)
-        cbar = plt.colorbar(img)
-        cbar.set_label(r'Density', fontsize = 16)
-        plt.plot(cm_x, cm_y,  c = 'k')
-        plt.plot(low_x, low_y, '--', c = 'k')
-        plt.plot(up_x, up_y, '-.', c = 'k', label = 'Upper tube')
-        plt.xlabel(r'X [$R_\odot$]', fontsize = 18)
-        plt.ylabel(r'Y [$R_\odot$]', fontsize = 18)
-        plt.xlim(-200,30)
-        plt.ylim(-40,60)
-        plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{check}/stream{snap}.png', dpi=300)
-        plt.show()
