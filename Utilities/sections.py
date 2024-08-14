@@ -46,11 +46,12 @@ def tangent_versor(x_orbit, y_orbit, idx, smooth_orbit = False):
     else:
         return vers_tg
         
-def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit, idx, step_ang, coord = False):
+# def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit, idx, step_ang, coord = False):
+def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit, idx, coord = False):
     """
     Find the transverse plane to the orbit at the chosen point.
     If coord == True, it returns the coordinates of the data in the plane with respect to the new coordinates system,
-    i.e. the one that have versors (tg_vect, Zhat X tg_vect, Zhat).
+    i.e. the one that have versors (That =: Zhat X tg_vect, Zhat, tg_vect).
     """
     # Put the data in the reference system of the chosen point
     x_chosen, y_chosen, z_chosen = x_orbit[idx], y_orbit[idx], z_orbit[idx]
@@ -68,7 +69,7 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit
     R_chosen_mod = np.sqrt(x_chosen**2 + y_chosen**2 + z_chosen**2)
     r_data_mod = np.sqrt(x_data**2 + y_data**2)
     r_chosen_mod = np.sqrt(x_chosen**2 + y_chosen**2)
-    s = 2*step_ang * r_chosen_mod
+    s = 0.5 #[R_star] since in BonnerotLu22 the planes have thickness 1R_star. If you use step_ang: 2*step_ang * r_chosen_mod
     condition_x = np.abs(x_data - x_chosen) < s
     condition_y = np.abs(y_data - y_chosen) < s
     condition_z = np.abs(z_data - z_chosen) < s
@@ -81,7 +82,7 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit
     # Find the coordinates of the data in the new system and use them to cut the plane
     # Find the versors in 3D
     zhat = np.array([0,0,1])
-    yRhat = np.array([vers_tg[0], vers_tg[1],0]) # points in the direction of the orbit
+    kRhat = np.array([vers_tg[0], vers_tg[1],0]) # points in the direction of the orbit
     xRhat = np.cross(zhat, vers_tg) # points outwards
     xRhat /= np.linalg.norm(xRhat)
     vers_norm = np.array([xRhat[0], xRhat[1]])
@@ -105,7 +106,7 @@ def tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, idx):
     x_chosen, y_chosen = x_orbit[idx], y_orbit[idx]
     x_data_trasl = x_data - x_chosen
     y_data_trasl = y_data - y_chosen
-    # Find the versors in 3D: (T,K,Z), where K = -tg_vec, so that T = KxZ= Zx(-K)= Zxtg_vec
+    # Find the versors in 3D: (T,Z, K=tg_vec)
     vers_tg = tangent_versor(x_orbit, y_orbit, idx)
     zhat = np.array([0,0,1])
     xRhat = np.cross(zhat, vers_tg) # points outwards
@@ -155,7 +156,8 @@ if __name__ == '__main__':
     plt.figure(figsize = (12,4))
     for idx in range(5,200):
         step_ang = theta_arr[idx+1]-theta_arr[idx]
-        condition_tra, x_onplane, x0 = transverse_plane(data.X, data.Y, data.Z, dim_cell, x_stream, y_stream, z_stream, idx, step_ang, coord = True)
+        # condition_tra, x_onplane, x0 = transverse_plane(data.X, data.Y, data.Z, dim_cell, x_stream, y_stream, z_stream, idx, step_ang, coord = True)
+        condition_tra, x_onplane, x0 = transverse_plane(data.X, data.Y, data.Z, dim_cell, x_stream, y_stream, z_stream, idx, coord = True)
         X_tra, Y_tra, Z_tra = \
             make_slices([data.X, data.Y, data.Z], condition_tra)
         X_tra_midplane = X_tra[np.abs(Z_tra) < dim_cell[condition_tra]]
@@ -176,7 +178,7 @@ if __name__ == '__main__':
     plt.xlim(-300,20)
     plt.ylim(-60,60)
     # plt.legend()
-    # plt.title(f'{np.round(theta_arr[idx],2)}', fontsize = 14)
+    plt.title(r'Thickness planes $= 1R_\odot$', fontsize = 14)
     plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{check}/Transverse/transverseslice.png')
     plt.show()
 

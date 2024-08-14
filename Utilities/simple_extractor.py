@@ -41,6 +41,7 @@ def extractor(filename):
     Vol = []
     Mass = []
     IE = []
+    Erad = []
     T = []
     P = []
     #cs = []
@@ -69,13 +70,15 @@ def extractor(filename):
             vol_data = f[key]['Volume']
             
             ie_data = f[key]['InternalEnergy']
+            rad_data = f[key]['Erad']
             T_data = f[key]['Temperature']
             P_data = f[key]['Pressure']
             #cs_data = f[key]['SoundSpeed']
             star_data = f[key]['tracers']['Star']
             entropy_data = f[key]['tracers']['Entropy']
+            
 
-            for i in range(len(x_data)):
+            for i in range(len(rad_data)):
                 X.append(x_data[i])
                 Y.append(y_data[i])
                 Z.append(z_data[i])
@@ -85,6 +88,7 @@ def extractor(filename):
                 Vz.append(vz_data[i])
                 Vol.append(vol_data[i])
                 IE.append(ie_data[i])
+                Erad.append(rad_data[i])
                 Mass.append(vol_data[i] * den_data[i])
                 T.append(T_data[i])
                 P.append(P_data[i])
@@ -94,20 +98,20 @@ def extractor(filename):
 
     # Close the file
     f.close()
-    return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, Star, Entropy
+    return X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Entropy
 
 ##
 # MAIN
 ##
 
-snap = 216
+snap = 199
 m = 4
 Mbh = 10**m
 beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'Low'
+check = 'HiRes'
 if alice:
     prepath = f'/data1/martirep/shocks/shock_capturing/'
 else: 
@@ -116,7 +120,7 @@ else:
 path = f'{prepath}/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{check}/{snap}/'
 file = f'{path}snap_{snap}.h5'
 
-X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, Star, Entropy = extractor(file)
+X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Entropy = extractor(file)
 
 #%%
 # Save to another file.
@@ -134,6 +138,6 @@ np.save(f'{path}T_{snap}', T)
 np.save(f'{path}P_{snap}', P) 
 np.save(f'{path}Star_{snap}', Star) 
 np.save(f'{path}Entropy_{snap}', Entropy) 
-# np.save(f'{path}cs_{snap}', cs) 
+np.save(f'{path}Erad_{snap}', Erad) 
 print('Done')
             

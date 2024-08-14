@@ -144,7 +144,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
             step_ang = theta_arr[-1]-theta_arr[-2]
         else:
             step_ang = theta_arr[idx+1]-theta_arr[idx]
-        condition_T, _, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, step_ang, coord = True)
+        condition_T, _, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, coord = True)
         x_plane, y_plane, z_plane, den_plane, mass_plane = \
             make_slices([x_cut, y_cut, z_cut, den_cut, mass_cut], condition_T)
         # Cut the TZ plane to not keep points too far away.
@@ -172,7 +172,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
             step_ang = theta_arr[-1]-theta_arr[-2]
         else:
             step_ang = theta_arr[idx+1]-theta_arr[idx]
-        condition_T, _, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, step_ang, coord = True)
+        condition_T, _, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, coord = True)
         x_plane, y_plane, z_plane, den_plane, mass_plane = \
             make_slices([x_cut, y_cut, z_cut, den_cut, mass_cut], condition_T)
         # Restrict the points to not keep points too far away.
@@ -186,6 +186,8 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         y_cm[idx]= np.sum(y_plane * mass_plane) / np.sum(mass_plane)
         z_cm[idx] = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
         thresh_cm[idx] = den_thresh
+
+    np.save(f'/Users/paolamartire/shocks/data/{folder}/COMPAREstream_{check}{snap}.npy', [x_stream_rad, y_stream_rad, z_stream_rad, x_cmTR, y_cmTR, z_cmTR, x_cm, y_cm, z_cm])
 
     return x_cm, y_cm, z_cm, thresh_cm
 
@@ -208,7 +210,7 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, mass_data
         step_ang = theta_arr[-1]-theta_arr[-2]
     else:
         step_ang = theta_arr[idx+1]-theta_arr[idx]
-    condition_T, x_Tplane, _ = transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, step_ang, coord = True)
+    condition_T, x_Tplane, _ = transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, coord = True)
     x_plane, y_plane, z_plane, dim_plane, den_plane, mass_plane, indeces_plane = \
         make_slices([x_data, y_data, z_data, dim_data, den_data, mass_data, indeces], condition_T)
     # Restrict to not keep points too far away.
@@ -356,9 +358,9 @@ if __name__ == '__main__':
     step = 0.02
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_arr = Ryan_sampler(theta_init)
-    # theta_arr = theta_arr[:230]
+    theta_arr = theta_arr[:230]
 
-    check = 'HiRes'
+    check = 'Low'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
     snaps = ['164', '199', '216']
     for snap in snaps:
@@ -392,7 +394,7 @@ if __name__ == '__main__':
 
         if make_stream:
             x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(data.X, data.Y, data.Z, dim_cell, data.Den, data.Mass, theta_arr, params)
-            np.save(f'/Users/paolamartire/shocks/data/{folder}/DENstream_{check}{snap}.npy', [theta_arr, x_stream, y_stream, z_stream, thresh_cm])
+            # np.save(f'/Users/paolamartire/shocks/data/{folder}/DENstream_{check}{snap}.npy', [theta_arr, x_stream, y_stream, z_stream, thresh_cm])
 
             # plt.plot(x_stream, y_stream, c = 'b', label = 'COM fix width TZ plane')
             # plt.xlim(-300,20)

@@ -10,6 +10,7 @@ import numba
 import Utilities.prelude
 import matplotlib.pyplot as plt
 from scipy.optimize import brentq
+from scipy.integrate import odeint
 from scipy.integrate import trapezoid
 from Utilities.sections import transverse_plane, make_slices, radial_plane
 
@@ -31,22 +32,24 @@ def keplerian_orbit(theta, a, Rp, ecc=1):
     radius = p / (1 + ecc * np.cos(theta))
     return radius
 
-# def parameters_orbit(p, a, Mbh, c=1, G=1):
-#     Rs = 2 * G * Mbh / c**2
-#     En = G * Mbh * (p**2 * (a-Rs) - a**2 * (p-Rs)) / ((a**2-p**2) * (p-Rs) * (a-Rs))
-#     L = np.sqrt(2 * a**2 * (En + G*Mbh/(a-Rs)))
-#     return En, L
+def parameters_orbit(Rp, Ra, Mbh, c, G ):
+    # Rp, Ra, Mbh, c, G = params_orb[0], params_orb[1], params_orb[2], params_orb[3], params_orb[4]
+    Rs = 2 * G * Mbh / c**2
+    En = G * Mbh * (Rp**2 * (Ra-Rs) - Ra**2 * (Rp-Rs)) / ((Ra**2-Rp**2) * (Rp-Rs) * (Ra-Rs))
+    L = np.sqrt(2 * Ra**2 * (En + G*Mbh/(Ra-Rs)))
+    return Rs, En, L
 
-# def solvr(x, theta):
-#     _, L = parameters_orbit(Rp, apo)
-#     u,y = x
-#     res =  np.array([y, (-u + G * Mbh / ((1 - Rs*u) * L)**2)])
-#     return res
+def solvr(x, theta, Rp, Ra, Mbh, c, G ):
+    Rs, _, L = parameters_orbit(Rp, Ra, Mbh, c, G)
+    u,y = x
+    res =  np.array([y, (-u + G * Mbh / ((1 - Rs*u) * L)**2)])
+    return res
 
-# def Witta_orbit(theta_data):
-#     u,y = odeint(solvr, [0, 0], theta_data).T 
-#     r = 1/u
-#     return r
+def Witta_orbit(theta_data, Rp, Ra, Mbh, c, G):
+    theta_data += np.pi
+    u,y = odeint(solvr, [0, 0], theta_data, args = (Rp, Ra, Mbh, c, G)).T 
+    r = 1/u
+    return r
 
 def deriv_an_orbit(theta, a, Rp, ecc, choose):
     # we need the - in front of theta to be consistent with the function to_cylindric, where we change the orientation of the angle
@@ -363,6 +366,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
     G = 1
+    c = 1
     m = 4
     Mbh = 10**m
     beta = 1
@@ -375,6 +379,9 @@ if __name__ == '__main__':
     path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
     Rt = Rstar * (Mbh/mstar)**(1/3)
     Rp = Rt / beta
+    Ra = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
+    a = Ra/2
+    # params_orb = [Rp, Ra, Mbh, c, G]
     params = [Mbh, Rstar, mstar, beta]
     theta_lim = np.pi
     step = 0.02
@@ -385,11 +392,12 @@ if __name__ == '__main__':
     print('Tree done')
     dim_cell = data.Vol**(1/3)
 
-    make_stream = True
+    make_stream = False
     make_width = False
     compare = False
     TZslice = False
     test_s = False
+    test_orbit = True
 
     if test_s:
         params = None
@@ -411,6 +419,20 @@ if __name__ == '__main__':
         ax2.plot(theta_arr, s_kep, '--', label = 'Keplerian')
         ax2.legend()
         ax2.grid()
+        plt.show()
+    
+    if test_orbit:
+        from Utilities.operators import from_cylindric
+        r_Witta = Witta_orbit(theta_arr, Rp, Ra, Mbh, c, G)
+        x_Witta, y_Witta = from_cylindric(theta_arr, r_Witta)
+        r_kepler = keplerian_orbit(theta_arr, a, Rp, ecc = 1)
+        x_kepler, y_kepler = from_cylindric(theta_arr, r_kepler)
+        plt.plot(x_Witta, y_Witta, c = 'r', label = 'Witta')
+        plt.plot(x_kepler, y_kepler, '--', c = 'b', label = 'Keplerian')
+        plt.xlim(-300,20)
+        plt.ylim(-60,60)
+        plt.legend()
+        plt.grid()
         plt.show()
 
     if make_stream:

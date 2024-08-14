@@ -21,9 +21,8 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'Low' # 'Low' or 'HiRes' or 'Res20'
-snap = '164'
-is_tde = True
+check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
+snap = '115'
 
 #
 ## CONSTANTS
@@ -45,17 +44,19 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
 path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
 saving_fig = f'Figs/{folder}/{check}'
-print(f'We are in: {path}, \nWe save in: {saving_fig}')
 
 #
 ## MAIN
 #
 
 do_dMdE = False
-compare_resol = False
-compare_times = False
+cutoffRes20 = True
+print('Cutoff for the highest res (Res20):', cutoffRes20)
+do_totalenergy = False
+do_dMds = False
 
-do_dMds = True
+compare_resol = True
+compare_times = False
 
 plot = True
 save = True
@@ -63,12 +64,19 @@ save = True
 
 #%%
 if do_dMdE:
-    data = make_tree(path, snap, is_tde, energy = False)
+    data = make_tree(path, snap, energy = False)
     dim_cell = data.Vol**(1/3) # according to Elad
     tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+    mass = data.Mass
     Rcyl = np.sqrt(data.X**2 + data.Y**2)
     Vcyl = np.sqrt(data.VX**2 + data.VY**2)
     orbital_enegy = orb.orbital_energy(Rcyl, Vcyl, G, Mbh)
+
+    # Cutoff for the highest res (Res20)
+    if check == 'Res20' and cutoffRes20:
+        cutoff = data.X > -175
+        mass = mass[cutoff]
+        orbital_enegy = orbital_enegy[cutoff]
 
     # Normalisation (what on the x axis you call \Delta E)
     norm = Mbh/Rt * (Mbh/Rstar)**(-1/3)
@@ -82,12 +90,13 @@ if do_dMdE:
     mass_sum = np.zeros(len(bins)-1)
     for i in range(len(bins)-1):
         idx = np.where((OE > bins[i]) & (OE < bins[i+1]))
-        mass_sum[i] = np.sum(data.Mass[idx])
+        mass_sum[i] = np.sum(mass[idx])
     # dM/dE
     dm_dE = mass_sum / (np.diff(bins) * norm) # multiply by norm because we normalised the energy
 
-    #%%
+    
     if save:
+        print(f'Saving data in: data/{folder}')
         try:
             file = open(f'data/{folder}/dMdE_time{np.round(tfb,1)}.txt', 'r')
             # Perform operations on the file
@@ -97,18 +106,20 @@ if do_dMdE:
                 # if file doesn'exist
                 fstart.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
                 fstart.write((' '.join(map(str, bins[:-1])) + '\n'))
-
         with open(f'data/{folder}/dMdE_time{np.round(tfb,1)}.txt','a') as file:
-            file.write(f'# Check {check}, snap {snap} \n')
+            if check == 'Res20' and cutoffRes20:
+                file.write(f'# Check {check}, snap {snap} using only data with data.X>-175 \n')
+            else:
+                file.write(f'# Check {check}, snap {snap} \n')
             file.write((' '.join(map(str, dm_dE)) + '\n'))
             file.close()
 
-    #%%
+    
     if plot:
         # Section at the midplane
         midplane = np.abs(data.Z) < dim_cell
-        X_mid, Y_mid, VX_mid, VY_mid, Rcyl_mid, Mass_mid, Den_mid, orbital_enegy_mid = \
-            sec.make_slices([data.X, data.Y, data.VX, data.VY, Rcyl, data.Mass, data.Den, orbital_enegy], midplane)
+        X_mid, Y_mid, Den_mid = \
+            sec.make_slices([data.X, data.Y, data.Den], midplane)
 
         # plot the mass distribution with respect to the energy
         fig, ax = plt.subplots(1,2, figsize = (8,4))
@@ -132,55 +143,81 @@ if do_dMdE:
         if save:
             plt.savefig(f'{saving_fig}/EnM_{snap}.png')
         plt.show()
-    #%%
-    if compare_times:
-        data = np.loadtxt(f'data/{folder}/dMdE.txt')
-        bin_plot = data[0]
-        data2 = data[1]
-        data3 = data[4]
-        data4 = data[5]
-        
-        plt.figure()
-        plt.scatter(bin_plot, data2, c = 'b', s = 40, label = '0.2')
-        plt.scatter(bin_plot, data3, c = 'k', s = 30, label = '0.3')
-        plt.scatter(bin_plot, data4, c = 'r', s = 10, label = '0.7')
-        plt.xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
-        plt.ylabel('dM/dE', fontsize = 16)
-        plt.yscale('log')
-        plt.legend()
-        if save:
-            plt.savefig(f'{saving_fig}/dMdE_times.png')
-        plt.show()
+    
+#%%
+if compare_times:
+    data = np.loadtxt(f'data/{folder}/dMdE_{check}.txt')
+    bin_plot = data[0]
+    data2 = data[1]
+    data3 = data[4]
+    data4 = data[5]
+    
+    plt.figure()
+    plt.scatter(bin_plot, data2, c = 'b', s = 40, label = '0.2')
+    plt.scatter(bin_plot, data3, c = 'k', s = 30, label = '0.3')
+    plt.scatter(bin_plot, data4, c = 'r', s = 10, label = '0.7')
+    plt.xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
+    plt.ylabel('dM/dE', fontsize = 16)
+    plt.yscale('log')
+    plt.legend()
+    if save:
+        plt.savefig(f'{saving_fig}/dMdE_times.png')
+    plt.show()
 
-    #%%
-    if compare_resol:
-        time_chosen = 0.5 #np.round(tfb,1)
-        data = np.loadtxt(f'data/{folder}/dMdE_time{time_chosen}.txt')
-        bin_plot = data[0]
-        dataL = data[1]
-        dataMiddle = data[2]
+#%%
+if compare_resol:
+    time_chosen = 0.1 #np.round(tfb,1)
+    data = np.loadtxt(f'data/{folder}/dMdE_time{time_chosen}.txt')
+    bin_plot = data[0]
+    dataL = data[1]
+    dataMiddle = data[2]
+    if cutoffRes20:
+        dataHigh = data[4]
+    else:
         dataHigh = data[3]
-        
-        plt.figure()
-        plt.scatter(bin_plot, dataL, c = 'k', s = 35, label = 'Low')
-        plt.scatter(bin_plot, dataMiddle, c = 'r', s = 20, label = 'Middle')
-        plt.scatter(bin_plot, dataHigh, c = 'b', s = 10, label = 'High')
-        plt.xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
-        plt.ylabel('dM/dE', fontsize = 16)
-        plt.yscale('log')
-        plt.legend()
+    
+    plt.scatter(bin_plot, dataL, c = 'k', s = 35, label = 'Low')
+    plt.scatter(bin_plot, dataMiddle, c = 'r', s = 15, label = 'Middle')
+    plt.scatter(bin_plot, dataHigh, c = 'b', s = 7, label = 'High')
+    plt.xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
+    plt.ylabel('dM/dE', fontsize = 16)
+    plt.yscale('log')
+    plt.legend()
+    if cutoffRes20:
+        plt.title(r'Only points with $X>-175$ for the highest res, t/t$_{fb}$ = ' + str(time_chosen), fontsize = 16)
+        if save:
+            plt.savefig(f'Figs/{folder}/multiple/dMdE_time{time_chosen}_cutRes20.png')
+    else:
         plt.title(r't/t$_{fb}$ = ' + str(time_chosen), fontsize = 16)
         if save:
-            plt.savefig(f'Figs/{folder}/dMdE_time{time_chosen}.png')
-        plt.show()
-    
+            plt.savefig(f'Figs/{folder}/multiple/dMdE_time{time_chosen}.png')
+    plt.grid()
+    plt.show()
+
+#%%###########
+if do_totalenergy:
+    data = make_tree(path, snap, energy = True)
+    dim_cell = data.Vol**(1/3) # according to Elad
+    tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+    Rcyl = np.sqrt(data.X**2 + data.Y**2)
+    Vcyl = np.sqrt(data.VX**2 + data.VY**2)
+    orbital_energy = orb.orbital_energy(Rcyl, Vcyl, G, Mbh)
+    bound_elements = orbital_energy < 0
+    int_en_bound, rad_en_bound, orb_en_bound = sec.make_slices([data.IE, data.Erad, orbital_energy], bound_elements)
+    totE = int_en_bound + rad_en_bound + orb_en_bound
+    totE /= 1e6
+    bins = np.arange(-0.2, 0.2, 0.1)
+    plt.hist(totE, bins = bins, color = 'b')
+    plt.show()
+
+
 #%%###########
 if do_dMds:
     from src.orbits import find_arclenght
     from Utilities.sections import transverse_plane, make_slices
 
     step = 0.02
-    data = make_tree(path, snap, is_tde, energy = False)
+    data = make_tree(path, snap, energy = False)
     dim_cell = data.Vol**(1/3) # according to Elad
     stream = np.load(f'data/{folder}/stream_Low{snap}_{step}.npy')
     theta_arr, indeces_orbit = stream[0], stream[1].astype(int)
@@ -205,7 +242,7 @@ if do_dMds:
 
     check1 = 'HiRes'
     path1 = f'/Users/paolamartire/shocks/TDE/{folder}{check1}/{snap}'
-    data1 = make_tree(path1, snap, is_tde, energy = False)
+    data1 = make_tree(path1, snap, energy = False)
     dim_cell1 = data1.Vol**(1/3) # according to Elad
     tfb = days_since_distruption(f'{path1}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
     stream1 = np.load(f'data/{folder}/stream_{check1}{snap}_{step}.npy')
@@ -230,7 +267,7 @@ if do_dMds:
     check2 = 'Res20'
     snap2 = '169'
     path2 = f'/Users/paolamartire/shocks/TDE/{folder}{check2}/{snap2}'
-    data2 = make_tree(path2, snap2, is_tde, energy = False)
+    data2 = make_tree(path2, snap2, energy = False)
     dim_cell2 = data2.Vol**(1/3) # according to Elad
     stream2 = np.load(f'data/{folder}/stream_{check2}{snap2}_{step}.npy')
     theta_arr2, indeces_orbit2 = stream2[0], stream2[1].astype(int)
