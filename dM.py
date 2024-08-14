@@ -197,7 +197,7 @@ if do_totalenergy:
     checks = ['Low', 'HiRes']#, 'Res20']
     colors = ['k', 'r']#, 'b']
     alphas = [0.6, 0.8]#, 1]
-    snaps = ['216', '216']
+    snaps = ['164', '164']
     fig, ((ax1,ax2), (ax3,ax4)) = plt.subplots(2,2)
     for i in range(-1,-len(checks)-1,-1):
         check = checks[i]
@@ -206,61 +206,36 @@ if do_totalenergy:
         data = make_tree(path, snap, energy = True)
         dim_cell = data.Vol**(1/3)
         mass = data.Mass
-        ie = data.IE*data.Vol
-        Erad = data.Erad*data.Vol
+        ie = data.IE/data.Den #so you have the energy per unit mass
+        Erad = data.Erad/data.Den # so you have the energy per unit mass
         tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
-        Rcyl = np.sqrt(data.X**2 + data.Y**2)
-        Vcyl = np.sqrt(data.VX**2 + data.VY**2)
-        orbital_energy = orb.orbital_energy(Rcyl, Vcyl, mass, G, c, Mbh)
+        Rsph = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
+        vel = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
+        orbital_energy = orb.orbital_energy(Rsph, vel, G, c, Mbh)
         # select only bound elements
         bound_elements = orbital_energy < 0
         mass_bound, int_en_bound, rad_en_bound, orb_en_bound = sec.make_slices([mass, ie, Erad, orbital_energy], bound_elements)
-        int_en_weight = int_en_bound * mass_bound / np.sum(mass_bound)
-        rad_en_weight = rad_en_bound * mass_bound / np.sum(mass_bound)
-        orb_en_weight = orb_en_bound * mass_bound / np.sum(mass_bound)
         totE = int_en_bound + rad_en_bound + orb_en_bound
-        totE_weight = int_en_weight + rad_en_weight + orb_en_weight
+        # int_en_weight = int_en_bound * mass_bound / np.sum(mass_bound)
+        # rad_en_weight = rad_en_bound * mass_bound / np.sum(mass_bound)
+        # orb_en_weight = orb_en_bound * mass_bound / np.sum(mass_bound)
+        # totE_weight = int_en_weight + rad_en_weight + orb_en_weight
 
-        # for 100
-        # bins_totE = np.linspace(-1e-29, 1e-27, 50)
-        # bins_intE = np.linspace(0, 1e-30, 50) 
-        # bins_radE = np.linspace(0, 5e-25, 50) 
-        # bins_orbE = np.linspace(-2e-29, 0, 50)
+        bins_totE = np.linspace(-50, 1e-20, 50)
+        bins_intE = np.linspace(0, 0.02, 50) 
+        bins_radE = np.linspace(0, 1e-7, 50) 
+        bins_orbE = np.linspace(-50, 0, 50)
 
-        # for 115
-        # bins_totE = np.linspace(-1e-29, 1e-24, 50)
-        # bins_intE = np.linspace(0, 1e-28, 50) 
-        # bins_radE = np.linspace(0, 5e-24, 50) 
-        # bins_orbE = np.linspace(-7e-28, 0, 50)
-
-        # for 164
-        # bins_totE = np.linspace(-1e-28, 1e-21, 50)
-        # bins_intE = np.linspace(0, 5e-25, 50) 
-        # bins_radE = np.linspace(0, 1e-21, 50) 
-        # bins_orbE = np.linspace(-1e-25, 0, 50)
-
-        # for 199
-        # bins_totE = np.linspace(-1e-28, 1e-20, 50)
-        # bins_intE = np.linspace(0, 5e-25, 50) 
-        # bins_radE = np.linspace(0, 1e-21, 50) 
-        # bins_orbE = np.linspace(-5e-25, 0, 50)
-
-        # for 216
-        bins_totE = np.linspace(-1e-28, 1e-20, 50)
-        bins_intE = np.linspace(0, 5e-25, 50) 
-        bins_radE = np.linspace(0, 5e-21, 50) 
-        bins_orbE = np.linspace(-7e-25, 0, 50)
-
-        ax1.hist(totE_weight, bins = bins_totE, density = True, color = colors[i], alpha = alphas[i], label = f'check = {check}')
+        ax1.hist(totE, weights = mass_bound, bins = bins_totE, color = colors[i], alpha = alphas[i], label = f'check = {check}')
         ax1.set_title('Total Energy')
 
-        ax2.hist(int_en_weight, bins = bins_intE, density = True, stacked = True, color = colors[i], alpha = alphas[i], label = f'check = {check}')
+        ax2.hist(int_en_bound, weights = mass_bound, bins = bins_intE, color = colors[i], alpha = alphas[i], label = f'check = {check}')
         ax2.set_title('Internal Energy')
 
-        ax3.hist(rad_en_weight, bins = bins_radE, density = True, stacked = True, color = colors[i], alpha = alphas[i], label = f'check = {check}')
+        ax3.hist(rad_en_bound, weights = mass_bound, bins = bins_radE, color = colors[i], alpha = alphas[i], label = f'check = {check}')
         ax3.set_title('Radiative Energy')
 
-        ax4.hist(orb_en_weight, bins = bins_orbE, density = True, stacked = True, color = colors[i], alpha = alphas[i], label = f'check = {check}')
+        ax4.hist(orb_en_bound, weights = mass_bound, bins = bins_orbE, color = colors[i], alpha = alphas[i], label = f'check = {check}')
         ax4.set_title('Orbital Energy')
 
     ax1.legend(fontsize = 10)
@@ -268,8 +243,8 @@ if do_totalenergy:
     ax4.set_xlabel(r'Energy', fontsize = 16)
     plt.suptitle(r't/t$_{fb}$ = ' + f'{np.round(tfb,1)}', fontsize = 16)
     plt.tight_layout()
-    if save:
-        plt.savefig(f'Figs/{folder}/multiple/energy_hist_time{np.round(tfb,1)}.png')
+    # if save:
+    #     plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/energy_hist_time{np.round(tfb,1)}.png')
     plt.show()
 
 
