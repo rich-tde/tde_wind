@@ -111,13 +111,14 @@ def make_tree(filename, snap, is_tde = True, energy = False):
     Mass = np.load(f'{filename}/Mass_{snap}.npy')
     if energy:
         IE = np.load(f'{filename}/IE_{snap}.npy')
+        Erad = np.load(f'{filename}/Erad_{snap}.npy')
         # convert from energy/mass to energy density
         IE *= Den 
+        Erad *= Den
         # if is_tde:
         #     IE *= prel.en_den_converter
         # Diss = np.load(f'{filename}/Diss_{snap}.npy')
         Entropy = np.load(f'{filename}/Entropy_{snap}.npy')
-        Erad = np.load(f'{filename}/Erad_{snap}.npy')
              
     P = np.load(f'{filename}/P_{snap}.npy')
     T = np.load(f'{filename}/T_{snap}.npy')

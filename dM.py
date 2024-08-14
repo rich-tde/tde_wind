@@ -66,9 +66,9 @@ if do_dMdE:
     dim_cell = data.Vol**(1/3) # according to Elad
     tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
     mass = data.Mass
-    Rcyl = np.sqrt(data.X**2 + data.Y**2)
-    Vcyl = np.sqrt(data.VX**2 + data.VY**2)
-    orbital_enegy = orb.orbital_energy(Rcyl, Vcyl, G, Mbh)
+    R = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
+    V = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
+    orbital_enegy = orb.orbital_energy(R, V, mass, G, c, Mbh)
 
     # Cutoff for the highest res (Res20)
     if check == 'Res20' and cutoffRes20:
@@ -194,45 +194,78 @@ if compare_resol:
 
 #%%###########
 if do_totalenergy:
-    checks = ['Low', 'HiRes', 'Res20']
-    colors = ['k', 'r', 'b']
-    alphas = [0.8, 0.8, 0.8]
-    snaps = ['115', '115', '117']
-    fig, ((ax1,ax2), (ax3,ax4)) = plt.subplots(2,2, sharex=True, sharey=True)
+    checks = ['Low', 'HiRes']#, 'Res20']
+    colors = ['k', 'r']#, 'b']
+    alphas = [0.6, 0.8]#, 1]
+    snaps = ['216', '216']
+    fig, ((ax1,ax2), (ax3,ax4)) = plt.subplots(2,2)
     for i in range(-1,-len(checks)-1,-1):
         check = checks[i]
         snap = snaps[i]
         path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
         data = make_tree(path, snap, energy = True)
-        dim_cell = data.Vol**(1/3) # according to Elad
+        dim_cell = data.Vol**(1/3)
+        mass = data.Mass
+        ie = data.IE*data.Vol
+        Erad = data.Erad*data.Vol
         tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
         Rcyl = np.sqrt(data.X**2 + data.Y**2)
         Vcyl = np.sqrt(data.VX**2 + data.VY**2)
-        orbital_energy = orb.orbital_energy(Rcyl, Vcyl, G, Mbh)
+        orbital_energy = orb.orbital_energy(Rcyl, Vcyl, mass, G, c, Mbh)
         # select only bound elements
         bound_elements = orbital_energy < 0
-        int_en_bound, rad_en_bound, orb_en_bound = sec.make_slices([data.IE, data.Erad, orbital_energy], bound_elements)
-        int_en_bound /= 1e6
-        rad_en_bound /= 1e6
-        orb_en_bound /= 1e6
-        totE_overe6 = int_en_bound + rad_en_bound + orb_en_bound
-        bins = np.arange(-0.2, 0.2, 0.1)
+        mass_bound, int_en_bound, rad_en_bound, orb_en_bound = sec.make_slices([mass, ie, Erad, orbital_energy], bound_elements)
+        int_en_weight = int_en_bound * mass_bound / np.sum(mass_bound)
+        rad_en_weight = rad_en_bound * mass_bound / np.sum(mass_bound)
+        orb_en_weight = orb_en_bound * mass_bound / np.sum(mass_bound)
+        totE = int_en_bound + rad_en_bound + orb_en_bound
+        totE_weight = int_en_weight + rad_en_weight + orb_en_weight
 
-        ax1.hist(totE_overe6, bins = bins, color = colors[i], alpha = alphas[i], label = f'check = {check}')
+        # for 100
+        # bins_totE = np.linspace(-1e-29, 1e-27, 50)
+        # bins_intE = np.linspace(0, 1e-30, 50) 
+        # bins_radE = np.linspace(0, 5e-25, 50) 
+        # bins_orbE = np.linspace(-2e-29, 0, 50)
+
+        # for 115
+        # bins_totE = np.linspace(-1e-29, 1e-24, 50)
+        # bins_intE = np.linspace(0, 1e-28, 50) 
+        # bins_radE = np.linspace(0, 5e-24, 50) 
+        # bins_orbE = np.linspace(-7e-28, 0, 50)
+
+        # for 164
+        # bins_totE = np.linspace(-1e-28, 1e-21, 50)
+        # bins_intE = np.linspace(0, 5e-25, 50) 
+        # bins_radE = np.linspace(0, 1e-21, 50) 
+        # bins_orbE = np.linspace(-1e-25, 0, 50)
+
+        # for 199
+        # bins_totE = np.linspace(-1e-28, 1e-20, 50)
+        # bins_intE = np.linspace(0, 5e-25, 50) 
+        # bins_radE = np.linspace(0, 1e-21, 50) 
+        # bins_orbE = np.linspace(-5e-25, 0, 50)
+
+        # for 216
+        bins_totE = np.linspace(-1e-28, 1e-20, 50)
+        bins_intE = np.linspace(0, 5e-25, 50) 
+        bins_radE = np.linspace(0, 5e-21, 50) 
+        bins_orbE = np.linspace(-7e-25, 0, 50)
+
+        ax1.hist(totE_weight, bins = bins_totE, density = True, color = colors[i], alpha = alphas[i], label = f'check = {check}')
         ax1.set_title('Total Energy')
 
-        ax2.hist(int_en_bound, bins = bins, color = colors[i], alpha = alphas[i], label = f'check = {check}')
+        ax2.hist(int_en_weight, bins = bins_intE, density = True, stacked = True, color = colors[i], alpha = alphas[i], label = f'check = {check}')
         ax2.set_title('Internal Energy')
 
-        ax3.hist(rad_en_bound, bins = bins, color = colors[i], alpha = alphas[i], label = f'check = {check}')
+        ax3.hist(rad_en_weight, bins = bins_radE, density = True, stacked = True, color = colors[i], alpha = alphas[i], label = f'check = {check}')
         ax3.set_title('Radiative Energy')
 
-        ax4.hist(orb_en_bound, bins = bins, color = colors[i], alpha = alphas[i], label = f'check = {check}')
+        ax4.hist(orb_en_weight, bins = bins_orbE, density = True, stacked = True, color = colors[i], alpha = alphas[i], label = f'check = {check}')
         ax4.set_title('Orbital Energy')
 
-    ax1.legend(fontsize = 14)
-    ax3.set_xlabel(r'Energy/$10^6$', fontsize = 16)
-    ax4.set_xlabel(r'Energy/$10^6$', fontsize = 16)
+    ax1.legend(fontsize = 10)
+    ax3.set_xlabel(r'Energy', fontsize = 16)
+    ax4.set_xlabel(r'Energy', fontsize = 16)
     plt.suptitle(r't/t$_{fb}$ = ' + f'{np.round(tfb,1)}', fontsize = 16)
     plt.tight_layout()
     if save:
@@ -241,131 +274,131 @@ if do_totalenergy:
 
 
 #%%###########
-if do_dMds:
-    from src.orbits import find_arclenght
-    from Utilities.sections import transverse_plane, make_slices
+# if do_dMds:
+#     from src.orbits import find_arclenght
+#     from Utilities.sections import transverse_plane, make_slices
 
-    step = 0.02
-    data = make_tree(path, snap, energy = False)
-    dim_cell = data.Vol**(1/3) # according to Elad
-    stream = np.load(f'data/{folder}/stream_Low{snap}_{step}.npy')
-    theta_arr, indeces_orbit = stream[0], stream[1].astype(int)
-    x_orbit, y_orbit, z_orbit, den_orbit = data.X[indeces_orbit], data.Y[indeces_orbit], data.Z[indeces_orbit], data.Den[indeces_orbit]
-    r_orbit = np.sqrt(x_orbit**2 + y_orbit**2)
-    s_array, idx = find_arclenght(theta_arr, [x_orbit, y_orbit], params = None, choose = 'maxima')
+#     step = 0.02
+#     data = make_tree(path, snap, energy = False)
+#     dim_cell = data.Vol**(1/3) # according to Elad
+#     stream = np.load(f'data/{folder}/stream_Low{snap}_{step}.npy')
+#     theta_arr, indeces_orbit = stream[0], stream[1].astype(int)
+#     x_orbit, y_orbit, z_orbit, den_orbit = data.X[indeces_orbit], data.Y[indeces_orbit], data.Z[indeces_orbit], data.Den[indeces_orbit]
+#     r_orbit = np.sqrt(x_orbit**2 + y_orbit**2)
+#     s_array, idx = find_arclenght(theta_arr, [x_orbit, y_orbit], params = None, choose = 'maxima')
     
-    threshold = np.zeros(len(s_array)-1)
-    dm = np.zeros(len(s_array)-1)
-    for i in range(len(dm)):
-        condition_T, x_Tplane, x0 = transverse_plane(data.X, data.Y, dim_cell, x_orbit, y_orbit, i, coord = True)
-        z_plane, mass_plane= make_slices([data.Z, data.Mass], condition_T)
-        # Restrict to not keep points too far away. Important for theta=0 or you take the stream at apocenter
-        thresh = 3 * Rstar * (r_orbit[i]/Rp)**(1/3)
-        condition_x = np.abs(x_Tplane) < thresh
-        condition_z = np.abs(z_plane) < thresh
-        condition = condition_x & condition_z
-        mass_plane = mass_plane[condition]
-        dm[i] =  np.sum(mass_plane) 
-        threshold[i] = thresh
-    dm_ds = dm / np.diff(s_array)
+#     threshold = np.zeros(len(s_array)-1)
+#     dm = np.zeros(len(s_array)-1)
+#     for i in range(len(dm)):
+#         condition_T, x_Tplane, x0 = transverse_plane(data.X, data.Y, dim_cell, x_orbit, y_orbit, i, coord = True)
+#         z_plane, mass_plane= make_slices([data.Z, data.Mass], condition_T)
+#         # Restrict to not keep points too far away. Important for theta=0 or you take the stream at apocenter
+#         thresh = 3 * Rstar * (r_orbit[i]/Rp)**(1/3)
+#         condition_x = np.abs(x_Tplane) < thresh
+#         condition_z = np.abs(z_plane) < thresh
+#         condition = condition_x & condition_z
+#         mass_plane = mass_plane[condition]
+#         dm[i] =  np.sum(mass_plane) 
+#         threshold[i] = thresh
+#     dm_ds = dm / np.diff(s_array)
 
-    check1 = 'HiRes'
-    path1 = f'/Users/paolamartire/shocks/TDE/{folder}{check1}/{snap}'
-    data1 = make_tree(path1, snap, energy = False)
-    dim_cell1 = data1.Vol**(1/3) # according to Elad
-    tfb = days_since_distruption(f'{path1}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
-    stream1 = np.load(f'data/{folder}/stream_{check1}{snap}_{step}.npy')
-    theta_arr1, indeces_orbit1 = stream1[0], stream1[1].astype(int)
-    x_orbit1, y_orbit1, z_orbit1, den_orbit1 = data1.X[indeces_orbit1], data1.Y[indeces_orbit1], data1.Z[indeces_orbit1], data1.Den[indeces_orbit1]
-    r_orbit1 = np.sqrt(x_orbit1**2 + y_orbit1**2)
-    s_array1, idx1 = find_arclenght(theta_arr1, [x_orbit1, y_orbit1], params = None, choose = 'maxima')
-    dm1 = np.zeros(len(s_array1)-1)
-    threshold1 = np.zeros(len(s_array1)-1)
-    for i in range(len(dm1)):
-        condition_T1, x_Tplane1, x01 = transverse_plane(data1.X, data1.Y, dim_cell1, x_orbit1, y_orbit1, i, coord = True)
-        z_plane1, mass_plane1= make_slices([data1.Z, data1.Mass], condition_T1)
-        thresh1 = 3 * Rstar * (r_orbit1[i]/Rp)**(1/3)
-        condition_x1 = np.abs(x_Tplane1) < thresh1
-        condition_z1 = np.abs(z_plane1) < thresh1
-        condition1 = condition_x1 & condition_z1
-        mass_plane1 = mass_plane1[condition1]
-        dm1[i] =  np.sum(mass_plane1) 
-        threshold1[i] = thresh1
-    dm_ds1 = dm1 / np.diff(s_array1)
+#     check1 = 'HiRes'
+#     path1 = f'/Users/paolamartire/shocks/TDE/{folder}{check1}/{snap}'
+#     data1 = make_tree(path1, snap, energy = False)
+#     dim_cell1 = data1.Vol**(1/3) # according to Elad
+#     tfb = days_since_distruption(f'{path1}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+#     stream1 = np.load(f'data/{folder}/stream_{check1}{snap}_{step}.npy')
+#     theta_arr1, indeces_orbit1 = stream1[0], stream1[1].astype(int)
+#     x_orbit1, y_orbit1, z_orbit1, den_orbit1 = data1.X[indeces_orbit1], data1.Y[indeces_orbit1], data1.Z[indeces_orbit1], data1.Den[indeces_orbit1]
+#     r_orbit1 = np.sqrt(x_orbit1**2 + y_orbit1**2)
+#     s_array1, idx1 = find_arclenght(theta_arr1, [x_orbit1, y_orbit1], params = None, choose = 'maxima')
+#     dm1 = np.zeros(len(s_array1)-1)
+#     threshold1 = np.zeros(len(s_array1)-1)
+#     for i in range(len(dm1)):
+#         condition_T1, x_Tplane1, x01 = transverse_plane(data1.X, data1.Y, dim_cell1, x_orbit1, y_orbit1, i, coord = True)
+#         z_plane1, mass_plane1= make_slices([data1.Z, data1.Mass], condition_T1)
+#         thresh1 = 3 * Rstar * (r_orbit1[i]/Rp)**(1/3)
+#         condition_x1 = np.abs(x_Tplane1) < thresh1
+#         condition_z1 = np.abs(z_plane1) < thresh1
+#         condition1 = condition_x1 & condition_z1
+#         mass_plane1 = mass_plane1[condition1]
+#         dm1[i] =  np.sum(mass_plane1) 
+#         threshold1[i] = thresh1
+#     dm_ds1 = dm1 / np.diff(s_array1)
 
-    check2 = 'Res20'
-    snap2 = '169'
-    path2 = f'/Users/paolamartire/shocks/TDE/{folder}{check2}/{snap2}'
-    data2 = make_tree(path2, snap2, energy = False)
-    dim_cell2 = data2.Vol**(1/3) # according to Elad
-    stream2 = np.load(f'data/{folder}/stream_{check2}{snap2}_{step}.npy')
-    theta_arr2, indeces_orbit2 = stream2[0], stream2[1].astype(int)
-    x_orbit2, y_orbit2, z_orbit2, den_orbit2 = data2.X[indeces_orbit2], data2.Y[indeces_orbit2], data2.Z[indeces_orbit2], data2.Den[indeces_orbit2]
-    r_orbit2 = np.sqrt(x_orbit2**2 + y_orbit2**2)
-    s_array2, _ = find_arclenght(theta_arr2, [x_orbit2, y_orbit2], params = None, choose = 'maxima')
-    dm2 = np.zeros(len(s_array2)-1)
-    threshold2 = np.zeros(len(s_array2)-1)
-    for i in range(len(dm2)):
-        condition_T2, x_Tplane2, _ = transverse_plane(data2.X, data2.Y, dim_cell2, x_orbit2, y_orbit2, i, coord = True)
-        z_plane2, mass_plane2= make_slices([data2.Z, data2.Mass], condition_T2)
-        thresh2 = 3 * Rstar * (r_orbit2[i]/Rp)**(1/3)
-        condition_x2 = np.abs(x_Tplane2) < thresh2
-        condition_z2 = np.abs(z_plane2) < thresh2
-        condition2 = condition_x2 & condition_z2
-        mass_plane2 = mass_plane2[condition2]
-        dm2[i] =  np.sum(mass_plane2) 
-        threshold2[i] = thresh2
-    dm_ds2 = dm2/ np.diff(s_array2)
+#     check2 = 'Res20'
+#     snap2 = '169'
+#     path2 = f'/Users/paolamartire/shocks/TDE/{folder}{check2}/{snap2}'
+#     data2 = make_tree(path2, snap2, energy = False)
+#     dim_cell2 = data2.Vol**(1/3) # according to Elad
+#     stream2 = np.load(f'data/{folder}/stream_{check2}{snap2}_{step}.npy')
+#     theta_arr2, indeces_orbit2 = stream2[0], stream2[1].astype(int)
+#     x_orbit2, y_orbit2, z_orbit2, den_orbit2 = data2.X[indeces_orbit2], data2.Y[indeces_orbit2], data2.Z[indeces_orbit2], data2.Den[indeces_orbit2]
+#     r_orbit2 = np.sqrt(x_orbit2**2 + y_orbit2**2)
+#     s_array2, _ = find_arclenght(theta_arr2, [x_orbit2, y_orbit2], params = None, choose = 'maxima')
+#     dm2 = np.zeros(len(s_array2)-1)
+#     threshold2 = np.zeros(len(s_array2)-1)
+#     for i in range(len(dm2)):
+#         condition_T2, x_Tplane2, _ = transverse_plane(data2.X, data2.Y, dim_cell2, x_orbit2, y_orbit2, i, coord = True)
+#         z_plane2, mass_plane2= make_slices([data2.Z, data2.Mass], condition_T2)
+#         thresh2 = 3 * Rstar * (r_orbit2[i]/Rp)**(1/3)
+#         condition_x2 = np.abs(x_Tplane2) < thresh2
+#         condition_z2 = np.abs(z_plane2) < thresh2
+#         condition2 = condition_x2 & condition_z2
+#         mass_plane2 = mass_plane2[condition2]
+#         dm2[i] =  np.sum(mass_plane2) 
+#         threshold2[i] = thresh2
+#     dm_ds2 = dm2/ np.diff(s_array2)
     
-    #%%
-    if plot:
-        ratioLM = 1 - dm_ds1[:230]/dm_ds[:230]
-        ratioMH = 1- dm_ds2[60:230]/dm_ds1[60:230]
-        fig, (ax1,ax2) = plt.subplots(2,1)
-        ax1.plot(theta_arr[:230], dm_ds[:230], c = 'k', label = 'Low')
-        ax1.plot(theta_arr1[:230], dm_ds1[:230], c = 'r', label = 'Middle')
-        ax1.plot(theta_arr2[60:230], dm_ds2[60:230], c = 'b', label = 'High')
-        ax1.legend()
-        ax1.grid()
-        ax1.set_ylabel('dM/ds', fontsize = 16)
-        ax1.set_yscale('log')
+#     #%%
+#     if plot:
+#         ratioLM = 1 - dm_ds1[:230]/dm_ds[:230]
+#         ratioMH = 1- dm_ds2[60:230]/dm_ds1[60:230]
+#         fig, (ax1,ax2) = plt.subplots(2,1)
+#         ax1.plot(theta_arr[:230], dm_ds[:230], c = 'k', label = 'Low')
+#         ax1.plot(theta_arr1[:230], dm_ds1[:230], c = 'r', label = 'Middle')
+#         ax1.plot(theta_arr2[60:230], dm_ds2[60:230], c = 'b', label = 'High')
+#         ax1.legend()
+#         ax1.grid()
+#         ax1.set_ylabel('dM/ds', fontsize = 16)
+#         ax1.set_yscale('log')
 
-        ax2.plot(theta_arr[:230], ratioLM, c = 'r', label = '1 - Middle/Low')
-        ax2.plot(theta_arr[60:230], ratioMH, c = 'b', label = '1- High/Middle')
-        ax2.grid()
-        ax2.legend()
-        ax2.set_xlabel(r'$\theta$', fontsize = 16)
-        if save:
-            plt.savefig(f'Figs/{folder}/dMds_time{np.round(tfb,1)}.png')
-        plt.show()
+#         ax2.plot(theta_arr[:230], ratioLM, c = 'r', label = '1 - Middle/Low')
+#         ax2.plot(theta_arr[60:230], ratioMH, c = 'b', label = '1- High/Middle')
+#         ax2.grid()
+#         ax2.legend()
+#         ax2.set_xlabel(r'$\theta$', fontsize = 16)
+#         if save:
+#             plt.savefig(f'Figs/{folder}/dMds_time{np.round(tfb,1)}.png')
+#         plt.show()
 
-        fig, (ax1,ax2) = plt.subplots(2,1)
-        ax1.plot(theta_arr[:230], dm[:230], c = 'k', label = 'Low')
-        ax1.plot(theta_arr1[:230], dm1[:230], c = 'r', label = 'Middle')
-        ax1.plot(theta_arr2[60:230], dm2[60:230], c = 'b', label = 'High')
-        ax1.set_yscale('log')
-        ax1.set_ylabel('dM', fontsize = 16)
-        ax1.grid()
-        ax2.plot(theta_arr[:230-1], np.diff(s_array[:230]), c = 'k', label = 'Low')
-        ax2.plot(theta_arr1[:230-1], np.diff(s_array1[:230]), c = 'r', label = 'Middle')
-        ax2.plot(theta_arr2[60:230-1], np.diff(s_array2[60:230]), c = 'b', label = 'High')
-        ax2.grid()
-        ax2.set_ylabel('ds', fontsize = 16)
-        ax2.set_xlabel(r'$\theta$', fontsize = 16)
-        plt.suptitle('dM and ds')
-        if save:
-            plt.savefig(f'Figs/{folder}/dMANDds_time{np.round(tfb,1)}.png')
-        plt.show()
+#         fig, (ax1,ax2) = plt.subplots(2,1)
+#         ax1.plot(theta_arr[:230], dm[:230], c = 'k', label = 'Low')
+#         ax1.plot(theta_arr1[:230], dm1[:230], c = 'r', label = 'Middle')
+#         ax1.plot(theta_arr2[60:230], dm2[60:230], c = 'b', label = 'High')
+#         ax1.set_yscale('log')
+#         ax1.set_ylabel('dM', fontsize = 16)
+#         ax1.grid()
+#         ax2.plot(theta_arr[:230-1], np.diff(s_array[:230]), c = 'k', label = 'Low')
+#         ax2.plot(theta_arr1[:230-1], np.diff(s_array1[:230]), c = 'r', label = 'Middle')
+#         ax2.plot(theta_arr2[60:230-1], np.diff(s_array2[60:230]), c = 'b', label = 'High')
+#         ax2.grid()
+#         ax2.set_ylabel('ds', fontsize = 16)
+#         ax2.set_xlabel(r'$\theta$', fontsize = 16)
+#         plt.suptitle('dM and ds')
+#         if save:
+#             plt.savefig(f'Figs/{folder}/dMANDds_time{np.round(tfb,1)}.png')
+#         plt.show()
 
-        plt.plot(theta_arr[:230], threshold[:230], c = 'k', label = 'Low')
-        plt.plot(theta_arr1[:230], threshold1[:230], c = 'r', label = 'Middle')
-        plt.plot(theta_arr2[60:230], threshold2[60:230], c = 'b', label = 'High')
-        plt.ylabel('Threshold for mass integration in the TZ plane')
-        plt.xlabel(r'$\theta$', fontsize = 16)
-        plt.title(r'Threshold : $3 (R_{max}/R_p)^{1/3}$')
-        plt.grid()
-        plt.legend()
-        if save:
-            plt.savefig(f'Figs/{folder}/threshold_time{np.round(tfb,1)}.png')
-        plt.show()
-# %%
+#         plt.plot(theta_arr[:230], threshold[:230], c = 'k', label = 'Low')
+#         plt.plot(theta_arr1[:230], threshold1[:230], c = 'r', label = 'Middle')
+#         plt.plot(theta_arr2[60:230], threshold2[60:230], c = 'b', label = 'High')
+#         plt.ylabel('Threshold for mass integration in the TZ plane')
+#         plt.xlabel(r'$\theta$', fontsize = 16)
+#         plt.title(r'Threshold : $3 (R_{max}/R_p)^{1/3}$')
+#         plt.grid()
+#         plt.legend()
+#         if save:
+#             plt.savefig(f'Figs/{folder}/threshold_time{np.round(tfb,1)}.png')
+#         plt.show()
+# # %%

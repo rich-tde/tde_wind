@@ -355,10 +355,11 @@ def find_arclenght(theta_arr, orbit, params, choose):
 
     return s, idx
 
-def orbital_energy(r, v_xy, G, M):
+def orbital_energy(r, v_xy, mass, G, c, M):
     # no angular momentum??
-    potential = -G * M / r
-    energy = 0.5 * v_xy**2 + potential
+    Rs = 2*G*M/c**2
+    potential = -G * M / (r-Rs)
+    energy = mass * (0.5 * v_xy**2 + potential)
     return energy
 
 if __name__ == '__main__':
@@ -366,7 +367,11 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
     G = 1
-    c = 1
+    G_SI = 6.6743e-11
+    Msol = 2e30 #1.98847e30 # kg
+    Rsol = 7e8 #6.957e8 m
+    t = np.sqrt(Rsol**3 / (Msol*G_SI ))
+    c = 3e8 / (Rsol/t)
     m = 4
     Mbh = 10**m
     beta = 1
@@ -375,7 +380,7 @@ if __name__ == '__main__':
     n = 1.5
     check = 'Low'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
-    snap = '216'
+    snap = '101'
     path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
     Rt = Rstar * (Mbh/mstar)**(1/3)
     Rp = Rt / beta
