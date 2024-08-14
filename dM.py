@@ -21,8 +21,8 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
-snap = '115'
+check = 'Low' # 'Low' or 'HiRes' or 'Res20'
+snap = '164'
 
 #
 ## CONSTANTS
@@ -48,19 +48,17 @@ saving_fig = f'Figs/{folder}/{check}'
 #
 ## MAIN
 #
-
-do_dMdE = False
 cutoffRes20 = True
 print('Cutoff for the highest res (Res20):', cutoffRes20)
-do_totalenergy = False
-do_dMds = False
 
-compare_resol = True
+do_dMdE = False
+compare_resol = False
 compare_times = False
+do_totalenergy = True
+do_dMds = False
 
 plot = True
 save = True
-
 
 #%%
 if do_dMdE:
@@ -196,18 +194,49 @@ if compare_resol:
 
 #%%###########
 if do_totalenergy:
-    data = make_tree(path, snap, energy = True)
-    dim_cell = data.Vol**(1/3) # according to Elad
-    tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
-    Rcyl = np.sqrt(data.X**2 + data.Y**2)
-    Vcyl = np.sqrt(data.VX**2 + data.VY**2)
-    orbital_energy = orb.orbital_energy(Rcyl, Vcyl, G, Mbh)
-    bound_elements = orbital_energy < 0
-    int_en_bound, rad_en_bound, orb_en_bound = sec.make_slices([data.IE, data.Erad, orbital_energy], bound_elements)
-    totE = int_en_bound + rad_en_bound + orb_en_bound
-    totE /= 1e6
-    bins = np.arange(-0.2, 0.2, 0.1)
-    plt.hist(totE, bins = bins, color = 'b')
+    checks = ['Low', 'HiRes', 'Res20']
+    colors = ['k', 'r', 'b']
+    alphas = [0.8, 0.8, 0.8]
+    snaps = ['115', '115', '117']
+    fig, ((ax1,ax2), (ax3,ax4)) = plt.subplots(2,2, sharex=True, sharey=True)
+    for i in range(-1,-len(checks)-1,-1):
+        check = checks[i]
+        snap = snaps[i]
+        path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
+        data = make_tree(path, snap, energy = True)
+        dim_cell = data.Vol**(1/3) # according to Elad
+        tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+        Rcyl = np.sqrt(data.X**2 + data.Y**2)
+        Vcyl = np.sqrt(data.VX**2 + data.VY**2)
+        orbital_energy = orb.orbital_energy(Rcyl, Vcyl, G, Mbh)
+        # select only bound elements
+        bound_elements = orbital_energy < 0
+        int_en_bound, rad_en_bound, orb_en_bound = sec.make_slices([data.IE, data.Erad, orbital_energy], bound_elements)
+        int_en_bound /= 1e6
+        rad_en_bound /= 1e6
+        orb_en_bound /= 1e6
+        totE_overe6 = int_en_bound + rad_en_bound + orb_en_bound
+        bins = np.arange(-0.2, 0.2, 0.1)
+
+        ax1.hist(totE_overe6, bins = bins, color = colors[i], alpha = alphas[i], label = f'check = {check}')
+        ax1.set_title('Total Energy')
+
+        ax2.hist(int_en_bound, bins = bins, color = colors[i], alpha = alphas[i], label = f'check = {check}')
+        ax2.set_title('Internal Energy')
+
+        ax3.hist(rad_en_bound, bins = bins, color = colors[i], alpha = alphas[i], label = f'check = {check}')
+        ax3.set_title('Radiative Energy')
+
+        ax4.hist(orb_en_bound, bins = bins, color = colors[i], alpha = alphas[i], label = f'check = {check}')
+        ax4.set_title('Orbital Energy')
+
+    ax1.legend(fontsize = 14)
+    ax3.set_xlabel(r'Energy/$10^6$', fontsize = 16)
+    ax4.set_xlabel(r'Energy/$10^6$', fontsize = 16)
+    plt.suptitle(r't/t$_{fb}$ = ' + f'{np.round(tfb,1)}', fontsize = 16)
+    plt.tight_layout()
+    if save:
+        plt.savefig(f'Figs/{folder}/multiple/energy_hist_time{np.round(tfb,1)}.png')
     plt.show()
 
 
