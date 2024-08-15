@@ -355,11 +355,11 @@ def find_arclenght(theta_arr, orbit, params, choose):
 
     return s, idx
 
-def orbital_energy(r, vel, G, c, M):
+def orbital_energy(r, vel, mass, G, c, M):
     # no angular momentum??
     Rs = 2*G*M/c**2
     potential = -G * M / (r-Rs)
-    energy = 0.5 * vel**2 + potential
+    energy = mass * (0.5 * vel**2 + potential)
     return energy
 
 if __name__ == '__main__':
