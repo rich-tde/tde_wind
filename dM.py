@@ -197,7 +197,7 @@ if do_totalenergy:
     checks = ['Low', 'HiRes']#, 'Res20']
     colors = ['k', 'r']#, 'b']
     alphas = [0.6, 0.8]#, 1]
-    snap = 199
+    snap = 216
     fig, ((ax1,ax2), (ax3,ax4)) = plt.subplots(2,2)
     for i in range(-1,-len(checks)-1,-1):
         check = checks[i]
@@ -215,7 +215,7 @@ if do_totalenergy:
         orb_en_onmass = orb_en / data.Mass
 
         # select only bound elements and not too far away
-        bound_elements = np.logical_and(orb_en < 0, np.abs(data.X) < np.abs(apo))
+        bound_elements = np.logical_and(orb_en < 0, data.X > -1.5* np.abs(apo))
         mass_bound, ie_onmass_bound, orb_en_onmass_bound = \
             sec.make_slices([mass, ie_onmass, orb_en_onmass], bound_elements)
         ie_den_bound, Erad_den_bound, ie_bound, Erad_bound, orb_en_bound = \
@@ -227,7 +227,7 @@ if do_totalenergy:
         bins_totE = 50 #np.linspace(-50, 1e-20, 50)
         # 100
         # bins_intE = np.linspace(0, 2e-2, 50) 
-        # bins_radE = np.linspace(0, 1e-15, 50) 
+        # bins_radE = np.linspace(0, 1e-16, 50) 
         # bins_neg_orbE = np.linspace(0,50,50)
 
         # 115
@@ -237,12 +237,12 @@ if do_totalenergy:
 
         # 164
         # bins_intE = np.linspace(0, 0.018, 50) 
-        # bins_radE = np.linspace(0, 1e-9, 50) 
+        # bins_radE = np.linspace(0, 1e-15, 50) 
         # bins_neg_orbE = np.linspace(0,50,50)
 
         # 199 and 216
-        bins_intE = np.linspace(0, 0.2, 50) 
-        bins_radE = np.linspace(0, 4e-9, 50) 
+        bins_intE = np.linspace(0, 0.05, 50) 
+        bins_radE = np.linspace(0, 2e-15, 50) 
         bins_neg_orbE = np.linspace(0,50,50)
 
         # ax1.hist(totE, weights = mass_bound, bins = bins_totE, color = colors[i], alpha = alphas[i], label = f'check = {check}')
@@ -257,7 +257,6 @@ if do_totalenergy:
         ax4.set_title('Orbital Energy')
 
     ax2.legend(fontsize = 10)
-    ax1.set_ylabel(r'Energy', fontsize = 16)
 
     ax2.set_xlabel(r'Energy/Mass', fontsize = 16)
     ax2.set_ylabel(r'Energy', fontsize = 16)
@@ -267,7 +266,7 @@ if do_totalenergy:
 
     ax4.set_xlabel(r'$-$Energy/Mass', fontsize = 16)
     ax4.set_ylabel(r'$-$Energy', fontsize = 16)
-    plt.suptitle(r'Bound cells with $|X|<R_a$, t/t$_{fb}$ = ' + f'{np.round(tfb,1)}', fontsize = 16)
+    plt.suptitle(r'Bound cells with $X>-1.5|R_a|$, t/t$_{fb}$ = ' + f'{np.round(tfb,1)}', fontsize = 16)
     plt.tight_layout()
     if save:
         plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/energy_hist_time{np.round(tfb,1)}.png')
