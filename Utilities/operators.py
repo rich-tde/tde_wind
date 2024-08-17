@@ -14,6 +14,7 @@ sys.path.append('/Users/paolamartire/shocks')
 import numpy as np
 from scipy.spatial import KDTree
 import math
+import numba
 import Utilities.prelude
 
 def to_cylindric(x,y):
@@ -142,6 +143,95 @@ def make_tree(filename, snap, is_tde = True, energy = False):
     else: 
         data = data_snap(sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T)
     return data
+
+@numba.njit
+def Kons_caster(radii, R, tocast, weights):
+    """
+    Casts the density down to a smaller size vector
+    Parameters
+    ----------
+    radii : arr,
+        Array of radii we want to cast to.
+    R : arr,
+        Radius data from simulation.
+    tocast: arr,
+        Simulation data to cast.
+    weights: arr,
+        Weights to use in the casting.
+
+    Returns
+    -------
+    final_casted: arr
+        Cast down version of tocast
+    """
+    gridded_tocast = np.zeros((len(radii)))
+    gridded_weights = np.zeros((len(radii)))
+    for i in range(len(R)):
+        # Check how an R's element is close to radii
+        diffs = np.abs(radii - R[i])
+        # Get the index of the closest radii's element to the chosen R's element
+        idx_r = np.argmin(diffs)
+
+        gridded_tocast[idx_r] += tocast[i] * weights[i]
+        gridded_weights[idx_r] += weights[i]
+
+        # Print progress
+        # if i % 100_000 == 0:
+        #     print(i/len(R)*100, '%')
+
+    # maybe you never cast one element. If this happens, copy the previous value. 
+    for i in range(len(radii)):
+        if gridded_weights[i] == 0:
+            print('empty element', i)
+        # if it's the first value, take the next one
+            if i == 0:
+                gridded_tocast[i] = gridded_tocast[i+1]
+                gridded_weights[i] = gridded_weights[i+1]
+            else:
+                gridded_tocast[i] = gridded_tocast[i-1]
+                gridded_weights[i] = gridded_weights[i-1]
+            
+    # Normalize
+    final_casted = np.divide(gridded_tocast, gridded_weights)
+    final_casted = np.nan_to_num(final_casted)
+            
+    return final_casted
+
+def radial_caster(radii, R, tocast, weights):
+    """ Casts a quantity down to a smaller size vector
+    Parameters
+    ----------
+    radii : arr,
+        Array of radii we want to cast to.
+    sim_coord : Narr (N,3),
+        Coordinates' data from simulation to be casted. 
+    tocast: arr,
+        Simulation data to cast.
+    weights: arr,
+        Weights to use in the casting.
+
+    Returns
+    -------
+    final_casted: arr
+        Casted down version of tocast
+    """
+    gridded_tocast = np.zeros((len(radii)))
+    gridded_weights = np.zeros((len(radii)))
+    R = R.reshape(-1, 1) # Reshaping to 2D array with one column
+    tree = KDTree(R) 
+    for i in range(len(radii)):
+        radius = np.array([radii[i]]).reshape(1, -1) # reshape to match the tree
+        indices = tree.query_ball_point(radius, 1)
+        # check if indeces is empty
+        if len(indices)<2:
+            _, idx = tree.query(radii[i], k=2)
+            indices = np.array(idx)
+        indices = [int(idx) for idx in indices]
+        gridded_tocast[i] = np.sum(tocast[indices] * weights[indices])
+        gridded_weights[i] = np.sum(weights[indices])
+
+    final_casted = np.divide(gridded_tocast, gridded_weights)
+    return final_casted
 
 def select_near_1d(sim_tree, X, Y, Z, point, delta, coord):
     """ Find (within the tree) the nearest cell along one direction to the one chosen. 

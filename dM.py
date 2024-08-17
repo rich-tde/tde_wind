@@ -189,7 +189,7 @@ if compare_resol:
 
 #%%###########
 if do_Ehist:
-    y_value = 'mass'
+    y_value = 'energy'
     checks = ['Low', 'HiRes']#, 'Res20']
     colors = ['k', 'r']#, 'b']
     alphas = [0.6, 0.8]#, 1]
@@ -238,7 +238,7 @@ if do_Ehist:
 
             if snap == 164:
                 bins_intE = np.linspace(0, 0.018, 50) 
-                bins_radE = np.linspace(0, 1e-15, 50) 
+                bins_radE = np.linspace(0, 5e-15, 50) 
                 bins_neg_orbE = np.linspace(0,50,50)
 
             if snap == 199 or snap == 216:
@@ -248,7 +248,7 @@ if do_Ehist:
 
             # weights
             weight_ie = ie_bound
-            weight_rad = Erad_bound
+            weight_rad = Erad
             weight_orb = np.abs(orb_en_bound)
 
         elif y_value == 'mass':
@@ -275,11 +275,11 @@ if do_Ehist:
 
             # weights
             weight_ie = mass_bound
-            weight_rad = mass_bound
+            weight_rad = mass
             weight_orb = mass_bound
 
         ax1.hist(ie_onmass_bound, bins = bins_intE, weights = weight_ie, color = colors[i], alpha = alphas[i], label = f'check = {check}')
-        ax2.hist(Erad_den_bound, bins = bins_radE, weights = weight_rad, color = colors[i], alpha = alphas[i], label = f'check = {check}')
+        ax2.hist(Erad_den, bins = bins_radE, weights = weight_rad, color = colors[i], alpha = alphas[i], label = f'check = {check}')
         ax3.hist(np.abs(orb_en_onmass_bound), bins = bins_neg_orbE, weights = weight_orb, color = colors[i], alpha = alphas[i], label = f'check = {check}')
         ax4.set_axis_off()
 
@@ -288,7 +288,7 @@ if do_Ehist:
     if y_value == 'energy':
         ax1.set_ylabel(r'Energy', fontsize = 16)
         ax2.set_ylabel(r'Energy', fontsize = 16)
-        ax3.set_ylabel(r'|Energy|', fontsize = 16)
+        ax3.set_ylabel(r'$|$Energy$|$', fontsize = 16)
     elif y_value == 'mass':
         ax1.set_ylabel(r'Mass', fontsize = 16)
         ax2.set_ylabel(r'Mass', fontsize = 16)
