@@ -4,7 +4,6 @@ sys.path.append('/Users/paolamartire/shocks')
 from Utilities.isalice import isalice
 alice, plot = isalice()
 import numpy as np
-import numba
 import matplotlib.pyplot as plt
 import matplotlib
 from Utilities.operators import make_tree, radial_caster
