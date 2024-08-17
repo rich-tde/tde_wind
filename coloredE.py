@@ -40,6 +40,7 @@ check = 'Low'
 # 
 save = False
 snaps = select_snap(m, check, mstar, Rstar, beta, n) #[100,115,164,199,216]
+print(snaps)
 
 Mbh = 10**m
 Rs = 2*G*Mbh / c**2
