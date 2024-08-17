@@ -25,6 +25,7 @@ Rsol = 7e8 #6.957e8 # m
 t = np.sqrt(Rsol**3 / (Msol*G_SI ))
 c = 3e8 / (7e8/t)
 
+#
 ## PARAMETERS STAR AND BH
 #
 m = 4
@@ -35,6 +36,9 @@ Rstar = .47
 n = 1.5
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
 check = 'Low'
+
+# 
+save = True
 snaps = [100,115,164,199,216]
 
 Mbh = 10**m
@@ -46,7 +50,7 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
 col_ie = []
 col_Erad = []
-cole_orb_en = []
+col_orb_en = []
 tfb_array = np.zeros(len(snaps))
 for i,snap in enumerate(snaps):
     print(snap)
@@ -57,8 +61,6 @@ for i,snap in enumerate(snaps):
     vel = np.sqrt(np.power(data.VX, 2) + np.power(data.VY, 2) + np.power(data.VZ, 2))
     mass, ie_den, Erad_den = data.Mass, data.IE, data.Erad
     orb_en = orb.orbital_energy(Rsph, vel, mass, G, c, Mbh)
-    # ie = data.IE * data.Vol 
-    # Erad = data.Erad * data.Vol 
     ie_onmass = ie_den / data.Den
     orb_en_onmass = orb_en / mass
     
@@ -75,21 +77,26 @@ for i,snap in enumerate(snaps):
 
     col_ie.append(ie_cast)
     col_Erad.append(Erad_cast)
-    cole_orb_en.append(orb_en_cast)
+    col_orb_en.append(orb_en_cast)
 
-    tfb_array[i] = np.round(tfb, 4)
+    tfb_array[i] = tfb
 
-    # if save:
-    #     if alice:
-    #         np.savetxt(f'{pre}tde_comparison/data/ecc{sim}.txt', colarr)
-    #         np.savetxt(f'{pre}tde_comparison/data/eccdays{sim}.txt', fixdays)
-    #     else:
-    #          with open('data/ecc'+ str(m) + '.txt', 'a') as file:
-    #             for i in range(len(colarr)):
-    #                 file.write('# snap' + ' '.join(map(str, fixes[i])) + '\n')
-    #                 file.write('# Eccentricity \n') 
-    #                 file.write(' '.join(map(str, colarr[i])) + '\n')
-    #             file.close() 
+#%%
+if save:
+    if alice:
+        prepath = f'/data1/martirep/shocks/shock_capturing/'
+    else: 
+        prepath = f'/Users/paolamartire/shocks/'
+    with open(f'{prepath}/data/{folder}/coloredE.txt', 'a') as file:
+        file.write(f'# {folder}_{check} \n#' + ' '.join(map(str, snaps)) + '\n')
+        file.write('# t/tfb \n' + ' '.join(map(str, tfb_array)) + '\n')
+        file.write('# IE/mass \n') 
+        file.write(' '.join(map(str, col_ie)) + '\n')
+        file.write('# Erad/Vol \n')
+        file.write(' '.join(map(str, col_Erad)) + '\n')
+        file.write('# Orbital energy/mass \n')
+        file.write(' '.join(map(str, col_orb_en))+ '\n')
+        file.close() 
 # %% Plotting
 if plot:
     img = plt.pcolormesh(radii, tfb_array, col_ie,
@@ -114,7 +121,7 @@ if plot:
     plt.title('Radiation energy density of time and radius', fontsize=17)
     plt.show()
 
-    img = plt.pcolormesh(radii, tfb_array, cole_orb_en,
+    img = plt.pcolormesh(radii, tfb_array, col_orb_en,
                         cmap='jet')
     cb = plt.colorbar(img)
     cb.set_label(r'E$_{orb}$/Vol', fontsize=14)
