@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/Users/paolamartire/tde_comparison')
+sys.path.append('/Users/paolamartire/shocks')
 
 import Utilities.prelude
 from Utilities.isalice import isalice
