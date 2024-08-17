@@ -11,6 +11,7 @@ from Utilities.operators import make_tree, radial_caster
 import Utilities.sections as sec
 import src.orbits as orb
 from Utilities.time_extractor import days_since_distruption
+from Utilities.selectors import select_snap
 matplotlib.rcParams['figure.dpi'] = 150
 
 
@@ -38,8 +39,8 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
 check = 'Low'
 
 # 
-save = True
-snaps = [100,115,164,199,216]
+save = False
+snaps = select_snap(m, check, mstar, Rstar, beta, n) #[100,115,164,199,216]
 
 Mbh = 10**m
 Rs = 2*G*Mbh / c**2

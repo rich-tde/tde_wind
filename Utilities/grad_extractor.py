@@ -8,7 +8,6 @@ sys.path.append('/Users/paolamartire/shocks')
 from Utilities.isalice import isalice
 alice, plot = isalice()
 from Utilities.operators import make_tree
-from Utilities.gaussian_smoothing import gaussian_smoothing
 
 import numpy as np
 import h5py

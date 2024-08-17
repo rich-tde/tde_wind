@@ -8,25 +8,21 @@ import numpy as np
 import os
 from Utilities.time_extractor import days_since_distruption
 
-def select_prefix(m, check, mstar, rstar, beta, n):
+def select_prefix(m, check, mstar, rstar, beta, n, compton = 'Compton'):
     if alice:
-        prepath = f'/data1/martirep/shocks/shock_capturing/'
+        prepath = f'/home/martirep/data_pi-rossiem/TDE_data/'
+        Mbh = 10**m
+        folder = f'R{rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     else: 
         Mbh = 10**m
         folder = f'R{rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{check}/'
         prepath = f'/Users/paolamartire/shocks/TDE/{folder}'
     return prepath
 
-def select_snap(m, mstar, rstar, check, time = False):
-    pre = select_prefix(m, check, mstar)
-    days = []
+def select_snap(m, check, mstar, rstar, beta, n, compton = 'Compton', time = False):
+    pre = select_prefix(m, check, mstar, rstar, beta, n, compton)
     if alice:
-        if m == 4 and check == 'fid':
-            snapshots = np.arange(683, 1008 + 1, step = 1)
-        if m == 4 and check == 'fid':
-            snapshots = [293,322] #np.arange(110, 322 + 1) 
-        if m == 4 and check == 'S60ComptonHires':
-            snapshots = np.arange(210, 278 + 1)
+        snapshots = np.arange(100, 104)#337 + 1, step = 1)
         # select just the ones that actually exist
         snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}{snap}/snap_{snap}.h5')]
     else:
@@ -35,18 +31,15 @@ def select_snap(m, mstar, rstar, check, time = False):
                 snapshots = [100, 115, 164, 199, 216]
             if check == 'Res20':
                 snapshots = [101, 117, 169]
-    for snap in snapshots:
+    for i,snap in enumerate(snapshots):
         if time:
-            if not alice:
+            days = np.zeros(len(snapshots))
+            if alice:
+                tfb = days_since_distruption(f'{pre}/snap_{snap}.h5', m, mstar, rstar, choose = 'tfb')
+            else:
                 tfb = days_since_distruption(f'{pre}/{snap}.h5', m, mstar, rstar, choose = 'tfb')
-            days.append(tfb)
+            days[i] = tfb
             return snapshots, days
         else:
             return snapshots
-
-# Select opacity
-def select_opacity(m):
-    if m==6:
-        return 'cloudy'
-    else:
-        return 'LTE'
+        
