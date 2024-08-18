@@ -39,7 +39,7 @@ def select_snap(m, check, mstar, rstar, beta, n, compton = 'Compton', time = Fal
             else:
                 tfb = days_since_distruption(f'{pre}/{snap}{snap}.h5', m, mstar, rstar, choose = 'tfb')
             days[i] = tfb
-            return snapshots, days
+        return snapshots, days
     else:
         return snapshots
         
