@@ -37,7 +37,7 @@ n = 1.5
 check = 'Low'
 
 # 
-save = False
+save = True
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) #[100,115,164,199,216]
 
 Mbh = 10**m
