@@ -39,7 +39,7 @@ check = 'Low'
 # 
 save = False
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) #[100,115,164,199,216]
-
+print(snaps, tfb)
 Mbh = 10**m
 Rs = 2*G*Mbh / c**2
 Rt = Rstar * (Mbh/mstar)**(1/3)
@@ -76,13 +76,14 @@ for i,snap in enumerate(snaps):
     radii = np.logspace(np.log10(R0), np.log10(apo),
                         num=100)  # simulator units
     ie_cast = radial_caster(radii, R_bound, ie_onmass_bound, weights = mass_bound)
-    Erad_cast = radial_caster(radii, R_bound, Erad_den_bound, weights = vol_bound)
     orb_en_cast = radial_caster(radii, R_bound, orb_en_onmass_bound, weights = mass_bound)
 
     col_ie.append(ie_cast)
-    col_Erad.append(Erad_cast)
     col_orb_en.append(orb_en_cast)
 
+    if not alice:
+        Erad_cast = radial_caster(radii, R_bound, Erad_den_bound, weights = vol_bound)
+        col_Erad.append(Erad_cast)
     # tfb_array[i] = tfb
 tfb_array = np.array(tfb)
 #%%
@@ -96,10 +97,11 @@ if save:
         file.write('# t/tfb \n' + ' '.join(map(str, tfb_array)) + '\n')
         file.write('# IE/mass \n') 
         file.write(' '.join(map(str, col_ie)) + '\n')
-        file.write('# Erad/Vol \n')
-        file.write(' '.join(map(str, col_Erad)) + '\n')
         file.write('# Orbital energy/mass \n')
         file.write(' '.join(map(str, col_orb_en))+ '\n')
+        if not alice:
+            file.write('# Erad/Vol \n')
+            file.write(' '.join(map(str, col_Erad)) + '\n')
         file.close() 
 # %% Plotting
 if plot:
