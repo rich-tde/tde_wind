@@ -38,7 +38,7 @@ check = 'Low'
 
 # 
 save = True
-snaps = select_snap(m, check, mstar, Rstar, beta, n, time = False) #[100,115,164,199,216]
+snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) #[100,115,164,199,216]
 
 Mbh = 10**m
 Rs = 2*G*Mbh / c**2
@@ -60,7 +60,7 @@ for i,snap in enumerate(snaps):
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
         path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
     data = make_tree(path, snap, energy = True)
-    tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+    # tfb_snap = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
     Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))
     vel = np.sqrt(np.power(data.VX, 2) + np.power(data.VY, 2) + np.power(data.VZ, 2))
     mass, ie_den, Erad_den = data.Mass, data.IE, data.Erad
@@ -84,8 +84,8 @@ for i,snap in enumerate(snaps):
     if not alice:
         Erad_cast = radial_caster(radii, R_bound, Erad_den_bound, weights = vol_bound)
         col_Erad.append(Erad_cast)
-    tfb_array[i] = tfb
-# tfb_array = np.array(tfb)
+
+tfb_array = np.array(tfb)
 #%%
 if save:
     if alice:
