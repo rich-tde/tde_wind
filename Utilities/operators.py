@@ -112,7 +112,7 @@ def make_tree(filename, snap, is_tde = True, energy = False):
     Mass = np.load(f'{filename}/Mass_{snap}.npy')
     if energy:
         IE = np.load(f'{filename}/IE_{snap}.npy')
-        Erad = np.load(f'{filename}/Erad_{snap}.npy')
+        Erad = 0#np.load(f'{filename}/Erad_{snap}.npy')
         # convert from energy/mass to energy density
         IE *= Den 
         Erad *= Den
