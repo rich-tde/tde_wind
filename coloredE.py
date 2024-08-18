@@ -55,7 +55,10 @@ col_orb_en = []
 tfb_array = np.zeros(len(snaps))
 for i,snap in enumerate(snaps):
     print(snap)
-    path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
+    if alice:
+        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+    else:
+        path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
     data = make_tree(path, snap, energy = True)
     tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
     Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))

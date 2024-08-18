@@ -35,9 +35,9 @@ def select_snap(m, check, mstar, rstar, beta, n, compton = 'Compton', time = Fal
         if time:
             days = np.zeros(len(snapshots))
             if alice:
-                tfb = days_since_distruption(f'{pre}/snap_{snap}.h5', m, mstar, rstar, choose = 'tfb')
+                tfb = days_since_distruption(f'{pre}/snap_{snap}/snap_{snap}.h5', m, mstar, rstar, choose = 'tfb')
             else:
-                tfb = days_since_distruption(f'{pre}/{snap}.h5', m, mstar, rstar, choose = 'tfb')
+                tfb = days_since_distruption(f'{pre}/{snap}{snap}.h5', m, mstar, rstar, choose = 'tfb')
             days[i] = tfb
             return snapshots, days
         else:
