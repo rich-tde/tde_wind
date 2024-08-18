@@ -31,15 +31,15 @@ def select_snap(m, check, mstar, rstar, beta, n, compton = 'Compton', time = Fal
                 snapshots = [100, 115, 164, 199, 216]
             if check == 'Res20':
                 snapshots = [101, 117, 169]
-    for i,snap in enumerate(snapshots):
-        if time:
-            days = np.zeros(len(snapshots))
+    if time:
+        days = np.zeros(len(snapshots))
+        for i,snap in enumerate(snapshots):
             if alice:
                 tfb = days_since_distruption(f'{pre}/snap_{snap}/snap_{snap}.h5', m, mstar, rstar, choose = 'tfb')
             else:
                 tfb = days_since_distruption(f'{pre}/{snap}{snap}.h5', m, mstar, rstar, choose = 'tfb')
             days[i] = tfb
             return snapshots, days
-        else:
-            return snapshots
+    else:
+        return snapshots
         
