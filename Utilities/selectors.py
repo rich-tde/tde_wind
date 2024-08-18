@@ -24,7 +24,7 @@ def select_snap(m, check, mstar, rstar, beta, n, compton = 'Compton', time = Fal
     if alice:
         snapshots = np.arange(100, 104)#337 + 1, step = 1)
         # select just the ones that actually exist
-        snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/snap_{snap}.h5')]
+        snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/snap_{snap}/snap_{snap}.h5')]
     else:
         if m == 4:
             if check == 'Low' or check == 'HiRes':
