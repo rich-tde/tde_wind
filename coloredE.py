@@ -34,13 +34,11 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
 check = 'Low'
 
 # 
 save = False
-snaps = select_snap(m, check, mstar, Rstar, beta, n) #[100,115,164,199,216]
-print(snaps)
+snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) #[100,115,164,199,216]
 
 Mbh = 10**m
 Rs = 2*G*Mbh / c**2
@@ -56,11 +54,13 @@ tfb_array = np.zeros(len(snaps))
 for i,snap in enumerate(snaps):
     print(snap)
     if alice:
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}Compton'
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
     else:
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
         path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
     data = make_tree(path, snap, energy = True)
-    tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+    # tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
     Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))
     vel = np.sqrt(np.power(data.VX, 2) + np.power(data.VY, 2) + np.power(data.VZ, 2))
     mass, ie_den, Erad_den = data.Mass, data.IE, data.Erad
@@ -83,8 +83,8 @@ for i,snap in enumerate(snaps):
     col_Erad.append(Erad_cast)
     col_orb_en.append(orb_en_cast)
 
-    tfb_array[i] = tfb
-
+    # tfb_array[i] = tfb
+tfb_array = np.array(tfb)
 #%%
 if save:
     if alice:
