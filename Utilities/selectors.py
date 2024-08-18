@@ -13,7 +13,6 @@ def select_prefix(m, check, mstar, rstar, beta, n, compton = 'Compton'):
     if alice:
         folder = f'R{rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
         prepath = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}'
-        print(prepath)
     else: 
         folder = f'R{rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{check}/'
         prepath = f'/Users/paolamartire/shocks/TDE/{folder}'
@@ -22,9 +21,11 @@ def select_prefix(m, check, mstar, rstar, beta, n, compton = 'Compton'):
 def select_snap(m, check, mstar, rstar, beta, n, compton = 'Compton', time = False):
     pre = select_prefix(m, check, mstar, rstar, beta, n, compton)
     if alice:
-        snapshots = np.arange(80, 348 + 1, step = 1)
-        # select just the ones that actually exist
-        snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/snap_{snap}/snap_{snap}.h5')]
+        if m == 4 :
+            if check == 'Low' or check == 'HiRes':
+                snapshots = np.arange(80, 348 + 1, step = 1)
+                # select just the ones that actually exist
+                snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/snap_{snap}/snap_{snap}.h5')]
     else:
         if m == 4:
             if check == 'Low' or check == 'HiRes':
