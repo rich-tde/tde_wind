@@ -21,9 +21,9 @@ check = 'Low'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
 path = f'/Users/paolamartire/shocks/data/{folder}'
-data = np.loadtxt(f'{path}/coloredE_{check}.txt')
-tfb = data[3]
-
+data = np.load(f'{path}/coloredE_.npy')
+col_ie, col_orb_en, col_Rad = data[0], data[1], data[2]
+print(col_Rad)
 Rt = rstar * (Mbh/mstar)**(1/3) # Msol = 1, Rsol = 1
 apocenter = Rt * (Mbh/mstar)**(1/3)
 

@@ -34,7 +34,7 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'HiRes'
+check = 'Low'
 
 # 
 save = True
