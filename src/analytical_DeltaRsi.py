@@ -82,9 +82,13 @@ for i in range(len(m)):
     plt.plot(beta_many, d_Rself/Rsi, c = colors[i], label = f'$10^{m[i]} M_\odot$')
 plt.xlabel(r'$\beta$', fontsize = 18)
 plt.grid()
+plt.xlim(0.5,4)
+plt.ylim(-0.05,0.05)
 plt.ylabel(r'$\Delta R_{SI}/R_{SI}$', fontsize = 18)
 plt.legend(fontsize = 18)
-# plt.savefig('/Users/paolamartire/shocks/Figs/DeltaRsi_beta.png')
+plt.title(f'$M_\star = {mstar}, R_\star = {Rstar}$', fontsize = 18)
+if save:
+    plt.savefig('/Users/paolamartire/shocks/Figs/DeltaRsi_beta.png')
 plt.show()
 
 #%%
@@ -98,8 +102,9 @@ plt.xlabel(r'$\beta$', fontsize = 18)
 plt.grid()
 plt.ylabel(r'$\Delta R_{SI}/R_{SI}$', fontsize = 18)
 plt.legend(fontsize = 10)
-plt.title(r'BH masses: $10^m$', fontsize = 18)
-plt.savefig('/Users/paolamartire/shocks/Figs/DeltaRsi_moreM.png')
+plt.title(r'BH masses: $10^m$, ' + f'$M_\star = {mstar}, R_\star = {Rstar}$', fontsize = 18)
+if save:
+    plt.savefig('/Users/paolamartire/shocks/Figs/DeltaRsi_moreM.png')
 plt.show()
 
 #%% Plot each contribution
@@ -109,22 +114,23 @@ for i in range(len(m_more)):
     d_Rself, Rsi, terms = dRsi_dRp(Mbh_more[i], mstar, Rstar, beta_many)
     first_term, second_term, third_term = terms[0], terms[1], terms[2]
     if i%2==0:
-        c = 0
+        col = 0
     else:
-        c = 1
+        col = 1
     r = int(i/2)
-    ax[r][c].plot(beta_many, first_term, c = colors_term[0], label = 'first term')
-    ax[r][c].plot(beta_many, second_term, c = colors_term[1], label = 'second term')
-    ax[r][c].plot(beta_many, third_term, c = colors_term[2], label = 'third term')
-    ax[r][c].set_title(f'm = {m_more[i]}')
-    ax[r][c].set_ylim(-120,210)
+    ax[r][col].plot(beta_many, first_term, c = colors_term[0], label = 'first term')
+    ax[r][col].plot(beta_many, second_term, c = colors_term[1], label = 'second term')
+    ax[r][col].plot(beta_many, third_term, c = colors_term[2], label = 'third term')
+    ax[r][col].set_title(f'm = {m_more[i]}')
+    ax[r][col].set_ylim(-120,210)
 ax[4][1].axis('off')
 ax[4][0].set_xlabel(r'$\beta$', fontsize = 18)
 ax[3][1].set_xlabel(r'$\beta$', fontsize = 18)
 # ax[4][0].legend()
-plt.suptitle(r'Contribution to $\Delta R_{SI}$ for BH mass = $10^m M_\odot$', fontsize = 18)
+plt.suptitle(r'Contribution to $\Delta R_{SI}$ for BH mass = $10^m M_\odot$' + f'$M_\star = {mstar}, R_\star = {Rstar}$', fontsize = 18)
 plt.tight_layout()
-plt.savefig(f'/Users/paolamartire/shocks/Figs/DeltaRsi_terms_R{Rstar}M{mstar}.png')
+if save:
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/DeltaRsi_terms_R{Rstar}M{mstar}.png')
 plt.show()
 
 #%%
@@ -156,7 +162,7 @@ for i in range(len(beta_Nick)):
 for i in range(len(beta_Nick)):
     dRsiNick_onRsi = np.zeros(len(Mbh_many))
     for k in range(len(Mbh_many)):
-        _, Rsi = DRsi(Mbh_many[k], mstar, Rstar, beta_Nick[i], delta = Rstar)
+        der, Rsi = DRsi(Mbh_many[k], mstar, Rstar, beta_Nick[i], delta = Rstar)
         dr = dRsi_Nick(Mbh_many[k], mstar, Rstar, beta_Nick[i], delta = Rstar)
         dRsiNick_onRsi[k] = dr/Rsi
     ax2.plot(Mbh_many, dRsiNick_onRsi, c = color_Nick[i], linestyle = '--', label = r'$\beta$' + f' = {beta_Nick[i]} Nick')
@@ -166,7 +172,12 @@ ax2.set_ylabel(r'$\Delta R_{SI}/R_{SI}$', fontsize = 18)
 ax2.loglog()
 ax2.grid()
 ax2.legend(fontsize = 12)
-plt.savefig('/Users/paolamartire/shocks/Figs/DeltaRsi_Nick.png')
+plt.suptitle(f'$M_\star = {mstar}, R_\star = {Rstar}$', fontsize = 18)
+if save:
+    plt.savefig('/Users/paolamartire/shocks/Figs/DeltaRsi_Nick.png')
 plt.show()
 
+# %%
+interesteDelta, Rsi = DRsi(1e4, 0.5, 0.47, 1, 0.47)
+print(f'expected Delta Rsi: {interesteDelta}, Rsi: {Rsi}')
 # %%

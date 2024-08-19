@@ -11,21 +11,23 @@ from Utilities.time_extractor import days_since_distruption
 def select_prefix(m, check, mstar, rstar, beta, n, compton = 'Compton'):
     Mbh = 10**m
     if alice:
-        folder = f'R{rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+        folder = f'R{rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         prepath = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}'
     else: 
-        folder = f'R{rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{check}/'
+        folder = f'R{rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{check}'
         prepath = f'/Users/paolamartire/shocks/TDE/{folder}'
     return prepath
 
 def select_snap(m, check, mstar, rstar, beta, n, compton = 'Compton', time = False):
+    if alice:
+        if check == 'Low':
+            check = ''
     pre = select_prefix(m, check, mstar, rstar, beta, n, compton)
     if alice:
         if m == 4 :
-            if check == 'Low' or check == 'HiRes':
-                snapshots = np.arange(80, 348 + 1, step = 1)
-                # select just the ones that actually exist
-                snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/snap_{snap}/snap_{snap}.h5')]
+            snapshots = np.arange(80, 348 + 1, step = 1)
+            # select just the ones that actually exist
+            snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/snap_{snap}/snap_{snap}.h5')]
     else:
         if m == 4:
             if check == 'Low' or check == 'HiRes':

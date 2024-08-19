@@ -16,64 +16,71 @@ Mbh = 10**m
 beta = 1
 mstar = .5
 Rstar = .47
-n = 1.5
-check = 'Low' 
+n = 1.5 
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
 path = f'/Users/paolamartire/shocks/data/{folder}'
-data = np.load(f'{path}/coloredE_.npy')
-col_ie, col_orb_en, col_Rad = data[0], data[1], data[2]
-print(col_Rad)
-Rt = rstar * (Mbh/mstar)**(1/3) # Msol = 1, Rsol = 1
-apocenter = Rt * (Mbh/mstar)**(1/3)
+tfb = np.loadtxt(f'{path}/coloredE_days.txt')
+dataLow = np.load(f'{path}/coloredE_HiRes.npy')
+dataMiddle = np.load(f'{path}/coloredE_.npy')
+col_ie, col_orb_en, col_Rad = dataLow[0], dataLow[1], dataLow[2]
+col_ie2, col_orb_en2, col_Rad2 = dataMiddle[0], dataMiddle[1], dataMiddle[2]
 
-radii_start = np.log10(0.4*Rt)
-radii_stop = np.log10(apocenter) # apocenter
-radii = np.logspace(radii_start, radii_stop, 100) / apocenter
-# radii4 = np.linspace(0.2*2*Rt4, apocenter, 100) 
+Rt = Rstar * (Mbh/mstar)**(1/3)
+apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
-#diff = np.abs(ecc[:len(ecc2)] - ecc2)
+radii_start = np.log10(0.6*Rt)
+radii_stop = np.log10(apo) # apocenter
+radii = np.logspace(radii_start, radii_stop, 100) / apo
+
+diff = np.abs(dataLow - dataMiddle)
 #%%
-fig, ax = plt.subplots(1,1, figsize = (4,4))
+fig, ax = plt.subplots(2,3, figsize = (12,6))
+# Low
+img = ax[0][0].pcolormesh(radii, tfb, col_ie,
+                     cmap = 'cet_rainbow4')#, vmin = 0, vmax = 1)
+cb = fig.colorbar(img)
+cb.set_label('IE/Mass', fontsize = 14, labelpad = 5)
+ax[0][0].set_xscale('log')
 
-img1 = ax.pcolormesh(radii, days, ecc,
-                     cmap = 'cet_rainbow4', vmin = 0, vmax = 1)
+img = ax[0][1].pcolormesh(radii, tfb, col_orb_en,
+                     cmap = 'cet_rainbow4')#, vmin = 0, vmax = 1)
+cb = fig.colorbar(img)
+cb.set_label(r'E$_{orb}$/Mass', fontsize = 14, labelpad = 5)
+ax[0][1].set_xscale('log')
 
+img = ax[0][2].pcolormesh(radii, tfb, col_Rad,
+                     cmap = 'cet_rainbow4')#, vmin = 0, vmax = 1)
+cb = fig.colorbar(img)
+cb.set_label(r'E$_{rad}$/Vol', fontsize = 14, labelpad = 5)
+ax[0][2].set_xscale('log')
 
-cb = fig.colorbar(img1)
-cb.set_label('Eccentricity', fontsize = 14, labelpad = 5)
-plt.xscale('log')
-plt.ylim(0.3)
+# Middle
+img = ax[1][0].pcolormesh(radii, tfb, col_ie2,
+                     cmap = 'cet_rainbow4')#, vmin = 0, vmax = 1)
+cb = fig.colorbar(img)
+cb.set_label('IE/Mass', fontsize = 14, labelpad = 5)
+ax[1][0].set_xscale('log')
 
-plt.axvline(Rt/apocenter, c = 'white')
-plt.text(Rt/apocenter + 0.005, 0.5, '$R_\mathrm{T}$', 
-         c = 'white', fontsize = 14)
-# Axis labels
-fig.text(0.5, -0.01, r'r/R$_a$', ha='center', fontsize = 14)
-fig.text(-0.02, 0.5, r' Time / Fallback time $\left[ t/t_{FB} \right]$', va='center', rotation='vertical', fontsize = 14)
+img = ax[1][1].pcolormesh(radii, tfb, col_orb_en2,
+                     cmap = 'cet_rainbow4')#, vmin = 0, vmax = 1)
+cb = fig.colorbar(img)
+cb.set_label(r'E$_{orb}$/Mass', fontsize = 14, labelpad = 5)
+ax[1][1].set_xscale('log')
+
+img = ax[1][2].pcolormesh(radii, tfb, col_Rad2,
+                     cmap = 'cet_rainbow4')#, vmin = 0, vmax = 1)
+cb = fig.colorbar(img)
+cb.set_label(r'E$_{rad}$/Vol', fontsize = 14, labelpad = 5)
+ax[1][2].set_xscale('log')
+for i in range(2):
+    for j in range(3):
+        ax[i][j].axvline(Rt/apo, c = 'white')
+
+# Layout
+ax[0][0].set_ylabel(r't/t$_{fb}$', fontsize = 14)
+ax[1][0].set_ylabel(r't/t$_{fb}$', fontsize = 14)
 ax.tick_params(axis = 'both', which = 'both', direction='in')
-ax.set_title(r'$10^5$ M$_\odot$')
+ax.set_title(r'$10^4$ M$_\odot$')
 
-#%%
-import src.Utilities.prelude as c
-fig, ax = plt.subplots(1,1, figsize = (4,4))
 
-plt.plot(radii, np.abs(ecc2[136] - ecc[136]), 
-         c = 'k', lw = 2, label = f'{days[136]:.2f} t/$t_{{FB}}$')
-plt.plot(radii, np.abs(ecc2[80] - ecc[80]), ls = ':', 
-         c = c.AEK, lw = 2, label = f'{days[80]:.2f} t/$t_{{FB}}$')
-plt.plot(radii, np.abs(ecc2[50] - ecc[50]), ls = ':',
-         c = 'maroon', lw = 2, label = f'{days[50]:.2f} t/$t_{{FB}}$')
-
-plt.xscale('log')
-plt.yscale('log')
-
-# Rt
-plt.axvline(Rt/apocenter, c = 'r', ls = '--')
-plt.text(Rt/apocenter + 0.001, 0.0001, '$R_\mathrm{T}$', 
-         c = 'r', fontsize = 17)
-
-# Labels
-plt.xlabel('Radius [r/$R_\mathrm{a}$]', fontsize = 14)
-plt.ylabel('Eccentricity Difference', fontsize = 14)
-plt.legend()
