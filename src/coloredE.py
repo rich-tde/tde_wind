@@ -91,17 +91,11 @@ if save:
         prepath = f'/data1/martirep/shocks/shock_capturing/'
     else: 
         prepath = f'/Users/paolamartire/shocks/'
-    with open(f'{prepath}/data/{folder}/coloredE_{check}.txt', 'a') as file:
-        file.write(f'# {folder}_{check} \n#' + ' '.join(map(str, snaps)) + '\n')
+    with open(f'{prepath}/data/{folder}/coloredE_{check}days.txt', 'a') as file:
+        file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb_array)) + '\n')
-        file.write('# IE/mass \n') 
-        file.write(' '.join(map(str, col_ie)) + '\n')
-        file.write('# Orbital energy/mass \n')
-        file.write(' '.join(map(str, col_orb_en))+ '\n')
-        if not alice:
-            file.write('# Rad/Vol \n')
-            file.write(' '.join(map(str, col_Rad)) + '\n')
-        file.close() 
+        file.close()
+    np.save(f'{prepath}/data/{folder}/coloredE_{check}.npy', [col_ie, col_orb_en, col_Rad])
 # %% Plotting
 if plot:
     img = plt.pcolormesh(radii, tfb_array, col_ie,

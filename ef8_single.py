@@ -9,22 +9,20 @@ Created on Tue Aug 13 15:50:40 2024
 import numpy as np
 import matplotlib.pyplot as plt
 import colorcet
+import Utilities.prelude
 
-import src.Utilities.prelude
+m = 4
+Mbh = 10**m
+beta = 1
+mstar = .5
+Rstar = .47
+n = 1.5
+check = 'Low' 
 
-rstar = 0.47
-mstar = 0.5
-Mbh = 100000
-extra = 'beta1S60n1.5Compton'
-extra2 = 'beta1S60n1.5ComptonHiRes'
-simname = f'R{rstar}M{mstar}BH{Mbh}{extra}' 
-simname2 = f'R{rstar}M{mstar}BH{Mbh}{extra2}' 
-
-pre = 'data/ef8/'
-ecc = np.loadtxt(f'{pre}ecc{simname}.txt')
-days = np.loadtxt(f'{pre}eccdays{simname}.txt')
-# ecc2 = np.loadtxt(f'{pre}ecc{simname2}.txt')
-# days2 = np.loadtxt(f'{pre}eccdays{simname2}.txt')
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
+path = f'/Users/paolamartire/shocks/data/{folder}'
+data = np.loadtxt(f'{path}/coloredE_{check}.txt')
+tfb = data[3]
 
 Rt = rstar * (Mbh/mstar)**(1/3) # Msol = 1, Rsol = 1
 apocenter = Rt * (Mbh/mstar)**(1/3)
