@@ -33,9 +33,10 @@ def dRsi_dRp(Mbh, mstar, Rstar, beta):
     deriv = first_term + second_term + third_term
     return deriv, Rsi, [first_term, second_term, third_term]
 
-def dRsi(Mbh, mstar, Rstar, beta, delta):
-    dRsi, Rsi, terms = dRsi_dRp(Mbh, mstar, Rstar, beta) * delta
-    return dRsi, Rsi
+def DRsi(Mbh, mstar, Rstar, beta, delta):
+    dRsi_Rp, Rsi, terms = dRsi_dRp(Mbh, mstar, Rstar, beta) 
+    DeltaRsi = np.multiply(dRsi_Rp, delta)
+    return DeltaRsi, Rsi
 
 def dRsi_Nick(Mbh, mstar, Rstar, beta, delta):
     ecc = aRsi.eccentricity(Mbh, mstar, Rstar, beta)
@@ -50,15 +51,16 @@ def dRsi_Nick(Mbh, mstar, Rstar, beta, delta):
         (6*G*Mbh*np.pi*ecc**2 * np.sin(phi_half))/(a*cL*((1 - ecc**2)))**2
     second = second_outside * second_inside
     dRsi_Rp = first - second
-    return dRsi_Rp*delta #dRsi_Rp*delta
+    DeltaRsi = np.multiply(dRsi_Rp, delta)
+    return DeltaRsi
 
 ##
 # MAIN
 ##
 save = False
 
-mstar = 1
-Rstar = 1
+mstar = 0.5
+Rstar = 0.47
 # Plot agains mass
 m = np.arange(4,8)
 Mbh = np.power(10, m)
@@ -74,7 +76,7 @@ beta_many = np.arange(1,10.1,.1)
 
 #%%
 for i in range(len(m)):
-    d_Rself, Rsi = dRsi(Mbh[i], mstar, Rstar, beta_many, delta = Rstar)
+    d_Rself, Rsi = DRsi(Mbh[i], mstar, Rstar, beta_many, delta = Rstar)
     Rp = aRsi.pericentre(Mbh[i], mstar, Rstar, beta_many)
     Rg = aRsi.Rg_analyt(Mbh[i])
     plt.plot(beta_many, d_Rself/Rsi, c = colors[i], label = f'$10^{m[i]} M_\odot$')
@@ -88,7 +90,7 @@ plt.show()
 #%%
 # understand what is the behaviour 
 for i in range(len(m_more)):
-    d_Rself, Rsi = dRsi(Mbh_more[i], mstar, Rstar, beta_many, delta = Rstar)
+    d_Rself, Rsi = DRsi(Mbh_more[i], mstar, Rstar, beta_many, delta = Rstar)
     Rp = aRsi.pericentre(Mbh_more[i], mstar, Rstar, beta_many)
     Rg = aRsi.Rg_analyt(Mbh_more[i])
     plt.plot(beta_many, d_Rself/Rsi, c = colors_more[i], label = f'm = {m_more[i]}')
@@ -115,10 +117,14 @@ for i in range(len(m_more)):
     ax[r][c].plot(beta_many, second_term, c = colors_term[1], label = 'second term')
     ax[r][c].plot(beta_many, third_term, c = colors_term[2], label = 'third term')
     ax[r][c].set_title(f'm = {m_more[i]}')
+    ax[r][c].set_ylim(-120,210)
 ax[4][1].axis('off')
-ax[4][0].legend()
-plt.suptitle(r'BH mass: $10^m M_\odot$', fontsize = 18)
+ax[4][0].set_xlabel(r'$\beta$', fontsize = 18)
+ax[3][1].set_xlabel(r'$\beta$', fontsize = 18)
+# ax[4][0].legend()
+plt.suptitle(r'Contribution to $\Delta R_{SI}$ for BH mass = $10^m M_\odot$', fontsize = 18)
 plt.tight_layout()
+plt.savefig(f'/Users/paolamartire/shocks/Figs/DeltaRsi_terms_R{Rstar}M{mstar}.png')
 plt.show()
 
 #%%
@@ -129,7 +135,7 @@ beta_many_Nick = np.arange(.2,20.1,.1)
 for i in range(len(m)):
     if m[i]<5:
         continue
-    d_Rself, Rsi = dRsi(Mbh[i], mstar, Rstar, beta_many_Nick, delta = Rstar)
+    d_Rself, Rsi = DRsi(Mbh[i], mstar, Rstar, beta_many_Nick, delta = Rstar)
     Rp = aRsi.pericentre(Mbh[i], mstar, Rstar, beta_many_Nick)
     Rg = aRsi.Rg_analyt(Mbh[i])
     ax1.plot(Rp/Rg, d_Rself/Rsi, c = colors[i], label = f'$10^{m[i]} M_\odot$')
@@ -145,12 +151,12 @@ ax1.legend(fontsize = 16)
 beta_Nick = np.array([1,2,4])
 color_Nick = ['purple', 'deepskyblue', 'green']
 for i in range(len(beta_Nick)):
-    d_Rself, Rsi = dRsi(Mbh_many, mstar, Rstar, beta_Nick[i], delta = Rstar)
+    d_Rself, Rsi = DRsi(Mbh_many, mstar, Rstar, beta_Nick[i], delta = Rstar)
     ax2.plot(Mbh_many, d_Rself/Rsi, c = colors_beta[i], label = r'$\beta$' + f' = {beta_Nick[i]}')
 for i in range(len(beta_Nick)):
     dRsiNick_onRsi = np.zeros(len(Mbh_many))
     for k in range(len(Mbh_many)):
-        _, Rsi = dRsi(Mbh_many[k], mstar, Rstar, beta_Nick[i], delta = Rstar)
+        _, Rsi = DRsi(Mbh_many[k], mstar, Rstar, beta_Nick[i], delta = Rstar)
         dr = dRsi_Nick(Mbh_many[k], mstar, Rstar, beta_Nick[i], delta = Rstar)
         dRsiNick_onRsi[k] = dr/Rsi
     ax2.plot(Mbh_many, dRsiNick_onRsi, c = color_Nick[i], linestyle = '--', label = r'$\beta$' + f' = {beta_Nick[i]} Nick')

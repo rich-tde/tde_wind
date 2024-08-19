@@ -10,7 +10,7 @@ from Utilities.operators import make_tree, radial_caster
 import Utilities.sections as sec
 import src.orbits as orb
 from Utilities.time_extractor import days_since_distruption
-from Utilities.selectors import select_snap
+from Utilities.selectors_for_snap import select_snap
 matplotlib.rcParams['figure.dpi'] = 150
 
 

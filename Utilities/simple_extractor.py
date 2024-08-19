@@ -6,9 +6,9 @@ Created on Fri Feb 24 17:06:56 2023
 import sys
 sys.path.append('/Users/paolamartire/shocks')
 
-from Utilities.isalice import isalice
-alice, plot = isalice()
-
+# from Utilities.isalice import isalice
+# alice, plot = isalice()
+alice = False
 import numpy as np
 import h5py
 import os
@@ -77,7 +77,6 @@ def extractor(filename):
             star_data = f[key]['tracers']['Star']
             entropy_data = f[key]['tracers']['Entropy']
             
-
             for i in range(len(rad_data)):
                 X.append(x_data[i])
                 Y.append(y_data[i])
@@ -104,14 +103,14 @@ def extractor(filename):
 # MAIN
 ##
 
-snap = 199
-m = 4
+snap = 310
+m = 6
 Mbh = 10**m
 beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'HiRes'
+check = ''
 if alice:
     prepath = f'/data1/martirep/shocks/shock_capturing/'
 else: 
@@ -119,7 +118,7 @@ else:
 
 path = f'{prepath}/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{check}/{snap}/'
 file = f'{path}snap_{snap}.h5'
-
+print(file)
 X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Entropy = extractor(file)
 
 #%%
