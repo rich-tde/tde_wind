@@ -60,7 +60,6 @@ for i,snap in enumerate(snaps):
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
         path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
     data = make_tree(path, snap, energy = True)
-    # tfb_snap = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
     Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))
     vel = np.sqrt(np.power(data.VX, 2) + np.power(data.VY, 2) + np.power(data.VZ, 2))
     mass, ie_den, Rad_den = data.Mass, data.IE, data.Rad
@@ -77,13 +76,11 @@ for i,snap in enumerate(snaps):
                         num=100)  # simulator units
     ie_cast = radial_caster(radii, R_bound, ie_onmass_bound, weights = mass_bound)
     orb_en_cast = radial_caster(radii, R_bound, orb_en_onmass_bound, weights = mass_bound)
+    Rad_cast = radial_caster(radii, R_bound, Rad_den_bound, weights = vol_bound)
 
     col_ie.append(ie_cast)
     col_orb_en.append(orb_en_cast)
-
-    if not alice:
-        Rad_cast = radial_caster(radii, R_bound, Rad_den_bound, weights = vol_bound)
-        col_Rad.append(Rad_cast)
+    col_Rad.append(Rad_cast)
 
 tfb_array = np.array(tfb)
 #%%
