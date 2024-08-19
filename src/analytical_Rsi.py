@@ -10,7 +10,11 @@ import matplotlib.pyplot as plt
 # CONSTANTS
 ## 
 G = 1
-c = 1
+G_SI = 6.6743e-11
+Msol = 2e30 #1.98847e30 # kg
+Rsol = 7e8 #6.957e8 # m
+t = np.sqrt(Rsol**3 / (Msol*G_SI ))
+c = 3e8 / (7e8/t)
 
 ##
 # FUNCTIONS
@@ -66,43 +70,22 @@ def phi_Rsi(Mbh, mstar, Rstar, beta, Rsi):
     phi = 2 * np.arccos( (a/(a-Rp) * (1 - Rp/Rsi * (2*a-Rp)/a)))    
     return phi
 
-def dRsi_dRp(Mbh, mstar, Rstar, beta):
-    Rp = pericentre(Mbh, mstar, Rstar, beta)
-    a = semimajor_axis(Mbh, mstar, Rstar)
-    phi, Rsi = precession_analyt(Mbh, mstar, Rstar, beta)
-    e = eccentricity(Mbh, mstar, Rstar, beta)
-    first_term = 2*e / (1 - e * np.cos(phi/2))
-    second_term = (Rp * (1+e) *  np.cos(phi/2)) / (a * (1 - e * np.cos(phi/2))**2)
-    third_term = (phi * e**2 * np.sin(phi/2)) / (1 - e * np.cos(phi/2)**2)
-    deriv = first_term - second_term + third_term
-    return deriv, Rsi
+if __name__ == '__main__':
 
-def dRsi(Mbh, mstar, Rstar, beta, delta = 1):
-    dRsi = dRsi_dRp(Mbh, mstar, Rstar, beta) * delta
-    return dRsi
+    save = False
 
+    mstar = 1
+    Rstar = 1
+    # Plot agains mass
+    m = np.arange(4,8)
+    Mbh = np.power(10, m)
+    colors = ['coral', 'purple', 'deepskyblue', 'green']
+    m_many = np.arange(5,7.1,.1)
+    Mbh_many = np.power(10, m_many)
+    beta_oneBH = np.array([1, 2, 4, 8, 16])
+    colors_beta = ['k', 'b', 'yellowgreen', 'orange', 'magenta']
+    beta_many = np.arange(1,10.1,.1)
 
-##
-# MAIN
-##
-
-Rsi = False
-DeltaRsi = True
-
-mstar = 1
-Rstar = 1
-# Plot agains mass
-m = np.arange(4,8)
-Mbh = np.power(10, m)
-colors = ['coral', 'purple', 'deepskyblue', 'green']
-m_many = np.arange(5,8,.1)
-Mbh_many = np.power(10, m_many)
-beta_oneBH = np.array([1, 2, 4, 8, 16])
-colors_beta = ['k', 'b', 'yellowgreen', 'orange', 'magenta']
-beta_many = np.arange(1,10.1,.1)
-#%%
-if Rsi:
-    save = True
     #%% Rsi(phi) test for one BH
     isel = 1
     mass_onebh = Mbh[isel]
@@ -304,37 +287,3 @@ if Rsi:
         plt.savefig('/Users/paolamartire/shocks/Figs/phi_on_Rsi_beta_zoomed.png')
     plt.show()
 
-#%%
-if DeltaRsi:
-    for i in range(len(m)-1):
-        d_Rself, Rsi = dRsi(Mbh[i], mstar, Rstar, beta_many)
-        Rp = pericentre(Mbh[i], mstar, Rstar, beta_many)
-        Rg = Rg_analyt(Mbh[i])
-        plt.plot(beta_many, d_Rself/Rsi, c = colors[i], label = f'$10^{m[i]} M_\odot$')
-    plt.xlabel(r'$\beta$', fontsize = 18)
-    plt.grid()
-    plt.ylabel(r'$\Delta R_{SI}/R_{SI}$', fontsize = 18)
-    plt.legend(fontsize = 18)
-    plt.show()
-
-    for i in range(len(m)):
-        d_Rself, Rsi = dRsi(Mbh[i], mstar, Rstar, beta_many)
-        Rp = pericentre(Mbh[i], mstar, Rstar, beta_many)
-        Rg = Rg_analyt(Mbh[i])
-        plt.plot(Rp/Rg, d_Rself/Rsi, c = colors[i], label = f'$10^{m[i]} M_\odot$')
-    plt.xlabel(r'$\beta$', fontsize = 18)
-    plt.grid()
-    plt.ylabel(r'$\Delta R_{SI}/R_{SI}$', fontsize = 18)
-    plt.legend(fontsize = 18)
-    plt.show()
-
-    for i in range(len(beta_oneBH)):
-        d_Rself, Rsi = dRsi(Mbh_many, mstar, Rstar, beta_oneBH[i])
-        plt.plot(Mbh_many, d_Rself/Rsi, c = colors_beta[i], label = r'$\beta$' + f' = {beta_oneBH[i]}')
-    plt.xlabel(r'$M_{BH}$', fontsize = 18)
-    plt.ylabel(r'$\Delta R_{SI}/R_{SI}$', fontsize = 18)
-    plt.loglog()
-    plt.grid()
-    plt.legend(fontsize = 18)
-    plt.show()
-# %%

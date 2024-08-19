@@ -48,7 +48,7 @@ R0 = 0.6 * Rt
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
 col_ie = []
-col_Erad = []
+col_Rad = []
 col_orb_en = []
 tfb_array = np.zeros(len(snaps))
 for i,snap in enumerate(snaps):
@@ -63,14 +63,14 @@ for i,snap in enumerate(snaps):
     # tfb_snap = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
     Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))
     vel = np.sqrt(np.power(data.VX, 2) + np.power(data.VY, 2) + np.power(data.VZ, 2))
-    mass, ie_den, Erad_den = data.Mass, data.IE, data.Erad
+    mass, ie_den, Rad_den = data.Mass, data.IE, data.Rad
     orb_en = orb.orbital_energy(Rsph, vel, mass, G, c, Mbh)
     ie_onmass = ie_den / data.Den
     orb_en_onmass = orb_en / mass
     
     bound_elements = orb_en < 0
-    R_bound, mass_bound, vol_bound, ie_onmass_bound, Erad_den_bound, orb_en_onmass_bound = \
-            sec.make_slices([Rsph, mass, data.Vol, ie_onmass, Erad_den, orb_en_onmass], bound_elements)
+    R_bound, mass_bound, vol_bound, ie_onmass_bound, Rad_den_bound, orb_en_onmass_bound = \
+            sec.make_slices([Rsph, mass, data.Vol, ie_onmass, Rad_den, orb_en_onmass], bound_elements)
     
     # Cast down to 100 values
     radii = np.logspace(np.log10(R0), np.log10(apo),
@@ -82,8 +82,8 @@ for i,snap in enumerate(snaps):
     col_orb_en.append(orb_en_cast)
 
     if not alice:
-        Erad_cast = radial_caster(radii, R_bound, Erad_den_bound, weights = vol_bound)
-        col_Erad.append(Erad_cast)
+        Rad_cast = radial_caster(radii, R_bound, Rad_den_bound, weights = vol_bound)
+        col_Rad.append(Rad_cast)
 
 tfb_array = np.array(tfb)
 #%%
@@ -100,8 +100,8 @@ if save:
         file.write('# Orbital energy/mass \n')
         file.write(' '.join(map(str, col_orb_en))+ '\n')
         if not alice:
-            file.write('# Erad/Vol \n')
-            file.write(' '.join(map(str, col_Erad)) + '\n')
+            file.write('# Rad/Vol \n')
+            file.write(' '.join(map(str, col_Rad)) + '\n')
         file.close() 
 # %% Plotting
 if plot:
@@ -116,10 +116,10 @@ if plot:
     plt.title('Specific internal energy of time and radius', fontsize=17)
     plt.show()
 
-    img = plt.pcolormesh(radii, tfb_array, col_Erad,
+    img = plt.pcolormesh(radii, tfb_array, col_Rad,
                         cmap='jet')
     cb = plt.colorbar(img)
-    cb.set_label('Erad/Vol', fontsize=14)
+    cb.set_label('Rad/Vol', fontsize=14)
     plt.axvline(Rt, color='black', linestyle='--')
     plt.xscale('log')
     plt.ylabel(r'Time [t/t$_{fb}$]', fontsize=14)
