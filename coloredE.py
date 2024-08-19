@@ -34,7 +34,7 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'Low'
+check = 'HiRes'
 
 # 
 save = True
@@ -54,7 +54,9 @@ tfb_array = np.zeros(len(snaps))
 for i,snap in enumerate(snaps):
     print(snap)
     if alice:
-        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}Compton'
+        if check == 'Low':
+            check = ''
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}Compton{check}'
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
     else:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
@@ -89,7 +91,7 @@ if save:
         prepath = f'/data1/martirep/shocks/shock_capturing/'
     else: 
         prepath = f'/Users/paolamartire/shocks/'
-    with open(f'{prepath}/data/{folder}/coloredE.txt', 'a') as file:
+    with open(f'{prepath}/data/{folder}/coloredE_{check}.txt', 'a') as file:
         file.write(f'# {folder}_{check} \n#' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb_array)) + '\n')
         file.write('# IE/mass \n') 
