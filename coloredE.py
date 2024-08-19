@@ -56,8 +56,8 @@ for i,snap in enumerate(snaps):
     if alice:
         if check == 'Low':
             check = ''
-        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}Compton{check}'
-        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}Compton'
+        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}/snap_{snap}'
     else:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
         path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
@@ -96,6 +96,7 @@ if save:
         file.write('# t/tfb \n' + ' '.join(map(str, tfb_array)) + '\n')
         file.close()
     np.save(f'{prepath}/data/{folder}/coloredE_{check}.npy', [col_ie, col_orb_en, col_Rad])
+    np.save(f'{prepath}/data/{folder}/coloredE_{check}_radii.npy', radii)
 # %% Plotting
 if plot:
     img = plt.pcolormesh(radii, tfb_array, col_ie,
