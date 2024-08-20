@@ -29,6 +29,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
+compton = 'Compton'
 snap = '199'
 
 #
@@ -48,7 +49,8 @@ Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 R0 = 0.6 * Rp
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
+
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 path = f'{abspath}TDE/{folder}{check}/{snap}'
 saving_path = f'{abspath}Figs/{folder}/{check}'
 print(f'We are in: {path}, \nWe save in: {saving_path}')

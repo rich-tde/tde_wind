@@ -12,7 +12,9 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
+compton = 'Compton'
+
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 path = f'Figs/{folder}/multiple/wH'
 output_path = f'Figs/{folder}/movie_wH.mp4'
 

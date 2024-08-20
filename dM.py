@@ -30,8 +30,9 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
+compton = 'Compton'
 
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
 Mbh = 10**m
 Rs = 2*G*Mbh / c**2
@@ -47,10 +48,10 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 # Choose what to do
 cutoffRes20 = True
 print('Cutoff for the highest res (Res20):', cutoffRes20)
-do_dMdE = False
+do_dMdE = True
 compare_resol = False
 compare_times = False
-do_Ehist = True
+do_Ehist = False
 E_in_time = False
 do_dMds = False
 plot = True

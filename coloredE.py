@@ -34,8 +34,10 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'Low'
+check = 'HiRes'
+compton = 'Compton'
 
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 # 
 save = True
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) #[100,115,164,199,216]
@@ -56,10 +58,8 @@ for i,snap in enumerate(snaps):
     if alice:
         if check == 'Low':
             check = ''
-        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}Compton'
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}/snap_{snap}'
     else:
-        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
         path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
     data = make_tree(path, snap, energy = True)
     Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))

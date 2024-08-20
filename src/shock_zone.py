@@ -20,8 +20,8 @@ mstar = .5
 Rstar = .47
 n = 1.5
 check = 'Low' # 'Compton' or 'ComptonHiRes' or 'ComptonRes20'
+compton = 'Compton'
 snap = '115'
-is_tde = True
 
 #
 ## CONSTANTS
@@ -32,7 +32,8 @@ Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 R0 = 0.6 * Rp
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
+
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
 saving_fig = f'Figs/{folder}/{check}'
 

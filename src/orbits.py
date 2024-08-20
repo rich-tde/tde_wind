@@ -379,7 +379,9 @@ if __name__ == '__main__':
     Rstar = .47
     n = 1.5
     check = 'Low'
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
+    compton = 'Compton'
+
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     snap = '101'
     path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
     Rt = Rstar * (Mbh/mstar)**(1/3)

@@ -126,7 +126,7 @@ for i in range(len(m_more)):
 ax[4][1].axis('off')
 ax[4][0].set_xlabel(r'$\beta$', fontsize = 18)
 ax[3][1].set_xlabel(r'$\beta$', fontsize = 18)
-# ax[4][0].legend()
+ax[4][0].legend()
 plt.suptitle(r'Contribution to $\Delta R_{SI}$ for BH mass = $10^m M_\odot$' + f'$M_\star = {mstar}, R_\star = {Rstar}$', fontsize = 18)
 plt.tight_layout()
 if save:
