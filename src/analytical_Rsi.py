@@ -276,14 +276,16 @@ if __name__ == '__main__':
         RsiRa = Rsi/Ra
         ax[int(i/2)][j].scatter(RsiRa[0], phi[0], c = colors_beta[i], marker = 's')
         ax[int(i/2)][j].scatter(RsiRa[-1], phi[-1], c = colors_beta[i], marker = 'o')
-        ax[int(i/2)][j].plot(RsiRa, phi, c = colors_beta[i], label = f'$M = 10^{m[i]} M_\odot$' )
-        ax[int(i/2)][j].title(f'$\beta = {int(beta_oneBH[i])}$')
+        ax[int(i/2)][j].plot(RsiRa, phi, c = colors_beta[i], label = r'$\beta$' + f'= {int(beta_oneBH[i])}' )
+        ax[int(i/2)][j].set_title(r'$\beta$ = ' + f'{int(beta_oneBH[i])}')
         ax[int(i/2)][j].grid()
     ax[1][0].set_xlabel(r'$R_{SI}/R_a$', fontsize = 15)
     ax[1][1].set_xlabel(r'$R_{SI}/R_a$', fontsize = 15)
-    plt.suptitle(f'$M_\star = {mstar} M_\odot,  R_\star = {Rstar} R_\odot$, ' + r'$\beta\in$ [' + f'{np.round(m_many[0], 1)}, {np.round(m_many[-1])}]', fontsize = 18)
+    plt.suptitle(f'$M_\star = {mstar} M_\odot,  R_\star = {Rstar} R_\odot$, ' + r'$M_{BH}=10^mM_\odot, m\in$ [' + f'{np.round(m_many[0], 1)}, {np.round(m_many[-1])}]', fontsize = 18)
     plt.tight_layout()
     if save:
         plt.savefig('/Users/paolamartire/shocks/Figs/phi_on_Rsi_beta_zoomed.png')
     plt.show()
 
+
+# %%

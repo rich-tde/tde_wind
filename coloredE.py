@@ -125,7 +125,7 @@ if plot:
                         cmap='jet')
     cb = plt.colorbar(img)
     cb.set_label(r'E$_{orb}$/Vol', fontsize=14)
-    plt.axvline(Rt, color='black', linestyle='--')
+    plt.axvline(Rt, color='black', linestyle = '--')
     plt.xscale('log')
     plt.ylabel(r'Time [t/t$_{fb}$]', fontsize=14)
     plt.xlabel(r'Radius [$R_{\odot}$]', fontsize=14)

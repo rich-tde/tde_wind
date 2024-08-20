@@ -48,13 +48,13 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 # Choose what to do
 cutoffRes20 = True
 print('Cutoff for the highest res (Res20):', cutoffRes20)
-do_dMdE = True
+do_dMdE = False
 compare_resol = False
 compare_times = False
-do_Ehist = False
+do_Ehist = True
 E_in_time = False
 do_dMds = False
-plot = True
+plot = False
 save = False
 
 #%%
@@ -204,10 +204,10 @@ if do_Ehist:
         data = make_tree(path, snap, energy = True)
         Rsph = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
         vel = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
-        mass, ie_den, Erad_den = data.Mass, data.IE, data.Erad
+        mass, ie_den, Erad_den = data.Mass, data.IE, data.Rad
         ie_onmass = ie_den / data.Den
-        ie = data.IE * data.Vol 
-        Erad = data.Erad * data.Vol 
+        ie = ie_den * data.Vol 
+        Erad = Erad_den * data.Vol 
         orb_en = orb.orbital_energy(Rsph, vel, mass, G, c, Mbh)
         orb_en_onmass = orb_en / mass
 
@@ -215,9 +215,16 @@ if do_Ehist:
         bound_elements = np.logical_and(orb_en < 0, data.X > -1.5* np.abs(apo))
         mass_bound, ie_onmass_bound, orb_en_onmass_bound = \
             sec.make_slices([mass, ie_onmass, orb_en_onmass], bound_elements)
-        ie_den_bound, Erad_den_bound, ie_bound, Erad_bound, orb_en_bound = \
-            sec.make_slices([ie_den, Erad_den, ie, Erad, orb_en], bound_elements)
+        Rsph_bound, ie_den_bound, Erad_den_bound, ie_bound, Erad_bound, orb_en_bound = \
+            sec.make_slices([Rsph, ie_den, Erad_den, ie, Erad, orb_en], bound_elements)
         
+        plt.figure()
+        img = plt.scatter(range(len(ie_onmass_bound[::10_000])), ie_onmass_bound[::10_000], Rsph_bound[::10_000]/apo, cmap = 'jet')
+        cbar = plt.colorbar(img)
+        cbar.set_label('R/$R_a$', fontsize = 16)
+        plt.title(f'{check}, snap {snap}')
+        plt.show()    
+
         energies = [np.sum(ie_bound), np.sum(Erad_bound), np.sum(orb_en_bound), np.sum(ie_bound + Erad_bound + orb_en_bound)]
 
         # with open(f'data/{folder}/boundE_{check}_EradasDen.txt','a') as file:

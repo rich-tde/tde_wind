@@ -59,8 +59,8 @@ def dRsi_Nick(Mbh, mstar, Rstar, beta, delta):
 ##
 save = False
 
-mstar = 0.5
-Rstar = 0.47
+mstar = 1
+Rstar = 1
 # Plot agains mass
 m = np.arange(4,8)
 Mbh = np.power(10, m)
@@ -147,7 +147,7 @@ for i in range(len(m)):
     ax1.plot(Rp/Rg, d_Rself/Rsi, c = colors[i], label = f'$10^{m[i]} M_\odot$')
 ax1.grid()
 ax1.set_xlim(9,81)
-ax1.set_ylim(6e-4, 2)
+ax1.set_ylim(2e-4, 2)
 ax1.set_xlabel(r'$R_p/R_g$', fontsize = 18)
 ax1.set_ylabel(r'$\Delta R_{SI}/R_{SI}$', fontsize = 18)
 ax1.set_yscale('log')
