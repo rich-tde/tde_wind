@@ -12,11 +12,11 @@ import src.analytical_Rsi as aRsi
 # CONSTANTS
 ## 
 G = 1
-G_SI = 6.6743e-11
-Msol = 2e30 #1.98847e30 # kg
-Rsol = 7e8 #6.957e8 # m
+G_SI = 6.674e-11
+Msol = 1.98892e30 #1.98847e30 # kg
+Rsol = 6.955e8 #6.957e8 # m
 t = np.sqrt(Rsol**3 / (Msol*G_SI ))
-c = 3e8 / (7e8/t)
+c = 2.998*1e8 / (Rsol/t)
 
 ##
 # FUNCTIONS
@@ -42,9 +42,10 @@ def dRsi_Nick(Mbh, mstar, Rstar, beta, delta):
     ecc = aRsi.eccentricity(Mbh, mstar, Rstar, beta)
     a = aRsi.semimajor_axis(Mbh, mstar, Rstar)
     cL = c
-    # phi_mine, _ = aRsi.precession_analyt(Mbh, mstar, Rstar, beta)
-    # phi_half_mine = phi_mine/2
     phi_half = 3*G*Mbh*np.pi/(a*cL**2*(1 - ecc**2))
+    Rsi = a*(1 - ecc**2)/(1 + ecc*np.cos(np.pi - phi_half))
+    # phi_mine, _ = aRsi.precession_analyt(Mbh, mstar, Rstar, beta)
+    # phi_half = phi_mine/2
     first = (2 * ecc)/(1 - ecc* np.cos(phi_half))
     second_outside = a*(1-ecc**2)/(1-ecc*np.cos(phi_half))**2
     second_inside = np.cos(phi_half)/a - \
@@ -52,14 +53,14 @@ def dRsi_Nick(Mbh, mstar, Rstar, beta, delta):
     second = second_outside * second_inside
     dRsi_Rp = first - second
     DeltaRsi = np.multiply(dRsi_Rp, delta)
-    return DeltaRsi
+    return DeltaRsi, Rsi
 
 ##
 # MAIN
 ##
 save = False
 
-mstar = 1
+mstar = 0.5
 Rstar = 1
 # Plot agains mass
 m = np.arange(4,8)
@@ -122,7 +123,8 @@ for i in range(len(m_more)):
     ax[r][col].plot(beta_many, second_term, c = colors_term[1], label = 'second term')
     ax[r][col].plot(beta_many, third_term, c = colors_term[2], label = 'third term')
     ax[r][col].set_title(f'm = {m_more[i]}')
-    ax[r][col].set_ylim(-120,210)
+    ax[r][col].set_ylim(-50,50)
+    ax[r][col].set_xlim(1,2.5)
 ax[4][1].axis('off')
 ax[4][0].set_xlabel(r'$\beta$', fontsize = 18)
 ax[3][1].set_xlabel(r'$\beta$', fontsize = 18)
@@ -137,25 +139,25 @@ plt.show()
 # Nick's plot
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (20,8))
 # With respect to Rp/Rg
-beta_many_Nick = np.arange(.2,20.1,.1)
+beta_many_Nick = np.arange(.05,20.1,.1)
 for i in range(len(m)):
     if m[i]<5:
         continue
     d_Rself, Rsi = DRsi(Mbh[i], mstar, Rstar, beta_many_Nick, delta = Rstar)
     Rp = aRsi.pericentre(Mbh[i], mstar, Rstar, beta_many_Nick)
     Rg = aRsi.Rg_analyt(Mbh[i])
-    ax1.plot(Rp/Rg, d_Rself/Rsi, c = colors[i], label = f'$10^{m[i]} M_\odot$')
+    ax1.plot(Rp[d_Rself>0]/Rg, d_Rself[d_Rself>0]/Rsi[d_Rself>0], c = colors[i], label = f'$10^{m[i]} M_\odot$')
 ax1.grid()
-ax1.set_xlim(9,81)
-ax1.set_ylim(2e-4, 2)
+ax1.set_xlim(9,201)
+ax1.set_ylim(1e-6, 2)
 ax1.set_xlabel(r'$R_p/R_g$', fontsize = 18)
 ax1.set_ylabel(r'$\Delta R_{SI}/R_{SI}$', fontsize = 18)
 ax1.set_yscale('log')
-ax1.text(40, 1e-3, r'$\beta$ '+'from 0.2 (right)\nto 20 (left)', fontsize = 16)
+ax1.text(40, 1e-5, r'$\beta$ '+'from 0.2 (right)\nto 20 (left)', fontsize = 16)
 ax1.legend(fontsize = 16)
 # With respect to Mbh
 beta_Nick = np.array([1,2,4])
-color_Nick = ['purple', 'deepskyblue', 'green']
+color_Nick = ['orchid', 'deepskyblue', 'green']
 for i in range(len(beta_Nick)):
     d_Rself, Rsi = DRsi(Mbh_many, mstar, Rstar, beta_Nick[i], delta = Rstar)
     ax2.plot(Mbh_many, d_Rself/Rsi, c = colors_beta[i], label = r'$\beta$' + f' = {beta_Nick[i]}')
@@ -163,10 +165,10 @@ for i in range(len(beta_Nick)):
     dRsiNick_onRsi = np.zeros(len(Mbh_many))
     for k in range(len(Mbh_many)):
         der, Rsi = DRsi(Mbh_many[k], mstar, Rstar, beta_Nick[i], delta = Rstar)
-        dr = dRsi_Nick(Mbh_many[k], mstar, Rstar, beta_Nick[i], delta = Rstar)
-        dRsiNick_onRsi[k] = dr/Rsi
+        dr, rsi_nick = dRsi_Nick(Mbh_many[k], mstar, Rstar, beta_Nick[i], delta = Rstar)
+        dRsiNick_onRsi[k] = dr/rsi_nick
     ax2.plot(Mbh_many, dRsiNick_onRsi, c = color_Nick[i], linestyle = '--', label = r'$\beta$' + f' = {beta_Nick[i]} Nick')
-ax2.text(2e5,1e-4, 'The differenece is due to \nthe definition of $\Phi$', fontsize = 16)
+ax2.text(2e5,1e-5, 'The differenece is due to \nthe definition of $\Phi$', fontsize = 16)
 ax2.set_xlabel(r'$M_{BH}$', fontsize = 18)
 ax2.set_ylabel(r'$\Delta R_{SI}/R_{SI}$', fontsize = 18)
 ax2.loglog()

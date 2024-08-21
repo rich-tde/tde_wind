@@ -5,6 +5,7 @@ import numpy as np
 import Utilities.prelude
 from Utilities.basic_units import radians
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 
 ##
 # CONSTANTS
@@ -49,7 +50,7 @@ def eccentricity(Mbh, mstar, Rstar, beta):
 
 def Rg_analyt(Mbh):
     """ Gravitational radius of the black hole."""
-    Rg = 2e-6 * Mbh
+    Rg = G * Mbh /c**2
     return Rg
 
 def precession_analyt(Mbh, mstar, Rstar, beta):
@@ -200,10 +201,14 @@ if __name__ == '__main__':
         plt.savefig('/Users/paolamartire/shocks/Figs/Rsi_on_beta.png')
     plt.show()
     #%% phi(Rsi) for fixed masses
+    phi_max = np.zeros_like(m)
+    Rsi_phi_max = np.zeros_like(m)
     for i in range(len(m)):
         Ra = apocentre(Mbh[i], mstar, Rstar, beta_many)
         _, Rsi = precession_analyt(Mbh[i], mstar, Rstar, beta_many)
         phi = phi_Rsi(Mbh[i], mstar, Rstar, beta_many, Rsi)
+        phi_max[i] = phi[-1]
+        Rsi_phi_max[i] = Rsi[-1]
         RsiRa = Rsi/Ra
         plt.scatter(RsiRa[0], phi[0], c = colors[i], marker = 's')
         plt.scatter(RsiRa[-1], phi[-1], c = colors[i], marker = 'o')
@@ -218,6 +223,23 @@ if __name__ == '__main__':
     if save:
         plt.savefig('/Users/paolamartire/shocks/Figs/phi_on_Rsi.png')
     plt.show()
+
+    #%% max phi(Rsi) for fixed masses
+    phi_max = np.array(phi_max)
+    Rsi_phi_max = np.array(Rsi_phi_max)
+    print(phi_max, Rsi_phi_max)
+    plt.figure()
+    img = plt.scatter(Mbh, phi_max*radians, c = Rsi_phi_max, cmap = 'viridis')
+    cbar = plt.colorbar(img)
+    cbar.set_label(r'$R_{SI} [R_\odot]$', fontsize = 15)
+    plt.xscale('log')
+    plt.xlabel(r'$M_{BH}$', fontsize = 15)
+    plt.ylabel(r'$\phi_{max}$ [rad]', fontsize = 15)
+    plt.grid()
+    plt.title(f'$M_\star = {mstar} M_\odot,  R_\star = {Rstar} R_\odot$, ' + r'$\beta\in$ [' + f'{np.round(beta_many[0], 1)}, {np.round(beta_many[-1])}]', fontsize = 18)
+    if save:
+        plt.savefig('/Users/paolamartire/shocks/Figs/phiRsimax.png')
+    plt.show()    
 
     #%% zoom in 
     fig, ax = plt.subplots(int(len(m)/2), 2, figsize = (15, 5))

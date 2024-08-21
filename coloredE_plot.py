@@ -20,7 +20,7 @@ mstar = .5
 Rstar = .47
 n = 1.5 
 compton = 'Compton'
-save = False
+save = True
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 path = f'/Users/paolamartire/shocks/data/{folder}'
@@ -36,12 +36,12 @@ dataLow = np.load(f'{path}/coloredE_Low.npy') #shape (3, len(tfb), len(radii))
 radiiLow = np.load(f'{path}/coloredE_Low_radii.npy')
 radiiLow /=apo
 col_ie, col_orb_en, col_Rad = dataLow[0], dataLow[1], dataLow[2]
-col_ie, col_orb_en, col_Rad = col_ie.T, col_orb_en.T, col_Rad.T
-for i in range(len(col_ie)):
-    col_ie[i] = time_average(tfb_Low, col_ie[i])
-    col_orb_en[i] = time_average(tfb_Low, col_orb_en[i])
-    col_Rad[i] = time_average(tfb_Low, col_Rad[i])
-col_ie, col_orb_en, col_Rad = col_ie.T, col_orb_en.T, col_Rad.T
+# col_ie, col_orb_en, col_Rad = col_ie.T, col_orb_en.T, col_Rad.T
+# for i in range(len(col_ie)):
+#     col_ie[i] = time_average(tfb_Low, col_ie[i])
+#     col_orb_en[i] = time_average(tfb_Low, col_orb_en[i])
+#     col_Rad[i] = time_average(tfb_Low, col_Rad[i])
+# col_ie, col_orb_en, col_Rad = col_ie.T, col_orb_en.T, col_Rad.T
 abs_col_orb_en = np.abs(col_orb_en)
 
 # Middle data
@@ -51,12 +51,12 @@ dataMiddle = np.load(f'{path}/coloredE_HiRes.npy')
 radiiMiddle = np.load(f'{path}/coloredE_HiRes_radii.npy')
 radiiMiddle /=apo
 col_ieMiddle, col_orb_enMiddle, col_RadMiddle = dataMiddle[0], dataMiddle[1], dataMiddle[2]
-col_ieMiddle, col_orb_enMiddle, col_RadMiddle = col_ieMiddle.T, col_orb_enMiddle.T, col_RadMiddle.T
-for i in range(len(col_ieMiddle)):  
-    col_ieMiddle[i] = time_average(tfb_Middle, col_ieMiddle[i])
-    col_orb_enMiddle[i] = time_average(tfb_Middle, col_orb_enMiddle[i])
-    col_RadMiddle[i] = time_average(tfb_Middle, col_RadMiddle[i])
-col_ieMiddle, col_orb_enMiddle, col_RadMiddle = col_ieMiddle.T, col_orb_enMiddle.T, col_RadMiddle.T
+# col_ieMiddle, col_orb_enMiddle, col_RadMiddle = col_ieMiddle.T, col_orb_enMiddle.T, col_RadMiddle.T
+# for i in range(len(col_ieMiddle)):  
+#     col_ieMiddle[i] = time_average(tfb_Middle, col_ieMiddle[i])
+#     col_orb_enMiddle[i] = time_average(tfb_Middle, col_orb_enMiddle[i])
+#     col_RadMiddle[i] = time_average(tfb_Middle, col_RadMiddle[i])
+# col_ieMiddle, col_orb_enMiddle, col_RadMiddle = col_ieMiddle.T, col_orb_enMiddle.T, col_RadMiddle.T
 abs_col_orb_enMiddle = np.abs(col_orb_enMiddle)
 
 # Consider Low data only up to the time of the Middle data
@@ -121,7 +121,7 @@ plt.tick_params(axis = 'both', which = 'both', direction='in')
 plt.suptitle(r'$M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$', fontsize = 18)
 plt.tight_layout()
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/coloredE_timeavg.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/coloredE.png')
 plt.show()
 
 
@@ -138,7 +138,7 @@ cb.set_label(r'$\log_{10}\Delta|$IE/Mass$|$', fontsize = 14, labelpad = 5)
 ax[0].set_xscale('log')
 
 img = ax[1].pcolormesh(radiiMiddle, tfb_Middle, diff_orb_en, norm=colors.LogNorm(vmin=diff_orb_en.min(), vmax=diff_orb_en.max()),
-                     cmap = 'bwr')#, vmin = 0, vmax = 1)
+                     cmap = 'bwr')#, vmin = 7e-7, vmax = 4e2)
 cb = fig.colorbar(img)
 cb.set_label(r'$\log_{10}\Delta|E_{orb}/$Mass$|$', fontsize = 14, labelpad = 5)
 ax[1].set_xscale('log')
@@ -161,7 +161,7 @@ plt.tick_params(axis = 'both', which = 'both', direction='in')
 plt.suptitle(r'$M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$', fontsize = 18)
 plt.tight_layout()
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/coloredE_diff_timeavg.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/coloredE_diff.png')
 plt.show()
 
 ######################
@@ -201,5 +201,5 @@ plt.tick_params(axis = 'both', which = 'both', direction='in')
 plt.suptitle(r'$M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$', fontsize = 18)
 plt.tight_layout()
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/coloredE_relative_diff_timeavg.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/coloredE_relative_diff.png')
 plt.show()
