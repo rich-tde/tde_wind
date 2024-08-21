@@ -10,11 +10,10 @@ from Utilities.time_extractor import days_since_distruption
 
 def select_prefix(m, check, mstar, rstar, beta, n, compton = 'Compton'):
     Mbh = 10**m
+    folder = f'R{rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     if alice:
-        folder = f'R{rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         prepath = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}'
     else: 
-        folder = f'R{rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{check}'
         prepath = f'/Users/paolamartire/shocks/TDE/{folder}'
     return prepath
 
@@ -40,7 +39,7 @@ def select_snap(m, check, mstar, rstar, beta, n, compton = 'Compton', time = Fal
             if alice:
                 tfb = days_since_distruption(f'{pre}/snap_{snap}/snap_{snap}.h5', m, mstar, rstar, choose = 'tfb')
             else:
-                tfb = days_since_distruption(f'{pre}/{snap}{snap}.h5', m, mstar, rstar, choose = 'tfb')
+                tfb = days_since_distruption(f'{pre}/{snap}/snap_{snap}.h5', m, mstar, rstar, choose = 'tfb')
             days[i] = tfb
         return snapshots, days
     else:

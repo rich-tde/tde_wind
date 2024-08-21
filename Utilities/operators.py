@@ -168,12 +168,21 @@ def radial_caster(radii, R, tocast, weights):
     gridded_tocast = np.zeros((len(radii)))
     gridded_weights = np.zeros((len(radii)))
     R = R.reshape(-1, 1) # Reshaping to 2D array with one column
+    # print(np.sort(R[R<50]))
     tree = KDTree(R) 
     for i in range(len(radii)):
         radius = np.array([radii[i]]).reshape(1, -1) # reshape to match the tree
-        indices = tree.query_ball_point(radius, 1)
-        # check if indeces is empty
-        if len(indices)<2:
+        if i == 0:
+            width = radii[1] - radii[0]
+        elif i == len(radii)-1:
+            width = radii[-1] - radii[-2]
+        else:
+            width = (radii[i+1] - radii[i-1])/2
+        width *= 2 # make it slightly bigger to smooth things
+        indices = tree.query_ball_point(radius, width)
+        indices = np.concatenate(indices)
+        # check if the number of columns of indeces is less than 2
+        if len(indices) <2 :
             _, idx = tree.query(radii[i], k=2)
             indices = np.array(idx)
         indices = [int(idx) for idx in indices]

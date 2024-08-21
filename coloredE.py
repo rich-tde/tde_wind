@@ -33,7 +33,7 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'HiRes'
+check = 'Low'
 compton = 'Compton'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
@@ -63,21 +63,22 @@ for i,snap in enumerate(snaps):
     data = make_tree(path, snap, energy = True)
     Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))
     vel = np.sqrt(np.power(data.VX, 2) + np.power(data.VY, 2) + np.power(data.VZ, 2))
-    mass, ie_den, Rad_den = data.Mass, data.IE, data.Rad
+    mass, vol, ie_den, Rad_den = data.Mass, data.Vol, data.IE, data.Rad
     orb_en = orb.orbital_energy(Rsph, vel, mass, G, c, Mbh)
+    dim_cell = (3/(4*np.pi) * vol)**(1/3)
     ie_onmass = ie_den / data.Den
     orb_en_onmass = orb_en / mass
     
-    bound_elements = orb_en < 0
-    R_bound, mass_bound, vol_bound, ie_onmass_bound, Rad_den_bound, orb_en_onmass_bound = \
-            sec.make_slices([Rsph, mass, data.Vol, ie_onmass, Rad_den, orb_en_onmass], bound_elements)
+    # bound_elements = orb_en < 0
+    # R_bound, mass_bound, vol_bound, ie_onmass_bound, Rad_den_bound, orb_en_onmass_bound = \
+    #         sec.make_slices([Rsph, mass, vol, ie_onmass, Rad_den, orb_en_onmass], bound_elements)
     
     # Cast down to 100 values
     radii = np.logspace(np.log10(R0), np.log10(apo),
                         num=100)  # simulator units
-    ie_cast = radial_caster(radii, R_bound, ie_onmass_bound, weights = mass_bound)
-    orb_en_cast = radial_caster(radii, R_bound, orb_en_onmass_bound, weights = mass_bound)
-    Rad_cast = radial_caster(radii, R_bound, Rad_den_bound, weights = vol_bound)
+    ie_cast = radial_caster(radii, Rsph, ie_onmass, weights = mass)
+    orb_en_cast = radial_caster(radii, Rsph, orb_en_onmass, weights = mass)
+    Rad_cast = radial_caster(radii, Rsph, Rad_den, weights = vol)
 
     col_ie.append(ie_cast)
     col_orb_en.append(orb_en_cast)
