@@ -69,47 +69,55 @@ col_Rad = col_Rad[:n_Middle]
 #%%
 fig, ax = plt.subplots(2,3, figsize = (12,6))
 # Low
-img = ax[0][0].pcolormesh(radiiLow, tfb_Low, col_ie,  norm=colors.LogNorm(vmin=col_ie.min(), vmax=col_ie.max()),
-                     cmap = 'cet_rainbow4')#, vmin = 0, vmax = 1)
+img = ax[0][0].pcolormesh(radiiLow, tfb_Low, col_ie,  norm=colors.LogNorm(vmin=1e-2, vmax=1),
+                     cmap = 'cet_rainbow4')
 cb = fig.colorbar(img)
 cb.set_label(r'$\log_{10}$IE/Mass', fontsize = 14, labelpad = 5)
-ax[0][0].set_xscale('log')
+ax[0][0].set_title('Low resolution', fontsize = 14)
 
-img = ax[0][1].pcolormesh(radiiLow, tfb_Low, abs_col_orb_en, norm=colors.LogNorm(vmin=abs_col_orb_en.min(), vmax=abs_col_orb_en.max()),
-                     cmap = 'cet_rainbow4')#, vmin = 0, vmax = 1)
+img = ax[0][1].pcolormesh(radiiLow, tfb_Low, abs_col_orb_en, norm=colors.LogNorm(vmin=10, vmax=110),
+                     cmap = 'cet_rainbow4')
 cb = fig.colorbar(img)
 cb.set_label(r'$\log_{10}|E_{orb}|$/Mass', fontsize = 14, labelpad = 5)
 ax[0][1].set_xscale('log')
-ax[0][1].set_title('Low resolution', fontsize = 14)
 
-img = ax[0][2].pcolormesh(radiiLow, tfb_Low, col_Rad, norm=colors.LogNorm(vmin=col_Rad.min(), vmax=col_Rad.max()),
+img = ax[0][2].pcolormesh(radiiLow, tfb_Low, col_Rad, norm=colors.LogNorm(vmin=1e-10, vmax=5e-8),
                      cmap = 'cet_rainbow4')#, vmin = 0, vmax = 1)
 cb = fig.colorbar(img)
 cb.set_label(r'$\log_{10}E_{rad}$/Vol', fontsize = 14, labelpad = 5)
 ax[0][2].set_xscale('log')
 
 # Middle
-img = ax[1][0].pcolormesh(radiiMiddle, tfb_Middle, col_ieMiddle, norm=colors.LogNorm(vmin=col_ieMiddle.min(), vmax=col_ieMiddle.max()),
-                     cmap = 'cet_rainbow4')#, vmin = 0, vmax = 1)
+img = ax[1][0].pcolormesh(radiiMiddle, tfb_Middle, col_ieMiddle, norm=colors.LogNorm(vmin=1e-2, vmax=1),
+                     cmap = 'cet_rainbow4')
 cb = fig.colorbar(img)
 cb.set_label('IE/Mass', fontsize = 14, labelpad = 5)
 ax[1][0].set_xscale('log')
+ax[1][0].set_title('Middle resolution', fontsize = 14)
 
-img = ax[1][1].pcolormesh(radiiMiddle, tfb_Middle, abs_col_orb_enMiddle,  norm=colors.LogNorm(vmin=abs_col_orb_enMiddle.min(), vmax=abs_col_orb_enMiddle.max()),
-                     cmap = 'cet_rainbow4')#, vmin = 0, vmax = 1)
+img = ax[1][1].pcolormesh(radiiMiddle, tfb_Middle, abs_col_orb_enMiddle,  norm=colors.LogNorm(vmin=10, vmax=120),
+                     cmap = 'cet_rainbow4')
 cb = fig.colorbar(img)
 cb.set_label(r'$|E_{orb}|$/Mass', fontsize = 14, labelpad = 5)
 ax[1][1].set_xscale('log')
-ax[1][1].set_title('Middle resolution', fontsize = 14)
 
-img = ax[1][2].pcolormesh(radiiMiddle, tfb_Middle, col_RadMiddle,  norm=colors.LogNorm(vmin=col_RadMiddle.min(), vmax=col_RadMiddle.max()),
-                     cmap = 'cet_rainbow4')#, vmin = 0, vmax = 1)
+img = ax[1][2].pcolormesh(radiiMiddle, tfb_Middle, col_RadMiddle,  norm=colors.LogNorm(vmin=1e-10, vmax=5e-8),
+                     cmap = 'cet_rainbow4')
 cb = fig.colorbar(img)
 cb.set_label(r'E$_{rad}$/Vol', fontsize = 14, labelpad = 5)
 ax[1][2].set_xscale('log')
 for i in range(2):
     for j in range(3):
-        ax[i][j].axvline(Rt/apo, linestyle ='--', c = 'white')
+        ax[i][j].set_ylim(0.3, np.max(tfb_Middle))
+        ax[i][j].axvline(Rt/apo, linestyle ='--', c = 'white', linewidth = 0.8)
+        ax[i][j].axhline(0.5, c = 'white', linewidth = 0.4)
+        ax[i][j].axhline(0.7, c = 'white', linewidth = 0.4)
+
+        # Grid for radii, to be matched with the cfr in slices.py
+        ax[i][j].axvline(0.1, c = 'white', linewidth = 0.4)
+        ax[i][j].axvline(0.3, c = 'white', linewidth = 0.4)
+        ax[i][j].axvline(0.5, c = 'white', linewidth = 0.4)
+        ax[i][j].set_xscale('log')
 
 # Layout
 ax[0][0].set_ylabel(r't/t$_{fb}$', fontsize = 14)
@@ -120,6 +128,9 @@ ax[1][2].set_xlabel(r'$R/R_a$', fontsize = 14)
 plt.tick_params(axis = 'both', which = 'both', direction='in')
 plt.suptitle(r'$M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$', fontsize = 18)
 plt.tight_layout()
+# for i in range(2):
+#     for j in range(3):
+#         ax[i][j].grid()
 if save:
     plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/coloredE.png')
 plt.show()
@@ -131,19 +142,19 @@ diff_orb_en = np.abs(col_orb_en - col_orb_enMiddle)
 diff_Rad = np.abs(col_Rad - col_RadMiddle)
 
 fig, ax = plt.subplots(1,3, figsize = (18,5))
-img = ax[0].pcolormesh(radiiMiddle, tfb_Middle, diff_ie,  norm=colors.LogNorm(vmin=diff_ie.min(), vmax=diff_ie.max()),
+img = ax[0].pcolormesh(radiiMiddle, tfb_Middle, diff_ie,  norm=colors.LogNorm(vmin=1e-3, vmax=10),
                      cmap = 'bwr')#, vmin = 0, vmax = 1)
 cb = fig.colorbar(img)
 cb.set_label(r'$\log_{10}\Delta|$IE/Mass$|$', fontsize = 14, labelpad = 5)
 ax[0].set_xscale('log')
 
-img = ax[1].pcolormesh(radiiMiddle, tfb_Middle, diff_orb_en, norm=colors.LogNorm(vmin=diff_orb_en.min(), vmax=diff_orb_en.max()),
+img = ax[1].pcolormesh(radiiMiddle, tfb_Middle, diff_orb_en, norm=colors.LogNorm(vmin=0.1, vmax=100),
                      cmap = 'bwr')#, vmin = 7e-7, vmax = 4e2)
 cb = fig.colorbar(img)
 cb.set_label(r'$\log_{10}\Delta|E_{orb}/$Mass$|$', fontsize = 14, labelpad = 5)
 ax[1].set_xscale('log')
 
-img = ax[2].pcolormesh(radiiMiddle, tfb_Middle, diff_Rad, norm=colors.LogNorm(vmin=diff_Rad.min(), vmax=diff_Rad.max()),
+img = ax[2].pcolormesh(radiiMiddle, tfb_Middle, diff_Rad, norm=colors.LogNorm(vmin=1e-10, vmax=1e-12),
                      cmap = 'bwr')#, vmin = 0, vmax = 1)
 cb = fig.colorbar(img)
 cb.set_label(r'$\log_{10}\Delta|E_{rad}/$Vol$|$', fontsize = 14, labelpad = 5)

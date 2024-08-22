@@ -1,0 +1,295 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib
+import matplotlib.colors as colors
+from Utilities.basic_units import radians
+from src import orbits as orb
+from Utilities import sections as sec
+from Utilities.operators import make_tree, to_cylindric
+
+from Utilities.time_extractor import days_since_distruption
+abspath = '/Users/paolamartire/shocks/'
+
+##
+# CONSTANTS
+##
+
+G_SI = 6.6743e-11
+Msol = 2e30 #1.98847e30 # kg
+Rsol = 7e8 #6.957e8 # m
+t = np.sqrt(Rsol**3 / (Msol*G_SI ))
+c = 3e8 / (7e8/t)
+G = 1
+
+##
+# PARAMETERS
+##
+m = 4
+Mbh = 10**m
+beta = 1
+mstar = .5
+Rstar = .47
+n = 1.5
+params = [Mbh, Rstar, mstar, beta]
+check = 'Low' # '' or 'HiRes' or 'Res20'
+snap = '164'
+compton = 'Compton'
+
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+path = f'{abspath}TDE/{folder}{check}/{snap}'
+saving_path = f'Figs/{folder}/{check}'
+print(f'We are in: {path}, \nWe save in: {saving_path}')
+
+Rt = Rstar * (Mbh/mstar)**(1/3)
+Rs = 2*G*Mbh / c**2
+R0 = 0.6 * Rt
+Rp =  Rt / beta
+apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
+
+# cfr tidal disruption and at smoothing lenght
+xcfr, ycfr, cfr = orb.make_cfr(Rt)
+xcfr0, ycfr0, cfr0 = orb.make_cfr(R0)
+# cfr for grid
+radii_grid = [Rt, 0.1*apo, 0.3*apo, 0.5*apo, apo] 
+styles = ['--', 'dotted', 'dotted', 'dotted', 'solid']
+xcfr_grid, ycfr_grid, cfr_grid = [], [], []
+for i,radius_grid in enumerate(radii_grid):
+    xcr, ycr, cr = orb.make_cfr(radius_grid)
+    xcfr_grid.append(xcr)
+    ycfr_grid.append(ycr)
+    cfr_grid.append(cr)
+
+#%%
+# DECISIONS
+##
+save = False
+cutoff = 'bound' # or ''
+
+#%%
+# DATA
+##
+
+tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+data = make_tree(path, snap, energy = True)
+x_coord, y_coord, z_coord, mass, den, temp, rad_den, ie_den = \
+    data.X, data.Y, data.Z, data.Mass, data.Den, data.Temp, data.Rad, data.IE
+ie_mass = ie_den/den # internal energy per unit mass
+dim_cell = data.Vol**(1/3) 
+Rsph = np.sqrt(x_coord**2 + y_coord**2 + z_coord**2)
+Vsph = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
+orb_en = orb.orbital_energy(Rsph, Vsph, mass, G, c, Mbh)
+orb_en_mass = orb_en/mass # orbital energy per unit mass
+
+##
+# MAIN
+##
+#%%
+if cutoff == 'bound':
+    cutden = den > 1e-9 # throw fluff
+    cutbound = orb_en < 0 # bound elements
+    cut = cutden & cutbound
+
+    x_coord, y_coord, z_coord, Rsph, dim_cell, mass, den, temp, rad_den, ie_mass, orb_en_mass = \
+        sec.make_slices([x_coord, y_coord, z_coord, Rsph, dim_cell, mass, den, temp, rad_den, ie_mass, orb_en_mass], cut)
+
+THETA, RADIUS_cyl = to_cylindric(x_coord, y_coord)
+#%%
+""" Slice orbital plane """
+midplane = np.abs(z_coord) < dim_cell
+X_midplane, Y_midplane, Z_midplane, dim_midplane, Mass_midplane, Den_midplane, Temp_midplane, Rad_den_midplane, IEmass_midplane, abs_orb_en_mass_midplane = \
+    sec.make_slices([x_coord, y_coord, z_coord, dim_cell, mass, den, temp, rad_den, ie_mass, np.abs(orb_en_mass)], midplane)
+
+#%%
+fig, ax = plt.subplots(1,1, figsize = (12,4))
+img = ax.scatter(X_midplane, Y_midplane, c = np.log10(Den_midplane), s = 1, cmap = 'cet_rainbow4', vmin = -9, vmax = -5)
+cbar = plt.colorbar(img)
+cbar.set_label(r'$\log_{10}$ Density', fontsize = 16)
+ax.scatter(0,0,c= 'k', marker = 'x', s=80)
+# plot cfr
+for i in range(len(radii_grid)):
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+# ax.plot(x_stream, y_stream, c = 'k')
+ax.set_xlim(-400,100)
+ax.set_ylim(-200,200)
+ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
+ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
+plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)))
+if save:
+    plt.savefig(f'{saving_path}/slices/midplaneDen_{snap}{cutoff}.png')
+plt.show()
+
+#%%
+fig, ax = plt.subplots(1,1, figsize = (12,4))
+img = ax.scatter(X_midplane, Y_midplane, c = np.log10(Temp_midplane), s = 1, cmap = 'cet_rainbow4',vmin = 4, vmax = 6.5)
+cbar = plt.colorbar(img)
+cbar.set_label(r'$\log_{10}$ Temp', fontsize = 16)
+ax.scatter(0,0,c= 'k', marker = 'x', s=80)
+# plot cfr
+for i in range(len(radii_grid)):
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+# ax.plot(x_stream, y_stream, c = 'k')
+ax.set_xlim(-400,100)
+ax.set_ylim(-200,200)
+ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
+ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
+plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)))
+if save:
+    plt.savefig(f'{saving_path}/slices/midplaneTemp_{snap}{cutoff}.png')
+plt.show()
+
+#%%
+fig, ax = plt.subplots(1,1, figsize = (12,4))
+img = ax.scatter(X_midplane, Y_midplane, c = IEmass_midplane, s = 1, cmap = 'cet_rainbow4',norm=colors.LogNorm(vmin=1e-2, vmax=1))
+cbar = plt.colorbar(img)
+cbar.set_label(r'$\log_{10}$ specific IE', fontsize = 16)
+ax.scatter(0,0,c= 'k', marker = 'x', s=80)
+# plot cfr
+for i in range(len(radii_grid)):
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+# ax.plot(x_stream, y_stream, c = 'k')
+ax.set_xlim(-400,100)
+ax.set_ylim(-200,200)
+ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
+ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
+plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)))
+if save:
+    plt.savefig(f'{saving_path}/slices/midplaneIE_{snap}{cutoff}.png')
+plt.show()
+
+#%%
+fig, ax = plt.subplots(1,1, figsize = (12,4))
+img = ax.scatter(X_midplane, Y_midplane, c = abs_orb_en_mass_midplane, s = 1, cmap = 'cet_rainbow4', norm=colors.LogNorm(vmin=10, vmax=100))
+cbar = plt.colorbar(img)
+cbar.set_label(r'$\log_{10}$ specific $|E_{orb}|$', fontsize = 16)
+ax.scatter(0,0,c= 'k', marker = 'x', s=80)
+# plot cfr
+for i in range(len(radii_grid)):
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+# ax.plot(x_stream, y_stream, c = 'k')
+ax.set_xlim(-400,100)
+ax.set_ylim(-200,200)
+ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
+ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
+plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)))
+if save:
+    plt.savefig(f'{saving_path}/slices/midplaneEorb_{snap}{cutoff}.png')
+plt.show()
+
+#%%
+fig, ax = plt.subplots(1,1, figsize = (12,4))
+img = ax.scatter(X_midplane, Y_midplane, c = Rad_den_midplane, s = 1, cmap = 'cet_rainbow4',norm=colors.LogNorm(vmin=1e-10, vmax=5e-8))
+cbar = plt.colorbar(img)
+cbar.set_label(r'$\log_{10}$ Rad energy density', fontsize = 16)
+ax.scatter(0,0,c= 'k', marker = 'x', s=80)
+# plot cfr
+for i in range(len(radii_grid)):
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+# ax.plot(x_stream, y_stream, c = 'k')
+ax.set_xlim(-400,100)
+ax.set_ylim(-200,200)
+ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
+ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
+plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)))
+if save:
+    plt.savefig(f'{saving_path}/slices/midplaneRad_{snap}{cutoff}.png')
+plt.show()
+
+#%%
+""" Radial slices"""
+thetas = [-np.pi, -3/4*np.pi, -np.pi/2, -np.pi/4, 0, np.pi/4, np.pi/2, 3/4*np.pi, np.pi]
+# Visualize the chosen thetas for the slies
+fig, ax = plt.subplots(1,1, figsize = (12,4))
+img = ax.scatter(X_midplane, Y_midplane, c = np.log10(Den_midplane), s = 1, cmap = 'cet_rainbow4', vmin = -9, vmax = -5)
+cbar = plt.colorbar(img)
+cbar.set_label(r'$\log_{10}$ Density', fontsize = 16)
+ax.scatter(0,0,c= 'k', marker = 'x', s=80)
+# drawn radial lines
+for theta in thetas:
+    ax.plot([0, 400*np.cos(theta)],[0, 400*np.sin(theta)], c = 'k', linestyle = '--')
+ax.set_xlim(-400,100)
+ax.set_ylim(-200,200)
+ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
+ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
+plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)) + r'$\theta\in$[' + str(thetas[0]/np.pi) + ',' +str(thetas[-1]/np.pi) + r']$\pi$')
+
+#%%
+theta_chosen = thetas[0]
+radial_slice = np.abs(THETA-theta_chosen) < 0.01
+R_radial, Z_radial, dim_radial, Mass_radial, Den_radial, Temp_radial, Rad_den_radial, IEmass_radial, abs_orb_en_mass_radial = \
+    sec.make_slices([Rsph, z_coord, dim_cell, mass, den, temp, rad_den, ie_mass, np.abs(orb_en_mass)], radial_slice)
+
+#%%
+fig, ax = plt.subplots(1,1, figsize = (12,4))
+img = ax.scatter(R_radial, Z_radial, c = np.log10(Den_radial), s = 1, cmap = 'cet_rainbow4',vmin = -9, vmax = -5)
+cbar = plt.colorbar(img)
+cbar.set_label(r'$\log_{10}$ Density', fontsize = 16)
+ax.scatter(0,0,c= 'k', marker = 'x', s=80)
+# plot cfr
+for i in range(len(radii_grid)):
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+# ax.plot(x_stream, y_stream, c = 'k')
+ax.set_xlim(0,1.2*apo)
+ax.set_ylim(-50,50)
+ax.set_xlabel(r'R [$R_\odot$]', fontsize = 18)
+ax.set_ylabel(r'Z [$R_\odot$]', fontsize = 18)
+plt.title(r'$\theta = $' + str(np.round(theta_chosen/np.pi,1)) + r'$\pi, t/t_{fb}$ = ' + str(np.round(tfb,3)))
+if save:
+    plt.savefig(f'{saving_path}/slices/radial{np.round(theta_chosen,1)}Den_{snap}{cutoff}.png')
+plt.show()
+
+#%%
+fig, ax = plt.subplots(1,1, figsize = (12,4))
+img = ax.scatter(R_radial, Z_radial, c = IEmass_radial, s = 1, cmap = 'cet_rainbow4',norm=colors.LogNorm(vmin=1e-2, vmax=1))
+cbar = plt.colorbar(img)
+cbar.set_label(r'$\log_{10}$ specific IE', fontsize = 16)
+ax.scatter(0,0,c= 'k', marker = 'x', s=80)
+# plot cfr
+for i in range(len(radii_grid)):
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+# ax.plot(x_stream, y_stream, c = 'k')
+ax.set_xlim(0,1.2*apo)
+ax.set_ylim(-50,50)
+ax.set_xlabel(r'R [$R_\odot$]', fontsize = 18)
+ax.set_ylabel(r'Z [$R_\odot$]', fontsize = 18)
+plt.title(r'$\theta = $' + str(np.round(theta_chosen/np.pi,1)) + r'$\pi, t/t_{fb}$ = ' + str(np.round(tfb,3)))
+if save:
+    plt.savefig(f'{saving_path}/slices/radial{np.round(theta_chosen,1)}IE_{snap}{cutoff}.png')
+plt.show()
+
+#%%
+fig, ax = plt.subplots(1,1, figsize = (12,4))
+img = ax.scatter(R_radial, Z_radial, c = abs_orb_en_mass_radial, s = 1, cmap = 'cet_rainbow4', norm=colors.LogNorm(vmin=10, vmax=110))
+cbar = plt.colorbar(img)
+cbar.set_label(r'$\log_{10}$ specific $|E_{orb}|$', fontsize = 16)
+ax.scatter(0,0,c= 'k', marker = 'x', s=80)
+# plot cfr
+for i in range(len(radii_grid)):
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+# ax.plot(x_stream, y_stream, c = 'k')
+ax.set_xlim(0,1.2*apo)
+ax.set_ylim(-50,50)
+ax.set_xlabel(r'R [$R_\odot$]', fontsize = 18)
+ax.set_ylabel(r'Z [$R_\odot$]', fontsize = 18)
+plt.title(r'$\theta = $' + str(np.round(theta_chosen/np.pi,1)) + r'$\pi, t/t_{fb}$ = ' + str(np.round(tfb,3)))
+if save:
+    plt.savefig(f'{saving_path}/slices/radial{np.round(theta_chosen,1)}Eorb_{snap}{cutoff}.png')
+plt.show()
+
+#%%
+fig, ax = plt.subplots(1,1, figsize = (12,4))
+img = ax.scatter(R_radial, Z_radial, c = Rad_den_radial, s = 1, cmap = 'cet_rainbow4',norm=colors.LogNorm(vmin=1e-10, vmax=5e-8))
+cbar = plt.colorbar(img)
+cbar.set_label(r'$\log_{10}$ Rad energy density', fontsize = 16)
+ax.scatter(0,0,c= 'k', marker = 'x', s=80)
+# plot cfr
+for i in range(len(radii_grid)):
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+# ax.plot(x_stream, y_stream, c = 'k')
+ax.set_xlim(0,1.2*apo)
+ax.set_ylim(-50,50)
+ax.set_xlabel(r'R [$R_\odot$]', fontsize = 18)
+ax.set_ylabel(r'Z [$R_\odot$]', fontsize = 18)
+plt.title(r'$\theta = $' + str(np.round(theta_chosen/np.pi,1)) + r'$\pi, t/t_{fb}$ = ' + str(np.round(tfb,3)))
+if save:
+    plt.savefig(f'{saving_path}/slices/radial{np.round(theta_chosen,1)}Rad_{snap}{cutoff}.png')
+plt.show()
