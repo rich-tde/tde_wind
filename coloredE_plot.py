@@ -35,17 +35,18 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 ## DECISIONS
 ##
 save = False
-cutoff = '' # or 'bound or ''
+cutoff = 'cut' # or 'bound or ''
 
 #
 ## DATA
 #
 
 # Low data
-dataLow = np.load(f'{path}/{cutoff}coloredE_Low.npy') #shape (3, len(tfb), len(radii))
-tfb_dataLow = np.loadtxt(f'{path}/{cutoff}coloredE_Low_days.txt')
+dataLow = np.load(f'{path}/{cutoff}TESTboundcoloredE_Low.npy') #shape (3, len(tfb), len(radii))
+tfb_dataLow = np.loadtxt(f'{path}/{cutoff}TESTboundcoloredE_Low_days.txt')
 tfb_Low = tfb_dataLow[1]
-radiiLow = np.load(f'{path}/{cutoff}coloredE_Low_radii.npy')
+radiiLow = np.load(f'{path}/{cutoff}TESTboundcoloredE_Low_radii.npy')
+radiiLowplot = radiiLow
 radiiLow /=apo
 col_ie, col_orb_en, col_Rad = dataLow[0], dataLow[1], dataLow[2]
 # Average over time
@@ -58,10 +59,11 @@ col_ie, col_orb_en, col_Rad = dataLow[0], dataLow[1], dataLow[2]
 abs_col_orb_en = np.abs(col_orb_en)
 
 # Middle data
-dataMiddle = np.load(f'{path}/{cutoff}coloredE_HiRes.npy')
-tfb_dataMiddle = np.loadtxt(f'{path}/{cutoff}coloredE_HiRes_days.txt')
+dataMiddle = np.load(f'{path}/{cutoff}TESTboundcoloredE_HiRes.npy')
+tfb_dataMiddle = np.loadtxt(f'{path}/{cutoff}TESTboundcoloredE_HiRes_days.txt')
 tfb_Middle = tfb_dataMiddle[1]
-radiiMiddle = np.load(f'{path}/{cutoff}coloredE_HiRes_radii.npy')
+radiiMiddle = np.load(f'{path}/{cutoff}TESTboundcoloredE_HiRes_radii.npy')
+radiiMiddleplot = radiiMiddle
 radiiMiddle /=apo
 col_ieMiddle, col_orb_enMiddle, col_RadMiddle = dataMiddle[0], dataMiddle[1], dataMiddle[2]
 # Average over time
@@ -98,7 +100,7 @@ cb = fig.colorbar(img)
 cb.set_label(r'$\log_{10}|E_{orb}|$/Mass', fontsize = 14, labelpad = 5)
 ax[0][1].set_xscale('log')
 
-img = ax[0][2].pcolormesh(radiiLow, tfb_Low, col_Rad, norm=colors.LogNorm(vmin=1e-10, vmax=5e-8),
+img = ax[0][2].pcolormesh(radiiLow, tfb_Low, col_Rad*radiiLowplot**2, norm=colors.LogNorm(vmin=1e-13, vmax=3e-11),
                      cmap = 'cet_rainbow4')#, vmin = 0, vmax = 1)
 cb = fig.colorbar(img)
 cb.set_label(r'$\log_{10}E_{rad}$/Vol', fontsize = 14, labelpad = 5)
@@ -118,14 +120,14 @@ cb = fig.colorbar(img)
 cb.set_label(r'$|E_{orb}|$/Mass', fontsize = 14, labelpad = 5)
 ax[1][1].set_xscale('log')
 
-img = ax[1][2].pcolormesh(radiiMiddle, tfb_Middle, col_RadMiddle,  norm=colors.LogNorm(vmin=1e-10, vmax=5e-8),
+img = ax[1][2].pcolormesh(radiiMiddle, tfb_Middle, col_RadMiddle*radiiMiddleplot**2,  norm=colors.LogNorm(vmin=1e-13, vmax=3e-11),
                      cmap = 'cet_rainbow4')
 cb = fig.colorbar(img)
 cb.set_label(r'E$_{rad}$/Vol', fontsize = 14, labelpad = 5)
 ax[1][2].set_xscale('log')
 for i in range(2):
     for j in range(3):
-        ax[i][j].set_ylim(0.3, np.max(tfb_Middle))
+        # ax[i][j].set_ylim(0.3, np.max(tfb_Middle))
         ax[i][j].axvline(Rt/apo, linestyle ='--', c = 'white', linewidth = 0.8)
         ax[i][j].axhline(0.5, c = 'white', linewidth = 0.4)
         ax[i][j].axhline(0.7, c = 'white', linewidth = 0.4)
@@ -182,7 +184,7 @@ ax[2].set_xscale('log')
 
 for i in range(3):
     ax[i].axvline(Rt/apo, linestyle ='--', c = 'white')
-    ax[i].set_ylim(0.3, np.max(tfb_Middle))
+    # ax[i].set_ylim(0.3, np.max(tfb_Middle))
 
 # Layout
 ax[0].set_ylabel(r't/t$_{fb}$', fontsize = 18)
@@ -209,24 +211,24 @@ fig, ax = plt.subplots(1,3, figsize = (18,5))
 img = ax[0].pcolormesh(radiiMiddle, tfb_Middle, rel_ie,  
                      cmap = 'bwr', vmin = 0, vmax = 1)
 cb = fig.colorbar(img)
-cb.set_label(r'Relative difference $|$IE$|/Mass$', fontsize = 14, labelpad = 5)
+cb.set_label(r'Relative difference $|$IE$|$/Mass', fontsize = 14, labelpad = 5)
 ax[0].set_xscale('log')
 
 img = ax[1].pcolormesh(radiiMiddle, tfb_Middle, rel_orb_en,
                      cmap = 'bwr', vmin = 0, vmax = 1)
 cb = fig.colorbar(img)
-cb.set_label(r'Relative difference $E_{orb}/Mass$', fontsize = 14, labelpad = 5)
+cb.set_label(r'Relative difference $E_{orb}$/Mass', fontsize = 14, labelpad = 5)
 ax[1].set_xscale('log')
 
 img = ax[2].pcolormesh(radiiMiddle, tfb_Middle, rel_Rad,
                      cmap = 'bwr', vmin = 0, vmax = 1)
 cb = fig.colorbar(img)
-cb.set_label(r'Relative difference $|$E_{rad}$/Vol|$', fontsize = 14, labelpad = 5)
+cb.set_label(r'Relative difference $|E_{rad}$/Vol$|$', fontsize = 14, labelpad = 5)
 ax[2].set_xscale('log')
 
 for i in range(3):
     ax[i].axvline(Rt/apo, linestyle ='--', c = 'white')
-    ax[i].set_ylim(0.3, np.max(tfb_Middle))
+    # ax[i].set_ylim(0.3, np.max(tfb_Middle))
 
 # Layout
 ax[0].set_ylabel(r't/t$_{fb}$', fontsize = 18)
@@ -244,3 +246,13 @@ if save:
 plt.show()
 
 # %%
+plt.plot(radiiLow, col_Rad[10]*radiiLow**2, c = 'k', label = f't/tfb = {np.round(tfb_Low[10],1)}')
+plt.plot(radiiMiddle, col_RadMiddle[10]*radiiLow**2, '--', c = 'k', label = f'Middle t/tfb = {np.round(tfb_Middle[10],1)}')
+plt.plot(radiiLow, col_Rad[20]*radiiLow**2, c = 'r', label = f't/tfb = {np.round(tfb_Low[20],1)}')
+plt.plot(radiiMiddle, col_RadMiddle[20]*radiiMiddle**2, '--', c = 'r', label = f'Middle t/tfb = {np.round(tfb_Middle[20],1)}')
+plt.plot(radiiLow, col_Rad[27]*radiiMiddle**2, c = 'b', label = f't/tfb = {np.round(tfb_Low[27],1)}')
+plt.plot(radiiMiddle, col_RadMiddle[27]*radiiMiddle**2, '--', c = 'b', label = f'Middle t/tfb = {np.round(tfb_Middle[27],1)}')
+plt.loglog()
+plt.legend()
+plt.ylabel('Rad/Vol', fontsize = 18)
+plt.show()

@@ -39,7 +39,7 @@ compton = 'Compton'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 # 
 save = True
-cutoff = 'cut' # or '' (no cut) or 'bound' (cut in orb_den) or 'cut' (cut in orb_den and density)
+cutoff = 'cutden' # or '' (no cut) or 'cutden' (cut in density) 'bound' (cut in orb_den) or 'cutdenbound' (both)
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) #[100,115,164,199,216]
 
 Mbh = 10**m
@@ -69,25 +69,29 @@ for i,snap in enumerate(snaps):
     dim_cell = (3/(4*np.pi) * vol)**(1/3)
     ie_onmass = ie_den / data.Den
     orb_en_onmass = orb_en / mass
-    
-    if cutoff == 'bound' or cutoff == 'cut':
-        print('Cutting off unbound elements')
-        cutbound = orb_en < 0 # bound elements
-        if cutoff == 'cut':
-            print('Cutting off low density elements')
-            cutden = data.Den > 1e-9 # throw fluff
-            finalcut = cutden & cutbound
-        else:
-            finalcut = cutbound
 
-        Rsph, mass, vol, ie_onmass, Rad_den, orb_en_onmass = \
-                sec.make_slices([Rsph, mass, vol, ie_onmass, Rad_den, orb_en_onmass], finalcut)
+    # cutoff just for IE and Orbital energy
+    if cutoff == 'cutden' or cutoff == 'bound' or cutoff == 'cutdenbound':
+        if cutoff == 'cutden':
+            print('Cutting off low density elements (just for IE and Orbital energy)')
+            finalcut = data.Den > 1e-9 # throw fluff
+        elif cutoff == 'bound':
+            print('Cutting off unbound elements (just for IE and Orbital energy)')
+            finalcut = orb_en < 0 # bound elements
+        elif cutoff == 'cutdenbound':
+            print('Cutting off low density elements and unbound elements (just for IE and Orbital energy)')
+            cutden = data.Den > 1e-9 # throw fluff
+            cutbound = orb_en < 0 # bound elements
+            finalcut = cutden & cutbound
+
+        Rsph_cut, mass_cut, ie_onmass_cut, orb_en_onmass_cut = \
+                sec.make_slices([Rsph, mass, ie_onmass, orb_en_onmass], finalcut)
     
     # Cast down to 100 values
-    radii = np.logspace(np.log10(R0), np.log10(apo),
-                        num=100)  # simulator units
-    ie_cast = radial_caster(radii, Rsph, ie_onmass, weights = mass)
-    orb_en_cast = radial_caster(radii, Rsph, orb_en_onmass, weights = mass)
+    radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
+                        num=150)  # simulator units
+    ie_cast = radial_caster(radii, Rsph_cut, ie_onmass_cut, weights = mass_cut)
+    orb_en_cast = radial_caster(radii, Rsph_cut, orb_en_onmass_cut, weights = mass_cut)
     Rad_cast = radial_caster(radii, Rsph, Rad_den, weights = vol)
 
     col_ie.append(ie_cast)
@@ -98,15 +102,17 @@ tfb_array = np.array(tfb)
 #%%
 if save:
     if alice:
+        if check == '':
+            check = 'Low'
         prepath = f'/data1/martirep/shocks/shock_capturing/'
     else: 
         prepath = f'/Users/paolamartire/shocks/'
-    with open(f'{prepath}/data/{folder}/{cutoff}cucoloredE_{check}_days.txt', 'a') as file:
+    with open(f'{prepath}/data/{folder}/{cutoff}coloredE_{check}_days.txt', 'a') as file:
         file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb_array)) + '\n')
         file.close()
-    np.save(f'{prepath}/data/{folder}/{cutoff}boundcoloredE_{check}.npy', [col_ie, col_orb_en, col_Rad])
-    np.save(f'{prepath}/data/{folder}/{cutoff}boundcoloredE_{check}_radii.npy', radii)
+    np.save(f'{prepath}/data/{folder}/{cutoff}coloredE_{check}.npy', [col_ie, col_orb_en, col_Rad])
+    np.save(f'{prepath}/data/{folder}/{cutoff}coloredE_{check}_radii.npy', radii)
 # %% Plotting
 if plot:
     img = plt.pcolormesh(radii, tfb_array, col_ie,

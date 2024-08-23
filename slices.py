@@ -1,3 +1,4 @@
+#%%
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -31,8 +32,8 @@ mstar = .5
 Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
-check = 'Low' # '' or 'HiRes' or 'Res20'
-snap = '199'
+check = 'HiRes' # '' or 'HiRes' or 'Res20'
+snap = '115'
 compton = 'Compton'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
@@ -45,6 +46,7 @@ Rs = 2*G*Mbh / c**2
 R0 = 0.6 * Rt
 Rp =  Rt / beta
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
+print(apo)
 
 # cfr tidal disruption and at smoothing lenght
 xcfr, ycfr, cfr = orb.make_cfr(Rt)
@@ -63,7 +65,7 @@ for i,radius_grid in enumerate(radii_grid):
 # DECISIONS
 ##
 save = True
-difference = True
+difference = False
 cutoff = 'bound' # or ''
 
 #%%
@@ -88,7 +90,7 @@ orb_en_mass = orb_en/mass # orbital energy per unit mass
 if cutoff == 'bound':
     cutden = den > 1e-9 # throw fluff
     cutbound = orb_en < 0 # bound elements
-    cut = cutden & cutbound
+    cut = cutden#cutden & cutbound
 
     x_coord, y_coord, z_coord, Rsph, dim_cell, mass, den, temp, rad_den, ie_mass, orb_en_mass = \
         sec.make_slices([x_coord, y_coord, z_coord, Rsph, dim_cell, mass, den, temp, rad_den, ie_mass, orb_en_mass], cut)
@@ -158,7 +160,7 @@ if save:
 plt.show()
 
 #%%
-fig, ax = plt.subplots(1,1, figsize = (12,4))
+fig, ax = plt.subplots(1,1, figsize = (12,12))
 img = ax.scatter(X_midplane, Y_midplane, c = abs_orb_en_mass_midplane, s = 1, cmap = 'cet_rainbow4', norm=colors.LogNorm(vmin=10, vmax=100))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\log_{10}$ specific $|E_{orb}|$', fontsize = 16)
@@ -297,13 +299,14 @@ plt.show()
 
 
 #%%
+cutoff = 'cut'
 if difference:
     from scipy.spatial import KDTree
     check = 'Low' 
     check1 = 'HiRes'
     compton = 'Compton' 
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-
+    saving_path = f'Figs/{folder}'
     snap = '164'
 
     path = f'TDE/{folder}{check}/{snap}'
@@ -314,7 +317,7 @@ if difference:
     dim_cellHiRes = dataHiRes.Vol**(1/3)
     tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
     tfbHiRes = days_since_distruption(f'{pathHiRes}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
-    print(f'tfb = {tfb}, tfbHiRes = {tfbHiRes}')
+    # print(f'tfb = {tfb}, tfbHiRes = {tfbHiRes}')
     x_coord, y_coord, z_coord,rad_den = \
         data.X, data.Y, data.Z, data.Rad,
     Rsph = np.sqrt(x_coord**2 + y_coord**2 + z_coord**2)
@@ -325,13 +328,30 @@ if difference:
     RsphHiRes = np.sqrt(x_coordHiRes**2 + y_coordHiRes**2 + z_coordHiRes**2)
     VsphHiRes = np.sqrt(dataHiRes.VX**2 + dataHiRes.VY**2 + dataHiRes.VZ**2)
     orb_enHiRes = orb.orbital_energy(RsphHiRes, VsphHiRes, dataHiRes.Mass, G, c, Mbh)
-
-    midplane = np.logical_and(np.abs(z_coord) < dim_cell, np.logical_and(orb_en < 0, Rsph < 1.2*apo))
+    
+    midplane = np.logical_and(np.abs(z_coord) < dim_cell, Rsph < 1.2*apo)
+    midplaneHiRes = np.logical_and(np.abs(z_coordHiRes) < dim_cellHiRes, RsphHiRes < 1.2*apo)
+    if cutoff == 'bound' or cutoff == 'cut':
+        print('Cutting off unbound elements')
+        cutbound = orb_en < 0 
+        cutboundHiRes = orb_enHiRes < 0 
+        if cutoff == 'cut':
+            print('Cutting off low density elements')
+            cutden = data.Den > 1e-9 # throw fluff
+            cutdenHiRes = dataHiRes.Den > 1e-9 # throw fluff
+            finalcut = cutden & cutbound & midplane
+            finalcutHiRes = cutdenHiRes & cutboundHiRes & midplaneHiRes
+        else:
+            finalcut = cutbound & midplane
+            finalcutHiRes = cutboundHiRes & midplaneHiRes
+    else:
+        finalcut = midplane
+        finalcutHiRes = midplaneHiRes
     X_midplane, Y_midplane, Z_midplane, Rad_den_midplane = \
-        sec.make_slices([x_coord, y_coord, z_coord, rad_den], midplane)
-    midplaneHiRes = np.logical_and(np.abs(z_coordHiRes) < dim_cellHiRes, np.logical_and(orb_enHiRes < 0, RsphHiRes < 1.2*apo))
+        sec.make_slices([x_coord, y_coord, z_coord, rad_den], finalcut)
+    
     X_midplaneHiRes, Y_midplaneHiRes, Z_midplaneHiRes, Rad_den_midplaneHiRes = \
-        sec.make_slices([x_coordHiRes, y_coordHiRes, z_coordHiRes, rad_den1], midplaneHiRes)
+        sec.make_slices([x_coordHiRes, y_coordHiRes, z_coordHiRes, rad_den1], finalcutHiRes)
     
     points_toplot = np.array([X_midplane, Y_midplane, Z_midplane])
     points = points_toplot.T
@@ -344,11 +364,21 @@ if difference:
 
 
 #%%
-RadDiff = (Rad_den_midplane - new_Rad_den_midplaneHiRes)
+RadDiff = np.abs(Rad_den_midplane - new_Rad_den_midplaneHiRes)/new_Rad_den_midplaneHiRes
 fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(points_toplot[0], points_toplot[1], c = RadDiff, s = 1, cmap = 'bwr')#, vmin = 0, vmax = 10)#,norm=colors.LogNorm(vmin=1e-10, vmax=5e-8))
+img = ax.scatter(points_toplot[0], points_toplot[1], c = RadDiff, s = 1, cmap = 'bwr', norm=colors.LogNorm(vmin=.01, vmax=50))
 cbar = plt.colorbar(img)
-cbar.set_label(r'$\log_{10}$ Rad energy density', fontsize = 16)
+cbar.set_label(r'Relative Rad energy density', fontsize = 16)
 ax.set_xlim(-400,50)
 ax.set_ylim(-100,100)
+ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
+ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
+if cutoff == 'bound':
+    plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)) + ', bound elements only')
+elif cutoff == 'cut':
+    plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)) + ', bound elements and cut on density')
+else:
+    plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)))
+if save:
+    plt.savefig(f'{saving_path}/midplaneRadDiff_{snap}{cutoff}.png')
 # %%
