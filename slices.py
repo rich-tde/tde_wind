@@ -32,7 +32,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 check = 'Low' # '' or 'HiRes' or 'Res20'
-snap = '164'
+snap = '199'
 compton = 'Compton'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
@@ -62,7 +62,8 @@ for i,radius_grid in enumerate(radii_grid):
 #%%
 # DECISIONS
 ##
-save = False
+save = True
+difference = True
 cutoff = 'bound' # or ''
 
 #%%
@@ -96,12 +97,12 @@ THETA, RADIUS_cyl = to_cylindric(x_coord, y_coord)
 #%%
 """ Slice orbital plane """
 midplane = np.abs(z_coord) < dim_cell
-X_midplane, Y_midplane, Z_midplane, dim_midplane, Mass_midplane, Den_midplane, Temp_midplane, Rad_den_midplane, IEmass_midplane, abs_orb_en_mass_midplane = \
-    sec.make_slices([x_coord, y_coord, z_coord, dim_cell, mass, den, temp, rad_den, ie_mass, np.abs(orb_en_mass)], midplane)
-
+X_midplane, Y_midplane, Z_midplane, dim_midplane, Mass_midplane, Den_midplane, Temp_midplane, Rad_den_midplane, IEmass_midplane, orb_en_mass_midplane = \
+    sec.make_slices([x_coord, y_coord, z_coord, dim_cell, mass, den, temp, rad_den, ie_mass, orb_en_mass], midplane)
+abs_orb_en_mass_midplane = np.abs(orb_en_mass_midplane)
 #%%
 fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(X_midplane, Y_midplane, c = np.log10(Den_midplane), s = 1, cmap = 'cet_rainbow4', vmin = -9, vmax = -5)
+img = ax.scatter(X_midplane, Y_midplane, c = Den_midplane, s = 1, cmap = 'cet_rainbow4', norm=colors.LogNorm(vmin=1e-9, vmax=1e-5))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\log_{10}$ Density', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
@@ -120,7 +121,7 @@ plt.show()
 
 #%%
 fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(X_midplane, Y_midplane, c = np.log10(Temp_midplane), s = 1, cmap = 'cet_rainbow4',vmin = 4, vmax = 6.5)
+img = ax.scatter(X_midplane, Y_midplane, c = Temp_midplane, s = 1, cmap = 'cet_rainbow4',norm=colors.LogNorm(vmin=1e4, vmax=6e5))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\log_{10}$ Temp', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
@@ -199,7 +200,7 @@ plt.show()
 thetas = [-np.pi, -3/4*np.pi, -np.pi/2, -np.pi/4, 0, np.pi/4, np.pi/2, 3/4*np.pi, np.pi]
 # Visualize the chosen thetas for the slies
 fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(X_midplane, Y_midplane, c = np.log10(Den_midplane), s = 1, cmap = 'cet_rainbow4', vmin = -9, vmax = -5)
+img = ax.scatter(X_midplane, Y_midplane, c = Den_midplane, s = 1, cmap = 'cet_rainbow4', vmin = -9, vmax = -5)
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\log_{10}$ Density', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
@@ -220,7 +221,7 @@ R_radial, Z_radial, dim_radial, Mass_radial, Den_radial, Temp_radial, Rad_den_ra
 
 #%%
 fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(R_radial, Z_radial, c = np.log10(Den_radial), s = 1, cmap = 'cet_rainbow4',vmin = -9, vmax = -5)
+img = ax.scatter(R_radial, Z_radial, c = Den_radial, s = 1, cmap = 'cet_rainbow4',norm=colors.LogNorm(vmin=1e-9, vmax=1e-5))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\log_{10}$ Density', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
@@ -234,7 +235,7 @@ ax.set_xlabel(r'R [$R_\odot$]', fontsize = 18)
 ax.set_ylabel(r'Z [$R_\odot$]', fontsize = 18)
 plt.title(r'$\theta = $' + str(np.round(theta_chosen/np.pi,1)) + r'$\pi, t/t_{fb}$ = ' + str(np.round(tfb,3)))
 if save:
-    plt.savefig(f'{saving_path}/slices/radial{np.round(theta_chosen,1)}Den_{snap}{cutoff}.png')
+    plt.savefig(f'{saving_path}/slices/Radial/radial{np.round(theta_chosen,1)}Den_{snap}{cutoff}.png')
 plt.show()
 
 #%%
@@ -253,7 +254,7 @@ ax.set_xlabel(r'R [$R_\odot$]', fontsize = 18)
 ax.set_ylabel(r'Z [$R_\odot$]', fontsize = 18)
 plt.title(r'$\theta = $' + str(np.round(theta_chosen/np.pi,1)) + r'$\pi, t/t_{fb}$ = ' + str(np.round(tfb,3)))
 if save:
-    plt.savefig(f'{saving_path}/slices/radial{np.round(theta_chosen,1)}IE_{snap}{cutoff}.png')
+    plt.savefig(f'{saving_path}/slices/Radial/radial{np.round(theta_chosen,1)}IE_{snap}{cutoff}.png')
 plt.show()
 
 #%%
@@ -272,7 +273,7 @@ ax.set_xlabel(r'R [$R_\odot$]', fontsize = 18)
 ax.set_ylabel(r'Z [$R_\odot$]', fontsize = 18)
 plt.title(r'$\theta = $' + str(np.round(theta_chosen/np.pi,1)) + r'$\pi, t/t_{fb}$ = ' + str(np.round(tfb,3)))
 if save:
-    plt.savefig(f'{saving_path}/slices/radial{np.round(theta_chosen,1)}Eorb_{snap}{cutoff}.png')
+    plt.savefig(f'{saving_path}/slices/Radial/radial{np.round(theta_chosen,1)}Eorb_{snap}{cutoff}.png')
 plt.show()
 
 #%%
@@ -291,5 +292,63 @@ ax.set_xlabel(r'R [$R_\odot$]', fontsize = 18)
 ax.set_ylabel(r'Z [$R_\odot$]', fontsize = 18)
 plt.title(r'$\theta = $' + str(np.round(theta_chosen/np.pi,1)) + r'$\pi, t/t_{fb}$ = ' + str(np.round(tfb,3)))
 if save:
-    plt.savefig(f'{saving_path}/slices/radial{np.round(theta_chosen,1)}Rad_{snap}{cutoff}.png')
+    plt.savefig(f'{saving_path}/slices/Radial/radial{np.round(theta_chosen,1)}Rad_{snap}{cutoff}.png')
 plt.show()
+
+
+#%%
+if difference:
+    from scipy.spatial import KDTree
+    check = 'Low' 
+    check1 = 'HiRes'
+    compton = 'Compton' 
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+
+    snap = '164'
+
+    path = f'TDE/{folder}{check}/{snap}'
+    pathHiRes = f'TDE/{folder}{check1}/{snap}'
+    data = make_tree(path, snap, energy = True)
+    dataHiRes = make_tree(pathHiRes, snap, energy = True)
+    dim_cell = data.Vol**(1/3)
+    dim_cellHiRes = dataHiRes.Vol**(1/3)
+    tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+    tfbHiRes = days_since_distruption(f'{pathHiRes}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+    print(f'tfb = {tfb}, tfbHiRes = {tfbHiRes}')
+    x_coord, y_coord, z_coord,rad_den = \
+        data.X, data.Y, data.Z, data.Rad,
+    Rsph = np.sqrt(x_coord**2 + y_coord**2 + z_coord**2)
+    Vsph = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
+    orb_en = orb.orbital_energy(Rsph, Vsph, data.Mass, G, c, Mbh)
+    x_coordHiRes, y_coordHiRes, z_coordHiRes, rad_den1 = \
+        dataHiRes.X, dataHiRes.Y, dataHiRes.Z, dataHiRes.Rad
+    RsphHiRes = np.sqrt(x_coordHiRes**2 + y_coordHiRes**2 + z_coordHiRes**2)
+    VsphHiRes = np.sqrt(dataHiRes.VX**2 + dataHiRes.VY**2 + dataHiRes.VZ**2)
+    orb_enHiRes = orb.orbital_energy(RsphHiRes, VsphHiRes, dataHiRes.Mass, G, c, Mbh)
+
+    midplane = np.logical_and(np.abs(z_coord) < dim_cell, np.logical_and(orb_en < 0, Rsph < 1.2*apo))
+    X_midplane, Y_midplane, Z_midplane, Rad_den_midplane = \
+        sec.make_slices([x_coord, y_coord, z_coord, rad_den], midplane)
+    midplaneHiRes = np.logical_and(np.abs(z_coordHiRes) < dim_cellHiRes, np.logical_and(orb_enHiRes < 0, RsphHiRes < 1.2*apo))
+    X_midplaneHiRes, Y_midplaneHiRes, Z_midplaneHiRes, Rad_den_midplaneHiRes = \
+        sec.make_slices([x_coordHiRes, y_coordHiRes, z_coordHiRes, rad_den1], midplaneHiRes)
+    
+    points_toplot = np.array([X_midplane, Y_midplane, Z_midplane])
+    points = points_toplot.T
+    pointsHiRes = np.array([X_midplaneHiRes, Y_midplaneHiRes, Z_midplaneHiRes]).T
+    treeHiRes = KDTree(pointsHiRes)
+    new_Rad_den_midplaneHiRes = np.zeros_like(Rad_den_midplane)
+    for i,pt in enumerate(points):
+        _, idx = treeHiRes.query(pt)
+        new_Rad_den_midplaneHiRes[i] = Rad_den_midplaneHiRes[idx]
+
+
+#%%
+RadDiff = (Rad_den_midplane - new_Rad_den_midplaneHiRes)
+fig, ax = plt.subplots(1,1, figsize = (12,4))
+img = ax.scatter(points_toplot[0], points_toplot[1], c = RadDiff, s = 1, cmap = 'bwr')#, vmin = 0, vmax = 10)#,norm=colors.LogNorm(vmin=1e-10, vmax=5e-8))
+cbar = plt.colorbar(img)
+cbar.set_label(r'$\log_{10}$ Rad energy density', fontsize = 16)
+ax.set_xlim(-400,50)
+ax.set_ylim(-100,100)
+# %%

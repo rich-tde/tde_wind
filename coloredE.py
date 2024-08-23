@@ -39,7 +39,7 @@ compton = 'Compton'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 # 
 save = True
-cutoff = 'bound' # or ''
+cutoff = 'cut' # or '' (no cut) or 'bound' (cut in orb_den) or 'cut' (cut in orb_den and density)
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) #[100,115,164,199,216]
 
 Mbh = 10**m
@@ -70,10 +70,18 @@ for i,snap in enumerate(snaps):
     ie_onmass = ie_den / data.Den
     orb_en_onmass = orb_en / mass
     
-    if cutoff == 'bound':
-        bound_elements = orb_en < 0
+    if cutoff == 'bound' or cutoff == 'cut':
+        print('Cutting off unbound elements')
+        cutbound = orb_en < 0 # bound elements
+        if cutoff == 'cut':
+            print('Cutting off low density elements')
+            cutden = data.Den > 1e-9 # throw fluff
+            finalcut = cutden & cutbound
+        else:
+            finalcut = cutbound
+
         Rsph, mass, vol, ie_onmass, Rad_den, orb_en_onmass = \
-                sec.make_slices([Rsph, mass, vol, ie_onmass, Rad_den, orb_en_onmass], bound_elements)
+                sec.make_slices([Rsph, mass, vol, ie_onmass, Rad_den, orb_en_onmass], finalcut)
     
     # Cast down to 100 values
     radii = np.logspace(np.log10(R0), np.log10(apo),
@@ -93,12 +101,12 @@ if save:
         prepath = f'/data1/martirep/shocks/shock_capturing/'
     else: 
         prepath = f'/Users/paolamartire/shocks/'
-    with open(f'{prepath}/data/{folder}/boundcoloredE_{check}_days.txt', 'a') as file:
+    with open(f'{prepath}/data/{folder}/{cutoff}cucoloredE_{check}_days.txt', 'a') as file:
         file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb_array)) + '\n')
         file.close()
-    np.save(f'{prepath}/data/{folder}/boundcoloredE_{check}.npy', [col_ie, col_orb_en, col_Rad])
-    np.save(f'{prepath}/data/{folder}/boundcoloredE_{check}_radii.npy', radii)
+    np.save(f'{prepath}/data/{folder}/{cutoff}boundcoloredE_{check}.npy', [col_ie, col_orb_en, col_Rad])
+    np.save(f'{prepath}/data/{folder}/{cutoff}boundcoloredE_{check}_radii.npy', radii)
 # %% Plotting
 if plot:
     img = plt.pcolormesh(radii, tfb_array, col_ie,

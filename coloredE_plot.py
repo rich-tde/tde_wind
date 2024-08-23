@@ -13,6 +13,9 @@ import matplotlib.colors as colors
 import Utilities.prelude
 from Utilities.gaussian_smoothing import time_average
 
+##
+# PARAMETERS
+##
 m = 4
 Mbh = 10**m
 beta = 1
@@ -20,22 +23,32 @@ mstar = .5
 Rstar = .47
 n = 1.5 
 compton = 'Compton'
-save = True
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-path = f'/Users/paolamartire/shocks/data/{folder}'
+path = f'/Users/paolamartire/shocks/data/{folder}/colormapE_Alice'
 
 Rt = Rstar * (Mbh/mstar)**(1/3)
 R0 = 0.6 * Rt
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
+#
+## DECISIONS
+##
+save = False
+cutoff = '' # or 'bound or ''
+
+#
+## DATA
+#
+
 # Low data
-tfb_dataLow = np.loadtxt(f'{path}/coloredE_Low_days.txt')
+dataLow = np.load(f'{path}/{cutoff}coloredE_Low.npy') #shape (3, len(tfb), len(radii))
+tfb_dataLow = np.loadtxt(f'{path}/{cutoff}coloredE_Low_days.txt')
 tfb_Low = tfb_dataLow[1]
-dataLow = np.load(f'{path}/coloredE_Low.npy') #shape (3, len(tfb), len(radii))
-radiiLow = np.load(f'{path}/coloredE_Low_radii.npy')
+radiiLow = np.load(f'{path}/{cutoff}coloredE_Low_radii.npy')
 radiiLow /=apo
 col_ie, col_orb_en, col_Rad = dataLow[0], dataLow[1], dataLow[2]
+# Average over time
 # col_ie, col_orb_en, col_Rad = col_ie.T, col_orb_en.T, col_Rad.T
 # for i in range(len(col_ie)):
 #     col_ie[i] = time_average(tfb_Low, col_ie[i])
@@ -45,12 +58,13 @@ col_ie, col_orb_en, col_Rad = dataLow[0], dataLow[1], dataLow[2]
 abs_col_orb_en = np.abs(col_orb_en)
 
 # Middle data
-tfb_dataMiddle = np.loadtxt(f'{path}/coloredE_HiRes_days.txt')
+dataMiddle = np.load(f'{path}/{cutoff}coloredE_HiRes.npy')
+tfb_dataMiddle = np.loadtxt(f'{path}/{cutoff}coloredE_HiRes_days.txt')
 tfb_Middle = tfb_dataMiddle[1]
-dataMiddle = np.load(f'{path}/coloredE_HiRes.npy')
-radiiMiddle = np.load(f'{path}/coloredE_HiRes_radii.npy')
+radiiMiddle = np.load(f'{path}/{cutoff}coloredE_HiRes_radii.npy')
 radiiMiddle /=apo
 col_ieMiddle, col_orb_enMiddle, col_RadMiddle = dataMiddle[0], dataMiddle[1], dataMiddle[2]
+# Average over time
 # col_ieMiddle, col_orb_enMiddle, col_RadMiddle = col_ieMiddle.T, col_orb_enMiddle.T, col_RadMiddle.T
 # for i in range(len(col_ieMiddle)):  
 #     col_ieMiddle[i] = time_average(tfb_Middle, col_ieMiddle[i])
@@ -67,6 +81,9 @@ col_orb_en = col_orb_en[:n_Middle]
 abs_col_orb_en = abs_col_orb_en[:n_Middle]
 col_Rad = col_Rad[:n_Middle]
 #%%
+# PLOT
+##
+
 fig, ax = plt.subplots(2,3, figsize = (12,6))
 # Low
 img = ax[0][0].pcolormesh(radiiLow, tfb_Low, col_ie,  norm=colors.LogNorm(vmin=1e-2, vmax=1),
@@ -126,13 +143,16 @@ ax[1][0].set_xlabel(r'$R/R_a$', fontsize = 14)
 ax[1][1].set_xlabel(r'$R/R_a$', fontsize = 14)
 ax[1][2].set_xlabel(r'$R/R_a$', fontsize = 14)
 plt.tick_params(axis = 'both', which = 'both', direction='in')
-plt.suptitle(r'$M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$', fontsize = 18)
+if cutoff == 'bound':
+    plt.suptitle(r'$M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$, bound elements only', fontsize = 18)
+else:
+    plt.suptitle(r'$M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$', fontsize = 18)
 plt.tight_layout()
 # for i in range(2):
 #     for j in range(3):
 #         ax[i][j].grid()
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/coloredE.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{cutoff}coloredE.png')
 plt.show()
 
 
@@ -142,7 +162,7 @@ diff_orb_en = np.abs(col_orb_en - col_orb_enMiddle)
 diff_Rad = np.abs(col_Rad - col_RadMiddle)
 
 fig, ax = plt.subplots(1,3, figsize = (18,5))
-img = ax[0].pcolormesh(radiiMiddle, tfb_Middle, diff_ie,  norm=colors.LogNorm(vmin=1e-3, vmax=10),
+img = ax[0].pcolormesh(radiiMiddle, tfb_Middle, diff_ie,  norm=colors.LogNorm(vmin=1e-3, vmax=1),
                      cmap = 'bwr')#, vmin = 0, vmax = 1)
 cb = fig.colorbar(img)
 cb.set_label(r'$\log_{10}\Delta|$IE/Mass$|$', fontsize = 14, labelpad = 5)
@@ -154,7 +174,7 @@ cb = fig.colorbar(img)
 cb.set_label(r'$\log_{10}\Delta|E_{orb}/$Mass$|$', fontsize = 14, labelpad = 5)
 ax[1].set_xscale('log')
 
-img = ax[2].pcolormesh(radiiMiddle, tfb_Middle, diff_Rad, norm=colors.LogNorm(vmin=1e-10, vmax=1e-12),
+img = ax[2].pcolormesh(radiiMiddle, tfb_Middle, diff_Rad, norm=colors.LogNorm(vmin=1e-10, vmax=1e-7),
                      cmap = 'bwr')#, vmin = 0, vmax = 1)
 cb = fig.colorbar(img)
 cb.set_label(r'$\log_{10}\Delta|E_{rad}/$Vol$|$', fontsize = 14, labelpad = 5)
@@ -162,6 +182,7 @@ ax[2].set_xscale('log')
 
 for i in range(3):
     ax[i].axvline(Rt/apo, linestyle ='--', c = 'white')
+    ax[i].set_ylim(0.3, np.max(tfb_Middle))
 
 # Layout
 ax[0].set_ylabel(r't/t$_{fb}$', fontsize = 18)
@@ -169,39 +190,43 @@ ax[0].set_xlabel(r'$R/R_a$', fontsize = 18)
 ax[1].set_xlabel(r'$R/R_a$', fontsize = 18)
 ax[2].set_xlabel(r'$R/R_a$', fontsize = 18)
 plt.tick_params(axis = 'both', which = 'both', direction='in')
-plt.suptitle(r'$M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$', fontsize = 18)
+if cutoff == 'bound':
+    plt.suptitle(r'$M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$, bound elements only', fontsize = 18)
+else:
+    plt.suptitle(r'$M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$', fontsize = 18)
 plt.tight_layout()
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/coloredE_diff.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{cutoff}coloredE_diff.png')
 plt.show()
 
 ######################
 # %% Relative differences
-rel_ie = np.abs(diff_ie / col_ieMiddle)
-rel_orb_en = np.abs(diff_orb_en / col_orb_enMiddle)
-rel_Rad = np.abs(diff_Rad / col_RadMiddle)
+rel_ie = np.abs(diff_ie / col_ie)
+rel_orb_en = np.abs(diff_orb_en / col_orb_en)
+rel_Rad = np.abs(diff_Rad / col_Rad)
 
 fig, ax = plt.subplots(1,3, figsize = (18,5))
 img = ax[0].pcolormesh(radiiMiddle, tfb_Middle, rel_ie,  
                      cmap = 'bwr', vmin = 0, vmax = 1)
 cb = fig.colorbar(img)
-cb.set_label(r'Relative difference $|$IE$|$', fontsize = 14, labelpad = 5)
+cb.set_label(r'Relative difference $|$IE$|/Mass$', fontsize = 14, labelpad = 5)
 ax[0].set_xscale('log')
 
 img = ax[1].pcolormesh(radiiMiddle, tfb_Middle, rel_orb_en,
                      cmap = 'bwr', vmin = 0, vmax = 1)
 cb = fig.colorbar(img)
-cb.set_label(r'Relative difference $E_{orb}$', fontsize = 14, labelpad = 5)
+cb.set_label(r'Relative difference $E_{orb}/Mass$', fontsize = 14, labelpad = 5)
 ax[1].set_xscale('log')
 
 img = ax[2].pcolormesh(radiiMiddle, tfb_Middle, rel_Rad,
                      cmap = 'bwr', vmin = 0, vmax = 1)
 cb = fig.colorbar(img)
-cb.set_label(r'Relative difference $|$E_{rad}$|$', fontsize = 14, labelpad = 5)
+cb.set_label(r'Relative difference $|$E_{rad}$/Vol|$', fontsize = 14, labelpad = 5)
 ax[2].set_xscale('log')
 
 for i in range(3):
     ax[i].axvline(Rt/apo, linestyle ='--', c = 'white')
+    ax[i].set_ylim(0.3, np.max(tfb_Middle))
 
 # Layout
 ax[0].set_ylabel(r't/t$_{fb}$', fontsize = 18)
@@ -209,8 +234,13 @@ ax[0].set_xlabel(r'$R/R_a$', fontsize = 18)
 ax[1].set_xlabel(r'$R/R_a$', fontsize = 18)
 ax[2].set_xlabel(r'$R/R_a$', fontsize = 18)
 plt.tick_params(axis = 'both', which = 'both', direction='in')
-plt.suptitle(r'$M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$', fontsize = 18)
+if cutoff == 'bound':
+    plt.suptitle(r'$M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$, bound elements only', fontsize = 18)
+else:
+    plt.suptitle(r'$M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$', fontsize = 18)
 plt.tight_layout()
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/coloredE_relative_diff.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{cutoff}coloredE_relative_diff.png')
 plt.show()
+
+# %%
