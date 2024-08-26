@@ -23,6 +23,7 @@ Rsol_to_cm = 6.957e10 # [cm]
 Msol_to_g = 2e33 # 1.989e33 # [g]
 den_converter = Msol_to_g / Rsol_to_cm**3
 en_den_converter = Msol_to_g / (Rsol_to_cm  * t**2 ) # Energy Density converter
+en_converter = Msol_to_g * Rsol_to_cm**2 / t**2 # Energy converter
 
 # Healpy
 NSIDE = 4

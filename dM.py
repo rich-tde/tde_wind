@@ -46,7 +46,7 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 #
 
 # Choose what to do
-cutoffRes20 = True
+cutoffRes20 = False
 print('Cutoff for the highest res (Res20):', cutoffRes20)
 do_dMdE = False
 compare_resol = False
@@ -54,17 +54,18 @@ compare_times = False
 do_Ehist = True
 E_in_time = False
 do_dMds = False
-plot = False
+
+plot = True
 save = False
 
 #%%
 if do_dMdE:
-    check = 'Low' # 'Low' or 'HiRes' or 'Res20'
-    snap = '164'
+    check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
+    snap = '27'
     path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
+    tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
     data = make_tree(path, snap, energy = False)
     dim_cell = data.Vol**(1/3) # according to Elad
-    tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
     mass = data.Mass
     R = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
     V = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
@@ -83,7 +84,7 @@ if do_dMdE:
 
     # (Specific) energy bins 
     specOE_norm = specific_orbital_energy/norm #or use orbital_energy_mid
-    bins = np.arange(-2, 2, .1)
+    bins = np.arange(-100, 100, .1)
     mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
     dm_dE = mass_binned / (np.diff(bins_edges)*norm)
 
@@ -91,15 +92,15 @@ if do_dMdE:
     if save:
         (f'Saving data in: data/{folder}')
         try:
-            file = open(f'data/{folder}/dMdE_time{np.round(tfb,1)}.txt', 'r')
+            file = open(f'data/{folder}/dMdE/dMdE_time{np.round(tfb,1)}.txt', 'r')
             # Perform operations on the file
             file.close()
         except FileNotFoundError:
-            with open(f'data/{folder}/dMdE_time{np.round(tfb,1)}.txt','a') as fstart:
+            with open(f'data/{folder}/dMdE/dMdE_time{np.round(tfb,1)}.txt','a') as fstart:
                 # if file doesn'exist
                 fstart.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
                 fstart.write((' '.join(map(str, bins_edges[:-1])) + '\n'))
-        with open(f'data/{folder}/dMdE_time{np.round(tfb,1)}.txt','a') as file:
+        with open(f'data/{folder}/dMdE/dMdE_time{np.round(tfb,1)}.txt','a') as file:
             if check == 'Res20' and cutoffRes20:
                 file.write(f'# Check {check}, snap {snap} using only data with data.X>-175 \n')
             else:
@@ -108,6 +109,7 @@ if do_dMdE:
             file.close()
     
     if plot:
+        dm_dE[dm_dE<=0] = 1 #so it's 0 in the logscale
         # Section at the midplane
         midplane = np.abs(data.Z) < dim_cell
         X_mid, Y_mid, Den_mid = \
@@ -119,16 +121,16 @@ if do_dMdE:
         ax[0].scatter(bins_edges[:-1], dm_dE, c = 'k', s = 30)
         ax[0].set_xlabel(r'$E_{spec}/\Delta E$', fontsize = 16)
         ax[0].set_ylabel(r'$\log_{10}$(dM/d$E_{spec}$)', fontsize = 16)
-        ax[0].set_xlim(-3,3)
-        ax[0].set_ylim(1e-8, 4e-2)
+        ax[0].set_xlim(np.min(bins_edges),np.max(bins_edges))
+        ax[0].set_ylim(1e-18,6e-14)#(1e-8, 4e-2)
         ax[0].set_yscale('log')
         ax[0].legend()
 
         img = ax[1].scatter(X_mid, Y_mid, c = np.log10(Den_mid), s = .1, cmap = 'jet', vmin = -11, vmax = -6)
         cbar = plt.colorbar(img)
         cbar.set_label(r'$\log_{10}$ Density', fontsize = 16)
-        ax[1].set_xlim(-500,100)
-        ax[1].set_ylim(-200,50)
+        ax[1].set_xlim(-5,5)#(-500,100)
+        ax[1].set_ylim(-10,10)#(-200,50)
         ax[1].set_xlabel(r'X [$R_\odot$]', fontsize = 18)
         ax[1].set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
 
@@ -160,23 +162,23 @@ if compare_times:
 
 #%%
 if compare_resol:
-    time_chosen = 0.1 #np.round(tfb,1)
+    time_chosen = 0.0 #np.round(tfb,1)
     data = np.loadtxt(f'data/{folder}/dMdE_time{time_chosen}.txt')
     bin_plot = data[0]
     dataL = data[1]
     dataMiddle = data[2]
-    if cutoffRes20:
-        dataHigh = data[4]
-    else:
-        dataHigh = data[3]
-    
+    # if cutoffRes20:
+    #     dataHigh = data[4]
+    # else:
+    #     dataHigh = data[3]
+    print(len(data))
     plt.scatter(bin_plot, dataL, c = 'k', s = 35, label = 'Low')
     plt.scatter(bin_plot, dataMiddle, c = 'r', s = 15, label = 'Middle')
-    plt.scatter(bin_plot, dataHigh, c = 'b', s = 7, label = 'High')
+    # plt.scatter(bin_plot, dataHigh, c = 'b', s = 7, label = 'High')
     plt.xlabel(r'$E/\Delta E$', fontsize = 16)
     plt.ylabel(r'$(\log_{10}$dM/dE)', fontsize = 16)
     plt.yscale('log')
-    plt.legend()
+    plt.legend(fontsize = 14)
     if cutoffRes20:
         plt.title(r'Only points with $X>-175$ for the highest res, t/t$_{fb}$ = ' + str(time_chosen), fontsize = 16)
         if save:
@@ -194,7 +196,7 @@ if do_Ehist:
     checks = ['Low', 'HiRes']#, 'Res20']
     colors = ['k', 'r']#, 'b']
     alphas = [0.6, 0.8]#, 1]
-    snap = 164
+    snap = 27
     fig, ((ax1,ax2), (ax3,ax4)) = plt.subplots(2,2)
     for i in range(-1,-len(checks)-1,-1):
         check = checks[i]
@@ -218,12 +220,12 @@ if do_Ehist:
         Rsph_bound, ie_den_bound, Erad_den_bound, ie_bound, Erad_bound, orb_en_bound = \
             sec.make_slices([Rsph, ie_den, Erad_den, ie, Erad, orb_en], bound_elements)
         
-        plt.figure()
-        img = plt.scatter(range(len(ie_onmass_bound[::10_000])), ie_onmass_bound[::10_000], Rsph_bound[::10_000]/apo, cmap = 'jet')
-        cbar = plt.colorbar(img)
-        cbar.set_label('R/$R_a$', fontsize = 16)
-        plt.title(f'{check}, snap {snap}')
-        plt.show()    
+        # plt.figure()
+        # img = plt.scatter(range(len(ie_onmass_bound[::10_000])), ie_onmass_bound[::10_000], Rsph_bound[::10_000]/apo, cmap = 'jet')
+        # cbar = plt.colorbar(img)
+        # cbar.set_label('R/$R_a$', fontsize = 16)
+        # plt.title(f'{check}, snap {snap}')
+        # plt.show()    
 
         energies = [np.sum(ie_bound), np.sum(Erad_bound), np.sum(orb_en_bound), np.sum(ie_bound + Erad_bound + orb_en_bound)]
 
@@ -234,6 +236,11 @@ if do_Ehist:
 
         if y_value == 'energy':
             # bins
+            if snap == 27:
+                bins_intE = np.linspace(0, 1, 50) 
+                bins_radE = 50#np.linspace(0, 1e-16, 50) 
+                bins_neg_orbE = 50#np.linspace(0,50,50)
+
             if snap == 100:
                 bins_intE = np.linspace(0, 2e-2, 50) 
                 bins_radE = np.linspace(0, 1e-16, 50) 
@@ -286,28 +293,28 @@ if do_Ehist:
             weight_rad = mass
             weight_orb = mass_bound
 
-        ax1.hist(ie_onmass_bound, bins = bins_intE, weights = weight_ie, color = colors[i], alpha = alphas[i], label = f'check = {check}')
-        ax2.hist(Erad_den, bins = bins_radE, weights = weight_rad, color = colors[i], alpha = alphas[i], label = f'check = {check}')
-        ax3.hist(np.abs(orb_en_onmass_bound), bins = bins_neg_orbE, weights = weight_orb, color = colors[i], alpha = alphas[i], label = f'check = {check}')
+        ax1.hist(np.abs(orb_en_onmass_bound), bins = bins_neg_orbE, weights = weight_orb, color = colors[i], alpha = alphas[i], label = f'check = {check}')
+        ax2.hist(ie_onmass_bound, bins = bins_intE, weights = weight_ie, color = colors[i], alpha = alphas[i], label = f'check = {check}')
+        ax3.hist(Erad_den, bins = bins_radE, weights = weight_rad, color = colors[i], alpha = alphas[i], label = f'check = {check}')
         ax4.set_axis_off()
 
     ax1.legend(fontsize = 10)
 
     if y_value == 'energy':
-        ax1.set_ylabel(r'Energy', fontsize = 16)
+        ax1.set_ylabel(r'$|$Energy$|$', fontsize = 16)
         ax2.set_ylabel(r'Energy', fontsize = 16)
-        ax3.set_ylabel(r'$|$Energy$|$', fontsize = 16)
+        ax3.set_ylabel(r'Energy', fontsize = 16)
     elif y_value == 'mass':
         ax1.set_ylabel(r'Mass', fontsize = 16)
         ax2.set_ylabel(r'Mass', fontsize = 16)
         ax3.set_ylabel(r'Mass', fontsize = 16)
 
-    ax1.set_title('Internal Energy')
-    ax2.set_title('Radiation Energy')
-    ax3.set_title('Orbital Energy')
-    ax1.set_xlabel(r'Energy/Mass', fontsize = 16)
-    ax2.set_xlabel(r'Energy/Vol', fontsize = 16)
-    ax3.set_xlabel(r'$|$Energy$|$/Mass', fontsize = 16)
+    ax1.set_title('Orbital Energy')
+    ax2.set_title('Internal Energy')
+    ax3.set_title('Radiation Energy')
+    ax1.set_xlabel(r'$|$Energy$|$/Mass', fontsize = 16)
+    ax2.set_xlabel(r'Energy/Mass', fontsize = 16)
+    ax3.set_xlabel(r'Energy/Vol', fontsize = 16)
     
     plt.suptitle(r'Bound cells with $X>-1.5|R_a|$, t/t$_{fb}$ = ' + f'{np.round(tfb,1)}', fontsize = 16)
     plt.tight_layout()
@@ -337,7 +344,7 @@ if E_in_time:
     ax2.legend()
     ax1.set_ylabel('Energy', fontsize = 18)
     ax2.set_ylabel('Energy', fontsize = 18)
-    ax2.set_xlabel('t/t$_{fb}$', fontsize = 18)
+    ax2.set_xlabel(r't/t$_{fb}$', fontsize = 18)
     ax1.grid()
     ax2.grid()
     # plt.savefig(f'Figs/{folder}/multiple/Energy_time.pdf')

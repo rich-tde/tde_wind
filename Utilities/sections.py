@@ -45,7 +45,7 @@ def tangent_versor(x_orbit, y_orbit, idx, smooth_orbit = False):
         return vers_tg, x_orbit_sm, y_orbit_sm
     else:
         return vers_tg
-        
+         
 # def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit, idx, step_ang, coord = False):
 def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit, idx, coord = False):
     """
@@ -75,9 +75,10 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit
     condition_z = np.abs(z_data - z_chosen) < s
     condition_coord = np.logical_and(condition_x, np.logical_and(condition_y, condition_z))
     # Find the widest cell
-    max_dim = np.max(dim_data[condition_tra&condition_coord])#_R&condition_r])
-    # Change the condition_tra
-    condition_tra = np.abs(dot_product) < max_dim
+    if (condition_tra&condition_coord).any() != False:
+        max_dim = np.max(dim_data[condition_tra&condition_coord])#_R&condition_r])
+        # Change the condition_tra
+        condition_tra = np.abs(dot_product) < max_dim
 
     # Find the coordinates of the data in the new system and use them to cut the plane
     # Find the versors in 3D

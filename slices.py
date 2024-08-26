@@ -52,8 +52,8 @@ print(apo)
 xcfr, ycfr, cfr = orb.make_cfr(Rt)
 xcfr0, ycfr0, cfr0 = orb.make_cfr(R0)
 # cfr for grid
-radii_grid = [Rt, 0.1*apo, 0.3*apo, 0.5*apo, apo] 
-styles = ['--', 'dotted', 'dotted', 'dotted', 'solid']
+radii_grid = [R0, Rt, 0.1*apo, 0.3*apo, 0.5*apo, apo] 
+styles = ['dotted', 'dashed', 'solid', 'solid', 'solid', 'solid']
 xcfr_grid, ycfr_grid, cfr_grid = [], [], []
 for i,radius_grid in enumerate(radii_grid):
     xcr, ycr, cr = orb.make_cfr(radius_grid)
@@ -110,7 +110,7 @@ cbar.set_label(r'$\log_{10}$ Density', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
 # plot cfr
 for i in range(len(radii_grid)):
-    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k', alpha = 0.8, alpha = 0.8)
 # ax.plot(x_stream, y_stream, c = 'k')
 ax.set_xlim(-400,100)
 ax.set_ylim(-200,200)
@@ -129,7 +129,7 @@ cbar.set_label(r'$\log_{10}$ Temp', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
 # plot cfr
 for i in range(len(radii_grid)):
-    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k', alpha = 0.8)
 # ax.plot(x_stream, y_stream, c = 'k')
 ax.set_xlim(-400,100)
 ax.set_ylim(-200,200)
@@ -148,7 +148,7 @@ cbar.set_label(r'$\log_{10}$ specific IE', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
 # plot cfr
 for i in range(len(radii_grid)):
-    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k', alpha = 0.8)
 # ax.plot(x_stream, y_stream, c = 'k')
 ax.set_xlim(-400,100)
 ax.set_ylim(-200,200)
@@ -167,7 +167,7 @@ cbar.set_label(r'$\log_{10}$ specific $|E_{orb}|$', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
 # plot cfr
 for i in range(len(radii_grid)):
-    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k', alpha = 0.8)
 # ax.plot(x_stream, y_stream, c = 'k')
 ax.set_xlim(-400,100)
 ax.set_ylim(-200,200)
@@ -186,7 +186,7 @@ cbar.set_label(r'$\log_{10}$ Rad energy density', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
 # plot cfr
 for i in range(len(radii_grid)):
-    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k', alpha = 0.8)
 # ax.plot(x_stream, y_stream, c = 'k')
 ax.set_xlim(-400,100)
 ax.set_ylim(-200,200)
@@ -229,7 +229,7 @@ cbar.set_label(r'$\log_{10}$ Density', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
 # plot cfr
 for i in range(len(radii_grid)):
-    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k', alpha = 0.8)
 # ax.plot(x_stream, y_stream, c = 'k')
 ax.set_xlim(0,1.2*apo)
 ax.set_ylim(-50,50)
@@ -248,7 +248,7 @@ cbar.set_label(r'$\log_{10}$ specific IE', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
 # plot cfr
 for i in range(len(radii_grid)):
-    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k', alpha = 0.8)
 # ax.plot(x_stream, y_stream, c = 'k')
 ax.set_xlim(0,1.2*apo)
 ax.set_ylim(-50,50)
@@ -267,7 +267,7 @@ cbar.set_label(r'$\log_{10}$ specific $|E_{orb}|$', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
 # plot cfr
 for i in range(len(radii_grid)):
-    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k', alpha = 0.8)
 # ax.plot(x_stream, y_stream, c = 'k')
 ax.set_xlim(0,1.2*apo)
 ax.set_ylim(-50,50)
@@ -286,7 +286,7 @@ cbar.set_label(r'$\log_{10}$ Rad energy density', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
 # plot cfr
 for i in range(len(radii_grid)):
-    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k')
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k', alpha = 0.8)
 # ax.plot(x_stream, y_stream, c = 'k')
 ax.set_xlim(0,1.2*apo)
 ax.set_ylim(-50,50)

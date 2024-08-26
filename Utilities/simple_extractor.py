@@ -103,20 +103,21 @@ def extractor(filename):
 # MAIN
 ##
 
-snap = 310
-m = 6
+snap = 27
+m = 4
 Mbh = 10**m
 beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = ''
+check = 'HiRes'
+compton = 'Compton'
 if alice:
     prepath = f'/data1/martirep/shocks/shock_capturing/'
 else: 
     prepath = f'/Users/paolamartire/shocks/TDE'
 
-path = f'{prepath}/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{check}/{snap}/'
+path = f'{prepath}/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{snap}/'
 file = f'{path}snap_{snap}.h5'
 print(file)
 X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Entropy = extractor(file)
@@ -137,6 +138,6 @@ np.save(f'{path}T_{snap}', T)
 np.save(f'{path}P_{snap}', P) 
 np.save(f'{path}Star_{snap}', Star) 
 np.save(f'{path}Entropy_{snap}', Entropy) 
-np.save(f'{path}Erad_{snap}', Erad) 
+np.save(f'{path}Rad_{snap}', Erad) 
 print('Done')
             

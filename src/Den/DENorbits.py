@@ -122,7 +122,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     """ Find the centres of mass in the transverse plane"""
     Mbh, Rstar, mstar, beta = params[0], params[1], params[2], params[3]
     Rt = Rstar * (Mbh/mstar)**(1/3)
-    R0 = 0.6 * (Rt / beta) 
+    R0 = 0.6 * Rt
     # indeces = np.arange(len(x_data))
     # Cut a bit the data for computational reasons
     cutting = np.logical_and(np.abs(z_data) < 50, np.abs(y_data) < 200)
@@ -140,10 +140,6 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     for idx in range(len(theta_arr)):
         print(idx)
         # Find the transverse plane
-        if idx == len(theta_arr)-1:
-            step_ang = theta_arr[-1]-theta_arr[-2]
-        else:
-            step_ang = theta_arr[idx+1]-theta_arr[idx]
         condition_T, _, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, coord = True)
         x_plane, y_plane, z_plane, den_plane, mass_plane = \
             make_slices([x_cut, y_cut, z_cut, den_cut, mass_cut], condition_T)
@@ -168,10 +164,6 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     for idx in range(len(theta_arr)):
         print(idx)
         # Find the transverse plane
-        if idx == len(theta_arr)-1:
-            step_ang = theta_arr[-1]-theta_arr[-2]
-        else:
-            step_ang = theta_arr[idx+1]-theta_arr[idx]
         condition_T, _, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, coord = True)
         x_plane, y_plane, z_plane, den_plane, mass_plane = \
             make_slices([x_cut, y_cut, z_cut, den_cut, mass_cut], condition_T)
@@ -187,7 +179,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         z_cm[idx] = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
         thresh_cm[idx] = den_thresh
 
-    np.save(f'/Users/paolamartire/shocks/data/{folder}/COMPAREstream_{check}{snap}.npy', [x_stream_rad, y_stream_rad, z_stream_rad, x_cmTR, y_cmTR, z_cmTR, x_cm, y_cm, z_cm])
+    # np.save(f'/Users/paolamartire/shocks/data/{folder}/COMPAREstream_{check}{snap}.npy', [x_stream_rad, y_stream_rad, z_stream_rad, x_cmTR, y_cmTR, z_cmTR, x_cm, y_cm, z_cm])
 
     return x_cm, y_cm, z_cm, thresh_cm
 
@@ -202,21 +194,16 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, mass_data
     """ Find the width and the height of the stream for a single theta """
     Mbh, Rstar, mstar, beta = params[0], params[1], params[2], params[3]
     Rt = Rstar * (Mbh/mstar)**(1/3)
-    R0 = 0.6 * (Rt / beta) 
+    R0 = 0.6 * Rt
     indeces = np.arange(len(x_data))
-    theta_arr, x_stream, y_stream, z_stream, thresh_cm = stream[0], stream[1], stream[2], stream[3], stream[4]
+    x_stream, y_stream, z_stream, thresh_cm = stream[1], stream[2], stream[3], stream[4]
     # Find the transverse plane 
-    if idx == len(theta_arr)-1:
-        step_ang = theta_arr[-1]-theta_arr[-2]
-    else:
-        step_ang = theta_arr[idx+1]-theta_arr[idx]
     condition_T, x_Tplane, _ = transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, coord = True)
     x_plane, y_plane, z_plane, dim_plane, den_plane, mass_plane, indeces_plane = \
         make_slices([x_data, y_data, z_data, dim_data, den_data, mass_data, indeces], condition_T)
     # Restrict to not keep points too far away.
-    r_cm = np.sqrt(x_stream[idx]**2 + y_stream[idx]**2)
+    r_cm = np.sqrt(x_stream[idx]**2 + y_stream[idx]**2 + z_stream[idx]**2)
     den_thresh = thresh_cm[idx]
-    # den_thresh = get_den_threshold(den_plane, r_plane, mass_plane, R0) #8 * Rstar * (r_cm/Rp)**(1/2)
     condition_den = den_plane > den_thresh
     x_plane, x_Tplane, y_plane, z_plane, dim_plane, den_plane, mass_plane, indeces_plane = \
         make_slices([x_plane, x_Tplane, y_plane, z_plane, dim_plane, den_plane, mass_plane, indeces_plane], condition_den)
@@ -361,8 +348,9 @@ if __name__ == '__main__':
     theta_arr = theta_arr[:230]
 
     check = 'Low'
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
-    snaps = ['164', '199', '216']
+    compton = 'Compton'
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+    snaps = ['164']
     for snap in snaps:
         print('############', snap)
         path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
@@ -393,13 +381,21 @@ if __name__ == '__main__':
             plt.show()
 
         if make_stream:
+            import Utilities.sections as sec
             x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(data.X, data.Y, data.Z, dim_cell, data.Den, data.Mass, theta_arr, params)
-            # np.save(f'/Users/paolamartire/shocks/data/{folder}/DENstream_{check}{snap}.npy', [theta_arr, x_stream, y_stream, z_stream, thresh_cm])
+            np.save(f'/Users/paolamartire/shocks/data/{folder}/DENstream_{check}{snap}.npy', [theta_arr, x_stream, y_stream, z_stream, thresh_cm])
 
-            # plt.plot(x_stream, y_stream, c = 'b', label = 'COM fix width TZ plane')
-            # plt.xlim(-300,20)
-            # plt.ylim(-60,60)
-            # plt.grid()
-            # # plt.legend()
-            # plt.show()  
+            midplane = np.abs(data.Z) < dim_cell
+            X_midplane, Y_midplane, Den_midplane, = sec.make_slices([data.X, data.Y, data.Den], midplane)
+
+            plt.figure(figsize = (12,4))
+            img = plt.scatter(X_midplane, Y_midplane, s=.1, alpha = 0.8, c = Den_midplane, cmap = 'viridis', vmin=1e-10, vmax = 1e-7)
+            cbar = plt.colorbar(img)
+            cbar.set_label('Density')
+            plt.plot(x_stream, y_stream, c = 'k')
+            plt.xlim(-300,20)
+            plt.ylim(-60,60)
+            plt.grid()
+            plt.show()  
+
 
