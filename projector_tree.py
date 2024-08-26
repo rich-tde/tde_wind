@@ -29,11 +29,11 @@ def grid_maker(path, snap, m, mstar, Rstar, x_num, y_num, z_num = 100):
     """ ALL outputs are in in solar units """
     Mbh = 10**m
     Rt = Rstar * (Mbh/mstar)**(1/3)
-    R0 = 0.6 * Rt
+    # R0 = 0.6 * Rt
     apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
     x_start = -1.2*apo
-    x_stop = R0
+    x_stop = 40
     xs = np.linspace(x_start, x_stop, num = x_num )
     y_start = -0.2 * apo 
     y_stop = 0.2 * apo
@@ -74,7 +74,7 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
  
 if __name__ == '__main__':
     save = True
-    plot = True
+    plot = False
     m = 4
     Mbh = 10**m
     beta = 1
@@ -95,7 +95,7 @@ if __name__ == '__main__':
         else:
             path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
 
-        _, grid_den, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, x_num=51, y_num=50, z_num = 10)
+        _, grid_den, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, x_num=500, y_num=500, z_num = 100)
         flat_den = projector(grid_den, x_radii, y_radii, z_radii)
 
         if save:
