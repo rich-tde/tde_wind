@@ -95,8 +95,8 @@ if __name__ == '__main__':
         else:
             path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
 
-            _, grid_den, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, x_num=51, y_num=50, z_num = 10)
-            flat_den = projector(grid_den, x_radii, y_radii, z_radii)
+        _, grid_den, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, x_num=51, y_num=50, z_num = 10)
+        flat_den = projector(grid_den, x_radii, y_radii, z_radii)
 
         if save:
             if alice:
