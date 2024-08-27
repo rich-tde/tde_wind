@@ -190,7 +190,7 @@ def bound_mass(x, den_data, mass_data, m_thres):
     total_mass = np.sum(mass)
     return total_mass - m_thres
 
-def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, mass_data, stream, idx, params):
+def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, smoothed_den_data, mass_data, stream, idx, params):
     """ Find the width and the height of the stream for a single theta """
     Mbh, Rstar, mstar, beta = params[0], params[1], params[2], params[3]
     Rt = Rstar * (Mbh/mstar)**(1/3)
@@ -199,26 +199,26 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, mass_data
     x_stream, y_stream, z_stream, thresh_cm = stream[1], stream[2], stream[3], stream[4]
     # Find the transverse plane 
     condition_T, x_Tplane, _ = transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, coord = True)
-    x_plane, y_plane, z_plane, dim_plane, den_plane, mass_plane, indeces_plane = \
-        make_slices([x_data, y_data, z_data, dim_data, den_data, mass_data, indeces], condition_T)
+    x_plane, y_plane, z_plane, dim_plane, den_plane, smooth_den_plane, mass_plane, indeces_plane = \
+        make_slices([x_data, y_data, z_data, dim_data, den_data, smoothed_den_data, mass_data, indeces], condition_T)
     # Restrict to not keep points too far away.
     r_cm = np.sqrt(x_stream[idx]**2 + y_stream[idx]**2 + z_stream[idx]**2)
     den_thresh = thresh_cm[idx]
     condition_den = den_plane > den_thresh
-    x_plane, x_Tplane, y_plane, z_plane, dim_plane, den_plane, mass_plane, indeces_plane = \
-        make_slices([x_plane, x_Tplane, y_plane, z_plane, dim_plane, den_plane, mass_plane, indeces_plane], condition_den)
+    x_plane, x_Tplane, y_plane, z_plane, dim_plane, den_plane, smooth_den_plane, mass_plane, indeces_plane = \
+        make_slices([x_plane, x_Tplane, y_plane, z_plane, dim_plane, den_plane, smooth_den_plane, mass_plane, indeces_plane], condition_den)
     if (r_cm-R0)< 0:
         print(f'The threshold to cut the TZ plane is too broad: you overcome R0 at point #{idx} of the stream')
     mass_to_reach = 0.5 * np.sum(mass_plane)
     print(f'The mass to reach is {mass_to_reach}')
     # Find the threshold for x
     try:
-        contourT = brentq(bound_mass, 0, np.max(den_plane), args=(den_plane, mass_plane, mass_to_reach))
+        contourT = brentq(bound_mass, 0, np.max(smooth_den_plane), args=(smooth_den_plane, mass_plane, mass_to_reach))
     except:
-        print('0:',bound_mass(0, den_plane, mass_plane, mass_to_reach))
-        print('max: ', bound_mass(1.2*np.max(den_plane), den_plane, mass_plane, mass_to_reach))
-        contourT = brentq(bound_mass, 0, 1.2*np.max(den_plane), args=(den_plane, mass_plane, mass_to_reach))
-    condition_contourT = den_plane > contourT
+        # just to avoid problem with brentq
+        print('Problem with brentq at ', stream[0][idx])
+        contourT = brentq(bound_mass, 0, np.max(den_plane), args=(smooth_den_plane, mass_plane, mass_to_reach))
+    condition_contourT = smooth_den_plane > contourT
     x_T_contourT, z_contourT, dim_contourT, indeces_contourT = make_slices([x_Tplane, z_plane, dim_plane, indeces_plane], condition_contourT)
 
     idx_before = np.argmin(x_T_contourT)
@@ -248,7 +248,7 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, mass_data
 
     return indeces_boundary, x_T_width, w_params, h_params, den_thresh
 
-def follow_the_stream(x_data, y_data, z_data, dim_data, den_data, mass_data, path, params):
+def follow_the_stream(x_data, y_data, z_data, dim_data, den_data, smoothed_den_data, mass_data, path, params):
     """ Find width and height all along the stream """
     # Find the stream (load it)
     stream = np.load(path)
@@ -261,7 +261,7 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, den_data, mass_data, pat
     for i in range(len(theta_arr)):
         print(theta_arr[i])
         indeces_boundary_i, x_T_width_i, w_params_i, h_params_i, _ = \
-            find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, mass_data, stream, i, params)
+            find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, smoothed_den_data, mass_data, stream, i, params)
         indeces_boundary.append(indeces_boundary_i)
         x_T_width.append(x_T_width_i)
         w_params.append(w_params_i)

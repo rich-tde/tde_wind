@@ -42,14 +42,14 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
 do = True
 plot = False
-save = False
+save = True
 compare = False
 #
 ## MAIN
 #
 
-check = 'Low' # 'Low' or 'HiRes' or 'Res20'
-snap = '164'
+check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
+snap = '216'
 compton = 'Compton'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 path = f'{abspath}TDE/{folder}{check}/{snap}'
@@ -81,8 +81,8 @@ if do:
     # cfr0 = xcfr0**2 + ycfr0**2 - R0**2
 
     file = f'{abspath}data/{folder}/DENstream_{check}{snap}.npy'
-    density = data.Den#np.load(f'{abspath}TDE/{folder}{check}/{snap}/smoothed_Den_{snap}.npy')
-    stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr  = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, density, data.Mass, path = file, params = params)
+    smooth_den = np.load(f'{abspath}TDE/{folder}{check}/{snap}/smoothed_Den_{snap}.npy')
+    stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr  = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Den, smooth_den, data.Mass, path = file, params = params)
 
     try:
         file = open(f'{abspath}data/{folder}/SMOOTH_DENwidth_time{np.round(tfb,2)}.txt', 'r')
