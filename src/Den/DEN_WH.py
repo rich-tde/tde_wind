@@ -40,16 +40,16 @@ Rp =  Rt / beta
 R0 = 0.6 * Rp
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
-do = True
-plot = False
+do = False
+plot = True
 save = True
-compare = False
+compare = True
 #
 ## MAIN
 #
 
 check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
-snap = '216'
+snap = '164'
 compton = 'Compton'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 path = f'{abspath}TDE/{folder}{check}/{snap}'
@@ -81,20 +81,20 @@ if do:
     # cfr0 = xcfr0**2 + ycfr0**2 - R0**2
 
     file = f'{abspath}data/{folder}/DENstream_{check}{snap}.npy'
-    smooth_den = np.load(f'{abspath}TDE/{folder}{check}/{snap}/smoothed_Den_{snap}.npy')
-    stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr  = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Den, smooth_den, data.Mass, path = file, params = params)
+    # smooth_den = np.load(f'{abspath}TDE/{folder}{check}/{snap}/smoothed_Den_{snap}.npy')
+    stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr  = orb.follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Den, data.Mass, path = file, params = params)
 
     try:
-        file = open(f'{abspath}data/{folder}/SMOOTH_DENwidth_time{np.round(tfb,2)}.txt', 'r')
+        file = open(f'{abspath}data/{folder}/DENwidth_time{np.round(tfb,2)}.txt', 'r')
         # Perform operations on the file
         file.close()
     except FileNotFoundError:
-        with open(f'{abspath}data/{folder}/SMOOTH_DENwidth_time{np.round(tfb,2)}.txt','a') as fstart:
+        with open(f'{abspath}data/{folder}/DENwidth_time{np.round(tfb,2)}.txt','a') as fstart:
             # if file exist
             fstart.write(f'# theta \n')
             fstart.write((' '.join(map(str, theta_arr)) + '\n'))
 
-    with open(f'{abspath}data/{folder}/SMOOTH_DENwidth_time{np.round(tfb,2)}.txt','a') as file:
+    with open(f'{abspath}data/{folder}/DENwidth_time{np.round(tfb,2)}.txt','a') as file:
         file.write(f'# {check}, snap {snap} width \n')
         file.write((' '.join(map(str, w_params[0])) + '\n'))
         file.write(f'# {check}, snap {snap} Ncells \n')
@@ -103,16 +103,16 @@ if do:
 
     # same for height
     try:
-        file = open(f'{abspath}data/{folder}/SMOOTH_DENheight_time{np.round(tfb,2)}.txt', 'r')
+        file = open(f'{abspath}data/{folder}/DENheight_time{np.round(tfb,2)}.txt', 'r')
         # Perform operations on the file
         file.close()
     except FileNotFoundError:
-        with open(f'{abspath}data/{folder}/SMOOTH_DENheight_time{np.round(tfb,2)}.txt','a') as fstart:
+        with open(f'{abspath}data/{folder}/DENheight_time{np.round(tfb,2)}.txt','a') as fstart:
             # if file exist
             fstart.write(f'# theta \n')
             fstart.write((' '.join(map(str, theta_arr)) + '\n'))
 
-    with open(f'{abspath}data/{folder}/SMOOTH_DENheight_time{np.round(tfb,2)}.txt','a') as file:
+    with open(f'{abspath}data/{folder}/DENheight_time{np.round(tfb,2)}.txt','a') as file:
         file.write(f'# {check}, snap {snap} height \n')
         file.write((' '.join(map(str, h_params[0])) + '\n'))
         file.write(f'# {check}, snap {snap} Ncells \n')
