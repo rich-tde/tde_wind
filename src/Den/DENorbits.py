@@ -209,7 +209,7 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, mass_data
         make_slices([x_plane, x_Tplane, y_plane, z_plane, dim_plane, den_plane, mass_plane, indeces_plane], condition_den)
     if (r_cm-R0)< 0:
         print(f'The threshold to cut the TZ plane is too broad: you overcome R0 at point #{idx} of the stream')
-    mass_to_reach = 0.5 * np.sum(mass_plane)
+    mass_to_reach = 0.75 * np.sum(mass_plane)
     # Find the threshold for x
     # try:
     #     contourT = brentq(bound_mass, 0, np.max(den_plane), args=(den_plane, mass_plane, mass_to_reach))
