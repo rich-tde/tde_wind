@@ -24,7 +24,7 @@ def select_snap(m, check, mstar, rstar, beta, n, compton = 'Compton', time = Fal
     pre = select_prefix(m, check, mstar, rstar, beta, n, compton)
     if alice:
         if m == 4 :
-            snapshots = np.arange(100,165)#80, 348 + 1, step = 1)
+            snapshots = np.arange(80, 348 + 1, step = 1)
             # select just the ones that actually exist
             snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/snap_{snap}/snap_{snap}.h5')]
     else:

@@ -1,6 +1,4 @@
-import sys
-sys.path.append('/Users/paolamartire/tde_comparison')
-
+abspath = '/Users/paolamartire/shocks'
 import subprocess
 import glob
 import os
@@ -13,13 +11,16 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
+check = 'HiRes'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-path = f'Figs/{folder}/multiple/wH'
-output_path = f'Figs/{folder}/movie_wH.mp4'
+# path = f'Figs/{folder}/multiple/wH'
+# output_path = f'Figs/{folder}/movie_wH.mp4'
+path = f'{abspath}/Figs/{folder}/{check}/projection/denproj'
+output_path = f'{abspath}/Figs/{folder}/{check}/movie_proj{check}.mp4'
 
-start = 9
-slow_down_factor = 6  # Increase this value to make the video slower
+start = 100
+slow_down_factor = 4  # Increase this value to make the video slower
 
 ffmpeg_command = (
     f'ffmpeg -y -start_number {start} -i {path}%d.png -vf "setpts={slow_down_factor}*PTS" '

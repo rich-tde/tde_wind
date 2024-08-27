@@ -210,8 +210,14 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, mass_data
     if (r_cm-R0)< 0:
         print(f'The threshold to cut the TZ plane is too broad: you overcome R0 at point #{idx} of the stream')
     mass_to_reach = 0.5 * np.sum(mass_plane)
+    print(f'The mass to reach is {mass_to_reach}')
     # Find the threshold for x
-    contourT = brentq(bound_mass, 0, np.max(den_plane), args=(den_plane, mass_plane, mass_to_reach))
+    try:
+        contourT = brentq(bound_mass, 0, np.max(den_plane), args=(den_plane, mass_plane, mass_to_reach))
+    except:
+        print('0:',bound_mass(0, den_plane, mass_plane, mass_to_reach))
+        print('max: ', bound_mass(1.2*np.max(den_plane), den_plane, mass_plane, mass_to_reach))
+        contourT = brentq(bound_mass, 0, 1.2*np.max(den_plane), args=(den_plane, mass_plane, mass_to_reach))
     condition_contourT = den_plane > contourT
     x_T_contourT, z_contourT, dim_contourT, indeces_contourT = make_slices([x_Tplane, z_plane, dim_plane, indeces_plane], condition_contourT)
 
@@ -253,6 +259,7 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, den_data, mass_data, pat
     w_params = []
     h_params = []
     for i in range(len(theta_arr)):
+        print(theta_arr[i])
         indeces_boundary_i, x_T_width_i, w_params_i, h_params_i, _ = \
             find_single_boundaries(x_data, y_data, z_data, dim_data, den_data, mass_data, stream, i, params)
         indeces_boundary.append(indeces_boundary_i)

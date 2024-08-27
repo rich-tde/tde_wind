@@ -1,4 +1,8 @@
 
+""" 
+Project density on XY plane and save data.
+Plot the projection.
+"""
 import sys
 sys.path.append('/Users/paolamartire/shocks')
 
@@ -74,70 +78,89 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
  
 if __name__ == '__main__':
     save = True
-    plot = False
+    cast = False
+    plot = True
+
     m = 4
     Mbh = 10**m
     beta = 1
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = 'Low'
+    Rt = Rstar * (Mbh/mstar)**(1/3)
+    apocenter = Rt**2 / Rstar
+    check = 'HiRes'
     compton = 'Compton'
-
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) #[100,115,164,199,216]
 
-    for snap in snaps:
-        if alice:
-            if check == 'Low':
-                check = ''
-            path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}/snap_{snap}'
-        else:
-            path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
-
-        _, grid_den, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, x_num=500, y_num=500, z_num = 100)
-        flat_den = projector(grid_den, x_radii, y_radii, z_radii)
-
-        if save:
+    if cast:
+        snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
+        for snap in snaps:
             if alice:
-                if check == '':
-                    check = 'Low'
-                prepath = f'/data1/martirep/shocks/shock_capturing'
-            else: 
-                prepath = f'/Users/paolamartire/shocks'
-            np.savetxt(f'{prepath}/data/{folder}/{check}/denproj{snap}.txt', flat_den) 
-            np.savetxt(f'{prepath}/data/{folder}/{check}/xarray.txt', x_radii)
-            np.savetxt(f'{prepath}/data/{folder}/{check}/yarray.txt', y_radii)
+                if check == 'Low':
+                    check = ''
+                path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}/snap_{snap}'
+            else:
+                path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
+
+            _, grid_den, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, x_num=500, y_num=500, z_num = 100)
+            flat_den = projector(grid_den, x_radii, y_radii, z_radii)
+
+            if save:
+                if alice:
+                    if check == '':
+                        check = 'Low'
+                    prepath = f'/data1/martirep/shocks/shock_capturing'
+                else: 
+                    prepath = f'/Users/paolamartire/shocks'
+                np.savetxt(f'{prepath}/data/{folder}/{check}/denproj{snap}.txt', flat_den) 
+                np.savetxt(f'{prepath}/data/{folder}/{check}/xarray.txt', x_radii)
+                np.savetxt(f'{prepath}/data/{folder}/{check}/yarray.txt', y_radii)
+        if save:
+            with open(f'{prepath}/data/{folder}/{check}/time_proj.txt', 'a') as f:
+                f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
+                f.write(f'# t/t_fb \n' + ' '.join(map(str, tfb)) + '\n')
+                f.close()
 
 #%% Plot
-        if plot:
-            import colorcet
-            fig, ax = plt.subplots(1,1)
-            plt.rcParams['text.usetex'] = True
-            plt.rcParams['figure.dpi'] = 300
-            plt.rcParams['font.family'] = 'Times New Roman'
-            plt.rcParams['figure.figsize'] = [6, 4]
-            plt.rcParams['axes.facecolor']=     'whitesmoke'
-            
-            # Clean
-            den_plot = np.nan_to_num(flat_den, nan = -1, neginf = -1)
-            den_plot = np.log10(den_plot)
-            den_plot = np.nan_to_num(den_plot, neginf= 0)
-            
-            # Specify
-            
-            cb_text = r'Density [g/cm$^2$]'
-            vmin = 0
-            vmax = 6
-            
-            # ax.set_xlim(-1, 10/20_000)
-            # ax.set_ylim(-0.2, 0.2)
-            ax.set_xlabel(r' X [$R_\odot$]', fontsize = 14)
-            ax.set_ylabel(r' Y [$R_\odot$]', fontsize = 14)
-            img = ax.pcolormesh(x_radii, y_radii, den_plot.T, cmap = 'cet_fire')
-                                #vmin = vmin, vmax = vmax)
-            cb = plt.colorbar(img)
-            cb.set_label(cb_text, fontsize = 14)
+    if plot:
+        import Utilities.prelude as pre
+        import matplotlib.colors as colors
+        from Utilities.time_extractor import days_since_distruption
 
-            ax.set_title('XY Projection', fontsize = 16)
-            plt.show()
+        first_s = 100
+        last_s = 217
+        snaps = np.arange(first_s,last_s,1)
+        tfb = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}/projection/time_proj.txt')[1]
+
+        # Load and clean
+        for i, snap in enumerate(snaps):
+            flat_den = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}/projection/denproj{snap}.txt')
+            x_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}/projection/xarray.txt')
+            y_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}/projection/yarray.txt')
+            tfb_single = tfb[i]
+
+            den_plot = np.log10(flat_den)
+            den_plot = np.nan_to_num(den_plot, neginf= 0, posinf = 0)
+            
+            p5 = np.percentile(den_plot, 5)
+            p95 = np.percentile(den_plot, 95)
+            # print('put min and max as ', p5, p95)
+            
+            fig, ax = plt.subplots(1,1, figsize = (12,4))
+            ax.set_xlabel(r'$X/R_a$]', fontsize = 20)
+            ax.set_ylabel(r'$Y/R_a$]', fontsize = 20)
+            img = ax.pcolormesh(x_radii/apocenter, y_radii/apocenter, den_plot.T, cmap = 'inferno',
+                                vmin = -10, vmax = -5.6)
+            cb = plt.colorbar(img)
+            cb.set_label(r'Density [g/cm$^2$]', fontsize = 20)
+
+            # ax.set_title(f'XY Projection, snap {snap}', fontsize = 16)
+            ax.text(-1.1, 0.15, r't/t$_{fb}$ = ' + f'{np.round(tfb_single,2)}', color = 'white', fontsize = 18)
+            plt.tight_layout()
+            if save:
+                plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{check}/projection/denproj{snap}.png')
+            # plt.show()
+            plt.close()
+
+# %%
