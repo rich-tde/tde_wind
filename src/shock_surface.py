@@ -2,6 +2,7 @@ import Utilities.prelude
 import pickle 
 import numpy as np
 import math
+import k3match
 import matplotlib.pyplot as plt
 from Utilities.operators import make_tree
 from Utilities.isalice import isalice
