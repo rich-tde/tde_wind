@@ -1,3 +1,5 @@
+import sys
+sys.path.append('/Users/paolamartire/shocks/')
 import Utilities.prelude
 import pickle 
 import numpy as np
@@ -270,7 +272,7 @@ if alice:
 else:
     path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
 
-# Load the data
+#%% Load the data
 data = make_tree(path, snap, energy = False)
 dim_cell = data.Vol**(1/3)
 
@@ -305,7 +307,6 @@ div_zone = Elad_divV[idx_tree]
 ds_zone = ds_all[idx_tree]
 dim_cell_zone = dim_cell[idx_tree]
 
-
 surface_Tmach, surface_Pmach, surface_Denmach, indeces, indeces_pre, indeces_post = \
     shock_surface(data.sim_tree, data.X, data.Y, data.Z, data.Temp, data.Press, data.Den, are_u_shock,
                   x_zone, y_zone, z_zone, idx_tree, div_zone, ds_zone)
@@ -326,4 +327,50 @@ if save == True:
         file.write(f'# Tree indeces of the post shock zone points corresponding to the shock surface points \n') 
         file.write(' '.join(map(str, indeces_post)) + '\n')
         file.close()
-    
+
+#%% 
+if plot:
+    from Utilities.sections import make_slices
+    if alice:
+        if check == '':
+            check = 'Low'
+        prepath = f'/data1/martirep/shocks/shock_capturing'
+    else: 
+        prepath = f'/Users/paolamartire/shocks'
+
+    idx_zone = np.loadtxt(f'{prepath}/data/{folder}/{check}/shockzone_{snap}.txt')
+    idx_zone = np.array([int(i) for i in idx_zone])
+    data_surf = np.loadtxt(f'{prepath}/data/{folder}/{check}/shocksurface_{snap}.txt')
+    idx_surf = data_surf[0]
+    idx_surf = np.array([int(i) for i in idx_surf])
+    X = np.load(f'{path}grad/CMx_{snap}.npy')
+    Y = np.load(f'{path}grad/CMy_{snap}.npy')
+    Z = np.load(f'{path}grad/CMz_{snap}.npy')
+    Den = np.load(f'{path}grad/Den_{snap}.npy')
+    Elad_divV = np.load(f'{path}grad/DivV_{snap}.npy')
+    Vol = np.load(f'{path}grad/Vol_{snap}.npy')
+    dim_cell = Vol**(1/3)
+
+    x_zone, y_zone, z_zone, dim_cell_zone = X[idx_zone], Y[idx_zone], Z[idx_zone], dim_cell[idx_zone]
+    midplane = np.abs(Z)<dim_cell
+    X_midplane, Y_midplane, Z_midplane, Den_midplane, div_midplane = make_slices([X, Y, Z, Den, Elad_divV], midplane)
+
+    surface_x, surface_y, surface_z, dim_cell_surf = x_zone[idx_surf], y_zone[idx_surf], z_zone[idx_surf], dim_cell_zone[idx_surf]
+    midplane_surf = np.abs(surface_z)< dim_cell_surf
+    x_surfmidplane, y_surfmidplane, z_surfmidplane = make_slices([surface_x, surface_y, surface_z], midplane_surf)
+
+    fig, ax = plt.subplots(1,1,figsize=(12,10))
+    img = ax.scatter(X_midplane, Y_midplane, c = div_midplane, s = 1, cmap = 'plasma', vmin = -5, vmax = 2)#, norm=colors.LogNorm(vmin = 1e-9, vmax = 1e-5))
+    # img = ax.scatter(X_midplane, Y_midplane, c = Den_midplane, s = 2, cmap = 'inferno', norm=colors.LogNorm(vmin = 1e-9, vmax = 1e-5))
+    cbar = fig.colorbar(img, ax=ax)
+    ax.plot(x_surfmidplane, y_surfmidplane, 'ks', markerfacecolor='k', ms=4, markeredgecolor='k', label = 'Shock surf')
+    ax.set_xlabel(r'X [$R_\odot$]', fontsize = 20)
+    ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 20)
+    ax.set_xlim(-10,30)
+    ax.set_ylim(-20,20)
+    ax.legend(loc = 'upper right', fontsize = 20)
+    # if save:    
+    #     plt.savefig(f'Figs/{snap}/shocksurface_{snap}.png')
+    plt.show()
+
+# %%

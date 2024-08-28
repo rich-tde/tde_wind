@@ -1,9 +1,10 @@
+import sys
+sys.path.append('/Users/paolamartire/shocks/')
 import Utilities.prelude
 import pickle 
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-import k3match
 from Utilities.operators import make_tree
 from Utilities.isalice import isalice
 alice, plot = isalice()
@@ -18,7 +19,7 @@ abs_path = '/Users/paolamartire/shocks'
 # CONSTANTS
 ##
 
-gamma = 5/3
+gamma_ad = 5/3
 mach_min = 1.3
 
 #
@@ -36,23 +37,17 @@ def pressure_bump(mach, gamma):
     return Pbump
 
 def shock_direction(grad):
-    """ Find shock direction according eq.(5) by Schaal14 in the point of coordinates indices idx.
+    """ Find shock direction according eq.(5) by Schaal14.
     Parameters
     -----------
-    sim_tree: tree.
-            Simulation points.
-    X, Y, Z, Temp: arrays.
-            Coordinates and temperature of the points of the tree.
-    point: array.
-            Starting point.
-    delta: float.
-            Step between 2 neighbours.
+    grad: array (1x3)
+        Gradient of temperature.
     Returns
     -----------
-    grad: array.
-        Gradient of temperature(vector of 3 components).
-    ds: array.
-        Shock direction (vector of 3 components).
+    grad: array (1x3)
+        Gradient of temperature.
+    ds: array (1x3)
+        Shock direction.
     """
     magnitude = np.linalg.norm(grad)
     
@@ -67,9 +62,11 @@ def find_prepost(sim_tree, X, Y, Z, point, ds, delta, direction):
     """
     Parameters
     -----------
-    point: array.
-        Starting point.
-    ds: array (1x3)
+    sim_tree, X, Y, Z: tree, arrays
+        Simulation points tree and coordinates.
+    point: array (1x3).
+        Coordinates of the starting point.
+    ds: array (1x3).
         Shock direction.
     delta: float.
         Step to do to search.
@@ -78,7 +75,7 @@ def find_prepost(sim_tree, X, Y, Z, point, ds, delta, direction):
     Returns
     -----------
     idx: int.
-        Index of the pre/post shock point
+        Index of the pre('pre') / post('post') shock point.
     """
     if direction == 'post':
         delta = - delta
@@ -100,17 +97,17 @@ def condition3(sim_tree, X, Y, Z, Press, Temp, point, ds, mach_min, gamma, delta
     Parameters
     -----------
     sim_tree: tree.
-            Simulation points.
+        Simulation points tree.
     X, Y, Z, Press, Temp: arrays.
-            Coordinates, pressure and temperature of the points of the tree.
+        Coordinates, pressure and temperature of the points of the tree.
     point: array.
-            Starting point.
+        Coordinates of the starting point.
     ds: array (1x3)
         Shock direction.
     mach_min, gamma: floats.
-                    Minimum mach number, adiabatic index.
+        Minimum mach number, adiabatic index.
     delta: float.
-            Step between 2 neighbours.
+        Step between 2 neighbours.
     Returns
     -----------
     bool.
@@ -141,7 +138,7 @@ def condition3(sim_tree, X, Y, Z, Press, Temp, point, ds, mach_min, gamma, delta
     else:
         return False
     
-def shock_zone(divv, gradT, gradrho, cond3, check_cond = '3'):
+def shock_zone(divv, gradT, gradrho, cond3, check_cond = 'all'):
     """ Find the shock zone according conditions in Sec. 2.3.2 of Schaal14. 
     In order to test the code, with "check_con" you can decide if checking all or some of the conditions."""
     if check_cond == '1' or check_cond == '2':
@@ -161,6 +158,8 @@ def shock_zone(divv, gradT, gradrho, cond3, check_cond = '3'):
 #
 ## MAIN
 #
+
+# Parameters
 save = True
 
 m = 4
@@ -173,6 +172,7 @@ check = 'Low' # 'Compton' or 'ComptonHiRes' or 'ComptonRes20'
 compton = 'Compton'
 snap = '216'
 
+# TDE quantities and names
 Mbh = 10**m
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
@@ -187,29 +187,25 @@ if alice:
 else:
     path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
 
-#%%
+#%% Load data
 data = make_tree(path, snap, energy = False)
 dim_cell = data.Vol**(1/3) # according to Elad
-# tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
-
-#%% Load gradients
-# Eladx_rholim = np.load(f'{path}/DrhoDxLimited_{snap}.npy')
-# Elady_rholim = np.load(f'{path}/DrhoDyLimited_{snap}.npy')
-# Eladz_rholim = np.load(f'{path}/DrhoDzLimited_{snap}.npy')
 Eladx_rho = np.load(f'{path}/DrhoDx_{snap}.npy')
 Elady_rho = np.load(f'{path}/DrhoDy_{snap}.npy')
 Eladz_rho = np.load(f'{path}/DrhoDz_{snap}.npy')
-# Eladx_plim = np.load(f'{path}/DpDxLimited_{snap}.npy')
-# Elady_plim = np.load(f'{path}/DpDyLimited_{snap}.npy')
-# Eladz_plim = np.load(f'{path}/DpDzLimited_{snap}.npy')
 Eladx_p = np.load(f'{path}/DpDx_{snap}.npy')
 Elady_p = np.load(f'{path}/DpDy_{snap}.npy')
 Eladz_p = np.load(f'{path}/DpDz_{snap}.npy')
-
-# Elad_divVlim = np.load(f'{path}/divVLimited_{snap}.npy')
 Elad_divV = np.load(f'{path}/DivV_{snap}.npy')
+# Eladx_rholim = np.load(f'{path}/DrhoDxLimited_{snap}.npy')
+# Elady_rholim = np.load(f'{path}/DrhoDyLimited_{snap}.npy')
+# Eladz_rholim = np.load(f'{path}/DrhoDzLimited_{snap}.npy')
+# Eladx_plim = np.load(f'{path}/DpDxLimited_{snap}.npy')
+# Elady_plim = np.load(f'{path}/DpDyLimited_{snap}.npy')
+# Eladz_plim = np.load(f'{path}/DpDzLimited_{snap}.npy')
+# Elad_divVlim = np.load(f'{path}/divVLimited_{snap}.npy')
 
-# Compute shock zone
+#%% Compute shock zone
 shock_dirx = []
 shock_diry = []
 shock_dirz = []
@@ -237,11 +233,6 @@ for i in range(len(data.X)):
         print(i)
     point = np.array([data.X[i],data.Y[i],data.Z[i]])
 
-    # if np.linalg.norm(point)>threshold:
-    #     masked += 1
-    #     are_u_shock[i] = False
-    #     continue
-
     if data.Den[i]<1e-9: # threshold is 1e-15. but we increase to speed it up
         are_u_shock[i] = False
         continue
@@ -268,32 +259,27 @@ for i in range(len(data.X)):
         are_u_shock[i] = False
         continue
     
-    if math.isnan(np.linalg.norm(grad_temp)):
-        # non dovrebbe succedere se prendi ds=2*max
+    if math.isnan(np.linalg.norm(grad_temp)) or math.isnan(np.linalg.norm(div_vel)):
+        are_u_shock[i] = False
         continue 
 
-    if math.isnan(np.linalg.norm(div_vel)):
-        # non dovrebbe succedere per come prendi step in ds=2*max
-        are_u_shock[i] = False
-        print('nan in div_v')
-
-    cond3 = condition3(data.sim_tree, data.X, data.Y, data.Z, data.Press, data.Temp, point, ds, mach_min, gamma, step)
-    shock1 = shock_zone(div_vel, grad_temp, grad_den, cond3, check_cond =  '1')
-    shock2 = shock_zone(div_vel, grad_temp, grad_den, cond3, check_cond =  '2')
+    cond3 = condition3(data.sim_tree, data.X, data.Y, data.Z, data.Press, data.Temp, point, ds, mach_min, gamma_ad, step)
+    # shock1 = shock_zone(div_vel, grad_temp, grad_den, cond3, check_cond =  '1')
+    # shock2 = shock_zone(div_vel, grad_temp, grad_den, cond3, check_cond =  '2')
     shock = shock_zone(div_vel, grad_temp, grad_den, cond3, check_cond = '3')
     are_u_shock[i] = shock
     
-    if shock1 == True:
-        X_shock1.append(data.X[i])
-        Y_shock1.append(data.Y[i])
-        Z_shock1.append(data.Z[i])
-        idx_tree1.append(i)
+    # if shock1 == True:
+    #     X_shock1.append(data.X[i])
+    #     Y_shock1.append(data.Y[i])
+    #     Z_shock1.append(data.Z[i])
+    #     idx_tree1.append(i)
 
-    if shock2 == True:
-        X_shock2.append(data.X[i])
-        Y_shock2.append(data.Y[i])
-        Z_shock2.append(data.Z[i])
-        idx_tree2.append(i)
+    # if shock2 == True:
+    #     X_shock2.append(data.X[i])
+    #     Y_shock2.append(data.Y[i])
+    #     Z_shock2.append(data.Z[i])
+    #     idx_tree2.append(i)
 
     if shock == True:
         X_shock.append(data.X[i])
@@ -310,13 +296,13 @@ X_shock = np.array(X_shock)
 Y_shock = np.array(Y_shock)
 Z_shock = np.array(Z_shock)
 
-X_shock1 = np.array(X_shock1)
-Y_shock1 = np.array(Y_shock1)
-Z_shock1 = np.array(Z_shock1)
+# X_shock1 = np.array(X_shock1)
+# Y_shock1 = np.array(Y_shock1)
+# Z_shock1 = np.array(Z_shock1)
 
-X_shock2 = np.array(X_shock2)
-Y_shock2 = np.array(Y_shock2)
-Z_shock2 = np.array(Z_shock2)
+# X_shock2 = np.array(X_shock2)
+# Y_shock2 = np.array(Y_shock2)
+# Z_shock2 = np.array(Z_shock2)
 
 if save == True:
     if alice:
@@ -334,32 +320,47 @@ if save == True:
     with open(f'{prepath}/data/{folder}/{check}/areushock_{snap}.pkl', 'wb') as filebool:
         pickle.dump(are_u_shock, filebool)
 
+#%%
 if plot:
-    cross_sec = 0
-    dim_cell_zone = dim_cell[idx_tree]
-    dim_cell_zone1 = dim_cell[idx_tree1]
-    dim_cell_zone2 = dim_cell[idx_tree2]
+    from Utilities.sections import make_slices
+    from matplotlib import colors
 
-    # Plot 3 conditions (cross section)
-    if(len(X_shock1[np.abs(Z_shock1-cross_sec)<dim_cell_zone1])>1):
-        if folder == 'sedov':
-            plt.figure(figsize=(10,10))
-            plt.xlim(-1.1,1.1)
-            plt.ylim(-1.1,1.1)
-            plt.xlabel('X', fontsize = 18)
-            plt.ylabel('Y', fontsize = 18)
-        else:
-            plt.figure(figsize=(10,6))
-            plt.xlabel(r'X[$R_\odot$]', fontsize = 18)
-            plt.ylabel(r'Y[$R_\odot$]', fontsize = 18)
-            plt.xlim(-150,100)
-            plt.ylim(-150,100)
-        plt.plot(X_shock1[np.abs(Z_shock1-cross_sec)<dim_cell_zone1], Y_shock1[np.abs(Z_shock1-cross_sec)<dim_cell_zone1], 'ks', markerfacecolor='none', ms=8, markeredgecolor='coral', label = '1')
-        plt.plot(X_shock2[np.abs(Z_shock2-cross_sec)<dim_cell_zone2], Y_shock2[np.abs(Z_shock2-cross_sec)<dim_cell_zone2], 'ks', markerfacecolor='orange', ms=6, markeredgecolor='orange', label = '1,2')
-        plt.plot(X_shock[np.abs(Z_shock-cross_sec)<dim_cell_zone], Y_shock[np.abs(Z_shock-cross_sec)<dim_cell_zone], 'ks', markerfacecolor='k', ms=4, markeredgecolor='k', label = '1,2,3')
-        plt.legend(loc = 'upper left', fontsize = 18)
-        plt.grid()
-        plt.title(f'Conditions shock zone, z={cross_sec}', fontsize = 18)
-        if save:    
-            plt.savefig(f'Figs/{snap}/3XYshockzone_conditions_{snap}zoom.png')
-        plt.show()
+    if alice:
+        if check == '':
+            check = 'Low'
+        prepath = f'/data1/martirep/shocks/shock_capturing'
+    else: 
+        prepath = f'/Users/paolamartire/shocks'
+        
+    idx_tree = np.loadtxt(f'{prepath}/data/{folder}/{check}/shockzone_{snap}.txt')
+    idx_tree = np.array([int(i) for i in idx_tree])
+    X = np.load(f'{path}grad/CMx_{snap}.npy')
+    Y = np.load(f'{path}grad/CMy_{snap}.npy')
+    Z = np.load(f'{path}grad/CMz_{snap}.npy')
+    Den = np.load(f'{path}grad/Den_{snap}.npy')
+    Elad_divV = np.load(f'{path}grad/DivV_{snap}.npy')
+    Vol = np.load(f'{path}grad/Vol_{snap}.npy')
+    dim_cell = Vol**(1/3)
+    
+    x_zone, y_zone, z_zone, dim_cell_zone = X[idx_tree], Y[idx_tree], Z[idx_tree], dim_cell[idx_tree]
+    midplane = np.abs(Z)<dim_cell
+    X_midplane, Y_midplane, Z_midplane, Den_midplane, div_midplane = make_slices([X, Y, Z, Den, Elad_divV], midplane)
+    midplane_zone = np.abs(z_zone)<dim_cell_zone
+    x_zonemidplane, y_zonemidplane, z_zonemidplane = make_slices([x_zone, y_zone, z_zone], midplane_zone)
+
+    fig, ax = plt.subplots(1,1,figsize=(12,10))
+    img = ax.scatter(X_midplane, Y_midplane, c = div_midplane, s = 1, cmap = 'plasma', vmin = -5, vmax = 2)#, norm=colors.LogNorm(vmin = 1e-9, vmax = 1e-5))
+    # img = ax.scatter(X_midplane, Y_midplane, c = Den_midplane, s = 2, cmap = 'inferno', norm=colors.LogNorm(vmin = 1e-9, vmax = 1e-5))
+    cbar = fig.colorbar(img, ax=ax)
+    cbar.set_label(r'$\nabla \cdot \mathbf{v}$', fontsize = 20)
+    ax.plot(x_zonemidplane, y_zonemidplane, 'ks', markerfacecolor='k', ms=4, markeredgecolor='k', label = 'Shock zone')
+    ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
+    ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
+    ax.set_xlim(-10,30)
+    ax.set_ylim(-20,20)
+    ax.legend(loc = 'upper right', fontsize = 20)
+    # if save:    
+    #     plt.savefig(f'Figs/{snap}/3XYshockzone_conditions_{snap}zoom.png')
+    plt.show()
+
+# %%

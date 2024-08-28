@@ -63,7 +63,7 @@ for i,radius_grid in enumerate(radii_grid):
 #%%
 # DECISIONS
 ##
-save = True
+save = False
 difference = False
 cutoff = 'bound' # or ''
 
