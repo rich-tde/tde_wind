@@ -183,7 +183,7 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 if alice:
     if check == 'Low':
         check = ''
-    path = f'/home/martirep/shocks/{folder}{check}/{snap}'
+    path = f'/data1/martirep/shocks/{folder}{check}/{snap}'
 else:
     path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
 
@@ -193,21 +193,21 @@ dim_cell = data.Vol**(1/3) # according to Elad
 # tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
 
 #%% Load gradients
-# Eladx_rholim = np.load(f'{folder}/{snap}/DrhoDxLimited_{snap}.npy')
-# Elady_rholim = np.load(f'{folder}/{snap}/DrhoDyLimited_{snap}.npy')
-# Eladz_rholim = np.load(f'{folder}/{snap}/DrhoDzLimited_{snap}.npy')
-Eladx_rho = np.load(f'{folder}/{snap}/DrhoDx_{snap}.npy')
-Elady_rho = np.load(f'{folder}/{snap}/DrhoDy_{snap}.npy')
-Eladz_rho = np.load(f'{folder}/{snap}/DrhoDz_{snap}.npy')
-# Eladx_plim = np.load(f'{folder}/{snap}/DpDxLimited_{snap}.npy')
-# Elady_plim = np.load(f'{folder}/{snap}/DpDyLimited_{snap}.npy')
-# Eladz_plim = np.load(f'{folder}/{snap}/DpDzLimited_{snap}.npy')
-Eladx_p = np.load(f'{folder}/{snap}/DpDx_{snap}.npy')
-Elady_p = np.load(f'{folder}/{snap}/DpDy_{snap}.npy')
-Eladz_p = np.load(f'{folder}/{snap}/DpDz_{snap}.npy')
+# Eladx_rholim = np.load(f'{path}/DrhoDxLimited_{snap}.npy')
+# Elady_rholim = np.load(f'{path}/DrhoDyLimited_{snap}.npy')
+# Eladz_rholim = np.load(f'{path}/DrhoDzLimited_{snap}.npy')
+Eladx_rho = np.load(f'{path}/DrhoDx_{snap}.npy')
+Elady_rho = np.load(f'{path}/DrhoDy_{snap}.npy')
+Eladz_rho = np.load(f'{path}/DrhoDz_{snap}.npy')
+# Eladx_plim = np.load(f'{path}/DpDxLimited_{snap}.npy')
+# Elady_plim = np.load(f'{path}/DpDyLimited_{snap}.npy')
+# Eladz_plim = np.load(f'{path}/DpDzLimited_{snap}.npy')
+Eladx_p = np.load(f'{path}/DpDx_{snap}.npy')
+Elady_p = np.load(f'{path}/DpDy_{snap}.npy')
+Eladz_p = np.load(f'{path}/DpDz_{snap}.npy')
 
-Elad_divVlim = np.load(f'{folder}/{snap}/divVLimited_{snap}.npy')
-Elad_divV = np.load(f'{folder}/{snap}/divV_{snap}.npy')
+# Elad_divVlim = np.load(f'{path}/divVLimited_{snap}.npy')
+Elad_divV = np.load(f'{path}/DivV_{snap}.npy')
 
 # Compute shock zone
 shock_dirx = []
@@ -320,6 +320,8 @@ Z_shock2 = np.array(Z_shock2)
 
 if save == True:
     if alice:
+        if check == '':
+            check = 'Low'
         prepath = f'/data1/martirep/shocks/shock_capturing'
     else: 
         prepath = f'/Users/paolamartire/shocks'
