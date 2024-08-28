@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 import math
 import k3match
 from Utilities.operators import make_tree
+from Utilities.isalice import isalice
+alice, plot = isalice()
+
 abs_path = '/Users/paolamartire/shocks'
 
 #
@@ -12,31 +15,11 @@ abs_path = '/Users/paolamartire/shocks'
 #
 
 #%%
+# CONSTANTS
+##
+
 gamma = 5/3
 mach_min = 1.3
-m = 4
-Mbh = 10**m
-beta = 1
-mstar = .5
-Rstar = .47
-n = 1.5
-check = 'Low' # 'Compton' or 'ComptonHiRes' or 'ComptonRes20'
-compton = 'Compton'
-snap = '115'
-
-#
-## CONSTANTS
-#
-
-Mbh = 10**m
-Rt = Rstar * (Mbh/mstar)**(1/3)
-Rp =  Rt / beta
-R0 = 0.6 * Rt
-apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
-
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-path = f'{abs_path}/TDE/{folder}{check}/{snap}'
-saving_fig = f'{abs_path}/Figs/{folder}/{check}'
 
 #
 ## FUNCTIONS
@@ -178,10 +161,32 @@ def shock_zone(divv, gradT, gradrho, cond3, check_cond = '3'):
 #
 ## MAIN
 #
+save = True
 
-#%%
-plot = True
-save = False
+m = 4
+Mbh = 10**m
+beta = 1
+mstar = .5
+Rstar = .47
+n = 1.5
+check = 'Low' # 'Compton' or 'ComptonHiRes' or 'ComptonRes20'
+compton = 'Compton'
+snap = '216'
+
+Mbh = 10**m
+Rt = Rstar * (Mbh/mstar)**(1/3)
+Rp =  Rt / beta
+R0 = 0.6 * Rt
+apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
+
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+if alice:
+    if check == 'Low':
+        check = ''
+    path = f'/home/martirep/shocks/{folder}{check}/{snap}'
+else:
+    path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
+
 #%%
 data = make_tree(path, snap, energy = False)
 dim_cell = data.Vol**(1/3) # according to Elad
@@ -314,13 +319,17 @@ Y_shock2 = np.array(Y_shock2)
 Z_shock2 = np.array(Z_shock2)
 
 if save == True:
-    with open(f'data/{snap}/shockzone_{snap}.txt', 'w') as file:
+    if alice:
+        prepath = f'/data1/martirep/shocks/shock_capturing'
+    else: 
+        prepath = f'/Users/paolamartire/shocks'
+    with open(f'{prepath}/data/{folder}/{check}/shockzone_{snap}.txt', 'w') as file:
         file.write(f'# Coordinates of the points in the shock zone, mach_min = {mach_min} \n# X \n') 
         file.write('# Index in the tree \n') 
         file.write(' '.join(map(str, idx_tree)) + '\n')
         file.close()
 
-    with open(f'data/{snap}/areushock_{snap}.pkl', 'wb') as filebool:
+    with open(f'{prepath}/data/{folder}/{check}/areushock_{snap}.pkl', 'wb') as filebool:
         pickle.dump(are_u_shock, filebool)
 
 if plot:

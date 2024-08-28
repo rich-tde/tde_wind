@@ -124,8 +124,6 @@ if __name__ == '__main__':
 #%% Plot
     if plot:
         import Utilities.prelude as pre
-        import matplotlib.colors as colors
-        from Utilities.time_extractor import days_since_distruption
 
         first_s = 100
         last_s = 217

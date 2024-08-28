@@ -147,56 +147,55 @@ def extractor(filename):
 #     return smoothed_density
 
 if __name__ == '__main__':
-    names = np.arange(152,265)
-    for name in names:
-        snap = 216
-        m = 4
-        Mbh = 10**m
-        beta = 1
-        mstar = .5
-        Rstar = .47
-        n = 1.5
-        check = ''
-        compton = 'Compton'
-        if alice:
-            prepath = f'/data1/martirep/shocks/'
-        else: 
-            prepath = f'TDE'
-        
-        path = f'{prepath}/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{snap}'
-        file = f'{path}/snap_{snap}_grad.h5'
 
-        X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDy, DrhoDz, DpDx, DpDy, DpDz, divV, Diss, Star, Entropy = extractor(file)
-        
-        # Save to another file.
-        np.save(f'{path}/CMx_{name}', X)   
-        np.save(f'{path}/CMy_{name}', Y) 
-        np.save(f'{path}/CMz_{name}', Z) 
-        np.save(f'{path}/Den_{name}', Den)
-        np.save(f'{path}/Vx_{name}', Vx)   
-        np.save(f'{path}/Vy_{name}', Vy) 
-        np.save(f'{path}/Vz_{name}', Vz)
-        np.save(f'{path}/Vol_{name}', Vol)
-        np.save(f'{path}/Mass_{name}', Mass)   
-        np.save(f'{path}/IE_{name}', IE) 
-        np.save(f'{path}/T_{name}', T)
-        np.save(f'{path}/P_{name}', P) 
-        np.save(f'{path}/Diss_{name}', Diss) 
+    snap = 216
+    m = 4
+    Mbh = 10**m
+    beta = 1
+    mstar = .5
+    Rstar = .47
+    n = 1.5
+    check = ''
+    compton = 'Compton'
+    if alice:
+        prepath = f'/data1/martirep/shocks/'
+    else: 
+        prepath = f'TDE'
+    
+    path = f'{prepath}/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{snap}'
+    file = f'{path}/snap_{snap}_grad.h5'
 
-        np.save(f'{path}/DrhoDx_{name}', DrhoDx)   
-        np.save(f'{path}/DrhoDy_{name}', DrhoDy) 
-        np.save(f'{path}/DrhoDz_{name}', DrhoDz) 
+    X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDy, DrhoDz, DpDx, DpDy, DpDz, divV, Diss, Star, Entropy = extractor(file)
+    
+    # Save to another file.
+    np.save(f'{path}/CMx_{snap}', X)   
+    np.save(f'{path}/CMy_{snap}', Y) 
+    np.save(f'{path}/CMz_{snap}', Z) 
+    np.save(f'{path}/Den_{snap}', Den)
+    np.save(f'{path}/Vx_{snap}', Vx)   
+    np.save(f'{path}/Vy_{snap}', Vy) 
+    np.save(f'{path}/Vz_{snap}', Vz)
+    np.save(f'{path}/Vol_{snap}', Vol)
+    np.save(f'{path}/Mass_{snap}', Mass)   
+    np.save(f'{path}/IE_{snap}', IE) 
+    np.save(f'{path}/T_{snap}', T)
+    np.save(f'{path}/P_{snap}', P) 
+    np.save(f'{path}/Diss_{snap}', Diss) 
 
-        np.save(f'{path}/DpDx_{name}', DpDx)   
-        np.save(f'{path}/DpDy_{name}', DpDy) 
-        np.save(f'{path}/DpDz_{name}', DpDz) 
+    np.save(f'{path}/DrhoDx_{snap}', DrhoDx)   
+    np.save(f'{path}/DrhoDy_{snap}', DrhoDy) 
+    np.save(f'{path}/DrhoDz_{snap}', DrhoDz) 
 
-        np.save(f'{path}/DivV_{name}', divV) 
+    np.save(f'{path}/DpDx_{snap}', DpDx)   
+    np.save(f'{path}/DpDy_{snap}', DpDy) 
+    np.save(f'{path}/DpDz_{snap}', DpDz) 
 
-        np.save(f'{path}/Star_{name}', Star) 
-        np.save(f'{path}/Entropy_{name}', Entropy) 
-        
-        print(f'Done extraction {name}')
+    np.save(f'{path}/DivV_{snap}', divV) 
+
+    np.save(f'{path}/Star_{snap}', Star) 
+    np.save(f'{path}/Entropy_{snap}', Entropy) 
+    
+    print(f'Done extraction {snap}')
 
 
 
