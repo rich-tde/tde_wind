@@ -90,7 +90,7 @@ def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
         # Check that you add new points
         if len(mass_plane[condition]) == len(mass):
             C += 2
-            print(C)
+            # print(C)
         else:
             tocheck = r_plane[condition]-R0
             if tocheck.any()<0:
@@ -99,6 +99,7 @@ def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
                 break
             mass = mass_plane[condition]
             new_mass = np.sum(mass) 
+            # old mass is > 95% of the new mass
             if np.logical_and(total_mass > 0.95 * new_mass, total_mass != new_mass): # to be sure that you've done a step
                 break
             total_mass = new_mass
@@ -128,7 +129,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     """ Find the centres of mass in the transverse plane"""
     Mbh, Rstar, mstar, beta = params[0], params[1], params[2], params[3]
     Rt = Rstar * (Mbh/mstar)**(1/3)
-    R0 = 0.6 * (Rt / beta) 
+    R0 = 0.6 * Rt
     # indeces = np.arange(len(x_data))
     # Cut a bit the data for computational reasons
     cutting = np.logical_and(np.abs(z_data) < 50, np.abs(y_data) < 200)
@@ -146,11 +147,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     for idx in range(len(theta_arr)):
         print(idx)
         # Find the transverse plane
-        if idx == len(theta_arr)-1:
-            step_ang = theta_arr[-1]-theta_arr[-2]
-        else:
-            step_ang = theta_arr[idx+1]-theta_arr[idx]
-        condition_T, x_T, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, step_ang, coord = True)
+        condition_T, x_T, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, coord = True)
         x_plane, y_plane, z_plane, mass_plane, dim_plane = \
             make_slices([x_cut, y_cut, z_cut, mass_cut, dim_cut], condition_T)
         # Cut the TZ plane to not keep points too far away.
@@ -176,11 +173,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     for idx in range(len(theta_arr)):
         print(idx)
         # Find the transverse plane
-        if idx == len(theta_arr)-1:
-            step_ang = theta_arr[-1]-theta_arr[-2]
-        else:
-            step_ang = theta_arr[idx+1]-theta_arr[idx]
-        condition_T, x_T, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, step_ang, coord = True)
+        condition_T, x_T, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, coord = True)
         x_plane, y_plane, z_plane, mass_plane, dim_plane = \
             make_slices([x_cut, y_cut, z_cut, mass_cut, dim_cut], condition_T)
         # Restrict the points to not keep points too far away.
@@ -223,11 +216,7 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     indeces = np.arange(len(x_data))
     theta_arr, x_stream, y_stream, z_stream, thresh_stream = stream[0], stream[1], stream[2], stream[3], stream[4]
     # Find the transverse plane 
-    if idx == len(theta_arr)-1:
-        step_ang = theta_arr[-1]-theta_arr[-2]
-    else:
-        step_ang = theta_arr[idx+1]-theta_arr[idx]
-    condition_T, x_Tplane, _ = transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, step_ang, coord = True)
+    condition_T, x_Tplane, _ = transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, coord = True)
     x_plane, y_plane, z_plane, dim_plane, mass_plane, indeces_plane = \
         make_slices([x_data, y_data, z_data, dim_data, mass_data, indeces], condition_T)
     # Restrict to not keep points too far away.
@@ -240,35 +229,66 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     x_plane, x_Tplane, y_plane, z_plane, r_spherical_plane, dim_plane, mass_plane, indeces_plane = \
         make_slices([x_plane, x_Tplane, y_plane, z_plane, r_spherical_plane, dim_plane, mass_plane, indeces_plane], condition)
     if np.min(r_spherical_plane)< R0:
-        print(f'The threshold to cut the TZ plane in width is too broad: you overcome R0 at point #{idx} of the stream')
-    mass_to_reach = 0.5 * np.sum(mass_plane)
+        print(f'The threshold to cut the TZ plane in width is too broad: you overcome R0 at angle #{theta_arr[idx]} of the stream')
+    mass_to_reach = 0.25 * np.sum(mass_plane) #25% for each quarter
     # Find the threshold for x
-    contourT = brentq(bound_mass, 0, thresh, args=(x_Tplane, mass_plane, mass_to_reach))
-    condition_contourT = np.abs(x_Tplane) < contourT
-    x_T_contourT, indeces_contourT = make_slices([x_Tplane, indeces_plane], condition_contourT)
+    x_Tplanepositive, mass_planepositive, indices_planepositive, dim_cell_xpositive = \
+        x_Tplane[x_Tplane>=0], mass_plane[x_Tplane>=0], indeces_plane[x_Tplane>=0], dim_plane[x_Tplane>=0]
+    x_Tplanenegative, mass_planenegative, indices_planenegative, dim_cell_xnegative = \
+        x_Tplane[x_Tplane<0], mass_plane[x_Tplane<0], indeces_plane[x_Tplane<0], dim_plane[x_Tplane<0]
 
-    idx_before = np.argmin(x_T_contourT)
-    idx_after = np.argmax(x_T_contourT)
-    x_T_low, idx_low = x_T_contourT[idx_before], indeces_contourT[idx_before]
-    x_T_up, idx_up = x_T_contourT[idx_after], indeces_contourT[idx_after]
+    contourTpositive = brentq(bound_mass, 0, thresh, args=(x_Tplanepositive, mass_planepositive, mass_to_reach))
+    condition_contourTpositive = np.abs(x_Tplanepositive) < contourTpositive
+    x_T_contourTpositive, indeces_contourTpositive = make_slices([x_Tplanepositive, indices_planepositive], condition_contourTpositive)
+
+    contourTnegative = brentq(bound_mass, 0, thresh, args=(x_Tplanenegative, mass_planenegative, mass_to_reach))
+    condition_contourTnegative = np.abs(x_Tplanenegative) < contourTnegative
+    x_T_contourTnegative, indeces_contourTnegative = make_slices([x_Tplanenegative, indices_planenegative], condition_contourTnegative)
+
+    # contourT = brentq(bound_mass, 0, thresh, args=(x_Tplane, mass_plane, mass_to_reach))
+    # condition_contourT = np.abs(x_Tplane) < contourT
+    # x_T_contourT, indeces_contourT = make_slices([x_Tplane, indeces_plane], condition_contourT)
+
+    idx_before = np.argmin(x_T_contourTnegative)
+    idx_after = np.argmax(x_T_contourTpositive)
+    x_T_low, idx_low = x_T_contourTnegative[idx_before], indeces_contourTnegative[idx_before]
+    x_T_up, idx_up = x_T_contourTpositive[idx_after], indeces_contourTpositive[idx_after]
     width = x_T_up - x_T_low
     # width = np.max([width, dim_stream[idx]]) # to avoid 0 width
 
-    # Find the threshold for z
-    contourZ = brentq(bound_mass, 0, thresh, args=(z_plane, mass_plane, mass_to_reach))
-    condition_contourZ = np.abs(z_plane) < contourZ
-    z_contourZ, indeces_contourZ = make_slices([z_plane, indeces_plane], condition_contourZ)
+    # Find the threshold for z 
+    z_planepositive, mass_planepositive, indices_planepositive, dim_cell_zpositive = \
+        z_plane[z_plane>=0], mass_plane[z_plane>=0], indeces_plane[z_plane>=0], dim_plane[z_plane>=0]
+    z_planenegative, mass_planenegative, indices_planenegative, dim_cell_znegative = \
+        z_plane[z_plane<0], mass_plane[z_plane<0], indeces_plane[z_plane<0], dim_plane[z_plane<0]
+
+    contourZpositive = brentq(bound_mass, 0, thresh, args=(z_planepositive, mass_planepositive, mass_to_reach))
+    condition_contourZpositive = np.abs(z_planepositive) < contourZpositive
+    z_contourZpositive, indeces_contourZpositive = make_slices([z_planepositive, indices_planepositive], condition_contourZpositive)
+
+    contourZnegative = brentq(bound_mass, 0, thresh, args=(z_planenegative, mass_planenegative, mass_to_reach))
+    condition_contourZnegative = np.abs(z_planenegative) < contourZnegative
+    z_contourZnegative, indeces_contourZnegative = make_slices([z_planenegative, indices_planenegative], condition_contourZnegative)
+
+    # contourZ = brentq(bound_mass, 0, thresh, args=(z_plane, mass_plane, mass_to_reach))
+    # condition_contourZ = np.abs(z_plane) < contourZ
+    # z_contourZ, indeces_contourZ = make_slices([z_plane, indeces_plane], condition_contourZ)
     
-    idx_before = np.argmin(z_contourZ)
-    idx_after = np.argmax(z_contourZ)
-    z_low, idx_low_h = z_contourZ[idx_before], indeces_contourZ[idx_before]
-    z_up, idx_up_h = z_contourZ[idx_after], indeces_contourZ[idx_after]
+    idx_before = np.argmin(z_contourZnegative)
+    idx_after = np.argmax(z_contourZpositive)
+    z_low, idx_low_h = z_contourZnegative[idx_before], indeces_contourZnegative[idx_before]
+    z_up, idx_up_h = z_contourZpositive[idx_after], indeces_contourZpositive[idx_after]
     height = z_up - z_low
     # height = np.max([height, dim_stream[idx]]) # to avoid 0 height
 
     # Compute the number of cells in width and height using the cells in the rectangle
-    rectangle = condition_contourT & condition_contourZ
-    dim_cell_mean = np.mean(dim_plane[rectangle])
+    # rectangle = condition_contourT & condition_contourZ
+    dim_cell_Wpositive = np.mean(dim_cell_xpositive[condition_contourTpositive])
+    dim_cell_Wnegative = np.mean(dim_cell_xnegative[condition_contourTnegative])
+    dim_cell_Hpositive = np.mean(dim_cell_zpositive[condition_contourZpositive])
+    dim_cell_Hnegative = np.mean(dim_cell_znegative[condition_contourZnegative])
+    dim_cell_mean = np.mean([dim_cell_Wpositive, dim_cell_Wnegative, dim_cell_Hpositive, dim_cell_Hnegative])
+    # dim_cell_mean = np.mean(dim_plane[rectangle])
     ncells_w = np.round(width/dim_cell_mean, 0) # round to the nearest integer
     ncells_h = np.round(height/dim_cell_mean, 0) # round to the nearest integer
 
@@ -382,7 +402,7 @@ if __name__ == '__main__':
     compton = 'Compton'
 
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    snap = '101'
+    snap = '216'
     path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
     Rt = Rstar * (Mbh/mstar)**(1/3)
     Rp = Rt / beta
@@ -394,17 +414,17 @@ if __name__ == '__main__':
     step = 0.02
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_arr = Ryan_sampler(theta_init)
-    # theta_arr = theta_arr[:230]
+    theta_arr = theta_arr[:250]
     data = make_tree(path, snap, is_tde = True, energy = False)
     print('Tree done')
     dim_cell = data.Vol**(1/3)
 
-    make_stream = False
+    make_stream = True
     make_width = False
     compare = False
     TZslice = False
     test_s = False
-    test_orbit = True
+    test_orbit = False
 
     if test_s:
         params = None

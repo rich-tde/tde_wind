@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import math
 import k3match
 from Utilities.operators import make_tree
+abs_path = '/Users/paolamartire/shocks'
 
 #
 ## PARAMETERS
@@ -30,12 +31,12 @@ snap = '115'
 Mbh = 10**m
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
-R0 = 0.6 * Rp
+R0 = 0.6 * Rt
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
-saving_fig = f'Figs/{folder}/{check}'
+path = f'{abs_path}/TDE/{folder}{check}/{snap}'
+saving_fig = f'{abs_path}/Figs/{folder}/{check}'
 
 #
 ## FUNCTIONS
@@ -182,7 +183,7 @@ def shock_zone(divv, gradT, gradrho, cond3, check_cond = '3'):
 plot = True
 save = False
 #%%
-data = make_tree(path, snap, is_tde, energy = False)
+data = make_tree(path, snap, energy = False)
 dim_cell = data.Vol**(1/3) # according to Elad
 # tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
 

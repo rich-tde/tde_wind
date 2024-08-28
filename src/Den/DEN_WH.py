@@ -40,15 +40,16 @@ Rp =  Rt / beta
 R0 = 0.6 * Rp
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
-do = False
+do = True
 plot = True
 save = True
-compare = True
+compare = False
+
 #
 ## MAIN
 #
 
-check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
+check = 'Low' # 'Low' or 'HiRes' or 'Res20'
 snap = '164'
 compton = 'Compton'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
@@ -100,6 +101,9 @@ if do:
         file.write(f'# {check}, snap {snap} Ncells \n')
         file.write((' '.join(map(str, w_params[1])) + '\n'))
         file.write(f'################################ \n')
+    
+    np.save(f'{abspath}data/{folder}/{check}/DENindicesWH_{check}{snap}.npy', indeces_boundary)
+    np.save(f'{abspath}data/{folder}/{check}/DENxT_{check}{snap}.npy', x_T_width)
 
     # same for height
     try:
@@ -123,6 +127,27 @@ if do:
 #%% 
 if plot:
     if do:
+        import matplotlib.colors as colors
+        stream = np.load(f'/Users/paolamartire/shocks/data/{folder}/DENstream_{check}{snap}.npy')
+        midplane = np.abs(data.Z) < dim_cell
+        X_midplane, Y_midplane, Den_midplane, = sec.make_slices([data.X, data.Y, data.Den], midplane)
+        indeces_boundary = indeces_boundary.T
+        xlow_indeces, xup_indeces, ylow_indeces, yup_indeces = indeces_boundary[0], indeces_boundary[1], indeces_boundary[2], indeces_boundary[3]
+
+        plt.figure(figsize = (12,4))
+        img = plt.scatter(X_midplane, Y_midplane, s=.1, alpha = 0.8, c = Den_midplane, cmap = 'inferno', norm=colors.LogNorm(vmin = 1e-9, vmax = 1e-5))
+        cbar = plt.colorbar(img)
+        cbar.set_label('Density')
+        plt.plot(stream[1], stream[2], c = 'r')
+        plt.plot(data.X[xlow_indeces], data.Y[xlow_indeces], c = 'k')
+        plt.plot(data.X[xup_indeces], data.Y[xup_indeces], c = 'k')
+        plt.xlim(-150,20)
+        plt.ylim(-60,60)
+        plt.grid()
+        plt.title(f'{check} res, t/tfb = {np.round(tfb,2)}')
+        plt.savefig(f'{abspath}Figs/{folder}/{check}/WH-stream_{check}{snap}.png')
+        plt.show()  
+        
         # Plot width over r
         plt.figure(figsize=(6,4))
         plt.plot(theta_arr * radians, w_params[0], c = 'k')
@@ -192,7 +217,7 @@ if plot:
         # ax4.plot(theta_width, NcellRes205, c = 'b',  label = 'High 0.5')
         ax4.legend()
         # ax4.set_xlim(theta_width[30], theta_width[230])
-        ax4.set_ylim(0,20)
+        ax4.set_ylim(0,30)
         ax4.set_xlabel(r'$\theta$', fontsize = 14)
         ax4.set_ylabel(r'N$_{cell}$', fontsize = 14)
         ax4.grid()

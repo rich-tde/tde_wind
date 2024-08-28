@@ -147,12 +147,12 @@ if __name__ == '__main__':
             # print('put min and max as ', p5, p95)
             
             fig, ax = plt.subplots(1,1, figsize = (12,4))
-            ax.set_xlabel(r'$X/R_a$]', fontsize = 20)
-            ax.set_ylabel(r'$Y/R_a$]', fontsize = 20)
+            ax.set_xlabel(r'$X/R_a$', fontsize = 20)
+            ax.set_ylabel(r'$Y/R_a$', fontsize = 20)
             img = ax.pcolormesh(x_radii/apocenter, y_radii/apocenter, den_plot.T, cmap = 'inferno',
                                 vmin = -10, vmax = -5.6)
             cb = plt.colorbar(img)
-            cb.set_label(r'Density [g/cm$^2$]', fontsize = 20)
+            cb.set_label(r'$\log_{10}$ (Column density [g/cm$^2$])', fontsize = 18)
 
             # ax.set_title(f'XY Projection, snap {snap}', fontsize = 16)
             ax.text(-1.1, 0.15, r't/t$_{fb}$ = ' + f'{np.round(tfb_single,2)}', color = 'white', fontsize = 18)

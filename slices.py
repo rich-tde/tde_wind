@@ -32,8 +32,8 @@ mstar = .5
 Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
-check = 'HiRes' # '' or 'HiRes' or 'Res20'
-snap = '115'
+check = 'Low' # '' or 'HiRes' or 'Res20'
+snap = '216'
 compton = 'Compton'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
@@ -46,7 +46,6 @@ Rs = 2*G*Mbh / c**2
 R0 = 0.6 * Rt
 Rp =  Rt / beta
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
-print(apo)
 
 # cfr tidal disruption and at smoothing lenght
 xcfr, ycfr, cfr = orb.make_cfr(Rt)
@@ -104,26 +103,26 @@ X_midplane, Y_midplane, Z_midplane, dim_midplane, Mass_midplane, Den_midplane, T
 abs_orb_en_mass_midplane = np.abs(orb_en_mass_midplane)
 #%%
 fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(X_midplane, Y_midplane, c = Den_midplane, s = 1, cmap = 'cet_rainbow4', norm=colors.LogNorm(vmin=1e-9, vmax=1e-5))
+img = ax.scatter(X_midplane, Y_midplane, c = Den_midplane, s = 1, cmap = 'inferno', norm=colors.LogNorm(vmin=1e-9, vmax=5e-6))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\log_{10}$ Density', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
 # plot cfr
 for i in range(len(radii_grid)):
-    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k', alpha = 0.8, alpha = 0.8)
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k', alpha = 0.8)
 # ax.plot(x_stream, y_stream, c = 'k')
 ax.set_xlim(-400,100)
 ax.set_ylim(-200,200)
 ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
 ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
-plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)))
+plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)))
 if save:
     plt.savefig(f'{saving_path}/slices/midplaneDen_{snap}{cutoff}.png')
 plt.show()
 
 #%%
 fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(X_midplane, Y_midplane, c = Temp_midplane, s = 1, cmap = 'cet_rainbow4',norm=colors.LogNorm(vmin=1e4, vmax=6e5))
+img = ax.scatter(X_midplane, Y_midplane, c = Temp_midplane, s = 1, cmap = 'inferno',norm=colors.LogNorm(vmin=1e4, vmax=6e5))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\log_{10}$ Temp', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
@@ -135,14 +134,14 @@ ax.set_xlim(-400,100)
 ax.set_ylim(-200,200)
 ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
 ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
-plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)))
+plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)))
 if save:
     plt.savefig(f'{saving_path}/slices/midplaneTemp_{snap}{cutoff}.png')
 plt.show()
 
 #%%
 fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(X_midplane, Y_midplane, c = IEmass_midplane, s = 1, cmap = 'cet_rainbow4',norm=colors.LogNorm(vmin=1e-2, vmax=1))
+img = ax.scatter(X_midplane, Y_midplane, c = IEmass_midplane, s = 1, cmap = 'inferno',norm=colors.LogNorm(vmin=1e-2, vmax=1))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\log_{10}$ specific IE', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
@@ -154,14 +153,14 @@ ax.set_xlim(-400,100)
 ax.set_ylim(-200,200)
 ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
 ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
-plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)))
+plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)))
 if save:
     plt.savefig(f'{saving_path}/slices/midplaneIE_{snap}{cutoff}.png')
 plt.show()
 
 #%%
-fig, ax = plt.subplots(1,1, figsize = (12,12))
-img = ax.scatter(X_midplane, Y_midplane, c = abs_orb_en_mass_midplane, s = 1, cmap = 'cet_rainbow4', norm=colors.LogNorm(vmin=10, vmax=100))
+fig, ax = plt.subplots(1,1, figsize = (12,4))
+img = ax.scatter(X_midplane, Y_midplane, c = abs_orb_en_mass_midplane, s = 1, cmap = 'inferno', norm=colors.LogNorm(vmin=10, vmax=100))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\log_{10}$ specific $|E_{orb}|$', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
@@ -173,14 +172,14 @@ ax.set_xlim(-400,100)
 ax.set_ylim(-200,200)
 ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
 ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
-plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)))
+plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)))
 if save:
     plt.savefig(f'{saving_path}/slices/midplaneEorb_{snap}{cutoff}.png')
 plt.show()
 
 #%%
 fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(X_midplane, Y_midplane, c = Rad_den_midplane, s = 1, cmap = 'cet_rainbow4',norm=colors.LogNorm(vmin=1e-10, vmax=5e-8))
+img = ax.scatter(X_midplane, Y_midplane, c = Rad_den_midplane, s = 1, cmap = 'inferno',norm=colors.LogNorm(vmin=1e-10, vmax=5e-8))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\log_{10}$ Rad energy density', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
@@ -192,28 +191,33 @@ ax.set_xlim(-400,100)
 ax.set_ylim(-200,200)
 ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
 ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
-plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)))
+plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)))
 if save:
     plt.savefig(f'{saving_path}/slices/midplaneRad_{snap}{cutoff}.png')
 plt.show()
 
 #%%
 """ Radial slices"""
-thetas = [-np.pi, -3/4*np.pi, -np.pi/2, -np.pi/4, 0, np.pi/4, np.pi/2, 3/4*np.pi, np.pi]
+thetas = [-2,-1,-1e-10]#[-np.pi, -3/4*np.pi, -np.pi/2, -np.pi/4, 0, np.pi/4, np.pi/2, 3/4*np.pi, np.pi]
 # Visualize the chosen thetas for the slies
-fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(X_midplane, Y_midplane, c = Den_midplane, s = 1, cmap = 'cet_rainbow4', vmin = -9, vmax = -5)
+fig, ax = plt.subplots(2,1, figsize = (10,8))
+img = ax[0].scatter(X_midplane, Y_midplane, c = Den_midplane, s = 1, cmap = 'inferno', norm=colors.LogNorm(vmin = 1e-9, vmax = 1e-5))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\log_{10}$ Density', fontsize = 16)
-ax.scatter(0,0,c= 'k', marker = 'x', s=80)
-# drawn radial lines
-for theta in thetas:
-    ax.plot([0, 400*np.cos(theta)],[0, 400*np.sin(theta)], c = 'k', linestyle = '--')
-ax.set_xlim(-400,100)
-ax.set_ylim(-200,200)
-ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
-ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
-plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)) + r'$\theta\in$[' + str(thetas[0]/np.pi) + ',' +str(thetas[-1]/np.pi) + r']$\pi$')
+img1 = ax[1].scatter(X_midplane, Y_midplane, c = Mass_midplane, s = 1, cmap = 'inferno', norm=colors.LogNorm(vmin = 1e-10, vmax = 1e-7))
+cbar1 = plt.colorbar(img1)
+cbar1.set_label(r'$\log_{10}$ Mass', fontsize = 16)
+# drawn radial lines (#put the - to follow the convention of the theta in the sim data)
+for i in range(2):
+    for theta in thetas:
+        ax[i].plot([0, -400*np.cos(theta)],[0, -400*np.sin(theta)], c = 'k', linestyle = '--')
+    ax[i].scatter(0,0,c= 'k', marker = 'x', s=80)
+    ax[i].set_xlim(-80,20)
+    ax[i].set_ylim(-20,60)
+    ax[i].set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
+ax[1].set_xlabel(r'X [$R_\odot$]', fontsize = 18)
+plt.suptitle(f'{check},' + r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)) + r', $\theta\in$[' + str(np.round(thetas[0]/np.pi,2)) + ',' + str(np.round(thetas[-1]/np.pi,2)) + r']$\pi$')
+plt.tight_layout()
 
 #%%
 theta_chosen = thetas[0]
@@ -223,7 +227,7 @@ R_radial, Z_radial, dim_radial, Mass_radial, Den_radial, Temp_radial, Rad_den_ra
 
 #%%
 fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(R_radial, Z_radial, c = Den_radial, s = 1, cmap = 'cet_rainbow4',norm=colors.LogNorm(vmin=1e-9, vmax=1e-5))
+img = ax.scatter(R_radial, Z_radial, c = Den_radial, s = 1, cmap = 'inferno',norm=colors.LogNorm(vmin=1e-9, vmax=1e-5))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\log_{10}$ Density', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
@@ -235,14 +239,14 @@ ax.set_xlim(0,1.2*apo)
 ax.set_ylim(-50,50)
 ax.set_xlabel(r'R [$R_\odot$]', fontsize = 18)
 ax.set_ylabel(r'Z [$R_\odot$]', fontsize = 18)
-plt.title(r'$\theta = $' + str(np.round(theta_chosen/np.pi,1)) + r'$\pi, t/t_{fb}$ = ' + str(np.round(tfb,3)))
+plt.title(r'$\theta = $' + str(np.round(theta_chosen/np.pi,1)) + r'$\pi, t/t_{fb}$ = ' + str(np.round(tfb,2)))
 if save:
     plt.savefig(f'{saving_path}/slices/Radial/radial{np.round(theta_chosen,1)}Den_{snap}{cutoff}.png')
 plt.show()
 
 #%%
 fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(R_radial, Z_radial, c = IEmass_radial, s = 1, cmap = 'cet_rainbow4',norm=colors.LogNorm(vmin=1e-2, vmax=1))
+img = ax.scatter(R_radial, Z_radial, c = IEmass_radial, s = 1, cmap = 'inferno',norm=colors.LogNorm(vmin=1e-2, vmax=1))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\log_{10}$ specific IE', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
@@ -254,14 +258,14 @@ ax.set_xlim(0,1.2*apo)
 ax.set_ylim(-50,50)
 ax.set_xlabel(r'R [$R_\odot$]', fontsize = 18)
 ax.set_ylabel(r'Z [$R_\odot$]', fontsize = 18)
-plt.title(r'$\theta = $' + str(np.round(theta_chosen/np.pi,1)) + r'$\pi, t/t_{fb}$ = ' + str(np.round(tfb,3)))
+plt.title(r'$\theta = $' + str(np.round(theta_chosen/np.pi,1)) + r'$\pi, t/t_{fb}$ = ' + str(np.round(tfb,2)))
 if save:
     plt.savefig(f'{saving_path}/slices/Radial/radial{np.round(theta_chosen,1)}IE_{snap}{cutoff}.png')
 plt.show()
 
 #%%
 fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(R_radial, Z_radial, c = abs_orb_en_mass_radial, s = 1, cmap = 'cet_rainbow4', norm=colors.LogNorm(vmin=10, vmax=110))
+img = ax.scatter(R_radial, Z_radial, c = abs_orb_en_mass_radial, s = 1, cmap = 'inferno', norm=colors.LogNorm(vmin=10, vmax=110))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\log_{10}$ specific $|E_{orb}|$', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
@@ -273,14 +277,14 @@ ax.set_xlim(0,1.2*apo)
 ax.set_ylim(-50,50)
 ax.set_xlabel(r'R [$R_\odot$]', fontsize = 18)
 ax.set_ylabel(r'Z [$R_\odot$]', fontsize = 18)
-plt.title(r'$\theta = $' + str(np.round(theta_chosen/np.pi,1)) + r'$\pi, t/t_{fb}$ = ' + str(np.round(tfb,3)))
+plt.title(r'$\theta = $' + str(np.round(theta_chosen/np.pi,1)) + r'$\pi, t/t_{fb}$ = ' + str(np.round(tfb,2)))
 if save:
     plt.savefig(f'{saving_path}/slices/Radial/radial{np.round(theta_chosen,1)}Eorb_{snap}{cutoff}.png')
 plt.show()
 
 #%%
 fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(R_radial, Z_radial, c = Rad_den_radial, s = 1, cmap = 'cet_rainbow4',norm=colors.LogNorm(vmin=1e-10, vmax=5e-8))
+img = ax.scatter(R_radial, Z_radial, c = Rad_den_radial, s = 1, cmap = 'inferno',norm=colors.LogNorm(vmin=1e-10, vmax=5e-8))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\log_{10}$ Rad energy density', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
@@ -292,7 +296,7 @@ ax.set_xlim(0,1.2*apo)
 ax.set_ylim(-50,50)
 ax.set_xlabel(r'R [$R_\odot$]', fontsize = 18)
 ax.set_ylabel(r'Z [$R_\odot$]', fontsize = 18)
-plt.title(r'$\theta = $' + str(np.round(theta_chosen/np.pi,1)) + r'$\pi, t/t_{fb}$ = ' + str(np.round(tfb,3)))
+plt.title(r'$\theta = $' + str(np.round(theta_chosen/np.pi,1)) + r'$\pi, t/t_{fb}$ = ' + str(np.round(tfb,2)))
 if save:
     plt.savefig(f'{saving_path}/slices/Radial/radial{np.round(theta_chosen,1)}Rad_{snap}{cutoff}.png')
 plt.show()
@@ -374,11 +378,11 @@ ax.set_ylim(-100,100)
 ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
 ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
 if cutoff == 'bound':
-    plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)) + ', bound elements only')
+    plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)) + ', bound elements only')
 elif cutoff == 'cut':
-    plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)) + ', bound elements and cut on density')
+    plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)) + ', bound elements and cut on density')
 else:
-    plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,3)))
+    plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)))
 if save:
     plt.savefig(f'{saving_path}/midplaneRadDiff_{snap}{cutoff}.png')
 # %%

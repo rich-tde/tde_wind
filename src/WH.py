@@ -5,10 +5,9 @@ abspath = '/Users/paolamartire/shocks/'
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-import os
 from Utilities.basic_units import radians
 
-from Utilities.operators import make_tree, Ryan_sampler, to_cylindric
+from Utilities.operators import make_tree, to_cylindric
 import Utilities.sections as sec
 import src.orbits as orb
 from Utilities.time_extractor import days_since_distruption
@@ -30,7 +29,7 @@ n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
 compton = 'Compton'
-snap = '199'
+snap = '216'
 
 #
 ## Constants
@@ -62,7 +61,7 @@ print(f'We are in: {path}, \nWe save in: {saving_path}')
 do = False
 plot = True
 save = True
-compare = True
+compare = False
 theta_lim =  np.pi
 step = 0.02
 # theta_init = np.arange(-theta_lim, theta_lim, step)
@@ -100,16 +99,16 @@ if do:
 
     if save:
         try:
-            file = open(f'{abspath}data/{folder}/width_time{np.round(tfb,1)}.txt', 'r')
+            file = open(f'{abspath}data/{folder}/width_time{np.round(tfb,2)}.txt', 'r')
             # Perform operations on the file
             file.close()
         except FileNotFoundError:
-            with open(f'{abspath}data/{folder}/width_time{np.round(tfb,1)}.txt','a') as fstart:
+            with open(f'{abspath}data/{folder}/width_time{np.round(tfb,2)}.txt','a') as fstart:
                 # if file exist
                 fstart.write(f'# theta \n')
                 fstart.write((' '.join(map(str, theta_arr)) + '\n'))
 
-        with open(f'{abspath}data/{folder}/width_time{np.round(tfb,1)}.txt','a') as file:
+        with open(f'{abspath}data/{folder}/width_time{np.round(tfb,2)}.txt','a') as file:
             file.write(f'# {check}, snap {snap} width \n')
             file.write((' '.join(map(str, w_params[0])) + '\n'))
             file.write(f'# {check}, snap {snap} Ncells \n')
@@ -118,16 +117,16 @@ if do:
 
         # same for height
         try:
-            file = open(f'{abspath}data/{folder}/height_time{np.round(tfb,1)}.txt', 'r')
+            file = open(f'{abspath}data/{folder}/height_time{np.round(tfb,2)}.txt', 'r')
             # Perform operations on the file
             file.close()
         except FileNotFoundError:
-            with open(f'{abspath}data/{folder}/height_time{np.round(tfb,1)}.txt','a') as fstart:
+            with open(f'{abspath}data/{folder}/height_time{np.round(tfb,2)}.txt','a') as fstart:
                 # if file exist
                 fstart.write(f'# theta \n')
                 fstart.write((' '.join(map(str, theta_arr)) + '\n'))
 
-        with open(f'{abspath}data/{folder}/height_time{np.round(tfb,1)}.txt','a') as file:
+        with open(f'{abspath}data/{folder}/height_time{np.round(tfb,2)}.txt','a') as file:
             file.write(f'# {check}, snap {snap} height \n')
             file.write((' '.join(map(str, h_params[0])) + '\n'))
             file.write(f'# {check}, snap {snap} Ncells \n')
@@ -153,7 +152,7 @@ if plot:
         plt.show()
 
     if compare:
-        datawidth5 = np.loadtxt(f'{abspath}data/{folder}/width_time0.5.txt')
+        datawidth5 = np.loadtxt(f'{abspath}data/{folder}/width_time0.52.txt')
         theta_width = datawidth5[0]
         widthL5 = datawidth5[1]
         NcellL5 = datawidth5[2]
@@ -161,13 +160,18 @@ if plot:
         NcellHiRes5 = datawidth5[4]
         # widthRes205 = datawidth5[5]
         # NcellRes205 = datawidth5[6]
-        datawidth7 = np.loadtxt(f'{abspath}data/{folder}/width_time0.7.txt')
+        datawidth7 = np.loadtxt(f'{abspath}data/{folder}/width_time0.75.txt')
         widthL7 = datawidth7[1]
         NcellL7 = datawidth7[2]
         widthHiRes7 = datawidth7[3]
         NcellHiRes7 = datawidth7[4]
+        datawidth8 = np.loadtxt(f'{abspath}data/{folder}/width_time0.86.txt')
+        widthL8 = datawidth8[1]
+        NcellL8 = datawidth8[2]
+        widthHiRes8 = datawidth8[3]
+        NcellHiRes8 = datawidth8[4]
 
-        dataheight5 = np.loadtxt(f'{abspath}data/{folder}/height_time0.5.txt')
+        dataheight5 = np.loadtxt(f'{abspath}data/{folder}/height_time0.52.txt')
         theta_height = dataheight5[0]
         heightL5 = dataheight5[1]
         NhcellL5 = dataheight5[2]
@@ -175,47 +179,67 @@ if plot:
         NhcellHiRes5 = dataheight5[4]
         # heightRes205 = dataheight5[5]
         # NhcellRes205 = dataheight5[6]
-        dataheight7 = np.loadtxt(f'{abspath}data/{folder}/height_time0.7.txt')
+        dataheight7 = np.loadtxt(f'{abspath}data/{folder}/height_time0.75.txt')
         heightL7 = dataheight7[1]
         NhcellL7 = dataheight7[2]
         heightHiRes7 = dataheight7[3]
         NhcellHiRes7 = dataheight7[4]
+        dataheight8 = np.loadtxt(f'{abspath}data/{folder}/height_time0.86.txt')
+        heightL8 = dataheight8[1]
+        NhcellL8 = dataheight8[2]
+        heightHiRes8 = dataheight8[3]
+        NhcellHiRes8 = dataheight8[4]
 
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2, figsize = (12,7))
-        ax1.plot(theta_width, widthL5, c = 'k', label = 'Low 0.5')
-        ax1.plot(theta_width, widthHiRes5, c = 'r', label = 'Middle 0.5')
+        fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2,3, figsize = (12,7))
+        ax1.plot(theta_width, widthL5, c = 'k', label = 'Low 0.52')
+        ax1.plot(theta_width, widthHiRes5, c = 'r', label = 'Middle 0.52')
         # ax1.plot(theta_width, widthRes205, c = 'b',  label = 'High 0.5')
         ax1.legend()
         ax1.set_ylabel(r'Width [$R_\odot$]', fontsize = 14)
-        ax1.set_xlim(theta_width[30], theta_width[230])
+        # ax1.set_xlim(theta_width[30], theta_width[230])
         ax1.set_ylim(0,5)
         ax1.grid()
-        ax3.plot(theta_width, NcellL5, c = 'k', label = 'Low 0.5')
-        ax3.plot(theta_width, NcellHiRes5, c = 'r', label = 'Middle 0.5')
-        # ax3.plot(theta_width, NcellRes205, c = 'b',  label = 'High 0.5')
-        ax3.legend()
-        ax3.set_xlim(theta_width[30], theta_width[230])
-        ax3.set_ylim(0,20)
-        ax3.set_xlabel(r'$\theta$', fontsize = 14)
-        ax3.set_ylabel(r'N$_{cell}$', fontsize = 14)
-        ax3.grid()
-
-        ax2.plot(theta_width, widthL7, c = 'k', label = 'Low 0.7')
-        ax2.plot(theta_width, widthHiRes7, c = 'r', label = 'Middle 0.7')
-        ax2.legend()
-        ax2.set_xlim(theta_width[30], theta_width[230])
-        ax2.set_ylim(0,5)
-        ax2.grid()
-        ax4.plot(theta_width, NcellL7, c = 'k', label = 'Low 0.7')
-        ax4.plot(theta_width, NcellHiRes7, c = 'r', label = 'Middle 0.7')
+        ax4.plot(theta_width, NcellL5, c = 'k', label = 'Low 0.52')
+        ax4.plot(theta_width, NcellHiRes5, c = 'r', label = 'Middle 0.52')
+        # ax4.plot(theta_width, NcellRes205, c = 'b',  label = 'High 0.5')
         ax4.legend()
-        ax4.set_xlim(theta_width[30], theta_width[230])
+        # ax4.set_xlim(theta_width[30], theta_width[230])
         ax4.set_ylim(0,30)
         ax4.set_xlabel(r'$\theta$', fontsize = 14)
+        ax4.set_ylabel(r'N$_{cell}$', fontsize = 14)
         ax4.grid()
 
+        ax2.plot(theta_width, widthL7, c = 'k', label = 'Low 0.75')
+        ax2.plot(theta_width, widthHiRes7, c = 'r', label = 'Middle 0.75')
+        ax2.legend()
+        # ax2.set_xlim(theta_width[30], theta_width[230])
+        ax2.set_ylim(0,5)
+        ax2.grid()
+        ax5.plot(theta_width, NcellL7, c = 'k', label = 'Low 0.75')
+        ax5.plot(theta_width, NcellHiRes7, c = 'r', label = 'Middle 0.75')
+        ax5.legend()
+        # ax5.set_xlim(theta_width[30], theta_width[230])
+        ax5.set_ylim(0,30)
+        ax5.set_xlabel(r'$\theta$', fontsize = 14)
+        ax5.grid()
+
+        # third column
+        ax3.plot(datawidth8[0], widthL8, c = 'k', label = 'Low 0.86')
+        ax3.plot(datawidth8[0], widthHiRes8, c = 'r', label = 'Middle 0.86')
+        ax3.legend()
+        # ax3.set_xlim(theta_width[30], theta_width[230])
+        ax3.set_ylim(0,5)
+        ax3.grid()
+        ax6.plot(datawidth8[0], NcellL8, c = 'k', label = 'Low 0.86')
+        ax6.plot(datawidth8[0], NcellHiRes8, c = 'r', label = 'Middle 0.86')
+        ax6.legend()
+        # ax6.set_xlim(theta_width[30], theta_width[230])
+        ax6.set_ylim(0,30)
+        ax6.set_xlabel(r'$\theta$', fontsize = 14)
+        ax6.grid()
+
         # List of all axes
-        axes = [ax1, ax2, ax3, ax4]
+        axes = [ax1, ax2, ax3, ax4, ax5, ax6]
         # Apply the tick locator to each subplot
         for ax in axes:
             ax.xaxis.set_major_locator(MultipleLocator(1))  # Set xticks every 1 units
@@ -223,67 +247,83 @@ if plot:
             plt.savefig(f'{abspath}Figs/{folder}/width_comparison.png')
         plt.show()
 
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2, figsize = (12,7))
+        fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2,3, figsize = (12,7))
         ax1.plot(theta_height, heightL5, c = 'k', label = 'Low 0.5')
         ax1.plot(theta_height, heightHiRes5, c = 'r', label = 'Middle 0.5')
         # ax1.plot(theta_height, heightRes205, c = 'b',  label = 'High 0.5')
         ax1.legend()
         ax1.set_ylabel(r'Height [$R_\odot$]', fontsize = 14)
-        ax1.set_xlim(theta_height[30], theta_height[230])
+        # ax1.set_xlim(theta_height[30], theta_height[230])
         ax1.set_ylim(0,5)
         ax1.grid()
-        ax3.plot(theta_height, NhcellL5, c = 'k', label = 'Low 0.5')
-        ax3.plot(theta_height, NhcellHiRes5,  c = 'r', label = 'Middle 0.5')
-        # ax3.plot(theta_height, NhcellRes205, c = 'b',  label = 'High 0.5')
-        ax3.legend()
-        ax3.set_xlim(theta_height[30], theta_height[230])
-        ax3.set_ylim(0,20)
-        ax3.set_xlabel(r'$\theta$', fontsize = 14)
-        ax3.set_ylabel(r'N$_{cell}$', fontsize = 14)
-        ax3.grid()
+        ax4.plot(theta_height, NhcellL5, c = 'k', label = 'Low 0.5')
+        ax4.plot(theta_height, NhcellHiRes5,  c = 'r', label = 'Middle 0.5')
+        # ax4.plot(theta_height, NhcellRes205, c = 'b',  label = 'High 0.5')
+        ax4.legend()
+        # ax4.set_xlim(theta_height[30], theta_height[230])
+        ax4.set_ylim(0,30)
+        ax4.set_xlabel(r'$\theta$', fontsize = 14)
+        ax4.set_ylabel(r'N$_{cell}$', fontsize = 14)
+        ax4.grid()
 
         ax2.plot(theta_height, heightL7, c = 'k', label = 'Low 0.7')
         ax2.plot(theta_height, heightHiRes7, c = 'r', label = 'Middle 0.7')
-        ax4.plot(theta_height, NhcellHiRes7, c = 'r', label = 'Middle 0.7')
         ax2.legend()
-        ax2.set_xlim(theta_height[30], theta_height[230])
-        ax2.set_ylim(0,3)
+        # ax2.set_xlim(theta_height[30], theta_height[230])
+        ax2.set_ylim(0,5)
         ax2.grid()
-        ax4.plot(theta_height, NhcellL7, c = 'k', label = 'Low 0.7')
-        ax4.legend()
-        ax4.set_xlim(theta_height[30], theta_height[230])
-        ax4.set_ylim(0,20)
-        ax4.set_xlabel(r'$\theta$', fontsize = 14)
-        ax4.grid()
+        ax5.plot(theta_height, NhcellHiRes7, c = 'r', label = 'Middle 0.7')
+        ax5.plot(theta_height, NhcellL7, c = 'k', label = 'Low 0.7')
+        ax5.legend()
+        # ax5.set_xlim(theta_height[30], theta_height[230])
+        ax5.set_ylim(0,30)
+        ax5.set_xlabel(r'$\theta$', fontsize = 14)
+        ax5.grid()
+
+        # third column
+        ax3.plot(dataheight8[0], heightL8, c = 'k', label = 'Low 0.86')
+        ax3.plot(dataheight8[0], heightHiRes8, c = 'r', label = 'Middle 0.86')
+        ax3.legend()
+        ax3.set_ylim(0,5)
+        ax3.grid()
+        ax6.plot(dataheight8[0], NhcellL8, c = 'k', label = 'Low 0.86')
+        ax6.plot(dataheight8[0], NhcellHiRes8, c = 'r', label = 'Middle 0.86')
+        ax6.legend()
+        ax6.set_ylim(0,30)
+        ax6.set_xlabel(r'$\theta$', fontsize = 14)
+        ax6.grid()
 
         # List of all axes
-        axes = [ax1, ax2, ax3, ax4]
+        axes = [ax1, ax2, ax3, ax4, ax5, ax6]
         # Apply the tick locator to each subplot
         for ax in axes:
             ax.xaxis.set_major_locator(MultipleLocator(1))  # Set xticks every 1 units
         if save:
             plt.savefig(f'{abspath}Figs/{folder}/H_comparison.png')
         plt.show()
-
         
         diff5 = np.abs(widthL5 - widthHiRes5)
         # diff5Res20middle = np.abs(widthHiRes5 - widthRes205)
         diff7 = np.abs(widthL7 - widthHiRes7)
+        diff8 = np.abs(widthL8 - widthHiRes8)
         diffh5 = np.abs(heightL5 - heightHiRes5)
         # diffh5Res20middle = np.abs(heightHiRes5 - heightRes205)
         diffh7 = np.abs(heightL7 - heightHiRes7)
+        diffh8 = np.abs(heightL8 - heightHiRes8)
         fig, ax = plt.subplots(2, 1,  figsize=(8,6))
-        ax[0].plot(theta_width, diff5, c = 'r', label = r'Low - Middle t/t$_{fb}=$ 0.5')
+        ax[0].plot(theta_width, diff5, c = 'r', label = r'Low - Middle t/t$_{fb}=$ 0.52')
         # ax[0].plot(theta_width, diff5Res20middle, c = 'b', label = r'Middle - High t/t$_{fb}=$ 0.5')
-        ax[0].plot(theta_width, diff7, c = 'darkorange', label = r'Low - Middle t/t$_{fb}=$ 0.7')
+        ax[0].plot(theta_width, diff7, c = 'darkorange', label = r'Low - Middle t/t$_{fb}=$ 0.75')
+        ax[0].plot(datawidth8[0], diff8, c = 'maroon', label = r'Low - Middle t/t$_{fb}=$ 0.86')
         ax[0].set_ylabel(r'$\Delta_{ref}-\Delta$', fontsize = 14)
         ax[0].set_xlim(theta_width[30], theta_width[230])
         ax[0].set_ylim(-0.2,2)
         ax[0].legend()
         ax[0].grid()
-        ax[1].plot(theta_height, diffh5, c = 'r', label = r'Low - Middle t/t$_{fb}=$ 0.5')
+        ax[1].plot(theta_height, diffh5, c = 'r', label = r'Low - Middle t/t$_{fb}=$ 0.52')
         # ax[1].plot(theta_height, diffh5Res20middle, c = 'b', label = r'Middle - High t/t$_{fb}=$ 0.5')
-        ax[1].plot(theta_height, diffh7, c = 'darkorange', label = r'Low - Middle t/t$_{fb}=$ 0.7')
+        ax[1].plot(theta_height, diffh7, c = 'darkorange', label = r'Low - Middle t/t$_{fb}=$ 0.75')
+        ax[1].plot(datawidth8[0], diffh8, c = 'maroon', label = r'Low - Middle t/t$_{fb}=$ 0.86')
         ax[1].set_xlabel(r'$\theta$', fontsize = 14)
         ax[1].set_ylabel(r'$H_{ref} - H$', fontsize = 14)
         ax[1].set_xlim(theta_height[30], theta_height[230])

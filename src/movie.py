@@ -17,7 +17,7 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 # path = f'Figs/{folder}/multiple/wH'
 # output_path = f'Figs/{folder}/movie_wH.mp4'
 path = f'{abspath}/Figs/{folder}/{check}/projection/denproj'
-output_path = f'{abspath}/Figs/{folder}/{check}/movie_proj{check}.mp4'
+output_path = f'{abspath}/Figs/{folder}/movie_proj{check}.mp4'
 
 start = 100
 slow_down_factor = 4  # Increase this value to make the video slower
