@@ -170,7 +170,7 @@ Rstar = .47
 n = 1.5
 check = 'Low' # 'Compton' or 'ComptonHiRes' or 'ComptonRes20'
 compton = 'Compton'
-snap = '216'
+snap = '164'
 
 # TDE quantities and names
 Mbh = 10**m
@@ -334,12 +334,12 @@ if plot:
         
     idx_tree = np.loadtxt(f'{prepath}/data/{folder}/{check}/shockzone_{snap}.txt')
     idx_tree = np.array([int(i) for i in idx_tree])
-    X = np.load(f'{path}grad/CMx_{snap}.npy')
-    Y = np.load(f'{path}grad/CMy_{snap}.npy')
-    Z = np.load(f'{path}grad/CMz_{snap}.npy')
-    Den = np.load(f'{path}grad/Den_{snap}.npy')
-    Elad_divV = np.load(f'{path}grad/DivV_{snap}.npy')
-    Vol = np.load(f'{path}grad/Vol_{snap}.npy')
+    X = np.load(f'{path}/{snap}grad/CMx_{snap}.npy')
+    Y = np.load(f'{path}/{snap}grad/CMy_{snap}.npy')
+    Z = np.load(f'{path}/{snap}grad/CMz_{snap}.npy')
+    Den = np.load(f'{path}/{snap}grad/Den_{snap}.npy')
+    Elad_divV = np.load(f'{path}/{snap}grad/DivV_{snap}.npy')
+    Vol = np.load(f'{path}/{snap}grad/Vol_{snap}.npy')
     dim_cell = Vol**(1/3)
     
     x_zone, y_zone, z_zone, dim_cell_zone = X[idx_tree], Y[idx_tree], Z[idx_tree], dim_cell[idx_tree]

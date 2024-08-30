@@ -39,8 +39,8 @@ plt.rcParams['font.family'] = 'Times New Roman'
 plt.rcParams['axes.facecolor']= 'whitesmoke'
 plt.rcParams['xtick.direction'] = 'in'
 plt.rcParams['ytick.direction'] = 'in'
-plt.rcParams['xtick.labelsize'] = 15
-plt.rcParams['ytick.labelsize'] = 15
+plt.rcParams['xtick.labelsize'] = 20
+plt.rcParams['ytick.labelsize'] = 20
 plt.rcParams['xtick.top'] = True
 plt.tight_layout()
 AEK = '#F1C410'

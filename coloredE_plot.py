@@ -97,55 +97,61 @@ norm_orb_ensix = colors.LogNorm(vmin=p40_orb_ensix, vmax=p99_orb_ensix)
 norm_iesix = colors.LogNorm(vmin=p40_iesix, vmax=p99_iesix)
 norm_Radsix = colors.LogNorm(vmin=p40_Radsix, vmax=p99_Radsix)
 
-fig, ax = plt.subplots(2,3, figsize = (12,6))
+fig, ax = plt.subplots(2,3, figsize = (14,8))
 # Low
 img = ax[0][0].pcolormesh(radiiLow/apo, tfb_Low, abs_col_orb_en, norm=norm_orb_ensix, cmap = cmap)
 cb = fig.colorbar(img)
-ax[0][0].set_title('Specific (absolute) orbital energy', fontsize = 14)
-# cb.set_label(r'$|E_{orb}|$/Mass [erg/g]', fontsize = 14, labelpad = 5)
+ax[0][0].set_title('Specific (absolute) orbital energy', fontsize = 20)
+cb.set_label(r'Specific energy [erg/g]', fontsize = 20, labelpad = 2)
 ax[0][0].set_xscale('log')
-ax[0][0].text(0.05, 0.15,'Low res', fontsize = 14)
+ax[0][0].text(0.04, 0.15,'Low res', fontsize = 25)
 
 img = ax[0][1].pcolormesh(radiiLow/apo, tfb_Low, col_ie,  norm=norm_iesix, cmap = cmap)
 cb = fig.colorbar(img)
-# cb.set_label(r'IE/Mass [erg/g]', fontsize = 14, labelpad = 5)
-ax[0][1].set_title('Specific internal energy', fontsize = 14)
+cb.set_label(r'Specific energy [erg/g]', fontsize = 20, labelpad = 2)
+ax[0][1].set_title('Specific internal energy', fontsize = 20)
 ax[0][1].set_xscale('log')
+ax[0][1].text(0.04, 0.15,'Low res', fontsize = 25)
+
 
 img = ax[0][2].pcolormesh(radiiLow/apo, tfb_Low, col_Rad, norm=norm_Radsix, cmap = cmap)
 cb = fig.colorbar(img)
-ax[0][2].set_title('Radiation energy density', fontsize = 14)
-# cb.set_label(r'$\log_{10}E_{rad}$/Vol [erg/cm$^3$]', fontsize = 14, labelpad = 5)
+ax[0][2].set_title('Radiation energy density', fontsize = 20)
+cb.set_label(r'Eenergy density [erg/cm$^3$]', fontsize = 20, labelpad = 2)
 ax[0][2].set_xscale('log')
+ax[0][2].text(0.1, 0.1,'Low res', fontsize = 25, color = 'white')
+
 
 # Middle
 img = ax[1][0].pcolormesh(radiiMiddle/apo, tfb_Middle, abs_col_orb_enMiddle, norm=norm_orb_ensix, cmap = cmap)
 cb = fig.colorbar(img)
-# cb.set_label(r'$|E_{orb}|$/Mass [erg/g]', fontsize = 14, labelpad = 5)
+cb.set_label(r'Specific energy [erg/g]', fontsize = 20, labelpad = 2)
 ax[1][0].set_xscale('log')
-ax[1][0].text(0.05, 0.15,'High res', fontsize = 14)
+ax[1][0].text(0.04, 0.15,'High res', fontsize = 25)
 
 img = ax[1][1].pcolormesh(radiiMiddle/apo, tfb_Middle, col_ieMiddle, norm=norm_iesix, cmap = cmap)
 cb = fig.colorbar(img)
-# cb.set_label('IE/Mass [erg/g]', fontsize = 14, labelpad = 5)
+cb.set_label(r'Specific energy [erg/g]', fontsize = 20, labelpad = 2)
 ax[1][1].set_xscale('log')
+ax[1][1].text(0.04, 0.15,'High res', fontsize = 25)
 
 img = ax[1][2].pcolormesh(radiiMiddle/apo, tfb_Middle, col_RadMiddle, norm=norm_Radsix, cmap = cmap)
 cb = fig.colorbar(img)
-cb.set_label(r'E$_{rad}$/Vol [erg/cm$^3$]', fontsize = 14, labelpad = 5)
+cb.set_label(r'Eenergy density [erg/cm$^3$]', fontsize = 20, labelpad = 2)
 ax[1][2].set_xscale('log')
+ax[1][2].text(0.1, 0.1,'High res', fontsize = 25, color = 'white')
 for i in range(2):
     for j in range(3):
         ax[i][j].axvline(Rt/apo, linestyle ='--', c = 'white', linewidth = 0.8)
         ax[i][j].text(Rt/apo+0.07, 0.65, r'R$_t$', fontsize = 14, rotation = 90, transform = ax[i][j].transAxes, color = 'k')
         ax[i][j].axhline(0.205, c = 'white', linewidth = 0.4)
         ax[i][j].axhline(0.52, c = 'white', linewidth = 0.4)
-        # ax[i][j].axhline(0.7, c = 'white', linewidth = 0.4)
 
         # Grid for radii, to be matched with the cfr in slices.py
         ax[i][j].axvline(0.1, c = 'white', linewidth = 0.4)
         ax[i][j].axvline(0.3, c = 'white', linewidth = 0.4)
         ax[i][j].axvline(0.5, c = 'white', linewidth = 0.4)
+        ax[i][j].axvline(1, c = 'white', linewidth = 0.4)
         ax[i][j].set_xscale('log')
 
 # Layout
@@ -162,6 +168,39 @@ else:
 plt.tight_layout()
 if save:
     plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{cutoff}coloredE.png')
+plt.show()
+
+#%% Just one for Crete
+fig, ax = plt.subplots(1,1, figsize = (14,12))
+img = ax.pcolormesh(radiiMiddle/apo, tfb_Middle, abs_col_orb_enMiddle, norm=norm_orb_ensix, cmap = cmap)
+cb = fig.colorbar(img)
+cb.ax.tick_params(labelsize=30)
+cb.ax.tick_params(which='major', size=7) 
+cb.ax.tick_params(which='minor', size=5)  
+cb.set_label(r'Specific energy [erg/g]', fontsize = 35, labelpad = 5)
+cb.ax.tick_params(which = 'minor', size=10)
+ax.set_xscale('log')
+# ax.text(0.05, 0.15,'High res', fontsize = 14)
+ax.set_ylabel(r't/t$_{fb}$', fontsize = 35)
+ax.set_xlabel(r'$R/R_a$', fontsize = 35)
+plt.tick_params(axis = 'both', which = 'both', direction='in', size = 10, labelsize=35)
+plt.tick_params(axis = 'both', which = 'major',  size = 10)
+plt.tick_params(axis = 'x', which = 'minor',  size = 7)
+ax.text(Rt/apo+0.07, 0.65, r'R$_t$', fontsize = 35, rotation = 90, transform = ax.transAxes, color = 'k')
+ax.axhline(0.205, c = 'k', linewidth = 0.5)
+ax.axhline(0.52, c = 'k', linewidth = 0.5)
+
+# Grid for radii, to be matched with the cfr in slices.py
+ax.axvline(Rt/apo, linestyle ='dashed', c = 'k', linewidth = 0.5)
+ax.axvline(0.1, c = 'k', linewidth = 0.5)
+ax.axvline(0.3, c = 'k', linewidth = 0.5)
+ax.axvline(0.5, c = 'k', linewidth = 0.5)
+ax.axvline(1, c = 'k', linewidth = 0.5)
+ax.set_xscale('log')
+plt.title('Specific (absolute) orbital energy', fontsize = 30)
+plt.tight_layout()
+if save:
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{cutoff}coloredEorbMiddle.png')
 plt.show()
 
 # %% Plot (absolute) differences. They start from the same point
@@ -227,11 +266,11 @@ plt.show()
 
 ######################
 # %% Relative differences
-rel_ie = np.abs(diff_ie / col_ie)
-rel_orb_en = np.abs(diff_orb_en / col_orb_en)
-rel_Rad = np.abs(diff_Rad / col_Rad)
+rel_ie = np.abs(diff_ie / col_ieMiddle)
+rel_orb_en = np.abs(diff_orb_en / col_orb_enMiddle)
+rel_Rad = np.abs(diff_Rad / col_RadMiddle)
 
-rel_orb_en[np.isnan(rel_orb_en)] = 0 #nothing, so in logscale they will be zero
+rel_orb_en[np.isnan(rel_orb_en)] = 0 #nothing
 rel_ie[np.isnan(rel_ie)] = 0
 rel_Rad[np.isnan(rel_Rad)] = 0
 
@@ -252,40 +291,44 @@ p95_ie = np.percentile(rel_ie, 95)
 p95_orb_en = np.percentile(rel_orb_en, 95)
 p95_Rad = np.percentile(rel_Rad, 95)
 
-
 cmap = plt.cm.inferno
 norm_orb_en = colors.LogNorm(vmin=p5_orb_en, vmax=p95_orb_en)
 norm_ie = colors.LogNorm(vmin=p5_ie, vmax=p95_ie)
 norm_Rad = colors.LogNorm(vmin=p5_Rad, vmax=p95_Rad)
 
-fig, ax = plt.subplots(1,3, figsize = (18,5))
+fig, ax = plt.subplots(1,3, figsize = (20,6))
 img = ax[0].pcolormesh(radiiMiddle/apo, tfb_Middle, rel_orb_en, cmap=cmap, norm=norm_orb_en)#, vmin = np.min(rel_orb_en), vmax = 0.2)
 cb = fig.colorbar(img)
-ax[0].set_title('Specific (absolute) orbital energy', fontsize = 14)
-cb.set_label(r'$\Delta_{rel}$', fontsize = 20)#Relative difference $|E_{orb}|$/Mass', fontsize = 14, labelpad = 5)
+# cb.ax.tick_params(labelsize=20)
+ax[0].set_title('Specific (absolute) orbital energy', fontsize = 20)
+cb.set_label('Relative difference', fontsize = 25)#Relative difference $|E_{orb}|$/Mass', fontsize = 14, labelpad = 5)
 ax[0].set_xscale('log')
 
 img = ax[1].pcolormesh(radiiMiddle/apo, tfb_Middle, rel_ie, cmap=cmap, norm=norm_ie)#, vmin = np.min(rel_ie), vmax = np.max(rel_ie))
 cb = fig.colorbar(img)
-ax[1].set_title('Specific internal energy', fontsize = 14)
-cb.set_label(r'$\Delta_{rel}$', fontsize = 20)#Relative difference $|$IE$|$/Mass', fontsize = 14, labelpad = 5)
+cb.ax.tick_params(labelsize=20)
+ax[1].set_title('Specific internal energy', fontsize = 20)
+cb.set_label('Relative difference', fontsize = 25)#Relative difference $|$IE$|$/Mass', fontsize = 14, labelpad = 5)
 ax[1].set_xscale('log')
 
 img = ax[2].pcolormesh(radiiMiddle/apo, tfb_Middle, rel_Rad, cmap=cmap, norm=norm_Rad)#, vmin = np.min(rel_Rad), vmax = np.max(rel_Rad))
 cb = fig.colorbar(img)
-ax[2].set_title('Radiation energy density', fontsize = 14)
-cb.set_label(r'$\Delta_{rel}$', fontsize = 20)#'Relative difference $|E_{rad}|$/Vol', fontsize = 14, labelpad = 5)
+# cb.ax.tick_params(labelsize=2)
+ax[2].set_title('Radiation energy density', fontsize = 20)
+cb.set_label('Relative difference', fontsize = 25)#'Relative difference $|E_{rad}|$/Vol', fontsize = 14, labelpad = 5)
 ax[2].set_xscale('log')
 
 for i in range(3):
     ax[i].axvline(Rt/apo, linestyle ='--', c = 'k')
-    ax[i].text(Rt/apo+0.07, 0.65, r'R$_t$', fontsize = 16, rotation = 90, transform = ax[i].transAxes, color = 'k')
+    ax[i].text(Rt/apo+0.08, 0.25, r'R$_t$', fontsize = 20, rotation = 90, transform = ax[i].transAxes, color = 'k')
+    ax[i].tick_params(axis = 'both', which = 'both', direction='in', labelsize=20)
+    ax[i].axhline(0.205, c = 'k', linewidth = 0.4)
 
 # Layout
 ax[0].set_ylabel(r't/t$_{fb}$', fontsize = 25)
-ax[0].set_xlabel(r'$R/R_a$', fontsize = 20)
-ax[1].set_xlabel(r'$R/R_a$', fontsize = 20)
-ax[2].set_xlabel(r'$R/R_a$', fontsize = 20)
+ax[0].set_xlabel(r'$R/R_a$', fontsize = 25)
+ax[1].set_xlabel(r'$R/R_a$', fontsize = 25)
+ax[2].set_xlabel(r'$R/R_a$', fontsize = 25)
 plt.tick_params(axis = 'both', which = 'both', direction='in')
 if cutoff == 'bound':
     plt.suptitle(r'$M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$, bound elements only', fontsize = 18)
@@ -298,6 +341,7 @@ plt.show()
 
 # %% Lines
 indices = [70, 100, 136]
+# indices = [np.argmin(np.abs(tfb_Low-0.205)), np.argmin(np.abs(tfb_Low-0.52)), np.argmin(np.abs(tfb_Low-0.86))]
 colors_indices = ['navy', 'royalblue', 'deepskyblue']
 lines_difference = (col_Rad-col_RadMiddle)/col_RadMiddle
 
@@ -323,8 +367,8 @@ plt.show()
 # %%
 Lum_cgs = col_Rad  * prel.c * 4 * np.pi * (radiiLow*prel.Rsol_to_cm)**2 
 LumMiddle_cgs = col_RadMiddle * prel.c * 4 * np.pi * (radiiMiddle*prel.Rsol_to_cm)**2 
-Lum_difference = (Lum_cgs-LumMiddle_cgs)/Lum_cgs
-img, ax = plt.subplots(1,2, figsize = (16,6))
+Lum_difference = (Lum_cgs-LumMiddle_cgs)/LumMiddle_cgs
+img, ax = plt.subplots(1,2, figsize = (20,7))
 for i,idx in enumerate(indices):
     if i == 0:
         ax[0].plot(radiiLow, Lum_cgs[idx], c = colors_indices[i], label = f'Low res')#t/tfb = {np.round(tfb_Low[idx],2)}')
@@ -334,15 +378,27 @@ for i,idx in enumerate(indices):
         ax[0].plot(radiiLow, Lum_cgs[idx], c = colors_indices[i])#, label = f'Low t/tfb = {np.round(tfb_Low[idx],2)}')
         ax[0].plot(radiiMiddle, LumMiddle_cgs[idx], '--', c = colors_indices[i])#, label = f'Middle t/tfb = {np.round(tfb_Middle[idx],2)}')
         ax[1].plot(radiiLow, Lum_difference[idx], c = colors_indices[i])#, label = f't/tfb = {np.round(tfb_Low[idx],2)}')
-ax[0].set_xlabel(r'R/R$_a$', fontsize = 20)
-ax[1].set_xlabel(r'$R/R_a$', fontsize = 20)
-ax[0].set_ylabel(r'Luminosity [erg/s]', fontsize = 20)
-ax[1].set_ylabel(r'1-Middle/Low', fontsize = 20)
+ax[0].text(520, 3e40, r'$t/t_{fb}$ = '+ f'{np.round(tfb_Low[indices[0]],2)}', fontsize = 20)
+ax[0].text(620, 1.5e41, r'$t/t_{fb}$ = '+ f'{np.round(tfb_Low[indices[1]],2)}', fontsize = 20)
+ax[0].text(620, 7e41, r'$t/t_{fb}$ = '+ f'{np.round(tfb_Low[indices[2]],2)}', fontsize = 20)
+# ax[1].text(620, 0.6, r'$t/t_{fb}$ = '+ f'{np.round(tfb_Low[indices[0]],2)}', fontsize = 20)
+# ax[1].text(620, 1.5, r'$t/t_{fb}$ = '+ f'{np.round(tfb_Low[indices[1]],2)}', fontsize = 20)
+# ax[1].text(620, 2.5, r'$t/t_{fb}$ = '+ f'{np.round(tfb_Low[indices[2]],2)}', fontsize = 20)
+
+ax[0].tick_params(axis='both', which='major', labelsize=25)
+ax[1].tick_params(axis='both', which='major', labelsize=25)
+ax[0].tick_params(axis='both', which='minor', size=3)
+ax[1].tick_params(axis='both', which='minor', size=3)
+ax[0].set_xlabel(r'R/R$_a$', fontsize = 28)
+ax[1].set_xlabel(r'$R/R_a$', fontsize = 28)
+ax[0].set_ylabel(r'Luminosity [erg/s]', fontsize = 22)
+ax[1].set_ylabel(r'Relative difference', fontsize = 20, labelpad = 1)
 ax[0].loglog()
-ax[0].legend(fontsize = 16)
+ax[0].legend(fontsize = 25)
 ax[0].grid()
 ax[1].grid()
 ax[1].loglog()
+plt.subplots_adjust(wspace=1)
 plt.tight_layout()
 if save:
     plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/Luminosity.png')

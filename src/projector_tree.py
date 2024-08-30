@@ -9,9 +9,12 @@ sys.path.append('/Users/paolamartire/shocks')
 import numpy as np
 import matplotlib.pyplot as plt
 import numba
+from scipy.spatial import KDTree
 from Utilities.operators import make_tree
 from Utilities.selectors_for_snap import select_snap
 from Utilities.isalice import isalice
+from src.orbits import make_cfr
+from Utilities.sections import make_slices
 alice, plot = isalice()
 
 #
@@ -46,8 +49,18 @@ def grid_maker(path, snap, m, mstar, Rstar, x_num, y_num, z_num = 100):
     z_stop = 2 * Rt
     zs = np.linspace(z_start, z_stop, z_num) #simulator units
 
-    data = make_tree(path, snap, energy = True)
-    sim_tree = data.sim_tree
+    # data = make_tree(path, snap, energy = True)
+    # sim_tree = data.sim_tree
+    X = np.load(f'{path}/CMx_{snap}.npy')
+    Y = np.load(f'{path}/CMy_{snap}.npy')
+    Z = np.load(f'{path}/CMz_{snap}.npy')
+    Den = np.load(f'{path}/Den_{snap}.npy')
+    # make cut in density
+    cutden = Den > 1e-9
+    x_cut, y_cut, z_ccut, den_cut = \
+        make_slices([X, Y, Z, Den], cutden)
+    points_tree = np.array([x_cut, y_cut, z_ccut]).T
+    sim_tree = KDTree(points_tree)
 
     gridded_indexes =  np.zeros(( len(xs), len(ys), len(zs) ))
     gridded_den =  np.zeros(( len(xs), len(ys), len(zs) ))
@@ -59,7 +72,7 @@ def grid_maker(path, snap, m, mstar, Rstar, x_num, y_num, z_num = 100):
                                     
                 # Store
                 gridded_indexes[i, j, k] = idx
-                gridded_den[i, j, k] = data.Den[idx]
+                gridded_den[i, j, k] = den_cut[idx]
 
     return gridded_indexes, gridded_den, xs, ys, zs
 
@@ -87,6 +100,7 @@ if __name__ == '__main__':
     Rstar = .47
     n = 1.5
     Rt = Rstar * (Mbh/mstar)**(1/3)
+    xcrt, ycrt, crt = make_cfr(Rt)
     apocenter = Rt**2 / Rstar
     check = 'HiRes'
     compton = 'Compton'
@@ -123,7 +137,7 @@ if __name__ == '__main__':
 
 #%% Plot
     if plot:
-        import Utilities.prelude as pre
+        import Utilities.prelude as prel
 
         first_s = 100
         last_s = 217
@@ -144,16 +158,19 @@ if __name__ == '__main__':
             p95 = np.percentile(den_plot, 95)
             # print('put min and max as ', p5, p95)
             
-            fig, ax = plt.subplots(1,1, figsize = (12,4))
-            ax.set_xlabel(r'$X/R_a$', fontsize = 20)
-            ax.set_ylabel(r'$Y/R_a$', fontsize = 20)
-            img = ax.pcolormesh(x_radii/apocenter, y_radii/apocenter, den_plot.T, cmap = 'inferno',
+            fig, ax = plt.subplots(1,1, figsize = (14,4))
+            ax.set_xlabel(r'$X [R_\odot]$', fontsize = 20)
+            ax.set_ylabel(r'$Y [R_\odot]$', fontsize = 20)
+            img = ax.pcolormesh(x_radii, y_radii, den_plot.T, cmap = 'inferno',
                                 vmin = -10, vmax = -5.6)
+            # add an  point with just white contour at 0,0 
+            ax.plot(0,0, 'o', color = 'k', markersize = 8, markeredgecolor = 'darkorange')
+            ax.contour(xcrt, ycrt, crt, [0], linestyles = 'dashed', colors = 'white', alpha = 0.8)
             cb = plt.colorbar(img)
-            cb.set_label(r'$\log_{10}$ (Column density [g/cm$^2$])', fontsize = 18)
+            cb.set_label(r'$\log_{10}$ (Column density [$M_\odot/R_\odot^2$])', fontsize = 18)
 
             # ax.set_title(f'XY Projection, snap {snap}', fontsize = 16)
-            ax.text(-1.1, 0.15, r't/t$_{fb}$ = ' + f'{np.round(tfb_single,2)}', color = 'white', fontsize = 18)
+            ax.text(-400, 50, r't/t$_{fb}$ = ' + f'{np.round(tfb_single,2)}', color = 'white', fontsize = 18)
             plt.tight_layout()
             if save:
                 plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{check}/projection/denproj{snap}.png')

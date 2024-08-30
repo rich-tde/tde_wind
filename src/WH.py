@@ -61,7 +61,7 @@ print(f'We are in: {path}, \nWe save in: {saving_path}')
 do = False
 plot = True
 save = True
-compare = False
+compare = True
 theta_lim =  np.pi
 step = 0.02
 # theta_init = np.arange(-theta_lim, theta_lim, step)

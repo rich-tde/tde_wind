@@ -40,10 +40,10 @@ Rp =  Rt / beta
 R0 = 0.6 * Rp
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
-do = True
+do = False
 plot = True
-save = True
-compare = False
+save = False
+compare = True
 
 #
 ## MAIN
@@ -182,6 +182,14 @@ if plot:
         NcellL8 = datawidth8[2]
         widthHiRes8 = datawidth8[3]
         NcellHiRes8 = datawidth8[4]
+        mean5 = np.mean(NcellL5)
+        mean7 = np.mean(NcellL7)
+        mean8 = np.mean(NcellL8)
+        meanHiRes5 = np.mean(NcellHiRes5)
+        meanHiRes7 = np.mean(NcellHiRes7)
+        meanHiRes8 = np.mean(NcellHiRes8)
+        print(f'mean cell low: {mean5}, {mean7}, {mean8}')
+        print(f'mean cell Hi: {meanHiRes5}, {meanHiRes7}, {meanHiRes8}')
 
         dataheight5 = np.loadtxt(f'{abspath}data/{folder}/DENheight_time0.52.txt')
         theta_height = dataheight5[0]
@@ -217,7 +225,8 @@ if plot:
         # ax4.plot(theta_width, NcellRes205, c = 'b',  label = 'High 0.5')
         ax4.legend()
         # ax4.set_xlim(theta_width[30], theta_width[230])
-        ax4.set_ylim(0,30)
+        # ax4.set_ylim(0,30)
+        ax4.set_yscale('log')
         ax4.set_xlabel(r'$\theta$', fontsize = 14)
         ax4.set_ylabel(r'N$_{cell}$', fontsize = 14)
         ax4.grid()
@@ -233,7 +242,8 @@ if plot:
         ax5.plot(theta_width, NcellHiRes7, c = 'r', label = 'Middle 0.75')
         ax5.legend()
         # ax5.set_xlim(theta_width[30], theta_width[230])
-        ax5.set_ylim(0,30)
+        # ax5.set_ylim(0,30)
+        ax5.set_yscale('log')
         ax5.set_xlabel(r'$\theta$', fontsize = 14)
         ax5.grid()
         
@@ -248,7 +258,8 @@ if plot:
         ax6.plot(theta_width, NcellHiRes8, c = 'r', label = 'Middle 0.86')
         ax6.legend()
         # ax6.set_xlim(theta_width[30], theta_width[230])
-        ax6.set_ylim(0,30)
+        # ax6.set_ylim(0,30)
+        ax6.set_yscale('log')
         ax6.set_xlabel(r'$\theta$', fontsize = 14)
         ax6.grid()
 

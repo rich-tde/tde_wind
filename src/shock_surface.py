@@ -256,7 +256,7 @@ Rstar = .47
 n = 1.5
 check = 'Low' # 'Compton' or 'ComptonHiRes' or 'ComptonRes20'
 compton = 'Compton'
-snap = '216'
+snap = '164'
 
 Mbh = 10**m
 Rt = Rstar * (Mbh/mstar)**(1/3)
@@ -331,6 +331,7 @@ if save == True:
 #%% 
 if plot:
     from Utilities.sections import make_slices
+    import matplotlib.colors as colors
     if alice:
         if check == '':
             check = 'Low'
@@ -343,12 +344,12 @@ if plot:
     data_surf = np.loadtxt(f'{prepath}/data/{folder}/{check}/shocksurface_{snap}.txt')
     idx_surf = data_surf[0]
     idx_surf = np.array([int(i) for i in idx_surf])
-    X = np.load(f'{path}grad/CMx_{snap}.npy')
-    Y = np.load(f'{path}grad/CMy_{snap}.npy')
-    Z = np.load(f'{path}grad/CMz_{snap}.npy')
-    Den = np.load(f'{path}grad/Den_{snap}.npy')
-    Elad_divV = np.load(f'{path}grad/DivV_{snap}.npy')
-    Vol = np.load(f'{path}grad/Vol_{snap}.npy')
+    X = np.load(f'{path}/{snap}grad/CMx_{snap}.npy')
+    Y = np.load(f'{path}/{snap}grad/CMy_{snap}.npy')
+    Z = np.load(f'{path}/{snap}grad/CMz_{snap}.npy')
+    Den = np.load(f'{path}/{snap}grad/Den_{snap}.npy')
+    Elad_divV = np.load(f'{path}/{snap}grad/DivV_{snap}.npy')
+    Vol = np.load(f'{path}/{snap}grad/Vol_{snap}.npy')
     dim_cell = Vol**(1/3)
 
     x_zone, y_zone, z_zone, dim_cell_zone = X[idx_zone], Y[idx_zone], Z[idx_zone], dim_cell[idx_zone]
@@ -361,16 +362,30 @@ if plot:
 
     fig, ax = plt.subplots(1,1,figsize=(12,10))
     img = ax.scatter(X_midplane, Y_midplane, c = div_midplane, s = 1, cmap = 'plasma', vmin = -5, vmax = 2)#, norm=colors.LogNorm(vmin = 1e-9, vmax = 1e-5))
-    # img = ax.scatter(X_midplane, Y_midplane, c = Den_midplane, s = 2, cmap = 'inferno', norm=colors.LogNorm(vmin = 1e-9, vmax = 1e-5))
     cbar = fig.colorbar(img, ax=ax)
-    ax.plot(x_surfmidplane, y_surfmidplane, 'ks', markerfacecolor='k', ms=4, markeredgecolor='k', label = 'Shock surf')
+    cbar.set_label(r'$\nabla \cdot \mathbf{v}$', fontsize = 20)
+    ax.plot(x_surfmidplane, y_surfmidplane, 'ks', markerfacecolor='None', ms=4, markeredgecolor='k', label = 'Shock surf')
     ax.set_xlabel(r'X [$R_\odot$]', fontsize = 20)
     ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 20)
     ax.set_xlim(-10,30)
     ax.set_ylim(-20,20)
     ax.legend(loc = 'upper right', fontsize = 20)
-    # if save:    
-    #     plt.savefig(f'Figs/{snap}/shocksurface_{snap}.png')
+    if save:    
+        plt.savefig(f'{prepath}/Figs/{folder}/{check}/shocksurfaceDiv_{snap}.png')
+    plt.show()
+
+    fig, ax = plt.subplots(1,1,figsize=(12,10))
+    img = ax.scatter(X_midplane, Y_midplane, c = Den_midplane, s = 2, cmap = 'inferno', norm=colors.LogNorm(vmin = 1e-9, vmax = 1e-5))
+    cbar = fig.colorbar(img, ax=ax)
+    cbar.set_label(r'$\rho$', fontsize = 20)
+    ax.plot(x_surfmidplane, y_surfmidplane, 'ks', markerfacecolor='None', ms=4, markeredgecolor='k', label = 'Shock surf')
+    ax.set_xlabel(r'X [$R_\odot$]', fontsize = 20)
+    ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 20)
+    ax.set_xlim(-10,30)
+    ax.set_ylim(-20,20)
+    ax.legend(loc = 'upper right', fontsize = 20)
+    if save:    
+        plt.savefig(f'{prepath}/Figs/{folder}/{check}/shocksurfaceDen_{snap}.png')
     plt.show()
 
 # %%
