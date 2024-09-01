@@ -143,6 +143,7 @@ if __name__ == '__main__':
         last_s = 217
         snaps = np.arange(first_s,last_s,1)
         tfb = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}/projection/time_proj.txt')[1]
+        cut = 'NOCUT' #or 'NOCUT' or ''
 
         # Load and clean
         for i, snap in enumerate(snaps):
@@ -153,7 +154,16 @@ if __name__ == '__main__':
 
             den_plot = np.log10(flat_den)
             den_plot = np.nan_to_num(den_plot, neginf= 0, posinf = 0)
-            
+
+            if cut != 'NOCUT':
+                cut_den_plot = den_plot.copy()
+                cut_x_radii = x_radii.copy()
+                cut_y_radii = y_radii.copy()
+                for i in range(len(x_radii)):
+                    for j in range(len(y_radii)):
+                        if den_plot[i,j] < -9:
+                            cut_den_plot[i,j] = -200
+                
             p5 = np.percentile(den_plot, 5)
             p95 = np.percentile(den_plot, 95)
             # print('put min and max as ', p5, p95)
@@ -161,19 +171,23 @@ if __name__ == '__main__':
             fig, ax = plt.subplots(1,1, figsize = (14,4))
             ax.set_xlabel(r'$X [R_\odot]$', fontsize = 20)
             ax.set_ylabel(r'$Y [R_\odot]$', fontsize = 20)
-            img = ax.pcolormesh(x_radii, y_radii, den_plot.T, cmap = 'inferno',
+            if cut == 'NOCUT':
+                img = ax.pcolormesh(x_radii, y_radii, den_plot.T, cmap = 'inferno',
                                 vmin = -10, vmax = -5.6)
+            else:
+                img = ax.pcolormesh(x_radii, y_radii, cut_den_plot.T, cmap = 'inferno',
+                                vmin = -9, vmax = -5.6)
             # add an  point with just white contour at 0,0 
-            ax.plot(0,0, 'o', color = 'k', markersize = 8, markeredgecolor = 'darkorange')
-            ax.contour(xcrt, ycrt, crt, [0], linestyles = 'dashed', colors = 'white', alpha = 0.8)
+            # ax.plot(0,0, 'o', color = 'k', markersize = 8, markeredgecolor = 'darkorange')
+            # ax.contour(xcrt, ycrt, crt, [0], linestyles = 'dashed', colors = 'white', alpha = 0.8)
             cb = plt.colorbar(img)
             cb.set_label(r'$\log_{10}$ (Column density [$M_\odot/R_\odot^2$])', fontsize = 18)
 
             # ax.set_title(f'XY Projection, snap {snap}', fontsize = 16)
-            ax.text(-400, 50, r't/t$_{fb}$ = ' + f'{np.round(tfb_single,2)}', color = 'white', fontsize = 18)
+            # ax.text(-400, 50, r't/t$_{fb}$ = ' + f'{np.round(tfb_single,2)}', color = 'white', fontsize = 18)
             plt.tight_layout()
             if save:
-                plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{check}/projection/denproj{snap}.png')
+                plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{check}/projection{cut}/denproj{snap}.png')
             # plt.show()
             plt.close()
 

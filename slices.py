@@ -33,8 +33,8 @@ mstar = .5
 Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
-check = 'HiRes' # '' or 'HiRes' or 'Res20'
-snap = '216'
+check = 'Low' # '' or 'HiRes' or 'Res20'
+snap = '116'
 compton = 'Compton'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
@@ -52,8 +52,8 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 xcfr, ycfr, cfr = orb.make_cfr(Rt)
 xcfr0, ycfr0, cfr0 = orb.make_cfr(R0)
 # cfr for grid
-radii_grid = [Rt, 0.1*apo, 0.3*apo, 0.5*apo, apo] 
-styles = ['dashed', 'solid', 'solid', 'solid', 'solid']
+radii_grid = [Rt, 0.1*apo, 0.3*apo, 0.5*apo, apo]#, '1.5*Rt'] 
+styles = ['dashed','solid', 'solid', 'solid', 'solid']#'dotted']
 xcfr_grid, ycfr_grid, cfr_grid = [], [], []
 for i,radius_grid in enumerate(radii_grid):
     xcr, ycr, cr = orb.make_cfr(radius_grid)
@@ -64,9 +64,9 @@ for i,radius_grid in enumerate(radii_grid):
 #%%
 # DECISIONS
 ##
-save = True
+save = False
 difference = False
-cutoff = 'bound' # or ''
+cutoff = 'cutden' # or '' or 'bound' or 'cutdenbound'
 
 #%%
 # DATA
@@ -91,15 +91,23 @@ rad_den *= prel.en_den_converter
 # MAIN
 ##
 #%%
-if cutoff == 'bound':
-    cutden = den > 1e-9 # throw fluff
-    cutbound = orb_en < 0 # bound elements
-    cut = cutden#cutden & cutbound
+if cutoff != '':
+    if cutoff == 'bound' or cutoff == 'cutdenbound':
+        print('Cutting off unbound elements')
+        cutbound = orb_en < 0 
+        if cutoff == 'cutdenbound':
+            print('Cutting off low density elements')
+            cutden = data.Den > 1e-9 # throw fluff
+            cut = cutden & cutbound 
+    if cutoff == 'cutden':
+        print('Cutting off low density elements')
+        cut = data.Den > 1e-9 # throw fluff
 
     x_coord, y_coord, z_coord, Rsph, dim_cell, mass, den, temp, rad_den, ie_mass, orb_en_mass = \
         sec.make_slices([x_coord, y_coord, z_coord, Rsph, dim_cell, mass, den, temp, rad_den, ie_mass, orb_en_mass], cut)
 
 THETA, RADIUS_cyl = to_cylindric(x_coord, y_coord)
+#%%
 #%%
 """ Slice orbital plane """
 midplane = np.abs(z_coord) < dim_cell
@@ -109,16 +117,38 @@ abs_orb_en_mass_midplane = np.abs(orb_en_mass_midplane)
 
 #%%
 fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(X_midplane, Y_midplane, c = Den_midplane, s = 1, cmap = 'viridis', norm=colors.LogNorm(vmin=1e-9, vmax=5e-6))
+img = ax.scatter(X_midplane/apo, Y_midplane/apo, c = abs_orb_en_mass_midplane, s = 1, cmap = 'viridis', norm=colors.LogNorm(vmin=2e16, vmax=9e17))
 cbar = plt.colorbar(img)
-cbar.set_label(r'Density', fontsize = 16)
+cbar.set_label(r'Specific absolute orbital energy', fontsize = 16)
+ax.scatter(0,0,c= 'k', marker = 'x', s=80)
+# plot cfr
+for i in range(len(radii_grid)):
+    ax.contour(xcfr_grid[i]/apo, ycfr_grid[i]/apo, cfr_grid[i], [0], linestyles = styles[i], colors = 'k', alpha = 0.8)
+# ax.plot(x_stream, y_stream, c = 'k')
+ax.set_xlim(-1.3,R0/apo)
+ax.set_ylim(-0.8,0.5)
+ax.set_xlabel(r'X/$R_a$', fontsize = 18)
+ax.set_ylabel(r'Y/$R_a$', fontsize = 18)
+plt.tick_params(axis = 'both', which = 'both', direction='in', labelsize=20)
+ax.text(-1.2, 0.4, r't/t$_{fb}$ = ' + str(np.round(tfb,2)), fontsize = 20)
+plt.tight_layout()
+if save:
+    plt.savefig(f'{saving_path}/slices/midplaneEorb_{snap}{cutoff}.png')
+plt.show()
+#%%
+fig, ax = plt.subplots(1,1, figsize = (6,6))
+img = ax.scatter(X_midplane, Y_midplane, c = Den_midplane, s = .1, cmap = 'viridis', norm=colors.LogNorm(vmin=1e-9, vmax=np.max(Den_midplane[np.logical_and(X_midplane>-40, np.abs(Y_midplane)<40)])))
+cbar = plt.colorbar(img)
+cbar.set_label(r'Density $[M_\odot/R_\odot^3$]', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
 # plot cfr
 for i in range(len(radii_grid)):
     ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k', alpha = 0.8)
+    # ax.text(-radii_grid[i]-0.1, 0.1, f'R = {radii_grid[i]}', fontsize = 12)
 # ax.plot(x_stream, y_stream, c = 'k')
-ax.set_xlim(-340,25)
-ax.set_ylim(-40,70)
+ax.hlines(y=0, xmin = 0, xmax = 30, color = 'k', linestyle = 'dashed', alpha = 0.8)
+ax.set_xlim(-40,25)#340,25)
+ax.set_ylim(-40,40)#70)
 ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
 ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
 plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)))
@@ -127,8 +157,8 @@ if save:
 plt.show()
 
 #%%
-fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(X_midplane, Y_midplane, c = Mass_midplane, s = 1, cmap = 'viridis', norm=colors.LogNorm(vmin=1e-9, vmax=5e-6))
+fig, ax = plt.subplots(1,1, figsize = (6,6))
+img = ax.scatter(X_midplane, Y_midplane, c = Mass_midplane, s = 1, cmap = 'viridis', norm=colors.LogNorm(vmin=1e-11, vmax=1e-7))
 cbar = plt.colorbar(img)
 cbar.set_label(r'Mass [M$_\odot$]', fontsize = 16)
 ax.scatter(0,0,c= 'k', marker = 'x', s=80)
@@ -136,14 +166,36 @@ ax.scatter(0,0,c= 'k', marker = 'x', s=80)
 for i in range(len(radii_grid)):
     ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k', alpha = 0.8)
 # ax.plot(x_stream, y_stream, c = 'k')
-ax.set_xlim(-400,100)
-ax.set_ylim(-200,200)
+ax.hlines(y=0, xmin = 0, xmax = 30, color = 'k', linestyle = 'dashed', alpha = 0.8)
+ax.set_xlim(-40,25)#340,25)
+ax.set_ylim(-40,40)#70)
 ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
 ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
 plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)))
 if save:
     plt.savefig(f'{saving_path}/slices/midplaneMass_{snap}{cutoff}.png')
 plt.show()
+
+#%%
+fig, ax = plt.subplots(1,1, figsize = (6,6))
+img = ax.scatter(X_midplane, Y_midplane, c = dim_midplane, s = .1, cmap = 'viridis', norm=colors.LogNorm(vmin=4e-2, vmax=9e-1))
+cbar = plt.colorbar(img)
+cbar.set_label(r'size$_{cell} [R_\odot$]', fontsize = 16)
+ax.scatter(0,0,c= 'k', marker = 'x', s=80)
+# plot cfr
+for i in range(len(radii_grid)):
+    ax.contour(xcfr_grid[i], ycfr_grid[i], cfr_grid[i], [0], linestyles = styles[i], colors = 'k', alpha = 0.8)
+# ax.plot(x_stream, y_stream, c = 'k')
+ax.hlines(y=0, xmin = 0, xmax = 30, color = 'k', linestyle = 'dashed', alpha = 0.8)
+ax.set_xlim(-40,25)#340,25)
+ax.set_ylim(-40,40)#70)
+ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
+ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
+plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)))
+if save:
+    plt.savefig(f'{saving_path}/slices/midplaneSize_{snap}{cutoff}.png')
+plt.show()
+
 #%%
 fig, ax = plt.subplots(1,1, figsize = (12,4))
 img = ax.scatter(X_midplane, Y_midplane, c = Temp_midplane, s = 1, cmap = 'viridis',norm=colors.LogNorm(vmin=1e4, vmax=6e5))
@@ -193,7 +245,7 @@ for i in range(len(radii_grid)):
     ax.contour(xcfr_grid[i]/apo, ycfr_grid[i]/apo, cfr_grid[i], [0], linestyles = styles[i], colors = 'k', alpha = 0.8)
 # ax.plot(x_stream, y_stream, c = 'k')
 ax.set_xlim(-1.3,R0/apo)
-ax.set_ylim(-0.5,0.5)
+ax.set_ylim(-0.8,0.5)
 ax.set_xlabel(r'X/$R_a$', fontsize = 18)
 ax.set_ylabel(r'Y/$R_a$', fontsize = 18)
 plt.tick_params(axis = 'both', which = 'both', direction='in', labelsize=20)
@@ -329,7 +381,7 @@ plt.show()
 
 
 #%%
-cutoff = 'cut'
+cutoff = 'cutden'
 if difference:
     from scipy.spatial import KDTree
     check = 'Low' 
@@ -361,22 +413,26 @@ if difference:
     
     midplane = np.logical_and(np.abs(z_coord) < dim_cell, Rsph < 1.2*apo)
     midplaneHiRes = np.logical_and(np.abs(z_coordHiRes) < dim_cellHiRes, RsphHiRes < 1.2*apo)
-    if cutoff == 'bound' or cutoff == 'cut':
+    if cutoff == 'bound' or cutoff == 'cutdenbound':
         print('Cutting off unbound elements')
         cutbound = orb_en < 0 
         cutboundHiRes = orb_enHiRes < 0 
-        if cutoff == 'cut':
+        if cutoff == 'cutdenbound':
             print('Cutting off low density elements')
             cutden = data.Den > 1e-9 # throw fluff
             cutdenHiRes = dataHiRes.Den > 1e-9 # throw fluff
             finalcut = cutden & cutbound & midplane
             finalcutHiRes = cutdenHiRes & cutboundHiRes & midplaneHiRes
-        else:
-            finalcut = cutbound & midplane
-            finalcutHiRes = cutboundHiRes & midplaneHiRes
+    if cutoff == 'cutden':
+        print('Cutting off low density elements')
+        cutden = data.Den > 1e-9 # throw fluff
+        cutdenHiRes = dataHiRes.Den > 1e-9 # throw fluff
+        finalcut = cutden  & midplane
+        finalcutHiRes = cutdenHiRes & midplaneHiRes
     else:
         finalcut = midplane
         finalcutHiRes = midplaneHiRes
+
     X_midplane, Y_midplane, Z_midplane, Rad_den_midplane = \
         sec.make_slices([x_coord, y_coord, z_coord, rad_den], finalcut)
     
@@ -396,7 +452,7 @@ if difference:
 #%%
 RadDiff = np.abs(Rad_den_midplane - new_Rad_den_midplaneHiRes)/new_Rad_den_midplaneHiRes
 fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(points_toplot[0], points_toplot[1], c = RadDiff, s = 1, cmap = 'bwr', norm=colors.LogNorm(vmin=.01, vmax=50))
+img = ax.scatter(points_toplot[0], points_toplot[1], c = RadDiff, s = 1, cmap = 'inferno', norm=colors.LogNorm(vmin=.08, vmax=5))
 cbar = plt.colorbar(img)
 cbar.set_label(r'Relative Rad energy density', fontsize = 16)
 ax.set_xlim(-400,50)
@@ -405,8 +461,10 @@ ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
 ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
 if cutoff == 'bound':
     plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)) + ', bound elements only')
-elif cutoff == 'cut':
-    plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)) + ', bound elements and cut on density')
+elif cutoff == 'cutden':
+    plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)) + ', cut on density')
+elif cutoff == 'cutdenbound':
+    plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)) + ', cut on density and bound elements')
 else:
     plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)))
 if save:

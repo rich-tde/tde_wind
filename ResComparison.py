@@ -36,6 +36,7 @@ Rstar = .47
 n = 1.5
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rs = 2*G*Mbh / c**2
+Rg = Rs/2
 R0 = 0.6 * Rt
 Rp =  Rt / beta
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
@@ -43,6 +44,8 @@ snap = '216'
 compton = 'Compton'
 checks = ['Low', 'HiRes'] 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+print(f'Rt: {Rt}, Rg: {Rs}, R0: {R0}, Rp: {Rp}, apo: {apo}')
+print(f'In term of Rg: Rt: {Rt/Rg}, R0: {R0/Rg}, Rp: {Rp/Rg}, apo: {apo/Rg}')
 
 #%%
 pathL = f'{abspath}TDE/{folder}{checks[0]}/{snap}'
@@ -160,15 +163,16 @@ if save:
     plt.savefig(f'{abspath}/Figs/{folder}/multiple/compareHistMass_{snap}.png')
 plt.show()
 
+#%%
 fig = plt.subplots(1,1, figsize = (8,8))
-plt.hist(massHhist, bins = binsH, cumulative=True, density= True, ec = 'mediumpurple', histtype='stepfilled', color = 'w', label = 'High res') # put an histogram over the other. one just the contour
+plt.hist(massHhist, bins = binsH, cumulative=True, density= True, ec = 'mediumpurple', histtype='stepfilled', color = 'w', label = 'High res', linewidth=2.5) # put an histogram over the other. one just the contour
 plt.hist(massLhist, bins = binsL, cumulative=True, density= True, color = 'orange', alpha = 0.5, label = 'Low res')
 plt.xlim(5e-13, 4e-8)
 plt.xlabel(r'Mass per cell [$M_\odot$]', fontsize = 20)
-plt.ylabel('Counts', fontsize = 20)
+plt.ylabel('CDF', fontsize = 25)
 plt.tick_params(axis = 'both', which = 'both', direction='in', labelsize=20)
 plt.xscale('log')
-plt.legend(fontsize = 20)
+plt.legend(fontsize = 25)
 plt.title(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
 if save:
     plt.savefig(f'{abspath}/Figs/{folder}/multiple/compareHistTogetMass_{snap}.png')
@@ -183,7 +187,7 @@ plt.hist(massH, bins = binsHall, ec = 'mediumpurple', histtype='stepfilled', col
 plt.hist(massL, bins = binsLall, color = 'orange', alpha = 0.5, label = 'Low res', cumulative=True, density= True)
 plt.xlim(3e-12, 1e-6)
 plt.xlabel(r'Mass per cell [$M_\odot$]', fontsize = 20)
-plt.ylabel('Counts', fontsize = 20)
+plt.ylabel('CDF', fontsize = 20)
 plt.tick_params(axis = 'both', which = 'both', direction='in', labelsize=20)
 # plt.loglog()
 plt.xscale('log')
@@ -317,7 +321,6 @@ print(Rt)
 # %%
 print(Rs/2)
 # %%
-import Utilities.prelude as prel
-# print(1e-9*prel.Msol_to_g/prel.Rsol_to_cm**3)
-print(100/prel.Rsol_to_cm)
+
+
 # %%
