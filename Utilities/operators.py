@@ -117,7 +117,7 @@ def make_tree(filename, snap, is_tde = True, energy = False):
         IE = np.load(f'{filename}/IE_{snap}.npy')
         Rad = np.load(f'{filename}/Rad_{snap}.npy')
         # convert from energy/mass to energy density
-        IE *= Den 
+        IE *= Den  
         Rad *= Den
         # if is_tde:
         #     IE *= prel.en_den_converter
