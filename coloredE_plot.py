@@ -309,6 +309,7 @@ ax[2].set_title('Radiation energy density relative', fontsize = 15)
 ax[2].text(1, 0.1, r'$\Delta_{rel}$ = ' + f'{np.round(median_relRad,4)}\n' + r'$p_5$ = ' + f'{np.round(p5_relRad,4)}\n'+ r'$p_{95}$ = ' + f'{np.round(p95_relRad,4)}', fontsize = 20)
 ax[2].set_xlim(0, 2)
 
+
 for i in range(3):
     ax[i].set_ylabel('CDF', fontsize = 18)
     ax[i].set_xlabel('Relative error', fontsize = 20)

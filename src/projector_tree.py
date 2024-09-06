@@ -13,9 +13,9 @@ from scipy.spatial import KDTree
 from Utilities.operators import make_tree
 from Utilities.selectors_for_snap import select_snap
 from Utilities.isalice import isalice
+alice, plot = isalice()
 from src.orbits import make_cfr
 from Utilities.sections import make_slices
-alice, plot = isalice()
 
 #
 ## CONSTANTS

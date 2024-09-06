@@ -1,4 +1,6 @@
 #%%
+import sys
+sys.path.append('/Users/paolamartire/shocks')
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -34,7 +36,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 check = 'Low' # '' or 'HiRes' or 'Res20'
-snap = '116'
+snap = '115'
 compton = 'Compton'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
@@ -65,7 +67,7 @@ for i,radius_grid in enumerate(radii_grid):
 # DECISIONS
 ##
 save = False
-difference = False
+difference = True
 cutoff = 'cutden' # or '' or 'bound' or 'cutdenbound'
 
 #%%
@@ -114,6 +116,7 @@ midplane = np.abs(z_coord) < dim_cell
 X_midplane, Y_midplane, Z_midplane, dim_midplane, Mass_midplane, Den_midplane, Temp_midplane, Rad_den_midplane, IEmass_midplane, orb_en_mass_midplane = \
     sec.make_slices([x_coord, y_coord, z_coord, dim_cell, mass, den, temp, rad_den, ie_mass, orb_en_mass], midplane)
 abs_orb_en_mass_midplane = np.abs(orb_en_mass_midplane)
+
 
 #%%
 fig, ax = plt.subplots(1,1, figsize = (12,4))
@@ -381,7 +384,7 @@ plt.show()
 
 
 #%%
-cutoff = 'cutden'
+cutoff = ''
 if difference:
     from scipy.spatial import KDTree
     check = 'Low' 
@@ -389,7 +392,7 @@ if difference:
     compton = 'Compton' 
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     saving_path = f'Figs/{folder}'
-    snap = '164'
+    snap = '115'
 
     path = f'TDE/{folder}{check}/{snap}'
     pathHiRes = f'TDE/{folder}{check1}/{snap}'
@@ -449,24 +452,24 @@ if difference:
         new_Rad_den_midplaneHiRes[i] = Rad_den_midplaneHiRes[idx]
 
 
-#%%
-RadDiff = np.abs(Rad_den_midplane - new_Rad_den_midplaneHiRes)/new_Rad_den_midplaneHiRes
-fig, ax = plt.subplots(1,1, figsize = (12,4))
-img = ax.scatter(points_toplot[0], points_toplot[1], c = RadDiff, s = 1, cmap = 'inferno', norm=colors.LogNorm(vmin=.08, vmax=5))
-cbar = plt.colorbar(img)
-cbar.set_label(r'Relative Rad energy density', fontsize = 16)
-ax.set_xlim(-400,50)
-ax.set_ylim(-100,100)
-ax.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
-ax.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
-if cutoff == 'bound':
-    plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)) + ', bound elements only')
-elif cutoff == 'cutden':
-    plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)) + ', cut on density')
-elif cutoff == 'cutdenbound':
-    plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)) + ', cut on density and bound elements')
-else:
-    plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)))
-if save:
-    plt.savefig(f'{saving_path}/midplaneRadDiff_{snap}{cutoff}.png')
-# %%
+    #%%
+    RadDiff = np.abs(Rad_den_midplane - new_Rad_den_midplaneHiRes)/new_Rad_den_midplaneHiRes
+    fig, ax = plt.subplots(1,1, figsize = (12,4))
+    img = ax.scatter(points_toplot[0]/apo, points_toplot[1]/apo, c = RadDiff, s = 1, cmap = 'inferno', norm=colors.LogNorm(vmin=.08, vmax=5))
+    cbar = plt.colorbar(img)
+    cbar.set_label(r'Relative Rad energy density', fontsize = 16)
+    ax.set_xlim(-1.2,0.02)
+    ax.set_ylim(-0.5,0.5)
+    ax.set_xlabel(r'X/$R_a$', fontsize = 18)
+    ax.set_ylabel(r'Y/$R_a$', fontsize = 18)
+    if cutoff == 'bound':
+        plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)) + ', bound elements only')
+    elif cutoff == 'cutden':
+        plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)) + ', cut on density')
+    elif cutoff == 'cutdenbound':
+        plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)) + ', cut on density and bound elements')
+    else:
+        plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)))
+    if save:
+        plt.savefig(f'{saving_path}/midplaneRadDiff_{snap}{cutoff}.png')
+    # %%
