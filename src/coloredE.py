@@ -89,7 +89,7 @@ for i,snap in enumerate(snaps):
     
     # Cast down to 100 values
     radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
-                        num=150)  # simulator units
+                        num=500)  # simulator units
     ie_cast = radial_caster(radii, Rsph_cut, ie_onmass_cut, weights = mass_cut)
     orb_en_cast = radial_caster(radii, Rsph_cut, orb_en_onmass_cut, weights = mass_cut)
     Rad_cast = radial_caster(radii, Rsph, Rad_den, weights = vol)

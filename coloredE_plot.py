@@ -43,6 +43,7 @@ path = f'/Users/paolamartire/shocks/data/{folder}/colormapE_Alice'
 # Low data
 dataLow = np.load(f'{path}/{cutoff}coloredE_Low.npy') #shape (3, len(tfb), len(radii))
 tfb_dataLow = np.loadtxt(f'{path}/{cutoff}coloredE_Low_days.txt')
+snap_Low = tfb_dataLow[0]
 tfb_Low = tfb_dataLow[1]
 radiiLow = np.load(f'{path}/{cutoff}coloredE_Low_radii.npy')
 col_ie, col_orb_en, col_Rad = dataLow[0], dataLow[1], dataLow[2]
@@ -62,6 +63,7 @@ abs_col_orb_en = np.abs(col_orb_en)
 # Middle data
 dataMiddle = np.load(f'{path}/{cutoff}coloredE_HiRes.npy')
 tfb_dataMiddle = np.loadtxt(f'{path}/{cutoff}coloredE_HiRes_days.txt')
+snap_Middle = tfb_dataMiddle[0]
 tfb_Middle = tfb_dataMiddle[1]
 radiiMiddle = np.load(f'{path}/{cutoff}coloredE_HiRes_radii.npy')
 col_ieMiddle, col_orb_enMiddle, col_RadMiddle = dataMiddle[0], dataMiddle[1], dataMiddle[2]
@@ -73,6 +75,7 @@ abs_col_orb_enMiddle = np.abs(col_orb_enMiddle)
 
 # Consider Low data only up to the time of the Middle data
 n_Middle = len(col_ieMiddle)
+snap_Low = snap_Low[:n_Middle]
 tfb_Low = tfb_Low[:n_Middle]
 col_ie = col_ie[:n_Middle]
 col_orb_en = col_orb_en[:n_Middle]
@@ -81,21 +84,29 @@ col_Rad = col_Rad[:n_Middle]
 #%%
 # PLOT
 ##
-# col_ie[col_ie<=0] = 1 #nothing, so in logscale they will be zero
-# abs_col_orb_en[abs_col_orb_en<=0] = 1
-# col_Rad[col_Rad<=0] = 1
+# check the difference in time
+plt.scatter(np.arange(len(tfb_Middle)),tfb_Low-tfb_Middle, color='r', label = 'time')
+plt.plot(snap_Low-snap_Middle, color='k', label = 'snap')
+plt.scatter(17, tfb_Low[17]-tfb_Middle[17], c='b')
+plt.scatter(99, tfb_Low[99]-tfb_Middle[99], c='orange')
+plt.scatter(109, tfb_Low[109]-tfb_Middle[109], c='orchid')
+plt.xlabel('Snapshot')
+plt.ylabel(r'Low-High')
+plt.legend(fontsize = 20)
 
-p40_iesix = np.percentile(col_ie, 40)
-p99_iesix = np.percentile(col_ie, 99)
-p40_orb_ensix = np.percentile(abs_col_orb_en, 40)
-p99_orb_ensix = np.percentile(abs_col_orb_en, 99)
-p40_Radsix = np.percentile(col_Rad, 40)
-p99_Radsix = np.percentile(col_Rad, 99)
+#%%
+p5_iesix = np.percentile(col_ie, 40)
+p95_iesix = np.percentile(col_ie, 99)
+print(f'5th percentile of IE: {p5_iesix}')
+p5_orb_ensix = np.percentile(abs_col_orb_en, 40)
+p95_orb_ensix = np.percentile(abs_col_orb_en, 99)
+p5_Radsix = np.percentile(col_Rad, 40)
+p95_Radsix = np.percentile(col_Rad, 99)
 
 cmap = plt.cm.viridis
-norm_orb_ensix = colors.LogNorm(vmin=p40_orb_ensix, vmax=p99_orb_ensix)
-norm_iesix = colors.LogNorm(vmin=p40_iesix, vmax=p99_iesix)
-norm_Radsix = colors.LogNorm(vmin=p40_Radsix, vmax=p99_Radsix)
+norm_orb_ensix = colors.LogNorm(vmin=p5_orb_ensix, vmax=p95_orb_ensix)
+norm_iesix = colors.LogNorm(vmin=p5_iesix, vmax=p95_iesix)
+norm_Radsix = colors.LogNorm(vmin=p5_Radsix, vmax=p95_Radsix)
 
 fig, ax = plt.subplots(2,3, figsize = (14,8))
 # Low
@@ -168,39 +179,6 @@ else:
 plt.tight_layout()
 if save:
     plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{cutoff}coloredE.png')
-plt.show()
-
-#%% Just one for Crete
-fig, ax = plt.subplots(1,1, figsize = (14,12))
-img = ax.pcolormesh(radiiMiddle/apo, tfb_Middle, abs_col_orb_enMiddle, norm=norm_orb_ensix, cmap = cmap)
-cb = fig.colorbar(img)
-cb.ax.tick_params(labelsize=30)
-cb.ax.tick_params(which='major', size=7) 
-cb.ax.tick_params(which='minor', size=5)  
-cb.set_label(r'Specific energy [erg/g]', fontsize = 35, labelpad = 5)
-cb.ax.tick_params(which = 'minor', size=10)
-ax.set_xscale('log')
-# ax.text(0.05, 0.15,'High res', fontsize = 14)
-ax.set_ylabel(r't/t$_{fb}$', fontsize = 35)
-ax.set_xlabel(r'$R/R_a$', fontsize = 35)
-plt.tick_params(axis = 'both', which = 'both', direction='in', size = 10, labelsize=35)
-plt.tick_params(axis = 'both', which = 'major',  size = 10)
-plt.tick_params(axis = 'x', which = 'minor',  size = 7)
-ax.text(Rt/apo+0.07, 0.65, r'R$_t$', fontsize = 35, rotation = 90, transform = ax.transAxes, color = 'k')
-ax.axhline(0.205, c = 'k', linewidth = 0.5)
-ax.axhline(0.52, c = 'k', linewidth = 0.5)
-
-# Grid for radii, to be matched with the cfr in slices.py
-ax.axvline(Rt/apo, linestyle ='dashed', c = 'k', linewidth = 1)
-ax.axvline(0.1, c = 'k', linewidth = 0.5)
-ax.axvline(0.3, c = 'k', linewidth = 0.5)
-ax.axvline(0.5, c = 'k', linewidth = 0.5)
-ax.axvline(1, c = 'k', linewidth = 0.5)
-ax.set_xscale('log')
-plt.title('Specific (absolute) orbital energy', fontsize = 30)
-plt.tight_layout()
-if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{cutoff}coloredEorbMiddle.png')
 plt.show()
 
 # %% Plot (absolute) differences. They start from the same point
@@ -353,6 +331,9 @@ cb.ax.tick_params(labelsize=20)
 ax[1].set_title('Specific internal energy', fontsize = 20)
 cb.set_label('Relative difference', fontsize = 25)#Relative difference $|$IE$|$/Mass', fontsize = 14, labelpad = 5)
 ax[1].set_xscale('log')
+ax[1].axhline(tfb_Middle[17], color = 'b', linestyle = '--')
+ax[1].axhline(tfb_Middle[99],  color = 'orange', linestyle = '--')
+ax[1].axhline(tfb_Middle[109],  color = 'orchid', linestyle = '--')
 
 img = ax[2].pcolormesh(radiiMiddle/apo, tfb_Middle, rel_Rad_forlog, cmap=cmap, norm=norm_Rad)#, vmin = np.min(rel_Rad_forlog), vmax = np.max(rel_Rad_forlog))
 cb = fig.colorbar(img)
