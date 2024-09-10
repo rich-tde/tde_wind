@@ -92,30 +92,30 @@ for idx, snap in enumerate(snaps):
         np.save(f'{savepath}/data/{folder}/{check}/slices/midplaneRad_{snap}.npy',\
                 [x_mid, y_mid, Rad_den_mid])
         
-    
     else:
         import matplotlib.pyplot as plt
         import matplotlib.colors as colors
-        choice = 'rad'
+        choice = 'den'
 
         datacut = np.load(f'{abspath}data/{folder}/{check}/slices/midplaneIEorb_{snap}.npy')
-        x_cut_mid, y_cut_mid, ie_onmass_cut_mid, orb_en_onmass_cut_mid =\
-            datacut[0], datacut[1], datacut[2], datacut[3]
+        x_cut_mid, y_cut_mid, ie_onmass_cut_mid, orb_en_onmass_cut_mid, den_cut_mid =\
+            datacut[0], datacut[1], datacut[2], datacut[3], datacut[4]
         data = np.load(f'{abspath}data/{folder}/{check}/slices/midplaneRad_{snap}.npy')
         x_mid, y_mid, Rad_den_mid = data[0], data[1], data[2]
         
-        if choice == 'IE':
-            coloring = ie_onmass_cut_mid
-            x_arr = x_cut_mid
-            y_arr = y_cut_mid
-        elif choice == 'orb':
-            coloring = np.abs(orb_en_onmass_cut_mid)
-            x_arr = x_cut_mid
-            y_arr = y_cut_mid
-        elif choice == 'rad':
+        if choice == 'rad':
             coloring = Rad_den_mid
             x_arr = x_mid
             y_arr = y_mid
+        else:
+            x_arr = x_cut_mid
+            y_arr = y_cut_mid
+            if choice == 'IE':
+                coloring = ie_onmass_cut_mid
+            elif choice == 'orb':
+                coloring = np.abs(orb_en_onmass_cut_mid)
+            elif choice == 'den':
+                coloring = den_cut_mid
 
         fig, ax = plt.subplots(1,1, figsize = (14,4))
         img = ax.scatter(x_arr, y_arr, c = coloring, cmap = 'viridis', s= .1, \
@@ -136,6 +136,10 @@ for idx, snap in enumerate(snaps):
         elif choice == 'rad':
             cb.set_label(r'Radiation energy density', fontsize = 18)
             plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneRad_{snap}.png')
+        elif choice == 'den':
+            cb.set_label(r'Density', fontsize = 18)  
+            ax.text(-335, -52, f'snap {int(snaps[idx])}', fontsize = 18)
+            plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneDen_{snap}.png')
         plt.close()
         # plt.show()
         

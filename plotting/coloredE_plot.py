@@ -1,11 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Aug 13 15:50:40 2024
-
-@author: konstantinos
-"""
-
+import sys
+sys.path.append('/Users/paolamartire/shocks')
 import numpy as np
 import matplotlib.pyplot as plt
 import colorcet
@@ -39,7 +33,7 @@ cutoff = 'cutden' # or 'bound or ''
 #
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-path = f'/Users/paolamartire/shocks/data/{folder}/colormapE_Alice'
+path = f'/Users/paolamartire/shocks/data/{folder}/colormapE_Alice'#/last'
 # Low data
 dataLow = np.load(f'{path}/{cutoff}coloredE_Low.npy') #shape (3, len(tfb), len(radii))
 tfb_dataLow = np.loadtxt(f'{path}/{cutoff}coloredE_Low_days.txt')
@@ -85,14 +79,14 @@ col_Rad = col_Rad[:n_Middle]
 # PLOT
 ##
 # check the difference in time
-plt.scatter(np.arange(len(tfb_Middle)),tfb_Low-tfb_Middle, color='r', label = 'time')
-plt.plot(snap_Low-snap_Middle, color='k', label = 'snap')
-plt.scatter(17, tfb_Low[17]-tfb_Middle[17], c='b')
-plt.scatter(99, tfb_Low[99]-tfb_Middle[99], c='orange')
-plt.scatter(109, tfb_Low[109]-tfb_Middle[109], c='orchid')
+plt.scatter(snap_Middle,tfb_Low-tfb_Middle, color='k', label = 'time')
+# plt.plot(snap_Low-snap_Middle, color='r', label = 'snap')
+plt.scatter(snap_Middle[37], tfb_Low[37]-tfb_Middle[37], c='dodgerblue')
+plt.scatter(snap_Middle[119], tfb_Low[119]-tfb_Middle[119], c='orange')
+plt.scatter(snap_Middle[129], tfb_Low[129]-tfb_Middle[129], c='orchid')
 plt.xlabel('Snapshot')
-plt.ylabel(r'Low-High')
-plt.legend(fontsize = 20)
+plt.ylabel(r'$t_L-t_H$')
+# plt.legend(fontsize = 20)
 
 #%%
 p5_iesix = np.percentile(col_ie, 40)
@@ -331,9 +325,9 @@ cb.ax.tick_params(labelsize=20)
 ax[1].set_title('Specific internal energy', fontsize = 20)
 cb.set_label('Relative difference', fontsize = 25)#Relative difference $|$IE$|$/Mass', fontsize = 14, labelpad = 5)
 ax[1].set_xscale('log')
-ax[1].axhline(tfb_Middle[17], color = 'b', linestyle = '--')
-ax[1].axhline(tfb_Middle[99],  color = 'orange', linestyle = '--')
-ax[1].axhline(tfb_Middle[109],  color = 'orchid', linestyle = '--')
+ax[1].axhline(tfb_Middle[37], color = 'b', linestyle = '--')
+ax[1].axhline(tfb_Middle[119],  color = 'orange', linestyle = '--')
+ax[1].axhline(tfb_Middle[129],  color = 'orchid', linestyle = '--')
 
 img = ax[2].pcolormesh(radiiMiddle/apo, tfb_Middle, rel_Rad_forlog, cmap=cmap, norm=norm_Rad)#, vmin = np.min(rel_Rad_forlog), vmax = np.max(rel_Rad_forlog))
 cb = fig.colorbar(img)
@@ -391,6 +385,7 @@ if save:
 plt.show()
 
 #%%
+
 Lum_cgs = col_Rad  * prel.c * 4 * np.pi * (radiiLow*prel.Rsol_to_cm)**2 
 LumMiddle_cgs = col_RadMiddle * prel.c * 4 * np.pi * (radiiMiddle*prel.Rsol_to_cm)**2 
 denom = (Lum_cgs + LumMiddle_cgs)/2
@@ -398,8 +393,8 @@ Lum_difference = (Lum_cgs[indices]-LumMiddle_cgs[indices])/denom[indices]
 
 img, ax = plt.subplots(1,2, figsize = (20,7))
 for i,idx in enumerate(indices):
-    if i==2 :
-        continue
+    # if i==2 :
+    #     continue
     if i == 0:
         ax[0].plot(radiiLow, Lum_cgs[idx], c = colors_indices[i], label = f'Low res')#t/tfb = {np.round(tfb_Low[idx],2)}')
         ax[0].plot(radiiMiddle, LumMiddle_cgs[idx], '--', c = colors_indices[i], label = f'High res')#t/tfb = {np.round(tfb_Middle[idx],2)}')
@@ -412,7 +407,7 @@ ax[0].set_ylim(1e40, 1e44)
 ax[1].set_ylim(0.3, 1.8)
 ax[0].text(15, 1.5e41, r'$t/t_{fb}$ = '+ f'{np.round(tfb_Low[indices[0]],2)}', fontsize = 20)
 ax[0].text(20, 2e42, r'$t/t_{fb}$ = '+ f'{np.round(tfb_Low[indices[1]],2)}', fontsize = 20)
-# ax[0].text(50, 4e43, r'$t/t_{fb}$ = '+ f'{np.round(tfb_Low[indices[2]],2)}', fontsize = 20)
+ax[0].text(50, 4e43, r'$t/t_{fb}$ = '+ f'{np.round(tfb_Low[indices[2]],2)}', fontsize = 20)
 # ax[1].text(620, 0.7, r'$\Delta_{rel}\approx$ '+ f'{np.round(np.mean(Lum_difference[0][-10:-1]),2)}', fontsize = 20)
 # ax[1].text(620, 0.5, r'$\Delta_{rel}\approx$ '+ f'{np.round(np.mean(Lum_difference[1][-10:-1]),2)}', fontsize = 19)
 # ax[1].text(620, 0.4, r'$\Delta_{rel}\approx$ '+ f'{np.round(np.mean(Lum_difference[2][-10:-1]),2)}', fontsize = 20)

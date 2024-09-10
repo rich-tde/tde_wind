@@ -52,7 +52,8 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 col_ie = []
 col_Rad = []
 col_orb_en = []
-tfb_array = np.zeros(len(snaps))
+radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
+                    num=500)  # simulator units
 for i,snap in enumerate(snaps):
     print(snap)
     if alice:
@@ -88,8 +89,6 @@ for i,snap in enumerate(snaps):
                 sec.make_slices([Rsph, mass, ie_onmass, orb_en_onmass], finalcut)
     
     # Cast down to 100 values
-    radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
-                        num=500)  # simulator units
     ie_cast = radial_caster(radii, Rsph_cut, ie_onmass_cut, weights = mass_cut)
     orb_en_cast = radial_caster(radii, Rsph_cut, orb_en_onmass_cut, weights = mass_cut)
     Rad_cast = radial_caster(radii, Rsph, Rad_den, weights = vol)
@@ -98,7 +97,6 @@ for i,snap in enumerate(snaps):
     col_orb_en.append(orb_en_cast)
     col_Rad.append(Rad_cast)
 
-tfb_array = np.array(tfb)
 #%%
 if save:
     if alice:
@@ -107,11 +105,11 @@ if save:
         prepath = f'/data1/martirep/shocks/shock_capturing/'
     else: 
         prepath = f'/Users/paolamartire/shocks/'
+    np.save(f'{prepath}/data/{folder}/{cutoff}coloredE_{check}.npy', [col_ie, col_orb_en, col_Rad])
     with open(f'{prepath}/data/{folder}/{cutoff}coloredE_{check}_days.txt', 'a') as file:
         file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
-        file.write('# t/tfb \n' + ' '.join(map(str, tfb_array)) + '\n')
+        file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
         file.close()
-    np.save(f'{prepath}/data/{folder}/{cutoff}coloredE_{check}.npy', [col_ie, col_orb_en, col_Rad])
     np.save(f'{prepath}/data/{folder}/{cutoff}coloredE_{check}_radii.npy', radii)
 # %% Plotting
 if plot:
