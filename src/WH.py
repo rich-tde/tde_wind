@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from Utilities.basic_units import radians
+from datetime import datetime
 
 from Utilities.operators import make_tree, to_cylindric
 import Utilities.sections as sec
@@ -99,37 +100,37 @@ if do:
 
     if save:
         try:
-            file = open(f'{abspath}data/{folder}/width_time{np.round(tfb,2)}.txt', 'r')
+            file = open(f'{abspath}data/{folder}/WH/width_time{np.round(tfb,2)}.txt', 'r')
             # Perform operations on the file
             file.close()
         except FileNotFoundError:
-            with open(f'{abspath}data/{folder}/width_time{np.round(tfb,2)}.txt','a') as fstart:
-                # if file exist
-                fstart.write(f'# theta \n')
+            with open(f'{abspath}data/{folder}/WH/width_time{np.round(tfb,2)}.txt','a') as fstart:
+                # if file exist, save theta and date of execution
+                fstart.write(f'# theta, done on {datetime.now()} \n')
                 fstart.write((' '.join(map(str, theta_arr)) + '\n'))
 
-        with open(f'{abspath}data/{folder}/width_time{np.round(tfb,2)}.txt','a') as file:
-            file.write(f'# {check}, snap {snap} width \n')
+        with open(f'{abspath}data/{folder}/WH/width_time{np.round(tfb,2)}.txt','a') as file:
+            file.write(f'# {check}, done on {datetime.now()}, snap {snap} \n# Width \n')
             file.write((' '.join(map(str, w_params[0])) + '\n'))
-            file.write(f'# {check}, snap {snap} Ncells \n')
+            file.write(f'# Ncells \n')
             file.write((' '.join(map(str, w_params[1])) + '\n'))
             file.write(f'################################ \n')
 
         # same for height
         try:
-            file = open(f'{abspath}data/{folder}/height_time{np.round(tfb,2)}.txt', 'r')
+            file = open(f'{abspath}data/{folder}/WH/height_time{np.round(tfb,2)}.txt', 'r')
             # Perform operations on the file
             file.close()
         except FileNotFoundError:
-            with open(f'{abspath}data/{folder}/height_time{np.round(tfb,2)}.txt','a') as fstart:
+            with open(f'{abspath}data/{folder}/WH/height_time{np.round(tfb,2)}.txt','a') as fstart:
                 # if file exist
-                fstart.write(f'# theta \n')
+                fstart.write(f'# theta, done on {datetime.now()} \n')
                 fstart.write((' '.join(map(str, theta_arr)) + '\n'))
 
-        with open(f'{abspath}data/{folder}/height_time{np.round(tfb,2)}.txt','a') as file:
-            file.write(f'# {check}, snap {snap} height \n')
+        with open(f'{abspath}data/{folder}/WH/height_time{np.round(tfb,2)}.txt','a') as file:
+            file.write(f'# {check}, done on {datetime.now()}, snap {snap} \n# Height \n')
             file.write((' '.join(map(str, h_params[0])) + '\n'))
-            file.write(f'# {check}, snap {snap} Ncells \n')
+            file.write(f'# Ncells \n')
             file.write((' '.join(map(str, h_params[1])) + '\n'))
             file.write(f'################################ \n')
 
@@ -152,7 +153,7 @@ if plot:
         plt.show()
 
     if compare:
-        datawidth5 = np.loadtxt(f'{abspath}data/{folder}/width_time0.52.txt')
+        datawidth5 = np.loadtxt(f'{abspath}data/{folder}/WH/width_time0.52.txt')
         theta_width = datawidth5[0]
         widthL5 = datawidth5[1]
         NcellL5 = datawidth5[2]
@@ -160,18 +161,18 @@ if plot:
         NcellHiRes5 = datawidth5[4]
         # widthRes205 = datawidth5[5]
         # NcellRes205 = datawidth5[6]
-        datawidth7 = np.loadtxt(f'{abspath}data/{folder}/width_time0.75.txt')
+        datawidth7 = np.loadtxt(f'{abspath}data/{folder}/WH/width_time0.75.txt')
         widthL7 = datawidth7[1]
         NcellL7 = datawidth7[2]
         widthHiRes7 = datawidth7[3]
         NcellHiRes7 = datawidth7[4]
-        datawidth8 = np.loadtxt(f'{abspath}data/{folder}/width_time0.86.txt')
+        datawidth8 = np.loadtxt(f'{abspath}data/{folder}/WH/width_time0.86.txt')
         widthL8 = datawidth8[1]
         NcellL8 = datawidth8[2]
         widthHiRes8 = datawidth8[3]
         NcellHiRes8 = datawidth8[4]
 
-        dataheight5 = np.loadtxt(f'{abspath}data/{folder}/height_time0.52.txt')
+        dataheight5 = np.loadtxt(f'{abspath}data/{folder}/WH/height_time0.52.txt')
         theta_height = dataheight5[0]
         heightL5 = dataheight5[1]
         NhcellL5 = dataheight5[2]
@@ -179,12 +180,12 @@ if plot:
         NhcellHiRes5 = dataheight5[4]
         # heightRes205 = dataheight5[5]
         # NhcellRes205 = dataheight5[6]
-        dataheight7 = np.loadtxt(f'{abspath}data/{folder}/height_time0.75.txt')
+        dataheight7 = np.loadtxt(f'{abspath}data/{folder}/WH/height_time0.75.txt')
         heightL7 = dataheight7[1]
         NhcellL7 = dataheight7[2]
         heightHiRes7 = dataheight7[3]
         NhcellHiRes7 = dataheight7[4]
-        dataheight8 = np.loadtxt(f'{abspath}data/{folder}/height_time0.86.txt')
+        dataheight8 = np.loadtxt(f'{abspath}data/{folder}/WH/height_time0.86.txt')
         heightL8 = dataheight8[1]
         NhcellL8 = dataheight8[2]
         heightHiRes8 = dataheight8[3]
