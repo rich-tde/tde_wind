@@ -87,6 +87,8 @@ for i,snap in enumerate(snaps):
 
         Rsph_cut, mass_cut, ie_onmass_cut, orb_en_onmass_cut = \
                 sec.make_slices([Rsph, mass, ie_onmass, orb_en_onmass], finalcut)
+    else:
+        Rsph_cut, mass_cut, ie_onmass_cut, orb_en_onmass_cut = Rsph, mass, ie_onmass, orb_en_onmass
     
     # Cast down to 100 values
     ie_cast = radial_caster(radii, Rsph_cut, ie_onmass_cut, weights = mass_cut)
