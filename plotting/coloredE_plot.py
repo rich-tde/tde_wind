@@ -172,7 +172,7 @@ else:
     plt.suptitle(r'$M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$', fontsize = 18)
 plt.tight_layout()
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{cutoff}coloredE.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/{cutoff}coloredE.png')
 plt.show()
 
 # %% Plot (absolute) differences. They start from the same point
@@ -233,7 +233,7 @@ else:
     plt.suptitle(r'$M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$', fontsize = 18)
 plt.tight_layout()
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{cutoff}coloredE_diff.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/{cutoff}coloredE_diff.png')
 plt.show()
 
 ######################
@@ -287,7 +287,7 @@ for i in range(3):
     ax[i].set_xlabel('Relative error', fontsize = 20)
 plt.tight_layout()
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{cutoff}coloredE_relative_diff_hist.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/{cutoff}coloredE_relative_diff_hist.png')
 plt.show()
 
 #%%
@@ -353,7 +353,7 @@ else:
     plt.suptitle(r'Relative differences: $|$Low-High$|$/mean $M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$', fontsize = 18)
 plt.tight_layout()
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{cutoff}coloredE_relative_diff.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/{cutoff}coloredE_relative_diff.png')
 plt.show()
 
 
@@ -381,7 +381,7 @@ ax[1].grid()
 plt.suptitle('Relative differences: 1-High/Low')
 plt.tight_layout()
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/Rad_lines.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/multiple/{folder}/Rad_lines.png')
 plt.show()
 
 #%%
@@ -431,7 +431,7 @@ plt.subplots_adjust(wspace=1)
 plt.suptitle('Relative differences: $|$Low-High$|$/mean')
 plt.tight_layout()
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/Luminosity.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/multiple/{folder}/Luminosity.png')
 plt.show()
 
 

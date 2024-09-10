@@ -1,4 +1,7 @@
-#%%
+abspath = '/Users/paolamartire/shocks/'
+import sys
+sys.path.append(abspath)
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -10,7 +13,6 @@ from Utilities.operators import make_tree, to_cylindric
 import matplotlib.gridspec as gridspec
 from Utilities.time_extractor import days_since_distruption
 from scipy.spatial import KDTree
-abspath = '/Users/paolamartire/shocks/'
 
 ##
 # CONSTANTS

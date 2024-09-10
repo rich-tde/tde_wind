@@ -1,5 +1,6 @@
+abspath = '/Users/paolamartire/shocks/'
 import sys
-sys.path.append('/Users/paolamartire/shocks')
+sys.path.append(abspath)
 
 from Utilities.isalice import isalice
 alice, plot = isalice()
