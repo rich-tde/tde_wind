@@ -35,7 +35,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'Low' # '' or 'HiRes' or 'Res20'
+check = 'HiRes' # 'Low' or 'HiRes' 
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
@@ -99,7 +99,7 @@ for idx, snap in enumerate(snaps):
         import matplotlib.pyplot as plt
         import matplotlib.colors as colors
         # choose what to plot
-        choice = 'den'
+        choice = 'rad'
 
         # load the data
         datacut = np.load(f'{abspath}data/{folder}/{check}/slices/midplaneIEorb_{snap}.npy')
@@ -132,7 +132,7 @@ for idx, snap in enumerate(snaps):
         ax.set_ylim(-70,70)
         ax.text(-335, -65, f't = {np.round(tfb[idx], 2)}' + r'$t_{fb}$', fontsize = 20)
         plt.tight_layout()
-        
+
         if choice == 'IE':
             cb.set_label(r'Specific IE', fontsize = 18)
             plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneIE_{snap}.png')

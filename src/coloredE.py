@@ -38,9 +38,8 @@ check = 'Low'
 compton = 'Compton'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-# 
+
 save = True
-cutoff = 'cutden' # or '' (no cut) or 'cutden' (cut in density) 'bound' (cut in orb_den) or 'cutdenbound' (both)
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) #[100,115,164,199,216]
 
 Mbh = 10**m
@@ -51,10 +50,12 @@ R0 = 0.6 * Rt
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
 col_ie = []
-col_Rad = []
 col_orb_en = []
+col_Rad = []
+col_Rad_cut = []
+
 radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
-                    num=500)  # simulator units
+                    num=200)  # simulator units
 for i,snap in enumerate(snaps):
     print(snap)
     if alice:
@@ -72,34 +73,24 @@ for i,snap in enumerate(snaps):
     ie_onmass = ie_den / data.Den
     orb_en_onmass = orb_en / mass
 
-    # cutoff just for IE and Orbital energy
-    if cutoff == 'cutden' or cutoff == 'bound' or cutoff == 'cutdenbound':
-        if cutoff == 'cutden':
-            print('Cutting off low density elements (just for IE and Orbital energy)')
-            finalcut = data.Den > 1e-9 # throw fluff
-        elif cutoff == 'bound':
-            print('Cutting off unbound elements (just for IE and Orbital energy)')
-            finalcut = orb_en < 0 # bound elements
-        elif cutoff == 'cutdenbound':
-            print('Cutting off low density elements and unbound elements (just for IE and Orbital energy)')
-            cutden = data.Den > 1e-9 # throw fluff
-            cutbound = orb_en < 0 # bound elements
-            finalcut = cutden & cutbound
+    # graph = {}
+    # graph[0] = {"fluff": neighbours_list}
 
-        Rsph_cut, mass_cut, ie_onmass_cut, orb_en_onmass_cut = \
-                sec.make_slices([Rsph, mass, ie_onmass, orb_en_onmass], finalcut)
-    else:
-        print('No cutoff')
-        Rsph_cut, mass_cut, ie_onmass_cut, orb_en_onmass_cut = Rsph, mass, ie_onmass, orb_en_onmass
-    
+    # throw fluff
+    cut = data.Den > 1e-9 
+    Rsph_cut, mass_cut, ie_onmass_cut, orb_en_onmass_cut, Rad_den_cut, vol_cut = \
+            sec.make_slices([Rsph, mass, ie_onmass, orb_en_onmass, Rad_den, vol], cut)
+
     # Cast down to 100 values
     ie_cast = radial_caster(radii, Rsph_cut, ie_onmass_cut, weights = mass_cut)
     orb_en_cast = radial_caster(radii, Rsph_cut, orb_en_onmass_cut, weights = mass_cut)
     Rad_cast = radial_caster(radii, Rsph, Rad_den, weights = vol)
+    Rad_cut_cast = radial_caster(radii, Rsph_cut, Rad_den_cut, weights = vol_cut)
 
     col_ie.append(ie_cast)
     col_orb_en.append(orb_en_cast)
     col_Rad.append(Rad_cast)
+    col_Rad_cut.append(Rad_cut_cast)
 
 #%%
 if save:
@@ -109,15 +100,15 @@ if save:
         prepath = f'/data1/martirep/shocks/shock_capturing/'
     else: 
         prepath = f'/Users/paolamartire/shocks/'
-    np.save(f'{prepath}/data/{folder}/{cutoff}coloredE_{check}.npy', [col_ie, col_orb_en, col_Rad])
-    with open(f'{prepath}/data/{folder}/{cutoff}coloredE_{check}_days.txt', 'a') as file:
+    np.save(f'{prepath}/data/{folder}/coloredE_{check}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_cut])
+    with open(f'{prepath}/data/{folder}/coloredE_{check}_days.txt', 'a') as file:
         file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
         file.close()
-    np.save(f'{prepath}/data/{folder}/{cutoff}coloredE_{check}_radii.npy', radii)
+    np.save(f'{prepath}/data/{folder}/coloredE_{check}_radii.npy', radii)
 # %% Plotting
 if plot:
-    img = plt.pcolormesh(radii, tfb_array, col_ie,
+    img = plt.pcolormesh(radii, tfb, col_ie,
                         cmap='cet_rainbow4')
     cb = plt.colorbar(img)
     cb.set_label('IE/Mass', fontsize=14)
@@ -128,7 +119,7 @@ if plot:
     plt.title('Specific internal energy of time and radius', fontsize=17)
     plt.show()
 
-    img = plt.pcolormesh(radii, tfb_array, col_Rad,
+    img = plt.pcolormesh(radii, tfb, col_Rad,
                         cmap='cet_rainbow4')
     cb = plt.colorbar(img)
     cb.set_label('Rad/Vol', fontsize=14)
@@ -139,7 +130,7 @@ if plot:
     plt.title('Radiation energy density of time and radius', fontsize=17)
     plt.show()
 
-    img = plt.pcolormesh(radii, tfb_array, col_orb_en,
+    img = plt.pcolormesh(radii, tfb, col_orb_en,
                         cmap='cet_rainbow4')
     cb = plt.colorbar(img)
     cb.set_label(r'E$_{orb}$/Vol', fontsize=14)

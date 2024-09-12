@@ -1,6 +1,7 @@
-#%%
+abspath = '/Users/paolamartire/shocks/'
 import sys
-sys.path.append('/Users/paolamartire/shocks')
+sys.path.append(abspath)
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -10,9 +11,8 @@ from src import orbits as orb
 from Utilities import sections as sec
 import Utilities.prelude as prel
 from Utilities.operators import make_tree, to_cylindric
-
 from Utilities.time_extractor import days_since_distruption
-abspath = '/Users/paolamartire/shocks/'
+
 
 ##
 # CONSTANTS

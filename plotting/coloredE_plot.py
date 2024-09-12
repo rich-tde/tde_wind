@@ -33,7 +33,7 @@ cutoff = 'cutden' # or 'bound or ''
 #
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-path = f'/Users/paolamartire/shocks/data/{folder}/colormapE_Alice'#/last'
+path = f'/Users/paolamartire/shocks/data/{folder}/colormapE_Alice'
 # Low data
 dataLow = np.load(f'{path}/{cutoff}coloredE_Low.npy') #shape (3, len(tfb), len(radii))
 tfb_dataLow = np.loadtxt(f'{path}/{cutoff}coloredE_Low_days.txt')
@@ -335,10 +335,14 @@ cb = fig.colorbar(img)
 ax[2].set_title('Radiation energy density', fontsize = 20)
 cb.set_label('Relative difference', fontsize = 25)#'Relative difference $|E_{rad}|$/Vol', fontsize = 14, labelpad = 5)
 ax[2].set_xscale('log')
+ax[2].axhline(tfb_Middle[37], color = 'b', linestyle = '--')
+ax[2].axhline(tfb_Middle[44],  color = 'k', linestyle = '--')
+ax[2].text(0.9, tfb_Middle[37], f'{np.round(tfb_Middle[37],2)}', fontsize = 18, color = 'b')
+ax[2].text(0.9, tfb_Middle[45], f'{np.round(tfb_Middle[45],2)}', fontsize = 18, color = 'k')
 
 for i in range(3):
     ax[i].axvline(Rt/apo, linestyle ='--', c = 'k')
-    ax[i].text(Rt/apo+0.08, 0.25, r'R$_t$', fontsize = 20, rotation = 90, transform = ax[i].transAxes, color = 'k')
+    ax[i].text(Rt/apo-0.0005, 0.12, r'R$_t$', fontsize = 20, rotation = 90, transform = ax[i].transAxes, color = 'k')
     ax[i].tick_params(axis = 'both', which = 'both', direction='in', labelsize=20)
 
 # Layout
@@ -385,7 +389,6 @@ if save:
 plt.show()
 
 #%%
-
 Lum_cgs = col_Rad  * prel.c * 4 * np.pi * (radiiLow*prel.Rsol_to_cm)**2 
 LumMiddle_cgs = col_RadMiddle * prel.c * 4 * np.pi * (radiiMiddle*prel.Rsol_to_cm)**2 
 denom = (Lum_cgs + LumMiddle_cgs)/2
