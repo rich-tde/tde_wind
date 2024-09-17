@@ -9,6 +9,7 @@ sys.path.append(abspath)
 import numpy as np
 from Utilities.selectors_for_snap import select_snap
 import src.orbits as orb
+import Utilities.prelude as prel
 import Utilities.sections as sec
 from Utilities.isalice import isalice
 alice, plot = isalice()
@@ -35,7 +36,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiRes' # 'Low' or 'HiRes' 
+check = 'Low' # 'Low' or 'HiRes' 
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
@@ -75,12 +76,13 @@ for idx, snap in enumerate(snaps):
 
         # make the cut in density except for radiation
         cut = data.Den > 1e-9 # throw fluff
-        x_cut, y_cut, z_cut, dim_cut, den_cut, ie_onmass_cut, orb_en_onmass_cut = \
-            sec.make_slices([data.X, data.Y, data.Z, dim_cell, data.Den, ie_onmass, orb_en_onmass], cut)
+        x_cut, y_cut, z_cut, dim_cut, den_cut, ie_onmass_cut, orb_en_onmass_cut, Rad_den_cut = \
+            sec.make_slices([data.X, data.Y, data.Z, dim_cell, data.Den, ie_onmass, orb_en_onmass, Rad_den], cut)
         # make slices for data with density cut
         midplane_cut = np.abs(z_cut) < dim_cut
-        x_cut_mid, y_cut_mid, den_cut_mid, ie_onmass_cut_mid, orb_en_onmass_cut_mid = \
-            sec.make_slices([x_cut, y_cut, den_cut, ie_onmass_cut, orb_en_onmass_cut], midplane_cut)
+        # xz_cut = np.abs(y_cut) < dim_cut
+        x_cut_mid, y_cut_mid, den_cut_mid, ie_onmass_cut_mid, orb_en_onmass_cut_mid, Rad_den_cut_mid = \
+            sec.make_slices([x_cut, y_cut, den_cut, ie_onmass_cut, orb_en_onmass_cut, Rad_den_cut], midplane_cut)
         # make slices for radiation
         midplane = np.abs(data.Z) < dim_cell
         x_mid, y_mid, Rad_den_mid = sec.make_slices([data.X, data.Y, Rad_den], midplane)
@@ -90,7 +92,7 @@ for idx, snap in enumerate(snaps):
         savepath = f'/data1/martirep/shocks/shock_capturing'
 
         np.save(f'{savepath}/data/{folder}/{check}/slices/midplaneIEorb_{snap}.npy',\
-                 [x_cut_mid, y_cut_mid, ie_onmass_cut_mid, orb_en_onmass_cut_mid, den_cut_mid])
+                 [x_cut_mid, y_cut_mid, ie_onmass_cut_mid, orb_en_onmass_cut_mid, den_cut_mid, Rad_den_cut_mid])
         np.save(f'{savepath}/data/{folder}/{check}/slices/midplaneRad_{snap}.npy',\
                 [x_mid, y_mid, Rad_den_mid])
         
@@ -99,7 +101,7 @@ for idx, snap in enumerate(snaps):
         import matplotlib.pyplot as plt
         import matplotlib.colors as colors
         # choose what to plot
-        choice = 'rad'
+        choice = 'den'
 
         # load the data
         datacut = np.load(f'{abspath}data/{folder}/{check}/slices/midplaneIEorb_{snap}.npy')
@@ -108,21 +110,21 @@ for idx, snap in enumerate(snaps):
         data = np.load(f'{abspath}data/{folder}/{check}/slices/midplaneRad_{snap}.npy')
         x_mid, y_mid, Rad_den_mid = data[0], data[1], data[2]
         
-        if choice == 'rad':
-            coloring = Rad_den_mid
+        if choice == 'Rad':
+            coloring = Rad_den_mid * prel.en_den_converter
             x_arr = x_mid
             y_arr = y_mid
         else:
             x_arr = x_cut_mid
             y_arr = y_cut_mid
             if choice == 'IE':
-                coloring = ie_onmass_cut_mid
+                coloring = ie_onmass_cut_mid * prel.en_converter / prel.Msol_to_g
             elif choice == 'orb':
-                coloring = np.abs(orb_en_onmass_cut_mid)
+                coloring = np.abs(orb_en_onmass_cut_mid) * prel.en_converter / prel.Msol_to_g
             elif choice == 'den':
-                coloring = den_cut_mid
+                coloring = den_cut_mid * prel.Msol_to_g / prel.Rsol_to_cm**3
 
-        fig, ax = plt.subplots(1,1, figsize = (14,4))
+        fig, ax = plt.subplots(1,1, figsize = (14,5))
         img = ax.scatter(x_arr, y_arr, c = coloring, cmap = 'viridis', s= .1, \
                          norm = colors.LogNorm(vmin = np.percentile(coloring, 5), vmax = np.percentile(coloring, 95)))
         cb = plt.colorbar(img)
@@ -134,17 +136,17 @@ for idx, snap in enumerate(snaps):
         plt.tight_layout()
 
         if choice == 'IE':
-            cb.set_label(r'Specific IE', fontsize = 18)
+            cb.set_label(r'Specific IE [erg/g]', fontsize = 16)
             plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneIE_{snap}.png')
         elif choice == 'orb':
-            cb.set_label(r'Absolute specific orbital energy', fontsize = 18)
+            cb.set_label(r'Absolute specific orbital energy [erg/g]', fontsize = 16)
             plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneorb_{snap}.png')
         elif choice == 'rad':
-            cb.set_label(r'Radiation energy density', fontsize = 18)
+            cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 16)
             plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneRad_{snap}.png')
         elif choice == 'den':
-            cb.set_label(r'Density', fontsize = 18)  
-            ax.text(-335, -52, f'snap {int(snaps[idx])}', fontsize = 18)
+            cb.set_label(r'Density [g/$cm^3$]', fontsize = 16)  
+            ax.text(-335, -52, f'snap {int(snaps[idx])}', fontsize = 16)
             plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneDen_{snap}.png')
         
         plt.close()
