@@ -85,6 +85,7 @@ for i,snap in enumerate(snaps):
 
     # throw fluff
     cut = data.Den > 1e-9 
+    cutfluff = data.Den > 1e-19
     Rsph_cut, theta_cut, mass_cut, ie_onmass_cut, orb_en_onmass_cut, Rad_den_cut, vol_cut = \
             sec.make_slices([Rsph, theta, mass, ie_onmass, orb_en_onmass, Rad_den, vol], cut)
     if xaxis == 'angles':
@@ -92,13 +93,13 @@ for i,snap in enumerate(snaps):
         tocast = theta
     elif xaxis == 'radii':
         tocast_cut = Rsph_cut
-        tocast = Rsph
+        tocast_nofluff, Rad_den_nofluff, vol_nofluff = Rsph[cutfluff], Rad_den[cutfluff], vol[cutfluff]
         
     # Cast down to 100 values
     ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
     orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
     Rad_cut_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = vol_cut)
-    Rad_cast = single_branch(radii, xaxis, tocast, Rad_den, weights = vol)
+    Rad_cast = single_branch(radii, xaxis, tocast_nofluff, Rad_den_nofluff, weights = vol_nofluff)
 
     col_ie.append(ie_cast)
     col_orb_en.append(orb_en_cast)
