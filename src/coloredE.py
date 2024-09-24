@@ -74,7 +74,7 @@ for i,snap in enumerate(snaps):
     Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))
     vel = np.sqrt(np.power(data.VX, 2) + np.power(data.VY, 2) + np.power(data.VZ, 2))
     mass, vol, ie_den, Rad_den = data.Mass, data.Vol, data.IE, data.Rad
-    theta = to_cylindric(data.X, data.Y)
+    theta, _ = to_cylindric(data.X, data.Y)
     orb_en = orb.orbital_energy(Rsph, vel, mass, G, c, Mbh)
     dim_cell = (3/(4*np.pi) * vol)**(1/3)
     ie_onmass = ie_den / data.Den
