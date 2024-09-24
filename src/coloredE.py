@@ -97,8 +97,8 @@ for i,snap in enumerate(snaps):
     # Cast down to 100 values
     ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
     orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
-    Rad_cast = single_branch(radii, xaxis, tocast, Rad_den, weights = vol)
     Rad_cut_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = vol_cut)
+    Rad_cast = single_branch(radii, xaxis, tocast, Rad_den, weights = vol)
 
     col_ie.append(ie_cast)
     col_orb_en.append(orb_en_cast)
@@ -118,7 +118,7 @@ if save:
         file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
         file.close()
-    np.save(f'{prepath}/data/{folder}/coloredE_{check}_{xaxis}.npy', radii)
+    np.save(f'{prepath}/data/{folder}/{xaxis}En_{check}.npy', radii)
 # %% Plotting
 if plot:
     img = plt.pcolormesh(radii, tfb, col_ie,

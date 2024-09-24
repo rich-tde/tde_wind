@@ -163,6 +163,11 @@ x_coordLhist, y_coordLhist, z_coordLhist, massLhist, denLhist, dim_cellLhist = \
 x_coordHhist, y_coordHhist, z_coordHhist, massHhist, denHhist, dim_cellHhist = \
     sec.make_slices([x_coordH, y_coordH, z_coordH, massH, denH, dim_cellH], cuthistogramsH)
 
+# sort the arrays
+massLhist = np.sort(massLhist)
+massHhist = np.sort(massHhist)
+dim_cellLhist = np.sort(dim_cellLhist)
+dim_cellHhist = np.sort(dim_cellHhist)
 # make histograms of mass and size
 binsL = np.logspace(np.log10(np.min(massLhist)), np.log10(np.max(massLhist)), 100)
 binsH = np.logspace(np.log10(np.min(massHhist)), np.log10(np.max(massHhist)), 100)
@@ -185,11 +190,17 @@ if save:
 plt.show()
 
 #%%
+cumH = np.arange(len(massHhist))/len(massHhist)
+cumL = np.arange(len(massLhist))/len(massLhist)
+cumdimH = np.arange(len(dim_cellHhist))/len(dim_cellHhist)
+cumdimL = np.arange(len(dim_cellLhist))/len(dim_cellLhist)
+
 fig, (ax1, ax2) = plt.subplots(1,2, figsize = (14,6))
-ax1.hist(massHhist, bins = binsH, cumulative=True, density= True, ec = 'mediumpurple', histtype='stepfilled', color = 'w', label = 'High res', linewidth=2.5) # put an histogram over the other. one just the contour
-ax1.hist(massLhist, bins = binsL, cumulative=True, density= True, color = 'orange', alpha = 0.5, label = 'Low res')
-ax2.hist(dim_cellHhist, bins = binsdimH, cumulative=True, density= True, ec = 'mediumpurple', histtype='stepfilled', color = 'w', label = 'High res', linewidth=2.5) # put an histogram over the other. one just the contour
-ax2.hist(dim_cellLhist, bins = binsdimL, cumulative=True, density= True, color = 'orange', alpha = 0.5, label = 'Low res')
+# grazie Sill
+ax1.plot(massHhist, cumH, color = 'mediumpurple', label = 'High res')
+ax1.plot(massLhist, cumL, color = 'orange', label = 'Low res')
+ax2.plot(dim_cellHhist, cumdimH, color = 'mediumpurple', label = 'High res')
+ax2.plot(dim_cellLhist, cumdimL, color = 'orange', label = 'Low res')
 
 for ax in [ax1, ax2]:
     ax.set_xscale('log')
@@ -205,6 +216,37 @@ if save:
     plt.savefig(f'{abspath}/Figs/{folder}/multiple/compareHistToget_{snap}.png')
 plt.show()
 
+#%% As before, but trying to stretch the x axis of orange to overlap with purple
+coeffL = 0.1
+coeffdimL = 0.55
+widthbinsL = np.diff(binsL)
+widthbinsdimL = np.diff(binsdimL)
+binsLwider = np.copy(binsL)
+binsdimLwider = np.copy(binsdimL)
+for i in range(-1, -len(binsL), -1):
+    binsLwider[i-1] = binsLwider[i] - widthbinsL[i]*coeffL
+    binsdimLwider[i-1] = binsdimLwider[i] - widthbinsdimL[i]*coeffdimL
+
+fig, (ax1, ax2) = plt.subplots(1,2, figsize = (14,6))
+# grazie Sill
+ax1.plot(massHhist, cumH, color = 'mediumpurple', label = 'High res')
+ax1.plot(coeffL*massLhist, cumL, color = 'orange', label = f'Low res stretched of {np.round(1/coeffL,1)}')
+ax2.plot(dim_cellHhist, cumdimH, color = 'mediumpurple', label = 'High res')
+ax2.plot(coeffdimL*dim_cellLhist, cumdimL, color = 'orange', label = f'Low res stretched of {np.round(1/coeffdimL,1)}')
+
+for ax in [ax1, ax2]:
+    ax.set_xscale('log')
+    ax.tick_params(axis = 'both', which = 'both', direction='in', labelsize=15)
+    ax.legend(loc ='lower right', fontsize = 15)
+ax1.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 20)
+ax2.set_xlabel(r'Cell size [$R_\odot$]', fontsize = 20)
+ax1.set_ylabel('CDF', fontsize = 25)
+ax1.set_xlim(5e-13, 3e-8)
+ax2.set_xlim(7e-2, 4e-1)
+plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
+if save:
+    plt.savefig(f'{abspath}/Figs/{folder}/multiple/compareHistStretch_{snap}.png')
+plt.show()
 #%%
 binsLall = np.logspace(np.log10(np.min(massL)), np.log10(np.max(massL)), 100)
 binsHall = np.logspace(np.log10(np.min(massH)), np.log10(np.max(massH)), 100)
