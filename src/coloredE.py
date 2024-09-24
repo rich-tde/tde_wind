@@ -7,7 +7,7 @@ alice, plot = isalice()
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from Utilities.operators import make_tree, radial_caster
+from Utilities.operators import make_tree, single_branch, to_cylindric
 import Utilities.sections as sec
 import src.orbits as orb
 from Utilities.selectors_for_snap import select_snap
@@ -34,14 +34,14 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'Low'
 compton = 'Compton'
-
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
+check = 'Low'
+xaxis = 'radii' # radii or angles
 save = True
-snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) #[100,115,164,199,216]
 
+snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) #[100,115,164,199,216]
 Mbh = 10**m
 Rs = 2*G*Mbh / c**2
 Rt = Rstar * (Mbh/mstar)**(1/3)
@@ -54,8 +54,14 @@ col_orb_en = []
 col_Rad = []
 col_Rad_cut = []
 
-radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
+if xaxis == 'angles':
+    from Utilities.operators import Ryan_sampler
+    radii = np.arange(-np.pi, np.pi, 0.02)
+    radii = Ryan_sampler(radii)
+elif xaxis == 'radii':
+    radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
                     num=200)  # simulator units
+    
 for i,snap in enumerate(snaps):
     print(snap)
     if alice:
@@ -68,6 +74,7 @@ for i,snap in enumerate(snaps):
     Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))
     vel = np.sqrt(np.power(data.VX, 2) + np.power(data.VY, 2) + np.power(data.VZ, 2))
     mass, vol, ie_den, Rad_den = data.Mass, data.Vol, data.IE, data.Rad
+    theta = to_cylindric(data.X, data.Y)
     orb_en = orb.orbital_energy(Rsph, vel, mass, G, c, Mbh)
     dim_cell = (3/(4*np.pi) * vol)**(1/3)
     ie_onmass = ie_den / data.Den
@@ -78,14 +85,20 @@ for i,snap in enumerate(snaps):
 
     # throw fluff
     cut = data.Den > 1e-9 
-    Rsph_cut, mass_cut, ie_onmass_cut, orb_en_onmass_cut, Rad_den_cut, vol_cut = \
-            sec.make_slices([Rsph, mass, ie_onmass, orb_en_onmass, Rad_den, vol], cut)
-
+    Rsph_cut, theta_cut, mass_cut, ie_onmass_cut, orb_en_onmass_cut, Rad_den_cut, vol_cut = \
+            sec.make_slices([Rsph, theta, mass, ie_onmass, orb_en_onmass, Rad_den, vol], cut)
+    if xaxis == 'angles':
+        tocast_cut = theta_cut
+        tocast = theta
+    elif xaxis == 'radii':
+        tocast_cut = Rsph_cut
+        tocast = Rsph
+        
     # Cast down to 100 values
-    ie_cast = radial_caster(radii, Rsph_cut, ie_onmass_cut, weights = mass_cut)
-    orb_en_cast = radial_caster(radii, Rsph_cut, orb_en_onmass_cut, weights = mass_cut)
-    Rad_cast = radial_caster(radii, Rsph, Rad_den, weights = vol)
-    Rad_cut_cast = radial_caster(radii, Rsph_cut, Rad_den_cut, weights = vol_cut)
+    ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
+    orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
+    Rad_cast = single_branch(radii, xaxis, tocast, Rad_den, weights = vol)
+    Rad_cut_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = vol_cut)
 
     col_ie.append(ie_cast)
     col_orb_en.append(orb_en_cast)
@@ -100,12 +113,12 @@ if save:
         prepath = f'/data1/martirep/shocks/shock_capturing/'
     else: 
         prepath = f'/Users/paolamartire/shocks/'
-    np.save(f'{prepath}/data/{folder}/coloredE_{check}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_cut])
+    np.save(f'{prepath}/data/{folder}/coloredE_{check}_{xaxis}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_cut])
     with open(f'{prepath}/data/{folder}/coloredE_{check}_days.txt', 'a') as file:
         file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
         file.close()
-    np.save(f'{prepath}/data/{folder}/coloredE_{check}_radii.npy', radii)
+    np.save(f'{prepath}/data/{folder}/coloredE_{check}_{xaxis}.npy', radii)
 # %% Plotting
 if plot:
     img = plt.pcolormesh(radii, tfb, col_ie,

@@ -73,8 +73,8 @@ finalcutH = dataH.Den > 1e-9 # throw fluff
 x_coordH, y_coordH, z_coordH, massH, denH, dim_cellH = \
     sec.make_slices([x_coordH, y_coordH, z_coordH, massH, denH, dim_cellH], finalcutH)
 midplaneH = np.abs(z_coordH) < dim_cellH
-X_midplaneH, Y_midplaneH, Z_midplaneH, dim_midplaneH, Mass_midplaneH, Den_midplaneH = \
-    sec.make_slices([x_coordH, y_coordH, z_coordH, dim_cellH, massH, denH], midplaneH)
+X_midplaneH, Y_midplaneH, Z_midplaneH,  dim_midplaneH, Mass_midplaneH, Den_midplaneH = \
+    sec.make_slices([x_coordH, y_coordH, z_coordH,  dim_cellH, massH, denH], midplaneH)
 
 RadiusL = np.sqrt(x_coordL**2 + y_coordL**2 + z_coordL**2)
 RadiusH = np.sqrt(x_coordH**2 + y_coordH**2 + z_coordH**2)
@@ -97,43 +97,60 @@ print('Middle res mean:', np.mean(massHfind[np.sqrt(x_coordHfind**2 + (y_coordHf
 print('Low res min:', x_coordLfind[idxL], y_coordLfind[idxL], z_coordLfind[idxL], 'Mass:', massLfind[idxL])
 print('Middle res min: ', x_coordHfind[idxH], y_coordHfind[idxH], z_coordHfind[idxH], 'Mass:', massHfind[idxH])
 
-#%%
-fig = plt.figure(figsize=(12, 7))
-gs = gridspec.GridSpec(1, 3, width_ratios=[1, 1, 0.05])  # Adjust width_ratios for panels
+#%% Midplane resolution 
+colorstext = ['k', 'w', 'k', 'w']
+vminmass = np.percentile(Mass_midplaneH, 5)
+vmaxmass = np.percentile(Mass_midplaneH, 95)
+vmindim = np.percentile(dim_midplaneH, 5)
+vmaxdim = np.percentile(dim_midplaneH, 95)
+fig = plt.figure(figsize=(12, 12))
+gs = gridspec.GridSpec(2, 3, width_ratios=[1, 1, 0.05])  # Adjust width_ratios for panels
 ax1 = fig.add_subplot(gs[0, 0])
-imgL = ax1.scatter(X_midplaneL, Y_midplaneL, c = Mass_midplaneL, s = 1, cmap = 'inferno', norm=colors.LogNorm(vmin=1e-12, vmax=5e-8))
+imgL = ax1.scatter(X_midplaneL, Y_midplaneL, c = Mass_midplaneL, s = 1, cmap = 'inferno', norm=colors.LogNorm(vmin=vminmass, vmax=vmaxmass))
 ax2 = fig.add_subplot(gs[0, 1])
-imgH = ax2.scatter(X_midplaneH, Y_midplaneH, c = Mass_midplaneH, s = 1, cmap = 'inferno', norm=colors.LogNorm(vmin=1e-12, vmax=5e-8))
-# cbar_ax = fig.add_subplot(gs[0, 2])  # Narrow subplot for colorbar
-# Manually place the colorbar closer to the second plot using add_axes
-cbar_ax = fig.add_axes([0.95, 0.1, 0.02, 0.8])  # [left, bottom, width, height]
+imgH = ax2.scatter(X_midplaneH, Y_midplaneH, c = Mass_midplaneH, s = 1, cmap = 'inferno', norm=colors.LogNorm(vmin=vminmass, vmax=vmaxmass))
+cbar_ax = fig.add_subplot(gs[0, 2])  # Narrow subplot for colorbar
 cbarH = plt.colorbar(imgH, cax=cbar_ax)
-cbarH.set_label(r'Mass per cell [$M_\odot$]', fontsize=20)
-cbarH.ax.tick_params(labelsize=20)
-colorstext = ['k', 'w']
-for i, ax in enumerate([ax1, ax2]):
-    check = checks[i]
+cbarH.set_label(r'Cell mass [$M_\odot$]', fontsize=18)
+cbarH.ax.tick_params(labelsize=18)
+# Set the ticks to include the first and last values
+# cbarH.set_ticks([vminmass, vmaxmass])
+# Set the tick labels to the corresponding values
+# cbarH.set_ticklabels([f'{vminmass:.1e}', f'{vmaxmass:.1e}'])
+## Same for dim
+ax3 = fig.add_subplot(gs[1, 0])
+imgLdim = ax3.scatter(X_midplaneL, Y_midplaneL, c = dim_midplaneL, s = 1, cmap = 'viridis', norm=colors.LogNorm(vmin=vmindim, vmax=vmaxdim))
+ax4 = fig.add_subplot(gs[1, 1])
+imgHdim = ax4.scatter(X_midplaneH, Y_midplaneH, c = dim_midplaneH, s = 1, cmap = 'viridis', norm=colors.LogNorm(vmin=vmindim, vmax=vmaxdim))
+cbar_axdim = fig.add_subplot(gs[1, 2]) 
+cbarHdim = plt.colorbar(imgHdim, cax=cbar_axdim)
+cbarHdim.set_label(r'Cell size [$R_\odot$]', fontsize=18)
+cbarHdim.ax.tick_params(labelsize=18)
+# cbarHdim.set_ticks([vmindim, vmaxdim])
+# cbarHdim.set_ticklabels([f'{vmindim:.1e}', f'{vmaxdim:.1e}'])
+# Layout adjustments
+for i, ax in enumerate([ax1, ax2, ax3, ax4]):
     ax.contour(xcr0, ycr0, cr0, [0], linestyles = 'dotted', colors = colorstext[i], alpha = 1, linewidth = 3.5)
     ax.contour(xcrt, ycrt, crt, [0], linestyles = 'dashed', colors = colorstext[i], alpha = 1, linewidth = 3.5)
-    ax.text(Rp+1, -4, r'$R_p$', fontsize = 20, color = colorstext[i], weight = 'bold')
-    ax.text(-7, Rp+1, r'$R_t$', fontsize = 20, color = colorstext[i], weight = 'bold')
+    # ax.text(Rp+1, -4, r'$R_p$', fontsize = 20, color = colorstext[i], weight = 'bold')
+    # ax.text(-7, Rp+1, r'$R_t$', fontsize = 20, color = colorstext[i], weight = 'bold')
     ax.hlines(y=0, xmin = 0, xmax = 30, color = colorstext[i], linestyle = 'dashed', alpha = 0.8)
     ax.scatter(0,0, c= 'k', marker = 'x', s=80)
     ax.set_xlim(-40,25)
     ax.set_ylim(-40,40)
-    ax.set_xlabel(r'X [$R_\odot$]', fontsize = 22)
-    if check == 'HiRes':
+    if i == 0 or i==2:
+        check = 'Low'
+    else:
         check = 'High'
     ax.text(9,-37, f'{check} res', fontsize = 18)
     ax.tick_params(axis = 'both', which = 'both', direction='in', labelsize=20)
-# ax1.scatter(x_coordLfind[idxL], y_coordLfind[idxL], c = 'r', s = 80)
-# ax2.scatter(x_coordHfind[idxH], y_coordHfind[idxH], c = 'r', s = 80)
 ax1.set_ylabel(r'Y [$R_\odot$]', fontsize = 22)
-
+ax3.set_xlabel(r'X [$R_\odot$]', fontsize = 22)
+ax3.set_ylabel(r'Y [$R_\odot$]', fontsize = 22)
+ax4.set_xlabel(r'X [$R_\odot$]', fontsize = 22)
 plt.subplots_adjust(wspace=0.25)  # Wider spacing between the first and second plot
-plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,2)))
+# plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,2)))
 plt.tight_layout()
-
 if save:
     plt.savefig(f'{abspath}/Figs/{folder}/multiple/compareRpMass_{snap}.png')
 plt.show()
@@ -146,16 +163,18 @@ x_coordLhist, y_coordLhist, z_coordLhist, massLhist, denLhist, dim_cellLhist = \
 x_coordHhist, y_coordHhist, z_coordHhist, massHhist, denHhist, dim_cellHhist = \
     sec.make_slices([x_coordH, y_coordH, z_coordH, massH, denH, dim_cellH], cuthistogramsH)
 
-# make histograms of mass
-binsL = np.logspace(np.log10(np.min(massLhist)), np.log10(np.max(massLhist)), 50)
-binsH = np.logspace(np.log10(np.min(massHhist)), np.log10(np.max(massHhist)), 50)
+# make histograms of mass and size
+binsL = np.logspace(np.log10(np.min(massLhist)), np.log10(np.max(massLhist)), 100)
+binsH = np.logspace(np.log10(np.min(massHhist)), np.log10(np.max(massHhist)), 100)
+binsdimL = np.logspace(np.log10(np.min(dim_cellLhist)), np.log10(np.max(dim_cellLhist)), 100)
+binsdimH = np.logspace(np.log10(np.min(dim_cellHhist)), np.log10(np.max(dim_cellHhist)), 100)
 fig, ax = plt.subplots(1,2, figsize = (12,6), sharey='row')
 ax[0].hist(massLhist, bins = binsL, color = 'orange', alpha = 0.5, label = 'Low res')
 ax[1].hist(massHhist, bins = binsH, color = 'mediumpurple', alpha = 0.5, label = 'High res')
 for axs in ax:
     axs.loglog()
     axs.set_xlim(5e-13, 1e-7)
-    axs.set_xlabel(r'Mass per cell [$M_\odot$]', fontsize = 20)
+    axs.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 20)
     axs.tick_params(axis = 'both', which = 'both', direction='in', labelsize=20)
     axs.tick_params(which = 'major', size= 7)
     axs.tick_params(which = 'minor', size= 5)
@@ -166,24 +185,29 @@ if save:
 plt.show()
 
 #%%
-fig = plt.subplots(1,1, figsize = (8,8))
-plt.hist(massHhist, bins = binsH, cumulative=True, density= True, ec = 'mediumpurple', histtype='stepfilled', color = 'w', label = 'High res', linewidth=2.5) # put an histogram over the other. one just the contour
-plt.hist(massLhist, bins = binsL, cumulative=True, density= True, color = 'orange', alpha = 0.5, label = 'Low res')
-plt.xlim(5e-13, 4e-8)
-plt.xlabel(r'Mass per cell [$M_\odot$]', fontsize = 20)
-plt.ylabel('CDF', fontsize = 25)
-plt.tick_params(axis = 'both', which = 'both', direction='in', labelsize=20)
-plt.xscale('log')
-plt.legend(fontsize = 25)
-plt.title(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
+fig, (ax1, ax2) = plt.subplots(1,2, figsize = (14,6))
+ax1.hist(massHhist, bins = binsH, cumulative=True, density= True, ec = 'mediumpurple', histtype='stepfilled', color = 'w', label = 'High res', linewidth=2.5) # put an histogram over the other. one just the contour
+ax1.hist(massLhist, bins = binsL, cumulative=True, density= True, color = 'orange', alpha = 0.5, label = 'Low res')
+ax2.hist(dim_cellHhist, bins = binsdimH, cumulative=True, density= True, ec = 'mediumpurple', histtype='stepfilled', color = 'w', label = 'High res', linewidth=2.5) # put an histogram over the other. one just the contour
+ax2.hist(dim_cellLhist, bins = binsdimL, cumulative=True, density= True, color = 'orange', alpha = 0.5, label = 'Low res')
+
+for ax in [ax1, ax2]:
+    ax.set_xscale('log')
+    ax.tick_params(axis = 'both', which = 'both', direction='in', labelsize=15)
+    ax.legend(loc ='upper left', fontsize = 18)
+ax1.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 20)
+ax2.set_xlabel(r'Cell size [$R_\odot$]', fontsize = 20)
+ax1.set_ylabel('CDF', fontsize = 25)
+ax1.set_xlim(5e-13, 3e-8)
+ax2.set_xlim(7e-2, 4e-1)
+plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
 if save:
-    plt.savefig(f'{abspath}/Figs/{folder}/multiple/compareHistTogetMass_{snap}.png')
+    plt.savefig(f'{abspath}/Figs/{folder}/multiple/compareHistToget_{snap}.png')
 plt.show()
 
 #%%
 binsLall = np.logspace(np.log10(np.min(massL)), np.log10(np.max(massL)), 100)
 binsHall = np.logspace(np.log10(np.min(massH)), np.log10(np.max(massH)), 100)
-#%%
 fig = plt.subplots(1,1, figsize = (8,8))
 plt.hist(massH, bins = binsHall, ec = 'mediumpurple', histtype='stepfilled', color = 'w', label = 'High res', cumulative = True, density= True) # put an histogram over the other. one just the contour
 plt.hist(massL, bins = binsLall, color = 'orange', alpha = 0.5, label = 'Low res', cumulative=True, density= True)
@@ -318,11 +342,3 @@ plt.tick_params(axis = 'both', which = 'both', direction='in', labelsize=20)
 if save:
     plt.savefig(f'{abspath}/Figs/{folder}/multiple/compareHistStreamMass_{snap}.png')
 plt.show()
-# %%
-print(Rt)
-# %%
-print(Rs/2)
-# %%
-
-
-# %%

@@ -49,6 +49,16 @@ def Ryan_sampler(theta_arr):
     theta_shift =  np.pi * np.tanh(2*theta_arr/np.pi) / np.tanh(2)
     return theta_shift
 
+def find_step(theta_arr, i):
+    """ Find the step of the angle array for a given element i."""
+    if i == 0:
+        step = theta_arr[1] - theta_arr[0]
+    elif i == len(theta_arr)-1:
+        step = theta_arr[-1] - theta_arr[-2]
+    else:
+        step = theta_arr[1] - theta_arr[0]
+    return step
+
 def sort_list(list_passive, leading_list):
     """ Sort list_passive based on the order of leading_list. If list_passive is a list of arrays."""
     new_list = []
@@ -147,7 +157,7 @@ def make_tree(filename, snap, is_tde = True, energy = False):
         data = data_snap(sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T)
     return data
 
-def radial_caster(radii, R, tocast, weights):
+def single_branch(radii, xaxis, R, tocast, weights, keep_track = False):
     """ Casts a quantity down to a smaller size vector
     Parameters
     ----------
@@ -159,12 +169,16 @@ def radial_caster(radii, R, tocast, weights):
         Simulation data to cast.
     weights: arr,
         Weights to use in the casting.
-
+    keep_track: bool,
+        If True, returns the indices of the points used in the casting.
     Returns
     -------
     final_casted: arr
         Casted down version of tocast
     """
+    if keep_track:
+        indices = np.arange(len(tocast))
+        cells_used = []
     gridded_tocast = np.zeros((len(radii)))
     gridded_weights = np.zeros((len(radii)))
     R = R.reshape(-1, 1) # Reshaping to 2D array with one column
@@ -177,29 +191,29 @@ def radial_caster(radii, R, tocast, weights):
             width = radii[-1] - radii[-2]
         else:
             width = (radii[i+1] - radii[i-1])/2
-        width *= 2 # make it slightly bigger to smooth things
+        if xaxis == 'angles':
+            width = width
+        elif xaxis == 'radii':
+            width *= 2 # make it slightly bigger to smooth things
         indices = tree.query_ball_point(radius, width)
         indices = np.concatenate(indices)
-        ##### As it was before
-        # check if the number of columns of indeces is less than 2
-        # if len(indices) <2 :
-        #     _, idx = tree.query(radii[i], k=2)
-        #     indices = np.array(idx)
-        # indices = [int(idx) for idx in indices]
-        # gridded_tocast[i] = np.sum(tocast[indices] * weights[indices])
-        # gridded_weights[i] = np.sum(weights[indices])
-        #####
-        # check if the number of columns of indeces is less than 2
         if len(indices) < 2 :
             gridded_tocast[i] = 0
+            if keep_track:
+                cells_used.append([])
         else:    
             indices = [int(idx) for idx in indices]
             gridded_tocast[i] = np.sum(tocast[indices] * weights[indices])
             gridded_weights[i] = np.sum(weights[indices])
+            if keep_track:
+                cells_used.append(indices)
 
     gridded_weights += 1e-20 # avoid division by zero
     final_casted = np.divide(gridded_tocast, gridded_weights)
-    return final_casted
+    if keep_track:
+        return final_casted, cells_used
+    else:
+        return final_casted
 
 def select_near_1d(sim_tree, X, Y, Z, point, delta, coord):
     """ Find (within the tree) the nearest cell along one direction to the one chosen. 

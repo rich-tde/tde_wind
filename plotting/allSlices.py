@@ -36,7 +36,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 check = 'Low' # '' or 'HiRes' or 'Res20'
-snap = '115'
+snap = '164'
 compton = 'Compton'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
@@ -66,7 +66,7 @@ for i,radius_grid in enumerate(radii_grid):
 #%%
 # DECISIONS
 ##
-save = False
+save = True
 difference = True
 cutoff = 'cutden' # or '' or 'bound' or 'cutdenbound'
 
@@ -384,7 +384,13 @@ plt.show()
 
 
 #%%
-cutoff = ''
+from matplotlib.colors import ListedColormap, BoundaryNorm
+colorsthree = ['orchid', 'white', 'dodgerblue']  # Example: red for negative, white for zero, green for positive
+cmapthree = ListedColormap(colorsthree)
+boundaries = [-1e7, -0.1, 0.1, 1e7]  # Slight offset to differentiate zero from positive
+normthree = BoundaryNorm(boundaries, cmapthree.N, clip=True)
+
+cutoff = 'cutden'
 if difference:
     from scipy.spatial import KDTree
     check = 'Low' 
@@ -392,10 +398,10 @@ if difference:
     compton = 'Compton' 
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     saving_path = f'Figs/{folder}'
-    snap = '115'
+    snap = '199'
 
-    path = f'TDE/{folder}{check}/{snap}'
-    pathHiRes = f'TDE/{folder}{check1}/{snap}'
+    path = f'{abspath}/TDE/{folder}{check}/{snap}'
+    pathHiRes = f'{abspath}TDE/{folder}{check1}/{snap}'
     data = make_tree(path, snap, energy = True)
     dataHiRes = make_tree(pathHiRes, snap, energy = True)
     dim_cell = data.Vol**(1/3)
@@ -416,16 +422,6 @@ if difference:
     
     midplane = np.logical_and(np.abs(z_coord) < dim_cell, Rsph < 1.2*apo)
     midplaneHiRes = np.logical_and(np.abs(z_coordHiRes) < dim_cellHiRes, RsphHiRes < 1.2*apo)
-    if cutoff == 'bound' or cutoff == 'cutdenbound':
-        print('Cutting off unbound elements')
-        cutbound = orb_en < 0 
-        cutboundHiRes = orb_enHiRes < 0 
-        if cutoff == 'cutdenbound':
-            print('Cutting off low density elements')
-            cutden = data.Den > 1e-9 # throw fluff
-            cutdenHiRes = dataHiRes.Den > 1e-9 # throw fluff
-            finalcut = cutden & cutbound & midplane
-            finalcutHiRes = cutdenHiRes & cutboundHiRes & midplaneHiRes
     if cutoff == 'cutden':
         print('Cutting off low density elements')
         cutden = data.Den > 1e-9 # throw fluff
@@ -453,11 +449,12 @@ if difference:
 
 
     #%%
-    RadDiff = np.abs(Rad_den_midplane - new_Rad_den_midplaneHiRes)/new_Rad_den_midplaneHiRes
+    RadDiff = (Rad_den_midplane - new_Rad_den_midplaneHiRes)*prel.en_den_converter
+    RadDiff_rel = np.abs(RadDiff)/new_Rad_den_midplaneHiRes
     fig, ax = plt.subplots(1,1, figsize = (12,4))
-    img = ax.scatter(points_toplot[0]/apo, points_toplot[1]/apo, c = RadDiff, s = 1, cmap = 'inferno', norm=colors.LogNorm(vmin=.08, vmax=5))
+    img = ax.scatter(points_toplot[0]/apo, points_toplot[1]/apo, c = RadDiff, s = 1, cmap = cmapthree, norm=normthree)
     cbar = plt.colorbar(img)
-    cbar.set_label(r'Relative Rad energy density', fontsize = 16)
+    cbar.set_label(r'Rad energy density', fontsize = 16)
     ax.set_xlim(-1.2,0.02)
     ax.set_ylim(-0.5,0.5)
     ax.set_xlabel(r'X/$R_a$', fontsize = 18)
@@ -471,5 +468,5 @@ if difference:
     else:
         plt.title(r'$|z|<V^{1/3}$, t/t$_{fb}$ = ' + str(np.round(tfb,2)))
     if save:
-        plt.savefig(f'{saving_path}/midplaneRadDiff_{snap}{cutoff}.png')
+        plt.savefig(f'{abspath}{saving_path}/midplaneRadDiff_{snap}{cutoff}.png')
     # %%

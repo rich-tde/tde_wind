@@ -36,9 +36,12 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'Low' # 'Low' or 'HiRes' 
-
+check = 'HiRes' # 'Low' or 'HiRes' 
+difference = False
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+Rt = Rstar * (Mbh/mstar)**(1/3)
+R0 = 0.6 * Rt
+apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
 if alice:
     # get ready to slice and save
@@ -100,55 +103,75 @@ for idx, snap in enumerate(snaps):
         # you are not in alice
         import matplotlib.pyplot as plt
         import matplotlib.colors as colors
-        # choose what to plot
-        choice = 'den'
+        if not difference:
+            # choose what to plot
+            choice = 'den'
 
-        # load the data
-        datacut = np.load(f'{abspath}data/{folder}/{check}/slices/midplaneIEorb_{snap}.npy')
-        x_cut_mid, y_cut_mid, ie_onmass_cut_mid, orb_en_onmass_cut_mid, den_cut_mid =\
-            datacut[0], datacut[1], datacut[2], datacut[3], datacut[4]
-        data = np.load(f'{abspath}data/{folder}/{check}/slices/midplaneRad_{snap}.npy')
-        x_mid, y_mid, Rad_den_mid = data[0], data[1], data[2]
-        
-        if choice == 'Rad':
-            coloring = Rad_den_mid * prel.en_den_converter
-            x_arr = x_mid
-            y_arr = y_mid
-        else:
-            x_arr = x_cut_mid
-            y_arr = y_cut_mid
+            # load the data
+            datacut = np.load(f'{abspath}data/{folder}/{check}/slices/midplaneIEorb_{snap}.npy')
+            x_cut_mid, y_cut_mid, ie_onmass_cut_mid, orb_en_onmass_cut_mid, den_cut_mid =\
+                datacut[0], datacut[1], datacut[2], datacut[3], datacut[4]
+            data = np.load(f'{abspath}data/{folder}/{check}/slices/midplaneRad_{snap}.npy')
+            x_mid, y_mid, Rad_den_mid = data[0], data[1], data[2]
+            
+            if choice == 'Rad':
+                coloring = Rad_den_mid * prel.en_den_converter
+                x_arr = x_mid
+                y_arr = y_mid
+            else:
+                x_arr = x_cut_mid
+                y_arr = y_cut_mid
+                if choice == 'IE':
+                    coloring = ie_onmass_cut_mid * prel.en_converter / prel.Msol_to_g
+                elif choice == 'orb':
+                    coloring = np.abs(orb_en_onmass_cut_mid) * prel.en_converter / prel.Msol_to_g
+                elif choice == 'den':
+                    coloring = den_cut_mid * prel.Msol_to_g / prel.Rsol_to_cm**3
+
+            fig, ax = plt.subplots(1,1, figsize = (14,5))
+            img = ax.scatter(x_arr/apo, y_arr/apo, c = coloring, cmap = 'viridis', s= .1, \
+                            norm = colors.LogNorm(vmin = np.percentile(coloring, 5), vmax = np.percentile(coloring, 95)))
+            cb = plt.colorbar(img)
+            ax.set_xlabel(r'$X/R_a$', fontsize = 20)
+            ax.set_ylabel(r'$Y/R_a$', fontsize = 20)
+            ax.set_xlim(-1.2, 25/apo)#(-340,25)
+            ax.set_ylim(-0.5, 0.5)#(-70,70)
+            ax.text(-400/apo, -150/apo, f't = {np.round(tfb[idx], 2)}' + r'$t_{fb}$', fontsize = 20)
+            plt.tight_layout()
+
             if choice == 'IE':
-                coloring = ie_onmass_cut_mid * prel.en_converter / prel.Msol_to_g
+                cb.set_label(r'Specific IE [erg/g]', fontsize = 16)
+                plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneIE_{snap}.png')
             elif choice == 'orb':
-                coloring = np.abs(orb_en_onmass_cut_mid) * prel.en_converter / prel.Msol_to_g
+                cb.set_label(r'Absolute specific orbital energy [erg/g]', fontsize = 16)
+                plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneorb_{snap}.png')
+            elif choice == 'rad':
+                cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 16)
+                plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneRad_{snap}.png')
             elif choice == 'den':
-                coloring = den_cut_mid * prel.Msol_to_g / prel.Rsol_to_cm**3
+                cb.set_label(r'Density [g/$cm^3$]', fontsize = 16)  
+                ax.text(-400/apo, -120/apo, f'snap {int(snaps[idx])}', fontsize = 16)
+                plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneDen_{snap}.png')
+            
+            plt.close()
+            # plt.show()
 
-        fig, ax = plt.subplots(1,1, figsize = (14,5))
-        img = ax.scatter(x_arr, y_arr, c = coloring, cmap = 'viridis', s= .1, \
-                         norm = colors.LogNorm(vmin = np.percentile(coloring, 5), vmax = np.percentile(coloring, 95)))
-        cb = plt.colorbar(img)
-        ax.set_xlabel(r'$X [R_\odot]$', fontsize = 20)
-        ax.set_ylabel(r'$Y [R_\odot]$', fontsize = 20)
-        ax.set_xlim(-340,25)
-        ax.set_ylim(-70,70)
-        ax.text(-335, -65, f't = {np.round(tfb[idx], 2)}' + r'$t_{fb}$', fontsize = 20)
-        plt.tight_layout()
+        
+        else:
+            # load the data
+            choice = 'nofluff'
 
-        if choice == 'IE':
-            cb.set_label(r'Specific IE [erg/g]', fontsize = 16)
-            plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneIE_{snap}.png')
-        elif choice == 'orb':
-            cb.set_label(r'Absolute specific orbital energy [erg/g]', fontsize = 16)
-            plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneorb_{snap}.png')
-        elif choice == 'rad':
-            cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 16)
-            plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneRad_{snap}.png')
-        elif choice == 'den':
-            cb.set_label(r'Density [g/$cm^3$]', fontsize = 16)  
-            ax.text(-335, -52, f'snap {int(snaps[idx])}', fontsize = 16)
-            plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneDen_{snap}.png')
-        
-        plt.close()
-        # plt.show()
-        
+            if choice == 'nofluff':
+                dataL = np.load(f'{abspath}data/{folder}/Low/slices/midplaneIEorb_{snap}.npy')
+                dataH = np.load(f'{abspath}data/{folder}/HiRes/slices/midplaneIEorb_{snap}.npy')
+                x_mid, y_mid, Rad_den_mid = dataL[0], dataL[1], dataL[5]
+                x_midH, y_midH, Rad_den_midH = dataH[0], dataH[1], dataH[5]
+                coloring = Rad_den_mid - Rad_den_midH
+            else:
+                dataL = np.load(f'{abspath}data/{folder}/Low/slices/midplaneRad_{snap}.npy')
+                dataH = np.load(f'{abspath}data/{folder}/HiRes/slices/midplaneRad_{snap}.npy')
+                x_mid, y_mid, Rad_den_mid = data[0], data[1], data[2]
+                x_midH, y_midH, Rad_den_midH = dataH[0], dataH[1], dataH[2]
+            
+
+            coloring *= prel.en_den_converter

@@ -1,5 +1,6 @@
+abspath = '/Users/paolamartire/shocks/'
 import sys
-sys.path.append('/Users/paolamartire/shocks')
+sys.path.append(abspath)
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -50,13 +51,13 @@ cutoffRes20 = False
 print('Cutoff for the highest res (Res20):', cutoffRes20)
 do_dMdE = False
 compare_resol = False
-compare_times = False
-do_Ehist = True
+compare_times = True
+do_Ehist = False
 E_in_time = False
 do_dMds = False
 
-plot = True
-save = False
+plot = False
+save = True
 
 #%%
 if do_dMdE:
@@ -142,28 +143,37 @@ if do_dMdE:
     
 #%%
 if compare_times:
-    data = np.loadtxt(f'data/{folder}/dMdE_{check}.txt')
-    bin_plot = data[0]
-    data2 = data[1]
-    data3 = data[4]
-    data4 = data[5]
+    times = [0.1, 0.2, 0.5, 0.7]
+    colorsL = ['k', 'b', 'dodgerblue', 'slateblue']
+    colorsM = ['maroon', 'r', 'orange', 'gold']
+    markers = ['o', 's', 'v', 'd']
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
+    for i, time_chosen in enumerate(times):
+        data = np.loadtxt(f'{abspath}data/{folder}/dMdE/dMdE_time{time_chosen}.txt')
+        bin_plot = data[0]
+        dataL = data[1]
+        dataMiddle = data[2]
+
+        ax1.scatter(bin_plot, dataL, c = colorsL[i], marker=markers[i], s = 50, label = f'Low, {time_chosen}' + r't/t$_{fb}$')
+        ax1.scatter(bin_plot, dataMiddle, c = colorsM[i], marker=markers[i], s = 25, label = f'High, {time_chosen}' + r't/t$_{fb}$')
+        ax2.plot(bin_plot, np.abs(1-dataL/dataMiddle), c = colorsM[i], label = f'{time_chosen}' + r't/t$_{fb}$')
     
-    plt.figure()
-    plt.scatter(bin_plot, data2, c = 'b', s = 40, label = '0.2')
-    plt.scatter(bin_plot, data3, c = 'k', s = 30, label = '0.3')
-    plt.scatter(bin_plot, data4, c = 'r', s = 10, label = '0.7')
-    plt.xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
-    plt.ylabel('dM/dE', fontsize = 16)
-    plt.yscale('log')
-    plt.legend()
+    ax2.set_xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
+    ax1.set_ylabel('dM/dE', fontsize = 16)
+    ax2.set_ylabel(r'$|$1-Low/High$|$', fontsize = 16)
+    ax1.set_yscale('log')
+    ax2.set_yscale('log')
+    # put the legend outside the plot
+    ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
+    ax2.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
     if save:
-        plt.savefig(f'{saving_fig}/dMdE_times.png')
+        plt.savefig(f'{abspath}Figs/{folder}/multiple/dMdE_times.png')
     plt.show()
 
 #%%
 if compare_resol:
-    time_chosen = 0.0 #np.round(tfb,1)
-    data = np.loadtxt(f'data/{folder}/dMdE_time{time_chosen}.txt')
+    time_chosen = 0.7 #np.round(tfb,1)
+    data = np.loadtxt(f'{abspath}data/{folder}/dMdE/dMdE_time{time_chosen}.txt')
     bin_plot = data[0]
     dataL = data[1]
     dataMiddle = data[2]
@@ -171,7 +181,6 @@ if compare_resol:
     #     dataHigh = data[4]
     # else:
     #     dataHigh = data[3]
-    print(len(data))
     plt.scatter(bin_plot, dataL, c = 'k', s = 35, label = 'Low')
     plt.scatter(bin_plot, dataMiddle, c = 'r', s = 15, label = 'Middle')
     # plt.scatter(bin_plot, dataHigh, c = 'b', s = 7, label = 'High')
@@ -186,7 +195,7 @@ if compare_resol:
     else:
         plt.title(r't/t$_{fb}$ = ' + str(time_chosen), fontsize = 16)
         if save:
-            plt.savefig(f'Figs/{folder}/multiple/dMdE_time{time_chosen}.png')
+            plt.savefig(f'{abspath}Figs/{folder}/multiple/dMdE_time{time_chosen}.png')
     plt.grid()
     plt.show()
 
