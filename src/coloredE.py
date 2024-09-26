@@ -76,6 +76,8 @@ for i,snap in enumerate(snaps):
     mass, vol, ie_den, Rad_den = data.Mass, data.Vol, data.IE, data.Rad
     theta, _ = to_cylindric(data.X, data.Y)
     orb_en = orb.orbital_energy(Rsph, vel, mass, G, c, Mbh)
+    Rad = Rad_den * vol
+    ie = ie_den * vol
     dim_cell = (3/(4*np.pi) * vol)**(1/3)
     ie_onmass = ie_den / data.Den
     orb_en_onmass = orb_en / mass
@@ -86,24 +88,30 @@ for i,snap in enumerate(snaps):
     # throw fluff
     cut = data.Den > 1e-9 
     cutfluff = data.Den > 1e-19
-    Rsph_cut, theta_cut, mass_cut, ie_onmass_cut, orb_en_onmass_cut, Rad_den_cut, vol_cut = \
-            sec.make_slices([Rsph, theta, mass, ie_onmass, orb_en_onmass, Rad_den, vol], cut)
+    Rsph_cut, theta_cut, mass_cut, ie_cut, ie_onmass_cut, orb_en_cut, orb_en_onmass_cut, Rad_cut, Rad_den_cut, vol_cut = \
+            sec.make_slices([Rsph, theta, mass, ie, ie_onmass, orb_en, orb_en_onmass, Rad, Rad_den, vol], cut)
+    Rad_nofluff, Rad_den_nofluff, vol_nofluff = sec.make_slices([Rad, Rad_den, vol], cutfluff)
     if xaxis == 'angles':
         tocast_cut = theta_cut
-        tocast = theta
+        tocast_nofluff = theta[cutfluff] 
     elif xaxis == 'radii':
         tocast_cut = Rsph_cut
-        tocast_nofluff, Rad_den_nofluff, vol_nofluff = Rsph[cutfluff], Rad_den[cutfluff], vol[cutfluff]
+        tocast_nofluff = Rsph[cutfluff] 
         
-    # Cast down to 100 values
-    ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
-    orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
-    Rad_cut_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = vol_cut)
-    Rad_cast = single_branch(radii, xaxis, tocast_nofluff, Rad_den_nofluff, weights = vol_nofluff)
+    # Cast down 
+    # ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
+    # orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
+    # Rad_cast = single_branch(radii, xaxis, tocast_nofluff, Rad_den_nofluff, weights = vol_nofluff)
+    # Rad_cut_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = vol_cut)
+    ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = ie_cut)
+    orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = orb_en_cut)
+    Rad_cast = single_branch(radii, xaxis, tocast_nofluff, Rad_den_nofluff, weights = Rad_nofluff)
+    Rad_cut_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = Rad_cut)
 
     col_ie.append(ie_cast)
     col_orb_en.append(orb_en_cast)
     col_Rad.append(Rad_cast)
+    # we try the higher cut, but it shouldn't be
     col_Rad_cut.append(Rad_cut_cast)
 
 #%%
@@ -114,7 +122,7 @@ if save:
         prepath = f'/data1/martirep/shocks/shock_capturing/'
     else: 
         prepath = f'/Users/paolamartire/shocks/'
-    np.save(f'{prepath}/data/{folder}/coloredE_{check}_{xaxis}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_cut])
+    np.save(f'{prepath}/data/{folder}/coloredE_{check}_{xaxis}weightE.npy', [col_ie, col_orb_en, col_Rad, col_Rad_cut])
     with open(f'{prepath}/data/{folder}/coloredE_{check}_days.txt', 'a') as file:
         file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')

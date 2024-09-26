@@ -112,7 +112,7 @@ class data_snap:
         # self.Diss = Diss
         self.Entropy = Entropy
 
-def make_tree(filename, snap, is_tde = True, energy = False):
+def make_tree(filename, snap, energy = False):
     """ Load data from simulation and build the tree. """
     X = np.load(f'{filename}/CMx_{snap}.npy')
     Y = np.load(f'{filename}/CMy_{snap}.npy')
@@ -129,8 +129,6 @@ def make_tree(filename, snap, is_tde = True, energy = False):
         # convert from energy/mass to energy density
         IE *= Den  
         Rad *= Den
-        # if is_tde:
-        #     IE *= prel.en_den_converter
         # Diss = np.load(f'{filename}/Diss_{snap}.npy')
         # Entropy = np.load(f'{filename}/Entropy_{snap}.npy')
              
@@ -139,13 +137,11 @@ def make_tree(filename, snap, is_tde = True, energy = False):
     if all(T) == 0:
         print('all T=0, bro. Compute by myself!')
         T = P/Den
-    if is_tde:
-        # Den *= prel.den_converter
-        Star = np.load(f'{filename}/Star_{snap}.npy')
-        for i,rho in enumerate(Den):
-            cell_star = Star[i]
-            if ((1-cell_star) > 1e-3):
-                rho = 0 
+    Star = np.load(f'{filename}/Star_{snap}.npy')
+    for i,rho in enumerate(Den):
+        cell_star = Star[i]
+        if ((1-cell_star) > 1e-3):
+            rho = 0 
 
     sim_value = [X, Y, Z] 
     sim_value = np.transpose(sim_value) #array of shape (number_points, 3)
@@ -162,7 +158,11 @@ def single_branch(radii, xaxis, R, tocast, weights, keep_track = False):
     Parameters
     ----------
     radii : arr,
-        Array of radii we want to cast to.
+        Array of radii/angles we want to cast to.
+    xaxis : str,
+        'angles' or 'radii'.
+    R : arr,
+        Coordinates' data from simulation to be casted.
     sim_coord : Narr (N,3),
         Coordinates' data from simulation to be casted. 
     tocast: arr,

@@ -83,13 +83,13 @@ col_Rad_nofluff = col_Rad_nofluff[:n_Middle]
 # PLOT
 ##
 # check the difference in time
-plt.scatter(snap_Middle,tfb_Low-tfb_Middle, color='k', label = 'time')
-# plt.plot(snap_Low-snap_Middle, color='r', label = 'snap')
-plt.scatter(snap_Middle[37], tfb_Low[37]-tfb_Middle[37], c='dodgerblue')
-plt.scatter(snap_Middle[119], tfb_Low[119]-tfb_Middle[119], c='orange')
-plt.scatter(snap_Middle[129], tfb_Low[129]-tfb_Middle[129], c='orchid')
-plt.xlabel('Snapshot')
-plt.ylabel(r'$t_L-t_H$')
+# plt.scatter(snap_Middle,tfb_Low-tfb_Middle, color='k', label = 'time')
+# # plt.plot(snap_Low-snap_Middle, color='r', label = 'snap')
+# plt.scatter(snap_Middle[37], tfb_Low[37]-tfb_Middle[37], c='dodgerblue')
+# plt.scatter(snap_Middle[119], tfb_Low[119]-tfb_Middle[119], c='orange')
+# plt.scatter(snap_Middle[129], tfb_Low[129]-tfb_Middle[129], c='orchid')
+# plt.xlabel('Snapshot')
+# plt.ylabel(r'$t_L-t_H$')
 # plt.legend(fontsize = 20)
 
 #%%
@@ -139,8 +139,8 @@ cb.set_label(r'Energy density [erg/cm$^3$]', fontsize = 20, labelpad = 2)
 
 for i in range(2):
     for j in range(3):
-        # ax[i][j].axhline(0.205, c = 'white', linewidth = 0.4)
-        # ax[i][j].axhline(0.52, c = 'white', linewidth = 0.4)
+        ax[i][j].axhline(0.205, c = 'white', linewidth = 0.4)
+        ax[i][j].axhline(0.52, c = 'white', linewidth = 0.4)
         # Grid for radii, to be matched with the cfr in slices.py
         if xaxis == 'radii':
             ax[i][j].axvline(Rt/apo, linestyle ='dashed', c = 'white', linewidth = 0.8)
@@ -152,6 +152,12 @@ for i in range(2):
             ax[i][j].axvline(0.5, c = 'white', linewidth = 0.4)
             ax[i][j].axvline(1, c = 'white', linewidth = 0.4)
             ax[i][j].set_xscale('log')
+        
+        elif xaxis == 'angles':
+            ax[i][j].axvline(-2.5, c = 'white', linewidth = 0.4)
+            ax[i][j].axvline(-1, c = 'white', linewidth = 0.4)
+            ax[i][j].axvline(2.5, c = 'white', linewidth = 0.4)
+            ax[i][j].axvline(1, c = 'white', linewidth = 0.4)
 
         if i == 1:
             if xaxis == 'radii':
@@ -216,6 +222,9 @@ ax[2].set_title('Radiation energy density', fontsize = 14)
 cb.set_label(r'$|\Delta|$', fontsize = 20)#$\Delta|E_{rad}/$Vol$|$', fontsize = 14, labelpad = 5)
 
 for i in range(3):
+    ax[i].axhline(0.205, c = 'white', linewidth = 0.4)
+    ax[i].axhline(0.52, c = 'white', linewidth = 0.4)
+    ax[i].axhline(0.75, c = 'white', linewidth = 0.4)
     if xaxis == 'radii':
         ax[i].axvline(Rt/apo, linestyle ='dashed', c = 'white', linewidth = 0.8)
         ax[i].text(Rt/apo, 0.65, r'R$_t$', fontsize = 14, rotation = 90, transform = ax[i].transAxes, color = 'k')
@@ -226,12 +235,15 @@ for i in range(3):
         ax[i].axvline(0.5, c = 'white', linewidth = 0.4)
         ax[i].axvline(1, c = 'white', linewidth = 0.4)
         ax[i].set_xscale('log')
+        ax[i].set_xlabel(r'$R/R_a$', fontsize = 20)
+        ax[i].set_xlabel(r'$R/R_a$', fontsize = 20)
+        ax[i].set_xlabel(r'$R/R_a$', fontsize = 20)
 
-    if xaxis == 'radii':
-        ax[i].set_xlabel(r'$R/R_a$', fontsize = 20)
-        ax[i].set_xlabel(r'$R/R_a$', fontsize = 20)
-        ax[i].set_xlabel(r'$R/R_a$', fontsize = 20)
     elif xaxis == 'angles':
+        ax[i].axvline(-2.5, c = 'white', linewidth = 0.4)
+        ax[i].axvline(-1, c = 'white', linewidth = 0.4)
+        ax[i].axvline(2.5, c = 'white', linewidth = 0.4)
+        ax[i].axvline(1, c = 'white', linewidth = 0.4)
         ax[i].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
         ax[i].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
         ax[i].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
@@ -299,6 +311,9 @@ ax[2].set_title('Radiation energy density', fontsize = 20)
 cb.set_label('Relative difference', fontsize = 25)#'Relative difference $|E_{rad}|$/Vol', fontsize = 14, labelpad = 5)
 
 for i in range(3):
+    ax[i].axhline(0.205, c = 'white', linewidth = 0.4)
+    ax[i].axhline(0.52, c = 'white', linewidth = 0.4)
+    ax[i].axhline(0.75, c = 'white', linewidth = 0.4)
     if xaxis == 'radii':
         ax[i].axvline(Rt/apo, linestyle ='dashed', c = 'white', linewidth = 0.8)
         ax[i].text(Rt/apo, 0.65, r'R$_t$', fontsize = 14, rotation = 90, transform = ax[i].transAxes, color = 'k')
@@ -314,9 +329,14 @@ for i in range(3):
         ax[i].set_xlabel(r'$R/R_a$', fontsize = 20)
 
     elif xaxis == 'angles':
-        ax[i].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
-        ax[i].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
-        ax[i].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
+        if xaxis == 'angles':
+            ax[i].axvline(-2.5, c = 'white', linewidth = 0.4)
+            ax[i].axvline(-1, c = 'white', linewidth = 0.4)
+            ax[i].axvline(2.5, c = 'white', linewidth = 0.4)
+            ax[i].axvline(1, c = 'white', linewidth = 0.4)
+            ax[i].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
+            ax[i].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
+            ax[i].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
 
 # Layout
 ax[0].set_ylabel(r't/t$_{fb}$', fontsize = 25)
@@ -329,55 +349,73 @@ if save:
 plt.show()
 
 # %% Do just for radiation without fluff as  check
+diff_Rad_nofluff = col_Rad_nofluff - col_RadMiddle_nofluff
+denominator_Rad_nofluff = (col_Rad_nofluff + col_RadMiddle_nofluff)/2
+rel_Rad_nofluff = np.abs(diff_Rad_nofluff / denominator_Rad_nofluff)
+rel_Rad_nofluff[np.isnan(rel_Rad_nofluff)] = 0
+normRadnofluff = colors.LogNorm(vmin=np.percentile(col_Rad_nofluff[col_Rad_nofluff>0], 5), vmax=np.percentile(col_Rad_nofluff[col_Rad_nofluff>0], 95))
+
+fig, ax = plt.subplots(2,2, figsize = (12,10))
+img = ax[0][0].pcolormesh(radiiLow/apo, tfb_Low, col_Rad_nofluff, norm=normRadnofluff, cmap = 'viridis')
+cb = fig.colorbar(img)
+cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 15, labelpad = 5)
+ax[0][0].text(np.min(radiiLow/apo), 0.15,'Low res', fontsize = 25)
+img = ax[0][1].pcolormesh(radiiMiddle/apo, tfb_Middle, col_RadMiddle_nofluff, norm=normRadnofluff, cmap = 'viridis')
+cb = fig.colorbar(img)
+cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 15, labelpad = 5)
+ax[0][1].text(np.min(radiiMiddle/apo), 0.15,'High res', fontsize = 25)
+# plot the relaive difference
+img = ax[1][0].pcolormesh(radiiMiddle/apo, tfb_Middle, rel_Rad_nofluff, cmap='inferno', norm=norm_Rad)
+cb = fig.colorbar(img)
+cb.set_label('Relative difference', fontsize = 15, labelpad = 5)
+for i in range(2):
+    ax[i][0].set_ylabel(r't/t$_{fb}$', fontsize = 20)
+    for j in range(2):
+        ax[i][j].axhline(0.205, c = 'white', linewidth = 0.4)
+        ax[i][j].axhline(0.52, c = 'white', linewidth = 0.4)
+        ax[i][j].axhline(0.75, c = 'white', linewidth = 0.4)
+        if xaxis == 'radii':
+            ax[i][j].axvline(Rt/apo, linestyle ='dashed', c = 'white', linewidth = 0.8)
+            ax[i][j].text(Rt/apo, 0.65, r'R$_t$', fontsize = 14, rotation = 90, transform = ax[i][j].transAxes, color = 'k')
+            ax[i][j].axvline(1.5*Rt/apo, linestyle ='dashed', c = 'white', linewidth = 0.8)
+            ax[i][j].text(1.5*Rt/apo+0.1, 0.65, r'1.5R$_t$', fontsize = 14, rotation = 90, transform = ax[i][j].transAxes, color = 'k')
+            ax[i][j].axvline(0.1, c = 'white', linewidth = 0.4)
+            ax[i][j].axvline(0.3, c = 'white', linewidth = 0.4)
+            ax[i][j].axvline(0.5, c = 'white', linewidth = 0.4)
+            ax[i][j].axvline(1, c = 'white', linewidth = 0.4)
+            ax[i][j].set_xscale('log')
+
+        elif xaxis == 'angles':
+            ax[i][j].axvline(-2.5, c = 'white', linewidth = 0.4)
+            ax[i][j].axvline(-1, c = 'white', linewidth = 0.4)
+            ax[i][j].axvline(2.5, c = 'white', linewidth = 0.4)
+            ax[i][j].axvline(1, c = 'white', linewidth = 0.4)
+
+        if i == 1:
+            if xaxis == 'radii':
+                ax[i][j].set_xlabel(r'$R/R_a$', fontsize = 20)
+                ax[i][j].set_xlabel(r'$R/R_a$', fontsize = 20)
+                ax[i][j].set_xlabel(r'$R/R_a$', fontsize = 20)
+            elif xaxis == 'angles':
+                ax[i][j].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
+                ax[i][j].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
+                ax[i][j].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
+
+plt.tick_params(axis = 'both', which = 'both', direction='in', size = 10, labelsize=15)
+plt.tick_params(axis = 'both', which = 'major',  size = 10)
+plt.tick_params(axis = 'x', which = 'minor',  size = 7)
+plt.suptitle('Radiation energy density without fluff', fontsize = 30)
+fig.delaxes(ax[1][1])
+plt.tight_layout()
+
+if save:
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/coloredRadE_nofluff_{xaxis}.png')
+plt.show()
+
+#%%
 if xaxis == 'radii':
-    diff_Rad_nofluff = col_Rad_nofluff - col_RadMiddle_nofluff
-    denominator_Rad_nofluff = (col_Rad_nofluff + col_RadMiddle_nofluff)/2
-    rel_Rad_nofluff = np.abs(diff_Rad_nofluff / denominator_Rad_nofluff)
-    rel_Rad_nofluff[np.isnan(rel_Rad_nofluff)] = 0
-
-    fig, ax = plt.subplots(2,2, figsize = (12,10))
-    img = ax[0][0].pcolormesh(radiiLow/apo, tfb_Low, col_Rad_nofluff, norm=norm_Radsix, cmap = 'viridis')
-    cb = fig.colorbar(img)
-    cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 15, labelpad = 5)
-    ax[0][0].text(0.04, 0.15,'Low res', fontsize = 25)
-    img = ax[0][1].pcolormesh(radiiMiddle/apo, tfb_Middle, col_RadMiddle_nofluff, norm=norm_Radsix, cmap = 'viridis')
-    cb = fig.colorbar(img)
-    cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 15, labelpad = 5)
-    ax[0][1].text(0.04, 0.15,'High res', fontsize = 25)
-    # plot the relaive difference
-    img = ax[1][0].pcolormesh(radiiMiddle/apo, tfb_Middle, rel_Rad_nofluff, cmap='inferno', norm=norm_Rad)
-    cb = fig.colorbar(img)
-    cb.set_label('Relative difference', fontsize = 15, labelpad = 5)
-    for i in range(2):
-        ax[i][0].set_ylabel(r't/t$_{fb}$', fontsize = 20)
-        for j in range(2):
-            ax[i][j].set_xscale('log')
-            # ax[i][j].axvline(Rt/apo, linestyle ='dashed', c = 'k', linewidth = 0.5)
-            # ax[i][j].axvline(0.1, c = 'k', linewidth = 0.5)
-            ax[i][j].axvline(0.3, c = 'k', linewidth = 0.5)
-            ax[i][j].axvline(0.5, c = 'k', linewidth = 0.5)
-            ax[i][j].axvline(0.7, c = 'k', linewidth = 0.5)
-            # ax[i][j].axvline(1, c = 'k', linewidth = 0.5)
-            ax[i][j].set_xscale('log')
-            ax[i][j].text(Rt/apo+0.07, 0.65, r'R$_t$', fontsize = 15, rotation = 90, transform = ax[i][j].transAxes, color = 'k')
-            ax[i][j].axhline(0.52, c = 'k', linewidth = 0.5)
-            ax[i][j].axhline(0.68, c = 'k', linewidth = 0.5)
-            ax[i][j].axhline(0.84, c = 'k', linewidth = 0.5)
-    ax[1][0].set_xlabel(r'$R/R_a$', fontsize = 20)
-    ax[1][1].set_xlabel(r'$R/R_a$', fontsize = 20)
-    plt.tick_params(axis = 'both', which = 'both', direction='in', size = 10, labelsize=15)
-    plt.tick_params(axis = 'both', which = 'major',  size = 10)
-    plt.tick_params(axis = 'x', which = 'minor',  size = 7)
-    plt.suptitle('Radiation energy density without fluff', fontsize = 30)
-    fig.delaxes(ax[1][1])
-    plt.tight_layout()
-
-    if save:
-        plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/coloredRadE_nofluff.png')
-    plt.show()
-
-    #%% Check wh has the higher energy between Low and High
     from matplotlib.colors import ListedColormap, BoundaryNorm
+    # Check wh has the higher energy between Low and High
     colorsthree = ['orchid', 'white', 'dodgerblue']  # Example: red for negative, white for zero, green for positive
     cmapthree = ListedColormap(colorsthree)
     boundaries = [-1e9, -0.1, 0.1, 1e9]  # Slight offset to differentiate zero from positive
@@ -408,7 +446,7 @@ if xaxis == 'radii':
     if save:
         plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/coloredE_whoIsHigher.png')
 
-    # %% Lines
+    # Lines
     # indices = [70, 100, 136]
     indices = [np.argmin(np.abs(tfb_Low-0.46)), np.argmin(np.abs(tfb_Low-0.66)), np.argmin(np.abs(tfb_Low-0.86))]
     colors_indices = ['navy', 'royalblue', 'deepskyblue']
@@ -434,7 +472,7 @@ if xaxis == 'radii':
         plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/Rad_lines.png')
     plt.show()
 
-    #%%
+    #
     Lum_cgs = col_Rad  * prel.c * 4 * np.pi * (radiiLow*prel.Rsol_to_cm)**2 
     LumMiddle_cgs = col_RadMiddle * prel.c * 4 * np.pi * (radiiMiddle*prel.Rsol_to_cm)**2 
     denom = (Lum_cgs + LumMiddle_cgs)/2
@@ -481,8 +519,6 @@ if xaxis == 'radii':
         plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/Luminosity.png')
     plt.show()
 
-
-    # %%
     for i in range(3):
         mean_error =  np.round(np.mean(Lum_difference[i][-10:-1]),2)
         print(f'Mean relative error for t/tfb = {tfb_Low[indices[i]]} is {mean_error}')
@@ -496,5 +532,3 @@ if xaxis == 'radii':
         mean_lastlow = np.mean(low[-10:-1])
         print(tfb_Low[indices[i+1]], tfb_Low[indices[i]])
         print(f'The relative difference of the last point of the high res line is {np.round((mean_lasthigh-mean_lastlow),2)}')
-
-    # %%
