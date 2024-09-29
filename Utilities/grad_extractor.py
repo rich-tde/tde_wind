@@ -7,7 +7,7 @@ import sys
 sys.path.append('/Users/paolamartire/shocks')
 from Utilities.isalice import isalice
 alice, plot = isalice()
-from Utilities.operators import make_tree
+from Utilities.selectors_for_snap import select_snap
 
 import numpy as np
 import h5py
@@ -148,7 +148,6 @@ def extractor(filename):
 
 if __name__ == '__main__':
 
-    snap = 216
     m = 4
     Mbh = 10**m
     beta = 1
@@ -156,46 +155,48 @@ if __name__ == '__main__':
     Rstar = .47
     n = 1.5
     check = ''
-    compton = 'Compton'
+    compton = 'ComptonDoubleRad'
+    snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True)
     if alice:
-        prepath = f'/data1/martirep/shocks/'
+        prepath = f'/home/martirep/data_pi-rossiem/TDE_data'#f'/data1/martirep/shocks'
     else: 
         prepath = f'TDE'
     
-    path = f'{prepath}/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{snap}'
-    file = f'{path}/snap_{snap}_grad.h5'
+    for snap in snaps:
+        path = f'{prepath}/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{snap}'
+        file = f'{path}/snap_{snap}_grad.h5'
 
-    X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDy, DrhoDz, DpDx, DpDy, DpDz, divV, Diss, Star, Entropy = extractor(file)
-    
-    # Save to another file.
-    np.save(f'{path}/CMx_{snap}', X)   
-    np.save(f'{path}/CMy_{snap}', Y) 
-    np.save(f'{path}/CMz_{snap}', Z) 
-    np.save(f'{path}/Den_{snap}', Den)
-    np.save(f'{path}/Vx_{snap}', Vx)   
-    np.save(f'{path}/Vy_{snap}', Vy) 
-    np.save(f'{path}/Vz_{snap}', Vz)
-    np.save(f'{path}/Vol_{snap}', Vol)
-    np.save(f'{path}/Mass_{snap}', Mass)   
-    np.save(f'{path}/IE_{snap}', IE) 
-    np.save(f'{path}/T_{snap}', T)
-    np.save(f'{path}/P_{snap}', P) 
-    np.save(f'{path}/Diss_{snap}', Diss) 
+        X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, T, P, DrhoDx, DrhoDy, DrhoDz, DpDx, DpDy, DpDz, divV, Diss, Star, Entropy = extractor(file)
+        
+        # Save to another file.
+        np.save(f'{path}/CMx_{snap}', X)   
+        np.save(f'{path}/CMy_{snap}', Y) 
+        np.save(f'{path}/CMz_{snap}', Z) 
+        np.save(f'{path}/Den_{snap}', Den)
+        np.save(f'{path}/Vx_{snap}', Vx)   
+        np.save(f'{path}/Vy_{snap}', Vy) 
+        np.save(f'{path}/Vz_{snap}', Vz)
+        np.save(f'{path}/Vol_{snap}', Vol)
+        np.save(f'{path}/Mass_{snap}', Mass)   
+        np.save(f'{path}/IE_{snap}', IE) 
+        np.save(f'{path}/T_{snap}', T)
+        np.save(f'{path}/P_{snap}', P) 
+        np.save(f'{path}/Diss_{snap}', Diss) 
 
-    np.save(f'{path}/DrhoDx_{snap}', DrhoDx)   
-    np.save(f'{path}/DrhoDy_{snap}', DrhoDy) 
-    np.save(f'{path}/DrhoDz_{snap}', DrhoDz) 
+        np.save(f'{path}/DrhoDx_{snap}', DrhoDx)   
+        np.save(f'{path}/DrhoDy_{snap}', DrhoDy) 
+        np.save(f'{path}/DrhoDz_{snap}', DrhoDz) 
 
-    np.save(f'{path}/DpDx_{snap}', DpDx)   
-    np.save(f'{path}/DpDy_{snap}', DpDy) 
-    np.save(f'{path}/DpDz_{snap}', DpDz) 
+        np.save(f'{path}/DpDx_{snap}', DpDx)   
+        np.save(f'{path}/DpDy_{snap}', DpDy) 
+        np.save(f'{path}/DpDz_{snap}', DpDz) 
 
-    np.save(f'{path}/DivV_{snap}', divV) 
+        np.save(f'{path}/DivV_{snap}', divV) 
 
-    np.save(f'{path}/Star_{snap}', Star) 
-    np.save(f'{path}/Entropy_{snap}', Entropy) 
-    
-    print(f'Done extraction {snap}')
+        np.save(f'{path}/Star_{snap}', Star) 
+        np.save(f'{path}/Entropy_{snap}', Entropy) 
+        
+        print(f'Done extraction {snap}')
 
 
 
