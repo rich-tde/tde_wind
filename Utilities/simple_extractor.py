@@ -109,17 +109,17 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-check = 'HiRes'
+check = ''
 compton = 'ComptonDoubleRad'
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True)
-if alice:
-    prepath = f'/home/martirep/data_pi-rossiem/TDE_data'#f'/data1/martirep/shocks'
-else: 
-    prepath = f'/Users/paolamartire/shocks/TDE'
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 for snap in snaps:
-    path = f'{prepath}/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{snap}/'
-    file = f'{path}snap_{snap}.h5'
+    if alice:
+        prepath = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'#f'/data1/martirep/shocks'
+    else: 
+        prepath = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}/'
+    file = f'{prepath}/snap_{snap}.h5'
     print(file)
     X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Entropy = extractor(file)
 
