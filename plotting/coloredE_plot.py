@@ -25,7 +25,7 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 #
 ## DECISIONS
 ##
-save = True
+save = False
 xaxis = 'angles'
 if xaxis == 'angles':
     apo = 1
@@ -36,7 +36,7 @@ if xaxis == 'angles':
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 path = f'/Users/paolamartire/shocks/data/{folder}/colormapE_Alice'
 # Low data
-dataLow = np.load(f'{path}/coloredE_Low_{xaxis}.npy') #shape (3, len(tfb), len(radii))
+dataLow = np.load(f'{path}/coloredE_Low_{xaxis}weightE.npy') #shape (3, len(tfb), len(radii))
 tfb_dataLow = np.loadtxt(f'{path}/coloredE_Low_days.txt')
 snap_Low = tfb_dataLow[0]
 tfb_Low = tfb_dataLow[1]
@@ -57,7 +57,7 @@ col_Rad_nofluff *= prel.en_den_converter
 abs_col_orb_en = np.abs(col_orb_en)
 
 # Middle data
-dataMiddle = np.load(f'{path}/coloredE_HiRes_{xaxis}.npy')
+dataMiddle = np.load(f'{path}/coloredE_HiRes_{xaxis}weightE.npy')
 tfb_dataMiddle = np.loadtxt(f'{path}/coloredE_HiRes_days.txt')
 snap_Middle = tfb_dataMiddle[0]
 tfb_Middle = tfb_dataMiddle[1]

@@ -103,7 +103,7 @@ def extractor(filename):
 # MAIN
 ##
 
-snap = 27
+snap = 80
 m = 4
 Mbh = 10**m
 beta = 1

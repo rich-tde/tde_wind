@@ -47,8 +47,7 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 #
 
 # Choose what to do
-cutoffRes20 = False
-print('Cutoff for the highest res (Res20):', cutoffRes20)
+cutden = False
 do_dMdE = False
 compare_resol = False
 compare_times = True
@@ -61,92 +60,96 @@ save = True
 
 #%%
 if do_dMdE:
-    check = 'HiRes' # 'Low' or 'HiRes' or 'Res20'
-    snap = '27'
-    path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
-    tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
-    data = make_tree(path, snap, energy = False)
-    dim_cell = data.Vol**(1/3) # according to Elad
-    mass = data.Mass
-    R = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
-    V = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
-    orbital_enegy = orb.orbital_energy(R, V, mass, G, c, Mbh)
-    specific_orbital_energy = orbital_enegy / mass
-
-    # Cutoff for the highest res (Res20)
-    if check == 'Res20' and cutoffRes20:
-        cutoff = data.X > -175
-        mass = mass[cutoff]
-        specific_orbital_energy = specific_orbital_energy[cutoff]
-
-    # Normalisation (what on the x axis you call \Delta E)
+    checks = ['Low','HiRes'] # 'Low' or 'HiRes' 
+    snaps = ['80', '164', '199', '216']
     norm = Mbh/Rt * (Mbh/Rstar)**(-1/3)
     print('Normalization for energy:', norm)
 
-    # (Specific) energy bins 
-    specOE_norm = specific_orbital_energy/norm #or use orbital_energy_mid
-    bins = np.arange(-100, 100, .1)
-    mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
-    dm_dE = mass_binned / (np.diff(bins_edges)*norm)
+    for check in checks:
+        print(f'Check: {check}')
+        for snap in snaps:
+            print(f'Snap: {snap}')
+            path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
+            tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+            data = make_tree(path, snap, energy = False)
+            dim_cell = data.Vol**(1/3) # according to Elad
+            mass = data.Mass
+            R = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
+            V = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
+            orbital_enegy = orb.orbital_energy(R, V, mass, G, c, Mbh)
+            specific_orbital_energy = orbital_enegy / mass
 
-    saving_fig = f'Figs/{folder}/{check}'
-    if save:
-        (f'Saving data in: data/{folder}')
-        try:
-            file = open(f'data/{folder}/dMdE/dMdE_time{np.round(tfb,1)}.txt', 'r')
-            # Perform operations on the file
-            file.close()
-        except FileNotFoundError:
-            with open(f'data/{folder}/dMdE/dMdE_time{np.round(tfb,1)}.txt','a') as fstart:
-                # if file doesn'exist
-                fstart.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
-                fstart.write((' '.join(map(str, bins_edges[:-1])) + '\n'))
-        with open(f'data/{folder}/dMdE/dMdE_time{np.round(tfb,1)}.txt','a') as file:
-            if check == 'Res20' and cutoffRes20:
-                file.write(f'# Check {check}, snap {snap} using only data with data.X>-175 \n')
-            else:
-                file.write(f'# Check {check}, snap {snap} \n')
-            file.write((' '.join(map(str, dm_dE)) + '\n'))
-            file.close()
-    
-    if plot:
-        dm_dE[dm_dE<=0] = 1 #so it's 0 in the logscale
-        # Section at the midplane
-        midplane = np.abs(data.Z) < dim_cell
-        X_mid, Y_mid, Den_mid = \
-            sec.make_slices([data.X, data.Y, data.Den], midplane)
-        # plot the mass distribution with respect to the energy
-        fig, ax = plt.subplots(1,2, figsize = (8,4))
-        # ax[0].scatter(bins_edges[:-1], mass_binned, c = 'r', s = 10, alpha = 0.4, label = 'dM')
-        # ax[0].hist(specOE_norm, bins = bins, weights = mass, color = 'r', alpha = 0.2)
-        ax[0].scatter(bins_edges[:-1], dm_dE, c = 'k', s = 30)
-        ax[0].set_xlabel(r'$E_{spec}/\Delta E$', fontsize = 16)
-        ax[0].set_ylabel(r'$\log_{10}$(dM/d$E_{spec}$)', fontsize = 16)
-        ax[0].set_xlim(np.min(bins_edges),np.max(bins_edges))
-        ax[0].set_ylim(1e-18,6e-14)#(1e-8, 4e-2)
-        ax[0].set_yscale('log')
-        ax[0].legend()
+            # Cutoff for low density
+            if cutden:
+                cut = data.Den > 1e-9
+                mass, specific_orbital_energy = mass[cut], specific_orbital_energy[cut]
 
-        img = ax[1].scatter(X_mid, Y_mid, c = np.log10(Den_mid), s = .1, cmap = 'jet', vmin = -11, vmax = -6)
-        cbar = plt.colorbar(img)
-        cbar.set_label(r'$\log_{10}$ Density', fontsize = 16)
-        ax[1].set_xlim(-5,5)#(-500,100)
-        ax[1].set_ylim(-10,10)#(-200,50)
-        ax[1].set_xlabel(r'X [$R_\odot$]', fontsize = 18)
-        ax[1].set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
+            # Normalisation (what on the x axis you call \Delta E)
 
-        plt.suptitle(f'check: {check}, ' + r't/t$_{fb}$ = ' + str(np.round(tfb,3)), fontsize = 16)
-        plt.tight_layout()
-        if save:
-            plt.savefig(f'{saving_fig}/EnM_{snap}.png')
-        plt.show()
+            # (Specific) energy bins 
+            specOE_norm = specific_orbital_energy/norm #or use orbital_energy_mid
+            bins = np.linspace(-20,20, 50)#np.arange(-2, 2, .1)
+            mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
+            dm_dE = mass_binned / (np.diff(bins_edges)*norm)
+
+            if save:
+                (f'Saving data in: data/{folder}')
+                try:
+                    file = open(f'{abspath}data/{folder}/dMdE/dMdE_time{np.round(tfb,2)}.txt', 'r')
+                    # Perform operations on the file
+                    file.close()
+                except FileNotFoundError:
+                    with open(f'{abspath}data/{folder}/dMdE/dMdE_time{np.round(tfb,2)}.txt','a') as fstart:
+                        # if file doesn'exist
+                        fstart.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
+                        fstart.write((' '.join(map(str, bins_edges[:-1])) + '\n'))
+                with open(f'{abspath}data/{folder}/dMdE/dMdE_time{np.round(tfb,2)}.txt','a') as file:
+                    if cutden:
+                        file.write(f'# Check {check}, snap {snap} using only data with data.Den>1e-19 \n')
+                    else:
+                        file.write(f'# Check {check}, snap {snap} \n')
+                    file.write((' '.join(map(str, dm_dE)) + '\n'))
+                    file.close()
+
+            # if plot:
+            #     saving_fig = f'{abspath}Figs/{folder}/{check}'
+            #     dm_dE[dm_dE<=0] = 1 #so it's 0 in the logscale
+            #     # Section at the midplane
+            #     midplane = np.abs(data.Z) < dim_cell
+            #     X_mid, Y_mid, Den_mid = \
+            #         sec.make_slices([data.X, data.Y, data.Den], midplane)
+            #     # plot the mass distribution with respect to the energy
+            #     fig, ax = plt.subplots(1,2, figsize = (8,4))
+            #     # ax[0].scatter(bins_edges[:-1], mass_binned, c = 'r', s = 10, alpha = 0.4, label = 'dM')
+            #     # ax[0].hist(specOE_norm, bins = bins, weights = mass, color = 'r', alpha = 0.2)
+            #     ax[0].scatter(bins_edges[:-1], dm_dE, c = 'k', s = 30)
+            #     ax[0].set_xlabel(r'$E_{spec}/\Delta E$', fontsize = 16)
+            #     ax[0].set_ylabel(r'$\log_{10}$(dM/d$E_{spec}$)', fontsize = 16)
+            #     ax[0].set_xlim(np.min(bins_edges),np.max(bins_edges))
+            #     ax[0].set_ylim(1e-18,6e-14)#(1e-8, 4e-2)
+            #     ax[0].set_yscale('log')
+            #     ax[0].legend()
+
+            #     img = ax[1].scatter(X_mid, Y_mid, c = np.log10(Den_mid), s = .1, cmap = 'jet', vmin = -11, vmax = -6)
+            #     cbar = plt.colorbar(img)
+            #     cbar.set_label(r'$\log_{10}$ Density', fontsize = 16)
+            #     ax[1].set_xlim(-5,5)#(-500,100)
+            #     ax[1].set_ylim(-10,10)#(-200,50)
+            #     ax[1].set_xlabel(r'X [$R_\odot$]', fontsize = 18)
+            #     ax[1].set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
+
+            #     plt.suptitle(f'check: {check}, ' + r't/t$_{fb}$ = ' + str(np.round(tfb,3)), fontsize = 16)
+            #     plt.tight_layout()
+            #     if save:
+            #         plt.savefig(f'{saving_fig}/EnM_{snap}.png')
+            #     plt.show()
     
 #%%
 if compare_times:
-    times = [0.1, 0.2, 0.5, 0.7]
-    colorsL = ['k', 'b', 'dodgerblue', 'slateblue']
-    colorsM = ['maroon', 'r', 'orange', 'gold']
-    markers = ['o', 's', 'v', 'd']
+    times = [0.05, 0.52, 0.75, 0.86]
+    colorsL = ['k', 'b', 'dodgerblue', 'slateblue', 'skyblue']
+    colorsM = ['maroon', 'r', 'coral', 'orange', 'gold']
+    markers = ['o', 's', 'v', 'd', 'p']
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
     for i, time_chosen in enumerate(times):
         data = np.loadtxt(f'{abspath}data/{folder}/dMdE/dMdE_time{time_chosen}.txt')
@@ -154,9 +157,14 @@ if compare_times:
         dataL = data[1]
         dataMiddle = data[2]
 
-        ax1.scatter(bin_plot, dataL, c = colorsL[i], marker=markers[i], s = 50, label = f'Low, {time_chosen}' + r't/t$_{fb}$')
-        ax1.scatter(bin_plot, dataMiddle, c = colorsM[i], marker=markers[i], s = 25, label = f'High, {time_chosen}' + r't/t$_{fb}$')
-        ax2.plot(bin_plot, np.abs(1-dataL/dataMiddle), c = colorsM[i], label = f'{time_chosen}' + r't/t$_{fb}$')
+        if i == 0:
+            ax1.plot(bin_plot, dataL, c = colorsL[i], alpha = 0.5, label = f'Initial')
+            # ax1.plot(bin_plot, dataMiddle, c = colorsM[i], linestyle = '--', alpha = 0.5, label = f'High, {time_chosen}' + r't/t$_{fb}$')
+            # ax2.plot(bin_plot, np.abs(1-dataL/dataMiddle), c = colorsM[i], alpha = 0.5, label = f'{time_chosen}' + r't/t$_{fb}$')
+        else:
+            ax1.scatter(bin_plot, dataL, c = colorsL[i], marker=markers[i], s = 50, label = f'Low, {time_chosen}' + r't/t$_{fb}$')
+            ax1.scatter(bin_plot, dataMiddle, c = colorsM[i], marker=markers[i], s = 25, label = f'High, {time_chosen}' + r't/t$_{fb}$')
+            ax2.plot(bin_plot, np.abs(1-dataL/dataMiddle), c = colorsM[i], label = f'{time_chosen}' + r't/t$_{fb}$')
     
     ax2.set_xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
     ax1.set_ylabel('dM/dE', fontsize = 16)
