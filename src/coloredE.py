@@ -64,13 +64,13 @@ elif xaxis == 'radii':
                     num=200)  # simulator units
     
 for i,snap in enumerate(snaps):
-    print(snap)
     if alice:
         if check == 'Low':
             check = ''
-        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}/snap_{snap}'
+        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}{step}/snap_{snap}'
     else:
-        path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
+        path = f'/Users/paolamartire/shocks/TDE/{folder}{check}{step}/{snap}'
+    print(path, snap)
     data = make_tree(path, snap, energy = True)
     Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))
     vel = np.sqrt(np.power(data.VX, 2) + np.power(data.VY, 2) + np.power(data.VZ, 2))
