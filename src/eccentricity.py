@@ -52,11 +52,10 @@ def specific_j(r, vel):
     magnitude_j = np.linalg.norm(j)
     return magnitude_j
 
-def eccentricity(r, vel, mstar, G, c, Mbh):
-    OE = orb.orbital_energy(r, vel, mstar, G, c, Mbh)
+def eccentricity(r, vel, OE, mstar, G, c, Mbh):
     specific_OE = OE / mstar
     j = specific_j(r, vel)
-    ecc = np.sqrt(1 + 2 * specific_OE * j**2 / (G * mstar**2))
+    ecc = np.sqrt(1 + 2 * np.abs(specific_OE) * j**2 / (G * mstar**2))
     return ecc
 
 if __name__ == '__main__':
@@ -74,13 +73,14 @@ if __name__ == '__main__':
         data = make_tree(path, snap, energy = True)
         R_vec = np.transpose(np.array([data.X, data.Y, data.Z]))
         vel_vec = np.transpose(np.array([data.VX, data.VY, data.VZ]))
-        Rsph = np.linalg.norm(R_vec)
-        vel = np.linalg.norm(vel_vec)
-        orb_en = orb.orbital_energy(Rsph, vel, data.M, G, c, Mbh)
-        ecc = eccentricity(R_vec, vel_vec, mstar, G, c, Mbh)
+        Rsph = np.linalg.norm(R_vec, axis = 1)
+        vel = np.linalg.norm(vel_vec, axis=1)
+        orb_en = orb.orbital_energy(Rsph, vel, data.Mass, G, c, Mbh)
+        ecc = eccentricity(R_vec, vel_vec, orb_en, mstar, G, c, Mbh)
 
         # throw fluff (cut from Konstantinos) and unbound material
         cut = np.logical_and(data.Den > 1e-12, orb_en < 0)
+        print(np.shape(Rsph), np.shape(data.Mass), np.shape(ecc))
         Rsph_cut, mass_cut, ecc_cut = sec.make_slices([Rsph, data.Mass, ecc], cut)
         ecc_cast = single_branch(radii,'radii', Rsph, ecc_cut, weights = mass_cut)
 
