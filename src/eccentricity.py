@@ -80,9 +80,8 @@ if __name__ == '__main__':
 
         # throw fluff (cut from Konstantinos) and unbound material
         cut = np.logical_and(data.Den > 1e-12, orb_en < 0)
-        print(np.shape(Rsph), np.shape(data.Mass), np.shape(ecc))
         Rsph_cut, mass_cut, ecc_cut = sec.make_slices([Rsph, data.Mass, ecc], cut)
-        ecc_cast = single_branch(radii,'radii', Rsph, ecc_cut, weights = mass_cut)
+        ecc_cast = single_branch(radii,'radii', Rsph_cut, ecc_cut, weights = mass_cut)
 
         col_ecc.append(ecc_cast)
 
