@@ -118,27 +118,27 @@ for snap in snaps:
     if alice:
         prepath = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'#f'/data1/martirep/shocks'
     else: 
-        prepath = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}/'
+        prepath = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
     file = f'{prepath}/snap_{snap}.h5'
     print(file)
     X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Entropy = extractor(file)
 
     #%%
     # Save to another file.
-    np.save(f'{prepath}CMx_{snap}', X)   
-    np.save(f'{prepath}CMy_{snap}', Y) 
-    np.save(f'{prepath}CMz_{snap}', Z) 
-    np.save(f'{prepath}Den_{snap}', Den)
-    np.save(f'{prepath}Vx_{snap}', Vx)   
-    np.save(f'{prepath}Vy_{snap}', Vy) 
-    np.save(f'{prepath}Vz_{snap}', Vz)
-    np.save(f'{prepath}Vol_{snap}', Vol)
-    np.save(f'{prepath}Mass_{snap}', Mass)   
-    np.save(f'{prepath}IE_{snap}', IE) 
-    np.save(f'{prepath}T_{snap}', T)
-    np.save(f'{prepath}P_{snap}', P) 
-    np.save(f'{prepath}Star_{snap}', Star) 
-    np.save(f'{prepath}Entropy_{snap}', Entropy) 
-    np.save(f'{prepath}Rad_{snap}', Erad) 
+    np.save(f'{prepath}/CMx_{snap}', X)   
+    np.save(f'{prepath}/CMy_{snap}', Y) 
+    np.save(f'{prepath}/CMz_{snap}', Z) 
+    np.save(f'{prepath}/Den_{snap}', Den)
+    np.save(f'{prepath}/Vx_{snap}', Vx)   
+    np.save(f'{prepath}/Vy_{snap}', Vy) 
+    np.save(f'{prepath}/Vz_{snap}', Vz)
+    np.save(f'{prepath}/Vol_{snap}', Vol)
+    np.save(f'{prepath}/Mass_{snap}', Mass)   
+    np.save(f'{prepath}/IE_{snap}', IE) 
+    np.save(f'{prepath}/T_{snap}', T)
+    np.save(f'{prepath}/P_{snap}', P) 
+    np.save(f'{prepath}/Star_{snap}', Star) 
+    np.save(f'{prepath}/Entropy_{snap}', Entropy) 
+    np.save(f'{prepath}/Rad_{snap}', Erad) 
     print('Done')
                 
