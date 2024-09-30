@@ -35,7 +35,8 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+step = 'DoubleRad'
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{step}'
 
 check = 'Low'
 xaxis = 'radii' # radii or angles
@@ -52,7 +53,7 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 col_ie = []
 col_orb_en = []
 col_Rad = []
-col_Rad_cut = []
+col_Rad_samecut = []
 
 if xaxis == 'angles':
     from Utilities.operators import Ryan_sampler
@@ -87,32 +88,35 @@ for i,snap in enumerate(snaps):
 
     # throw fluff
     cut = data.Den > 1e-9 
-    cutfluff = data.Den > 1e-19
+    cutsmall = data.Den > 1e-19
     Rsph_cut, theta_cut, mass_cut, ie_cut, ie_onmass_cut, orb_en_cut, orb_en_onmass_cut, Rad_cut, Rad_den_cut, vol_cut = \
             sec.make_slices([Rsph, theta, mass, ie, ie_onmass, orb_en, orb_en_onmass, Rad, Rad_den, vol], cut)
-    Rad_nofluff, Rad_den_nofluff, vol_nofluff = sec.make_slices([Rad, Rad_den, vol], cutfluff)
+    Rsph_cutsmall, theta_cutsmall, Rad_cutsmall, Rad_den_cutsmall, vol_cutsmall = \
+        sec.make_slices([Rsph, theta, Rad, Rad_den, vol], cutsmall)
+
     if xaxis == 'angles':
         tocast_cut = theta_cut
-        tocast_nofluff = theta[cutfluff] 
+        tocast_cutsmall = theta_cutsmall
     elif xaxis == 'radii':
         tocast_cut = Rsph_cut
-        tocast_nofluff = Rsph[cutfluff] 
+        tocast_cutsmall = Rsph_cutsmall
         
     # Cast down 
-    # ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
-    # orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
-    # Rad_cast = single_branch(radii, xaxis, tocast_nofluff, Rad_den_nofluff, weights = vol_nofluff)
-    # Rad_cut_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = vol_cut)
-    ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = ie_cut)
-    orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = orb_en_cut)
-    Rad_cast = single_branch(radii, xaxis, tocast_nofluff, Rad_den_nofluff, weights = Rad_nofluff)
-    Rad_cut_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = Rad_cut)
+    ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
+    orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
+    Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = vol_cutsmall)
+    Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = vol_cut)
+    # ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = ie_cut)
+    # orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = orb_en_cut)
+    # Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = Rad_cutsmall)
+    # Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = Rad_cut)
 
     col_ie.append(ie_cast)
     col_orb_en.append(orb_en_cast)
-    col_Rad.append(Rad_cast)
-    # we try the higher cut, but it shouldn't be
-    col_Rad_cut.append(Rad_cut_cast)
+    # just cut the very low fluff
+    col_Rad.append(Rad_castsmall)
+    # same cut as the other energies
+    col_Rad_samecut.append(Rad_cast)
 
 #%%
 if save:
@@ -122,7 +126,7 @@ if save:
         prepath = f'/data1/martirep/shocks/shock_capturing/'
     else: 
         prepath = f'/Users/paolamartire/shocks/'
-    np.save(f'{prepath}/data/{folder}/coloredE_{check}_{xaxis}weightE.npy', [col_ie, col_orb_en, col_Rad, col_Rad_cut])
+    np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_samecut])
     with open(f'{prepath}/data/{folder}/coloredE_{check}_days.txt', 'a') as file:
         file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
