@@ -127,8 +127,8 @@ if save:
     else: 
         prepath = f'/Users/paolamartire/shocks'
     np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_samecut])
-    with open(f'{prepath}/data/{folder}/coloredE_{check}{step}_days.txt', 'a') as file:
-        file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
+    with open(f'{prepath}/data/{folder}/coloredE_{check}{step}_days.txt', 'w') as file:
+        file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
         file.close()
     np.save(f'{prepath}/data/{folder}/{xaxis}En_{check}{step}.npy', radii)
