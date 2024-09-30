@@ -64,13 +64,13 @@ elif xaxis == 'radii':
                     num=200)  # simulator units
     
 for i,snap in enumerate(snaps):
+    print(snap)
     if alice:
         if check == 'Low':
             check = ''
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}{step}/snap_{snap}'
     else:
         path = f'/Users/paolamartire/shocks/TDE/{folder}{check}{step}/{snap}'
-    print(path, snap)
     data = make_tree(path, snap, energy = True)
     Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))
     vel = np.sqrt(np.power(data.VX, 2) + np.power(data.VY, 2) + np.power(data.VZ, 2))
@@ -127,11 +127,11 @@ if save:
     else: 
         prepath = f'/Users/paolamartire/shocks'
     np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_samecut])
-    with open(f'{prepath}/data/{folder}/coloredE_{check}_days.txt', 'a') as file:
+    with open(f'{prepath}/data/{folder}/coloredE_{check}{step}_days.txt', 'a') as file:
         file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
         file.close()
-    np.save(f'{prepath}/data/{folder}/{xaxis}En_{check}.npy', radii)
+    np.save(f'{prepath}/data/{folder}/{xaxis}En_{check}{step}.npy', radii)
 # %% Plotting
 if plot:
     img = plt.pcolormesh(radii, tfb, col_ie,
