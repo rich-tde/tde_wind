@@ -36,7 +36,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 step = 'DoubleRad'
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{step}'
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
 check = 'Low'
 xaxis = 'radii' # radii or angles
@@ -67,9 +67,9 @@ for i,snap in enumerate(snaps):
     if alice:
         if check == 'Low':
             check = ''
-        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}/snap_{snap}'
+        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}{step}/snap_{snap}'
     else:
-        path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
+        path = f'/Users/paolamartire/shocks/TDE/{folder}{check}{step}/{snap}'
     print(path, snap)
     data = make_tree(path, snap, energy = True)
     Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))
