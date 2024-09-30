@@ -38,7 +38,7 @@ compton = 'Compton'
 step = 'DoubleRad'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
-check = 'Low'
+check = 'Low' # 'Low' or 'HiRes'
 xaxis = 'radii' # radii or angles
 save = True
 

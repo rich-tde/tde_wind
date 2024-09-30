@@ -35,9 +35,9 @@ compton = 'Compton'
 step = ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{step}'
 
-check = 'Low'
+check = 'Low' # 'Low' or 'HiRes'
 save = True
-snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) #[100,115,164,199,216]
+snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step, time = True) #[100,115,164,199,216]
 
 Mbh = 10**m
 Rs = 2*G*Mbh / c**2
