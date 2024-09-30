@@ -123,9 +123,9 @@ if save:
     if alice:
         if check == '':
             check = 'Low'
-        prepath = f'/data1/martirep/shocks/shock_capturing/'
+        prepath = f'/data1/martirep/shocks/shock_capturing'
     else: 
-        prepath = f'/Users/paolamartire/shocks/'
+        prepath = f'/Users/paolamartire/shocks'
     np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_samecut])
     with open(f'{prepath}/data/{folder}/coloredE_{check}_days.txt', 'a') as file:
         file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
