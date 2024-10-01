@@ -41,6 +41,9 @@ Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 R0 = 0.6 * Rt
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
+Ecirc = -G*Mbh/(4*Rp)
+norm = Mbh/Rt * (Mbh/Rstar)**(-1/3)
+
 
 #
 ## MAIN
@@ -62,7 +65,6 @@ save = True
 if do_dMdE:
     checks = ['Low','HiRes'] # 'Low' or 'HiRes' 
     snaps = ['80', '164', '199', '216']
-    norm = Mbh/Rt * (Mbh/Rstar)**(-1/3)
     print('Normalization for energy:', norm)
 
     for check in checks:
@@ -146,13 +148,19 @@ if do_dMdE:
     
 #%%
 if compare_times:
+    tails = 'Tails'
+    exppl = 1.5
+    exppl3 = -1.5
+    xarratpl = np.arange(0.1,20)
+    yarratpl2 = xarratpl**(exppl)
+    yarratpl3 = xarratpl**(exppl3)
     times = [0.05, 0.52, 0.75, 0.86]
     colorsL = ['k', 'b', 'dodgerblue', 'slateblue', 'skyblue']
     colorsM = ['maroon', 'r', 'coral', 'orange', 'gold']
     markers = ['o', 's', 'v', 'd', 'p']
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
     for i, time_chosen in enumerate(times):
-        data = np.loadtxt(f'{abspath}data/{folder}/dMdE/dMdE_time{time_chosen}.txt')
+        data = np.loadtxt(f'{abspath}data/{folder}/dMdE/{tails}/dMdE_time{time_chosen}.txt')
         bin_plot = data[0]
         dataL = data[1]
         dataMiddle = data[2]
@@ -166,6 +174,10 @@ if compare_times:
             ax1.scatter(bin_plot, dataMiddle, c = colorsM[i], marker=markers[i], s = 25, label = f'High, {time_chosen}' + r't/t$_{fb}$')
             ax2.plot(bin_plot, np.abs(1-dataL/dataMiddle), c = colorsM[i], label = f'{time_chosen}' + r't/t$_{fb}$')
     
+    if tails == 'Tails':
+        ax1.plot(xarratpl-20, yarratpl2*1e-11, c = 'olive', linestyle = '--', alpha = 0.5, label = f'power law exp: {exppl}')
+        ax1.plot(xarratpl, yarratpl3*1e-10, c = 'b', linestyle = '--', alpha = 0.5, label = f'power law exp: {exppl3}')
+        ax1.axvline(Ecirc/norm, color = 'k', alpha = 0.5, linestyle = '--', label = r'$E_{circ}/\Delta E$')
     ax2.set_xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
     ax1.set_ylabel('dM/dE', fontsize = 16)
     ax2.set_ylabel(r'$|$1-Low/High$|$', fontsize = 16)
@@ -175,7 +187,7 @@ if compare_times:
     ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
     ax2.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
     if save:
-        plt.savefig(f'{abspath}Figs/{folder}/multiple/dMdE_times.png')
+        plt.savefig(f'{abspath}Figs/{folder}/multiple/dMdE{tails}_times.png')
     plt.show()
 
 #%%

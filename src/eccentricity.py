@@ -41,7 +41,6 @@ check = 'Low' # 'Low' or 'HiRes'
 save = True
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step, time = True) #[100,115,164,199,216]
 
-Mbh = 10**m
 Rs = 2*G*Mbh / c**2
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
@@ -56,14 +55,14 @@ def specific_j(r, vel):
 
 def eccentricity(r, vel, specOE, Mbh, G):
     j = specific_j(r, vel)
-    ecc = np.sqrt(1 + 2 * specOE * j**2 / (G * Mbh)**2)
-    return ecc
+    ecc2 = 1 + 2 * specOE * j**2 / (G * Mbh)**2
+    return ecc2
 
 if __name__ == '__main__':
     if alice: 
         col_ecc = []
-        radii = np.logspace(np.log10(0.4*Rt), np.log10(apo),
-                        num=100) 
+        radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
+                        num=200) 
         for i,snap in enumerate(snaps):
             print(snap)
             if alice:
@@ -82,7 +81,7 @@ if __name__ == '__main__':
             ecc = eccentricity(R_vec, vel_vec, spec_orb_en, Mbh, G)
 
             # throw fluff (cut from Konstantinos) and unbound material
-            cut = np.logical_and(data.Den > 1e-12, orb_en < 0)
+            cut = orb_en < 0#np.logical_and(data.Den > 1e-12, orb_en < 0)
             Rsph_cut, mass_cut, ecc_cut = sec.make_slices([Rsph, data.Mass, ecc], cut)
             ecc_cast = single_branch(radii,'radii', Rsph_cut, ecc_cut, weights = mass_cut)
             print(np.min(orb_en[cut]))
