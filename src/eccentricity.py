@@ -52,10 +52,9 @@ def specific_j(r, vel):
     magnitude_j = np.linalg.norm(j, axis = 1)
     return magnitude_j
 
-def eccentricity(r, vel, OE, G, mstar, Mbh):
-    specific_OE = OE / mstar
+def eccentricity(r, vel, specOE, Mbh, G):
     j = specific_j(r, vel)
-    ecc = np.sqrt(1 + 2 * specific_OE * j**2 / (G * Mbh)**2)
+    ecc = np.sqrt(1 + 2 * specOE * j**2 / (G * Mbh)**2)
     return ecc
 
 if __name__ == '__main__':
@@ -77,7 +76,8 @@ if __name__ == '__main__':
             Rsph = np.linalg.norm(R_vec, axis = 1)
             vel = np.linalg.norm(vel_vec, axis=1)
             orb_en = orb.orbital_energy(Rsph, vel, data.Mass, G, c, Mbh)
-            ecc = eccentricity(R_vec, vel_vec, orb_en, G, mstar, Mbh)
+            spec_orb_en = orb_en / data.Mass
+            ecc = eccentricity(R_vec, vel_vec, spec_orb_en, Mbh, G)
 
             # throw fluff (cut from Konstantinos) and unbound material
             cut = np.logical_and(data.Den > 1e-12, orb_en < 0)
@@ -117,7 +117,7 @@ if __name__ == '__main__':
         path = f'/Users/paolamartire/shocks/data/{folder}/ecc'
         # Low data
         eccLow = np.load(f'{path}/Ecc_Low.npy') 
-        plt.plot(eccLow[100])
+        plt.plot(eccLow[0])
         tfb_dataLow = np.loadtxt(f'{path}/Ecc_Low_days.txt')
         snap_Low, tfb_Low = tfb_dataLow[0], tfb_dataLow[1]
         radiiLow = np.load(f'{path}/radiiEcc_Low.npy')
@@ -135,17 +135,20 @@ if __name__ == '__main__':
 
         fig, ax = plt.subplots(1,3, figsize = (14,8))
         # Low
-        img = ax[0].pcolormesh(radiiLow/apo, tfb_Low, eccLow, vmin = 0, vmax = 1, cmap = 'jet')
+        img = ax[0].pcolormesh(radiiLow/apo, tfb_Low, eccLow, vmin = 0.75, vmax = 1, cmap = 'jet')
         cb = fig.colorbar(img)
+        ax[0].set_xscale('log')
         cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
-        ax[0].text(np.min(radiiLow/apo), 0.1,'Low res', fontsize = 20)
+        # ax[0].text(np.min(radiiLow/apo), 0.1,'Low res', fontsize = 20)
 
-        img = ax[1].pcolormesh(radiiHiRes/apo, tfb_HiRes, eccHiRes, vmin = 0, vmax = 1, cmap = 'jet')
+        img = ax[1].pcolormesh(radiiHiRes/apo, tfb_HiRes, eccHiRes, vmin = 0.75, vmax = 1, cmap = 'jet')
         cb = fig.colorbar(img)
         cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
-        ax[1].text(np.min(radiiHiRes/apo), 0.1,'High res', fontsize = 20)
+        ax[1].set_xscale('log')
+        # ax[1].text(np.min(radiiHiRes/apo), 0.1,'High res', fontsize = 20)
 
         img = ax[2].pcolormesh(radiiLow/apo, tfb_Low, rel_diff, cmap = 'inferno')
         cb = fig.colorbar(img)
-        cb.set_label(r'$|$ 1-L/H $|$', fontsize = 20, labelpad = 2)
+        ax[2].set_xscale('log')
+        # cb.set_label(r'$|$ 1-L/H $|$', fontsize = 20, labelpad = 2)
 
