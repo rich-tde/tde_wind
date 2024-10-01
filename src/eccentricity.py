@@ -99,7 +99,7 @@ if __name__ == '__main__':
                 file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
                 file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
                 file.close()
-            np.save(f'{prepath}/data/{folder}/Ecc_{check}{step}.npy', radii)
+            np.save(f'{prepath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
     
     else:
         # test = []
@@ -130,6 +130,7 @@ if __name__ == '__main__':
         snap_Low = snap_Low[:n_HiRes]
         tfb_Low = tfb_Low[:n_HiRes]
         eccLow = eccLow[:n_HiRes]
+        rel_diff = np.abs(eccHiRes - eccLow) / eccHiRes
 
         fig, ax = plt.subplots(1,3, figsize = (14,8))
         # Low
@@ -141,10 +142,9 @@ if __name__ == '__main__':
         img = ax[1].pcolormesh(radiiHiRes/apo, tfb_HiRes, eccHiRes, vmin = 0, vmax = 1, cmap = 'viridis')
         cb = fig.colorbar(img)
         cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
-        ax[1].text(np.min(radiiHiRes/apo), 0.1,'Low res', fontsize = 20)
+        ax[1].text(np.min(radiiHiRes/apo), 0.1,'High res', fontsize = 20)
 
-        # img = ax[2].pcolormesh(radiiLow/apo, tfb_Low, col_Rad, norm=norm_Radsix, cmap = cmap)
-        # cb = fig.colorbar(img)
-        # ax[2].set_title('Radiation energy density', fontsize = 20)
-        # cb.set_label(r'Energy density [erg/cm$^3$]', fontsize = 20, labelpad = 2)
+        img = ax[2].pcolormesh(radiiLow/apo, tfb_Low, rel_diff, cmap = 'inferno')
+        cb = fig.colorbar(img)
+        cb.set_label(r'$|$ 1-L/H $|$', fontsize = 20, labelpad = 2)
 

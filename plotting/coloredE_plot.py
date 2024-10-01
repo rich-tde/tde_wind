@@ -27,8 +27,8 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 ##
 save = False
 xaxis = 'radii'
-res1 = 'HiRes'
-res2 = 'LowDoubleRad' #'HiRes', 'LowDoubleRad'
+res1 = 'Low'
+res2 = 'HiRes' #'HiRes', 'LowDoubleRad'
 if xaxis == 'angles':
     apo = 1
 #
@@ -58,6 +58,7 @@ snap_res2 = tfb_datares2[0]
 tfb_res2 = tfb_datares2[1]
 radiires2 = np.load(f'{path}/{xaxis}En_{res2}.npy')
 col_ieres2, col_orb_enres2, col_Radres2, col_Radres2_nofluff = datares2[0], datares2[1], datares2[2], datares2[3]
+
 # convert to cgs
 col_ieres2 *= prel.en_converter/prel.Msol_to_g
 col_orb_enres2 *= prel.en_converter/prel.Msol_to_g
@@ -279,9 +280,9 @@ print(f'Median relative difference in Radiation energy density t>0.3: {np.round(
 rel_orb_en_forlog = np.copy(rel_orb_en) #you need it for the Log
 rel_ie_forlog = np.copy(rel_ie)
 rel_Rad_forlog = np.copy(rel_Rad)
-rel_orb_en_forlog[rel_orb_en_forlog<=0] = 1 #you need it for the Log
-rel_ie_forlog[rel_ie_forlog<=0] =1
-rel_Rad_forlog[rel_Rad_forlog<=0] = 1
+rel_orb_en_forlog[rel_orb_en_forlog==0] = 1 #you need it for the Log
+rel_ie_forlog[rel_ie_forlog==0] =1
+rel_Rad_forlog[rel_Rad_forlog==0] = 1
 
 cmap = plt.cm.inferno
 norm_orb_en = colors.LogNorm(vmin=np.percentile(rel_orb_en_forlog[rel_orb_en_forlog!=1], 5), vmax=np.percentile(rel_orb_en_forlog[rel_orb_en_forlog!=1], 95))
