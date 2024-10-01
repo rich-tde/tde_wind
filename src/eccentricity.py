@@ -6,6 +6,8 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 import numpy as np
 import matplotlib.pyplot as plt
+import colorcet
+import matplotlib.colors as colors
 from Utilities.operators import make_tree, single_branch
 import Utilities.sections as sec
 import src.orbits as orb
@@ -60,8 +62,8 @@ def eccentricity(r, vel, specOE, Mbh, G):
 if __name__ == '__main__':
     if alice: 
         col_ecc = []
-        radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
-                        num=200) 
+        radii = np.logspace(np.log10(0.4*Rt), np.log10(apo),
+                        num=100) 
         for i,snap in enumerate(snaps):
             print(snap)
             if alice:
@@ -83,6 +85,7 @@ if __name__ == '__main__':
             cut = np.logical_and(data.Den > 1e-12, orb_en < 0)
             Rsph_cut, mass_cut, ecc_cut = sec.make_slices([Rsph, data.Mass, ecc], cut)
             ecc_cast = single_branch(radii,'radii', Rsph_cut, ecc_cut, weights = mass_cut)
+            print(np.min(orb_en[cut]))
 
             col_ecc.append(ecc_cast)
 
@@ -102,22 +105,10 @@ if __name__ == '__main__':
             np.save(f'{prepath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
     
     else:
-        # test = []
-        # for i in range(3):
-        #     x = np.array([1,0])
-        #     y = np.array([0,1])
-        #     z = np.array([0,0])
-        #     r = np.transpose(np.array([x,y,z]))
-        #     v = np.transpose(np.array([y,x,z]))
-        #     ecc = specific_j(r,v)#eccentricity(r, v, 1, 1, 1, 1, 1)
-        #     test.append(ecc)
-        # print(test)
-
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
         path = f'/Users/paolamartire/shocks/data/{folder}/ecc'
         # Low data
         eccLow = np.load(f'{path}/Ecc_Low.npy') 
-        plt.plot(eccLow[0])
         tfb_dataLow = np.loadtxt(f'{path}/Ecc_Low_days.txt')
         snap_Low, tfb_Low = tfb_dataLow[0], tfb_dataLow[1]
         radiiLow = np.load(f'{path}/radiiEcc_Low.npy')
@@ -131,24 +122,24 @@ if __name__ == '__main__':
         snap_Low = snap_Low[:n_HiRes]
         tfb_Low = tfb_Low[:n_HiRes]
         eccLow = eccLow[:n_HiRes]
-        rel_diff = np.abs(eccHiRes - eccLow) / eccHiRes
+        rel_diff = 2*np.abs(eccHiRes - eccLow) / (eccHiRes+eccLow)
 
-        fig, ax = plt.subplots(1,3, figsize = (14,8))
+        fig, ax = plt.subplots(1,3, figsize = (20,6))
         # Low
-        img = ax[0].pcolormesh(radiiLow/apo, tfb_Low, eccLow, vmin = 0.75, vmax = 1, cmap = 'jet')
+        img = ax[0].pcolormesh(radiiLow/apo, tfb_Low, eccLow, vmin = 0.75, vmax = 1, cmap = 'cet_rainbow4')
         cb = fig.colorbar(img)
         ax[0].set_xscale('log')
         cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
         # ax[0].text(np.min(radiiLow/apo), 0.1,'Low res', fontsize = 20)
 
-        img = ax[1].pcolormesh(radiiHiRes/apo, tfb_HiRes, eccHiRes, vmin = 0.75, vmax = 1, cmap = 'jet')
+        img = ax[1].pcolormesh(radiiHiRes/apo, tfb_HiRes, eccHiRes, vmin = 0.75, vmax = 1, cmap = 'cet_rainbow4')
         cb = fig.colorbar(img)
         cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
         ax[1].set_xscale('log')
         # ax[1].text(np.min(radiiHiRes/apo), 0.1,'High res', fontsize = 20)
 
-        img = ax[2].pcolormesh(radiiLow/apo, tfb_Low, rel_diff, cmap = 'inferno')
+        img = ax[2].pcolormesh(radiiLow/apo, tfb_Low, rel_diff, cmap = 'plasma', norm = colors.LogNorm(vmin = 1e-4, vmax=1e-1))
         cb = fig.colorbar(img)
         ax[2].set_xscale('log')
-        # cb.set_label(r'$|$ 1-L/H $|$', fontsize = 20, labelpad = 2)
+        cb.set_label(r'Relative difference', fontsize = 20, labelpad = 2)
 

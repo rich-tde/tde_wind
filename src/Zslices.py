@@ -83,7 +83,6 @@ for idx, snap in enumerate(snaps):
             sec.make_slices([data.X, data.Y, data.Z, dim_cell, data.Den, ie_onmass, orb_en_onmass, Rad_den], cut)
         # make slices for data with density cut
         midplane_cut = np.abs(z_cut) < dim_cut
-        # xz_cut = np.abs(y_cut) < dim_cut
         x_cut_mid, y_cut_mid, den_cut_mid, ie_onmass_cut_mid, orb_en_onmass_cut_mid, Rad_den_cut_mid = \
             sec.make_slices([x_cut, y_cut, den_cut, ie_onmass_cut, orb_en_onmass_cut, Rad_den_cut], midplane_cut)
         # make slices for radiation
