@@ -52,10 +52,10 @@ def specific_j(r, vel):
     magnitude_j = np.linalg.norm(j, axis = 1)
     return magnitude_j
 
-def eccentricity(r, vel, OE, mstar, G, c, Mbh):
+def eccentricity(r, vel, OE, G, Mbh):
     specific_OE = OE / mstar
     j = specific_j(r, vel)
-    ecc = np.sqrt(1 + 2 * np.abs(specific_OE) * j**2 / (G * mstar**2))
+    ecc = np.sqrt(1 + 2 * specific_OE * j**2 / (G * Mbh)**2)
     return ecc
 
 if __name__ == '__main__':
@@ -109,7 +109,7 @@ if __name__ == '__main__':
         #     z = np.array([0,0])
         #     r = np.transpose(np.array([x,y,z]))
         #     v = np.transpose(np.array([y,x,z]))
-        #     ecc = eccentricity(r, v, 1, 1, 1, 1, 1)
+        #     ecc = specific_j(r,v)#eccentricity(r, v, 1, 1, 1, 1, 1)
         #     test.append(ecc)
         # print(test)
 
@@ -117,6 +117,7 @@ if __name__ == '__main__':
         path = f'/Users/paolamartire/shocks/data/{folder}/ecc'
         # Low data
         eccLow = np.load(f'{path}/Ecc_Low.npy') 
+        plt.plot(eccLow[100])
         tfb_dataLow = np.loadtxt(f'{path}/Ecc_Low_days.txt')
         snap_Low, tfb_Low = tfb_dataLow[0], tfb_dataLow[1]
         radiiLow = np.load(f'{path}/radiiEcc_Low.npy')
@@ -134,12 +135,12 @@ if __name__ == '__main__':
 
         fig, ax = plt.subplots(1,3, figsize = (14,8))
         # Low
-        img = ax[0].pcolormesh(radiiLow/apo, tfb_Low, eccLow, vmin = 0, vmax = 1, cmap = 'viridis')
+        img = ax[0].pcolormesh(radiiLow/apo, tfb_Low, eccLow, vmin = 0, vmax = 1, cmap = 'jet')
         cb = fig.colorbar(img)
         cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
         ax[0].text(np.min(radiiLow/apo), 0.1,'Low res', fontsize = 20)
 
-        img = ax[1].pcolormesh(radiiHiRes/apo, tfb_HiRes, eccHiRes, vmin = 0, vmax = 1, cmap = 'viridis')
+        img = ax[1].pcolormesh(radiiHiRes/apo, tfb_HiRes, eccHiRes, vmin = 0, vmax = 1, cmap = 'jet')
         cb = fig.colorbar(img)
         cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
         ax[1].text(np.min(radiiHiRes/apo), 0.1,'High res', fontsize = 20)
