@@ -61,6 +61,7 @@ def eccentricity(r, vel, specOE, Mbh, G):
 if __name__ == '__main__':
     if alice: 
         col_ecc = []
+        col_Rsph = []
         radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
                         num=200) 
         for i,snap in enumerate(snaps):
@@ -81,12 +82,12 @@ if __name__ == '__main__':
             ecc = eccentricity(R_vec, vel_vec, spec_orb_en, Mbh, G)
 
             # throw fluff (cut from Konstantinos) and unbound material
-            cut = orb_en < 0#np.logical_and(data.Den > 1e-12, orb_en < 0)
+            cut = np.logical_and(data.Den > 1e-12, orb_en < 0)
             Rsph_cut, mass_cut, ecc_cut = sec.make_slices([Rsph, data.Mass, ecc], cut)
-            ecc_cast = single_branch(radii,'radii', Rsph_cut, ecc_cut, weights = mass_cut)
-            print(np.min(orb_en[cut]))
-
-            col_ecc.append(ecc_cast)
+            # ecc_cast = single_branch(radii,'radii', Rsph_cut, ecc_cut, weights = mass_cut)
+            # col_ecc.append(ecc_cast)
+            col_Rsph.append(Rsph_cut)
+            col_ecc.append(ecc_cut)
 
         if save:
             if alice:
@@ -96,12 +97,13 @@ if __name__ == '__main__':
             else: 
                 prepath = f'/Users/paolamartire/shocks'
             print('shape col_ecc', np.shape(col_ecc))
-            np.save(f'{prepath}/data/{folder}/Ecc_{check}{step}.npy', col_ecc)
+            # np.save(f'{prepath}/data/{folder}/Ecc_{check}{step}.npy', col_ecc)
+            np.save(f'{prepath}/data/{folder}/scatterEcc_{check}{step}.npy', [col_ecc, Rsph_cut])
             with open(f'{prepath}/data/{folder}/Ecc_{check}{step}_days.txt', 'w') as file:
                 file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
                 file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
                 file.close()
-            np.save(f'{prepath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
+            # np.save(f'{prepath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
     
     else:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
@@ -128,12 +130,12 @@ if __name__ == '__main__':
         img = ax[0].pcolormesh(radiiLow/apo, tfb_Low, eccLow, vmin = 0.75, vmax = 1, cmap = 'cet_rainbow4')
         cb = fig.colorbar(img)
         ax[0].set_xscale('log')
-        cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
+        cb.set_label(r'Eccentricity squared', fontsize = 20, labelpad = 2)
         # ax[0].text(np.min(radiiLow/apo), 0.1,'Low res', fontsize = 20)
 
         img = ax[1].pcolormesh(radiiHiRes/apo, tfb_HiRes, eccHiRes, vmin = 0.75, vmax = 1, cmap = 'cet_rainbow4')
         cb = fig.colorbar(img)
-        cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
+        cb.set_label(r'Eccentricity squared', fontsize = 20, labelpad = 2)
         ax[1].set_xscale('log')
         # ax[1].text(np.min(radiiHiRes/apo), 0.1,'High res', fontsize = 20)
 
