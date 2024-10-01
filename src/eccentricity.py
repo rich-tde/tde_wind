@@ -93,7 +93,8 @@ if __name__ == '__main__':
                 prepath = f'/data1/martirep/shocks/shock_capturing'
             else: 
                 prepath = f'/Users/paolamartire/shocks'
-            np.save(f'{prepath}/data/{folder}/Ecc_{check}{step}.npy', [col_ecc])
+            print('shape col_ecc', np.shape(col_ecc))
+            np.save(f'{prepath}/data/{folder}/Ecc_{check}{step}.npy', col_ecc)
             with open(f'{prepath}/data/{folder}/Ecc_{check}{step}_days.txt', 'w') as file:
                 file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
                 file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
@@ -101,6 +102,17 @@ if __name__ == '__main__':
             np.save(f'{prepath}/data/{folder}/Ecc_{check}{step}.npy', radii)
     
     else:
+        # test = []
+        # for i in range(3):
+        #     x = np.array([1,0])
+        #     y = np.array([0,1])
+        #     z = np.array([0,0])
+        #     r = np.transpose(np.array([x,y,z]))
+        #     v = np.transpose(np.array([y,x,z]))
+        #     ecc = eccentricity(r, v, 1, 1, 1, 1, 1)
+        #     test.append(ecc)
+        # print(test)
+
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
         path = f'/Users/paolamartire/shocks/data/{folder}/ecc'
         # Low data
