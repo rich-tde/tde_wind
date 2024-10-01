@@ -26,7 +26,7 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 ## DECISIONS
 ##
 save = False
-xaxis = 'angles'
+xaxis = 'radii'
 if xaxis == 'angles':
     apo = 1
 #
@@ -72,6 +72,7 @@ abs_col_orb_enMiddle = np.abs(col_orb_enMiddle)
 
 # Consider Low data only up to the time of the Middle data
 n_Middle = len(col_ieMiddle)
+print(np.shape(col_ieMiddle))
 snap_Low = snap_Low[:n_Middle]
 tfb_Low = tfb_Low[:n_Middle]
 col_ie = col_ie[:n_Middle]
