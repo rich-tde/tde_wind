@@ -28,7 +28,7 @@ G = 1
 ##
 # PARAMETERS
 ##
-save = True
+save = False
 
 m = 4
 Mbh = 10**m
@@ -194,13 +194,18 @@ cumH = np.arange(len(massHhist))/len(massHhist)
 cumL = np.arange(len(massLhist))/len(massLhist)
 cumdimH = np.arange(len(dim_cellHhist))/len(dim_cellHhist)
 cumdimL = np.arange(len(dim_cellLhist))/len(dim_cellLhist)
+deltaMass = np.max(massLhist) - np.max(massHhist)
+deltaDim = np.max(dim_cellLhist) - np.max(dim_cellHhist)
+
+massHhistshifted = massHhist + deltaMass
+dim_cellHhistshifted = dim_cellHhist + deltaDim
 
 fig, (ax1, ax2) = plt.subplots(1,2, figsize = (14,6))
 # grazie Sill
-ax1.plot(massHhist, cumH, color = 'mediumpurple', label = 'High res')
+ax1.plot(massHhistshifted, cumH, color = 'mediumpurple', label = 'High res')
 ax1.plot(massLhist, cumL, color = 'orange', label = 'Low res')
-ax2.plot(dim_cellHhist, cumdimH, color = 'mediumpurple', label = 'High res')
-ax2.plot(dim_cellLhist, cumdimL, color = 'orange', label = 'Low res')
+ax2.plot(dim_cellHhistshifted, cumdimH, color = 'mediumpurple',  label = 'High res')
+ax2.plot(dim_cellLhist, cumdimL, color = 'orange', linestyle='--',label = 'Low res')
 
 for ax in [ax1, ax2]:
     ax.set_xscale('log')
@@ -209,8 +214,8 @@ for ax in [ax1, ax2]:
 ax1.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 20)
 ax2.set_xlabel(r'Cell size [$R_\odot$]', fontsize = 20)
 ax1.set_ylabel('CDF', fontsize = 25)
-ax1.set_xlim(5e-13, 3e-8)
-ax2.set_xlim(7e-2, 4e-1)
+# ax1.set_xlim(5e-13, 3e-8)
+# ax2.set_xlim(7e-2, 4e-1)
 plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
 if save:
     plt.savefig(f'{abspath}/Figs/{folder}/multiple/compareHistToget_{snap}.png')

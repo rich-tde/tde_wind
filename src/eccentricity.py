@@ -56,12 +56,13 @@ def specific_j(r, vel):
 def eccentricity(r, vel, specOE, Mbh, G):
     j = specific_j(r, vel)
     ecc2 = 1 + 2 * specOE * j**2 / (G * Mbh)**2
-    return ecc2
+    ecc = np.sqrt(ecc2)
+    return ecc
 
 if __name__ == '__main__':
     if alice: 
         col_ecc = []
-        col_Rsph = []
+        # col_Rsph = []
         radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
                         num=200) 
         for i,snap in enumerate(snaps):
@@ -84,10 +85,11 @@ if __name__ == '__main__':
             # throw fluff (cut from Konstantinos) and unbound material
             cut = np.logical_and(data.Den > 1e-12, orb_en < 0)
             Rsph_cut, mass_cut, ecc_cut = sec.make_slices([Rsph, data.Mass, ecc], cut)
-            # ecc_cast = single_branch(radii,'radii', Rsph_cut, ecc_cut, weights = mass_cut)
-            # col_ecc.append(ecc_cast)
-            col_Rsph.append(Rsph_cut)
-            col_ecc.append(ecc_cut)
+            ecc_cast = single_branch(radii,'radii', Rsph_cut, ecc_cut, weights = mass_cut)
+
+            col_ecc.append(ecc_cast)
+            # col_Rsph.append(Rsph_cut)
+            # col_ecc.append(ecc_cut)
 
         if save:
             if alice:
@@ -97,13 +99,13 @@ if __name__ == '__main__':
             else: 
                 prepath = f'/Users/paolamartire/shocks'
             print('shape col_ecc', np.shape(col_ecc))
-            # np.save(f'{prepath}/data/{folder}/Ecc_{check}{step}.npy', col_ecc)
-            np.save(f'{prepath}/data/{folder}/scatterEcc_{check}{step}.npy', [col_ecc, Rsph_cut])
+            np.save(f'{prepath}/data/{folder}/Ecc_{check}{step}.npy', col_ecc)
+            # np.save(f'{prepath}/data/{folder}/scatterEcc_{check}{step}.npy', [col_ecc, Rsph_cut])
             with open(f'{prepath}/data/{folder}/Ecc_{check}{step}_days.txt', 'w') as file:
                 file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
                 file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
                 file.close()
-            # np.save(f'{prepath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
+            np.save(f'{prepath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
     
     else:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
@@ -118,6 +120,13 @@ if __name__ == '__main__':
         tfb_dataHiRes = np.loadtxt(f'{path}/Ecc_HiRes_days.txt')
         snap_HiRes, tfb_HiRes = tfb_dataHiRes[0], tfb_dataHiRes[1]
         radiiHiRes = np.load(f'{path}/radiiEcc_HiRes.npy')
+
+        # scatterL = np.load(f'{path}/scatterEcc_Low.npy')
+        # ecc, Rsph = scatterL[0], scatterL[1]
+        # tarrmatrix = []
+        # for i in range(len(tfb_Low)):
+        #     tarrmatrix.append(np.ones(len(Rsph))*tfb_Low[i])
+        # plt.scatter(Rsph, ecc, c = tarrmatrix, cmap = 'cet_rainbow4')
 
         n_HiRes = len(eccHiRes)
         snap_Low = snap_Low[:n_HiRes]
