@@ -52,7 +52,7 @@ def specific_j(r, vel):
     magnitude_j = np.linalg.norm(j, axis = 1)
     return magnitude_j
 
-def eccentricity(r, vel, OE, G, Mbh):
+def eccentricity(r, vel, OE, G, mstar, Mbh):
     specific_OE = OE / mstar
     j = specific_j(r, vel)
     ecc = np.sqrt(1 + 2 * specific_OE * j**2 / (G * Mbh)**2)
@@ -77,7 +77,7 @@ if __name__ == '__main__':
             Rsph = np.linalg.norm(R_vec, axis = 1)
             vel = np.linalg.norm(vel_vec, axis=1)
             orb_en = orb.orbital_energy(Rsph, vel, data.Mass, G, c, Mbh)
-            ecc = eccentricity(R_vec, vel_vec, orb_en, mstar, G, c, Mbh)
+            ecc = eccentricity(R_vec, vel_vec, orb_en, G, mstar, Mbh)
 
             # throw fluff (cut from Konstantinos) and unbound material
             cut = np.logical_and(data.Den > 1e-12, orb_en < 0)
