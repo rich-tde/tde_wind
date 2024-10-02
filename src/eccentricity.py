@@ -56,8 +56,7 @@ def specific_j(r, vel):
 def eccentricity(r, vel, specOE, Mbh, G):
     j = specific_j(r, vel)
     ecc2 = 1 + 2 * specOE * j**2 / (G * Mbh)**2
-    ecc = np.sqrt(ecc2)
-    return ecc
+    return ecc2
 
 if __name__ == '__main__':
     if alice: 
@@ -80,7 +79,7 @@ if __name__ == '__main__':
             vel = np.linalg.norm(vel_vec, axis=1)
             orb_en = orb.orbital_energy(Rsph, vel, data.Mass, G, c, Mbh)
             spec_orb_en = orb_en / data.Mass
-            ecc = eccentricity(R_vec, vel_vec, spec_orb_en, Mbh, G)
+            ecc2 = eccentricity(R_vec, vel_vec, spec_orb_en, Mbh, G)
 
             # throw fluff (cut from Konstantinos) and unbound material
             cut = np.logical_and(data.Den > 1e-12, orb_en < 0)
@@ -99,13 +98,14 @@ if __name__ == '__main__':
             else: 
                 prepath = f'/Users/paolamartire/shocks'
             print('shape col_ecc', np.shape(col_ecc))
-            np.save(f'{prepath}/data/{folder}/Ecc_{check}{step}.npy', col_ecc)
-            # np.save(f'{prepath}/data/{folder}/scatterEcc_{check}{step}.npy', [col_ecc, Rsph_cut])
+            np.save(f'{prepath}/data/{folder}/Ecc2_{check}{step}.npy', col_ecc)
             with open(f'{prepath}/data/{folder}/Ecc_{check}{step}_days.txt', 'w') as file:
                 file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
                 file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
                 file.close()
             np.save(f'{prepath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
+            # np.save(f'{prepath}/data/{folder}/scatterEcc_{check}{step}.npy', col_ecc)
+            # np.save(f'{prepath}/data/{folder}/radiiscatterEcc_{check}{step}.npy',Rsph_cut)
     
     else:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
@@ -133,18 +133,18 @@ if __name__ == '__main__':
         tfb_Low = tfb_Low[:n_HiRes]
         eccLow = eccLow[:n_HiRes]
         rel_diff = 2*np.abs(eccHiRes - eccLow) / (eccHiRes+eccLow)
-
+        
         fig, ax = plt.subplots(1,3, figsize = (20,6))
         # Low
         img = ax[0].pcolormesh(radiiLow/apo, tfb_Low, eccLow, vmin = 0.75, vmax = 1, cmap = 'cet_rainbow4')
         cb = fig.colorbar(img)
         ax[0].set_xscale('log')
-        cb.set_label(r'Eccentricity squared', fontsize = 20, labelpad = 2)
+        cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
         # ax[0].text(np.min(radiiLow/apo), 0.1,'Low res', fontsize = 20)
 
         img = ax[1].pcolormesh(radiiHiRes/apo, tfb_HiRes, eccHiRes, vmin = 0.75, vmax = 1, cmap = 'cet_rainbow4')
         cb = fig.colorbar(img)
-        cb.set_label(r'Eccentricity squared', fontsize = 20, labelpad = 2)
+        cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
         ax[1].set_xscale('log')
         # ax[1].text(np.min(radiiHiRes/apo), 0.1,'High res', fontsize = 20)
 
