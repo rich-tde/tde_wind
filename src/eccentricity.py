@@ -7,6 +7,7 @@ alice, plot = isalice()
 import numpy as np
 import matplotlib.pyplot as plt
 import colorcet
+import pickle
 import matplotlib.colors as colors
 from Utilities.operators import make_tree, single_branch
 import Utilities.sections as sec
@@ -61,7 +62,7 @@ def eccentricity(r, vel, specOE, Mbh, G):
 if __name__ == '__main__':
     if alice: 
         col_ecc = []
-        # col_Rsph = []
+        col_Rsph = []
         radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
                         num=200) 
         for i,snap in enumerate(snaps):
@@ -86,9 +87,9 @@ if __name__ == '__main__':
             Rsph_cut, mass_cut, ecc_cut = sec.make_slices([Rsph, data.Mass, ecc2], cut)
             ecc_cast = single_branch(radii,'radii', Rsph_cut, ecc_cut, weights = mass_cut)
 
-            col_ecc.append(ecc_cast)
-            # col_Rsph.append(Rsph_cut)
-            # col_ecc.append(ecc_cut)
+            # col_ecc.append(ecc_cast)
+            col_Rsph.append(Rsph_cut)
+            col_ecc.append(ecc_cut)
 
         if save:
             if alice:
@@ -97,14 +98,16 @@ if __name__ == '__main__':
                 prepath = f'/data1/martirep/shocks/shock_capturing'
             else: 
                 prepath = f'/Users/paolamartire/shocks'
-            np.save(f'{prepath}/data/{folder}/Ecc2_{check}{step}.npy', col_ecc)
+            # np.save(f'{prepath}/data/{folder}/Ecc2_{check}{step}.npy', col_ecc)
             with open(f'{prepath}/data/{folder}/Ecc_{check}{step}_days.txt', 'w') as file:
                 file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
                 file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
                 file.close()
-            np.save(f'{prepath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
-            # np.save(f'{prepath}/data/{folder}/scatterEcc_{check}{step}.npy', col_ecc)
-            # np.save(f'{prepath}/data/{folder}/radiiscatterEcc_{check}{step}.npy', col_Rsph)
+            # np.save(f'{prepath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
+            with open(f'{prepath}/data/{folder}/scatterEcc2_{check}{step}.pkl', 'wb') as f:
+                pickle.dump(col_ecc, f)
+            with open(f'{prepath}/data/{folder}/radiiscatterEcc2_{check}{step}.pkl', 'wb') as frad:
+                pickle.dump(col_Rsph, frad)
     
     else:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
