@@ -43,7 +43,6 @@ xaxis = 'radii' # radii or angles
 save = True
 
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step, time = True) #[100,115,164,199,216]
-print(snaps)
 Mbh = 10**m
 Rs = 2*G*Mbh / c**2
 Rt = Rstar * (Mbh/mstar)**(1/3)
@@ -103,14 +102,14 @@ for i,snap in enumerate(snaps):
         tocast_cutsmall = Rsph_cutsmall
         
     # Cast down 
-    ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
-    orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
-    Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = vol_cutsmall)
-    Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = vol_cut)
-    # ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = ie_cut)
-    # orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = orb_en_cut)
-    # Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = Rad_cutsmall)
-    # Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = Rad_cut)
+    # ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
+    # orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
+    # Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = vol_cutsmall)
+    # Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = vol_cut)
+    ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = ie_cut)
+    orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = orb_en_cut)
+    Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = Rad_cutsmall)
+    Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = Rad_cut)
 
     col_ie.append(ie_cast)
     col_orb_en.append(orb_en_cast)
@@ -127,7 +126,7 @@ if save:
         prepath = f'/data1/martirep/shocks/shock_capturing'
     else: 
         prepath = f'/Users/paolamartire/shocks'
-    np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_samecut])
+    np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}weightE.npy', [col_ie, col_orb_en, col_Rad, col_Rad_samecut])
     with open(f'{prepath}/data/{folder}/coloredE_{check}{step}_days.txt', 'w') as file:
         file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')

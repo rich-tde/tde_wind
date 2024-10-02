@@ -97,7 +97,6 @@ if __name__ == '__main__':
                 prepath = f'/data1/martirep/shocks/shock_capturing'
             else: 
                 prepath = f'/Users/paolamartire/shocks'
-            print('shape col_ecc', np.shape(col_ecc))
             np.save(f'{prepath}/data/{folder}/Ecc2_{check}{step}.npy', col_ecc)
             with open(f'{prepath}/data/{folder}/Ecc_{check}{step}_days.txt', 'w') as file:
                 file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
@@ -105,13 +104,15 @@ if __name__ == '__main__':
                 file.close()
             np.save(f'{prepath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
             # np.save(f'{prepath}/data/{folder}/scatterEcc_{check}{step}.npy', col_ecc)
-            # np.save(f'{prepath}/data/{folder}/radiiscatterEcc_{check}{step}.npy',Rsph_cut)
+            # np.save(f'{prepath}/data/{folder}/radiiscatterEcc_{check}{step}.npy', col_Rsph)
     
     else:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
         path = f'/Users/paolamartire/shocks/data/{folder}/ecc'
         # Low data
-        eccLow = np.load(f'{path}/Ecc_Low.npy') 
+        eccLow = np.load(f'{path}/Ecc_Low.npy')
+        ecc2Low = np.load(f'{path}/Ecc2_Low.npy') 
+        eccLow_from_ecc2 = np.sqrt(ecc2Low)
         tfb_dataLow = np.loadtxt(f'{path}/Ecc_Low_days.txt')
         snap_Low, tfb_Low = tfb_dataLow[0], tfb_dataLow[1]
         radiiLow = np.load(f'{path}/radiiEcc_Low.npy')
