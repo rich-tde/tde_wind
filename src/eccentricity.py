@@ -110,14 +110,17 @@ if __name__ == '__main__':
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
         path = f'/Users/paolamartire/shocks/data/{folder}/ecc'
         # Low data
-        eccLow = np.load(f'{path}/Ecc_Low.npy')
+        # eccLow = np.load(f'{path}/Ecc_Low.npy')
         ecc2Low = np.load(f'{path}/Ecc2_Low.npy') 
+        eccLow = np.sqrt(ecc2Low)
         eccLow_from_ecc2 = np.sqrt(ecc2Low)
         tfb_dataLow = np.loadtxt(f'{path}/Ecc_Low_days.txt')
         snap_Low, tfb_Low = tfb_dataLow[0], tfb_dataLow[1]
         radiiLow = np.load(f'{path}/radiiEcc_Low.npy')
         # HiRes data
-        eccHiRes = np.load(f'{path}/Ecc_HiRes.npy')
+        # eccHiRes = np.load(f'{path}/Ecc_HiRes.npy')
+        ecc2HiRes = np.load(f'{path}/Ecc2_HiRes.npy')
+        eccHiRes = np.sqrt(ecc2HiRes)
         tfb_dataHiRes = np.loadtxt(f'{path}/Ecc_HiRes_days.txt')
         snap_HiRes, tfb_HiRes = tfb_dataHiRes[0], tfb_dataHiRes[1]
         radiiHiRes = np.load(f'{path}/radiiEcc_HiRes.npy')

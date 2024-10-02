@@ -25,10 +25,11 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 #
 ## DECISIONS
 ##
-save = False
+save = True
 xaxis = 'radii'
 res1 = 'Low'
 res2 = 'HiRes' #'HiRes', 'LowDoubleRad'
+weight = 'weightE' #'weightE' or '' if you have weight for vol/mass
 if xaxis == 'angles':
     apo = 1
 #
@@ -38,7 +39,7 @@ if xaxis == 'angles':
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 path = f'/Users/paolamartire/shocks/data/{folder}/colormapE_Alice'
 # Res1 data
-datares1 = np.load(f'{path}/coloredE_{res1}_{xaxis}.npy') #shape (3, len(tfb), len(radii))
+datares1 = np.load(f'{path}/coloredE_{res1}_{xaxis}{weight}.npy') #shape (3, len(tfb), len(radii))
 tfb_datares1 = np.loadtxt(f'{path}/coloredE_{res1}_days.txt')
 snap_res1 = tfb_datares1[0]
 tfb_res1 = tfb_datares1[1]
@@ -52,7 +53,7 @@ col_Rad_nofluffres1 *= prel.en_den_converter
 abs_col_orb_enres1 = np.abs(col_orb_enres1)
 
 # Res2 data
-datares2 = np.load(f'{path}/coloredE_{res2}_{xaxis}.npy')
+datares2 = np.load(f'{path}/coloredE_{res2}_{xaxis}{weight}.npy')
 tfb_datares2 = np.loadtxt(f'{path}/coloredE_{res2}_days.txt')
 snap_res2 = tfb_datares2[0]
 tfb_res2 = tfb_datares2[1]
@@ -172,7 +173,7 @@ plt.tick_params(axis = 'both', which = 'both', direction='in')
 
 plt.tight_layout()
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/coloredE_{xaxis}.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/coloredE_{xaxis}{weight}.png')
 plt.show()
 
 # %% Plot (absolute) differences. They start from the same point
@@ -249,7 +250,7 @@ ax[0].set_xlabel(r'$R/R_a$', fontsize = 20)
 plt.tick_params(axis = 'both', which = 'both', direction='in')
 plt.tight_layout()
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/coloredE_diff_{xaxis}.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/coloredE_diff_{xaxis}{weight}.png')
 plt.show()
 
 ######################
@@ -344,7 +345,7 @@ plt.tick_params(axis = 'both', which = 'both', direction='in')
 # plt.suptitle(r'Relative differences: $|$Low-High$|$/mean $M_{BH}=10^4 M_\odot, m_\star$ = ' + f'{mstar} M$_\odot, R_\star$ = {Rstar} R$_\odot$', fontsize = 18)
 plt.tight_layout()
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/coloredE_relative_diff_{xaxis}.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/coloredE_relative_diff_{xaxis}{weight}.png')
 plt.show()
 
 # %% Do just for radiation without fluff as  check
@@ -408,7 +409,7 @@ fig.delaxes(ax[1][1])
 plt.tight_layout()
 
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/coloredRadE_nofluff_{xaxis}.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/coloredRadE_nofluff_{xaxis}{weight}.png')
 plt.show()
 
 #%%
@@ -442,9 +443,7 @@ if xaxis == 'radii':
         for j in range(2):
             ax[i][j].set_xscale('log')
     plt.tight_layout()
-    if save:
-        plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/coloredE_whoIsHigher.png')
-
+ 
     # Lines
     # indices = [70, 100, 136]
     indices = [np.argmin(np.abs(tfb_res1-0.46)), np.argmin(np.abs(tfb_res1-0.66)), np.argmin(np.abs(tfb_res1-0.86))]
@@ -467,8 +466,6 @@ if xaxis == 'radii':
     ax[1].grid()
     plt.suptitle(f'Relative differences: 1-{res2}/{res1}')
     plt.tight_layout()
-    if save:
-        plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/Rad_lines.png')
     plt.show()
 
     #%%
@@ -515,7 +512,7 @@ if xaxis == 'radii':
     # plt.suptitle('Relative differences: $|$Low-High$|$/mean')
     plt.tight_layout()
     if save:
-        plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/Luminosity.png')
+        plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/Luminosity{weight}.png')
     plt.show()
 
     for i in range(3):
