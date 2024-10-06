@@ -86,8 +86,8 @@ for i,snap in enumerate(snaps):
     # graph[0] = {"fluff": neighbours_list}
 
     # throw fluff
-    cutsmall = data.Den > -1000#1e-19
-    cut = cutsmall #data.Den > 1e-9 
+    cutsmall = data.Den > 1e-19
+    cut = data.Den > 1e-9 
     Rsph_cut, theta_cut, mass_cut, ie_cut, ie_onmass_cut, orb_en_cut, orb_en_onmass_cut, Rad_cut, Rad_den_cut, vol_cut = \
             sec.make_slices([Rsph, theta, mass, ie, ie_onmass, orb_en, orb_en_onmass, Rad, Rad_den, vol], cut)
     Rsph_cutsmall, theta_cutsmall, Rad_cutsmall, Rad_den_cutsmall, vol_cutsmall = \
@@ -125,7 +125,7 @@ if save:
         prepath = f'/data1/martirep/shocks/shock_capturing'
     else: 
         prepath = f'/Users/paolamartire/shocks'
-    np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}weightE_NOcut.npy', [col_ie, col_orb_en, col_Rad, col_Rad_samecut])
+    np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}weightE.npy', [col_ie, col_orb_en, col_Rad, col_Rad_samecut])
     with open(f'{prepath}/data/{folder}/coloredE_{check}{step}_days.txt', 'w') as file:
         file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
