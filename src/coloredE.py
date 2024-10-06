@@ -86,7 +86,7 @@ for i,snap in enumerate(snaps):
     # graph[0] = {"fluff": neighbours_list}
 
     # throw fluff
-    cutsmall = data.Den > 1e-19
+    cutsmall = data.Den > -1000#1e-19
     cut = cutsmall #data.Den > 1e-9 
     Rsph_cut, theta_cut, mass_cut, ie_cut, ie_onmass_cut, orb_en_cut, orb_en_onmass_cut, Rad_cut, Rad_den_cut, vol_cut = \
             sec.make_slices([Rsph, theta, mass, ie, ie_onmass, orb_en, orb_en_onmass, Rad, Rad_den, vol], cut)
