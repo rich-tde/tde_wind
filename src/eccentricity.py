@@ -36,7 +36,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 step = ''
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{step}'
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
 check = 'Low' # 'Low' or 'HiRes'
 save = True

@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import colorcet
 import matplotlib.colors as colors
 import Utilities.prelude as prel
-from Utilities.gaussian_smoothing import time_average
 
 ##
 # PARAMETERS
@@ -25,10 +24,10 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 #
 ## DECISIONS
 ##
-save = True
+save = False
 xaxis = 'radii'
 res1 = 'Low'
-res2 = 'HiRes' #'HiRes', 'LowDoubleRad'
+res2 = 'Low' #'HiRes', 'LowDoubleRad'
 weight = 'weightE' #'weightE' or '' if you have weight for vol/mass
 if xaxis == 'angles':
     apo = 1
@@ -53,7 +52,7 @@ col_Rad_nofluffres1 *= prel.en_den_converter
 abs_col_orb_enres1 = np.abs(col_orb_enres1)
 
 # Res2 data
-datares2 = np.load(f'{path}/coloredE_{res2}_{xaxis}{weight}.npy')
+datares2 = np.load(f'{path}/coloredE_{res2}_{xaxis}{weight}TEST.npy')
 tfb_datares2 = np.loadtxt(f'{path}/coloredE_{res2}_days.txt')
 snap_res2 = tfb_datares2[0]
 tfb_res2 = tfb_datares2[1]

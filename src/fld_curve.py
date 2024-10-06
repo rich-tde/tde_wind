@@ -1,6 +1,7 @@
 abspath = '/Users/paolamartire/shocks/'
 import sys
 sys.path.append(abspath)
+import gc
 import warnings
 warnings.filterwarnings('ignore')
 import csv
@@ -35,11 +36,12 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 step = ''
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{step}'
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
 check = 'Low' # 'Low' or 'HiRes'
 save = True
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step, time = True) #[100,115,164,199,216]
+Lphoto_all = np.zeros(len(snaps))
 
 #%% Opacities -----------------------------------------------------------------
 # Freq range
@@ -263,23 +265,15 @@ for idx_s, snap in enumerate(snaps):
         reds[i] = Lphoto
         del smoothed_flux, R_lamda, fld_factor, EEr, los,
         gc.collect()
-if single:
-    Lphoto_this = 4*np.pi*np.mean(reds)
-else:
-    Lphoto_all[idx_s] = 4*np.pi*np.mean(reds) # save red
+
+Lphoto_all[idx_s] = 4*np.pi*np.mean(reds) # save red
     # Lphoto = Lphoto2
+    
 if save:
-    if alice:
-        pre_saving = f'/home/s3745597/data1/TDE/tde_comparison/data/'
-        if single:
-            filepath =  f'{pre_saving}red/{sim}/eladred.csv'
-            data = [snap, day, Lphoto_this]
-            with open(filepath, 'a', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerow(data)
-            file.close()
-        else:
-            np.savetxt(f'{pre_saving}red/{sim}_eladred_{args.first}to{args.last}.txt', Lphoto_all)
-            np.savetxt(f'{pre_saving}red/{sim}_eladreddays_{args.first}to{args.last}.txt', days)
-        print('saved red and days')
+    pre_saving = f'/data1/martirep/shocks/shock_capturing/data/{folder}/red'
+    with open(f'{pre_saving}/{check}_eladred.txt', 'a') as file:
+        file.write('# t/tfb \n' + ' '.join(map(str, days)) + '\n')
+        file.write('# FLD \n' + ' '.join(map(str, Lphoto_all)) + '\n')
+        file.close()
+    print('saved dasy and red')
 eng.exit()
