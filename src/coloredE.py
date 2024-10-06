@@ -7,12 +7,11 @@ alice, plot = isalice()
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+matplotlib.rcParams['figure.dpi'] = 150
+from Utilities.selectors_for_snap import select_snap
 from Utilities.operators import make_tree, single_branch, to_cylindric
 import Utilities.sections as sec
 import src.orbits as orb
-from Utilities.selectors_for_snap import select_snap
-matplotlib.rcParams['figure.dpi'] = 150
-
 
 #
 ## CONSTANTS
@@ -35,10 +34,10 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-step = 'DoubleRad'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
 check = 'Low' # 'Low' or 'HiRes'
+step = ''
 xaxis = 'radii' # radii or angles
 save = True
 
@@ -87,8 +86,8 @@ for i,snap in enumerate(snaps):
     # graph[0] = {"fluff": neighbours_list}
 
     # throw fluff
-    cut = data.Den > 1e-9 
     cutsmall = data.Den > 1e-19
+    cut = cutsmall #data.Den > 1e-9 
     Rsph_cut, theta_cut, mass_cut, ie_cut, ie_onmass_cut, orb_en_cut, orb_en_onmass_cut, Rad_cut, Rad_den_cut, vol_cut = \
             sec.make_slices([Rsph, theta, mass, ie, ie_onmass, orb_en, orb_en_onmass, Rad, Rad_den, vol], cut)
     Rsph_cutsmall, theta_cutsmall, Rad_cutsmall, Rad_den_cutsmall, vol_cutsmall = \
@@ -126,7 +125,7 @@ if save:
         prepath = f'/data1/martirep/shocks/shock_capturing'
     else: 
         prepath = f'/Users/paolamartire/shocks'
-    np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}weightE.npy', [col_ie, col_orb_en, col_Rad, col_Rad_samecut])
+    np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}weightE_all1e-19.npy', [col_ie, col_orb_en, col_Rad, col_Rad_samecut])
     with open(f'{prepath}/data/{folder}/coloredE_{check}{step}_days.txt', 'w') as file:
         file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')

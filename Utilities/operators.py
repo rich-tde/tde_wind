@@ -196,8 +196,8 @@ def single_branch(radii, xaxis, R, tocast, weights, keep_track = False):
             width = width
         elif xaxis == 'radii':
             width *= 2 # make it slightly bigger to smooth things
-        # indices = tree.query_ball_point(radius, width)
-        indices = tree.query_radius(radius, width)
+        # indices = tree.query_ball_point(radius, width) #if KDTree from scipy
+        indices = tree.query_radius(radius, width) #if KDTree from sklearn
         indices = np.concatenate(indices)
         if len(indices) < 2 :
             gridded_tocast[i] = 0
