@@ -62,7 +62,7 @@ def eccentricity(r, vel, specOE, Mbh, G):
 if __name__ == '__main__':
     if alice: 
         col_ecc = []
-        col_Rsph = []
+        # col_Rsph = []
         radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
                         num=200) 
         for i,snap in enumerate(snaps):
@@ -87,9 +87,9 @@ if __name__ == '__main__':
             Rsph_cut, mass_cut, ecc_cut = sec.make_slices([Rsph, data.Mass, ecc2], cut)
             ecc_cast = single_branch(radii,'radii', Rsph_cut, ecc_cut, weights = mass_cut)
 
-            # col_ecc.append(ecc_cast)
-            col_Rsph.append(Rsph_cut)
-            col_ecc.append(ecc_cut)
+            col_ecc.append(ecc_cast)
+            # col_Rsph.append(Rsph_cut)
+            # col_ecc.append(ecc_cut)
 
         if save:
             if alice:
@@ -98,22 +98,22 @@ if __name__ == '__main__':
                 prepath = f'/data1/martirep/shocks/shock_capturing'
             else: 
                 prepath = f'/Users/paolamartire/shocks'
-            # np.save(f'{prepath}/data/{folder}/Ecc2_{check}{step}.npy', col_ecc)
+            np.save(f'{prepath}/data/{folder}/Ecc2_{check}{step}.npy', col_ecc)
             with open(f'{prepath}/data/{folder}/Ecc_{check}{step}_days.txt', 'w') as file:
                 file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
                 file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
                 file.close()
-            # np.save(f'{prepath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
-            with open(f'{prepath}/data/{folder}/scatterEcc2_{check}{step}.pkl', 'wb') as f:
-                pickle.dump(col_ecc, f)
-            with open(f'{prepath}/data/{folder}/radiiscatterEcc2_{check}{step}.pkl', 'wb') as frad:
-                pickle.dump(col_Rsph, frad)
+            np.save(f'{prepath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
+            # with open(f'{prepath}/data/{folder}/scatterEcc2_{check}{step}.pkl', 'wb') as f:
+            #     pickle.dump(col_ecc, f)
+            # with open(f'{prepath}/data/{folder}/radiiscatterEcc2_{check}{step}.pkl', 'wb') as frad:
+            #     pickle.dump(col_Rsph, frad)
     
     else:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
         path = f'/Users/paolamartire/shocks/data/{folder}/ecc'
         # Low data
-        # eccLow = np.load(f'{path}/Ecc_Low.npy')
+        eccLow = np.load(f'{path}/Ecc_Low.npy')
         ecc2Low = np.load(f'{path}/Ecc2_Low.npy') 
         eccLow = np.sqrt(ecc2Low)
         eccLow_from_ecc2 = np.sqrt(ecc2Low)
@@ -128,12 +128,19 @@ if __name__ == '__main__':
         snap_HiRes, tfb_HiRes = tfb_dataHiRes[0], tfb_dataHiRes[1]
         radiiHiRes = np.load(f'{path}/radiiEcc_HiRes.npy')
 
-        # scatterL = np.load(f'{path}/scatterEcc_Low.npy')
-        # ecc, Rsph = scatterL[0], scatterL[1]
-        # tarrmatrix = []
-        # for i in range(len(tfb_Low)):
-        #     tarrmatrix.append(np.ones(len(Rsph))*tfb_Low[i])
-        # plt.scatter(Rsph, ecc, c = tarrmatrix, cmap = 'cet_rainbow4')
+        with open(f'{path}/scatterEcc2_{check}{step}.pkl', 'rb') as filecc:  
+            scattereccL = pickle.load(filecc) 
+        with open(f'{path}/radiiscatterEcc2_{check}{step}.pkl', 'rb') as fileR:  
+            Rsph = pickle.load(fileR)
+        tarrmatrix = []
+        for i in range(len(tfb_Low)):
+            tarrmatrix.append(np.ones(len(Rsph[i]))*tfb_Low[i])
+        Rsph = np.concatenate(Rsph)
+        tarrmatrix = np.concatenate(tarrmatrix)
+        scattereccL = np.concatenate(scattereccL)
+        #%%
+        plt.scatter(Rsph[::10_000], tarrmatrix[::10_000], c = scattereccL[::10_000], cmap = 'cet_rainbow4')
+        plt.show()
 
         n_HiRes = len(eccHiRes)
         snap_Low = snap_Low[:n_HiRes]
@@ -141,7 +148,7 @@ if __name__ == '__main__':
         eccLow = eccLow[:n_HiRes]
         rel_diff = 2*np.abs(eccHiRes - eccLow) / (eccHiRes+eccLow)
         
-        fig, ax = plt.subplots(1,3, figsize = (20,6))
+        fig, ax = plt.subplots(1,3, figsize = (25,6))
         # Low
         img = ax[0].pcolormesh(radiiLow/apo, tfb_Low, eccLow, vmin = 0.75, vmax = 1, cmap = 'cet_rainbow4')
         cb = fig.colorbar(img)
@@ -160,3 +167,4 @@ if __name__ == '__main__':
         ax[2].set_xscale('log')
         cb.set_label(r'Relative difference', fontsize = 20, labelpad = 2)
 
+        plt.savefig(f'{abspath}Figs/{folder}/multiple/ecc.png')

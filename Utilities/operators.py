@@ -15,7 +15,8 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 
 import numpy as np
-from scipy.spatial import KDTree
+# from scipy.spatial import KDTree
+from sklearn.neighbors import KDTree
 import math
 import numba
 import Utilities.prelude

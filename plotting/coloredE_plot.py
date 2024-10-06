@@ -286,8 +286,8 @@ rel_ie_forlog[rel_ie_forlog==0] =1
 rel_Rad_forlog[rel_Rad_forlog==0] = 1
 
 cmap = plt.cm.inferno
-norm_orb_en = colors.LogNorm(vmin=np.percentile(rel_orb_en_forlog[rel_orb_en_forlog!=1], 5), vmax=np.percentile(rel_orb_en_forlog[rel_orb_en_forlog!=1], 95))
-norm_ie = colors.LogNorm(vmin=np.percentile(rel_ie_forlog[rel_ie_forlog!=1], 5), vmax=np.percentile(rel_ie_forlog[rel_ie_forlog!=1], 95))
+norm_orb_en = colors.LogNorm(vmin=2e-3, vmax=6e-1)#np.percentile(rel_orb_en_forlog[rel_orb_en_forlog!=1], 5), vmax=np.percentile(rel_orb_en_forlog[rel_orb_en_forlog!=1], 95))
+norm_ie = colors.LogNorm(vmin=2e-2, vmax=4e-1)#np.percentile(rel_ie_forlog[rel_ie_forlog!=1], 5), vmax=np.percentile(rel_ie_forlog[rel_ie_forlog!=1], 95))
 norm_Rad = colors.LogNorm(vmin=0.04, vmax=1.5)#np.percentile(rel_Rad_forlog[rel_Rad_forlog!=1], 5), vmax=np.percentile(rel_Rad_forlog[rel_Rad_forlog!=1], 95))
 
 
@@ -484,11 +484,11 @@ if xaxis == 'radii':
             ax[0].plot(radiires1, Lum_cgs[idx], c = colors_indices[i])#, label = f'Low t/tfb = {np.round(tfb_Low[idx],2)}')
             ax[0].plot(radiires2, Lumres2_cgs[idx], '--', c = colors_indices[i])#, label = f'res2 t/tfb = {np.round(tfb_res2[idx],2)}')
             ax[1].plot(radiires1, Lum_difference[i], c = colors_indices[i])#, label = f't/tfb = {np.round(tfb_Low[idx],2)}')
-    ax[0].set_ylim(1e40, 1e44)
+    ax[0].set_ylim(1e40, 5e45)
     # ax[1].set_ylim(0.3, 1.8)
-    ax[0].text(15, 5e41, r'$t/t_{fb}$ = '+ f'{np.round(tfb_res1[indices[0]],2)}', fontsize = 20)
-    ax[0].text(20, 2e42, r'$t/t_{fb}$ = '+ f'{np.round(tfb_res1[indices[1]],2)}', fontsize = 20)
-    ax[0].text(20, 3e43, r'$t/t_{fb}$ = '+ f'{np.round(tfb_res1[indices[2]],2)}', fontsize = 20)
+    ax[0].text(15, 1e43, r'$t/t_{fb}$ = '+ f'{np.round(tfb_res1[indices[0]],2)}', fontsize = 20)
+    ax[0].text(20, 1e44, r'$t/t_{fb}$ = '+ f'{np.round(tfb_res1[indices[1]],2)}', fontsize = 20)
+    ax[0].text(20, 1e45, r'$t/t_{fb}$ = '+ f'{np.round(tfb_res1[indices[2]],2)}', fontsize = 20)
     # ax[1].text(620, 0.7, r'$\Delta_{rel}\approx$ '+ f'{np.round(np.mean(Lum_difference[0][-10:-1]),2)}', fontsize = 20)
     # ax[1].text(620, 0.5, r'$\Delta_{rel}\approx$ '+ f'{np.round(np.mean(Lum_difference[1][-10:-1]),2)}', fontsize = 19)
     # ax[1].text(620, 0.4, r'$\Delta_{rel}\approx$ '+ f'{np.round(np.mean(Lum_difference[2][-10:-1]),2)}', fontsize = 20)

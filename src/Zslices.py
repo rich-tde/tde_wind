@@ -104,7 +104,7 @@ for idx, snap in enumerate(snaps):
         import matplotlib.colors as colors
         if not difference:
             # choose what to plot
-            choice = 'den'
+            choice = 'rad'
 
             # load the data
             datacut = np.load(f'{abspath}data/{folder}/{check}/slices/midplaneIEorb_{snap}.npy')
@@ -113,7 +113,7 @@ for idx, snap in enumerate(snaps):
             data = np.load(f'{abspath}data/{folder}/{check}/slices/midplaneRad_{snap}.npy')
             x_mid, y_mid, Rad_den_mid = data[0], data[1], data[2]
             
-            if choice == 'Rad':
+            if choice == 'rad':
                 coloring = Rad_den_mid * prel.en_den_converter
                 x_arr = x_mid
                 y_arr = y_mid
@@ -133,9 +133,9 @@ for idx, snap in enumerate(snaps):
             cb = plt.colorbar(img)
             ax.set_xlabel(r'$X/R_a$', fontsize = 20)
             ax.set_ylabel(r'$Y/R_a$', fontsize = 20)
-            ax.set_xlim(-1.2, 25/apo)#(-340,25)
-            ax.set_ylim(-0.5, 0.5)#(-70,70)
-            ax.text(-400/apo, -150/apo, f't = {np.round(tfb[idx], 2)}' + r'$t_{fb}$', fontsize = 20)
+            ax.set_xlim(-1.2, 0.1)#(-340,25)
+            ax.set_ylim(-0.3, 0.3)#(-70,70)
+            ax.text(-400/apo, -80/apo, f't = {np.round(tfb[idx], 2)}' + r'$t_{fb}$', fontsize = 20)
             plt.tight_layout()
 
             if choice == 'IE':
@@ -152,8 +152,8 @@ for idx, snap in enumerate(snaps):
                 ax.text(-400/apo, -120/apo, f'snap {int(snaps[idx])}', fontsize = 16)
                 plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneDen_{snap}.png')
             
-            plt.close()
             # plt.show()
+            plt.close()
 
         
         else:
