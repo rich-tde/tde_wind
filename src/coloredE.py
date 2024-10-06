@@ -125,7 +125,7 @@ if save:
         prepath = f'/data1/martirep/shocks/shock_capturing'
     else: 
         prepath = f'/Users/paolamartire/shocks'
-    np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}weightE_all1e-19.npy', [col_ie, col_orb_en, col_Rad, col_Rad_samecut])
+    np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}weightE_NOcut.npy', [col_ie, col_orb_en, col_Rad, col_Rad_samecut])
     with open(f'{prepath}/data/{folder}/coloredE_{check}{step}_days.txt', 'w') as file:
         file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
