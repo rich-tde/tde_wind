@@ -70,7 +70,7 @@ for idx, snap in enumerate(snaps):
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}/snap_{snap}'
 
         data = make_tree(path, snap, energy = True)
-        indices = len(data.X)
+        indices = np.arange(len(data.X))
         dim_cell = (data.Vol)**(1/3)
         
         # Z slice
