@@ -26,8 +26,8 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 ##
 save = False
 xaxis = 'radii'
-res1 = 'Low'
-res2 = 'Low' #'HiRes', 'LowDoubleRad'
+res1 = 'HiRes'
+res2 = 'HiRes' #'HiRes', 'LowDoubleRad'
 weight = 'weightE' #'weightE' or '' if you have weight for vol/mass
 if xaxis == 'angles':
     apo = 1
@@ -38,7 +38,7 @@ if xaxis == 'angles':
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 path = f'/Users/paolamartire/shocks/data/{folder}/colormapE_Alice'
 # Res1 data
-datares1 = np.load(f'{path}/coloredE_{res1}_{xaxis}{weight}.npy') #shape (3, len(tfb), len(radii))
+datares1 = np.load(f'{path}/coloredE_{res1}_{xaxis}{weight}_NOcut.npy') #shape (3, len(tfb), len(radii))
 tfb_datares1 = np.loadtxt(f'{path}/coloredE_{res1}_days.txt')
 snap_res1 = tfb_datares1[0]
 tfb_res1 = tfb_datares1[1]
@@ -52,7 +52,7 @@ col_Rad_nofluffres1 *= prel.en_den_converter
 abs_col_orb_enres1 = np.abs(col_orb_enres1)
 
 # Res2 data
-datares2 = np.load(f'{path}/coloredE_{res2}_{xaxis}{weight}TEST.npy')
+datares2 = np.load(f'{path}/coloredE_{res2}_{xaxis}{weight}_all1e-19.npy')
 tfb_datares2 = np.loadtxt(f'{path}/coloredE_{res2}_days.txt')
 snap_res2 = tfb_datares2[0]
 tfb_res2 = tfb_datares2[1]
@@ -97,9 +97,9 @@ p40_Radsix = np.percentile(col_Radres1, 40)
 p95_Radsix = np.percentile(col_Radres1, 95)
 
 cmap = plt.cm.viridis
-norm_orb_ensix = colors.LogNorm(vmin=p40_orb_ensix, vmax=p95_orb_ensix)
-norm_iesix = colors.LogNorm(vmin=p40_iesix, vmax=p95_iesix)
-norm_Radsix = colors.LogNorm(vmin=p40_Radsix, vmax=p95_Radsix)
+norm_orb_ensix = colors.LogNorm(vmin=5e16, vmax = 1e18)#vmin=p40_orb_ensix, vmax=p95_orb_ensix)
+norm_iesix = colors.LogNorm(vmin=7e12, vmax = 4e14)#p40_iesix, vmax=p95_iesix)
+norm_Radsix = colors.LogNorm(vmin=1e4, vmax= 7e9)#p40_Radsix, vmax=p95_Radsix)
 
 fig, ax = plt.subplots(2,3, figsize = (14,8))
 # Res1

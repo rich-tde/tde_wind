@@ -42,12 +42,13 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 Rt = Rstar * (Mbh/mstar)**(1/3)
 R0 = 0.6 * Rt
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
+z_chosen = 0
 
 if alice:
     # get ready to slice and save
     do = True
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
-    with open(f'/data1/martirep/shocks/shock_capturing/data/{folder}/{check}/slices/midplane_time.txt','w') as file:
+    with open(f'/data1/martirep/shocks/shock_capturing/data/{folder}/{check}/slices/z{z_chosen}_time.txt','w') as file:
         file.write('#Snap \n') 
         file.write(' '.join(map(str, snaps)) + '\n')
         file.write('#Time \n')
@@ -56,7 +57,7 @@ if alice:
 else:
     # get ready to plot
     do = False
-    time = np.loadtxt(f'{abspath}data/{folder}/{check}/slices/midplane_time.txt')
+    time = np.loadtxt(f'{abspath}data/{folder}/{check}/slices/z{z_chosen}_time.txt')
     snaps = time[0]
     snaps = [int(snap) for snap in snaps]
     tfb = time[1]
@@ -69,34 +70,19 @@ for idx, snap in enumerate(snaps):
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}/snap_{snap}'
 
         data = make_tree(path, snap, energy = True)
-        Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))
-        vel = np.sqrt(np.power(data.VX, 2) + np.power(data.VY, 2) + np.power(data.VZ, 2))
-        mass, vol, ie_den, Rad_den = data.Mass, data.Vol, data.IE, data.Rad
-        orb_en = orb.orbital_energy(Rsph, vel, mass, G, c, Mbh)
-        dim_cell = (3/(4*np.pi) * vol)**(1/3)
-        ie_onmass = ie_den / data.Den
-        orb_en_onmass = orb_en / mass
-
-        # make the cut in density except for radiation
-        cut = data.Den > 1e-9 # throw fluff
-        x_cut, y_cut, z_cut, dim_cut, den_cut, ie_onmass_cut, orb_en_onmass_cut, Rad_den_cut = \
-            sec.make_slices([data.X, data.Y, data.Z, dim_cell, data.Den, ie_onmass, orb_en_onmass, Rad_den], cut)
-        # make slices for data with density cut
-        midplane_cut = np.abs(z_cut) < dim_cut
-        x_cut_mid, y_cut_mid, den_cut_mid, ie_onmass_cut_mid, orb_en_onmass_cut_mid, Rad_den_cut_mid = \
-            sec.make_slices([x_cut, y_cut, den_cut, ie_onmass_cut, orb_en_onmass_cut, Rad_den_cut], midplane_cut)
-        # make slices for radiation
-        midplane = np.abs(data.Z) < dim_cell
-        x_mid, y_mid, Rad_den_mid = sec.make_slices([data.X, data.Y, Rad_den], midplane)
+        indices = len(data.X)
+        dim_cell = (data.Vol)**(1/3)
         
+        # Z slice
+        cut = np.abs(data.Z-z_chosen) < dim_cell
+        indices_mid= indices[cut]
+        
+        # save
         if check == '':
             check = 'Low'
         savepath = f'/data1/martirep/shocks/shock_capturing'
 
-        np.save(f'{savepath}/data/{folder}/{check}/slices/midplaneIEorb_{snap}.npy',\
-                 [x_cut_mid, y_cut_mid, ie_onmass_cut_mid, orb_en_onmass_cut_mid, den_cut_mid, Rad_den_cut_mid])
-        np.save(f'{savepath}/data/{folder}/{check}/slices/midplaneRad_{snap}.npy',\
-                [x_mid, y_mid, Rad_den_mid])
+        np.save(f'{savepath}/data/{folder}/{check}/slices/indicesZ{z_chosen}_{snap}.npy', indices_mid)
         
     else:
         # you are not in alice
