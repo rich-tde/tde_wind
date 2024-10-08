@@ -89,7 +89,6 @@ for idx, snap in enumerate(snaps):
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}/snap_{snap}'
 
         data = make_tree(path, snap, energy = True)
-<<<<<<< HEAD:src/Zslices.py
         Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))
         vel = np.sqrt(np.power(data.VX, 2) + np.power(data.VY, 2) + np.power(data.VZ, 2))
         mass, vol, ie_den, Rad_den = data.Mass, data.Vol, data.IE, data.Rad
@@ -101,26 +100,14 @@ for idx, snap in enumerate(snaps):
         midplane_cut = np.abs(data.Z-z_chosen) < dim_cell
         x_mid, y_mid, z_mid, dim_mid, mass_mid, den_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid = \
             sec.make_slices([data.X, data.Y, data.Z, dim_cell, mass, data.Den, ie_den, orb_en_den, Rad_den], midplane_cut)
-=======
-        indices = np.arange(len(data.X))
-        dim_cell = (data.Vol)**(1/3)
->>>>>>> origin/main:src/Zslice.py
-        
-        # Z slice
-        cut = np.abs(data.Z-z_chosen) < dim_cell
-        indices_mid= indices[cut]
         
         # save
         if check == '':
             check = 'Low'
         savepath = f'/data1/martirep/shocks/shock_capturing'
 
-<<<<<<< HEAD:src/Zslices.py
         np.save(f'{savepath}/data/{folder}/{check}/slices/z{z_chosen}slice_{snap}.npy',\
                  [x_mid, y_mid, z_mid, dim_mid, mass_mid, den_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid])
-=======
-        np.save(f'{savepath}/data/{folder}/{check}/slices/indicesZ{z_chosen}_{snap}.npy', indices_mid)
->>>>>>> origin/main:src/Zslice.py
         
     else:
         # you are not in alice
