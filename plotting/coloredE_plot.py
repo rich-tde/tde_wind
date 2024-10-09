@@ -24,12 +24,12 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 #
 ## DECISIONS
 ##
-save = True
+save = False
 xaxis = 'radii'
 res1 = 'Low'
 res2 = 'HiRes' #'HiRes', 'LowDoubleRad'
-weight = 'weightE' #'weightE' or '' if you have weight for vol/mass
-cut = '' # or '' or '_NOcut' or '_all1e-19'
+weight = '' #'weightE' or '' if you have weight for vol/mass
+cut = '_all1e-19' # or '' or '_NOcut' or '_all1e-19'
 if xaxis == 'angles':
     apo = 1
 #
