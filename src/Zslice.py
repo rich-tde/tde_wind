@@ -114,53 +114,60 @@ for idx, snap in enumerate(snaps):
         import matplotlib.pyplot as plt
         import matplotlib.colors as colors
         # choose what to plot
-        choice = 'rad'
+        choice = 'rad' # 'IE' or 'orb' or 'rad' or 'den'
+        cut = '' #'' or 'cut' or 'lowcut'
 
         # load the data
         data = np.load(f'{abspath}data/{folder}/{check}/slices/z{z_chosen}slice_{snap}.npy')
         x_mid, y_mid, z_mid, dim_mid, mass_mid, den_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid =\
             data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]
         
-        # if choice == 'rad':
-        #     coloring = Rad_den_mid * prel.en_den_converter
-        #     x_arr = x_mid
-        #     y_arr = y_mid
-        # else:
-        #     x_arr = x_cut_mid
-        #     y_arr = y_cut_mid
-        #     if choice == 'IE':
-        #         coloring = ie_onmass_cut_mid * prel.en_converter / prel.Msol_to_g
-        #     elif choice == 'orb':
-        #         coloring = np.abs(orb_en_onmass_cut_mid) * prel.en_converter / prel.Msol_to_g
-        #     elif choice == 'den':
-        #         coloring = den_cut_mid * prel.Msol_to_g / prel.Rsol_to_cm**3
-
-        # fig, ax = plt.subplots(1,1, figsize = (14,5))
-        # img = ax.scatter(x_arr/apo, y_arr/apo, c = coloring, cmap = 'viridis', s= .1, \
-        #                 norm = colors.LogNorm(vmin = np.percentile(coloring, 5), vmax = np.percentile(coloring, 95)))
-        # cb = plt.colorbar(img)
-        # ax.set_xlabel(r'$X/R_a$', fontsize = 20)
-        # ax.set_ylabel(r'$Y/R_a$', fontsize = 20)
-        # ax.set_xlim(-1.2, 0.1)#(-340,25)
-        # ax.set_ylim(-0.3, 0.3)#(-70,70)
-        # ax.text(-400/apo, -80/apo, f't = {np.round(tfb[idx], 2)}' + r'$t_{fb}$', fontsize = 20)
-        # plt.tight_layout()
-
-        # if choice == 'IE':
-        #     cb.set_label(r'Specific IE [erg/g]', fontsize = 16)
-        #     plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneIE_{snap}.png')
-        # elif choice == 'orb':
-        #     cb.set_label(r'Absolute specific orbital energy [erg/g]', fontsize = 16)
-        #     plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneorb_{snap}.png')
-        # elif choice == 'rad':
-        #     cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 16)
-        #     plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneRad_{snap}.png')
-        # elif choice == 'den':
-        #     cb.set_label(r'Density [g/$cm^3$]', fontsize = 16)  
-        #     ax.text(-400/apo, -120/apo, f'snap {int(snaps[idx])}', fontsize = 16)
-        #     plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneDen_{snap}.png')
+        if cut == 'lowcut':
+            cutden = dim_mid > 1e-19
+            x_mid, y_mid, z_mid, dim_mid, mass_mid, den_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid = \
+                sec.make_slices([x_mid, y_mid, z_mid, dim_mid, mass_mid, den_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid], cutden)
+        elif cut == 'cut':
+            cutden = dim_mid > 1e-9
+            x_mid, y_mid, z_mid, dim_mid, mass_mid, den_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid = \
+                sec.make_slices([x_mid, y_mid, z_mid, dim_mid, mass_mid, den_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid], cutden)
         
-        # # plt.show()
-        # plt.close()
+        if choice == 'orb': 
+            orb_en_onmass_mid = orb_en_den_mid/den_mid
+            coloring = np.abs(orb_en_onmass_mid) * prel.en_converter / prel.Msol_to_g
+        elif choice == 'IE':
+            ie_onmass_mid = ie_den_mid/den_mid
+            coloring = ie_onmass_mid * prel.en_converter / prel.Msol_to_g
+        elif choice == 'rad':
+            coloring = Rad_den_mid * prel.en_den_converter
+        elif choice == 'den':
+            coloring = den_mid * prel.Msol_to_g / prel.Rsol_to_cm**3
+
+        fig, ax = plt.subplots(1,1, figsize = (14,5))
+        img = ax.scatter(x_mid/apo, y_mid/apo, c = coloring, cmap = 'viridis', s= .1, \
+                        norm = colors.LogNorm(vmin = np.percentile(coloring, 5), vmax = np.percentile(coloring, 95)))
+        cb = plt.colorbar(img)
+        ax.set_xlabel(r'$X/R_a$', fontsize = 20)
+        ax.set_ylabel(r'$Y/R_a$', fontsize = 20)
+        ax.set_xlim(-380/apo, 0.1)#(-340,25)
+        ax.set_ylim(-0.5, 0.5)#(-70,70)
+        ax.text(-400/apo, -0.4, f't = {np.round(tfb[idx], 2)}' + r'$t_{fb}$', fontsize = 20)
+        plt.tight_layout()
+
+        if choice == 'IE':
+            cb.set_label(r'Specific IE [erg/g]', fontsize = 16)
+            plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneIE_{cut}{snap}.png')
+        elif choice == 'orb':
+            cb.set_label(r'Absolute specific orbital energy [erg/g]', fontsize = 16)
+            plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneorb_{cut}{snap}.png')
+        elif choice == 'rad':
+            cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 16)
+            plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneRad_{cut}{snap}.png')
+        elif choice == 'den':
+            cb.set_label(r'Density [g/$cm^3$]', fontsize = 16)  
+            ax.text(-400/apo, -120/apo, f'snap {int(snaps[idx])}', fontsize = 16)
+            plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneDen_{cut}{snap}.png')
+        
+        # plt.show()
+        plt.close()
 
     

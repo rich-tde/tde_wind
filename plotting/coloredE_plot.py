@@ -26,7 +26,7 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 ##
 save = False
 xaxis = 'radii'
-res1 = 'HiRes'
+res1 = 'Low'
 res2 = 'HiRes' #'HiRes', 'LowDoubleRad'
 weight = 'weightE' #'weightE' or '' if you have weight for vol/mass
 if xaxis == 'angles':
@@ -38,7 +38,7 @@ if xaxis == 'angles':
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 path = f'/Users/paolamartire/shocks/data/{folder}/colormapE_Alice'
 # Res1 data
-datares1 = np.load(f'{path}/coloredE_{res1}_{xaxis}{weight}_NOcut.npy') #shape (3, len(tfb), len(radii))
+datares1 = np.load(f'{path}/coloredE_{res1}_{xaxis}{weight}.npy') #shape (3, len(tfb), len(radii))
 tfb_datares1 = np.loadtxt(f'{path}/coloredE_{res1}_days.txt')
 snap_res1 = tfb_datares1[0]
 tfb_res1 = tfb_datares1[1]
@@ -52,7 +52,7 @@ col_Rad_nofluffres1 *= prel.en_den_converter
 abs_col_orb_enres1 = np.abs(col_orb_enres1)
 
 # Res2 data
-datares2 = np.load(f'{path}/coloredE_{res2}_{xaxis}{weight}_all1e-19.npy')
+datares2 = np.load(f'{path}/coloredE_{res2}_{xaxis}{weight}.npy')
 tfb_datares2 = np.loadtxt(f'{path}/coloredE_{res2}_days.txt')
 snap_res2 = tfb_datares2[0]
 tfb_res2 = tfb_datares2[1]
@@ -269,13 +269,13 @@ rel_Rad[np.isnan(rel_Rad)] = 0
 #%%
 # take just the time after 0.3
 minidx = np.argmin(np.abs(tfb_res2-0.3))
-median_orb_en = np.median(rel_orb_en[minidx:] )
-median_ie = np.median(rel_ie[minidx:])
-median_Rad = np.median(rel_Rad[minidx:])
+median_orb_en = np.median(rel_orb_en)#np.median(rel_orb_en[minidx:])
+median_ie = np.median(rel_ie)
+median_Rad = np.median(rel_Rad)
 
-print(f'Median relative difference in Orbital energy for t>0.3: {np.round(median_orb_en,2)}')
-print(f'Median relative difference in IE t>0.3: {np.round(median_ie,2)}')
-print(f'Median relative difference in Radiation energy density t>0.3: {np.round(median_Rad,2)}')
+print(f'Median relative difference in Orbital energy: {np.round(median_orb_en,2)}')
+print(f'Median relative difference in IE: {np.round(median_ie,2)}')
+print(f'Median relative difference in Radiation energy density: {np.round(median_Rad,2)}')
 
 rel_orb_en_forlog = np.copy(rel_orb_en) #you need it for the Log
 rel_ie_forlog = np.copy(rel_ie)
