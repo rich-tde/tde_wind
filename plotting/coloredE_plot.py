@@ -38,21 +38,21 @@ if xaxis == 'angles':
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 path = f'/Users/paolamartire/shocks/data/{folder}/colormapE_Alice'
 # Res1 data
-datares1 = np.load(f'{path}/coloredE_{res1}_{xaxis}{weight}.npy') #shape (3, len(tfb), len(radii))
+datares1 = np.load(f'{path}/coloredE_{res1}_{xaxis}{weight}_all1e-19.npy') #shape (3, len(tfb), len(radii))
 tfb_datares1 = np.loadtxt(f'{path}/coloredE_{res1}_days.txt')
 snap_res1 = tfb_datares1[0]
 tfb_res1 = tfb_datares1[1]
 radiires1 = np.load(f'{path}/{xaxis}En_{res1}.npy')
-col_ieres1, col_orb_enres1, col_Radres1, col_Rad_nofluffres1 = datares1[0], datares1[1], datares1[2], datares1[3]
+col_ieres1, col_orb_enres1, col_Radres1_lowcut, col_Radres1 = datares1[0], datares1[1], datares1[2], datares1[3]
 # convert to cgs
 col_ieres1 *= prel.en_converter/prel.Msol_to_g
 col_orb_enres1 *= prel.en_converter/prel.Msol_to_g
+col_Radres1_lowcut *= prel.en_den_converter
 col_Radres1 *= prel.en_den_converter
-col_Rad_nofluffres1 *= prel.en_den_converter
 abs_col_orb_enres1 = np.abs(col_orb_enres1)
 
 # Res2 data
-datares2 = np.load(f'{path}/coloredE_{res2}_{xaxis}{weight}.npy')
+datares2 = np.load(f'{path}/coloredE_{res2}_{xaxis}{weight}_all1e-19.npy')
 tfb_datares2 = np.loadtxt(f'{path}/coloredE_{res2}_days.txt')
 snap_res2 = tfb_datares2[0]
 tfb_res2 = tfb_datares2[1]
@@ -74,7 +74,7 @@ col_ieres1 = col_ieres1[:n_res2]
 col_orb_enres1 = col_orb_enres1[:n_res2]
 abs_col_orb_enres1 = abs_col_orb_enres1[:n_res2]
 col_Radres1 = col_Radres1[:n_res2]
-col_Rad_nofluffres1 = col_Rad_nofluffres1[:n_res2]
+col_Radres1_lowcut = col_Radres1_lowcut[:n_res2]
 #%%
 # PLOT
 ##
@@ -348,14 +348,14 @@ if save:
 plt.show()
 
 # %% Do just for radiation without fluff as  check
-diff_Rad_nofluff = col_Rad_nofluffres1 - col_Radres2_nofluff
-denominator_Rad_nofluff = (col_Rad_nofluffres1 + col_Radres2_nofluff)/2
+diff_Rad_nofluff = col_Radres1_lowcut - col_Radres2_nofluff
+denominator_Rad_nofluff = (col_Radres1_lowcut + col_Radres2_nofluff)/2
 rel_Rad_nofluff = np.abs(diff_Rad_nofluff / denominator_Rad_nofluff)
 rel_Rad_nofluff[np.isnan(rel_Rad_nofluff)] = 0
-normRadnofluff = colors.LogNorm(vmin=np.percentile(col_Rad_nofluffres1[col_Rad_nofluffres1>0], 5), vmax=np.percentile(col_Rad_nofluffres1[col_Rad_nofluffres1>0], 95))
+normRadnofluff = colors.LogNorm(vmin=np.percentile(col_Radres1_lowcut[col_Radres1_lowcut>0], 5), vmax=np.percentile(col_Radres1_lowcut[col_Radres1_lowcut>0], 95))
 
 fig, ax = plt.subplots(2,2, figsize = (12,10))
-img = ax[0][0].pcolormesh(radiires1/apo, tfb_res1, col_Rad_nofluffres1, norm=normRadnofluff, cmap = 'viridis')
+img = ax[0][0].pcolormesh(radiires1/apo, tfb_res1, col_Radres1_lowcut, norm=normRadnofluff, cmap = 'viridis')
 cb = fig.colorbar(img)
 cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 15, labelpad = 5)
 ax[0][0].text(np.min(radiires1/apo), 0.15, f'{res1} res', fontsize = 25)
