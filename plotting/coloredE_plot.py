@@ -43,11 +43,11 @@ tfb_datares1 = np.loadtxt(f'{path}/coloredE_{res1}_days.txt')
 snap_res1 = tfb_datares1[0]
 tfb_res1 = tfb_datares1[1]
 radiires1 = np.load(f'{path}/{xaxis}En_{res1}.npy')
-col_ieres1, col_orb_enres1, col_Radres1_lowcut, col_Radres1 = datares1[0], datares1[1], datares1[2], datares1[3]
+col_ieres1, col_orb_enres1, col_Radres1_cutsmall, col_Radres1 = datares1[0], datares1[1], datares1[2], datares1[3]
 # convert to cgs
 col_ieres1 *= prel.en_converter/prel.Msol_to_g
 col_orb_enres1 *= prel.en_converter/prel.Msol_to_g
-col_Radres1_lowcut *= prel.en_den_converter
+col_Radres1_cutsmall *= prel.en_den_converter
 col_Radres1 *= prel.en_den_converter
 abs_col_orb_enres1 = np.abs(col_orb_enres1)
 
@@ -74,7 +74,7 @@ col_ieres1 = col_ieres1[:n_res2]
 col_orb_enres1 = col_orb_enres1[:n_res2]
 abs_col_orb_enres1 = abs_col_orb_enres1[:n_res2]
 col_Radres1 = col_Radres1[:n_res2]
-col_Radres1_lowcut = col_Radres1_lowcut[:n_res2]
+col_Radres1_cutsmall = col_Radres1_cutsmall[:n_res2]
 #%%
 # PLOT
 ##
@@ -348,68 +348,68 @@ if save:
 plt.show()
 
 # %% Do just for radiation without fluff as  check
-diff_Rad_nofluff = col_Radres1_lowcut - col_Radres2_nofluff
-denominator_Rad_nofluff = (col_Radres1_lowcut + col_Radres2_nofluff)/2
-rel_Rad_nofluff = np.abs(diff_Rad_nofluff / denominator_Rad_nofluff)
-rel_Rad_nofluff[np.isnan(rel_Rad_nofluff)] = 0
-normRadnofluff = colors.LogNorm(vmin=np.percentile(col_Radres1_lowcut[col_Radres1_lowcut>0], 5), vmax=np.percentile(col_Radres1_lowcut[col_Radres1_lowcut>0], 95))
+# diff_Rad_nofluff = col_Radres1_cutsmall - col_Radres2_nofluff
+# denominator_Rad_nofluff = (col_Radres1_cutsmall + col_Radres2_nofluff)/2
+# rel_Rad_nofluff = np.abs(diff_Rad_nofluff / denominator_Rad_nofluff)
+# rel_Rad_nofluff[np.isnan(rel_Rad_nofluff)] = 0
+# normRadnofluff = colors.LogNorm(vmin=np.percentile(col_Radres1_cutsmall[col_Radres1_cutsmall>0], 5), vmax=np.percentile(col_Radres1_cutsmall[col_Radres1_cutsmall>0], 95))
 
-fig, ax = plt.subplots(2,2, figsize = (12,10))
-img = ax[0][0].pcolormesh(radiires1/apo, tfb_res1, col_Radres1_lowcut, norm=normRadnofluff, cmap = 'viridis')
-cb = fig.colorbar(img)
-cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 15, labelpad = 5)
-ax[0][0].text(np.min(radiires1/apo), 0.15, f'{res1} res', fontsize = 25)
-img = ax[0][1].pcolormesh(radiires2/apo, tfb_res2, col_Radres2_nofluff, norm=normRadnofluff, cmap = 'viridis')
-cb = fig.colorbar(img)
-cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 15, labelpad = 5)
-ax[0][1].text(np.min(radiires2/apo), 0.15, f'{res2} res', fontsize = 25)
-# plot the relaive difference
-img = ax[1][0].pcolormesh(radiires2/apo, tfb_res2, rel_Rad_nofluff, cmap='inferno', norm=norm_Rad)
-cb = fig.colorbar(img)
-cb.set_label('Relative difference', fontsize = 15, labelpad = 5)
-for i in range(2):
-    ax[i][0].set_ylabel(r't/t$_{fb}$', fontsize = 20)
-    for j in range(2):
-        ax[i][j].axhline(0.205, c = 'white', linewidth = 0.4)
-        ax[i][j].axhline(0.52, c = 'white', linewidth = 0.4)
-        ax[i][j].axhline(0.75, c = 'white', linewidth = 0.4)
-        if xaxis == 'radii':
-            ax[i][j].axvline(Rt/apo, linestyle ='dashed', c = 'white', linewidth = 0.8)
-            ax[i][j].text(Rt/apo, 0.65, r'R$_t$', fontsize = 14, rotation = 90, transform = ax[i][j].transAxes, color = 'k')
-            ax[i][j].axvline(1.5*Rt/apo, linestyle ='dashed', c = 'white', linewidth = 0.8)
-            ax[i][j].text(1.5*Rt/apo+0.1, 0.65, r'1.5R$_t$', fontsize = 14, rotation = 90, transform = ax[i][j].transAxes, color = 'k')
-            ax[i][j].axvline(0.1, c = 'white', linewidth = 0.4)
-            ax[i][j].axvline(0.3, c = 'white', linewidth = 0.4)
-            ax[i][j].axvline(0.5, c = 'white', linewidth = 0.4)
-            ax[i][j].axvline(1, c = 'white', linewidth = 0.4)
-            ax[i][j].set_xscale('log')
+# fig, ax = plt.subplots(2,2, figsize = (12,10))
+# img = ax[0][0].pcolormesh(radiires1/apo, tfb_res1, col_Radres1_cutsmall, norm=normRadnofluff, cmap = 'viridis')
+# cb = fig.colorbar(img)
+# cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 15, labelpad = 5)
+# ax[0][0].text(np.min(radiires1/apo), 0.15, f'{res1} res', fontsize = 25)
+# img = ax[0][1].pcolormesh(radiires2/apo, tfb_res2, col_Radres2_nofluff, norm=normRadnofluff, cmap = 'viridis')
+# cb = fig.colorbar(img)
+# cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 15, labelpad = 5)
+# ax[0][1].text(np.min(radiires2/apo), 0.15, f'{res2} res', fontsize = 25)
+# # plot the relaive difference
+# img = ax[1][0].pcolormesh(radiires2/apo, tfb_res2, rel_Rad_nofluff, cmap='inferno', norm=norm_Rad)
+# cb = fig.colorbar(img)
+# cb.set_label('Relative difference', fontsize = 15, labelpad = 5)
+# for i in range(2):
+#     ax[i][0].set_ylabel(r't/t$_{fb}$', fontsize = 20)
+#     for j in range(2):
+#         ax[i][j].axhline(0.205, c = 'white', linewidth = 0.4)
+#         ax[i][j].axhline(0.52, c = 'white', linewidth = 0.4)
+#         ax[i][j].axhline(0.75, c = 'white', linewidth = 0.4)
+#         if xaxis == 'radii':
+#             ax[i][j].axvline(Rt/apo, linestyle ='dashed', c = 'white', linewidth = 0.8)
+#             ax[i][j].text(Rt/apo, 0.65, r'R$_t$', fontsize = 14, rotation = 90, transform = ax[i][j].transAxes, color = 'k')
+#             ax[i][j].axvline(1.5*Rt/apo, linestyle ='dashed', c = 'white', linewidth = 0.8)
+#             ax[i][j].text(1.5*Rt/apo+0.1, 0.65, r'1.5R$_t$', fontsize = 14, rotation = 90, transform = ax[i][j].transAxes, color = 'k')
+#             ax[i][j].axvline(0.1, c = 'white', linewidth = 0.4)
+#             ax[i][j].axvline(0.3, c = 'white', linewidth = 0.4)
+#             ax[i][j].axvline(0.5, c = 'white', linewidth = 0.4)
+#             ax[i][j].axvline(1, c = 'white', linewidth = 0.4)
+#             ax[i][j].set_xscale('log')
 
-        elif xaxis == 'angles':
-            ax[i][j].axvline(-2.5, c = 'white', linewidth = 0.4)
-            ax[i][j].axvline(-1, c = 'white', linewidth = 0.4)
-            ax[i][j].axvline(2.5, c = 'white', linewidth = 0.4)
-            ax[i][j].axvline(1, c = 'white', linewidth = 0.4)
+#         elif xaxis == 'angles':
+#             ax[i][j].axvline(-2.5, c = 'white', linewidth = 0.4)
+#             ax[i][j].axvline(-1, c = 'white', linewidth = 0.4)
+#             ax[i][j].axvline(2.5, c = 'white', linewidth = 0.4)
+#             ax[i][j].axvline(1, c = 'white', linewidth = 0.4)
 
-        if i == 1:
-            if xaxis == 'radii':
-                ax[i][j].set_xlabel(r'$R/R_a$', fontsize = 20)
-                ax[i][j].set_xlabel(r'$R/R_a$', fontsize = 20)
-                ax[i][j].set_xlabel(r'$R/R_a$', fontsize = 20)
-            elif xaxis == 'angles':
-                ax[i][j].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
-                ax[i][j].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
-                ax[i][j].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
+#         if i == 1:
+#             if xaxis == 'radii':
+#                 ax[i][j].set_xlabel(r'$R/R_a$', fontsize = 20)
+#                 ax[i][j].set_xlabel(r'$R/R_a$', fontsize = 20)
+#                 ax[i][j].set_xlabel(r'$R/R_a$', fontsize = 20)
+#             elif xaxis == 'angles':
+#                 ax[i][j].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
+#                 ax[i][j].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
+#                 ax[i][j].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
 
-plt.tick_params(axis = 'both', which = 'both', direction='in', size = 10, labelsize=15)
-plt.tick_params(axis = 'both', which = 'major',  size = 10)
-plt.tick_params(axis = 'x', which = 'minor',  size = 7)
-plt.suptitle('Radiation energy density without fluff', fontsize = 30)
-fig.delaxes(ax[1][1])
-plt.tight_layout()
+# plt.tick_params(axis = 'both', which = 'both', direction='in', size = 10, labelsize=15)
+# plt.tick_params(axis = 'both', which = 'major',  size = 10)
+# plt.tick_params(axis = 'x', which = 'minor',  size = 7)
+# plt.suptitle('Radiation energy density without fluff', fontsize = 30)
+# fig.delaxes(ax[1][1])
+# plt.tight_layout()
 
-if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/coloredRadE_nofluff_{xaxis}{weight}.png')
-plt.show()
+# if save:
+#     plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/coloredRadE_nofluff_{xaxis}{weight}.png')
+# plt.show()
 
 #%%
 if xaxis == 'radii':
