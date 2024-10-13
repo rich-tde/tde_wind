@@ -114,9 +114,9 @@ for i,snap in enumerate(snaps):
         # orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = orb_en_cut)
         # Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = Rad_cut)
 
-        ie_cast = single_branch(radii, xaxis, tocast_cut, ie_cut, weights = ie_cut)
-        orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_cut, weights = orb_en_cut)
-        Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_cut, weights = Rad_cut)
+        ie_cast = single_branch(radii, xaxis, tocast_cut, ie_cut, weights = 1)
+        orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_cut, weights = 1)
+        Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_cut, weights = 1)
         ie_castsmall = single_branch(radii, xaxis, tocast_cutsmall, ie_cutsmall, weights = 1)
         orb_en_castsmall = single_branch(radii, xaxis, tocast_cutsmall, orb_en_cutsmall, weights = 1)
         Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_cutsmall, weights = 1)
