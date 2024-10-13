@@ -39,7 +39,7 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 check = 'Low' # 'Low' or 'HiRes'
 step = ''
 xaxis = 'radii' # radii or angles
-weight = '' # weightE or '' if you have weight for vol/mass
+weight = 'weightE' # weightE or '' if you have weight for vol/mass
 save = True
 
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step, time = True) #[100,115,164,199,216]
@@ -88,37 +88,37 @@ for i,snap in enumerate(snaps):
 
     # throw fluff
     cutsmall = data.Den > 1e-19
-    cut = data.Den > 1e-9 
+    cut = data.Den <= 1e-9 #data.Den > 1e-9 
     Rsph_cut, theta_cut, mass_cut, ie_cut, ie_onmass_cut, orb_en_cut, orb_en_onmass_cut, Rad_cut, Rad_den_cut, vol_cut = \
             sec.make_slices([Rsph, theta, mass, ie, ie_onmass, orb_en, orb_en_onmass, Rad, Rad_den, vol], cut)
-    Rsph_cutsmall, theta_cutsmall, Rad_cutsmall, Rad_den_cutsmall, vol_cutsmall = \
-        sec.make_slices([Rsph, theta, Rad, Rad_den, vol], cutsmall)
+    # Rsph_cutsmall, theta_cutsmall, Rad_cutsmall, Rad_den_cutsmall, vol_cutsmall = \
+    #     sec.make_slices([Rsph, theta, Rad, Rad_den, vol], cutsmall)
 
-    if xaxis == 'angles':
-        tocast_cut = theta_cut
-        tocast_cutsmall = theta_cutsmall
-    elif xaxis == 'radii':
-        tocast_cut = Rsph_cut
-        tocast_cutsmall = Rsph_cutsmall
+    # if xaxis == 'angles':
+    #     tocast_cut = theta_cut
+    #     tocast_cutsmall = theta_cutsmall
+    # elif xaxis == 'radii':
+    #     tocast_cut = Rsph_cut
+    #     tocast_cutsmall = Rsph_cutsmall
         
     # Cast down 
-    if weight == '':
-        ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
-        orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
-        Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = vol_cutsmall)
-        Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = vol_cut)
-    elif weight == 'weightE':
-        ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = ie_cut)
-        orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = orb_en_cut)
-        Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = Rad_cutsmall)
-        Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = Rad_cut)
+    # if weight == '':
+    #     ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
+    #     orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
+    #     Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = vol_cutsmall)
+    #     Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = vol_cut)
+    # elif weight == 'weightE':
+    #     ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = ie_cut)
+    #     orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = orb_en_cut)
+    #     Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = Rad_cutsmall)
+    #     Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = Rad_cut)
 
-    col_ie.append(ie_cast)
-    col_orb_en.append(orb_en_cast)
-    # just cut the very low fluff
-    col_Rad.append(Rad_castsmall)
-    # same cut as the other energies
-    col_Rad_samecut.append(Rad_cast)
+    # col_ie.append(ie_cast)
+    # col_orb_en.append(orb_en_cast)
+    # # just cut the very low fluff
+    # col_Rad.append(Rad_castsmall)
+    # # same cut as the other energies
+    # col_Rad_samecut.append(Rad_cast)
 
 #%%
 if save:
@@ -128,12 +128,13 @@ if save:
         prepath = f'/data1/martirep/shocks/shock_capturing'
     else: 
         prepath = f'/Users/paolamartire/shocks'
-    np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}{weight}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_samecut])
-    with open(f'{prepath}/data/{folder}/coloredE_{check}{step}_days.txt', 'w') as file:
-        file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
-        file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-        file.close()
-    np.save(f'{prepath}/data/{folder}/{xaxis}En_{check}{step}.npy', radii)
+    np.save(f'{prepath}/data/{folder}/coloredEcutted_{check}{step}_{xaxis}{weight}.npy', [Rsph_cut, mass_cut, vol_cut, ie_cut, orb_en_cut, Rad_cut])
+    # np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}{weight}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_samecut])
+    # with open(f'{prepath}/data/{folder}/coloredE_{check}{step}_days.txt', 'w') as file:
+    #     file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
+    #     file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+    #     file.close()
+    # np.save(f'{prepath}/data/{folder}/{xaxis}En_{check}{step}.npy', radii)
 # %% Plotting
 if plot:
     img = plt.pcolormesh(radii, tfb, col_ie,
