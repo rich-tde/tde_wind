@@ -169,7 +169,7 @@ def single_branch(radii, xaxis, R, tocast, weights, keep_track = False):
     tocast: arr,
         Simulation data to cast.
     weights: arr,
-        Weights to use in the casting.
+        Weights to use in the casting. If 1: no weights are used.
     keep_track: bool,
         If True, returns the indices of the points used in the casting.
     Returns
@@ -181,7 +181,8 @@ def single_branch(radii, xaxis, R, tocast, weights, keep_track = False):
         indices = np.arange(len(tocast))
         cells_used = []
     gridded_tocast = np.zeros((len(radii)))
-    gridded_weights = np.zeros((len(radii)))
+    if weights != 1:
+        gridded_weights = np.zeros((len(radii)))
     R = R.reshape(-1, 1) # Reshaping to 2D array with one column
     tree = KDTree(R) 
     for i in range(len(radii)):
@@ -205,13 +206,18 @@ def single_branch(radii, xaxis, R, tocast, weights, keep_track = False):
                 cells_used.append([])
         else:    
             indices = [int(idx) for idx in indices]
-            gridded_tocast[i] = np.sum(tocast[indices] * weights[indices])
-            gridded_weights[i] = np.sum(weights[indices])
+            if weights != 1:
+                gridded_tocast[i] = np.sum(tocast[indices] * weights[indices])
+                gridded_weights[i] = np.sum(weights[indices])
+            else:
+                gridded_tocast[i] = np.sum(tocast[indices])
             if keep_track:
                 cells_used.append(indices)
-
-    gridded_weights += 1e-20 # avoid division by zero
-    final_casted = np.divide(gridded_tocast, gridded_weights)
+    if weights != 1:
+        gridded_weights += 1e-20 # avoid division by zero
+        final_casted = np.divide(gridded_tocast, gridded_weights)
+    else:
+        final_casted = gridded_tocast
     if keep_track:
         return final_casted, cells_used
     else:
