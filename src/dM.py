@@ -75,18 +75,13 @@ if do_dMdE:
         bins = np.arange(-10,10,.1) # np.arange(-2, 2, .1)
         if alice:
             #save snaps, tfb and energy bins
-            try:
-                prepath = f'/data1/martirep/shocks/shock_capturing'
-                file = open(f'{prepath}/data/{folder}/dMdE_{check}{cutden}.txt', 'r')
+            with open(f'{prepath}/data/{folder}/dMdE_{check}{cutden}.txt','w') as file:
+                # if file doesn'exist
+                file.write(f'# {folder}_{check}{step} \n # Snaps \n' + ' '.join(map(str, snaps)) + '\n')
+                file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+                file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
+                file.write((' '.join(map(str, bins)) + '\n'))
                 file.close()
-            except FileNotFoundError:
-                with open(f'{prepath}/data/{folder}/dMdE_{check}{cutden}.txt','a') as file:
-                    # if file doesn'exist
-                    file.write(f'# {folder}_{check}{step} \n # Snaps \n' + ' '.join(map(str, snaps)) + '\n')
-                    file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-                    file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
-                    file.write((' '.join(map(str, bins)) + '\n'))
-                    file.close()
         for snap in snaps:
             print(f'Snap: {snap}')
             # Load data
