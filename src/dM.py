@@ -78,7 +78,7 @@ if do_dMdE:
             prepath = f'/data1/martirep/shocks/shock_capturing'
             with open(f'{prepath}/data/{folder}/dMdE_{check}{cutden}.txt','w') as file:
                 # if file doesn'exist
-                file.write(f'# {folder}_{check}{step} \n # Snaps \n' + ' '.join(map(str, snaps)) + '\n')
+                file.write(f'# {folder}_{check}{step} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
                 file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
                 file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
                 file.write((' '.join(map(str, bins)) + '\n'))
@@ -116,7 +116,7 @@ if do_dMdE:
                     if check == '':
                         check = 'Low'
                     with open(f'{prepath}/data/{folder}/dMdE_{check}{cutden}.txt','a') as file:
-                        fstart.write(f'# dM/dE snap {snap}) \n')
+                        file.write(f'# dM/dE snap {snap}) \n')
                         file.write((' '.join(map(str, dm_dE)) + '\n'))
                         file.close()
                 else:
