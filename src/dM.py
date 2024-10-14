@@ -1,6 +1,8 @@
 abspath = '/Users/paolamartire/shocks/'
 import sys
 sys.path.append(abspath)
+from Utilities.isalice import isalice
+alice, plot = isalice()
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,6 +11,7 @@ from Utilities.operators import make_tree
 import Utilities.sections as sec
 import src.orbits as orb
 from Utilities.time_extractor import days_since_distruption
+from Utilities.selectors_for_snap import select_snap
 matplotlib.rcParams['figure.dpi'] = 150
 
 #
@@ -22,7 +25,7 @@ Rsol = 7e8 #6.957e8 # m
 t = np.sqrt(Rsol**3 / (Msol*G_SI ))
 c = 3e8 / (7e8/t)
 
-#%%
+#
 ## PARAMETERS STAR AND BH
 #
 m = 4
@@ -32,6 +35,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
+step = ''
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
@@ -42,7 +46,7 @@ Rp =  Rt / beta
 R0 = 0.6 * Rt
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 Ecirc = -G*Mbh/(4*Rp)
-norm = Mbh/Rt * (Mbh/Rstar)**(-1/3)
+norm = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call \Delta E)
 
 
 #
@@ -50,31 +54,50 @@ norm = Mbh/Rt * (Mbh/Rstar)**(-1/3)
 #
 
 # Choose what to do
-cutden = False
-do_dMdE = False
+cutden = 'cut' # or '' or 'cut'
+do_dMdE = True
 compare_resol = False
-compare_times = True
+compare_times = False
 do_Ehist = False
 E_in_time = False
 do_dMds = False
 
-plot = False
 save = True
 
 #%%
 if do_dMdE:
     checks = ['Low','HiRes'] # 'Low' or 'HiRes' 
-    snaps = ['80', '164', '199', '216']
     print('Normalization for energy:', norm)
 
     for check in checks:
         print(f'Check: {check}')
+        snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step, time = True) 
+        bins = np.arange(-10,10,.1) # np.arange(-2, 2, .1)
+        if alice:
+            #save snaps, tfb and energy bins
+            try:
+                file = open(f'{prepath}/data/{folder}/dMdE_{check}{cutden}.txt', 'r')
+                file.close()
+            except FileNotFoundError:
+                with open(f'{prepath}/data/{folder}/dMdE_{check}{cutden}.txt','a') as file:
+                    # if file doesn'exist
+                    file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
+                    file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+                    file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
+                    file.write((' '.join(map(str, bins)) + '\n'))
+                    file.close()
         for snap in snaps:
             print(f'Snap: {snap}')
-            path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
-            tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+            # Load data
+            if alice:
+                if check == 'Low':
+                    check = ''
+                path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}{step}/snap_{snap}'
+            else:
+                path = f'/Users/paolamartire/shocks/TDE/{folder}{check}{step}/{snap}'
             data = make_tree(path, snap, energy = False)
-            dim_cell = data.Vol**(1/3) # according to Elad
+            # Compute the orbital energy
+            dim_cell = data.Vol**(1/3) 
             mass = data.Mass
             R = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
             V = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
@@ -82,69 +105,41 @@ if do_dMdE:
             specific_orbital_energy = orbital_enegy / mass
 
             # Cutoff for low density
-            if cutden:
+            if cutden == 'cut':
                 cut = data.Den > 1e-9
                 mass, specific_orbital_energy = mass[cut], specific_orbital_energy[cut]
 
-            # Normalisation (what on the x axis you call \Delta E)
-
             # (Specific) energy bins 
-            specOE_norm = specific_orbital_energy/norm #or use orbital_energy_mid
-            bins = np.linspace(-20,20, 50)#np.arange(-2, 2, .1)
+            specOE_norm = specific_orbital_energy/norm 
             mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
             dm_dE = mass_binned / (np.diff(bins_edges)*norm)
 
             if save:
-                (f'Saving data in: data/{folder}')
-                try:
-                    file = open(f'{abspath}data/{folder}/dMdE/dMdE_time{np.round(tfb,2)}.txt', 'r')
-                    # Perform operations on the file
-                    file.close()
-                except FileNotFoundError:
-                    with open(f'{abspath}data/{folder}/dMdE/dMdE_time{np.round(tfb,2)}.txt','a') as fstart:
-                        # if file doesn'exist
-                        fstart.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
-                        fstart.write((' '.join(map(str, bins_edges[:-1])) + '\n'))
-                with open(f'{abspath}data/{folder}/dMdE/dMdE_time{np.round(tfb,2)}.txt','a') as file:
-                    if cutden:
-                        file.write(f'# Check {check}, snap {snap} using only data with data.Den>1e-19 \n')
-                    else:
-                        file.write(f'# Check {check}, snap {snap} \n')
-                    file.write((' '.join(map(str, dm_dE)) + '\n'))
-                    file.close()
-
-            # if plot:
-            #     saving_fig = f'{abspath}Figs/{folder}/{check}'
-            #     dm_dE[dm_dE<=0] = 1 #so it's 0 in the logscale
-            #     # Section at the midplane
-            #     midplane = np.abs(data.Z) < dim_cell
-            #     X_mid, Y_mid, Den_mid = \
-            #         sec.make_slices([data.X, data.Y, data.Den], midplane)
-            #     # plot the mass distribution with respect to the energy
-            #     fig, ax = plt.subplots(1,2, figsize = (8,4))
-            #     # ax[0].scatter(bins_edges[:-1], mass_binned, c = 'r', s = 10, alpha = 0.4, label = 'dM')
-            #     # ax[0].hist(specOE_norm, bins = bins, weights = mass, color = 'r', alpha = 0.2)
-            #     ax[0].scatter(bins_edges[:-1], dm_dE, c = 'k', s = 30)
-            #     ax[0].set_xlabel(r'$E_{spec}/\Delta E$', fontsize = 16)
-            #     ax[0].set_ylabel(r'$\log_{10}$(dM/d$E_{spec}$)', fontsize = 16)
-            #     ax[0].set_xlim(np.min(bins_edges),np.max(bins_edges))
-            #     ax[0].set_ylim(1e-18,6e-14)#(1e-8, 4e-2)
-            #     ax[0].set_yscale('log')
-            #     ax[0].legend()
-
-            #     img = ax[1].scatter(X_mid, Y_mid, c = np.log10(Den_mid), s = .1, cmap = 'jet', vmin = -11, vmax = -6)
-            #     cbar = plt.colorbar(img)
-            #     cbar.set_label(r'$\log_{10}$ Density', fontsize = 16)
-            #     ax[1].set_xlim(-5,5)#(-500,100)
-            #     ax[1].set_ylim(-10,10)#(-200,50)
-            #     ax[1].set_xlabel(r'X [$R_\odot$]', fontsize = 18)
-            #     ax[1].set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
-
-            #     plt.suptitle(f'check: {check}, ' + r't/t$_{fb}$ = ' + str(np.round(tfb,3)), fontsize = 16)
-            #     plt.tight_layout()
-            #     if save:
-            #         plt.savefig(f'{saving_fig}/EnM_{snap}.png')
-            #     plt.show()
+                if alice:
+                    if check == '':
+                        check = 'Low'
+                    prepath = f'/data1/martirep/shocks/shock_capturing'
+                    with open(f'{prepath}/data/{folder}/dMdE_{check}{cutden}.txt','a') as file:
+                        file.write((' '.join(map(str, dm_dE)) + '\n'))
+                        file.close()
+                else:
+                    prepath = f'{abspath}data/{folder}'
+                    try:
+                        file = open(f'{prepath}/dMdE/dMdE_time{np.round(tfb,2)}.txt', 'r')
+                        # Perform operations on the file
+                        file.close()
+                    except FileNotFoundError:
+                        with open(f'{prepath}/dMdE/dMdE_time{np.round(tfb,2)}.txt','a') as fstart:
+                            # if file doesn'exist
+                            fstart.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
+                            fstart.write((' '.join(map(str, bins[:-1])) + '\n'))
+                    with open(f'{prepath}/dMdE/dMdE_time{np.round(tfb,2)}.txt','a') as file:
+                        if cutden:
+                            file.write(f'# Check {check}, snap {snap} using only data with data.Den>1e-19 \n')
+                        else:
+                            file.write(f'# Check {check}, snap {snap} \n')
+                        file.write((' '.join(map(str, dm_dE)) + '\n'))
+                        file.close()
     
 #%%
 if compare_times:

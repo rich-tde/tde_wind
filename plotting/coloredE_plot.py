@@ -28,7 +28,7 @@ save = True
 xaxis = 'radii'
 res1 = 'Low'
 res2 = 'HiRes' #'HiRes', 'LowDoubleRad'
-weight = '' #'weightE' or '' if you have weight for vol/mass
+weight = 'weightE' #'weightE' or '' if you have weight for vol/mass
 cut = '_NOcut' # or '' or '_NOcut' or '_all1e-19'
 if xaxis == 'angles':
     apo = 1
@@ -42,7 +42,7 @@ path = f'/Users/paolamartire/shocks/data/{folder}/colormapE_Alice'
 datares1 = np.load(f'{path}/coloredE_{res1}_{xaxis}{weight}{cut}.npy') #shape (3, len(tfb), len(radii))
 tfb_datares1 = np.loadtxt(f'{path}/coloredE_{res1}_days.txt')
 snap_res1 = tfb_datares1[0]
-tfb_res1 = tfb_datares1[1]
+tfb_res1_all = tfb_datares1[1]
 radiires1 = np.load(f'{path}/{xaxis}En_{res1}.npy')
 col_ieres1, col_orb_enres1, col_Radres1_cutsmall, col_Radres1 = datares1[0], datares1[1], datares1[2], datares1[3]
 # convert to cgs
@@ -70,7 +70,7 @@ abs_col_orb_enres2 = np.abs(col_orb_enres2)
 # Consider Low data only up to the time of the res2 data
 n_res2 = len(col_ieres2)
 snap_res1 = snap_res1[:n_res2]
-tfb_res1 = tfb_res1[:n_res2]
+tfb_res1 = tfb_res1_all[:n_res2]
 col_ieres1 = col_ieres1[:n_res2]
 col_orb_enres1 = col_orb_enres1[:n_res2]
 abs_col_orb_enres1 = abs_col_orb_enres1[:n_res2]
@@ -253,7 +253,6 @@ if save:
     plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/coloredE_diff_{xaxis}{weight}{cut}.png')
 plt.show()
 
-######################
 # %% Relative differences
 denominator_orb_en = (col_orb_enres1 + col_orb_enres2)/2
 denominator_ie = (col_ieres1 + col_ieres2)/2
@@ -348,127 +347,67 @@ if save:
     plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/coloredE_relative_diff_{xaxis}{weight}{cut}.png')
 plt.show()
 
-# %% Do just for radiation without fluff as  check
-# diff_Rad_nofluff = col_Radres1_cutsmall - col_Radres2_nofluff
-# denominator_Rad_nofluff = (col_Radres1_cutsmall + col_Radres2_nofluff)/2
-# rel_Rad_nofluff = np.abs(diff_Rad_nofluff / denominator_Rad_nofluff)
-# rel_Rad_nofluff[np.isnan(rel_Rad_nofluff)] = 0
-# normRadnofluff = colors.LogNorm(vmin=np.percentile(col_Radres1_cutsmall[col_Radres1_cutsmall>0], 5), vmax=np.percentile(col_Radres1_cutsmall[col_Radres1_cutsmall>0], 95))
-
-# fig, ax = plt.subplots(2,2, figsize = (12,10))
-# img = ax[0][0].pcolormesh(radiires1/apo, tfb_res1, col_Radres1_cutsmall, norm=normRadnofluff, cmap = 'viridis')
-# cb = fig.colorbar(img)
-# cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 15, labelpad = 5)
-# ax[0][0].text(np.min(radiires1/apo), 0.15, f'{res1} res', fontsize = 25)
-# img = ax[0][1].pcolormesh(radiires2/apo, tfb_res2, col_Radres2_nofluff, norm=normRadnofluff, cmap = 'viridis')
-# cb = fig.colorbar(img)
-# cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 15, labelpad = 5)
-# ax[0][1].text(np.min(radiires2/apo), 0.15, f'{res2} res', fontsize = 25)
-# # plot the relaive difference
-# img = ax[1][0].pcolormesh(radiires2/apo, tfb_res2, rel_Rad_nofluff, cmap='inferno', norm=norm_Rad)
-# cb = fig.colorbar(img)
-# cb.set_label('Relative difference', fontsize = 15, labelpad = 5)
-# for i in range(2):
-#     ax[i][0].set_ylabel(r't/t$_{fb}$', fontsize = 20)
-#     for j in range(2):
-#         ax[i][j].axhline(0.205, c = 'white', linewidth = 0.4)
-#         ax[i][j].axhline(0.52, c = 'white', linewidth = 0.4)
-#         ax[i][j].axhline(0.75, c = 'white', linewidth = 0.4)
-#         if xaxis == 'radii':
-#             ax[i][j].axvline(Rt/apo, linestyle ='dashed', c = 'white', linewidth = 0.8)
-#             ax[i][j].text(Rt/apo, 0.65, r'R$_t$', fontsize = 14, rotation = 90, transform = ax[i][j].transAxes, color = 'k')
-#             ax[i][j].axvline(1.5*Rt/apo, linestyle ='dashed', c = 'white', linewidth = 0.8)
-#             ax[i][j].text(1.5*Rt/apo+0.1, 0.65, r'1.5R$_t$', fontsize = 14, rotation = 90, transform = ax[i][j].transAxes, color = 'k')
-#             ax[i][j].axvline(0.1, c = 'white', linewidth = 0.4)
-#             ax[i][j].axvline(0.3, c = 'white', linewidth = 0.4)
-#             ax[i][j].axvline(0.5, c = 'white', linewidth = 0.4)
-#             ax[i][j].axvline(1, c = 'white', linewidth = 0.4)
-#             ax[i][j].set_xscale('log')
-
-#         elif xaxis == 'angles':
-#             ax[i][j].axvline(-2.5, c = 'white', linewidth = 0.4)
-#             ax[i][j].axvline(-1, c = 'white', linewidth = 0.4)
-#             ax[i][j].axvline(2.5, c = 'white', linewidth = 0.4)
-#             ax[i][j].axvline(1, c = 'white', linewidth = 0.4)
-
-#         if i == 1:
-#             if xaxis == 'radii':
-#                 ax[i][j].set_xlabel(r'$R/R_a$', fontsize = 20)
-#                 ax[i][j].set_xlabel(r'$R/R_a$', fontsize = 20)
-#                 ax[i][j].set_xlabel(r'$R/R_a$', fontsize = 20)
-#             elif xaxis == 'angles':
-#                 ax[i][j].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
-#                 ax[i][j].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
-#                 ax[i][j].set_xlabel(r'$\theta$ [rad]', fontsize = 20)
-
-# plt.tick_params(axis = 'both', which = 'both', direction='in', size = 10, labelsize=15)
-# plt.tick_params(axis = 'both', which = 'major',  size = 10)
-# plt.tick_params(axis = 'x', which = 'minor',  size = 7)
-# plt.suptitle('Radiation energy density without fluff', fontsize = 30)
-# fig.delaxes(ax[1][1])
-# plt.tight_layout()
-
-# if save:
-#     plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/coloredRadE_nofluff_{xaxis}{weight}{cut}.png')
-# plt.show()
-
 #%%
 if xaxis == 'radii':
-    # from matplotlib.colors import ListedColormap, BoundaryNorm
-    # # Check wh has the higher energy between Low and High
-    # colorsthree = ['orchid', 'white', 'dodgerblue']  # Example: red for negative, white for zero, green for positive
-    # cmapthree = ListedColormap(colorsthree)
-    # boundaries = [-1e9, -0.1, 0.1, 1e9]  # Slight offset to differentiate zero from positive
-    # normthree = BoundaryNorm(boundaries, cmapthree.N, clip=True)
+    res = res1
+    tfb_res = tfb_res2
+    # Load data Low res
+    dataenergycut = np.load(f'{path}/coloredEenergy_{res}_{xaxis}.npy') 
+    ie, orb_en, rad = dataenergycut[0], dataenergycut[1], dataenergycut[2]
+    ie, orb_en, rad = ie[:n_res2], orb_en[:n_res2], rad[:n_res2]
+    dataenergyNOcut = np.load(f'{path}/coloredEenergy_{res}_{xaxis}NOcut.npy') 
+    ieNOcut, orb_enNOcut, radNOcut = dataenergyNOcut[0], dataenergyNOcut[1], dataenergyNOcut[2]
+    ieNOcut, orb_enNOcut, radNOcut = ieNOcut[:n_res2], orb_enNOcut[:n_res2], radNOcut[:n_res2]
+    # compute the differences to see how much energy is cut
+    orb_diff = orb_enNOcut - orb_en
+    orb_diff_abs = np.abs(orb_diff)
+    iediff = ieNOcut - ie
+    rad_diff = radNOcut - rad
+    # relative differences
+    orb_diff_abs_rel = np.abs(orb_diff/orb_enNOcut) 
+    iediff_rel = np.abs(iediff/ieNOcut)
+    rad_diff_rel = np.abs(rad_diff/radNOcut)
 
-    # fig, ax = plt.subplots(2,2, figsize = (12,12))
-    # img = ax[0][0].pcolormesh(radiires2/apo, tfb_res2, np.abs(col_orb_enres1) - np.abs(col_orb_enres2), cmap = cmapthree, norm = normthree)
-    # ax[0][0].set_title('Specific (absolute) orbital energy', fontsize = 20)
-    # img1 = ax[0][1].pcolormesh(radiires2/apo, tfb_res2, diff_ie, cmap = cmapthree, norm = normthree)
-    # ax[0][1].set_title('Specific internal energy', fontsize = 20)
-    # img2 = ax[1][0].pcolormesh(radiires2/apo, tfb_res2, diff_Rad, cmap = cmapthree, norm = normthree)
-    # ax[1][0].set_title('Radiation energy density', fontsize = 20)
-    # img3 = ax[1][1].pcolormesh(radiires2/apo, tfb_res2, diff_Rad_nofluff, cmap = cmapthree, norm = normthree)
-    # ax[1][1].set_title('Radiation energy density NO fluff', fontsize = 20)
-    # # Create an axis for the colorbar
-    # cbar_ax = fig.add_axes([1.02, 0.15, 0.02, 0.7])  # [left, bottom, width, height]
-    # # Add the colorbar to the figure
-    # cb = fig.colorbar(img, cax=cbar_ax)
-    # cb.set_label(f'{res1}-{res2}', fontsize = 30)
-    # ax[1][0].set_xlabel(r'$R/R_a$', fontsize = 20)
-    # ax[1][1].set_xlabel(r'$R/R_a$', fontsize = 20)
-    # ax[0][0].set_ylabel(r't/t$_{fb}$', fontsize = 20)
-    # ax[1][0].set_ylabel(r't/t$_{fb}$', fontsize = 20)
-    # for i in range(2):
-    #     for j in range(2):
-    #         ax[i][j].set_xscale('log')
-    # plt.tight_layout()
- 
-    # Lines
-    # indices = [70, 100, 136]
+    fig, ax = plt.subplots(2,3, figsize = (14,8))
+    img = ax[0][0].pcolormesh(radiires1/apo, tfb_res, orb_diff_abs*prel.en_converter,  cmap = cmap, norm = colors.LogNorm(vmin=1e42, vmax = 1e46))
+    cb = fig.colorbar(img)
+    ax[0][0].set_title('Absolute orbital energy', fontsize = 20)
+
+    img = ax[0][1].pcolormesh(radiires1/apo, tfb_res, iediff*prel.en_converter, cmap = cmap, norm = colors.LogNorm(vmin=1e40, vmax = 1e43))
+    cb = fig.colorbar(img)
+    ax[0][1].set_title('Internal energy', fontsize = 20)
+
+    img = ax[0][2].pcolormesh(radiires1/apo, tfb_res, rad_diff*prel.en_converter, cmap = cmap, norm = colors.LogNorm(vmin=1e40, vmax = 1e45))
+    cb = fig.colorbar(img)
+    ax[0][2].set_title('Radiation energy', fontsize = 20)
+    cb.set_label(r'$\Delta$ [erg]', fontsize = 20, labelpad = 2)
+
+    img = ax[1][0].pcolormesh(radiires2/apo, tfb_res, orb_diff_abs_rel, cmap = 'plasma', vmin=0, vmax = .5)
+    cb = fig.colorbar(img)
+
+    img = ax[1][1].pcolormesh(radiires2/apo, tfb_res, iediff_rel, cmap = 'plasma', vmin=0, vmax = .5)
+    cb = fig.colorbar(img)
+
+    img = ax[1][2].pcolormesh(radiires2/apo, tfb_res, rad_diff_rel, cmap = 'plasma', vmin=0, vmax = 1)
+    cb = fig.colorbar(img)
+    cb.set_label(r'$\Delta_{rel}$', fontsize = 20, labelpad = 2)
+
+    for i in range(2):
+        for j in range(3):
+            ax[i][j].set_xscale('log')
+            if i == 1:
+                ax[i][j].set_xlabel(r'$R/R_a$', fontsize = 20)
+            if j == 0:
+                ax[i][j].set_ylabel(r't/t$_{fb}$', fontsize = 20)
+
+    plt.suptitle(f'Cut energy in {res} res: difference between NOcut and cut 1e-9', fontsize = 20)
+    plt.tight_layout()
+    if save:
+        plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{res}/whatIsCut.png')
+    plt.show()
+    #%% Lines
     indices = [np.argmin(np.abs(tfb_res1-0.46)), np.argmin(np.abs(tfb_res1-0.66)), np.argmin(np.abs(tfb_res1-0.86))]
     colors_indices = ['navy', 'royalblue', 'deepskyblue']
-    lines_difference = (col_Radres1[indices]-col_Radres2[indices])/col_Radres2[indices]
-    img, ax = plt.subplots(1,2, figsize = (16,4))
-    for i,idx in enumerate(indices):
-        ax[0].plot(radiires1, col_Radres1[idx], c = colors_indices[i], label = f'{res1} t/tfb = {np.round(tfb_res1[idx],2)}')
-        ax[0].plot(radiires2, col_Radres2[idx], '--', c = colors_indices[i], label = f'{res2} t/tfb = {np.round(tfb_res2[idx],2)}')
-        ax[1].plot(radiires1, lines_difference[i], c = colors_indices[i], label = f't/tfb = {np.round(tfb_res1[idx],2)}')
-    ax[0].set_xlabel(r'R/R$_a$', fontsize = 20)
-    ax[0].set_ylabel(r'(Rad/Vol) [erg/cm$^3$]', fontsize = 20)
-    ax[1].set_xlabel(r'$R/R_a$', fontsize = 20)
-    ax[1].set_ylabel(r'$|$'+f'{res1}-{res2}'+r'$|$/mean', fontsize = 20)
-    ax[0].loglog()
-    ax[1].loglog()
-    ax[0].legend(fontsize = 16)
-    ax[1].legend(fontsize = 18)
-    ax[0].grid()
-    ax[1].grid()
-    plt.suptitle(f'Relative differences: 1-{res2}/{res1}')
-    plt.tight_layout()
-    plt.show()
-
-    #%%
     Lum_cgs = col_Radres1  * prel.c * 4 * np.pi * (radiires1*prel.Rsol_to_cm)**2 
     Lumres2_cgs = col_Radres2 * prel.c * 4 * np.pi * (radiires2*prel.Rsol_to_cm)**2 
     denom = (Lum_cgs + Lumres2_cgs)/2
@@ -510,7 +449,6 @@ if xaxis == 'radii':
     ax[1].grid()
     ax[1].loglog()
     plt.subplots_adjust(wspace=1)
-    # plt.suptitle('Relative differences: $|$Low-High$|$/mean')
     plt.tight_layout()
     if save:
         plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/Luminosity{weight}{cut}.png')
@@ -530,4 +468,3 @@ if xaxis == 'radii':
         print(tfb_res1[indices[i+1]], tfb_res1[indices[i]])
         print(f'The relative difference of the last point of the high res line is {np.round((mean_lastafter-mean_lastbefore),2)}')
 
-# %%
