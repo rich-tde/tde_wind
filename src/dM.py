@@ -55,18 +55,22 @@ norm = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call
 
 # Choose what to do
 cutden = 'cut' # or '' or 'cut'
-do_dMdE = True
+do_dMdE = False
 compare_resol = False
 compare_times = False
 do_Ehist = False
 E_in_time = False
 do_dMds = False
+movie = True 
 
 save = True
 
+if alice:
+    do_dMdE = True
+    save = True
 #%%
 if do_dMdE:
-    checks = ['Low']#,'HiRes'] # 'Low' or 'HiRes' 
+    checks = ['Low','HiRes'] # 'Low' or 'HiRes' 
     print('Normalization for energy:', norm)
 
     for check in checks:
@@ -116,7 +120,7 @@ if do_dMdE:
                     if check == '':
                         check = 'Low'
                     with open(f'{prepath}/data/{folder}/dMdE_{check}{cutden}.txt','a') as file:
-                        file.write(f'# dM/dE snap {snap}) \n')
+                        file.write(f'# dM/dE snap {snap} \n')
                         file.write((' '.join(map(str, dm_dE)) + '\n'))
                         file.close()
                 else:
@@ -200,14 +204,9 @@ if compare_resol:
     plt.ylabel(r'$(\log_{10}$dM/dE)', fontsize = 16)
     plt.yscale('log')
     plt.legend(fontsize = 14)
-    if cutoffRes20:
-        plt.title(r'Only points with $X>-175$ for the highest res, t/t$_{fb}$ = ' + str(time_chosen), fontsize = 16)
-        if save:
-            plt.savefig(f'Figs/{folder}/multiple/dMdE_time{time_chosen}_cutRes20.png')
-    else:
-        plt.title(r't/t$_{fb}$ = ' + str(time_chosen), fontsize = 16)
-        if save:
-            plt.savefig(f'{abspath}Figs/{folder}/multiple/dMdE_time{time_chosen}.png')
+    plt.title(r't/t$_{fb}$ = ' + str(time_chosen), fontsize = 16)
+    if save:
+        plt.savefig(f'{abspath}Figs/{folder}/multiple/dMdE_time{time_chosen}.png')
     plt.grid()
     plt.show()
 
@@ -371,7 +370,47 @@ if E_in_time:
     # plt.savefig(f'Figs/{folder}/multiple/Energy_time.pdf')
     plt.show()
 
+#%%
+if movie:
+    import subprocess
+    check = 'Low'
+    datadays = np.loadtxt(f'{abspath}data/{folder}/dMdE_days_{check}.txt')
+    snaps, tfb= datadays[0], datadays[1]
+    bins = np.loadtxt(f'{abspath}data/{folder}/dMdE_bins.txt')
+    data = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}.txt')
+    mid_points = (bins[:-1]+bins[1:])/2
+    dataCut = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}cut.txt')
 
+    for i in range(len((dataCut))):
+        snap = snaps[i]
+        plt.figure()
+        plt.plot(mid_points, data[i], c = 'b', alpha = 0.8, label = 'NO cut')
+        plt.plot(mid_points, dataCut[i], c = 'r', alpha = 0.8, label = r'Density cut $10^{-9}$')
+        plt.xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
+        plt.ylabel('dM/dE', fontsize = 16)
+        plt.yscale('log')
+        plt.xlim(-2,2)
+        plt.ylim(9e-7, 1.5e-2)
+        plt.text(-1.5, 1e-2, f't/tfb = {np.round(tfb[i],2)}', fontsize = 14)
+        plt.legend(loc = 'lower center', fontsize = 14)
+        plt.tight_layout()
+        if save:
+            plt.savefig(f'{abspath}Figs/{folder}/{check}/dMdE/snap{int(snap)}{cutden}.png')
+        plt.close()
+    # Make the movie
+    path = f'{abspath}Figs/{folder}/{check}/dMdE/snap'
+    output_path = f'{abspath}Figs/{folder}/{check}/dMdE/moviedMdE_{cutden}.mp4'
+
+    start = 100
+    slow_down_factor = 2  # Increase this value to make the video slower
+
+    ffmpeg_command = (
+        f'ffmpeg -y -start_number {start} -i {path}%d{cutden}.png -vf "setpts={slow_down_factor}*PTS" '
+        f'-c:v libx264 -pix_fmt yuv420p {output_path}'
+        )
+
+    subprocess.run(ffmpeg_command, shell=True)
+        
 
 #%%###########
 # if do_dMds:

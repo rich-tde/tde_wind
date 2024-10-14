@@ -1,7 +1,5 @@
 abspath = '/Users/paolamartire/shocks'
 import subprocess
-import glob
-import os
 
 # Choose simulation
 m = 4

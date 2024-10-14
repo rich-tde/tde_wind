@@ -349,7 +349,7 @@ plt.show()
 
 #%%
 if xaxis == 'radii':
-    res = res1
+    res = res2
     tfb_res = tfb_res2
     # Load data Low res
     dataenergycut = np.load(f'{path}/coloredEenergy_{res}_{xaxis}.npy') 
@@ -363,11 +363,25 @@ if xaxis == 'radii':
     orb_diff_abs = np.abs(orb_diff)
     iediff = ieNOcut - ie
     rad_diff = radNOcut - rad
+    norm_orb = np.sum(orb_enNOcut, axis = 0)
+    # norm_orb = np.transpose([norm_orb] * len(radiires2))
+    norm_ie = np.sum(ieNOcut, axis = 0)
+    # norm_ie = np.transpose([norm_ie] * len(radiires2))
+    norm_rad = np.sum(radNOcut, axis = 0)
+    # norm_rad = np.transpose([norm_rad] * len(radiires2))
     # relative differences
     orb_diff_abs_rel = np.abs(orb_diff/orb_enNOcut) 
     iediff_rel = np.abs(iediff/ieNOcut)
     rad_diff_rel = np.abs(rad_diff/radNOcut)
+    # orb_diff_abs_rel = np.copy(orb_diff_abs)
+    # iediff_rel = np.copy(iediff)
+    # rad_diff_rel = np.copy(rad_diff)
+    # for i in range(len(tfb_res)):
+    #     orb_diff_abs_rel[i] /= np.sum(np.abs(orb_enNOcut[i]))
+    #     iediff_rel[i] /= np.sum(ieNOcut[i])
+    #     rad_diff_rel[i] /= np.sum(radNOcut[i])
 
+    colors_tick = ['w', 'k']
     fig, ax = plt.subplots(2,3, figsize = (14,8))
     img = ax[0][0].pcolormesh(radiires1/apo, tfb_res, orb_diff_abs*prel.en_converter,  cmap = cmap, norm = colors.LogNorm(vmin=1e42, vmax = 1e46))
     cb = fig.colorbar(img)
@@ -380,7 +394,7 @@ if xaxis == 'radii':
     img = ax[0][2].pcolormesh(radiires1/apo, tfb_res, rad_diff*prel.en_converter, cmap = cmap, norm = colors.LogNorm(vmin=1e40, vmax = 1e45))
     cb = fig.colorbar(img)
     ax[0][2].set_title('Radiation energy', fontsize = 20)
-    cb.set_label(r'$\Delta$ [erg]', fontsize = 20, labelpad = 2)
+    cb.set_label(r'Energy lost[erg]', fontsize = 20, labelpad = 2)
 
     img = ax[1][0].pcolormesh(radiires2/apo, tfb_res, orb_diff_abs_rel, cmap = 'plasma', vmin=0, vmax = .5)
     cb = fig.colorbar(img)
@@ -395,6 +409,8 @@ if xaxis == 'radii':
     for i in range(2):
         for j in range(3):
             ax[i][j].set_xscale('log')
+            ax[i][j].tick_params(axis='both', which='major', color = colors_tick[i], size=5)
+            ax[i][j].tick_params(axis='both', which='minor', color = colors_tick[i], size=3)
             if i == 1:
                 ax[i][j].set_xlabel(r'$R/R_a$', fontsize = 20)
             if j == 0:
