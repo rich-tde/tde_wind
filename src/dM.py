@@ -76,6 +76,9 @@ if do_dMdE:
         if alice:
             #save snaps, tfb and energy bins
             try:
+                prepath = f'/data1/martirep/shocks/shock_capturing'
+                if check == '':
+                        check = 'Low'
                 file = open(f'{prepath}/data/{folder}/dMdE_{check}{cutden}.txt', 'r')
                 file.close()
             except FileNotFoundError:
@@ -118,7 +121,6 @@ if do_dMdE:
                 if alice:
                     if check == '':
                         check = 'Low'
-                    prepath = f'/data1/martirep/shocks/shock_capturing'
                     with open(f'{prepath}/data/{folder}/dMdE_{check}{cutden}.txt','a') as file:
                         file.write((' '.join(map(str, dm_dE)) + '\n'))
                         file.close()
