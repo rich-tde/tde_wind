@@ -39,7 +39,7 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 checks = ['Low','HiRes']
 step = ''
 xaxis = 'radii' # radii or angles
-weight = 'weightDen' # weightDen or weightE or '' if you have weight for vol/mass
+weight = 'mixed' # mixed weightDen or weightE or '' if you have weight for vol/mass
 save = True
 
 Mbh = 10**m
@@ -117,7 +117,12 @@ for check in checks:
             orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = den_cut)
             Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = den_cut)
             # Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = den_cutsmall)
-
+        elif weight == 'mixed':
+            ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
+            orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
+            Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = Rad_cut)
+            # Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = Rad_cutsmall)
+        
             # ie_cast = single_branch(radii, xaxis, tocast_cut, ie_cut, weights = 1)
             # orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_cut, weights = 1)
             # Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_cut, weights = 1)
