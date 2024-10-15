@@ -63,7 +63,7 @@ if __name__ == '__main__':
     if alice: 
         col_ecc = []
         # col_Rsph = []
-        radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
+        radii = np.logspace(np.log10(R0), np.log10(apo),
                         num=200) 
         for i,snap in enumerate(snaps):
             print(snap)
@@ -82,14 +82,12 @@ if __name__ == '__main__':
             spec_orb_en = orb_en / data.Mass
             ecc2 = eccentricity(R_vec, vel_vec, spec_orb_en, Mbh, G)
 
-            # throw fluff (cut from Konstantinos) and unbound material
-            cut = np.logical_and(data.Den > 1e-12, orb_en < 0)
+            # throw fluff and unbound material
+            cut = np.logical_and(data.Den > 1e-19, orb_en < 0)
             Rsph_cut, mass_cut, ecc_cut = sec.make_slices([Rsph, data.Mass, ecc2], cut)
             ecc_cast = single_branch(radii,'radii', Rsph_cut, ecc_cut, weights = mass_cut)
 
             col_ecc.append(ecc_cast)
-            # col_Rsph.append(Rsph_cut)
-            # col_ecc.append(ecc_cut)
 
         if save:
             if alice:
@@ -104,10 +102,6 @@ if __name__ == '__main__':
                 file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
                 file.close()
             np.save(f'{prepath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
-            # with open(f'{prepath}/data/{folder}/scatterEcc2_{check}{step}.pkl', 'wb') as f:
-            #     pickle.dump(col_ecc, f)
-            # with open(f'{prepath}/data/{folder}/radiiscatterEcc2_{check}{step}.pkl', 'wb') as frad:
-            #     pickle.dump(col_Rsph, frad)
     
     else:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
@@ -127,20 +121,6 @@ if __name__ == '__main__':
         tfb_dataHiRes = np.loadtxt(f'{path}/Ecc_HiRes_days.txt')
         snap_HiRes, tfb_HiRes = tfb_dataHiRes[0], tfb_dataHiRes[1]
         radiiHiRes = np.load(f'{path}/radiiEcc_HiRes.npy')
-
-        with open(f'{path}/scatterEcc2_{check}{step}.pkl', 'rb') as filecc:  
-            scattereccL = pickle.load(filecc) 
-        with open(f'{path}/radiiscatterEcc2_{check}{step}.pkl', 'rb') as fileR:  
-            Rsph = pickle.load(fileR)
-        tarrmatrix = []
-        for i in range(len(tfb_Low)):
-            tarrmatrix.append(np.ones(len(Rsph[i]))*tfb_Low[i])
-        Rsph = np.concatenate(Rsph)
-        tarrmatrix = np.concatenate(tarrmatrix)
-        scattereccL = np.concatenate(scattereccL)
-        #%%
-        plt.scatter(Rsph[::10_000], tarrmatrix[::10_000], c = scattereccL[::10_000], cmap = 'cet_rainbow4')
-        plt.show()
 
         n_HiRes = len(eccHiRes)
         snap_Low = snap_Low[:n_HiRes]
