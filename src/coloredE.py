@@ -49,12 +49,6 @@ Rp =  Rt / beta
 R0 = 0.6 * Rt
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
-col_ie = []
-col_orb_en = []
-col_Rad = []
-col_Rad_cutsmall = []
-col_ie_cutsmall = []
-col_orb_en_cutsmall = []
 
 if xaxis == 'angles':
     from Utilities.operators import Ryan_sampler
@@ -66,6 +60,12 @@ elif xaxis == 'radii':
 
 for check in checks:    
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step, time = True) #[100,115,164,199,216]
+    col_ie = []
+    col_orb_en = []
+    col_Rad = []
+    # col_Rad_cutsmall = []
+    # col_ie_cutsmall = []
+    # col_orb_en_cutsmall = []
     for i,snap in enumerate(snaps):
         print(snap)
         if alice:
@@ -87,36 +87,36 @@ for check in checks:
         orb_en_onmass = orb_en / mass
 
         # throw fluff
-        cutsmall = den > 1e-19
-        cut = den > 1e-9 
+        # cutsmall = den > 1e-19
+        cut = den > 1e-19 
         Rsph_cut, theta_cut, mass_cut, den_cut, ie_cut, ie_onmass_cut, orb_en_cut, orb_en_onmass_cut, Rad_cut, Rad_den_cut, vol_cut = \
                 sec.make_slices([Rsph, theta, mass, den, ie, ie_onmass, orb_en, orb_en_onmass, Rad, Rad_den, vol], cut)
-        Rsph_cutsmall, theta_cutsmall, den_cutsmall, ie_cutsmall, orb_en_cutsmall, Rad_cutsmall, Rad_den_cutsmall, vol_cutsmall = \
-            sec.make_slices([Rsph, theta, den, ie, orb_en, Rad, Rad_den, vol], cutsmall)
+        # Rsph_cutsmall, theta_cutsmall, den_cutsmall, ie_cutsmall, orb_en_cutsmall, Rad_cutsmall, Rad_den_cutsmall, vol_cutsmall = \
+        #     sec.make_slices([Rsph, theta, den, ie, orb_en, Rad, Rad_den, vol], cutsmall)
 
         if xaxis == 'angles':
             tocast_cut = theta_cut
-            tocast_cutsmall = theta_cutsmall
+            # tocast_cutsmall = theta_cutsmall
         elif xaxis == 'radii':
             tocast_cut = Rsph_cut
-            tocast_cutsmall = Rsph_cutsmall
+            # tocast_cutsmall = Rsph_cutsmall
             
         # Cast down 
         if weight == '':
             ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
             orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
             Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = vol_cut)
-            Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = vol_cutsmall)
+            # Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = vol_cutsmall)
         elif weight == 'weightE':
             ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = ie_cut)
             orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = orb_en_cut)
             Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = Rad_cut)
-            Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = Rad_cutsmall)
+            # Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = Rad_cutsmall)
         elif weight == 'weightDen':
             ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = den_cut)
             orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = den_cut)
             Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = den_cut)
-            Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = den_cutsmall)
+            # Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = den_cutsmall)
 
             # ie_cast = single_branch(radii, xaxis, tocast_cut, ie_cut, weights = 1)
             # orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_cut, weights = 1)
@@ -129,7 +129,7 @@ for check in checks:
         col_orb_en.append(orb_en_cast)
         col_Rad.append(Rad_cast)
         # just cut the very low fluff
-        col_Rad_cutsmall.append(Rad_castsmall)
+        # col_Rad_cutsmall.append(Rad_castsmall)
 
     #%%
     if save:
@@ -139,7 +139,8 @@ for check in checks:
             prepath = f'/data1/martirep/shocks/shock_capturing'
         else: 
             prepath = f'/Users/paolamartire/shocks'
-        np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}{weight}.npy', [col_ie, col_orb_en, col_Rad_cutsmall, col_Rad])
+        # np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}{weight}.npy', [col_ie, col_orb_en, col_Rad_cutsmall, col_Rad])
+        np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}{weight}.npy', [col_ie, col_orb_en, col_Rad])
         # np.save(f'{prepath}/data/{folder}/coloredEenergy_{check}{step}_{xaxis}.npy', [col_ie, col_orb_en, col_Rad])
         # np.save(f'{prepath}/data/{folder}/coloredEenergy_{check}{step}_{xaxis}NOCUT.npy', [col_ie_cutsmall, col_orb_en_cutsmall, col_Rad_cutsmall])
         with open(f'{prepath}/data/{folder}/coloredE_{check}{step}_days.txt', 'w') as file:

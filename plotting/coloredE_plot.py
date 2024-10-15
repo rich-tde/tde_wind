@@ -28,8 +28,8 @@ save = True
 xaxis = 'radii'
 res1 = 'Low'
 res2 = 'HiRes' #'HiRes', 'LowDoubleRad'
-weight = 'weightE' #'weightE' or '' if you have weight for vol/mass
-cut = '_NOcut' # or '' or '_NOcut' or '_all1e-19'
+weight = '' #'weightE' or '' if you have weight for vol/mass
+cut = '_all1e-19' # or '' or '_NOcut' or '_all1e-19'
 if xaxis == 'angles':
     apo = 1
 #

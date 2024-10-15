@@ -56,12 +56,10 @@ norm = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call
 # Choose what to do
 cutden = 'cut' # or '' or 'cut'
 do_dMdE = False
-compare_resol = False
-compare_times = False
+compare_times = True
 do_Ehist = False
-E_in_time = False
 do_dMds = False
-movie = True 
+movie = False 
 
 save = True
 
@@ -144,71 +142,45 @@ if do_dMdE:
     
 #%%
 if compare_times:
-    tails = 'Tails'
-    exppl = 1.5
-    exppl3 = -1.5
-    xarratpl = np.arange(0.1,20)
-    yarratpl2 = xarratpl**(exppl)
-    yarratpl3 = xarratpl**(exppl3)
-    times = [0.05, 0.52, 0.75, 0.86]
+    datadays = np.loadtxt(f'{abspath}data/{folder}/dMdE_days_HiRes.txt')
+    snaps, tfb= datadays[0], datadays[1]
+    bins = np.loadtxt(f'{abspath}data/{folder}/dMdE_bins.txt')
+    mid_points = (bins[:-1]+bins[1:])/2
+    dataL = np.loadtxt(f'{abspath}data/{folder}/dMdE_Low.txt')
+    dataH = np.loadtxt(f'{abspath}data/{folder}/dMdE_HiRes.txt')
+    dataL = dataL[:len(dataH)]
+
+    selected_times = [0.05, 0.2, 0.5, 0.7, 0.9]
     colorsL = ['k', 'b', 'dodgerblue', 'slateblue', 'skyblue']
     colorsM = ['maroon', 'r', 'coral', 'orange', 'gold']
     markers = ['o', 's', 'v', 'd', 'p']
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
-    for i, time_chosen in enumerate(times):
-        data = np.loadtxt(f'{abspath}data/{folder}/dMdE/{tails}/dMdE_time{time_chosen}.txt')
-        bin_plot = data[0]
-        dataL = data[1]
-        dataMiddle = data[2]
-
+    for i,selected_time in enumerate(selected_times):
+        idx_snap = np.argmin(np.abs(tfb - selected_time))
+        time = tfb[idx_snap]
         if i == 0:
-            ax1.plot(bin_plot, dataL, c = colorsL[i], alpha = 0.5, label = f'Initial')
-            # ax1.plot(bin_plot, dataMiddle, c = colorsM[i], linestyle = '--', alpha = 0.5, label = f'High, {time_chosen}' + r't/t$_{fb}$')
-            # ax2.plot(bin_plot, np.abs(1-dataL/dataMiddle), c = colorsM[i], alpha = 0.5, label = f'{time_chosen}' + r't/t$_{fb}$')
+            ax1.plot(mid_points, dataL[idx_snap], c = colorsL[i], alpha = 0.5, label = f'Initial')
         else:
-            ax1.scatter(bin_plot, dataL, c = colorsL[i], marker=markers[i], s = 50, label = f'Low, {time_chosen}' + r't/t$_{fb}$')
-            ax1.scatter(bin_plot, dataMiddle, c = colorsM[i], marker=markers[i], s = 25, label = f'High, {time_chosen}' + r't/t$_{fb}$')
-            ax2.plot(bin_plot, np.abs(1-dataL/dataMiddle), c = colorsM[i], label = f'{time_chosen}' + r't/t$_{fb}$')
-    
-    if tails == 'Tails':
-        ax1.plot(xarratpl-20, yarratpl2*1e-11, c = 'olive', linestyle = '--', alpha = 0.5, label = f'power law exp: {exppl}')
-        ax1.plot(xarratpl, yarratpl3*1e-10, c = 'b', linestyle = '--', alpha = 0.5, label = f'power law exp: {exppl3}')
-        ax1.axvline(Ecirc/norm, color = 'k', alpha = 0.5, linestyle = '--', label = r'$E_{circ}/\Delta E$')
+            ax1.scatter(mid_points, dataL[idx_snap], c = colorsL[i], marker=markers[i], s = 50, label = f'Low, {np.round(time,2)} ' + r't/t$_{fb}$')
+            ax1.scatter(mid_points, dataH[idx_snap], c = colorsM[i], marker=markers[i], s = 25, label = f'High, {np.round(time,2)} ' + r't/t$_{fb}$')
+            ax2.plot(mid_points, np.abs(1-dataL[i]/dataH[i]), c = colorsM[i], label = f'{np.round(time,2)} ' + r't/t$_{fb}$')
+
     ax2.set_xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
     ax1.set_ylabel('dM/dE', fontsize = 16)
     ax2.set_ylabel(r'$|$1-Low/High$|$', fontsize = 16)
     ax1.set_yscale('log')
     ax2.set_yscale('log')
+    ax1.set_xlim(-2,2)
+    ax2.set_xlim(-2,2)
+    ax1.set_ylim(9e-7, 1.5e-2)
+    ax2.set_ylim(1e-4, 1e-1)
     # put the legend outside the plot
     ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
     ax2.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
     if save:
-        plt.savefig(f'{abspath}Figs/{folder}/multiple/dMdE{tails}_times.png')
+        plt.savefig(f'{abspath}Figs/{folder}/multiple/dMdE_times.png')
     plt.show()
 
-#%%
-if compare_resol:
-    time_chosen = 0.7 #np.round(tfb,1)
-    data = np.loadtxt(f'{abspath}data/{folder}/dMdE/dMdE_time{time_chosen}.txt')
-    bin_plot = data[0]
-    dataL = data[1]
-    dataMiddle = data[2]
-    # if cutoffRes20:
-    #     dataHigh = data[4]
-    # else:
-    #     dataHigh = data[3]
-    plt.scatter(bin_plot, dataL, c = 'k', s = 35, label = 'Low')
-    plt.scatter(bin_plot, dataMiddle, c = 'r', s = 15, label = 'Middle')
-    # plt.scatter(bin_plot, dataHigh, c = 'b', s = 7, label = 'High')
-    plt.xlabel(r'$E/\Delta E$', fontsize = 16)
-    plt.ylabel(r'$(\log_{10}$dM/dE)', fontsize = 16)
-    plt.yscale('log')
-    plt.legend(fontsize = 14)
-    plt.title(r't/t$_{fb}$ = ' + str(time_chosen), fontsize = 16)
-    if save:
-        plt.savefig(f'{abspath}Figs/{folder}/multiple/dMdE_time{time_chosen}.png')
-    plt.grid()
-    plt.show()
 
 #%%###########
 if do_Ehist:
@@ -340,34 +312,6 @@ if do_Ehist:
     plt.tight_layout()
     if save:
         plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/{y_value}_hist_time{np.round(tfb,1)}.png')
-    plt.show()
-
-#%%
-if E_in_time:
-    dataLow = np.loadtxt(f'data/{folder}/boundE_Low_EradasDen.txt')
-    dataLow = dataLow.T
-    dataMiddle = np.loadtxt(f'data/{folder}/boundE_HiRes_EradasDen.txt')
-    dataMiddle = dataMiddle.T
-
-    time = np.array([0.1, 0.2, 0.5, 0.8, 0.9]) #100, 115, 164, 199, 216
-    fig, (ax1,ax2) = plt.subplots(2,1)
-    ax2.plot(time, dataLow[0], c = 'darkcyan', label = 'IE Low')
-    ax2.plot(time, dataLow[1], '--', c = 'deepskyblue', label = 'RadE Low')
-    ax1.plot(time, dataLow[2], c = 'royalblue', label = 'OE Low')
-    ax1.plot(time, dataLow[3], '--', c = 'navy', label = 'TotE Low')
-
-    ax2.plot(time, dataMiddle[0], c =    'orange', label = 'IE Middle')
-    ax2.plot(time, dataMiddle[1], '--', c = 'darkorange', label = 'RadE Middle')
-    ax1.plot(time, dataMiddle[2], c = 'coral', label = 'OE Middle')
-    ax1.plot(time, dataMiddle[3], '--', c = 'maroon', label = 'TotE Middle')
-    ax1.legend()
-    ax2.legend()
-    ax1.set_ylabel('Energy', fontsize = 18)
-    ax2.set_ylabel('Energy', fontsize = 18)
-    ax2.set_xlabel(r't/t$_{fb}$', fontsize = 18)
-    ax1.grid()
-    ax2.grid()
-    # plt.savefig(f'Figs/{folder}/multiple/Energy_time.pdf')
     plt.show()
 
 #%%
