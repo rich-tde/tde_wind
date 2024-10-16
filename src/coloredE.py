@@ -136,8 +136,9 @@ for check in checks:
             # orb_en_castsmall = single_branch(radii, xaxis, tocast_cutsmall, orb_en_cutsmall, weights = 1)
             # Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_cutsmall, weights = 1)
 
-        col_ie.append(ie_cast)
-        col_orb_en.append(orb_en_cast)
+        if lum != 'Lum':
+            col_ie.append(ie_cast)
+            col_orb_en.append(orb_en_cast)
         col_Rad.append(Rad_cast)
         # just cut the very low fluff
         # col_Rad_cutsmall.append(Rad_castsmall)
