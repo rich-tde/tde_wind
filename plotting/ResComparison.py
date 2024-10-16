@@ -28,7 +28,7 @@ G = 1
 ##
 # PARAMETERS
 ##
-save = False
+save = True
 
 m = 4
 Mbh = 10**m
@@ -190,35 +190,60 @@ if save:
 plt.show()
 
 #%%
-cumH = np.arange(len(massHhist))/len(massHhist)
-cumL = np.arange(len(massLhist))/len(massLhist)
-cumdimH = np.arange(len(dim_cellHhist))/len(dim_cellHhist)
-cumdimL = np.arange(len(dim_cellLhist))/len(dim_cellLhist)
+cumH = list(np.arange(len(massHhist))/len(massHhist))
+cumL = list(np.arange(len(massLhist))/len(massLhist))
+cumdimH = list(np.arange(len(dim_cellHhist))/len(dim_cellHhist))
+cumdimL = list(np.arange(len(dim_cellLhist))/len(dim_cellLhist))
+massLhist = list(massLhist)
+massHhist = list(massHhist)
+dim_cellLhist = list(dim_cellLhist)
+dim_cellHhist = list(dim_cellHhist)
 deltaMass = np.max(massLhist) - np.max(massHhist)
 deltaDim = np.max(dim_cellLhist) - np.max(dim_cellHhist)
+massLhist.append(1)
+cumdimL.append(1)
+massHhist.append(1)
+cumdimH.append(1)
+dim_cellLhist.append(1)
+cumL.append(1)
+dim_cellHhist.append(1)
+cumH.append(1)
 
 massHhistshifted = massHhist + deltaMass
 dim_cellHhistshifted = dim_cellHhist + deltaDim
 
-fig, (ax1, ax2) = plt.subplots(1,2, figsize = (14,6))
+#%%
+price24 = 2.3e-7
+bonlu20 = 1e-8
+ryu23 = 0.096
+RgSad = 1e5/c**2
+r_sad16 = np.logspace(1.85*RgSad, 1000*RgSad, 256)
+sad16 = np.min(np.diff(r_sad16))
+fig, (ax1, ax2) = plt.subplots(2,1, figsize = (5,8))
 # grazie Sill
-ax1.plot(massHhistshifted, cumH, color = 'mediumpurple', label = 'High res')
+ax1.plot(massHhist, cumH, color = 'mediumpurple', label = 'High res')
 ax1.plot(massLhist, cumL, color = 'orange', label = 'Low res')
-ax2.plot(dim_cellHhistshifted, cumdimH, color = 'mediumpurple',  label = 'High res')
-ax2.plot(dim_cellLhist, cumdimL, color = 'orange', linestyle='--',label = 'Low res')
+ax1.axvline(price24, color = 'k', linestyle = 'dashed', label = 'Price24')
+ax1.axvline(bonlu20, color = 'r', linestyle = 'dashed', label = 'BonnerotLu20')
+ax2.plot(dim_cellHhist, cumdimH, color = 'mediumpurple',  label = 'High res')
+ax2.plot(dim_cellLhist, cumdimL, color = 'orange', label = 'Low res')
+ax2.axvline(ryu23, color = 'k', linestyle = 'dashed', label = 'Ryu+23 initial')
+# ax2.axvline(sad16, color = 'r', linestyle = 'dashed', label = 'Sadowski+16')
 
 for ax in [ax1, ax2]:
     ax.set_xscale('log')
-    ax.tick_params(axis = 'both', which = 'both', direction='in', labelsize=15)
-    ax.legend(loc ='upper left', fontsize = 18)
-ax1.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 20)
-ax2.set_xlabel(r'Cell size [$R_\odot$]', fontsize = 20)
-ax1.set_ylabel('CDF', fontsize = 25)
-# ax1.set_xlim(5e-13, 3e-8)
-# ax2.set_xlim(7e-2, 4e-1)
-plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
+    ax.tick_params(axis = 'both', which = 'both', direction='in', labelsize=12)
+    ax.legend(loc ='upper left', fontsize = 12)
+    ax.set_ylabel('CDF', fontsize = 20)
+    ax.set_ylim(0,1.1)
+ax1.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 15)
+ax2.set_xlabel(r'Cell size [$R_\odot$]', fontsize = 15)
+ax1.set_xlim(5e-13, 3e-6)
+ax2.set_xlim(7e-2, 4e-1)
+# plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
+plt.tight_layout()
 if save:
-    plt.savefig(f'{abspath}/Figs/{folder}/multiple/compareHistToget_{snap}.png')
+    plt.savefig(f'{abspath}/Figs/{folder}/multiple/compareHistToget_{snap}.pdf')
 plt.show()
 
 #%% As before, but trying to stretch the x axis of orange to overlap with purple
@@ -246,7 +271,7 @@ for ax in [ax1, ax2]:
 ax1.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 20)
 ax2.set_xlabel(r'Cell size [$R_\odot$]', fontsize = 20)
 ax1.set_ylabel('CDF', fontsize = 25)
-ax1.set_xlim(5e-13, 3e-8)
+ax1.set_xlim(5e-13, 3e-)
 ax2.set_xlim(7e-2, 4e-1)
 plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
 if save:

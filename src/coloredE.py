@@ -36,10 +36,11 @@ n = 1.5
 compton = 'Compton'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
-checks = ['Low','HiRes']
+checks = ['Low']#,'HiRes']
 step = ''
 xaxis = 'radii' # radii or angles
 weight = 'mixed' # mixed weightDen or weightE or '' if you have weight for vol/mass
+lum = 'Lum'
 save = True
 
 Mbh = 10**m
@@ -55,7 +56,11 @@ if xaxis == 'angles':
     radii = np.arange(-np.pi, np.pi, 0.02)
     radii = Ryan_sampler(radii)
 elif xaxis == 'radii':
-    radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
+    if lum == 'Lum':
+        radii = np.logspace(np.log10(1.5*apo), np.log10(5*apo),
+                    num=200)  # simulator units
+    else:
+        radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
                     num=200)  # simulator units
 
 for check in checks:    
@@ -118,8 +123,9 @@ for check in checks:
             Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = den_cut)
             # Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = den_cutsmall)
         elif weight == 'mixed':
-            ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
-            orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
+            if lum != 'Lum':
+                ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
+                orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
             Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = Rad_cut)
             # Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = Rad_cutsmall)
         
@@ -144,12 +150,12 @@ for check in checks:
             prepath = f'/data1/martirep/shocks/shock_capturing'
         else: 
             prepath = f'/Users/paolamartire/shocks'
-        # np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}{weight}.npy', [col_ie, col_orb_en, col_Rad_cutsmall, col_Rad])
-        np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}{weight}.npy', [col_ie, col_orb_en, col_Rad])
-        # np.save(f'{prepath}/data/{folder}/coloredEenergy_{check}{step}_{xaxis}.npy', [col_ie, col_orb_en, col_Rad])
-        # np.save(f'{prepath}/data/{folder}/coloredEenergy_{check}{step}_{xaxis}NOCUT.npy', [col_ie_cutsmall, col_orb_en_cutsmall, col_Rad_cutsmall])
+        if lum == 'Lum':
+            np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}{weight}{lum}.npy', col_Rad)
+        else:
+            np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}{weight}.npy', [col_ie, col_orb_en, col_Rad])
         with open(f'{prepath}/data/{folder}/coloredE_{check}{step}_days.txt', 'w') as file:
             file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
             file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
             file.close()
-        np.save(f'{prepath}/data/{folder}/{xaxis}En_{check}{step}.npy', radii)
+        np.save(f'{prepath}/data/{folder}/{xaxis}En_{check}{step}{lum}.npy', radii)

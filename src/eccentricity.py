@@ -130,21 +130,21 @@ if __name__ == '__main__':
         
         fig, ax = plt.subplots(1,3, figsize = (25,6))
         # Low
-        img = ax[0].pcolormesh(radiiLow/apo, tfb_Low, eccLow, vmin = 0.75, vmax = 1, cmap = 'cet_rainbow4')
+        img = ax[0].pcolormesh(radiiLow/apo, tfb_Low, eccLow, vmin = 0.7, vmax = 1, cmap = 'cet_rainbow4')
         cb = fig.colorbar(img)
         ax[0].set_xscale('log')
         cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
-        # ax[0].text(np.min(radiiLow/apo), 0.1,'Low res', fontsize = 20)
+        ax[0].text(0.4, np.max(tfb_Low)-0.05,'Low res', fontsize = 20)
 
-        img = ax[1].pcolormesh(radiiHiRes/apo, tfb_HiRes, eccHiRes, vmin = 0.75, vmax = 1, cmap = 'cet_rainbow4')
+        img = ax[1].pcolormesh(radiiHiRes/apo, tfb_HiRes, eccHiRes, vmin = 0.7, vmax = 1, cmap = 'cet_rainbow4')
         cb = fig.colorbar(img)
         cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
         ax[1].set_xscale('log')
-        # ax[1].text(np.min(radiiHiRes/apo), 0.1,'High res', fontsize = 20)
+        ax[1].text(0.4, np.max(tfb_Low)-0.05,'High res', fontsize = 20)
 
         img = ax[2].pcolormesh(radiiLow/apo, tfb_Low, rel_diff, cmap = 'plasma', norm = colors.LogNorm(vmin = 1e-4, vmax=1e-1))
         cb = fig.colorbar(img)
         ax[2].set_xscale('log')
         cb.set_label(r'Relative difference', fontsize = 20, labelpad = 2)
 
-        plt.savefig(f'{abspath}Figs/{folder}/multiple/ecc.png')
+        plt.savefig(f'{abspath}Figs/{folder}/multiple/ecc.pdf')

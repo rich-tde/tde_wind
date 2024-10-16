@@ -10,20 +10,25 @@ c = 2.99792458e10 #[cm/s]
 h = 6.62607015e-27 #[gcm^2/s]
 Kb = 1.380649e-16 #[gcm^2/s^2K]
 alpha = 7.5646 * 10**(-15) # radiation density [erg/cm^3K^4]
-G = 6.6743e-11 # SI
 sigma_T = 6.6524e-25 #[cm^2] thomson cross section
 
-# Solar to SI units
-Msol = 2e30 #1.98847e30 # kg
-Rsol = 7e8 #6.957e8 # m
-t = np.sqrt(Rsol**3 / (Msol*G )) # Follows from G = 1
+# Solar and SI units
+c_SI = 2.99e8 #m
+G_SI = 6.6743e-11 # SI
+Msol_SI = 2e30 #1.98847e30 # kg
+Rsol_SI = 7e8 #6.957e8 # m
+tsol_SI = np.sqrt(Rsol_SI**3 / (Msol_SI*G_SI )) # Follows from G = 1
+csol = c_SI / (Rsol_SI/tsol_SI)
 
 # Converters
-Rsol_to_cm = 6.957e10 # [cm]
-Msol_to_g = 2e33 # 1.989e33 # [g]
-den_converter = Msol_to_g / Rsol_to_cm**3
-en_den_converter = Msol_to_g / (Rsol_to_cm  * t**2 ) # Energy Density converter
-en_converter = Msol_to_g * Rsol_to_cm**2 / t**2 # Energy converter
+c_cgs = 2.99e10 #cm
+G_cgs = 6.6743e-8 # cgs
+Rsol_cgs = 6.957e10 # [cm]
+Msol_cgs = 1.989e33 # [g]
+tsol_cgs = np.sqrt(Rsol_cgs**3 / (Msol_cgs*G_cgs )) # Follows from G = 1
+den_converter = Msol_cgs / Rsol_cgs**3
+en_den_converter = Msol_cgs / (Rsol_cgs  * tsol_cgs**2 ) # Energy Density converter
+en_converter = Msol_cgs * Rsol_cgs**2 / tsol_cgs**2 # Energy converter
 
 # Healpy
 NSIDE = 4
