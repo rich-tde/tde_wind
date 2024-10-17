@@ -57,7 +57,7 @@ if xaxis == 'angles':
     radii = Ryan_sampler(radii)
 elif xaxis == 'radii':
     if lum == 'Lum':
-        radii = np.logspace(np.log10(R0), np.log10(7*apo),
+        radii = np.logspace(np.log10(0.5*apo), np.log10(15*apo),
                     num=500)  # simulator units
     else:
         radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
