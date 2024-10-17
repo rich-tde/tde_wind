@@ -431,22 +431,33 @@ if xaxis == 'radii':
     #%% Lines
     indices = [np.argmin(np.abs(tfb_res1-0.52)), np.argmin(np.abs(tfb_res1-0.75)), np.argmin(np.abs(tfb_res1-0.86))]
     colors_indices = ['navy', 'royalblue', 'deepskyblue']
-    Lum_cgs = col_Radres1  * prel.c * 4 * np.pi * (radiires1*prel.Rsol_cgs)**2 
-    Lumres2_cgs = col_Radres2 * prel.c * 4 * np.pi * (radiires2*prel.Rsol_cgs)**2 
+    col_Lum1 = np.load(f'{path}/coloredE_Low_radiimixedLum.npy') 
+    radiiLum1 = np.load(f'{path}/radiiEn_LowLum.npy')
+    col_Lum1 = col_Lum1 * prel.en_den_converter
+    col_Lum2 = np.load(f'{path}/coloredE_HiRes_radiimixedLum.npy') 
+    radiiLum2 = np.load(f'{path}/radiiEn_HiResLum.npy')
+    col_Lum2 = col_Lum2 * prel.en_den_converter
+    col_Lum1 = col_Lum1[:len(col_Lum2)]
+
+    Lum_cgs = col_Lum1  * prel.c * 4 * np.pi * (radiiLum1*prel.Rsol_cgs)**2 
+    Lumres2_cgs = col_Lum2 * prel.c * 4 * np.pi * (radiiLum2*prel.Rsol_cgs)**2 
     denom = (Lum_cgs + Lumres2_cgs)/2
     Lum_difference = np.abs(Lum_cgs[indices]-Lumres2_cgs[indices])/denom[indices]
 
     img, ax = plt.subplots(1,2, figsize = (20,7))
     for i,idx in enumerate(indices):
-        ax[0].text(15/apo, np.mean(Lumres2_cgs[idx]), r'$t/t_{fb}$ = '+ f'{np.round(tfb_res1[indices[i]],2)}', fontsize = 20)
+        if i==1:
+            ax[0].text(15/apo, 5e44, r'$t/t_{fb}$ = '+ f'{np.round(tfb_res1[indices[i]],2)}', fontsize = 20)
+        else: 
+            ax[0].text(15/apo, np.max(Lumres2_cgs[idx]), r'$t/t_{fb}$ = '+ f'{np.round(tfb_res1[indices[i]],2)}', fontsize = 20)
         if i == 0:
-            ax[0].plot(radiires1/apo, Lum_cgs[idx], c = colors_indices[i], label = f'{res1} res')#t/tfb = {np.round(tfb_Low[idx],2)}')
-            ax[0].plot(radiires2/apo, Lumres2_cgs[idx], '--', c = colors_indices[i], label = f'{res2} res')#t/tfb = {np.round(tfb_res2[idx],2)}')
-            ax[1].plot(radiires1/apo, Lum_difference[i], c = colors_indices[i])#, label = f't/tfb = {np.round(tfb_Low[idx],2)}')
+            ax[0].plot(radiiLum1/apo, Lum_cgs[idx], c = colors_indices[i], label = f'{res1} res')#t/tfb = {np.round(tfb_Low[idx],2)}')
+            ax[0].plot(radiiLum2/apo, Lumres2_cgs[idx], '--', c = colors_indices[i], label = f'{res2} res')#t/tfb = {np.round(tfb_res2[idx],2)}')
+            ax[1].plot(radiiLum1/apo, Lum_difference[i], c = colors_indices[i])#, label = f't/tfb = {np.round(tfb_Low[idx],2)}')
         else:   
-            ax[0].plot(radiires1/apo, Lum_cgs[idx], c = colors_indices[i])#, label = f'Low t/tfb = {np.round(tfb_Low[idx],2)}')
-            ax[0].plot(radiires2/apo, Lumres2_cgs[idx], '--', c = colors_indices[i])#, label = f'res2 t/tfb = {np.round(tfb_res2[idx],2)}')
-            ax[1].plot(radiires1/apo, Lum_difference[i], c = colors_indices[i])#, label = f't/tfb = {np.round(tfb_Low[idx],2)}')
+            ax[0].plot(radiiLum1/apo, Lum_cgs[idx], c = colors_indices[i])#, label = f'Low t/tfb = {np.round(tfb_Low[idx],2)}')
+            ax[0].plot(radiiLum2/apo, Lumres2_cgs[idx], '--', c = colors_indices[i])#, label = f'res2 t/tfb = {np.round(tfb_res2[idx],2)}')
+            ax[1].plot(radiiLum1/apo, Lum_difference[i], c = colors_indices[i])#, label = f't/tfb = {np.round(tfb_Low[idx],2)}')
     ax[0].set_ylim(1e40, 5e45)
     # ax[1].set_ylim(0.3, 1.8)
     # ax[0].text(15, np.max(Lum_cgs[0]), r'$t/t_{fb}$ = '+ f'{np.round(tfb_res1[indices[0]],2)}', fontsize = 20)
