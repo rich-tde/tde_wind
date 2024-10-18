@@ -429,7 +429,8 @@ if xaxis == 'radii':
         plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{res}/whatIsCut.png')
     plt.show()
     #%% Lines
-    indices = [np.argmin(np.abs(tfb_res1-0.52)), np.argmin(np.abs(tfb_res1-0.75)), np.argmin(np.abs(tfb_res1-0.86))]
+    indices = [np.argmin(np.abs(tfb_res1-0.5)), np.argmin(np.abs(tfb_res1-0.7)), np.argmin(np.abs(tfb_res1-0.86))]
+    heigth_text = np.array([3e40, 1e43, 4e44])
     colors_indices = ['navy', 'royalblue', 'deepskyblue']
     col_Lum1 = np.load(f'{path}/coloredE_Low_radiimixedLum.npy') 
     radiiLum1 = np.load(f'{path}/radiiEn_LowLum.npy')
@@ -438,28 +439,39 @@ if xaxis == 'radii':
     radiiLum2 = np.load(f'{path}/radiiEn_HiResLum.npy')
     col_Lum2 = col_Lum2 * prel.en_den_converter
     col_Lum1 = col_Lum1[:len(col_Lum2)]
-
+    radiiLum1 = np.repeat([radiiLum1],len(col_Lum1), axis = 0)
+    radiiLum2 = np.repeat([radiiLum2],len(col_Lum2), axis = 0)
+    
     Lum_cgs = col_Lum1  * prel.c * 4 * np.pi * (radiiLum1*prel.Rsol_cgs)**2 
-    Lumres2_cgs = col_Lum2 * prel.c * 4 * np.pi * (radiiLum2*prel.Rsol_cgs)**2 
-    denom = (Lum_cgs + Lumres2_cgs)/2
-    Lum_difference = np.abs(Lum_cgs[indices]-Lumres2_cgs[indices])/denom[indices]
+    Lum2_cgs = col_Lum2 * prel.c * 4 * np.pi * (radiiLum2*prel.Rsol_cgs)**2 
+    denom = (Lum_cgs + Lum2_cgs)/2
+    Lum_difference = np.abs(Lum_cgs[indices]-Lum2_cgs[indices])/denom[indices]
 
     img, ax = plt.subplots(1,2, figsize = (20,7))
     for i,idx in enumerate(indices):
-        if i==1:
-            ax[0].text(15/apo, 5e44, r'$t/t_{fb}$ = '+ f'{np.round(tfb_res1[indices[i]],2)}', fontsize = 20)
-        else: 
-            ax[0].text(15/apo, np.max(Lumres2_cgs[idx]), r'$t/t_{fb}$ = '+ f'{np.round(tfb_res1[indices[i]],2)}', fontsize = 20)
+        where_zero1 = np.concatenate(np.where(Lum_cgs[idx]<1e-18))
+        where_zero2 = np.concatenate(np.where(Lum2_cgs[idx]<1e-18))
+        where_zero = np.concatenate([where_zero1, where_zero2])
+        Lum_cgs_toplot= np.delete(Lum_cgs[idx], where_zero)
+        Lum2_cgs_toplot = np.delete(Lum2_cgs[idx], where_zero)
+        radiiLum1_toplot = np.delete(radiiLum1[idx], where_zero)
+        radiiLum2_toplot = np.delete(radiiLum2[idx], where_zero)
+        Lum_difference_toplot = np.delete(Lum_difference[i], where_zero)
+        ax[0].text(np.min(radiiLum1_toplot)/apo, heigth_text[i], f't = {np.round(tfb_res1[indices[i]],2)}' +  r'$t_{fb}$', fontsize = 18)
         if i == 0:
-            ax[0].plot(radiiLum1/apo, Lum_cgs[idx], c = colors_indices[i], label = f'{res1} res')#t/tfb = {np.round(tfb_Low[idx],2)}')
-            ax[0].plot(radiiLum2/apo, Lumres2_cgs[idx], '--', c = colors_indices[i], label = f'{res2} res')#t/tfb = {np.round(tfb_res2[idx],2)}')
-            ax[1].plot(radiiLum1/apo, Lum_difference[i], c = colors_indices[i])#, label = f't/tfb = {np.round(tfb_Low[idx],2)}')
+            ax[0].plot(radiiLum1_toplot/apo, Lum_cgs_toplot, c = colors_indices[i], label = f'{res1} res')#t/tfb = {np.round(tfb_Low,2)}')
+            ax[0].plot(radiiLum2_toplot/apo, Lum2_cgs_toplot, '--', c = colors_indices[i], label = f'{res2} res')#t/tfb = {np.round(tfb_res2,2)}')
+            ax[1].plot(radiiLum1_toplot/apo, Lum_difference_toplot, c = colors_indices[i])#, label = f't/tfb = {np.round(tfb_Low,2)}')
         else:   
-            ax[0].plot(radiiLum1/apo, Lum_cgs[idx], c = colors_indices[i])#, label = f'Low t/tfb = {np.round(tfb_Low[idx],2)}')
-            ax[0].plot(radiiLum2/apo, Lumres2_cgs[idx], '--', c = colors_indices[i])#, label = f'res2 t/tfb = {np.round(tfb_res2[idx],2)}')
-            ax[1].plot(radiiLum1/apo, Lum_difference[i], c = colors_indices[i])#, label = f't/tfb = {np.round(tfb_Low[idx],2)}')
+            ax[0].plot(radiiLum1_toplot/apo, Lum_cgs_toplot, c = colors_indices[i])
+            ax[0].plot(radiiLum2_toplot/apo, Lum2_cgs_toplot, '--', c = colors_indices[i])
+            ax[1].plot(radiiLum1_toplot/apo, Lum_difference_toplot, c = colors_indices[i])
+
+        mean_error =  np.round(np.mean(Lum_difference_toplot[-10:-1]),2)
+        print(f'Mean relative error for t/tfb = {tfb_res1[indices[i]]} is {mean_error}')
+    
     ax[0].set_ylim(1e40, 5e45)
-    # ax[1].set_ylim(0.3, 1.8)
+    ax[1].set_ylim(0.1, 1.8)
     # ax[0].text(15, np.max(Lum_cgs[0]), r'$t/t_{fb}$ = '+ f'{np.round(tfb_res1[indices[0]],2)}', fontsize = 20)
     # ax[0].text(20, 1e44, r'$t/t_{fb}$ = '+ f'{np.round(tfb_res1[indices[1]],2)}', fontsize = 20)
     # ax[0].text(20, 1e45, r'$t/t_{fb}$ = '+ f'{np.round(tfb_res1[indices[2]],2)}', fontsize = 20)
@@ -488,19 +500,15 @@ if xaxis == 'radii':
         plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/Luminosity{weight}{cut}.pdf')
     plt.show()
 
-    for i in range(3):
-        mean_error =  np.round(np.mean(Lum_difference[i][-10:-1]),2)
-        print(f'Mean relative error for t/tfb = {tfb_res1[indices[i]]} is {mean_error}')
-    # print the difference of the last point of Hires lum line
-    for i,idx in enumerate(indices):
-        if i ==2:
-            continue
-        after = Lumres2_cgs[indices[i+1]]
-        before = Lumres2_cgs[indices[i]]
-        mean_lastafter = np.mean(after[-10:-1])
-        mean_lastbefore = np.mean(before[-10:-1])
-        print(tfb_res1[indices[i+1]], tfb_res1[indices[i]])
-        print(f'The relative difference of the last point of the high res line is {np.round((mean_lastafter-mean_lastbefore),2)}')
+    # for i,idx in enumerate(indices):
+    #     if i ==2:
+    #         continue
+    #     after = Lum2_cgs[indices[i+1]]
+    #     before = Lum2_cgs[indices[i]]
+    #     mean_lastafter = np.mean(after[-10:-1])
+    #     mean_lastbefore = np.mean(before[-10:-1])
+    #     print(tfb_res1[indices[i+1]], tfb_res1[indices[i]])
+        # print(f'The relative difference of the last point of the high res line is {np.round((mean_lastafter-mean_lastbefore),2)}')
 
 
 # %%
