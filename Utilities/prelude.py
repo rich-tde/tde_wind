@@ -31,7 +31,10 @@ en_den_converter = Msol_cgs / (Rsol_cgs  * tsol_cgs**2 ) # Energy Density conver
 en_converter = Msol_cgs * Rsol_cgs**2 / tsol_cgs**2 # Energy converter
 
 # Healpy
-NSIDE = 4
+import healpy as hp
+NSIDE = 8
+NPIX = hp.nside2npix(NSIDE)#  int(NSIDE * 96)
+
     
 # Plotting
 import matplotlib as mpl

@@ -29,10 +29,7 @@ def select_snap(m, check, mstar, rstar, beta, n, compton = 'Compton', step = '',
             snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/snap_{snap}/snap_{snap}.h5')]
     else:
         if m == 4:
-            if check == 'Low' or check == 'HiRes':
-                snapshots = [100, 115, 164, 199, 216]
-            if check == 'Res20':
-                snapshots = [101, 117, 169]
+            snapshots = [115, 164, 199, 216]
     if time:
         days = np.zeros(len(snapshots))
         for i,snap in enumerate(snapshots):

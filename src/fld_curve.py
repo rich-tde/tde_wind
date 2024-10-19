@@ -8,10 +8,11 @@ else:
 import sys
 sys.path.append(abspath)
 
-# import gc
-# import warnings
-# warnings.filterwarnings('ignore')
-# import csv
+import gc
+import time
+import warnings
+warnings.filterwarnings('ignore')
+import csv
 
 import numpy as np
 import h5py
@@ -19,14 +20,14 @@ import healpy as hp
 import scipy.integrate as sci
 from scipy.interpolate import griddata
 import matlab.engine
-from tqdm import tqdm
-# from sklearn.neighbors import KDTree
+from sklearn.neighbors import KDTree
 
 
 import Utilities.prelude as c
 from scipy.ndimage import uniform_filter1d # does moving mean without fucking the shape up
 # from Utilities.parser import parse
 from Utilities.selectors_for_snap import select_snap, select_prefix
+from Utilities.sections import make_slices
 
 
 #%% Choose parameters -----------------------------------------------------------------
@@ -128,6 +129,8 @@ for idx_s, snap in enumerate(snaps):
             for i in range(len(box)):
                 box[i] = fileh['Box'][i]
             fileh.close()
+    denmask = Den > 1e-19
+    X, Y, Z, T, Den, Rad, Vol = make_slices([X, Y, Z, T, Den, Rad, Vol], denmask)
     Rad_den = np.multiply(Rad,Den) # now you have enrgy density
     del Rad   
 
