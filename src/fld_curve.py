@@ -212,9 +212,9 @@ for idx_s, snap in enumerate(snaps):
         # Okay, line 232, this is the hard one.
         r_fuT = np.flipud(r.T)
         kappa_rossland = np.flipud(sigma_rossland_eval) 
-        los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, r_fuT, initial = 0)) * prel.Rsol_to_cm # dont know what it do but this is the conversion
+        los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, r_fuT, initial = 0)) * prel.Rsol_cgs # dont know what it do but this is the conversion
         k_effective = np.sqrt(3 * np.flipud(sigma_plank_eval) * np.flipud(sigma_rossland_eval)) 
-        los_effective = - np.flipud(sci.cumulative_trapezoid(k_effective, r_fuT, initial = 0)) * prel.Rsol_to_cm
+        los_effective = - np.flipud(sci.cumulative_trapezoid(k_effective, r_fuT, initial = 0)) * prel.Rsol_cgs
 
         # Red -----------------------------------------------------------------------
         # Get 20 unique, nearest neighbors
@@ -261,7 +261,7 @@ for idx_s, snap in enumerate(snaps):
         del gradx, grady, gradz
         gc.collect()
 
-        R_lamda = grad / ( prel.Rsol_to_cm * sigma_rossland_eval* Rad_den[idx])
+        R_lamda = grad / ( prel.Rsol_cgs * sigma_rossland_eval* Rad_den[idx])
         R_lamda[R_lamda < 1e-10] = 1e-10
         fld_factor = 3 * (1/np.tanh(R_lamda) - 1/R_lamda) / R_lamda 
         smoothed_flux = -uniform_filter1d(r.T**2 * fld_factor * gradr / sigma_rossland_eval, 7) # i have remov
@@ -270,11 +270,11 @@ for idx_s, snap in enumerate(snaps):
             b = np.where( ((smoothed_flux>0) & (los<2/3) ))[0][0] 
         except IndexError:
             b = 3117 # elad_b = 3117
-        Lphoto2 = 4*np.pi*prel.c*smoothed_flux[b] * prel.Msol_to_g / (prel.t**2)
+        Lphoto2 = 4*np.pi*prel.c*smoothed_flux[b] * prel.Msol_cgs / (prel.t**2)
         EEr = Rad_den[idx]
         if Lphoto2 < 0:
             Lphoto2 = 1e100 # it means that it will always pick max_length for the negatives
-        max_length = 4*np.pi*prel.c*EEr[b]*r[b]**2 * prel.Msol_to_g * prel.Rsol_to_cm / (prel.t**2)
+        max_length = 4*np.pi*prel.c*EEr[b]*r[b]**2 * prel.Msol_cgs * prel.Rsol_cgs / (prel.t**2)
         Lphoto = np.min( [Lphoto2, max_length])
         reds[i] = Lphoto
         del smoothed_flux, R_lamda, fld_factor, EEr, los,
