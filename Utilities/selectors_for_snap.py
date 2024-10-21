@@ -18,14 +18,13 @@ def select_prefix(m, check, mstar, rstar, beta, n, compton, step):
 
 def select_snap(m, check, mstar, rstar, beta, n, compton = 'Compton', step = '', time = False):
     pre = select_prefix(m, check, mstar, rstar, beta, n, compton, step)
-    if alice:
-        if m == 4 :
-            snapshots = np.arange(80, 348 + 1, step = 1)
-            # select just the ones that actually exist
+    if m == 4 :
+        snapshots = np.arange(80, 348 + 1, step = 1)
+        # select just the ones that actually exist
+        if alice:
             snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/snap_{snap}/snap_{snap}.h5')]
-    else:
-        if m == 4:
-            snapshots = [115, 164, 199, 216]
+        else:
+            snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/{snap}/snap_{snap}.h5')]
     if time:
         days = np.zeros(len(snapshots))
         for i,snap in enumerate(snapshots):

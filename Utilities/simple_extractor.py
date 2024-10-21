@@ -114,8 +114,8 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 step = ''
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-check = ''
+check = 'LowRes'
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True)
 
@@ -128,7 +128,6 @@ for snap in snaps:
     file = f'{prepath}/snap_{snap}.h5'
     print(file)
     box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Entropy = extractor(file)
-
 
     #%%
     # Save to another file.

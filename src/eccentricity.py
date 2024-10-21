@@ -38,7 +38,7 @@ compton = 'Compton'
 step = ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
-check = 'Low' # 'Low' or 'HiRes'
+check = '' # 'Low' or 'HiRes'
 save = True
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step, time = True) #[100,115,164,199,216]
 
@@ -104,17 +104,25 @@ if __name__ == '__main__':
             np.save(f'{prepath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
     
     else:
-        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-        path = f'/Users/paolamartire/shocks/data/{folder}/ecc'
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+        path = f'/Users/paolamartire/shocks/data/{folder}'
         # Low data
-        eccLow = np.load(f'{path}/Ecc_Low.npy')
-        ecc2Low = np.load(f'{path}/Ecc2_Low.npy') 
-        eccLow = np.sqrt(ecc2Low)
-        eccLow_from_ecc2 = np.sqrt(ecc2Low)
-        tfb_dataLow = np.loadtxt(f'{path}/Ecc_Low_days.txt')
-        snap_Low, tfb_Low = tfb_dataLow[0], tfb_dataLow[1]
-        radiiLow = np.load(f'{path}/radiiEcc_Low.npy')
-        # HiRes data
+        ecc2 = np.load(f'{path}/Ecc2_.npy') 
+        ecc = np.sqrt(ecc2)
+        ecc_from_ecc2 = np.sqrt(ecc2)
+        tfb_data = np.loadtxt(f'{path}/Ecc2__days.txt')
+        snap_, tfb = tfb_data[0], tfb_data[1]
+        radii = np.load(f'{path}/radiiEcc2_.npy')
+
+        #%%
+        img = plt.pcolormesh(radii/apo, tfb, ecc, vmin = 0.6, vmax = 1, cmap = 'cet_rainbow4')
+        cb = plt.colorbar(img)
+        plt.xscale('log')
+        cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
+        plt.xlabel(r'$R/R_{a}$', fontsize = 20)
+        plt.ylabel(r'$t/t_{fb}$', fontsize = 20)
+        plt.savefig(f'{abspath}Figs/{folder}/ecc.pdf')
+        #%% HiRes data
         # eccHiRes = np.load(f'{path}/Ecc_HiRes.npy')
         ecc2HiRes = np.load(f'{path}/Ecc2_HiRes.npy')
         eccHiRes = np.sqrt(ecc2HiRes)
@@ -123,28 +131,33 @@ if __name__ == '__main__':
         radiiHiRes = np.load(f'{path}/radiiEcc_HiRes.npy')
 
         n_HiRes = len(eccHiRes)
-        snap_Low = snap_Low[:n_HiRes]
-        tfb_Low = tfb_Low[:n_HiRes]
-        eccLow = eccLow[:n_HiRes]
-        rel_diff = 2*np.abs(eccHiRes - eccLow) / (eccHiRes+eccLow)
+        snap_ = snap_[:n_HiRes]
+        tfb = tfb[:n_HiRes]
+        ecc = ecc[:n_HiRes]
+        rel_diff = 2*np.abs(eccHiRes - ecc) / (eccHiRes+ecc)
         
+        #%%
         fig, ax = plt.subplots(1,3, figsize = (25,6))
-        # Low
-        img = ax[0].pcolormesh(radiiLow/apo, tfb_Low, eccLow, vmin = 0.7, vmax = 1, cmap = 'cet_rainbow4')
+        # 
+        img = ax[0].pcolormesh(radii/apo, tfb, ecc, vmin = 0.7, vmax = 1, cmap = 'cet_rainbow4')
         cb = fig.colorbar(img)
         ax[0].set_xscale('log')
         cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
-        ax[0].text(0.4, np.max(tfb_Low)-0.05,'Low res', fontsize = 20)
+        ax[0].text(0.4, np.max(tfb)-0.05,' res', fontsize = 20)
 
         img = ax[1].pcolormesh(radiiHiRes/apo, tfb_HiRes, eccHiRes, vmin = 0.7, vmax = 1, cmap = 'cet_rainbow4')
         cb = fig.colorbar(img)
         cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
         ax[1].set_xscale('log')
-        ax[1].text(0.4, np.max(tfb_Low)-0.05,'High res', fontsize = 20)
+        ax[1].text(0.4, np.max(tfb)-0.05,'High res', fontsize = 20)
 
-        img = ax[2].pcolormesh(radiiLow/apo, tfb_Low, rel_diff, cmap = 'plasma', norm = colors.LogNorm(vmin = 1e-4, vmax=1e-1))
+        img = ax[2].pcolormesh(radii/apo, tfb, rel_diff, cmap = 'plasma', norm = colors.LogNorm(vmin = 1e-4, vmax=1e-1))
         cb = fig.colorbar(img)
         ax[2].set_xscale('log')
         cb.set_label(r'Relative difference', fontsize = 20, labelpad = 2)
 
-        plt.savefig(f'{abspath}Figs/{folder}/multiple/ecc.pdf')
+        for i in range(3):
+            ax[i].set_xlabel(r'$R/R_{a}$', fontsize = 20)
+        ax[0].set_ylabel(r'$t/t_{fb}$', fontsize = 20)
+
+        plt.savefig(f'{abspath}Figs/multiple/ecc.pdf')

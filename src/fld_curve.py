@@ -285,7 +285,7 @@ for idx_s, snap in enumerate(snaps):
 
     # Save red of the single snap
     if save:
-        pre_saving = f'/data1/martirep/shocks/shock_capturing/data/{folder}/red'
+        pre_saving = f'{abspath}/data/{folder}'
         data = [snap, tfb[idx_s], Lphoto_snap]
         with open(f'{pre_saving}/{check}_red.csv', 'a', newline='') as file:
             writer = csv.writer(file)

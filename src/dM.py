@@ -66,7 +66,7 @@ if do_dMdE:
     print('Normalization for energy:', norm)
 
     for check in checks:
-        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}{step}'
         print(f'Check: {check}')
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step, time = True) 
         bins = np.arange(-10,10,.1) # np.arange(-2, 2, .1)
@@ -150,7 +150,7 @@ if compare_times:
     ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
     ax2.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
     if save:
-        plt.savefig(f'{abspath}Figs/{folder}/multiple/dMdE_times.png')
+        plt.savefig(f'{abspath}Figs/multiple/dMdE_times.png')
     plt.show()
 
 #%%

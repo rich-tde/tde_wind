@@ -1,9 +1,12 @@
-abspath = '/Users/paolamartire/shocks/'
-import sys
-sys.path.append(abspath)
-
 from Utilities.isalice import isalice
 alice, plot = isalice()
+if alice:
+    abspath = '/data1/martirep/shocks/shock_capturing'
+else:
+    abspath = '/Users/paolamartire/shocks/'
+
+import sys
+sys.path.append(abspath)
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -142,16 +145,12 @@ for i,snap in enumerate(snaps):
 
 #%%
 if save:
-    if alice:
-        prepath = f'/data1/martirep/shocks/shock_capturing'
-    else: 
-        prepath = f'/Users/paolamartire/shocks'
     if lum == 'Lum':
-        np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}{weight}{lum}.npy', col_Rad)
+        np.save(f'{abspath}/data/{folder}/coloredE_{check}{step}_{xaxis}{weight}{lum}.npy', col_Rad)
     else:
-        np.save(f'{prepath}/data/{folder}/coloredE_{check}{step}_{xaxis}{weight}.npy', [col_ie, col_orb_en, col_Rad])
-    with open(f'{prepath}/data/{folder}/coloredE_{check}{step}_days.txt', 'w') as file:
+        np.save(f'{abspath}/data/{folder}/coloredE_{check}{step}_{xaxis}{weight}.npy', [col_ie, col_orb_en, col_Rad])
+    with open(f'{abspath}/data/{folder}/coloredE_{check}{step}_days.txt', 'w') as file:
         file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
         file.close()
-    np.save(f'{prepath}/data/{folder}/{xaxis}En_{check}{step}{lum}.npy', radii)
+    np.save(f'{abspath}/data/{folder}/{xaxis}En_{check}{step}{lum}.npy', radii)

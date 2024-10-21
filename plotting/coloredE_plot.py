@@ -37,13 +37,13 @@ if xaxis == 'angles':
 #
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-path = f'/Users/paolamartire/shocks/data/{folder}/colormapE_Alice'
+path = f'/Users/paolamartire/shocks/data/{folder}'
 # Res1 data
-datares1 = np.load(f'{path}{res1}/coloredE_{res1}_{xaxis}{weight}{cut}.npy') #shape (3, len(tfb), len(radii))
-tfb_datares1 = np.loadtxt(f'{path}{res1}/coloredE_{res1}_days.txt')
+datares1 = np.load(f'{path}{res1}/colormapE_Alice/coloredE_{res1}_{xaxis}{weight}{cut}.npy') #shape (3, len(tfb), len(radii))
+tfb_datares1 = np.loadtxt(f'{path}{res1}/colormapE_Alice/coloredE_{res1}_days.txt')
 snap_res1 = tfb_datares1[0]
 tfb_res1_all = tfb_datares1[1]
-radiires1 = np.load(f'{path}{res1}/{xaxis}En_{res1}.npy')
+radiires1 = np.load(f'{path}{res1}/colormapE_Alice/{xaxis}En_{res1}.npy')
 if weight == 'mixed':
     col_ieres1, col_orb_enres1, col_Radres1 = datares1[0], datares1[1], datares1[2]
 else:
@@ -55,12 +55,39 @@ col_orb_enres1 *= prel.en_converter/prel.Msol_cgs
 col_Radres1 *= prel.en_den_converter
 abs_col_orb_enres1 = np.abs(col_orb_enres1)
 
-# Res2 data
-datares2 = np.load(f'{path}{res2}/coloredE_{res2}_{xaxis}{weight}{cut}.npy')
-tfb_datares2 = np.loadtxt(f'{path}{res2}/coloredE_{res2}_days.txt')
+#%% Plot 
+fig, ax = plt.subplots(1,3, figsize = (16,5))
+img = ax[0].pcolormesh(radiires1/apo, tfb_res1_all, abs_col_orb_enres1, norm=colors.LogNorm(vmin=4e16, vmax = 1e18), cmap = 'viridis')
+cb = fig.colorbar(img)
+ax[0].set_title('Specific (absolute) orbital energy', fontsize = 20)
+cb.set_label(r'Specific energy [erg/g]', fontsize = 20, labelpad = 2)
+
+img = ax[1].pcolormesh(radiires1/apo, tfb_res1_all, col_ieres1,  norm=colors.LogNorm(vmin=7e12, vmax = 4e14), cmap = 'viridis')
+cb = fig.colorbar(img)
+cb.set_label(r'Specific energy [erg/g]', fontsize = 20, labelpad = 2)
+ax[1].set_title('Specific internal energy', fontsize = 20)
+
+img = ax[2].pcolormesh(radiires1/apo, tfb_res1_all, col_Radres1, norm=colors.LogNorm(vmin=1e4, vmax= 7e9), cmap = 'viridis')
+cb = fig.colorbar(img)
+ax[2].set_title('Radiation energy density', fontsize = 20)
+cb.set_label(r'Energy density [erg/cm$^3$]', fontsize = 20, labelpad = 2)
+for i in range(3):
+    ax[i].axvline(Rt/apo, linestyle ='dashed', c = 'white', linewidth = 0.8)
+    ax[i].set_xscale('log')
+    ax[i].set_xlabel(r'$R/R_a$', fontsize = 20)
+ax[0].set_ylabel(r't/t$_{fb}$', fontsize = 20)
+plt.tick_params(axis = 'both', which = 'both', direction='in')
+plt.tight_layout()
+if save:
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}{res1}/coloredE_{xaxis}{weight}{cut}.pdf')
+
+
+#%% Res2 data
+datares2 = np.load(f'{path}{res2}/colormapE_Alice/coloredE_{res2}_{xaxis}{weight}{cut}.npy')
+tfb_datares2 = np.loadtxt(f'{path}{res2}/colormapE_Alice/coloredE_{res2}_days.txt')
 snap_res2 = tfb_datares2[0]
 tfb_res2 = tfb_datares2[1]
-radiires2 = np.load(f'{path}{res2}/{xaxis}En_{res2}.npy')
+radiires2 = np.load(f'{path}{res2}/colormapE_Alice/{xaxis}En_{res2}.npy')
 if weight == 'mixed':
     col_ieres2, col_orb_enres2, col_Radres2 = datares2[0], datares2[1], datares2[2]
 else:
@@ -180,7 +207,7 @@ plt.tick_params(axis = 'both', which = 'both', direction='in')
 
 plt.tight_layout()
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/coloredE_{xaxis}{weight}{cut}.pdf')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/multiple/6coloredE_{xaxis}{weight}{cut}.pdf')
 plt.show()
 
 # %% Plot (absolute) differences. They start from the same point
