@@ -1,7 +1,6 @@
 import sys
 sys.path.append('/Users/paolamartire/shocks')
 
-import Utilities.prelude
 from Utilities.isalice import isalice
 alice, plot = isalice()
 import numpy as np
@@ -10,9 +9,6 @@ from Utilities.time_extractor import days_since_distruption
 
 def select_prefix(m, check, mstar, rstar, beta, n, compton, step):
     Mbh = 10**m
-    if alice:
-        if check == 'Low':
-            check = ''
     folder = f'R{rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}{step}'
     if alice:
         prepath = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}'

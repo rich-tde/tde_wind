@@ -26,8 +26,8 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 ##
 save = True
 xaxis = 'radii'
-res1 = 'Low'
-res2 = 'HiRes' #'HiRes', 'LowDoubleRad'
+res1 = '' #'', 'HiRes', 'DoubleRad'
+res2 = 'HiRes' 
 weight = 'mixed' #'mixed', 'weightE' or '' if you have weight for vol/mass
 cut = '' # or '' or '_NOcut' or '_all1e-19' (if weight == 'mixed', cut = '' but it's 1e-19)
 if xaxis == 'angles':
@@ -39,11 +39,11 @@ if xaxis == 'angles':
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 path = f'/Users/paolamartire/shocks/data/{folder}/colormapE_Alice'
 # Res1 data
-datares1 = np.load(f'{path}/coloredE_{res1}_{xaxis}{weight}{cut}.npy') #shape (3, len(tfb), len(radii))
-tfb_datares1 = np.loadtxt(f'{path}/coloredE_{res1}_days.txt')
+datares1 = np.load(f'{path}{res1}/coloredE_{res1}_{xaxis}{weight}{cut}.npy') #shape (3, len(tfb), len(radii))
+tfb_datares1 = np.loadtxt(f'{path}{res1}/coloredE_{res1}_days.txt')
 snap_res1 = tfb_datares1[0]
 tfb_res1_all = tfb_datares1[1]
-radiires1 = np.load(f'{path}/{xaxis}En_{res1}.npy')
+radiires1 = np.load(f'{path}{res1}/{xaxis}En_{res1}.npy')
 if weight == 'mixed':
     col_ieres1, col_orb_enres1, col_Radres1 = datares1[0], datares1[1], datares1[2]
 else:
@@ -56,11 +56,11 @@ col_Radres1 *= prel.en_den_converter
 abs_col_orb_enres1 = np.abs(col_orb_enres1)
 
 # Res2 data
-datares2 = np.load(f'{path}/coloredE_{res2}_{xaxis}{weight}{cut}.npy')
-tfb_datares2 = np.loadtxt(f'{path}/coloredE_{res2}_days.txt')
+datares2 = np.load(f'{path}{res2}/coloredE_{res2}_{xaxis}{weight}{cut}.npy')
+tfb_datares2 = np.loadtxt(f'{path}{res2}/coloredE_{res2}_days.txt')
 snap_res2 = tfb_datares2[0]
 tfb_res2 = tfb_datares2[1]
-radiires2 = np.load(f'{path}/{xaxis}En_{res2}.npy')
+radiires2 = np.load(f'{path}{res2}/{xaxis}En_{res2}.npy')
 if weight == 'mixed':
     col_ieres2, col_orb_enres2, col_Radres2 = datares2[0], datares2[1], datares2[2]
 else:

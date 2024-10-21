@@ -41,9 +41,9 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 step = ''
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+check = '' # '' or 'HiRes'
 
-check = 'Low' # 'Low' or 'HiRes'
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step, time = True) #[100,115,164,199,216]
 Lphoto_all = np.zeros(len(snaps))
@@ -287,9 +287,6 @@ for idx_s, snap in enumerate(snaps):
     if save:
         pre_saving = f'/data1/martirep/shocks/shock_capturing/data/{folder}/red'
         data = [snap, tfb[idx_s], Lphoto_snap]
-        if check == '':
-            print('change check')
-            check = 'Low'
         with open(f'{pre_saving}/{check}_red.csv', 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(data)

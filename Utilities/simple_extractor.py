@@ -115,14 +115,14 @@ n = 1.5
 compton = 'Compton'
 step = ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-check = 'Low'
+check = ''
 
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True)
 
 for snap in snaps:
     prepath = select_prefix(m, check, mstar, Rstar, beta, n, compton, step)
     if alice:
-        prepath = f'{prepath}/snap_{snap}'#f'/data1/martirep/shocks'
+        prepath = f'{prepath}/snap_{snap}'
     else: 
         prepath = f'{prepath}/{snap}'
     file = f'{prepath}/snap_{snap}.h5'

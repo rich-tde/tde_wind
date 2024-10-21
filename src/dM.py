@@ -10,7 +10,6 @@ import matplotlib
 from Utilities.operators import make_tree
 import Utilities.sections as sec
 import src.orbits as orb
-from Utilities.time_extractor import days_since_distruption
 from Utilities.selectors_for_snap import select_snap
 matplotlib.rcParams['figure.dpi'] = 150
 
@@ -37,7 +36,6 @@ n = 1.5
 compton = 'Compton'
 step = ''
 
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
 Mbh = 10**m
 Rs = 2*G*Mbh / c**2
@@ -53,24 +51,22 @@ norm = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call
 #
 
 # Choose what to do
-cutden = 'cut' # or '' or 'cut'
+cutden = '' # or '' or 'cut'
 do_dMdE = False
-compare_times = True
-do_Ehist = False
-do_dMds = False
+compare_times = False
 movie = False 
-
-save = True
+save = False
 
 if alice:
     do_dMdE = True
     save = True
-#%%
+
 if do_dMdE:
-    checks = ['Low','HiRes'] # 'Low' or 'HiRes' 
+    checks = ['','HiRes'] # '' or 'HiRes' 
     print('Normalization for energy:', norm)
 
     for check in checks:
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         print(f'Check: {check}')
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step, time = True) 
         bins = np.arange(-10,10,.1) # np.arange(-2, 2, .1)
@@ -88,11 +84,9 @@ if do_dMdE:
             print(f'Snap: {snap}')
             # Load data
             if alice:
-                if check == 'Low':
-                    check = ''
-                path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}{step}/snap_{snap}'
+                path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{step}/snap_{snap}'
             else:
-                path = f'/Users/paolamartire/shocks/TDE/{folder}{check}{step}/{snap}'
+                path = f'/Users/paolamartire/shocks/TDE/{folder}{step}/{snap}'
             data = make_tree(path, snap, energy = False)
             # Compute the orbital energy
             dim_cell = data.Vol**(1/3) 
@@ -113,31 +107,10 @@ if do_dMdE:
             dm_dE = mass_binned / (np.diff(bins_edges)*norm)
 
             if save:
-                if alice:
-                    if check == '':
-                        check = 'Low'
-                    with open(f'{prepath}/data/{folder}/dMdE_{check}{cutden}.txt','a') as file:
-                        file.write(f'# dM/dE snap {snap} \n')
-                        file.write((' '.join(map(str, dm_dE)) + '\n'))
-                        file.close()
-                else:
-                    prepath = f'{abspath}data/{folder}'
-                    try:
-                        file = open(f'{prepath}/dMdE/dMdE_time{np.round(tfb,2)}.txt', 'r')
-                        # Perform operations on the file
-                        file.close()
-                    except FileNotFoundError:
-                        with open(f'{prepath}/dMdE/dMdE_time{np.round(tfb,2)}.txt','a') as fstart:
-                            # if file doesn'exist
-                            fstart.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
-                            fstart.write((' '.join(map(str, bins[:-1])) + '\n'))
-                    with open(f'{prepath}/dMdE/dMdE_time{np.round(tfb,2)}.txt','a') as file:
-                        if cutden:
-                            file.write(f'# Check {check}, snap {snap} using only data with data.Den>1e-19 \n')
-                        else:
-                            file.write(f'# Check {check}, snap {snap} \n')
-                        file.write((' '.join(map(str, dm_dE)) + '\n'))
-                        file.close()
+                with open(f'{prepath}/data/{folder}/dMdE_{check}{cutden}.txt','a') as file:
+                    file.write(f'# dM/dE snap {snap} \n')
+                    file.write((' '.join(map(str, dm_dE)) + '\n'))
+                    file.close()
     
 #%%
 if compare_times:
@@ -180,143 +153,10 @@ if compare_times:
         plt.savefig(f'{abspath}Figs/{folder}/multiple/dMdE_times.png')
     plt.show()
 
-
-#%%###########
-if do_Ehist:
-    y_value = 'energy'
-    checks = ['Low', 'HiRes']#, 'Res20']
-    colors = ['k', 'r']#, 'b']
-    alphas = [0.6, 0.8]#, 1]
-    snap = 27
-    fig, ((ax1,ax2), (ax3,ax4)) = plt.subplots(2,2)
-    for i in range(-1,-len(checks)-1,-1):
-        check = checks[i]
-        # snap = snaps[i]
-        path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
-        tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
-        data = make_tree(path, snap, energy = True)
-        Rsph = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
-        vel = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
-        mass, ie_den, Erad_den = data.Mass, data.IE, data.Rad
-        ie_onmass = ie_den / data.Den
-        ie = ie_den * data.Vol 
-        Erad = Erad_den * data.Vol 
-        orb_en = orb.orbital_energy(Rsph, vel, mass, G, c, Mbh)
-        orb_en_onmass = orb_en / mass
-
-        # select only bound elements and not too far away
-        bound_elements = np.logical_and(orb_en < 0, data.X > -1.5* np.abs(apo))
-        mass_bound, ie_onmass_bound, orb_en_onmass_bound = \
-            sec.make_slices([mass, ie_onmass, orb_en_onmass], bound_elements)
-        Rsph_bound, ie_den_bound, Erad_den_bound, ie_bound, Erad_bound, orb_en_bound = \
-            sec.make_slices([Rsph, ie_den, Erad_den, ie, Erad, orb_en], bound_elements)
-        
-        # plt.figure()
-        # img = plt.scatter(range(len(ie_onmass_bound[::10_000])), ie_onmass_bound[::10_000], Rsph_bound[::10_000]/apo, cmap = 'jet')
-        # cbar = plt.colorbar(img)
-        # cbar.set_label('R/$R_a$', fontsize = 16)
-        # plt.title(f'{check}, snap {snap}')
-        # plt.show()    
-
-        energies = [np.sum(ie_bound), np.sum(Erad_bound), np.sum(orb_en_bound), np.sum(ie_bound + Erad_bound + orb_en_bound)]
-
-        # with open(f'data/{folder}/boundE_{check}_EradasDen.txt','a') as file:
-        #     file.write(f'# Check {check}, snap {snap} \n')
-        #     file.write((' '.join(map(str, energies)) + '\n'))
-        #     file.close()
-
-        if y_value == 'energy':
-            # bins
-            if snap == 27:
-                bins_intE = np.linspace(0, 1, 50) 
-                bins_radE = 50#np.linspace(0, 1e-16, 50) 
-                bins_neg_orbE = 50#np.linspace(0,50,50)
-
-            if snap == 100:
-                bins_intE = np.linspace(0, 2e-2, 50) 
-                bins_radE = np.linspace(0, 1e-16, 50) 
-                bins_neg_orbE = np.linspace(0,50,50)
-
-            if snap == 115:
-                bins_intE = np.linspace(0, 1.2e-2, 50) 
-                bins_radE = np.linspace(0, 1e-15, 50) 
-                bins_neg_orbE = np.linspace(0,50,50)
-
-            if snap == 164:
-                bins_intE = np.linspace(0, 0.018, 50) 
-                bins_radE = np.linspace(0, 5e-15, 50) 
-                bins_neg_orbE = np.linspace(0,50,50)
-
-            if snap == 199 or snap == 216:
-                bins_intE = np.linspace(0, 0.05, 50) 
-                bins_radE = np.linspace(0, 2e-15, 50) 
-                bins_neg_orbE = np.linspace(0,50,50)
-
-            # weights
-            weight_ie = ie_bound
-            weight_rad = Erad
-            weight_orb = np.abs(orb_en_bound)
-
-        elif y_value == 'mass':
-            # bins
-            if snap == 100:
-                bins_intE = np.linspace(0, 2e-2, 50) 
-                bins_radE = np.linspace(0, 1e-10, 50) 
-                bins_neg_orbE = np.linspace(0,50,50)
-
-            if snap == 115:
-                bins_intE = np.linspace(0, 1.2e-2, 50) 
-                bins_radE = np.linspace(0, 1e-11, 50) 
-                bins_neg_orbE = np.linspace(0,50,50)
-
-            if snap == 164:
-                bins_intE = np.linspace(0, 0.018, 50) 
-                bins_radE = np.linspace(0, 3e-13, 50) 
-                bins_neg_orbE = np.linspace(0,50,50)
-
-            if snap == 199 or snap == 216:
-                bins_intE = np.linspace(0, 0.05, 50) 
-                bins_radE = np.linspace(0, 1e-13, 50) 
-                bins_neg_orbE = np.linspace(0,50,50)
-
-            # weights
-            weight_ie = mass_bound
-            weight_rad = mass
-            weight_orb = mass_bound
-
-        ax1.hist(np.abs(orb_en_onmass_bound), bins = bins_neg_orbE, weights = weight_orb, color = colors[i], alpha = alphas[i], label = f'check = {check}')
-        ax2.hist(ie_onmass_bound, bins = bins_intE, weights = weight_ie, color = colors[i], alpha = alphas[i], label = f'check = {check}')
-        ax3.hist(Erad_den, bins = bins_radE, weights = weight_rad, color = colors[i], alpha = alphas[i], label = f'check = {check}')
-        ax4.set_axis_off()
-
-    ax1.legend(fontsize = 10)
-
-    if y_value == 'energy':
-        ax1.set_ylabel(r'$|$Energy$|$', fontsize = 16)
-        ax2.set_ylabel(r'Energy', fontsize = 16)
-        ax3.set_ylabel(r'Energy', fontsize = 16)
-    elif y_value == 'mass':
-        ax1.set_ylabel(r'Mass', fontsize = 16)
-        ax2.set_ylabel(r'Mass', fontsize = 16)
-        ax3.set_ylabel(r'Mass', fontsize = 16)
-
-    ax1.set_title('Orbital Energy')
-    ax2.set_title('Internal Energy')
-    ax3.set_title('Radiation Energy')
-    ax1.set_xlabel(r'$|$Energy$|$/Mass', fontsize = 16)
-    ax2.set_xlabel(r'Energy/Mass', fontsize = 16)
-    ax3.set_xlabel(r'Energy/Vol', fontsize = 16)
-    
-    plt.suptitle(r'Bound cells with $X>-1.5|R_a|$, t/t$_{fb}$ = ' + f'{np.round(tfb,1)}', fontsize = 16)
-    plt.tight_layout()
-    if save:
-        plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/multiple/{y_value}_hist_time{np.round(tfb,1)}.png')
-    plt.show()
-
 #%%
 if movie:
     import subprocess
-    check = 'Low'
+    check = ''
     datadays = np.loadtxt(f'{abspath}data/{folder}/dMdE_days_{check}.txt')
     snaps, tfb= datadays[0], datadays[1]
     bins = np.loadtxt(f'{abspath}data/{folder}/dMdE_bins.txt')
@@ -338,11 +178,11 @@ if movie:
         plt.legend(loc = 'lower center', fontsize = 14)
         plt.tight_layout()
         if save:
-            plt.savefig(f'{abspath}Figs/{folder}/{check}/dMdE/snap{int(snap)}{cutden}.png')
+            plt.savefig(f'{abspath}Figs/{folder}/dMdE/snap{int(snap)}{cutden}.png')
         plt.close()
     # Make the movie
-    path = f'{abspath}Figs/{folder}/{check}/dMdE/snap'
-    output_path = f'{abspath}Figs/{folder}/{check}/dMdE/moviedMdE_{cutden}.mp4'
+    path = f'{abspath}Figs/{folder}/dMdE/snap'
+    output_path = f'{abspath}Figs/{folder}/dMdE/moviedMdE_{cutden}.mp4'
 
     start = 100
     slow_down_factor = 2  # Increase this value to make the video slower

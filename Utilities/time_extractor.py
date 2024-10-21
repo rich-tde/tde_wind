@@ -59,7 +59,7 @@ if __name__ == '__main__':
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = 'Low'
+    check = ''
     if alice:
             prepath = f'/data1/martirep/shocks/shock_capturing/'
     else: 
