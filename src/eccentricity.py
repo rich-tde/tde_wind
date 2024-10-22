@@ -1,9 +1,10 @@
-abspath = '/Users/paolamartire/shocks/'
-import sys
-sys.path.append(abspath)
-
 from Utilities.isalice import isalice
 alice, plot = isalice()
+if alice:
+    abspath = '/data1/martirep/shocks/shock_capturing'
+else:
+    abspath = '/Users/paolamartire/shocks/'
+
 import numpy as np
 import matplotlib.pyplot as plt
 import colorcet
@@ -36,10 +37,10 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 step = ''
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-
-check = '' # 'Low' or 'HiRes'
+check = '' # '' or 'LowRes' or 'HiRes'
 save = True
+
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}{step}'
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step, time = True) #[100,115,164,199,216]
 
 Rs = 2*G*Mbh / c**2
@@ -54,22 +55,20 @@ def specific_j(r, vel):
     magnitude_j = np.linalg.norm(j, axis = 1)
     return magnitude_j
 
-def eccentricity(r, vel, specOE, Mbh, G):
+def eccentricity_squared(r, vel, specOE, Mbh, G):
     j = specific_j(r, vel)
     ecc2 = 1 + 2 * specOE * j**2 / (G * Mbh)**2
     return ecc2
 
 if __name__ == '__main__':
     if alice: 
-        col_ecc = []
+        col_ecc2 = []
         # col_Rsph = []
         radii = np.logspace(np.log10(R0), np.log10(apo),
                         num=200) 
         for i,snap in enumerate(snaps):
             print(snap)
             if alice:
-                if check == 'Low':
-                    check = ''
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}{step}/snap_{snap}'
             else:
                 path = f'/Users/paolamartire/shocks/TDE/{folder}{check}{step}/{snap}'
@@ -80,28 +79,22 @@ if __name__ == '__main__':
             vel = np.linalg.norm(vel_vec, axis=1)
             orb_en = orb.orbital_energy(Rsph, vel, data.Mass, G, c, Mbh)
             spec_orb_en = orb_en / data.Mass
-            ecc2 = eccentricity(R_vec, vel_vec, spec_orb_en, Mbh, G)
+            ecc2 = eccentricity_squared(R_vec, vel_vec, spec_orb_en, Mbh, G)
 
             # throw fluff and unbound material
             cut = np.logical_and(data.Den > 1e-19, orb_en < 0)
             Rsph_cut, mass_cut, ecc_cut = sec.make_slices([Rsph, data.Mass, ecc2], cut)
             ecc_cast = single_branch(radii,'radii', Rsph_cut, ecc_cut, weights = mass_cut)
 
-            col_ecc.append(ecc_cast)
+            col_ecc2.append(ecc_cast)
 
         if save:
-            if alice:
-                if check == '':
-                    check = 'Low'
-                prepath = f'/data1/martirep/shocks/shock_capturing'
-            else: 
-                prepath = f'/Users/paolamartire/shocks'
-            np.save(f'{prepath}/data/{folder}/Ecc2_{check}{step}.npy', col_ecc)
-            with open(f'{prepath}/data/{folder}/Ecc_{check}{step}_days.txt', 'w') as file:
+            np.save(f'{abspath}/data/{folder}/Ecc2_{check}{step}.npy', col_ecc2)
+            with open(f'{abspath}/data/{folder}/Ecc_{check}{step}_days.txt', 'w') as file:
                 file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
                 file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
                 file.close()
-            np.save(f'{prepath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
+            np.save(f'{abspath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
     
     else:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
