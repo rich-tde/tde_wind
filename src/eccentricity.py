@@ -1,9 +1,12 @@
+import sys
+sys.path.append('/Users/paolamartire/shocks')
+
 from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
 else:
-    abspath = '/Users/paolamartire/shocks/'
+    abspath = '/Users/paolamartire/shocks'
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -97,60 +100,94 @@ if __name__ == '__main__':
             np.save(f'{abspath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
     
     else:
-        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-        path = f'/Users/paolamartire/shocks/data/{folder}'
-        # Low data
-        ecc2 = np.load(f'{path}/Ecc2_.npy') 
-        ecc = np.sqrt(ecc2)
-        ecc_from_ecc2 = np.sqrt(ecc2)
-        tfb_data = np.loadtxt(f'{path}/Ecc2__days.txt')
-        snap_, tfb = tfb_data[0], tfb_data[1]
-        radii = np.load(f'{path}/radiiEcc2_.npy')
+        difference = True
 
-        #%%
-        img = plt.pcolormesh(radii/apo, tfb, ecc, vmin = 0.6, vmax = 1, cmap = 'cet_rainbow4')
-        cb = plt.colorbar(img)
-        plt.xscale('log')
-        cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
-        plt.xlabel(r'$R/R_{a}$', fontsize = 20)
-        plt.ylabel(r'$t/t_{fb}$', fontsize = 20)
-        plt.savefig(f'{abspath}Figs/{folder}/ecc.pdf')
-        #%% HiRes data
-        # eccHiRes = np.load(f'{path}/Ecc_HiRes.npy')
-        ecc2HiRes = np.load(f'{path}/Ecc2_HiRes.npy')
-        eccHiRes = np.sqrt(ecc2HiRes)
-        tfb_dataHiRes = np.loadtxt(f'{path}/Ecc_HiRes_days.txt')
-        snap_HiRes, tfb_HiRes = tfb_dataHiRes[0], tfb_dataHiRes[1]
-        radiiHiRes = np.load(f'{path}/radiiEcc_HiRes.npy')
+        if not difference:
+            path = f'{abspath}/data/{folder}'
+            ecc2 = np.load(f'{path}/Ecc2_{check}{step}.npy') 
+            ecc = np.sqrt(ecc2)
+            ecc = np.sqrt(ecc2)
+            tfb_data = np.loadtxt(f'{path}/Ecc_{check}{step}_days.txt')
+            snap_, tfb = tfb_data[0], tfb_data[1]
+            radii = np.load(f'{path}/radiiEcc2_{check}{step}.npy')
 
-        n_HiRes = len(eccHiRes)
-        snap_ = snap_[:n_HiRes]
-        tfb = tfb[:n_HiRes]
-        ecc = ecc[:n_HiRes]
-        rel_diff = 2*np.abs(eccHiRes - ecc) / (eccHiRes+ecc)
-        
-        #%%
-        fig, ax = plt.subplots(1,3, figsize = (25,6))
-        # 
-        img = ax[0].pcolormesh(radii/apo, tfb, ecc, vmin = 0.7, vmax = 1, cmap = 'cet_rainbow4')
-        cb = fig.colorbar(img)
-        ax[0].set_xscale('log')
-        cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
-        ax[0].text(0.4, np.max(tfb)-0.05,' res', fontsize = 20)
+            # Plot
+            img = plt.pcolormesh(radii/apo, tfb, ecc, vmin = 0.6, vmax = 1, cmap = 'cet_rainbow4')
+            cb = plt.colorbar(img)
+            plt.xscale('log')
+            cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
+            plt.xlabel(r'$R/R_{a}$', fontsize = 20)
+            plt.ylabel(r'$t/t_{fb}$', fontsize = 20)
+            plt.savefig(f'{abspath}Figs/{folder}/ecc.pdf')
+       
+        else:
+            folderL = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes'
+            pathL = f'{abspath}/data/{folderL}'
+            ecc2L = np.load(f'{pathL}/Ecc2_LowRes.npy') 
+            eccL = np.sqrt(ecc2L)
+            tfb_dataL = np.loadtxt(f'{pathL}/Ecc_LowRes_days.txt')
+            snapL, tfbL = tfb_dataL[0], tfb_dataL[1]
+            radii = np.load(f'{pathL}/radiiEcc_LowRes.npy')
 
-        img = ax[1].pcolormesh(radiiHiRes/apo, tfb_HiRes, eccHiRes, vmin = 0.7, vmax = 1, cmap = 'cet_rainbow4')
-        cb = fig.colorbar(img)
-        cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
-        ax[1].set_xscale('log')
-        ax[1].text(0.4, np.max(tfb)-0.05,'High res', fontsize = 20)
+            folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+            path = f'{abspath}/data/{folder}'
+            ecc2 = np.load(f'{path}/Ecc2_.npy') 
+            ecc = np.sqrt(ecc2)
+            tfb_data = np.loadtxt(f'{path}/Ecc__days.txt')
+            snap, tfb = tfb_data[0], tfb_data[1]
 
-        img = ax[2].pcolormesh(radii/apo, tfb, rel_diff, cmap = 'plasma', norm = colors.LogNorm(vmin = 1e-4, vmax=1e-1))
-        cb = fig.colorbar(img)
-        ax[2].set_xscale('log')
-        cb.set_label(r'Relative difference', fontsize = 20, labelpad = 2)
+            folderH = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes'
+            pathH = f'{abspath}/data/{folderH}'
+            ecc2H = np.load(f'{pathH}/Ecc2_HiRes.npy') 
+            eccH = np.sqrt(ecc2H)
+            tfb_dataH = np.loadtxt(f'{pathH}/Ecc_HiRes_days.txt')
+            snapH, tfbH = tfb_dataH[0], tfb_dataH[1]
 
-        for i in range(3):
-            ax[i].set_xlabel(r'$R/R_{a}$', fontsize = 20)
-        ax[0].set_ylabel(r'$t/t_{fb}$', fontsize = 20)
+            # relative difference L and middle
+            rel_diffL = []
+            medianL = np.zeros(len(eccL))
+            for i in range(len(eccL)):
+                time = tfbL[i]
+                idx = np.argmin(np.abs(tfb - time))
+                rel_diff_time_i = 2*np.abs(eccL[i] - ecc[idx]) / (eccL[i]+ecc[idx])
+                rel_diffL.append(rel_diff_time_i)
+                medianL[i] = np.median(rel_diff_time_i)
+            rel_diffH = []
+            medianH = np.zeros(len(eccH))
+            for i in range(len(eccH)):
+                time = tfbH[i]
+                idx = np.argmin(np.abs(tfb - time))
+                rel_diff_time_i = 2*np.abs(eccH[i] - ecc[idx]) / (eccH[i]+ecc[idx])
+                rel_diffH.append(rel_diff_time_i)
+                medianH[i] = np.median(rel_diff_time_i)
 
-        plt.savefig(f'{abspath}Figs/multiple/ecc.pdf')
+            #%% Plot
+            fig, ax = plt.subplots(1,3, figsize = (25,6))
+            img = ax[0].pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'plasma', norm = colors.LogNorm(vmin = 1e-3, vmax=1e-1))
+            cb = fig.colorbar(img)
+            cb.set_label(r'Relative difference', fontsize = 20)
+            ax[0].set_xscale('log')
+            ax[0].set_title('Low and Middle', fontsize = 20)
+
+            img = ax[1].pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'plasma', norm = colors.LogNorm(vmin = 1e-3, vmax=1e-1))
+            cb = fig.colorbar(img)
+            cb.set_label(r'Relative difference', fontsize = 20)
+            ax[1].set_xscale('log')
+            ax[1].set_title('Middle and High', fontsize = 20)
+
+            ax[2].plot(tfbL, medianL, c = 'dodgerblue', label = 'Low and Middle')
+            ax[2].plot(tfbH, medianH, c = 'coral', label = 'Middle and High')
+            ax[2].set_xlabel(r'$t/t_{fb}$', fontsize = 20)
+            ax[2].set_ylabel('Median relative difference', fontsize = 20)
+            ax[2].set_yscale('log')
+            ax[2].legend(fontsize = 20)
+            ax[2].set_xlim(0.2, tfbL[-1])
+            ax[2].grid()
+
+            for i in range(2):
+                ax[i].set_xlabel(r'$R/R_{a}$', fontsize = 20)
+                ax[i].set_ylabel(r'$t/t_{fb}$', fontsize = 20)
+            
+            plt.savefig(f'{abspath}/Figs/multiple/ecc_diff.pdf')
+
+# %%

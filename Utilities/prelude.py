@@ -32,7 +32,7 @@ en_converter = Msol_cgs * Rsol_cgs**2 / tsol_cgs**2 # Energy converter
 
 # Healpy
 import healpy as hp
-NSIDE = 8
+NSIDE = 4
 NPIX = hp.nside2npix(NSIDE)#  int(NSIDE * 96)
 
     
