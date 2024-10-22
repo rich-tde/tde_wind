@@ -14,11 +14,11 @@ sigma_T = 6.6524e-25 #[cm^2] thomson cross section
 
 # Solar and SI units
 c_SI = 2.99e8 #m
-G_SI = 6.6743e-11 # SI
+G_SI = 6.6743e-11 # SI 
 Msol_SI = 2e30 #1.98847e30 # kg
 Rsol_SI = 7e8 #6.957e8 # m
 tsol_SI = np.sqrt(Rsol_SI**3 / (Msol_SI*G_SI )) # Follows from G = 1
-csol = c_SI / (Rsol_SI/tsol_SI)
+csol_SI = c_SI / (Rsol_SI/tsol_SI)
 
 # Converters
 c_cgs = 2.99e10 #cm
