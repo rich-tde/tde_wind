@@ -69,9 +69,9 @@ if __name__ == '__main__':
         for i,snap in enumerate(snaps):
             print(snap)
             if alice:
-                path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}{step}/snap_{snap}'
+                path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
             else:
-                path = f'/Users/paolamartire/shocks/TDE/{folder}{check}{step}/{snap}'
+                path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
             data = make_tree(path, snap, energy = True)
             R_vec = np.transpose(np.array([data.X, data.Y, data.Z]))
             vel_vec = np.transpose(np.array([data.VX, data.VY, data.VZ]))
