@@ -26,6 +26,7 @@ G_cgs = 6.6743e-8 # cgs
 Rsol_cgs = 6.957e10 # [cm]
 Msol_cgs = 1.989e33 # [g]
 tsol_cgs = np.sqrt(Rsol_cgs**3 / (Msol_cgs*G_cgs )) # Follows from G = 1
+csol_cgs = c_cgs / (Rsol_cgs/tsol_cgs)
 den_converter = Msol_cgs / Rsol_cgs**3
 en_den_converter = Msol_cgs / (Rsol_cgs  * tsol_cgs**2 ) # Energy Density converter
 en_converter = Msol_cgs * Rsol_cgs**2 / tsol_cgs**2 # Energy converter

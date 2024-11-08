@@ -1,3 +1,5 @@
+import sys
+sys.path.append('/Users/paolamartire/shocks/')
 from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
@@ -5,8 +7,6 @@ if alice:
 else:
     abspath = '/Users/paolamartire/shocks/'
 
-import sys
-sys.path.append(abspath)
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib

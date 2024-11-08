@@ -54,7 +54,7 @@ norm = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call
 cutden = '' # or '' or 'cut'
 do_dMdE = False
 compare_times = False
-movie = False 
+movie = True 
 save = False
 
 if alice:
@@ -163,7 +163,7 @@ if movie:
     data = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}.txt')
     mid_points = (bins[:-1]+bins[1:])/2
     dataCut = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}cut.txt')
-
+    dataCut = dataCut[100]
     for i in range(len((dataCut))):
         snap = snaps[i]
         plt.figure()
@@ -172,7 +172,7 @@ if movie:
         plt.xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
         plt.ylabel('dM/dE', fontsize = 16)
         plt.yscale('log')
-        plt.xlim(-2,2)
+        plt.xlim(-6.5,6.5)
         plt.ylim(9e-7, 1.5e-2)
         plt.text(-1.5, 1e-2, f't/tfb = {np.round(tfb[i],2)}', fontsize = 14)
         plt.legend(loc = 'lower center', fontsize = 14)

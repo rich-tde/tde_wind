@@ -121,6 +121,7 @@ if __name__ == '__main__':
             plt.savefig(f'{abspath}Figs/{folder}/ecc.pdf')
        
         else:
+            import matplotlib.gridspec as gridspec
             folderL = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes'
             pathL = f'{abspath}/data/{folderL}'
             ecc2L = np.load(f'{pathL}/Ecc2_LowRes.npy') 
@@ -162,31 +163,38 @@ if __name__ == '__main__':
                 medianH[i] = np.median(rel_diff_time_i)
 
             #%% Plot
-            fig, ax = plt.subplots(1,3, figsize = (25,6))
-            img = ax[0].pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'plasma', norm = colors.LogNorm(vmin = 1e-3, vmax=1e-1))
-            cb = fig.colorbar(img)
+            fig = plt.figure(figsize=(20, 6))
+            gs = gridspec.GridSpec(2, 3, width_ratios=[1,1,1.5], height_ratios=[3, 0.5], hspace=0.4, wspace = 0.3)
+            ax1 = fig.add_subplot(gs[0, 0])  # First plot
+            ax2 = fig.add_subplot(gs[0, 1])  # Second plot
+            ax3 = fig.add_subplot(gs[0, 2])  # Third plot
+
+            img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'plasma', norm = colors.LogNorm(vmin = 1e-3, vmax=1e-1))
+            ax1.set_xscale('log')
+            ax1.set_title('Low and Middle', fontsize = 20)
+
+            img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'plasma', norm = colors.LogNorm(vmin = 1e-3, vmax=1e-1))
+            ax2.set_xscale('log')
+            ax2.set_title('Middle and High', fontsize = 20)
+
+            # Create a colorbar that spans the first two subplots
+            cbar_ax = fig.add_subplot(gs[1, 0:2])  # Colorbar subplot below the first two
+            cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
             cb.set_label(r'Relative difference', fontsize = 20)
-            ax[0].set_xscale('log')
-            ax[0].set_title('Low and Middle', fontsize = 20)
 
-            img = ax[1].pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'plasma', norm = colors.LogNorm(vmin = 1e-3, vmax=1e-1))
-            cb = fig.colorbar(img)
-            cb.set_label(r'Relative difference', fontsize = 20)
-            ax[1].set_xscale('log')
-            ax[1].set_title('Middle and High', fontsize = 20)
+            ax3.plot(tfbL, medianL, c = 'dodgerblue', label = 'Low and Middle')
+            ax3.plot(tfbH, medianH, c = 'coral', label = 'Middle and High')
+            ax3.set_yscale('log')
+            ax3.legend(fontsize = 20)
+            ax3.set_ylabel('Relative difference', fontsize = 20)
+            ax3.set_xlim(0.2, tfbL[-1])
+            ax3.set_ylim(1e-3, 0.1)
+            ax3.grid()
 
-            ax[2].plot(tfbL, medianL, c = 'dodgerblue', label = 'Low and Middle')
-            ax[2].plot(tfbH, medianH, c = 'coral', label = 'Middle and High')
-            ax[2].set_xlabel(r'$t/t_{fb}$', fontsize = 20)
-            ax[2].set_ylabel('Median relative difference', fontsize = 20)
-            ax[2].set_yscale('log')
-            ax[2].legend(fontsize = 20)
-            ax[2].set_xlim(0.2, tfbL[-1])
-            ax[2].grid()
-
-            for i in range(2):
-                ax[i].set_xlabel(r'$R/R_{a}$', fontsize = 20)
-                ax[i].set_ylabel(r'$t/t_{fb}$', fontsize = 20)
+            for ax in [ax1, ax2, ax3]:
+                ax.set_xlabel(r'$R/R_{a}$', fontsize = 20)
+                if ax!=ax3:
+                    ax.set_ylabel(r'$t/t_{fb}$', fontsize = 20)
             
             plt.savefig(f'{abspath}/Figs/multiple/ecc_diff.pdf')
 
