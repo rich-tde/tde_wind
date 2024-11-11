@@ -106,7 +106,7 @@ if __name__ == '__main__':
     apocenter = Rt**2 / Rstar
     check = 'HiRes'
     compton = 'Compton'
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
     if cast:
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
@@ -114,11 +114,9 @@ if __name__ == '__main__':
             if snap < 216:
                 continue
             if alice:
-                if check == 'Low':
-                    check = ''
-                path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}/snap_{snap}'
+                path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
             else:
-                path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
+                path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
 
             _, grid_den, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, x_num=500, y_num=500, z_num = 100)
             flat_den = projector(grid_den, x_radii, y_radii, z_radii)
@@ -130,11 +128,11 @@ if __name__ == '__main__':
                     prepath = f'/data1/martirep/shocks/shock_capturing'
                 else: 
                     prepath = f'/Users/paolamartire/shocks'
-                np.savetxt(f'{prepath}/data/{folder}/{check}/projection/denproj{snap}.txt', flat_den) 
-                np.savetxt(f'{prepath}/data/{folder}/{check}/projection/xarray.txt', x_radii)
-                np.savetxt(f'{prepath}/data/{folder}/{check}/projection/yarray.txt', y_radii)
+                np.savetxt(f'{prepath}/data/{folder}/projection/denproj{snap}.txt', flat_den) 
+                np.savetxt(f'{prepath}/data/{folder}/projection/xarray.txt', x_radii)
+                np.savetxt(f'{prepath}/data/{folder}/projection/yarray.txt', y_radii)
         if save:
-            with open(f'{prepath}/data/{folder}/{check}/projection/time_proj.txt', 'a') as f:
+            with open(f'{prepath}/data/{folder}/projection/time_proj.txt', 'a') as f:
                 f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
                 f.write(f'# t/t_fb \n' + ' '.join(map(str, tfb)) + '\n')
                 f.close()
