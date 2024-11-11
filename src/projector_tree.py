@@ -8,6 +8,7 @@ sys.path.append('/Users/paolamartire/shocks')
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import numba
 from scipy.spatial import KDTree
 from Utilities.selectors_for_snap import select_snap
@@ -55,7 +56,7 @@ def grid_maker(path, snap, m, mstar, Rstar, x_num, y_num, z_num = 100):
     Z = np.load(f'{path}/CMz_{snap}.npy')
     Den = np.load(f'{path}/Den_{snap}.npy')
     # make cut in density
-    cutden = Den > 1e-9
+    cutden = Den > 1e-19
     x_cut, y_cut, z_ccut, den_cut = \
         make_slices([X, Y, Z, Den], cutden)
     points_tree = np.array([x_cut, y_cut, z_ccut]).T
@@ -89,7 +90,7 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
     return flat_den
  
 if __name__ == '__main__':
-    save = True
+    save = False
     if alice:
         cast = True
     else:
@@ -104,15 +105,13 @@ if __name__ == '__main__':
     Rt = Rstar * (Mbh/mstar)**(1/3)
     xcrt, ycrt, crt = make_cfr(Rt)
     apocenter = Rt**2 / Rstar
-    check = 'HiRes'
+    check = ''
     compton = 'Compton'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
     if cast:
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
         for snap in snaps:
-            if snap < 216:
-                continue
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
             else:
@@ -123,8 +122,6 @@ if __name__ == '__main__':
 
             if save:
                 if alice:
-                    if check == '':
-                        check = 'Low'
                     prepath = f'/data1/martirep/shocks/shock_capturing'
                 else: 
                     prepath = f'/Users/paolamartire/shocks'
@@ -132,7 +129,7 @@ if __name__ == '__main__':
                 np.savetxt(f'{prepath}/data/{folder}/projection/xarray.txt', x_radii)
                 np.savetxt(f'{prepath}/data/{folder}/projection/yarray.txt', y_radii)
         if save:
-            with open(f'{prepath}/data/{folder}/projection/time_proj.txt', 'a') as f:
+            with open(f'{prepath}/data/{folder}/projection/time_proj.txt', 'w') as f:
                 f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
                 f.write(f'# t/t_fb \n' + ' '.join(map(str, tfb)) + '\n')
                 f.close()
@@ -141,56 +138,49 @@ if __name__ == '__main__':
     if plot:
         import Utilities.prelude as prel
 
-        first_s = 100
-        last_s = 217
-        snaps = np.arange(first_s,last_s,1)
-        tfb = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}/projection/time_proj.txt')[1]
-        cut = 'NOCUT' #or 'NOCUT' or ''
+        time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/time_proj.txt')
+        snaps = [int(i) for i in time[0]]
+        tfb = time[1]
 
         # Load and clean
         for i, snap in enumerate(snaps):
-            flat_den = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}/projection/denproj{snap}.txt')
-            x_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}/projection/xarray.txt')
-            y_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}/projection/yarray.txt')
+            flat_den = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/denproj{snap}.txt')
+            x_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/xarray.txt')
+            y_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/yarray.txt')
             tfb_single = tfb[i]
 
-            den_plot = np.log10(flat_den)
-            den_plot = np.nan_to_num(den_plot, neginf= 0, posinf = 0)
-
-            if cut != 'NOCUT':
-                cut_den_plot = den_plot.copy()
-                cut_x_radii = x_radii.copy()
-                cut_y_radii = y_radii.copy()
-                for i in range(len(x_radii)):
-                    for j in range(len(y_radii)):
-                        if den_plot[i,j] < -9:
-                            cut_den_plot[i,j] = -200
+            # if cut != 'NOCUT':
+            #     cut_den_plot = flat_den.copy()
+            #     cut_x_radii = x_radii.copy()
+            #     cut_y_radii = y_radii.copy()
+            #     for i in range(len(x_radii)):
+            #         for j in range(len(y_radii)):
+            #             if flat_den[i,j] < 1e-19:
+            #                 cut_den_plot[i,j] = -200
                 
-            p5 = np.percentile(den_plot, 5)
-            p95 = np.percentile(den_plot, 95)
-            # print('put min and max as ', p5, p95)
+            p5 = np.percentile(flat_den, 5)
+            p95 = np.percentile(flat_den, 95)
             
             fig, ax = plt.subplots(1,1, figsize = (14,4))
-            ax.set_xlabel(r'$X [R_\odot]$', fontsize = 20)
-            ax.set_ylabel(r'$Y [R_\odot]$', fontsize = 20)
-            if cut == 'NOCUT':
-                img = ax.pcolormesh(x_radii, y_radii, den_plot.T, cmap = 'inferno',
-                                vmin = -10, vmax = -5.6)
-            else:
-                img = ax.pcolormesh(x_radii, y_radii, cut_den_plot.T, cmap = 'inferno',
-                                vmin = -9, vmax = -5.6)
+            ax.set_xlabel(r'$X/R_{\rm a}$', fontsize = 20)
+            ax.set_ylabel(r'$Y/R_{\rm a}$', fontsize = 20)
+            img = ax.pcolormesh(x_radii/apocenter, y_radii/apocenter, flat_den.T, cmap = 'inferno',
+                                norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-5))
+            # else:
+            #     img = ax.pcolormesh(x_radii/apocenter, y_radii/apocenter, cut_den_plot.T, cmap = 'inferno',
+            #                     norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-5))
             # add an  point with just white contour at 0,0 
             # ax.plot(0,0, 'o', color = 'k', markersize = 8, markeredgecolor = 'darkorange')
             # ax.contour(xcrt, ycrt, crt, [0], linestyles = 'dashed', colors = 'white', alpha = 0.8)
             cb = plt.colorbar(img)
-            cb.set_label(r'$\log_{10}$ (Column density [$M_\odot/R_\odot^2$])', fontsize = 18)
+            cb.set_label(r'Column density [$M_\odot/R_\odot^2$])', fontsize = 18)
 
             # ax.set_title(f'XY Projection, snap {snap}', fontsize = 16)
-            # ax.text(-400, 50, r't/t$_{fb}$ = ' + f'{np.round(tfb_single,2)}', color = 'white', fontsize = 18)
+            ax.text(-410/apocenter, -50/apocenter, r't/t$_{\rm fb}$ = ' + f'{np.round(tfb_single,2)}', color = 'white', fontsize = 18)
             plt.tight_layout()
             if save:
-                plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{check}/projection{cut}/denproj{snap}.png')
-            # plt.show()
-            plt.close()
+                plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/denproj{snap}.png')
+            plt.show()
+            # plt.close()
 
 # %%
