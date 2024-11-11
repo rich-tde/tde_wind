@@ -42,8 +42,8 @@ def grid_maker(path, snap, m, mstar, Rstar, x_num, y_num, z_num = 100):
     x_start = -1.2*apo
     x_stop = 40
     xs = np.linspace(x_start, x_stop, num = x_num )
-    y_start = -0.2 * apo 
-    y_stop = 0.2 * apo
+    y_start = -0.5 * apo 
+    y_stop = 0.5 * apo
     ys = np.linspace(y_start, y_stop, num = y_num)
     z_start = -2 * Rt
     z_stop = 2 * Rt
@@ -90,7 +90,7 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
     return flat_den
  
 if __name__ == '__main__':
-    save = False
+    save = True
     if alice:
         cast = True
     else:
