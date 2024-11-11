@@ -45,7 +45,7 @@ Rg = Rs/2
 R0 = 0.6 * Rt
 Rp =  Rt / beta
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
-snap = '216'
+snap = '258'
 compton = 'Compton'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 print(f'Rt: {Rt}, Rg: {Rs}, R0: {R0}, Rp: {Rp}, apo: {apo}')

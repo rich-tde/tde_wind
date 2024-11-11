@@ -36,7 +36,7 @@ res2 = 'HiRes'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 path = f'/Users/paolamartire/shocks/data/{folder}'
 #Res0 data
-datares0 = np.load(f'{path}{res0}/colormapE_Alice/coloredE_{res0}_radiimixed.npy') #shape (3, len(tfb), len(radii))
+datares0 = np.load(f'{path}{res0}/colormapE_Alice/coloredE_{res0}_radii.npy') #shape (3, len(tfb), len(radii))
 tfb_datares0 = np.loadtxt(f'{path}{res0}/colormapE_Alice/coloredE_{res0}_days.txt')
 snap_res0 = tfb_datares0[0]
 tfb_res0 = tfb_datares0[1]
@@ -49,7 +49,7 @@ col_Radres0 *= prel.en_den_converter
 abs_col_orb_enres0 = np.abs(col_orb_enres0)
 
 # Res1 data
-datares1 = np.load(f'{path}{res1}/colormapE_Alice/coloredE_{res1}_radiimixed.npy') #shape (3, len(tfb), len(radii))
+datares1 = np.load(f'{path}{res1}/colormapE_Alice/coloredE_{res1}_radii.npy') #shape (3, len(tfb), len(radii))
 tfb_datares1 = np.loadtxt(f'{path}{res1}/colormapE_Alice/coloredE_{res1}_days.txt')
 snap_res1 = tfb_datares1[0]
 tfb_res1 = tfb_datares1[1]
@@ -62,7 +62,7 @@ col_Radres1 *= prel.en_den_converter
 abs_col_orb_enres1 = np.abs(col_orb_enres1)
 
 #%% Res2 data
-datares2 = np.load(f'{path}{res2}/colormapE_Alice/coloredE_{res2}_radiimixed.npy')
+datares2 = np.load(f'{path}{res2}/colormapE_Alice/coloredE_{res2}_radii.npy')
 tfb_datares2 = np.loadtxt(f'{path}{res2}/colormapE_Alice/coloredE_{res2}_days.txt')
 snap_res2 = tfb_datares2[0]
 tfb_res2 = tfb_datares2[1]

@@ -10,7 +10,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import numba
 from scipy.spatial import KDTree
-from Utilities.operators import make_tree
 from Utilities.selectors_for_snap import select_snap
 from Utilities.isalice import isalice
 alice, plot = isalice()
@@ -91,7 +90,10 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
  
 if __name__ == '__main__':
     save = True
-    cast = False
+    if alice:
+        cast = True
+    else:
+        cast = False
     
     m = 4
     Mbh = 10**m
@@ -109,6 +111,8 @@ if __name__ == '__main__':
     if cast:
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
         for snap in snaps:
+            if snap < 216:
+                continue
             if alice:
                 if check == 'Low':
                     check = ''
