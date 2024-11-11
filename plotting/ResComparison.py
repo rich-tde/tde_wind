@@ -4,15 +4,12 @@ sys.path.append(abspath)
 
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
 import matplotlib.colors as colors
-from Utilities.basic_units import radians
 from src import orbits as orb
 from Utilities import sections as sec
-from Utilities.operators import make_tree, to_cylindric
+from Utilities.operators import make_tree
 import matplotlib.gridspec as gridspec
 from Utilities.time_extractor import days_since_distruption
-from scipy.spatial import KDTree
 
 ##
 # CONSTANTS
@@ -24,6 +21,12 @@ Rsol = 7e8 #6.957e8 # m
 t = np.sqrt(Rsol**3 / (Msol*G_SI ))
 c = 3e8 / (7e8/t)
 G = 1
+price24 = 2.3e-7
+bonlu20 = 1e-8
+ryu23 = 0.096
+RgSad = 1e5/c**2
+r_sad16 = np.logspace(1.85*RgSad, 1000*RgSad, 256)
+sad16 = np.min(np.diff(r_sad16))
 
 ##
 # PARAMETERS
@@ -44,78 +47,51 @@ Rp =  Rt / beta
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 snap = '216'
 compton = 'Compton'
-checks = ['LowRes', '', 'HiRes'] 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 print(f'Rt: {Rt}, Rg: {Rs}, R0: {R0}, Rp: {Rp}, apo: {apo}')
 print(f'In term of Rg: Rt: {Rt/Rg}, R0: {R0/Rg}, Rp: {Rp/Rg}, apo: {apo/Rg}')
+xcr0, ycr0, cr0 = orb.make_cfr(R0)
+xcrt, ycrt, crt = orb.make_cfr(Rt)
 
 #%%
 # LowRes
-pathL = f'{abspath}TDE/{folder}{checks[0]}/{snap}'
-tfb = days_since_distruption(f'{pathL}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+pathL = f'{abspath}TDE/{folder}LowRes/{snap}'
+tfbL = days_since_distruption(f'{pathL}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
 dataL = make_tree(pathL, snap, energy = True)
-x_coordL, y_coordL, z_coordL, massL, denL = \
-    dataL.X, dataL.Y, dataL.Z, dataL.Mass, dataL.Den
-dim_cellL = dataL.Vol**(1/3) 
-
-finalcutL = dataL.Den > 1e-9 # throw fluff
+finalcutL = dataL.Den > 1e-19 # throw fluff
 x_coordL, y_coordL, z_coordL, massL, denL, dim_cellL = \
-    sec.make_slices([x_coordL, y_coordL, z_coordL, massL, denL, dim_cellL], finalcutL)
+    sec.make_slices([dataL.X, dataL.Y, dataL.Z, dataL.Mass, dataL.Den, dataL.Vol**(1/3)], finalcutL)
 RadiusL = np.sqrt(x_coordL**2 + y_coordL**2 + z_coordL**2)
 midplaneL = np.abs(z_coordL) < dim_cellL
 X_midplaneL, Y_midplaneL, Z_midplaneL, dim_midplaneL, Mass_midplaneL, Den_midplaneL = \
     sec.make_slices([x_coordL, y_coordL, z_coordL, dim_cellL, massL, denL], midplaneL)
 
 # Fiducial
-path = f'{abspath}TDE/{folder}{checks[1]}/{snap}'
+path = f'{abspath}TDE/{folder}/{snap}'
 tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
 data = make_tree(path, snap, energy = True)
-x_coord, y_coord, z_coord, mass, den = \
-    data.X, data.Y, data.Z, data.Mass, data.Den
-dim_cell = data.Vol**(1/3) 
-
-finalcut = data.Den > 1e-9 # throw fluff
+finalcut = data.Den > 1e-19 # throw fluff
 x_coord, y_coord, z_coord, mass, den, dim_cell = \
-    sec.make_slices([x_coord, y_coord, z_coord, mass, den, dim_cell], finalcut)
+    sec.make_slices([data.X, data.Y, data.Z, data.Mass, data.Den, data.Vol**(1/3)], finalcut)
 Radius = np.sqrt(x_coord**2 + y_coord**2 + z_coord**2)
 midplane = np.abs(z_coord) < dim_cell
 X_midplane, Y_midplane, Z_midplane, dim_midplane, Mass_midplane, Den_midplane = \
     sec.make_slices([x_coord, y_coord, z_coord, dim_cell, mass, den], midplane)
 
 # HiRes
-pathH = f'{abspath}TDE/{folder}{checks[2]}/{snap}'
+pathH = f'{abspath}TDE/{folder}HiRes/{snap}'
+tfbH = days_since_distruption(f'{pathH}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
 dataH = make_tree(pathH, snap, energy = True)
-x_coordH, y_coordH, z_coordH, massH, denH = \
-    dataH.X, dataH.Y, dataH.Z, dataH.Mass, dataH.Den
-dim_cellH = dataH.Vol**(1/3) 
-finalcutH = dataH.Den > 1e-9 # throw fluff
+finalcutH = dataH.Den > 1e-19 # throw fluff
 x_coordH, y_coordH, z_coordH, massH, denH, dim_cellH = \
-    sec.make_slices([x_coordH, y_coordH, z_coordH, massH, denH, dim_cellH], finalcutH)
+    sec.make_slices([ dataH.X, dataH.Y, dataH.Z, dataH.Mass, dataH.Den, dataH.Vol**(1/3) ], finalcutH)
 RadiusH = np.sqrt(x_coordH**2 + y_coordH**2 + z_coordH**2)
 midplaneH = np.abs(z_coordH) < dim_cellH
 X_midplaneH, Y_midplaneH, Z_midplaneH,  dim_midplaneH, Mass_midplaneH, Den_midplaneH = \
     sec.make_slices([x_coordH, y_coordH, z_coordH,  dim_cellH, massH, denH], midplaneH)
 
-#%%
-xcr0, ycr0, cr0 = orb.make_cfr(R0)
-xcrt, ycrt, crt = orb.make_cfr(Rt)
 
-#%% Find min value
-# findminMassL = RadiusL>R0
-# findminMassH = RadiusH>R0
-# x_coordLfind, y_coordLfind, z_coordLfind, massLfind = \
-#     sec.make_slices([x_coordL, y_coordL, z_coordL, massL], findminMassL)
-# x_coordHfind, y_coordHfind, z_coordHfind, massHfind = \
-#     sec.make_slices([x_coordH, y_coordH, z_coordH, massH], findminMassH)
-# idxL = np.argmin(massLfind)
-# idxH = np.argmin(massHfind)
-# # mean near pericenter
-# print('Low res mean:', np.mean(massLfind[np.sqrt(x_coordLfind**2 + (y_coordLfind-Rp)**2 + z_coordLfind**2) < 5]))
-# print('Middle res mean:', np.mean(massHfind[np.sqrt(x_coordHfind**2 + (y_coordHfind-Rp)**2 + z_coordHfind**2) < 5]))
-# print('Low res min:', x_coordLfind[idxL], y_coordLfind[idxL], z_coordLfind[idxL], 'Mass:', massLfind[idxL])
-# print('Middle res min: ', x_coordHfind[idxH], y_coordHfind[idxH], z_coordHfind[idxH], 'Mass:', massHfind[idxH])
-
-#%% Midplane resolution 
+#%% Compare midplane resolution with a scatterplot
 vminmass = np.percentile(Mass_midplaneH, 5)
 vmaxmass = np.percentile(Mass_midplaneH, 95)
 vmindim = np.percentile(dim_midplaneH, 5)
@@ -172,13 +148,13 @@ ax5.set_xlabel(r'X [$R_\odot$]', fontsize = 22)
 ax0.set_ylabel(r'Y [$R_\odot$]', fontsize = 22)
 ax3.set_ylabel(r'Y [$R_\odot$]', fontsize = 22)
 plt.subplots_adjust(wspace=0.25)  # Wider spacing between the first and second plot
-# plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,2)))
 plt.tight_layout()
+plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,2)))
 if save:
-    plt.savefig(f'{abspath}/Figs/multiple/compareRpMass_{snap}.pdf')
+    plt.savefig(f'{abspath}/Figs/multiple/compareRpMass_{snap}.png')
 plt.show()
 
-# %%
+#%% CDF of mass and size around the pericenter
 cuthistogramsL = np.logical_and(x_coordL>R0, np.logical_and(x_coordL<25, np.abs(y_coordL)<4))
 cuthistograms = np.logical_and(x_coord>R0, np.logical_and(x_coord<25, np.abs(y_coord)<4))
 cuthistogramsH = np.logical_and(x_coordH>R0, np.logical_and(x_coordH<25, np.abs(y_coordH)<4))
@@ -203,70 +179,89 @@ binsH = np.logspace(np.log10(np.min(massHhist)), np.log10(np.max(massHhist)), 10
 binsdimL = np.logspace(np.log10(np.min(dim_cellLhist)), np.log10(np.max(dim_cellLhist)), 100)
 binsdim = np.logspace(np.log10(np.min(dim_cellhist)), np.log10(np.max(dim_cellhist)), 100)
 binsdimH = np.logspace(np.log10(np.min(dim_cellHhist)), np.log10(np.max(dim_cellHhist)), 100)
-# fig, ax = plt.subplots(1,2, figsize = (12,6), sharey='row')
-# ax[0].hist(masshist, bins = bins, color = 'orange', alpha = 0.5, label = 'Mid res')
-# ax[1].hist(massHhist, bins = binsH, color = 'mediumpurple', alpha = 0.5, label = 'High res')
-# for axs in ax:
-#     axs.loglog()
-#     axs.set_xlim(5e-13, 1e-7)
-#     axs.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 20)
-#     axs.tick_params(axis = 'both', which = 'both', direction='in', labelsize=20)
-#     axs.tick_params(which = 'major', size= 7)
-#     axs.tick_params(which = 'minor', size= 5)
-#     axs.legend(fontsize = 20)
-# ax[0].set_ylabel('Counts', fontsize = 20)
-# if save:
-#     plt.savefig(f'{abspath}/Figs/{folder}/multiple/compareHistMass_{snap}.png')
-# plt.show()
 
-#%%
-cumH = list(np.arange(len(massHhist))/len(massHhist))
-cumL = list(np.arange(len(massLhist))/len(massLhist))
-cum = list(np.arange(len(masshist))/len(masshist))
-cumdimH = list(np.arange(len(dim_cellHhist))/len(dim_cellHhist))
-cumdimL = list(np.arange(len(dim_cellLhist))/len(dim_cellLhist))
-cumdim = list(np.arange(len(dim_cellhist))/len(dim_cellhist))
+cumHhist = list(np.arange(len(massHhist))/len(massHhist))
+cumhist = list(np.arange(len(masshist))/len(masshist))
+cumLhist = list(np.arange(len(massLhist))/len(massLhist))
+cumdimHhist = list(np.arange(len(dim_cellHhist))/len(dim_cellHhist))
+cumdimLhist = list(np.arange(len(dim_cellLhist))/len(dim_cellLhist))
+cumdimhist = list(np.arange(len(dim_cellhist))/len(dim_cellhist))
 massLhist = list(massLhist)
 masshist = list(masshist)
 massHhist = list(massHhist)
 dim_cellLhist = list(dim_cellLhist)
 dim_cellhist = list(dim_cellhist)
 dim_cellHhist = list(dim_cellHhist)
-# deltaMass = np.max(massLhist) - np.max(massHhist)
-# deltaDim = np.max(dim_cellLhist) - np.max(dim_cellHhist)
-massLhist.append(1)
-cumdimL.append(1)
-masshist.append(1)
-cumdim.append(1)
-massHhist.append(1)
-cumdimH.append(1)
-dim_cellLhist.append(1)
-cumL.append(1)
-dim_cellhist.append(1)
-cum.append(1)
-dim_cellHhist.append(1)
-cumH.append(1)
 
-# massHhistshifted = massHhist + deltaMass
-# dim_cellHhistshifted = dim_cellHhist + deltaDim
-
-#%%
-price24 = 2.3e-7
-bonlu20 = 1e-8
-ryu23 = 0.096
-RgSad = 1e5/c**2
-r_sad16 = np.logspace(1.85*RgSad, 1000*RgSad, 256)
-sad16 = np.min(np.diff(r_sad16))
+#%% Plot
 fig, (ax1, ax2) = plt.subplots(2,1, figsize = (5,8))
-# grazie Sill
-ax1.plot(massHhist, cumH, color = 'mediumpurple', label = 'High res')
-ax1.plot(masshist, cum, color = 'dodgerblue', label = 'Middle res')
-ax1.plot(massLhist, cumL, color = 'orange', label = 'Low res')
+ax1.plot(massHhist, cumHhist, color = 'mediumpurple', label = 'High res')
+ax1.plot(masshist, cumhist, color = 'dodgerblue', label = 'Middle res')
+ax1.plot(massLhist, cumLhist, color = 'orange', label = 'Low res')
 ax1.axvline(price24, color = 'k', linestyle = 'dashed', label = 'Price24')
 ax1.axvline(bonlu20, color = 'r', linestyle = 'dashed', label = 'BonnerotLu20')
-ax2.plot(dim_cellHhist, cumdimH, color = 'mediumpurple',  label = 'High res')
-ax2.plot(dim_cellhist, cumdim, color = 'dodgerblue', label = 'Middle res')
-ax2.plot(dim_cellLhist, cumdimL, color = 'orange', label = 'Low res')
+ax2.plot(dim_cellHhist, cumdimHhist, color = 'mediumpurple',  label = 'High res')
+ax2.plot(dim_cellhist, cumdimhist, color = 'dodgerblue', label = 'Middle res')
+ax2.plot(dim_cellLhist, cumdimLhist, color = 'orange', label = 'Low res')
+ax2.axvline(ryu23, color = 'k', linestyle = 'dashed', label = 'Ryu+23 initial')
+# ax2.axvline(sad16, color = 'r', linestyle = 'dashed', label = 'Sadowski+16')
+
+for ax in [ax1, ax2]:
+    ax.set_xscale('log')
+    ax.tick_params(axis = 'both', which = 'both', direction='in', labelsize=12)
+    ax.legend(loc ='upper left', fontsize = 12)
+    ax.set_ylabel('CDF', fontsize = 20)
+    ax.set_ylim(0,1.1)
+ax1.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 15)
+ax2.set_xlabel(r'Cell size [$R_\odot$]', fontsize = 15)
+ax1.set_xlim(5e-13, 3e-7)
+ax2.set_xlim(7e-2, 1)
+# plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
+plt.tight_layout()
+if save:
+    plt.savefig(f'{abspath}/Figs/multiple/zoomcompareHistToget_{snap}.pdf')
+plt.show()
+
+#%% CDF of mass and size in all the volume
+# sort the arrays
+massL = np.sort(massL)
+mass = np.sort(mass)
+massH = np.sort(massH)
+dim_cellL = np.sort(dim_cellL)
+dim_cell = np.sort(dim_cell)
+dim_cellH = np.sort(dim_cellH)
+# make histograms of mass and size
+binsL = np.logspace(np.log10(np.min(massL)), np.log10(np.max(massL)), 100)
+bins = np.logspace(np.log10(np.min(mass)), np.log10(np.max(mass)), 100)
+binsH = np.logspace(np.log10(np.min(massH)), np.log10(np.max(massH)), 100)
+binsdimL = np.logspace(np.log10(np.min(dim_cellL)), np.log10(np.max(dim_cellL)), 100)
+binsdim = np.logspace(np.log10(np.min(dim_cell)), np.log10(np.max(dim_cell)), 100)
+binsdimH = np.logspace(np.log10(np.min(dim_cellH)), np.log10(np.max(dim_cellH)), 100)
+
+# grazie Sill
+cumH = list(np.arange(len(massH))/len(massH))
+cumL = list(np.arange(len(massL))/len(massL))
+cum = list(np.arange(len(mass))/len(mass))
+cumdimH = list(np.arange(len(dim_cellH))/len(dim_cellH))
+cumdimL = list(np.arange(len(dim_cellL))/len(dim_cellL))
+cumdim = list(np.arange(len(dim_cell))/len(dim_cell))
+massL = list(massL)
+mass = list(mass)
+massH = list(massH)
+dim_cellL = list(dim_cellL)
+dim_cell = list(dim_cell)
+dim_cellH = list(dim_cellH)
+
+#%% Plot
+fig, (ax1, ax2) = plt.subplots(2,1, figsize = (5,8))
+ax1.plot(massH, cumH, color = 'mediumpurple', label = 'High res')
+ax1.plot(mass, cum, color = 'dodgerblue', label = 'Middle res')
+ax1.plot(massL, cumL, color = 'orange', label = 'Low res')
+ax1.axvline(price24, color = 'k', linestyle = 'dashed', label = 'Price24')
+ax1.axvline(bonlu20, color = 'r', linestyle = 'dashed', label = 'BonnerotLu20')
+ax2.plot(dim_cellH, cumdimH, color = 'mediumpurple',  label = 'High res')
+ax2.plot(dim_cell, cumdim, color = 'dodgerblue', label = 'Middle res')
+ax2.plot(dim_cellL, cumdimL, color = 'orange', label = 'Low res')
 ax2.axvline(ryu23, color = 'k', linestyle = 'dashed', label = 'Ryu+23 initial')
 # ax2.axvline(sad16, color = 'r', linestyle = 'dashed', label = 'Sadowski+16')
 
@@ -279,178 +274,13 @@ for ax in [ax1, ax2]:
 ax1.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 15)
 ax2.set_xlabel(r'Cell size [$R_\odot$]', fontsize = 15)
 ax1.set_xlim(5e-13, 3e-6)
-ax2.set_xlim(7e-2, 4e-1)
-# plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
+ax2.set_xlim(7e-2, 4)
+plt.suptitle('All simulation volume', fontsize = 20)
 plt.tight_layout()
 if save:
     plt.savefig(f'{abspath}/Figs/multiple/compareHistToget_{snap}.pdf')
 plt.show()
 
-#%% As before, but trying to stretch the x axis of orange to overlap with purple
-# coeffL = 0.1
-# coeffdimL = 0.55
-# widthbinsL = np.diff(binsL)
-# widthbinsdimL = np.diff(binsdimL)
-# binsLwider = np.copy(binsL)
-# binsdimLwider = np.copy(binsdimL)
-# for i in range(-1, -len(binsL), -1):
-#     binsLwider[i-1] = binsLwider[i] - widthbinsL[i]*coeffL
-#     binsdimLwider[i-1] = binsdimLwider[i] - widthbinsdimL[i]*coeffdimL
 
-# fig, (ax1, ax2) = plt.subplots(1,2, figsize = (14,6))
-# # grazie Sill
-# ax1.plot(massHhist, cumH, color = 'mediumpurple', label = 'High res')
-# ax1.plot(coeffL*massLhist, cumL, color = 'orange', label = f'Low res stretched of {np.round(1/coeffL,1)}')
-# ax2.plot(dim_cellHhist, cumdimH, color = 'mediumpurple', label = 'High res')
-# ax2.plot(coeffdimL*dim_cellLhist, cumdimL, color = 'orange', label = f'Low res stretched of {np.round(1/coeffdimL,1)}')
 
-# for ax in [ax1, ax2]:
-#     ax.set_xscale('log')
-#     ax.tick_params(axis = 'both', which = 'both', direction='in', labelsize=15)
-#     ax.legend(loc ='lower right', fontsize = 15)
-# ax1.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 20)
-# ax2.set_xlabel(r'Cell size [$R_\odot$]', fontsize = 20)
-# ax1.set_ylabel('CDF', fontsize = 25)
-# ax1.set_xlim(5e-13, 3e-10)
-# ax2.set_xlim(7e-2, 4e-1)
-# plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
-# if save:
-#     plt.savefig(f'{abspath}/Figs/{folder}/multiple/compareHistStretch_{snap}.png')
-# plt.show()
-#%%
-# binsLall = np.logspace(np.log10(np.min(massL)), np.log10(np.max(massL)), 100)
-# binsHall = np.logspace(np.log10(np.min(massH)), np.log10(np.max(massH)), 100)
-# fig = plt.subplots(1,1, figsize = (8,8))
-# plt.hist(massH, bins = binsHall, ec = 'mediumpurple', histtype='stepfilled', color = 'w', label = 'High res', cumulative = True, density= True) # put an histogram over the other. one just the contour
-# plt.hist(massL, bins = binsLall, color = 'orange', alpha = 0.5, label = 'Low res', cumulative=True, density= True)
-# plt.xlim(3e-12, 1e-6)
-# plt.xlabel(r'Mass per cell [$M_\odot$]', fontsize = 20)
-# plt.ylabel('CDF', fontsize = 20)
-# plt.tick_params(axis = 'both', which = 'both', direction='in', labelsize=20)
-# # plt.loglog()
-# plt.xscale('log')
-# plt.legend(loc ='upper left', fontsize = 18)
-# plt.title(r'CDF All cells with $\rho>10^{-9}$', fontsize = 20)
-# if save:
-#     plt.savefig(f'{abspath}/Figs/{folder}/multiple/compareAllHistMass_{snap}.png')
-# plt.show()
-
-# %% Find resolution along the stream
-fileL = np.load(f'{abspath}data/{folder}/DENstream_{checks[1]}{snap}.npy')
-x_streamL, y_streamL, z_streamL = fileL[1], fileL[2], fileL[3]
-pointsL = np.array([x_streamL, y_streamL, z_streamL]).T
-xapproxL = np.zeros_like(x_streamL)
-yapproxL = np.zeros_like(y_streamL)
-zapproxL = np.zeros_like(z_streamL)
-mass_streamL = np.zeros_like(x_streamL)
-nearbyxL = []
-nearbyyL = []
-nearbyzL = []
-nearbymassL = []
-nearbydimcellL = []
-treeL = dataL.sim_tree
-for i, point in enumerate(pointsL):
-    _, idx = treeL.query(point)
-    mass_streamL[i] = dataL.Mass[idx]
-    xapproxL[i] = dataL.X[idx]
-    yapproxL[i] = dataL.Y[idx]
-    zapproxL[i] = dataL.Z[idx]
-    _, indices = treeL.query(point, k=20)
-    nearbyxL.append(dataL.X[indices])
-    nearbyyL.append(dataL.Y[indices])
-    nearbyzL.append(dataL.Z[indices])
-    nearbymassL.append(dataL.Mass[indices])
-    nearbydimcellL.append(dataL.Vol[indices]**(1/3))
-
-fileH = np.load(f'{abspath}data/{folder}/DENstream_{checks[1]}{snap}.npy')
-x_streamH, y_streamH, z_streamH = fileH[1], fileH[2], fileH[3]
-pointsH = np.array([x_streamH, y_streamH, z_streamH]).T
-mass_streamH = np.zeros_like(x_streamH)
-xapproxH = np.zeros_like(x_streamH)
-yapproxH = np.zeros_like(y_streamH)
-zapproxH = np.zeros_like(z_streamH)
-nearbyxH = []
-nearbyyH = []
-nearbyzH = []
-nearbymassH = []
-nearbydimcellH = []
-treeH = dataH.sim_tree
-for i, point in enumerate(pointsH):
-    _, idx = treeH.query(point)
-    mass_streamH[i] = dataH.Mass[idx]
-    xapproxH[i] = dataH.X[idx]
-    yapproxH[i] = dataH.Y[idx]
-    zapproxH[i] = dataH.Z[idx]
-    _, indices = treeH.query(point, k=20)
-    # indices = [int(i) for i in indices]
-    nearbyxH.append(dataH.X[indices])
-    nearbyyH.append(dataH.Y[indices])
-    nearbyzH.append(dataH.Z[indices])
-    nearbymassH.append(dataH.Mass[indices])
-    nearbydimcellH.append(dataH.Vol[indices]**(1/3))
-
-nearbyxL = np.concatenate(nearbyxL)
-nearbyyL = np.concatenate(nearbyyL)
-nearbyzL = np.concatenate(nearbyzL)
-nearbymassL = np.concatenate(nearbymassL)
-nearbydimcellL = np.concatenate(nearbydimcellL)
-nearbyxH = np.concatenate(nearbyxH)
-nearbyyH = np.concatenate(nearbyyH)
-nearbyzH = np.concatenate(nearbyzH)
-nearbymassH = np.concatenate(nearbymassH)
-nearbydimcellH = np.concatenate(nearbydimcellH)
-# plt.plot(1-xapproxL/x_streamL, label = 'Low res')
-# plt.plot(1-xapproxH/x_streamH, label = 'High res')
-# plt.legend()
-# plt.show()
-#%% Midplane
-nearbymidplaneL = np.abs(nearbyzL) < nearbydimcellL
-nearbyxL, nearbyyL, nearbyzL, nearbymassL, nearbydimcellL = \
-    sec.make_slices([nearbyxL, nearbyyL, nearbyzL, nearbymassL, nearbydimcellL], nearbymidplaneL)
-nearbymidplaneH = np.abs(nearbyzH) < nearbydimcellH
-nearbyxH, nearbyyH, nearbyzH, nearbymassH, nearbydimcellH = \
-    sec.make_slices([nearbyxH, nearbyyH, nearbyzH, nearbymassH, nearbydimcellH], nearbymidplaneH)
 # %%
-fig, ax = plt.subplots(2,1, figsize = (10,8))
-img = ax[0].scatter(nearbyxL, nearbyyL, c = nearbymassL, s = 2, cmap = 'inferno', norm=colors.LogNorm(vmin=5e-9, vmax=5e-6))
-cbar = plt.colorbar(img)
-cbar.set_label(r'Mass per cell $M_\odot$', fontsize = 16)
-cbar.ax.tick_params(labelsize=16)
-ax[0].text(-320, -20, f'Mean mass stream: {np.mean(mass_streamL):.0e}', fontsize = 16)
-
-img = ax[1].scatter(nearbyxH, nearbyyH, c = nearbymassH, s = 2, cmap = 'inferno', norm=colors.LogNorm(vmin=1e-9, vmax=1e-7))
-cbar = plt.colorbar(img)
-cbar.set_label(r'Mass per cell [$M_\odot$]', fontsize = 16)
-cbar.ax.tick_params(labelsize=16)
-ax[1].set_xlabel(r'X [$R_\odot$]', fontsize = 20)
-ax[1].text(-320, -20, f'Mean mass stream: {np.mean(mass_streamH):.0e}', fontsize = 16)
-for axs in ax:
-    axs.set_ylabel(r'Y [$R_\odot$]', fontsize = 20)
-    axs.scatter(0,0, c= 'k', marker = 'x', s=80)
-    axs.set_xlim(-340,25)
-    axs.set_ylim(-40,70)
-    axs.tick_params(axis = 'both', which = 'both', direction='in', labelsize=16)
-    # print the mean mass in exponential notation
-if save:
-    plt.savefig(f'{abspath}/Figs/{folder}/multiple/compareStreamMass_{snap}.png')
-plt.show()
-# %%
-print('Mean mass along stream low res:', np.mean(mass_streamL))
-print('Mean mass nearby stream low res:', np.mean(nearbymassL))
-print('Mean mass along stream high res:', np.mean(mass_streamH))
-print('Mean mass nearby stream high res:', np.mean(nearbymassH))
-
-#%%
-binsLstream = np.logspace(np.log10(np.min(nearbymassL)), np.log10(np.max(nearbymassL)), 100)
-binsHstream = np.logspace(np.log10(np.min(nearbymassH)), np.log10(np.max(nearbymassH)), 100)
-plt.hist(nearbymassH, bins = binsHstream, cumulative=True, density= True, ec = 'mediumpurple', histtype='stepfilled', color = 'w', alpha = 0.5, label = 'High res')
-plt.hist(nearbymassL, bins = binsLstream, cumulative=True, density= True,color = 'orange', alpha = 0.5, label = 'Low res')
-plt.xscale('log')
-plt.title(r'CDF Nearby stream', fontsize = 20)
-plt.xlabel(r'Mass per cell [$M_\odot$]', fontsize = 20)
-plt.ylabel('Counts', fontsize = 20)
-plt.legend(fontsize = 20)
-plt.tick_params(axis = 'both', which = 'both', direction='in', labelsize=20)
-if save:
-    plt.savefig(f'{abspath}/Figs/{folder}/multiple/compareHistStreamMass_{snap}.png')
-plt.show()

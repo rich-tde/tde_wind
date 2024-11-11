@@ -311,7 +311,7 @@ for i in range(len(tfb_res2)):
     time = tfb_res2[i]
     idx = np.argmin(np.abs(tfb_res1 - time))
     denom2 = (Lum_cgs[idx] + Lum2_cgs[i])/2
-    Lum_difference2.append(np.abs(Lum_cgs[idx]-Lum2_cgs[i])/denom2)
+    Lum_difference2.]append(np.abs(Lum_cgs[idx]-Lum2_cgs[i])/denom2)
 
 img, ax = plt.subplots(1,2, figsize = (20,7))
 for i,idx in enumerate(indices):
