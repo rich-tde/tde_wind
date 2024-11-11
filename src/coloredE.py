@@ -8,9 +8,6 @@ else:
     abspath = '/Users/paolamartire/shocks/'
 
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.rcParams['figure.dpi'] = 150
 from Utilities.selectors_for_snap import select_snap
 from Utilities.operators import make_tree, single_branch, to_cylindric
 import Utilities.sections as sec
@@ -37,13 +34,10 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = '' # '' or 'HiRes'
-step = ''
+check = '' 
+xaxis = 'radii'
 
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}{step}'
-xaxis = 'radii' # radii or angles
-weight = 'mixed' # mixed weightDen or weightE or '' if you have weight for vol/mass
-lum = ''
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True
 
 Mbh = 10**m
@@ -54,25 +48,13 @@ R0 = 0.6 * Rt
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
 
-if xaxis == 'angles':
-    from Utilities.operators import Ryan_sampler
-    radii = np.arange(-np.pi, np.pi, 0.02)
-    radii = Ryan_sampler(radii)
-elif xaxis == 'radii':
-    if lum == 'Lum':
-        radii = np.logspace(np.log10(0.5*apo), np.log10(15*apo),
-                    num=500)  # simulator units
-    else:
-        radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
+radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
                     num=200)  # simulator units
 
-snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step, time = True) #[100,115,164,199,216]
+snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step = '', time = True) #[100,115,164,199,216]
 col_ie = []
 col_orb_en = []
 col_Rad = []
-# col_Rad_cutsmall = []
-# col_ie_cutsmall = []
-# col_orb_en_cutsmall = []
 for i,snap in enumerate(snaps):
     print(snap)
     if alice:
@@ -92,65 +74,26 @@ for i,snap in enumerate(snaps):
     orb_en_onmass = orb_en / mass
 
     # throw fluff
-    # cutsmall = den > 1e-19
     cut = den > 1e-19 
     Rsph_cut, theta_cut, mass_cut, den_cut, ie_cut, ie_onmass_cut, orb_en_cut, orb_en_onmass_cut, Rad_cut, Rad_den_cut, vol_cut = \
             sec.make_slices([Rsph, theta, mass, den, ie, ie_onmass, orb_en, orb_en_onmass, Rad, Rad_den, vol], cut)
-    # Rsph_cutsmall, theta_cutsmall, den_cutsmall, ie_cutsmall, orb_en_cutsmall, Rad_cutsmall, Rad_den_cutsmall, vol_cutsmall = \
-    #     sec.make_slices([Rsph, theta, den, ie, orb_en, Rad, Rad_den, vol], cutsmall)
 
-    if xaxis == 'angles':
-        tocast_cut = theta_cut
-        # tocast_cutsmall = theta_cutsmall
-    elif xaxis == 'radii':
-        tocast_cut = Rsph_cut
-        # tocast_cutsmall = Rsph_cutsmall
+    tocast_cut = Rsph_cut
         
     # Cast down 
-    if weight == '':
-        ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
-        orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
-        Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = vol_cut)
-        # Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = vol_cutsmall)
-    elif weight == 'weightE':
-        ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = ie_cut)
-        orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = orb_en_cut)
-        Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = Rad_cut)
-        # Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = Rad_cutsmall)
-    elif weight == 'weightDen':
-        ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = den_cut)
-        orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = den_cut)
-        Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = den_cut)
-        # Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = den_cutsmall)
-    elif weight == 'mixed':
-        if lum != 'Lum':
-            ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
-            orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
-        Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = Rad_cut)
-        # Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_den_cutsmall, weights = Rad_cutsmall)
-    
-        # ie_cast = single_branch(radii, xaxis, tocast_cut, ie_cut, weights = 1)
-        # orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_cut, weights = 1)
-        # Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_cut, weights = 1)
-        # ie_castsmall = single_branch(radii, xaxis, tocast_cutsmall, ie_cutsmall, weights = 1)
-        # orb_en_castsmall = single_branch(radii, xaxis, tocast_cutsmall, orb_en_cutsmall, weights = 1)
-        # Rad_castsmall = single_branch(radii, xaxis, tocast_cutsmall, Rad_cutsmall, weights = 1)
+    ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
+    orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
+    Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = Rad_cut)
 
-    if lum != 'Lum':
-        col_ie.append(ie_cast)
-        col_orb_en.append(orb_en_cast)
+    col_ie.append(ie_cast)
+    col_orb_en.append(orb_en_cast)
     col_Rad.append(Rad_cast)
-    # just cut the very low fluff
-    # col_Rad_cutsmall.append(Rad_castsmall)
 
 #%%
 if save:
-    if lum == 'Lum':
-        np.save(f'{abspath}/data/{folder}/coloredE_{check}{step}_{xaxis}{weight}{lum}.npy', col_Rad)
-    else:
-        np.save(f'{abspath}/data/{folder}/coloredE_{check}{step}_{xaxis}{weight}.npy', [col_ie, col_orb_en, col_Rad])
-    with open(f'{abspath}/data/{folder}/coloredE_{check}{step}_days.txt', 'w') as file:
+    np.save(f'{abspath}/data/{folder}/coloredE_{check}_{xaxis}.npy', [col_ie, col_orb_en, col_Rad])
+    with open(f'{abspath}/data/{folder}/coloredE_{check}_days.txt', 'w') as file:
         file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
         file.close()
-    np.save(f'{abspath}/data/{folder}/{xaxis}En_{check}{step}{lum}.npy', radii)
+    np.save(f'{abspath}/data/{folder}/{xaxis}En_{check}.npy', radii)
