@@ -4,7 +4,14 @@ Project density on XY plane and save data.
 Plot the projection.
 """
 import sys
-sys.path.append('/Users/paolamartire/shocks')
+sys.path.append('/Users/paolamartire/shocks/')
+
+from Utilities.isalice import isalice
+alice, plot = isalice()
+if alice:
+    prepath = '/data1/martirep/shocks/shock_capturing'
+else:
+    prepath = '/Users/paolamartire/shocks/'
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,8 +19,6 @@ import matplotlib.colors as colors
 import numba
 from scipy.spatial import KDTree
 from Utilities.selectors_for_snap import select_snap
-from Utilities.isalice import isalice
-alice, plot = isalice()
 from src.orbits import make_cfr
 from Utilities.sections import make_slices
 
@@ -111,6 +116,11 @@ if __name__ == '__main__':
 
     if cast:
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
+        if save:
+            with open(f'{prepath}/data/{folder}/projection/time_proj.txt', 'a') as f:
+                f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
+                f.write(f'# t/t_fb \n' + ' '.join(map(str, tfb)) + '\n')
+                f.close()
         for snap in snaps:
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
@@ -121,18 +131,9 @@ if __name__ == '__main__':
             flat_den = projector(grid_den, x_radii, y_radii, z_radii)
 
             if save:
-                if alice:
-                    prepath = f'/data1/martirep/shocks/shock_capturing'
-                else: 
-                    prepath = f'/Users/paolamartire/shocks'
                 np.savetxt(f'{prepath}/data/{folder}/projection/denproj{snap}.txt', flat_den) 
                 np.savetxt(f'{prepath}/data/{folder}/projection/xarray.txt', x_radii)
                 np.savetxt(f'{prepath}/data/{folder}/projection/yarray.txt', y_radii)
-        if save:
-            with open(f'{prepath}/data/{folder}/projection/time_proj.txt', 'w') as f:
-                f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
-                f.write(f'# t/t_fb \n' + ' '.join(map(str, tfb)) + '\n')
-                f.close()
 
 #%% Plot
     if plot:
