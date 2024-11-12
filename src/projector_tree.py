@@ -148,15 +148,6 @@ if __name__ == '__main__':
             x_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/xarray.txt')
             y_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/yarray.txt')
             tfb_single = tfb[i]
-
-            # if cut != 'NOCUT':
-            #     cut_den_plot = flat_den.copy()
-            #     cut_x_radii = x_radii.copy()
-            #     cut_y_radii = y_radii.copy()
-            #     for i in range(len(x_radii)):
-            #         for j in range(len(y_radii)):
-            #             if flat_den[i,j] < 1e-19:
-            #                 cut_den_plot[i,j] = -200
                 
             p5 = np.percentile(flat_den, 5)
             p95 = np.percentile(flat_den, 95)

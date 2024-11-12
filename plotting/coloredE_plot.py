@@ -48,7 +48,7 @@ col_orb_enres0 *= prel.en_converter/prel.Msol_cgs
 col_Radres0 *= prel.en_den_converter
 abs_col_orb_enres0 = np.abs(col_orb_enres0)
 
-# Res1 data
+#%% Res1 data
 datares1 = np.load(f'{path}{res1}/colormapE_Alice/coloredE_{res1}_radii.npy') #shape (3, len(tfb), len(radii))
 tfb_datares1 = np.loadtxt(f'{path}{res1}/colormapE_Alice/coloredE_{res1}_days.txt')
 snap_res1 = tfb_datares1[0]
@@ -91,15 +91,29 @@ img = ax[2].pcolormesh(radiires1/apo, tfb_res1, col_Radres1, norm=colors.LogNorm
 cb = fig.colorbar(img)
 ax[2].set_title('Radiation energy density', fontsize = 20)
 cb.set_label(r'Energy density [erg/cm$^3$]', fontsize = 20, labelpad = 2)
+
 for i in range(3):
-    ax[i].axvline(Rt/apo, linestyle ='dashed', c = 'white', linewidth = 0.8)
+    ax[i].axvline(Rt/apo, linestyle ='dashed', c = 'k', linewidth = 1.2)
     ax[i].set_xscale('log')
     ax[i].set_xlabel(r'$R/R_a$', fontsize = 20)
+    # Get the existing ticks on the x-axis
+    original_ticks = ax[i].get_yticks()
+    # Calculate midpoints between each pair of ticks
+    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+    # Combine the original ticks and midpoints
+    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+    # Set tick labels: empty labels for midpoints
+    ax[i].set_yticks(new_ticks)
+    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+    ax[i].set_yticklabels(labels)
+    ax[i].tick_params(axis='x', which='major', width=0.7, length=7)
+    ax[i].tick_params(axis='x', which='minor', width=0.5, length=5)
+    ax[i].tick_params(axis='y', which='both', width=0.7, length=5)
+    ax[i].set_ylim(np.min(tfb_res1), np.max(tfb_res1))
 ax[0].set_ylabel(r't/t$_{fb}$', fontsize = 20)
-plt.tick_params(axis = 'both', which = 'both', direction='in')
 plt.tight_layout()
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}{res1}/coloredE_radiimixed.pdf')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}{res1}/coloredE_radii.pdf')
 
 #%% relative difference L and middle
 rel_orb_en_absL = []
