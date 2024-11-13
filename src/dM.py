@@ -34,8 +34,6 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-step = ''
-
 
 Mbh = 10**m
 Rs = 2*G*Mbh / c**2
@@ -66,16 +64,16 @@ if do_dMdE:
     print('Normalization for energy:', norm)
 
     for check in checks:
-        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}{step}'
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         print(f'Check: {check}')
-        snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step, time = True) 
+        snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
         bins = np.arange(-10,10,.1) # np.arange(-2, 2, .1)
         if alice:
             #save snaps, tfb and energy bins
             prepath = f'/data1/martirep/shocks/shock_capturing'
             with open(f'{prepath}/data/{folder}/dMdE_{check}{cutden}.txt','w') as file:
                 # if file doesn'exist
-                file.write(f'# {folder}_{check}{step} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
+                file.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
                 file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
                 file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
                 file.write((' '.join(map(str, bins)) + '\n'))
@@ -84,9 +82,9 @@ if do_dMdE:
             print(f'Snap: {snap}')
             # Load data
             if alice:
-                path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{step}/snap_{snap}'
+                path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
             else:
-                path = f'/Users/paolamartire/shocks/TDE/{folder}{step}/{snap}'
+                path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
             data = make_tree(path, snap, energy = False)
             # Compute the orbital energy
             dim_cell = data.Vol**(1/3) 
@@ -203,7 +201,7 @@ if movie:
 #     step = 0.02
 #     data = make_tree(path, snap, energy = False)
 #     dim_cell = data.Vol**(1/3) # according to Elad
-#     stream = np.load(f'data/{folder}/stream_Low{snap}_{step}.npy')
+#     stream = np.load(f'data/{folder}/stream_Low{snap}_.npy')
 #     theta_arr, indeces_orbit = stream[0], stream[1].astype(int)
 #     x_orbit, y_orbit, z_orbit, den_orbit = data.X[indeces_orbit], data.Y[indeces_orbit], data.Z[indeces_orbit], data.Den[indeces_orbit]
 #     r_orbit = np.sqrt(x_orbit**2 + y_orbit**2)
@@ -229,7 +227,7 @@ if movie:
 #     data1 = make_tree(path1, snap, energy = False)
 #     dim_cell1 = data1.Vol**(1/3) # according to Elad
 #     tfb = days_since_distruption(f'{path1}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
-#     stream1 = np.load(f'data/{folder}/stream_{check1}{snap}_{step}.npy')
+#     stream1 = np.load(f'data/{folder}/stream_{check1}{snap}_.npy')
 #     theta_arr1, indeces_orbit1 = stream1[0], stream1[1].astype(int)
 #     x_orbit1, y_orbit1, z_orbit1, den_orbit1 = data1.X[indeces_orbit1], data1.Y[indeces_orbit1], data1.Z[indeces_orbit1], data1.Den[indeces_orbit1]
 #     r_orbit1 = np.sqrt(x_orbit1**2 + y_orbit1**2)
@@ -253,7 +251,7 @@ if movie:
 #     path2 = f'/Users/paolamartire/shocks/TDE/{folder}{check2}/{snap2}'
 #     data2 = make_tree(path2, snap2, energy = False)
 #     dim_cell2 = data2.Vol**(1/3) # according to Elad
-#     stream2 = np.load(f'data/{folder}/stream_{check2}{snap2}_{step}.npy')
+#     stream2 = np.load(f'data/{folder}/stream_{check2}{snap2}_.npy')
 #     theta_arr2, indeces_orbit2 = stream2[0], stream2[1].astype(int)
 #     x_orbit2, y_orbit2, z_orbit2, den_orbit2 = data2.X[indeces_orbit2], data2.Y[indeces_orbit2], data2.Z[indeces_orbit2], data2.Den[indeces_orbit2]
 #     r_orbit2 = np.sqrt(x_orbit2**2 + y_orbit2**2)

@@ -51,7 +51,7 @@ apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
                     num=200)  # simulator units
 
-snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step = '', time = True) #[100,115,164,199,216]
+snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 col_ie = []
 col_orb_en = []
 col_Rad = []

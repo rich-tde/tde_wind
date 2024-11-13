@@ -40,12 +40,11 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-step = ''
 check = 'LowRes' # '' or 'HiRes'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True
-snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step, time = True) #[100,115,164,199,216]
+snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 Lphoto_all = np.zeros(len(snaps))
 
 #%% Opacities -----------------------------------------------------------------
@@ -95,7 +94,7 @@ _, _, plank2 = pad_interp(T_cool, Rho_cool, plank.T)
 # MATLAB GOES WHRRRR, thanks Cindy.
 eng = matlab.engine.start_matlab()
 
-pre = select_prefix(m, check, mstar, Rstar, beta, n, compton, step)
+pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 print('we are in: ', pre)
 for idx_s, snap in enumerate(snaps):
     print('\n Snapshot: ', snap, '\n')

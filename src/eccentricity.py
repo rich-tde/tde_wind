@@ -39,12 +39,11 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-step = ''
-check = '' # '' or 'LowRes' or 'HiRes'
+check = '' # '' or 'LowRes' or 'HiRes' 
 save = True
 
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}{step}'
-snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, step, time = True) #[100,115,164,199,216]
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 
 Rs = 2*G*Mbh / c**2
 Rt = Rstar * (Mbh/mstar)**(1/3)
@@ -92,24 +91,24 @@ if __name__ == '__main__':
             col_ecc2.append(ecc_cast)
 
         if save:
-            np.save(f'{abspath}/data/{folder}/Ecc2_{check}{step}.npy', col_ecc2)
-            with open(f'{abspath}/data/{folder}/Ecc_{check}{step}_days.txt', 'w') as file:
-                file.write(f'# {folder}_{check}{step} \n' + ' '.join(map(str, snaps)) + '\n')
+            np.save(f'{abspath}/data/{folder}/Ecc2_{check}.npy', col_ecc2)
+            with open(f'{abspath}/data/{folder}/Ecc_{check}_days.txt', 'w') as file:
+                file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
                 file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
                 file.close()
-            np.save(f'{abspath}/data/{folder}/radiiEcc_{check}{step}.npy', radii)
+            np.save(f'{abspath}/data/{folder}/radiiEcc_{check}.npy', radii)
     
     else:
         difference = False
 
         if not difference:
             path = f'{abspath}/data/{folder}'
-            ecc2 = np.load(f'{path}/Ecc2_{check}{step}.npy') 
+            ecc2 = np.load(f'{path}/Ecc2_{check}.npy') 
             ecc = np.sqrt(ecc2)
             ecc = np.sqrt(ecc2)
-            tfb_data = np.loadtxt(f'{path}/Ecc_{check}{step}_days.txt')
+            tfb_data = np.loadtxt(f'{path}/Ecc_{check}_days.txt')
             snap_, tfb = tfb_data[0], tfb_data[1]
-            radii = np.load(f'{path}/radiiEcc2_{check}{step}.npy')
+            radii = np.load(f'{path}/radiiEcc2_{check}.npy')
             
             # Plot
             img = plt.pcolormesh(radii/apo, tfb, ecc, vmin = 0.6, vmax = 1, cmap = 'cet_rainbow4')

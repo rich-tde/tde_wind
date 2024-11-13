@@ -35,7 +35,6 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-step = ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
 check = 'Low' # 'Low' or 'HiRes'
@@ -45,8 +44,8 @@ xchosen = 0
 energy = 'internal' # 'internal' or 'radiation'
 save = True
 
-path = f'/Users/paolamartire/shocks/TDE/{folder}{check}{step}/{snap}'
-path1 = f'/Users/paolamartire/shocks/TDE/{folder}{check1}{step}/{snap}'
+path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
+path1 = f'/Users/paolamartire/shocks/TDE/{folder}{check1}/{snap}'
 Mbh = 10**m
 Rs = 2*G*Mbh / c**2
 Rt = Rstar * (Mbh/mstar)**(1/3)

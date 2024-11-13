@@ -23,7 +23,6 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-step = ''
 tfallback = 2.5777261297507925 * 24 * 3600 #2.5 days
 Ledd = 1.26e38 * Mbh # erg/s
 
