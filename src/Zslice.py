@@ -1,10 +1,16 @@
 """ Make slices of the orbital plane.
-If alice: make the section (with density cut except for radiation) and save it.
+If alice: make the section (with density cut 1e-19) and save it.
 If not alice: load the section and plot it.
 """
-abspath = '/Users/paolamartire/shocks/'
 import sys
-sys.path.append(abspath)
+sys.path.append('/Users/paolamartire/shocks/')
+
+from Utilities.isalice import isalice
+alice, plot = isalice()
+if alice:
+    abspath = '/data1/martirep/shocks/shock_capturing'
+else:
+    abspath = '/Users/paolamartire/shocks/'
 
 import numpy as np
 from Utilities.selectors_for_snap import select_snap
@@ -15,26 +21,10 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 from Utilities.operators import make_tree
 
-
-#
-## CONSTANTS
-#
-G = 1
-G_SI = 6.6743e-11
-Msol = 2e30 #1.98847e30 # kg
-Rsol = 7e8 #6.957e8 # m
-t = np.sqrt(Rsol**3 / (Msol*G_SI ))
-c = 3e8 / (7e8/t)
-
 ##
-# PARAMETERS
+# CHOICES
 ##
-G = 1
-G_SI = 6.6743e-11
-Msol = 2e30 #1.98847e30 # kg
-Rsol = 7e8 #6.957e8 # m
-t = np.sqrt(Rsol**3 / (Msol*G_SI ))
-c = 3e8 / (7e8/t)
+z_chosen = 0
 
 #
 ## PARAMETERS STAR AND BH
@@ -46,28 +36,21 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-
-##
-# CHOICES
-##
-check = 'Low' # 'Low' or 'HiRes'
-step = ''
-z_chosen = 0
+check = '' # 'Low' or 'HiRes'
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 Mbh = 10**m
-Rs = 2*G*Mbh / c**2
+Rs = 2*prel.G*Mbh / prel.csol_cgs**2
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 R0 = 0.6 * Rt
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
-z_chosen = 0
 
 if alice:
     # get ready to slice and save
     do = True
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
-    with open(f'/data1/martirep/shocks/shock_capturing/data/{folder}/{check}/slices/z{z_chosen}_time.txt','w') as file:
+    with open(f'{abspath}/data/{folder}/slices/z{z_chosen}_time.txt','w') as file:
         file.write('#Snap \n') 
         file.write(' '.join(map(str, snaps)) + '\n')
         file.write('#Time \n')
@@ -76,7 +59,7 @@ if alice:
 else:
     # get ready to plot
     do = False
-    time = np.loadtxt(f'{abspath}data/{folder}/{check}/slices/z{z_chosen}_time.txt')
+    time = np.loadtxt(f'{abspath}data/{folder}/slices/z{z_chosen}_time.txt')
     snaps = time[0]
     snaps = [int(snap) for snap in snaps]
     tfb = time[1]
@@ -84,30 +67,25 @@ else:
 for idx, snap in enumerate(snaps):
     if do:
         # you are in alice
-        if check == 'Low':
-            check = ''
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}/snap_{snap}'
 
         data = make_tree(path, snap, energy = True)
         Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))
         vel = np.sqrt(np.power(data.VX, 2) + np.power(data.VY, 2) + np.power(data.VZ, 2))
         mass, vol, ie_den, Rad_den = data.Mass, data.Vol, data.IE, data.Rad
-        orb_en = orb.orbital_energy(Rsph, vel, mass, G, c, Mbh)
+        orb_en = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh)
         orb_en_den = orb_en/vol
         dim_cell = (3/(4*np.pi) * vol)**(1/3)
 
         # make Z slices 
+        density_cut = data.Den > 1e-19
         midplane_cut = np.abs(data.Z-z_chosen) < dim_cell
-        x_mid, y_mid, z_mid, dim_mid, mass_mid, den_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid = \
-            sec.make_slices([data.X, data.Y, data.Z, dim_cell, mass, data.Den, ie_den, orb_en_den, Rad_den], midplane_cut)
+        cut = np.logical_and(density_cut, midplane_cut)
+        x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid = \
+            sec.make_slices([data.X, data.Y, data.Z, dim_cell, data.Den, data.Temp, ie_den, orb_en_den, Rad_den], cut)
         
-        # save
-        if check == '':
-            check = 'Low'
-        savepath = f'/data1/martirep/shocks/shock_capturing'
-
-        np.save(f'{savepath}/data/{folder}/{check}/slices/z{z_chosen}slice_{snap}.npy',\
-                 [x_mid, y_mid, z_mid, dim_mid, mass_mid, den_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid])
+        np.save(f'{abspath}/data/{folder}/slices/z{z_chosen}slice_{snap}.npy',\
+                 [x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid])
         
     else:
         # you are not in alice
@@ -115,21 +93,11 @@ for idx, snap in enumerate(snaps):
         import matplotlib.colors as colors
         # choose what to plot
         choice = 'rad' # 'IE' or 'orb' or 'rad' or 'den'
-        cut = '' #'' or 'cut' or 'lowcut'
 
         # load the data
-        data = np.load(f'{abspath}data/{folder}/{check}/slices/z{z_chosen}slice_{snap}.npy')
-        x_mid, y_mid, z_mid, dim_mid, mass_mid, den_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid =\
+        data = np.load(f'{abspath}data/{folder}/slices/z{z_chosen}slice_{snap}.npy')
+        x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid =\
             data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]
-        
-        if cut == 'lowcut':
-            cutden = dim_mid > 1e-19
-            x_mid, y_mid, z_mid, dim_mid, mass_mid, den_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid = \
-                sec.make_slices([x_mid, y_mid, z_mid, dim_mid, mass_mid, den_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid], cutden)
-        elif cut == 'cut':
-            cutden = dim_mid > 1e-9
-            x_mid, y_mid, z_mid, dim_mid, mass_mid, den_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid = \
-                sec.make_slices([x_mid, y_mid, z_mid, dim_mid, mass_mid, den_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid], cutden)
         
         if choice == 'orb': 
             orb_en_onmass_mid = orb_en_den_mid/den_mid
@@ -155,17 +123,17 @@ for idx, snap in enumerate(snaps):
 
         if choice == 'IE':
             cb.set_label(r'Specific IE [erg/g]', fontsize = 16)
-            plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneIE_{cut}{snap}.png')
+            plt.savefig(f'{abspath}Figs/{folder}/slices/midplaneIE_{cut}{snap}.png')
         elif choice == 'orb':
             cb.set_label(r'Absolute specific orbital energy [erg/g]', fontsize = 16)
-            plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneorb_{cut}{snap}.png')
+            plt.savefig(f'{abspath}Figs/{folder}/slices/midplaneorb_{cut}{snap}.png')
         elif choice == 'rad':
             cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 16)
-            plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneRad_{cut}{snap}.png')
+            plt.savefig(f'{abspath}Figs/{folder}/slices/midplaneRad_{cut}{snap}.png')
         elif choice == 'den':
             cb.set_label(r'Density [g/$cm^3$]', fontsize = 16)  
             ax.text(-400/apo, -120/apo, f'snap {int(snaps[idx])}', fontsize = 16)
-            plt.savefig(f'{abspath}Figs/{folder}/{check}/slices/midplaneDen_{cut}{snap}.png')
+            plt.savefig(f'{abspath}Figs/{folder}/slices/midplaneDen_{cut}{snap}.png')
         
         # plt.show()
         plt.close()

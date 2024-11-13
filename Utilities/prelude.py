@@ -4,27 +4,26 @@ import numpy as np
 import sys
 sys.path.append('/Users/paolamartire/shocks')
 
-
 # Constants
-c = 2.99792458e10 #[cm/s]
-h = 6.62607015e-27 #[gcm^2/s]
-Kb = 1.380649e-16 #[gcm^2/s^2K]
-alpha = 7.5646 * 10**(-15) # radiation density [erg/cm^3K^4]
-sigma_T = 6.6524e-25 #[cm^2] thomson cross section
+c_cgs = 2.99792458e10 #[cm/s]
+h_cgs = 6.62607015e-27 #[gcm^2/s]
+Kb_cgs = 1.380649e-16 #[gcm^2/s^2K]
+alpha_cgs = 7.5646 * 10**(-15) # radiation density [erg/cm^3K^4]
+sigma_T_cgs = 6.6524e-25 #[cm^2] thomson cross section
+G_cgs = 6.6743e-8 # cgs
+Rsol_cgs = 6.957e10 # [cm]
+Msol_cgs = 1.989e33 # [g]
 
 # Solar and SI units
 c_SI = 2.99e8 #m
 G_SI = 6.6743e-11 # SI 
 Msol_SI = 2e30 #1.98847e30 # kg
 Rsol_SI = 7e8 #6.957e8 # m
-tsol_SI = np.sqrt(Rsol_SI**3 / (Msol_SI*G_SI )) # Follows from G = 1
-csol_SI = c_SI / (Rsol_SI/tsol_SI)
+
+# Sim units
+G = 1
 
 # Converters
-c_cgs = 2.99e10 #cm
-G_cgs = 6.6743e-8 # cgs
-Rsol_cgs = 6.957e10 # [cm]
-Msol_cgs = 1.989e33 # [g]
 tsol_cgs = np.sqrt(Rsol_cgs**3 / (Msol_cgs*G_cgs )) # Follows from G = 1
 csol_cgs = c_cgs / (Rsol_cgs/tsol_cgs)
 den_converter = Msol_cgs / Rsol_cgs**3
@@ -55,3 +54,10 @@ plt.rcParams['xtick.top'] = True
 plt.rcParams['ytick.right'] = True
 plt.tight_layout()
 AEK = '#F1C410'
+
+if __name__ == '__main__':
+    # it's the same converting from cgs ans SI ... of course lol
+    tsol_SI = np.sqrt(Rsol_SI**3 / (Msol_SI*G_SI )) # Follows from G = 1
+    csol_SI = c_SI / (Rsol_SI/tsol_SI)
+    print(csol_cgs/csol_SI)
+    print(tsol_cgs/tsol_SI)
