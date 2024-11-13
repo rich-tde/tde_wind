@@ -202,7 +202,7 @@ norm_orb_en = colors.LogNorm(vmin=2e-3, vmax=6e-1)#np.percentile(rel_orb_en_forl
 norm_ie = colors.LogNorm(vmin=2e-2, vmax=6e-1)#np.percentile(rel_ie_forlog[rel_ie_forlog!=1], 5), vmax=np.percentile(rel_ie_forlog[rel_ie_forlog!=1], 95))
 norm_Rad = colors.LogNorm(vmin=0.04, vmax=1.5)#np.percentile(rel_Rad_forlog[rel_Rad_forlog!=1], 5), vmax=np.percentile(rel_Rad_forlog[rel_Rad_forlog!=1], 95))
 
-fig, ax = plt.subplots(2,2, figsize = (15,12))
+fig, ax = plt.subplots(2,2, figsize = (11,8))
 img = ax[0][0].pcolormesh(radiires0/apo, tfb_res0, rel_orb_en_absL, cmap=cmap, norm=norm_orb_en)
 cb = fig.colorbar(img)
 ax[0][0].set_title('Specific (absolute) orbital energy', fontsize = 20)
@@ -213,7 +213,7 @@ img = ax[0][1].pcolormesh(radiires0/apo, tfb_res0, rel_ie_absL, cmap=cmap, norm=
 cb = fig.colorbar(img)
 cb.ax.tick_params(labelsize=20)
 ax[0][1].set_title('Specific internal energy', fontsize = 20)
-cb.set_label('Relative difference Low-Middle', fontsize = 25)
+cb.set_label(r'$\Delta_{\rm rel}$ Low-Middle', fontsize = 24)
 
 img = ax[1][0].pcolormesh(radiires2/apo, tfb_res2, rel_orb_en_absH, cmap=cmap, norm=norm_orb_en)
 cb = fig.colorbar(img)
@@ -222,16 +222,35 @@ cb = fig.colorbar(img)
 img = ax[1][1].pcolormesh(radiires2/apo, tfb_res2, rel_ie_absH, cmap=cmap, norm=norm_ie)
 cb = fig.colorbar(img)
 cb.ax.tick_params(labelsize=20)
-cb.set_label('Relative difference Middle-High', fontsize = 25)
+cb.set_label(r'$\Delta_{\rm rel}$ Middle-High', fontsize = 24)
 
 for i in range(2):
     for j in range(2):
-        ax[i][j].axvline(Rt/apo, linestyle ='dashed', c = 'white', linewidth = 0.8)
+        ax[i][j].axvline(Rt/apo, linestyle ='dashed', c = 'k', linewidth = 1.2)
         ax[i][j].set_xscale('log')
         if i == 1:
-            ax[i][j].set_xlabel(r'$R/R_a$', fontsize = 25)
+            ax[i][j].set_xlabel(r'$R/R_{\rm a}$', fontsize = 22)
         if j == 0:
-            ax[i][j].set_ylabel(r't/t$_{fb}$', fontsize = 25)
+            ax[i][j].set_ylabel(r't/t$_{\rm fb}$', fontsize = 24)
+
+        # Get the existing ticks on the x-axis
+        original_ticks = ax[i][j].get_yticks()
+        # Calculate midpoints between each pair of ticks
+        midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+        # Combine the original ticks and midpoints
+        new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+        # Set tick labels: empty labels for midpoints
+        ax[i][j].set_yticks(new_ticks)
+        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+        ax[i][j].set_yticklabels(labels)
+        ax[i][j].tick_params(axis='x', which='major', width=0.7, length=7)
+        ax[i][j].tick_params(axis='x', which='minor', width=0.5, length=5)
+        ax[i][j].tick_params(axis='y', which='both', width=0.7, length=5)
+
+        if i == 0:
+            ax[i][j].set_ylim(np.min(tfb_res0), np.max(tfb_res0))
+        if i == 1:
+            ax[i][j].set_ylim(np.min(tfb_res2), np.max(tfb_res2))
 
 plt.tick_params(axis = 'both', which = 'both', direction='in', labelsize = 20)
 plt.tight_layout()
@@ -255,20 +274,35 @@ if save:
 plt.show()
 
 #%% Relative errors for the radiation energy density
-fig, ax = plt.subplots(2,1, figsize = (7,10))
+fig, ax = plt.subplots(2,1, figsize = (7,9))
 img = ax[0].pcolormesh(radiires0/apo, tfb_res0, rel_Rad_absL, cmap=cmap, norm=norm_Rad)
 cb = fig.colorbar(img)
-cb.set_label('Relative difference Low-Middle', fontsize = 22)
+cb.set_label(r'$\Delta_{\rm rel}$ Low-Middle', fontsize = 24)
 
 img = ax[1].pcolormesh(radiires2/apo, tfb_res2, rel_Rad_absH, cmap=cmap, norm=norm_Rad)
 cb = fig.colorbar(img)
-cb.set_label('Relative difference Middle-High', fontsize = 22)
+cb.set_label(r'$\Delta_{\rm rel}$ Middle-High', fontsize = 24)
 
 for i in range(2):
-    ax[i].axvline(Rt/apo, linestyle ='dashed', c = 'white', linewidth = 0.8)
+    ax[i].axvline(Rt/apo, linestyle ='--', c = 'k', linewidth = 1.5)
     ax[i].set_xscale('log')
-    ax[i].set_ylabel(r't/t$_{fb}$', fontsize = 25)
-ax[1].set_xlabel(r'$R/R_a$', fontsize = 25)
+    ax[i].set_ylabel(r't/t$_{\rm fb}$', fontsize = 25)
+    # Get the existing ticks on the x-axis
+    original_ticks = ax[i].get_yticks()
+    # Calculate midpoints between each pair of ticks
+    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+    # Combine the original ticks and midpoints
+    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+    # Set tick labels: empty labels for midpoints
+    ax[i].set_yticks(new_ticks)
+    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+    ax[i].set_yticklabels(labels)
+    ax[i].tick_params(axis='x', which='major', width=0.7, length=7)
+    ax[i].tick_params(axis='x', which='minor', width=0.5, length=5)
+    ax[i].tick_params(axis='y', which='both', width=0.7, length=5)
+ax[0].set_ylim(np.min(tfb_res0), np.max(tfb_res0))
+ax[1].set_ylim(np.min(tfb_res2), np.max(tfb_res2))
+ax[1].set_xlabel(r'$R/R_{\rm a}$', fontsize = 25)
 
 plt.tick_params(axis = 'both', which = 'both', direction='in')
 plt.tight_layout()

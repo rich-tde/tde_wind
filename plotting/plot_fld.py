@@ -25,6 +25,7 @@ n = 1.5
 compton = 'Compton'
 step = ''
 tfallback = 2.5777261297507925 * 24 * 3600 #2.5 days
+Ledd = 1.26e38 * Mbh # erg/s
 
 dataL = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes/LowRes_red.csv', delimiter=',', dtype=float)
 tfbL = dataL[:, 1]   
@@ -74,7 +75,10 @@ ax1.scatter(tfbDou, Lum_Dou, s = 4, label = 'DoubleRad', c ='navy')
 ax1.scatter(tfbL, Lum_L, s = 4, label= 'Low', c= 'b')
 ax1.scatter(tfb, Lum, s = 4, label = 'Fid', c ='darkorange')
 ax1.scatter(tfbH, Lum_H, s = 4, label= 'High', c = 'dodgerblue')
+ax1.axhline(y=Ledd, c = 'k', linestyle = '--')
+ax1.text(0.1, 1.2*Ledd, r'$L_{\rm Edd}$', fontsize = 18)
 ax1.set_yscale('log')
+ax1.set_ylim(5e36, 4e42)
 ax1.set_ylabel(r'Luminosity [erg/s]', fontsize = 20)
 
 ax2.scatter(tfbDou, np.abs(diffDou), color = 'navy', s = 4, label = 'DoubleRad')
@@ -82,8 +86,8 @@ ax2.scatter(tfbL, np.abs(diffL), color = 'b', s = 4, label = 'Low')
 ax2.scatter(tfbH, np.abs(diffH), color = 'dodgerblue', s = 4, label = 'High')
 ax2.set_xlabel(r'$t/t_{\rm fb}$', fontsize = 20)
 ax2.set_ylabel(r'$|\Delta_{\rm rel}|$ from Fid', fontsize = 16)
-ax2.axhline(y=0.1, c = 'k', linestyle = '--')
 ax1.grid()
+ax2.grid()
 ax2.set_yscale('log')
 ax1.legend(fontsize = 18)   
 
@@ -98,11 +102,11 @@ for ax in [ax1, ax2]:
     ax.tick_params(axis='x', which='major', width=0.7, length=7)
     ax.tick_params(axis='x', which='minor', width=0.5, length=5)
     ax.set_xlim(np.min(tfb), np.max(tfb))
-
+plt.savefig(f'/Users/paolamartire/shocks/Figs/multiple/fld.pdf')
 plt.show()
 
 
-#%% Compute efficiency Rsh, RDiss
+#%% Compute efficiency and Rsh
 eta_sh = np.zeros(len(tfb))
 R_sh = np.zeros(len(tfb))
 for i,time in enumerate(tfb):
@@ -130,7 +134,7 @@ for i,time in enumerate(tfbDou):
     Mdot_th = mstar*prel.Msol_cgs/(3*tfallback) * (time/tfallback)**(-5/3) # CGS
     eta_shDou[i] = Lum_Dou[i]/(Mdot_th*prel.c_cgs**2) # CGS
     R_shDou[i] = prel.G_cgs * Mbh *prel.Msol_cgs / (prel.c_cgs**2 * eta_shDou[i]) # CGS
-
+         
 # %%
 plt.figure(figsize=(8, 6))
 plt.scatter(tfb, R_sh, label = 'Fid', s = 4, color = 'darkorange')
