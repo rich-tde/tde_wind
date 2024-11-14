@@ -49,8 +49,8 @@ Lphoto_all = np.zeros(len(snaps))
 
 #%% Opacities -----------------------------------------------------------------
 # Freq range
-f_min = prel.Kb * 1e3 / prel.h
-f_max = prel.Kb * 3e13 / prel.h
+f_min = prel.Kb_cgs * 1e3 / prel.h_cgs
+f_max = prel.Kb_cgs * 3e13 / prel.h_cgs
 f_num = 1_000
 frequencies = np.logspace(np.log10(f_min), np.log10(f_max), f_num)
 

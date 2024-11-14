@@ -154,7 +154,8 @@ if save:
     plt.savefig(f'{abspath}/Figs/multiple/compareRpMass_{snap}.png')
 plt.show()
 
-#%% CDF of mass and size around the pericenter
+#%% CDF 
+# Around the pericenter
 cutzoomL = np.logical_and(x_coordL>R0, np.logical_and(x_coordL<25, np.abs(y_coordL)<4))
 cutzoom = np.logical_and(x_coord>R0, np.logical_and(x_coord<25, np.abs(y_coord)<4))
 cutzoomH = np.logical_and(x_coordH>R0, np.logical_and(x_coordH<25, np.abs(y_coordH)<4))
@@ -164,7 +165,6 @@ x_coordzoom, y_coordzoom, z_coordzoom, masszoom, denzoom, dim_cellzoom = \
     sec.make_slices([x_coord, y_coord, z_coord, mass, den, dim_cell], cutzoom)
 x_coordHzoom, y_coordHzoom, z_coordHzoom, massHzoom, denHzoom, dim_cellHzoom = \
     sec.make_slices([x_coordH, y_coordH, z_coordH, massH, denH, dim_cellH], cutzoomH)
-
 # sort the arrays
 massLzoom = np.sort(massLzoom)
 masszoom = np.sort(masszoom)
@@ -172,14 +172,7 @@ massHzoom = np.sort(massHzoom)
 dim_cellLzoom = np.sort(dim_cellLzoom)
 dim_cellzoom = np.sort(dim_cellzoom)
 dim_cellHzoom = np.sort(dim_cellHzoom)
-# make zoomograms of mass and size
-# binsLzoom = np.logspace(np.log10(np.min(massLzoom)), np.log10(np.max(massLzoom)), 100)
-# binszoom = np.logspace(np.log10(np.min(masszoom)), np.log10(np.max(masszoom)), 100)
-# binsHzoom = np.logspace(np.log10(np.min(massHzoom)), np.log10(np.max(massHzoom)), 100)
-# binsdimLzoom = np.logspace(np.log10(np.min(dim_cellLzoom)), np.log10(np.max(dim_cellLzoom)), 100)
-# binsdimzoom = np.logspace(np.log10(np.min(dim_cellzoom)), np.log10(np.max(dim_cellzoom)), 100)
-# binsdimHzoom = np.logspace(np.log10(np.min(dim_cellHzoom)), np.log10(np.max(dim_cellHzoom)), 100)
-
+# grazie Sill
 cumHzoom = list(np.arange(len(massHzoom))/len(massHzoom))
 cumzoom = list(np.arange(len(masszoom))/len(masszoom))
 cumLzoom = list(np.arange(len(massLzoom))/len(massLzoom))
@@ -192,53 +185,13 @@ massHzoom = list(massHzoom)
 dim_cellLzoom = list(dim_cellLzoom)
 dim_cellzoom = list(dim_cellzoom)
 dim_cellHzoom = list(dim_cellHzoom)
-
-#%% Plot
-fig, (ax1, ax2) = plt.subplots(2,1, figsize = (5,8))
-ax1.plot(massHzoom, cumHzoom, color = 'mediumpurple', label = 'High res')
-ax1.plot(masszoom, cumzoom, color = 'dodgerblue', label = 'Middle res')
-ax1.plot(massLzoom, cumLzoom, color = 'orange', label = 'Low res')
-ax1.axvline(price24, color = 'k', linestyle = 'dashed', label = 'Price24')
-ax1.axvline(bonlu20, color = 'r', linestyle = 'dashed', label = 'BonnerotLu20')
-ax2.plot(dim_cellHzoom, cumdimHzoom, color = 'mediumpurple',  label = 'High res')
-ax2.plot(dim_cellzoom, cumdimzoom, color = 'dodgerblue', label = 'Middle res')
-ax2.plot(dim_cellLzoom, cumdimLzoom, color = 'orange', label = 'Low res')
-ax2.axvline(ryu23, color = 'k', linestyle = 'dashed', label = 'Ryu+23 initial')
-# ax2.axvline(sad16, color = 'r', linestyle = 'dashed', label = 'Sadowski+16')
-
-for ax in [ax1, ax2]:
-    ax.set_xscale('log')
-    ax.tick_params(axis = 'both', which = 'both', direction='in', labelsize=12)
-    ax.legend(loc ='upper left', fontsize = 12)
-    ax.set_ylabel('CDF', fontsize = 20)
-    ax.set_ylim(0,1.1)
-ax1.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 15)
-ax2.set_xlabel(r'Cell size [$R_\odot$]', fontsize = 15)
-ax1.set_xlim(5e-13, 3e-7)
-ax2.set_xlim(7e-2, 1)
-# plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
-plt.tight_layout()
-if save:
-    plt.savefig(f'{abspath}/Figs/multiple/zoomcompareHistToget_{snap}.pdf')
-plt.show()
-
-#%% CDF of mass and size in all the volume
-# sort the arrays
+# In all the volume
 massL = np.sort(massL)
 mass = np.sort(mass)
 massH = np.sort(massH)
 dim_cellL = np.sort(dim_cellL)
 dim_cell = np.sort(dim_cell)
 dim_cellH = np.sort(dim_cellH)
-# make histograms of mass and size
-# binsL = np.logspace(np.log10(np.min(massL)), np.log10(np.max(massL)), 100)
-# bins = np.logspace(np.log10(np.min(mass)), np.log10(np.max(mass)), 100)
-# binsH = np.logspace(np.log10(np.min(massH)), np.log10(np.max(massH)), 100)
-# binsdimL = np.logspace(np.log10(np.min(dim_cellL)), np.log10(np.max(dim_cellL)), 100)
-# binsdim = np.logspace(np.log10(np.min(dim_cell)), np.log10(np.max(dim_cell)), 100)
-# binsdimH = np.logspace(np.log10(np.min(dim_cellH)), np.log10(np.max(dim_cellH)), 100)
-
-# grazie Sill
 cumH = list(np.arange(len(massH))/len(massH))
 cumL = list(np.arange(len(massL))/len(massL))
 cum = list(np.arange(len(mass))/len(mass))
@@ -254,16 +207,22 @@ dim_cellH = list(dim_cellH)
 
 #%% Plot
 fig, (ax1, ax2) = plt.subplots(2,1, figsize = (5,8))
-ax1.plot(massH, cumH, color = 'mediumpurple', label = 'High res')
-ax1.plot(mass, cum, color = 'dodgerblue', label = 'Middle res')
-ax1.plot(massL, cumL, color = 'orange', label = 'Low res')
-ax1.axvline(price24, color = 'k', linestyle = 'dashed', label = 'Price24')
-ax1.axvline(bonlu20, color = 'r', linestyle = 'dashed', label = 'BonnerotLu20')
-ax2.plot(dim_cellH, cumdimH, color = 'mediumpurple',  label = 'High res')
-ax2.plot(dim_cell, cumdim, color = 'dodgerblue', label = 'Middle res')
-ax2.plot(dim_cellL, cumdimL, color = 'orange', label = 'Low res')
-ax2.axvline(ryu23, color = 'k', linestyle = 'dashed', label = 'Ryu+23 initial')
-# ax2.axvline(sad16, color = 'r', linestyle = 'dashed', label = 'Sadowski+16')
+ax1.plot(massH, cumH, color = 'mediumpurple', linestyle = 'dashed')#, label = 'High res')
+ax1.plot(mass, cum, color = 'dodgerblue', linestyle = 'dashed')#, label = 'Middle res')
+ax1.plot(massL, cumL, color = 'orange', linestyle = 'dashed')#, label = 'Low res')
+ax1.axvline(price24, color = 'k', linestyle = 'dotted', label = 'Price24')
+ax1.axvline(bonlu20, color = 'r', linestyle = 'dashdot', label = 'BonnerotLu20')
+ax1.plot(massHzoom, cumHzoom, color = 'mediumpurple')#, label = 'High res')
+ax1.plot(masszoom, cumzoom, color = 'dodgerblue')#, label = 'Middle res')
+ax1.plot(massLzoom, cumLzoom, color = 'orange')#, label = 'Low res')
+ax2.plot(dim_cellH, cumdimH, color = 'mediumpurple',  linestyle = 'dashed')#, label = 'High res')
+ax2.plot(dim_cell, cumdim, color = 'dodgerblue', linestyle = 'dashed')#, label = 'Middle res')
+ax2.plot(dim_cellL, cumdimL, color = 'orange', linestyle = 'dashed')#, label = 'Low res')
+ax2.plot(dim_cellHzoom, cumdimHzoom, color = 'mediumpurple')#  label = 'High res')
+ax2.plot(dim_cellzoom, cumdimzoom, color = 'dodgerblue')#, label = 'Middle res')
+ax2.plot(dim_cellLzoom, cumdimLzoom, color = 'orange')#, label = 'Low res')
+ax2.axvline(ryu23, color = 'k', linestyle = 'dotted', label = 'Ryu+23 initial')
+# ax2.axvline(sad16, color = 'r', linestyle = 'dotted', label = 'Sadowski+16')
 
 for ax in [ax1, ax2]:
     ax.set_xscale('log')
@@ -273,14 +232,12 @@ for ax in [ax1, ax2]:
     ax.set_ylim(0,1.1)
 ax1.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 15)
 ax2.set_xlabel(r'Cell size [$R_\odot$]', fontsize = 15)
-ax1.set_xlim(5e-13, 3e-6)
-ax2.set_xlim(7e-2, 4)
-plt.suptitle('All simulation volume', fontsize = 20)
+ax1.set_xlim(5e-13, 3e-7)
+ax2.set_xlim(7e-2, 1)
+# plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
 plt.tight_layout()
 if save:
     plt.savefig(f'{abspath}/Figs/multiple/compareHistToget_{snap}.pdf')
 plt.show()
-
-
 
 # %%
