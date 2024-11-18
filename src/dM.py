@@ -1,8 +1,12 @@
-abspath = '/Users/paolamartire/shocks/'
 import sys
-sys.path.append(abspath)
+sys.path.append('/Users/paolamartire/shocks/')
+
 from Utilities.isalice import isalice
 alice, plot = isalice()
+if alice:
+    abspath = '/data1/martirep/shocks/shock_capturing'
+else:
+    abspath = '/Users/paolamartire/shocks/'
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -49,18 +53,12 @@ norm = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call
 #
 
 # Choose what to do
-cutden = '' # or '' or 'cut'
-do_dMdE = False
+save = True
 compare_times = False
 movie = True 
-save = False
 
 if alice:
-    do_dMdE = True
-    save = True
-
-if do_dMdE:
-    checks = ['','HiRes'] # '' or 'HiRes' 
+    checks = ['LowRes', '','HiRes', 'DoubleRad'] 
     print('Normalization for energy:', norm)
 
     for check in checks:
@@ -68,23 +66,18 @@ if do_dMdE:
         print(f'Check: {check}')
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
         bins = np.arange(-10,10,.1) # np.arange(-2, 2, .1)
-        if alice:
-            #save snaps, tfb and energy bins
-            prepath = f'/data1/martirep/shocks/shock_capturing'
-            with open(f'{prepath}/data/{folder}/dMdE_{check}{cutden}.txt','w') as file:
-                # if file doesn'exist
-                file.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
-                file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-                file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
-                file.write((' '.join(map(str, bins)) + '\n'))
-                file.close()
+        # save snaps, tfb and energy bins
+        with open(f'{abspath}/data/{folder}/dM/dMdE_{check}.txt','w') as file:
+            # if file doesn'exist
+            file.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
+            file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+            file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
+            file.write((' '.join(map(str, bins)) + '\n'))
+            file.close()
         for snap in snaps:
             print(f'Snap: {snap}')
             # Load data
-            if alice:
-                path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-            else:
-                path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
+            path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
             data = make_tree(path, snap, energy = False)
             # Compute the orbital energy
             dim_cell = data.Vol**(1/3) 
@@ -95,20 +88,18 @@ if do_dMdE:
             specific_orbital_energy = orbital_enegy / mass
 
             # Cutoff for low density
-            if cutden == 'cut':
-                cut = data.Den > 1e-9
-                mass, specific_orbital_energy = mass[cut], specific_orbital_energy[cut]
+            cut = data.Den > 1e-19
+            mass, specific_orbital_energy = mass[cut], specific_orbital_energy[cut]
 
             # (Specific) energy bins 
             specOE_norm = specific_orbital_energy/norm 
             mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
             dm_dE = mass_binned / (np.diff(bins_edges)*norm)
 
-            if save:
-                with open(f'{prepath}/data/{folder}/dMdE_{check}{cutden}.txt','a') as file:
-                    file.write(f'# dM/dE snap {snap} \n')
-                    file.write((' '.join(map(str, dm_dE)) + '\n'))
-                    file.close()
+            with open(f'{abspath}/data/{folder}/dM/dMdE_{check}.txt','a') as file:
+                file.write(f'# dM/dE snap {snap} \n')
+                file.write((' '.join(map(str, dm_dE)) + '\n'))
+                file.close()
     
 #%%
 if compare_times:
@@ -120,7 +111,7 @@ if compare_times:
     dataH = np.loadtxt(f'{abspath}data/{folder}/dMdE_HiRes.txt')
     dataL = dataL[:len(dataH)]
 
-    selected_times = [0.05, 0.2, 0.5, 0.7, 0.9]
+    selected_times = [0.05, 0.5, 0.7, 1.2]
     colorsL = ['k', 'b', 'dodgerblue', 'slateblue', 'skyblue']
     colorsM = ['maroon', 'r', 'coral', 'orange', 'gold']
     markers = ['o', 's', 'v', 'd', 'p']
@@ -155,12 +146,13 @@ if compare_times:
 if movie:
     import subprocess
     check = ''
-    datadays = np.loadtxt(f'{abspath}data/{folder}/dMdE_days_{check}.txt')
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    datadays = np.loadtxt(f'{abspath}data/{folder}/dM/dMdE_days_{check}.txt')
     snaps, tfb= datadays[0], datadays[1]
-    bins = np.loadtxt(f'{abspath}data/{folder}/dMdE_bins.txt')
-    data = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}.txt')
+    bins = np.loadtxt(f'{abspath}data/{folder}/dM/dMdE_bins.txt')
+    data = np.loadtxt(f'{abspath}data/{folder}/dM/dMdE_{check}.txt')
     mid_points = (bins[:-1]+bins[1:])/2
-    dataCut = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}cut.txt')
+    dataCut = np.loadtxt(f'{abspath}data/{folder}/dM/dMdE_{check}cut.txt')
     dataCut = dataCut[100]
     for i in range(len((dataCut))):
         snap = snaps[i]
@@ -176,17 +168,17 @@ if movie:
         plt.legend(loc = 'lower center', fontsize = 14)
         plt.tight_layout()
         if save:
-            plt.savefig(f'{abspath}Figs/{folder}/dMdE/snap{int(snap)}{cutden}.png')
+            plt.savefig(f'{abspath}Figs/{folder}/dM/snap{int(snap)}.png')
         plt.close()
     # Make the movie
-    path = f'{abspath}Figs/{folder}/dMdE/snap'
-    output_path = f'{abspath}Figs/{folder}/dMdE/moviedMdE_{cutden}.mp4'
+    path = f'{abspath}Figs/{folder}/dM/snap'
+    output_path = f'{abspath}Figs/{folder}/dM/moviedMdE_.mp4'
 
     start = 100
     slow_down_factor = 2  # Increase this value to make the video slower
 
     ffmpeg_command = (
-        f'ffmpeg -y -start_number {start} -i {path}%d{cutden}.png -vf "setpts={slow_down_factor}*PTS" '
+        f'ffmpeg -y -start_number {start} -i {path}%d.png -vf "setpts={slow_down_factor}*PTS" '
         f'-c:v libx264 -pix_fmt yuv420p {output_path}'
         )
 
