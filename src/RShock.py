@@ -43,7 +43,7 @@ def R_shock(Mbh, eta_sh, const_G, const_c):
     R_sh = const_G * Mbh / (const_c**2 * eta_sh)
     return R_sh
 
-checks = ['LowRes', '', 'HiRes', 'DoubleRad']
+checks = ['LowRes', '']#, 'HiRes', 'DoubleRad']
 checkslegend = ['LowRes', 'Middle', 'HiRes', 'DoubleRad']
 colors = ['darkorange', 'r', 'dodgerblue', 'navy']
 
@@ -71,7 +71,7 @@ for j, check in enumerate(checks):
         # Find the energy of the element at time t
         energy = orb.keplerian_energy(Mbh, prel.G, tsol)
         # Find the bin that corresponds to the energy of the element and its dMdE (in CGS)
-        i_bin = np.argmin(np.abs(energy-bins_tokeep)) # just to be sure that you match the data
+        i_bin = np.argmin(np.abs(energy-np.abs(bins_tokeep))) # just to be sure that you match the data
         dMdE_t = dMdE_distr_tokeep[i_bin]
         mdot = orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t)
         mfall_yr[i] = mdot # code units
@@ -118,7 +118,7 @@ for j, check in enumerate(checks):
         # Find the energy of the element at time t
         energy = orb.keplerian_energy(Mbh, prel.G, tsol)
         # Find the bin that corresponds to the energy of the element and its dMdE (in CGS)
-        i_bin = np.argmin(np.abs(energy-bins_tokeep)) # just to be sure that you match the data
+        i_bin = np.argmin(np.abs(energy-np.abs(bins_tokeep))) # just to be sure that you match the data
         dMdE_t = dMdE_distr_tokeep[i_bin]
         mdot = orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t)
         mfall[i] = mdot # code units
@@ -138,7 +138,7 @@ for i, check in enumerate(checks):
     mfall_toplot_days = mfall_all[i] / (prel.tsol_cgs / (3600*24)) # convert to Msol/days
     mfall_toplot = mfall_toplot_days / tfallback
     ax1.scatter(tfb_all[i], np.abs(mfall_toplot), label = checkslegend[i], s = 4, color = colors[i])
-    ax1.set_ylabel(r'$\dot{M}_{\rm fb} [M_\odot$/yr]', fontsize = 20)
+    ax1.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 20)
 
     ax2.scatter(tfb_all[i], eta_shL_all[i], label = checkslegend[i], s = 4, color = colors[i])
     ax2.set_ylabel(r'$\eta_{\rm sh}$', fontsize = 20)

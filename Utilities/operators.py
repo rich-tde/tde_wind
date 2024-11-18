@@ -95,7 +95,7 @@ def average_array(values, w, window_size=7):
     return np.array(averages)
 class data_snap:
     # create a class to be used in make_tree so that it gives just one output.
-    def __init__(self, sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, IE = None, Rad =None, Entropy = None):
+    def __init__(self, sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, IE = None, Rad =None, Diss = None, Entropy = None):
         self.sim_tree = sim_tree
         self.X = X
         self.Y = Y
@@ -110,7 +110,7 @@ class data_snap:
         self.Temp = T
         self.IE = IE
         self.Rad = Rad
-        # self.Diss = Diss
+        self.Diss = Diss
         self.Entropy = Entropy
 
 def make_tree(filename, snap, energy = False):
@@ -130,7 +130,7 @@ def make_tree(filename, snap, energy = False):
         # convert from energy/mass to energy density
         IE *= Den  
         Rad *= Den
-        # Diss = np.load(f'{filename}/Diss_{snap}.npy')
+        Diss = np.load(f'{filename}/Diss_{snap}.npy')
         # Entropy = np.load(f'{filename}/Entropy_{snap}.npy')
              
     P = np.load(f'{filename}/P_{snap}.npy')
@@ -149,7 +149,7 @@ def make_tree(filename, snap, energy = False):
     sim_tree = KDTree(sim_value) 
 
     if energy:
-        data = data_snap(sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, IE, Rad)
+        data = data_snap(sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, IE, Rad, Diss)
     else: 
         data = data_snap(sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T)
     return data
