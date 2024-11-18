@@ -35,7 +35,7 @@ Lum = data[:, 2]
 dataH = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes/HiRes_red.csv', delimiter=',', dtype=float)
 tfbH = dataH[:, 1]
 Lum_H = dataH[:, 2]
-dataDoub = np.loadtxt(f'{abspath}/data/DoubleRad_red.csv', delimiter=',', dtype=float)
+dataDoub = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}DoubleRad/DoubleRad_red.csv', delimiter=',', dtype=float)
 tfbDou = dataDoub[:, 1]
 Lum_Dou = dataDoub[:, 2]
 

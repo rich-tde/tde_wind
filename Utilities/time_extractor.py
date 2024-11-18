@@ -44,7 +44,7 @@ def days_since_distruption(filename, m, mstar, rstar, choose = 'day'):
     time = time.sum()
     days = time*t / (24*60*60)
     t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(rstar, 3/2)
-    print(f'days after disruption: {days} // t_fall: {t_fall} // sim_time: {time}')
+    # print(f'days after disruption: {days} // t_fall: {t_fall} // sim_time: {time}')
     if choose == 'tfb':
         days /= t_fall
     return days

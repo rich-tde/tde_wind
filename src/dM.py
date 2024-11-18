@@ -65,12 +65,13 @@ if alice:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         print(f'Check: {check}')
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
-        bins = np.arange(-10,10,.1) # np.arange(-2, 2, .1)
+        bins = np.linspace(-5,5,1000) # np.arange(-2, 2, .1)
         # save snaps, tfb and energy bins
-        with open(f'{abspath}/data/{folder}/dM/dMdE_{check}.txt','w') as file:
-            # if file doesn'exist
-            file.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
-            file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+        with open(f'{abspath}/data/{folder}/dMdE_{check}_days.txt','a') as filedays:
+            filedays.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
+            filedays.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+            filedays.close()
+        with open(f'{abspath}/data/{folder}/dMdE_{check}_bins.txt','w') as file:
             file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
             file.write((' '.join(map(str, bins)) + '\n'))
             file.close()
@@ -96,7 +97,7 @@ if alice:
             mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
             dm_dE = mass_binned / (np.diff(bins_edges)*norm)
 
-            with open(f'{abspath}/data/{folder}/dM/dMdE_{check}.txt','a') as file:
+            with open(f'{abspath}/data/{folder}/dMdE_{check}.txt','a') as file:
                 file.write(f'# dM/dE snap {snap} \n')
                 file.write((' '.join(map(str, dm_dE)) + '\n'))
                 file.close()
@@ -147,18 +148,15 @@ if movie:
     import subprocess
     check = ''
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-    datadays = np.loadtxt(f'{abspath}data/{folder}/dM/dMdE_days_{check}.txt')
+    datadays = np.loadtxt(f'{abspath}data/{folder}/dMdE_days_{check}.txt')
     snaps, tfb= datadays[0], datadays[1]
-    bins = np.loadtxt(f'{abspath}data/{folder}/dM/dMdE_bins.txt')
-    data = np.loadtxt(f'{abspath}data/{folder}/dM/dMdE_{check}.txt')
+    bins = np.loadtxt(f'{abspath}data/{folder}/dMdE_bins.txt')
+    data = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}.txt')
     mid_points = (bins[:-1]+bins[1:])/2
-    dataCut = np.loadtxt(f'{abspath}data/{folder}/dM/dMdE_{check}cut.txt')
-    dataCut = dataCut[100]
-    for i in range(len((dataCut))):
+    for i in range(len((data))):
         snap = snaps[i]
         plt.figure()
         plt.plot(mid_points, data[i], c = 'b', alpha = 0.8, label = 'NO cut')
-        plt.plot(mid_points, dataCut[i], c = 'r', alpha = 0.8, label = r'Density cut $10^{-9}$')
         plt.xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
         plt.ylabel('dM/dE', fontsize = 16)
         plt.yscale('log')

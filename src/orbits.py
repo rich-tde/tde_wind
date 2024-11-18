@@ -21,6 +21,15 @@ def make_cfr(R, x0=0, y0=0):
     cfr = (xcfr-x0)**2 + (ycfr-y0)**2 - R**2
     return xcfr, ycfr, cfr
 
+def keplerian_energy(Mbh, G, t):
+    energy = (np.pi * G * Mbh / (2 * t))**(2/3)
+    return energy
+
+def Mdot_fb(Mbh, G, t, dmdE):
+    """ Mass fallback rate according to Keplers law for t and dM/dE from numerical simualtion data."""
+    Mdot = -2/3 * dmdE * (np.pi * G * Mbh / 2)**(2/3) * t**(-5/3)
+    return Mdot
+
 def keplerian_orbit(theta, a, Rp, ecc=1):
     # we expect theta as from the function to_cylindric, i.e. clockwise. 
     # You have to mirror it to get the angle for the usual polar coordinates.
@@ -50,6 +59,13 @@ def Witta_orbit(theta_data, Rp, Ra, Mbh, c, G):
     u,y = odeint(solvr, [0, 0], theta_data, args = (Rp, Ra, Mbh, c, G)).T 
     r = 1/u
     return r
+
+def orbital_energy(r, vel, mass, G, c, M):
+    # no angular momentum??
+    Rs = 2*G*M/c**2
+    potential = -G * M / (r-Rs)
+    energy = mass * (0.5 * vel**2 + potential)
+    return energy
 
 def deriv_an_orbit(theta, a, Rp, ecc, choose):
     # we need the - in front of theta to be consistent with the function to_cylindric, where we change the orientation of the angle
@@ -375,12 +391,6 @@ def find_arclenght(theta_arr, orbit, params, choose):
 
     return s, idx
 
-def orbital_energy(r, vel, mass, G, c, M):
-    # no angular momentum??
-    Rs = 2*G*M/c**2
-    potential = -G * M / (r-Rs)
-    energy = mass * (0.5 * vel**2 + potential)
-    return energy
 
 if __name__ == '__main__':
     from Utilities.operators import make_tree, Ryan_sampler
