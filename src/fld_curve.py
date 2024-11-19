@@ -269,11 +269,11 @@ for idx_s, snap in enumerate(snaps):
             b = np.where( ((smoothed_flux>0) & (los<2/3) ))[0][0] 
         except IndexError:
             b = 3117 # elad_b = 3117
-        Lphoto2 = 4*np.pi*prel.csol_cgs*smoothed_flux[b] * prel.Msol_cgs / (prel.tsol_cgs**2)
+        Lphoto2 = 4*np.pi*prel.c_cgs*smoothed_flux[b] * prel.Msol_cgs / (prel.tsol_cgs**2)
         EEr = Rad_den[idx]
         if Lphoto2 < 0:
             Lphoto2 = 1e100 # it means that it will always pick max_length for the negatives
-        max_length = 4*np.pi*prel.csol_cgs*EEr[b]*r[b]**2 * prel.Msol_cgs * prel.Rsol_cgs / (prel.tsol_cgs**2)
+        max_length = 4*np.pi*prel.c_cgs*EEr[b]*r[b]**2 * prel.Msol_cgs * prel.Rsol_cgs / (prel.tsol_cgs**2)
         Lphoto = np.min( [Lphoto2, max_length])
         reds[i] = Lphoto
         del smoothed_flux, R_lamda, fld_factor, EEr, los,

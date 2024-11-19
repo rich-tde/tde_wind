@@ -67,7 +67,7 @@ else:
 for idx, snap in enumerate(snaps):
     if do:
         # you are in alice
-        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}{check}/snap_{snap}'
+        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
 
         data = make_tree(path, snap, energy = True)
         Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))
