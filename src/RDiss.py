@@ -26,7 +26,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = ''
+check = 'LowRes'
 Rt = Rstar * (Mbh/mstar)**(1/3)
 
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
@@ -43,6 +43,6 @@ for i,snap in enumerate(snaps):
     Rdiss[i] = np.sum(Rsph * vol * Ediss) / np.sum(vol * Ediss)
 
 with open(f'{abspath}/data/{folder}/Rdiss_{check}.txt','a') as file:
-    file.write(f'# tfb \n {tfb} \n \n # Rdiss')
-    file.write((' '.join(map(str, Rdiss)) + '\n'))
+    file.write(f'# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+    file.write(f'# Rdiss \n' + ' '.join(map(str, Rdiss)) + '\n')
     file.close()
