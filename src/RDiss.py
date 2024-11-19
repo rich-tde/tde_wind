@@ -37,8 +37,8 @@ for i,snap in enumerate(snaps):
     path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
     data = make_tree(path, snap, energy = True)
     Rsph = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
-    vol = data.Vol
-    Ediss = data.Diss
+    cut = data.Den > 1e-19
+    Rsph, vol, Ediss = Rsph[cut], data.Vol[cut], data.Diss[cut]
 
     Rdiss[i] = np.sum(Rsph * vol * Ediss) / np.sum(vol * Ediss)
 

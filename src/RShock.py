@@ -43,7 +43,7 @@ def R_shock(Mbh, eta_sh, const_G, const_c):
     R_sh = const_G * Mbh / (const_c**2 * eta_sh)
     return R_sh
 
-checks = ['LowRes', '']#, 'HiRes', 'DoubleRad']
+checks = ['LowRes', '', 'HiRes', 'DoubleRad']
 checkslegend = ['LowRes', 'Middle', 'HiRes', 'DoubleRad']
 colors = ['darkorange', 'r', 'dodgerblue', 'navy']
 
@@ -83,9 +83,13 @@ for i, check in enumerate(checks):
     mfall_toplot = mfall_all_yr[i] / (prel.tsol_cgs / (3600*24*365)) # convert to Msol/yr
     ax0.plot(time_array_yr, np.abs(mfall_toplot), label = checkslegend[i], color = colors[i])
     ax0.plot(time_array_yr, time_array_yr**(-5/3), label = r'$t^{-5/3}$', color = 'k', linestyle = '--')
-    ax0.set_xlabel(r't [yr]', fontsize = 15)
-    ax0.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot$/yr]', fontsize = 20)
-    ax0.set_xscale('log')
+ax0.set_xlabel(r't [yr]', fontsize = 15)
+ax0.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot$/yr]', fontsize = 15)
+ax0.loglog()
+ax0.grid()
+ax0.tick_params(axis='both', which='minor', length=4, width=.5)  # Make minor ticks larger
+ax0.tick_params(axis='both', which='major', length=5, width=1)  # Make minor ticks larger
+
 
 #%%
 tfb_all = []
@@ -135,23 +139,35 @@ for j, check in enumerate(checks):
     R_sh_all.append(R_sh)
 
 for i, check in enumerate(checks):
+    # Load data RDiss
+    if check == '':
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+        dataDiss = np.loadtxt(f'{abspath}data/{folder}/Rdiss_{check}.txt')
+        timeDiss, RDiss = dataDiss[0], dataDiss[1]
+    # Plot
     mfall_toplot_days = mfall_all[i] / (prel.tsol_cgs / (3600*24)) # convert to Msol/days
     mfall_toplot = mfall_toplot_days / tfallback
-    ax1.scatter(tfb_all[i], np.abs(mfall_toplot), label = checkslegend[i], s = 4, color = colors[i])
-    ax1.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 20)
+    ax1.plot(tfb_all[i], np.abs(mfall_toplot), label = checkslegend[i], color = colors[i])
+    ax1.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 15)
+    ax1.grid()
 
-    ax2.scatter(tfb_all[i], eta_shL_all[i], label = checkslegend[i], s = 4, color = colors[i])
-    ax2.set_ylabel(r'$\eta_{\rm sh}$', fontsize = 20)
+    ax2.plot(tfb_all[i], eta_shL_all[i], label = checkslegend[i], color = colors[i])
+    ax2.set_ylabel(r'$\eta_{\rm sh}$', fontsize = 18)
+    ax2.set_ylim(1e-8, 1e-3)
 
-    ax3.scatter(tfb_all[i], R_sh_all[i], label = checkslegend[i], s = 4, color = colors[i])
-    ax3.set_ylabel(r'$R_{\rm sh}$ [cm]', fontsize = 20)
+    ax3.plot(tfb_all[i], R_sh_all[i], label = checkslegend[i], color = colors[i])
+    if check == '':
+        ax3.plot(timeDiss, np.abs(RDiss)   * prel.Rsol_cgs, linestyle = '--', color = colors[i])#, label = f'Rdiss {checkslegend[i]}')
+    ax3.set_ylabel(r'$R$ [cm]', fontsize = 15)
+    ax3.set_ylim(1e12, 1e17)
 
-    for ax in [ax0, ax1, ax2, ax3]:        
-        ax.set_yscale('log')
-        ax.grid()
+for ax in [ax1, ax2, ax3]:
+    ax.set_yscale('log')
+    ax.grid()
+    ax.set_xlabel(r't [t$_{\rm fb}$]', fontsize = 15)
+    ax.minorticks_on()  # Enable minor ticks
+    ax.tick_params(axis='both', which='minor', length=4, width=.5)  # Make minor ticks larger
+    ax.tick_params(axis='both', which='major', length=5, width=1)  # Make minor ticks larger
 
-ax1.set_xlabel(r't [t$_{\rm fb}$]', fontsize = 15)
-ax2.set_xlabel(r't [t$_{\rm fb}$]', fontsize = 15)
-ax3.set_xlabel(r't [t$_{\rm fb}$]', fontsize = 15)
 ax2.legend(fontsize = 10)
 plt.tight_layout()
