@@ -1,3 +1,5 @@
+""" FLD curve accoring to Elad's script. 
+Written to be run on alice."""
 from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:

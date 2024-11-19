@@ -1,6 +1,6 @@
 """ Make slices of the orbital plane.
-If alice: make the section (with density cut 1e-19) and save it.
-If not alice: load the section and plot it.
+If alice: make the section (with density cut 1e-19) and save it: coordinates, T, Den, cells size, ie density, oe density, rad density.
+If not alice: load the section and plot it in 3 (density/specific energies in CGS) or 6 panels (density, T, cells size, energies all in CGS except mass/size).
 """
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
@@ -36,7 +36,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiRes' # 'Low' or 'HiRes'
+check = '' # 'Low' or 'HiRes'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 Mbh = 10**m
@@ -128,6 +128,8 @@ for idx, snap in enumerate(snaps):
             ax[2].text(-.4, 0.42, f'Max: %.2e' % np.max(Rad_den_mid), fontsize = 16)
         
         if npanels == 6:
+            if int(snap)<310:
+                continue
             orb_en_mid = np.abs(orb_en_den_mid * dim_mid**3) * prel.en_converter
             ie_mid = (ie_den_mid * dim_mid**3) * prel.en_converter
             Rad_mid = (Rad_den_mid * dim_mid**3) * prel.en_converter
@@ -151,17 +153,17 @@ for idx, snap in enumerate(snaps):
             img = ax[1][0].scatter(x_mid/apo, y_mid/apo, c = orb_en_mid, cmap = 'viridis', s= .1, \
                         norm = colors.LogNorm(vmin = np.percentile(orb_en_mid, 5), vmax = np.percentile(orb_en_mid, 99)))
             cb = plt.colorbar(img)
-            cb.set_label(r'Absolute specific orbital energy [erg/g]', fontsize = 14)
+            cb.set_label(r'Absolute specific orbital energy [erg]', fontsize = 14)
 
             img = ax[1][1].scatter(x_mid/apo, y_mid/apo, c = ie_mid, cmap = 'viridis', s= .1, \
                         norm = colors.LogNorm(vmin = np.percentile(ie_mid, 5), vmax = np.percentile(ie_mid, 99)))
             cb = plt.colorbar(img)
-            cb.set_label(r'Specific IE [erg/g]', fontsize = 14)
+            cb.set_label(r'Specific IE [erg]', fontsize = 14)
 
             img = ax[1][2].scatter(x_mid/apo, y_mid/apo, c = Rad_mid, cmap = 'viridis', s= .1, \
                         norm = colors.LogNorm(vmin = np.percentile(Rad_mid, 5), vmax = np.percentile(Rad_mid, 99)))
             cb = plt.colorbar(img)
-            cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 14)
+            cb.set_label(r'Radiation energy density [erg]', fontsize = 14)
         for i in range(2):
             ax[i][0].set_ylabel(r'$Y/R_{\rm a}$', fontsize = 20)
             for j in range(3):

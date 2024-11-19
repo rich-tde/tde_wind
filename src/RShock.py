@@ -1,3 +1,5 @@
+""" Compute shock efficiency and Rshock from theoretical approximation.
+Plot it and compare with Rdissipation."""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 
@@ -26,11 +28,11 @@ n = 1.5
 compton = 'Compton'
 tfallback = 2.5777261297507925 #days 
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
-Ledd = 1.26e38 * Mbh # erg/s
 Rt = Rstar * (Mbh/mstar)**(1/3)
 norm_dMdE = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call \Delta E). It's GM/Rt^2 * Rstar
 time_array_yr = np.linspace(1e-1,2, 100) # yr
 time_array_cgs = time_array_yr * 365 * 24 * 3600 # converted to seconds
+
 #
 ## FUNCTIONS
 #
@@ -42,54 +44,16 @@ def R_shock(Mbh, eta_sh, const_G, const_c):
     R_sh = const_G * Mbh / (const_c**2 * eta_sh)
     return R_sh
 
-checks = ['LowRes', '', 'HiRes', 'DoubleRad']
-checkslegend = ['LowRes', 'Middle', 'HiRes', 'DoubleRad']
-colors = ['darkorange', 'r', 'dodgerblue', 'navy']
+##
+# MAIN
+##
 
+checks = ['DoubleRad', 'LowRes', '', 'HiRes' ]
+checkslegend = ['DoubleRad', 'Low', 'Middle', 'High']
+colors = ['navy', 'b', 'darkorange', 'dodgerblue']
+
+# Fallback rate for long times
 mfall_all_yr = []
-for j, check in enumerate(checks):
-    # Load data
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-    datadays = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}_days.txt')
-    snaps, tfb = datadays[0], datadays[1]
-    databins = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}_bins.txt')
-    bins = databins[:-1] * norm_dMdE # get rid of the normalization
-    # bins_cgs = bins * (prel.en_converter/prel.Msol_cgs) #  and convert to CGS (they are bins in SPECIFIC orbital energy)
-    dMdE_distr = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}.txt')[0] # distribution just after the disruption
-    bins_tokeep, dMdE_distr_tokeep = bins[bins<0], dMdE_distr[bins<0] # keep only the bound energies
-    dataLum = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{check}_red.csv', delimiter=',', dtype=float)
-    snapsLum = dataLum[:, 0]
-    tfbLum = dataLum[:, 1]   
-    Lum = dataLum[:, 2]   
-    
-    mfall_yr = np.zeros(len(time_array_cgs))
-    # compute Rshock and eta_shock
-    for i, t in enumerate(time_array_cgs):
-        # convert to code units
-        tsol = t / prel.tsol_cgs
-        # Find the energy of the element at time t
-        energy = orb.keplerian_energy(Mbh, prel.G, tsol)
-        # Find the bin that corresponds to the energy of the element and its dMdE (in CGS)
-        i_bin = np.argmin(np.abs(energy-np.abs(bins_tokeep))) # just to be sure that you match the data
-        dMdE_t = dMdE_distr_tokeep[i_bin]
-        mdot = orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t)
-        mfall_yr[i] = mdot # code units
-
-    mfall_all_yr.append(mfall_yr)
-
-fig, ((ax0, ax1), (ax2, ax3)) = plt.subplots(2,2, figsize=(15, 10))
-for i, check in enumerate(checks):
-    mfall_toplot = mfall_all_yr[i] / (prel.tsol_cgs / (3600*24*365)) # convert to Msol/yr
-    ax0.plot(time_array_yr, np.abs(mfall_toplot), label = checkslegend[i], color = colors[i])
-    ax0.plot(time_array_yr, time_array_yr**(-5/3), label = r'$t^{-5/3}$', color = 'k', linestyle = '--')
-ax0.set_xlabel(r't [yr]', fontsize = 15)
-ax0.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot$/yr]', fontsize = 15)
-ax0.loglog()
-ax0.grid()
-ax0.tick_params(axis='both', which='minor', length=4, width=.5)  # Make minor ticks larger
-ax0.tick_params(axis='both', which='major', length=5, width=1)  # Make minor ticks larger
-
-#%%
 tfb_all = []
 mfall_all = []
 eta_shL_all = []
@@ -110,11 +74,26 @@ for j, check in enumerate(checks):
     tfbLum = dataLum[:, 1]   
     Lum = dataLum[:, 2]   
     if check == 'HiRes':
-        snapsLum, tfbLum, Lum = snapsLum[:-10], tfbLum[:-10], Lum[:-10] # remove the first element because it's nan
+        snapsLum, tfbLum, Lum = snapsLum[:-10], tfbLum[:-10], Lum[:-10] # remove the first element because it's nan   
     
+    mfall_yr = np.zeros(len(time_array_cgs))
+    mfall = np.zeros(len(tfb_cgs))
     eta_sh = np.zeros(len(tfb_cgs))
     R_sh = np.zeros(len(tfb_cgs))
-    mfall = np.zeros(len(tfb_cgs))
+    
+    for i, t in enumerate(time_array_cgs):
+        # convert to code units
+        tsol = t / prel.tsol_cgs
+        # Find the energy of the element at time t
+        energy = orb.keplerian_energy(Mbh, prel.G, tsol)
+        # Find the bin that corresponds to the energy of the element and its dMdE (in CGS)
+        i_bin = np.argmin(np.abs(energy-np.abs(bins_tokeep))) # just to be sure that you match the data
+        dMdE_t = dMdE_distr_tokeep[i_bin]
+        mdot = orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t)
+        mfall_yr[i] = mdot # code units
+
+    mfall_all_yr.append(mfall_yr)
+
     # compute Rshock and eta_shock
     for i, t in enumerate(tfb_cgs):
         # convert to code units
@@ -138,6 +117,12 @@ for j, check in enumerate(checks):
     eta_shL_all.append(eta_sh)    
     R_sh_all.append(R_sh)
 
+fig, ((ax0, ax1), (ax2, ax3)) = plt.subplots(2,2, figsize=(15, 10))
+for i, check in enumerate(checks):
+    mfall_toplot = mfall_all_yr[i] / (prel.tsol_cgs / (3600*24*365)) # convert to Msol/yr
+    ax0.plot(time_array_yr, np.abs(mfall_toplot), label = checkslegend[i], color = colors[i])
+    ax0.plot(time_array_yr, time_array_yr**(-5/3)/100, label = r'$t^{-5/3}$', color = 'k', linestyle = '--')
+
 for i, check in enumerate(checks):
     # Load data RDiss
     if check != 'HiRes':
@@ -156,26 +141,31 @@ for i, check in enumerate(checks):
     if check != 'HiRes':
         ax3.plot(timeDiss, np.abs(RDiss) * prel.Rsol_cgs, linestyle = '--', color = colors[i])#, label = f'Rdiss {checkslegend[i]}')
 
+ax0.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot$/yr]', fontsize = 15)
 ax1.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 15)
 ax2.set_ylabel(r'$\eta_{\rm sh}$', fontsize = 18)
 ax2.set_ylim(1e-8, 1e-3)
 ax3.set_ylabel(r'$R$ [cm]', fontsize = 15)
 ax3.set_ylim(1e11, 1e17)
 
-for ax in [ax1, ax2, ax3]:
+for ax in [ax0, ax1, ax2, ax3]:
     ax.grid()
-    ax.set_yscale('log')
-    ax.set_xlabel(r't [t$_{\rm fb}$]', fontsize = 20)
-    ax.minorticks_on()  # Enable minor ticks
-    original_ticks = ax.get_xticks()
-    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    ax.set_xticks(new_ticks)
-    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-    ax.set_xticklabels(labels)
-    ax.tick_params(axis='x', which='major', width=0.7, length=7)
-    ax.tick_params(axis='x', which='minor', width=0.5, length=5)
-    ax.set_xlim(0, 2)
+    if ax == ax0:
+        ax.set_xlabel(r't [yr]', fontsize = 15)
+        ax.loglog()
+    else:
+        ax.set_yscale('log')
+        ax.set_xlabel(r't [t$_{\rm fb}$]', fontsize = 20)
+        ax.set_xlim(0, 2)
+        ax.minorticks_on()  # Enable minor ticks
+        original_ticks = ax.get_xticks()
+        midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+        new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+        ax.set_xticks(new_ticks)
+        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+        ax.set_xticklabels(labels)
+        ax.tick_params(axis='x', which='major', width=0.7, length=7)
+        ax.tick_params(axis='x', which='minor', width=0.5, length=5)
 
 ax1.legend(fontsize = 18)
 plt.tight_layout()

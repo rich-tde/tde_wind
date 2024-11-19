@@ -1,7 +1,8 @@
 
 """ 
-Project density on XY plane and save data.
-Plot the projection.
+Column density.
+If alice: project density on XY plane and save data.
+Else: plot the projection.
 """
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
@@ -96,10 +97,6 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
  
 if __name__ == '__main__':
     save = True
-    if alice:
-        cast = True
-    else:
-        cast = False
     
     m = 4
     Mbh = 10**m
@@ -114,7 +111,7 @@ if __name__ == '__main__':
     compton = 'Compton'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-    if cast:
+    if alice:
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
         if save:
             with open(f'{prepath}/data/{folder}/projection/time_proj.txt', 'a') as f:
@@ -135,10 +132,7 @@ if __name__ == '__main__':
                 np.savetxt(f'{prepath}/data/{folder}/projection/xarray.txt', x_radii)
                 np.savetxt(f'{prepath}/data/{folder}/projection/yarray.txt', y_radii)
 
-#%% Plot
-    if plot:
-        import Utilities.prelude as prel
-
+    else:
         time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/time_proj.txt')
         snaps = [int(i) for i in time[0]]
         tfb = time[1]
@@ -150,24 +144,16 @@ if __name__ == '__main__':
             y_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/yarray.txt')
             tfb_single = tfb[i]
                 
-            p5 = np.percentile(flat_den, 5)
-            p95 = np.percentile(flat_den, 95)
+            # p5 = np.percentile(flat_den, 5)
+            # p95 = np.percentile(flat_den, 95)
             
             fig, ax = plt.subplots(1,1, figsize = (14,4))
             ax.set_xlabel(r'$X/R_{\rm a}$', fontsize = 20)
             ax.set_ylabel(r'$Y/R_{\rm a}$', fontsize = 20)
             img = ax.pcolormesh(x_radii/apocenter, y_radii/apocenter, flat_den.T, cmap = 'inferno',
                                 norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-5))
-            # else:
-            #     img = ax.pcolormesh(x_radii/apocenter, y_radii/apocenter, cut_den_plot.T, cmap = 'inferno',
-            #                     norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-5))
-            # add an  point with just white contour at 0,0 
-            # ax.plot(0,0, 'o', color = 'k', markersize = 8, markeredgecolor = 'darkorange')
-            # ax.contour(xcrt, ycrt, crt, [0], linestyles = 'dashed', colors = 'white', alpha = 0.8)
             cb = plt.colorbar(img)
             cb.set_label(r'Column density [$M_\odot/R_\odot^2$])', fontsize = 18)
-
-            # ax.set_title(f'XY Projection, snap {snap}', fontsize = 16)
             ax.text(-410/apocenter, -50/apocenter, r't/t$_{\rm fb}$ = ' + f'{np.round(tfb_single,2)}', color = 'white', fontsize = 18)
             plt.tight_layout()
             if save:
@@ -175,4 +161,3 @@ if __name__ == '__main__':
             plt.show()
             # plt.close()
 
-# %%

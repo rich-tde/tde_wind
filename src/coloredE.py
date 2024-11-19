@@ -1,3 +1,6 @@
+""" Space-time colorplot of energies using tree. 
+It has been written to be run on alice.
+Cut in density at 1e-19 code units."""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 from Utilities.isalice import isalice

@@ -1,3 +1,4 @@
+""" Compute Rdissipation. Written to be run on alice."""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 

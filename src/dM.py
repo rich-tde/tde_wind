@@ -1,3 +1,7 @@
+""" Mass distribution from orbital energy.
+If alice: compute the dM/dE for all snaps.
+If local: plot dM/dE to compare different resolutions (at different times) or to make a movie of a single res.
+There's some old code to compute dM/ds where ds = line element of the stream."""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 
@@ -102,7 +106,6 @@ if alice:
                 file.write((' '.join(map(str, dm_dE)) + '\n'))
                 file.close()
     
-#%%
 if compare_times:
     datadays = np.loadtxt(f'{abspath}data/{folder}/dMdE_days_HiRes.txt')
     snaps, tfb= datadays[0], datadays[1]
@@ -143,7 +146,6 @@ if compare_times:
         plt.savefig(f'{abspath}Figs/multiple/dMdE_times.png')
     plt.show()
 
-#%%
 if movie:
     import subprocess
     check = ''

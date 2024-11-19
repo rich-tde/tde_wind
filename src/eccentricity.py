@@ -1,3 +1,7 @@
+"""Eccentricity (squared) from angular momentum.
+If alice: compute the time-space plot using tree.
+If not: or plot the time-space plot 
+        or plot the relative difference between in resolutions (both space-time plots ans line plots of the median of the errors)."""
 import sys
 sys.path.append('/Users/paolamartire/shocks')
 
