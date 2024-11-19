@@ -36,7 +36,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = '' # 'Low' or 'HiRes'
+check = 'HiRes' # 'Low' or 'HiRes'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 Mbh = 10**m
@@ -128,8 +128,6 @@ for idx, snap in enumerate(snaps):
             ax[2].text(-.4, 0.42, f'Max: %.2e' % np.max(Rad_den_mid), fontsize = 16)
         
         if npanels == 6:
-            if int(snap)<319:
-                continue
             orb_en_mid = np.abs(orb_en_den_mid * dim_mid**3) * prel.en_converter
             ie_mid = (ie_den_mid * dim_mid**3) * prel.en_converter
             Rad_mid = (Rad_den_mid * dim_mid**3) * prel.en_converter

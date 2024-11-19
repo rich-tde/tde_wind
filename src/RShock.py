@@ -31,7 +31,6 @@ Rt = Rstar * (Mbh/mstar)**(1/3)
 norm_dMdE = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call \Delta E). It's GM/Rt^2 * Rstar
 time_array_yr = np.linspace(1e-1,2, 100) # yr
 time_array_cgs = time_array_yr * 365 * 24 * 3600 # converted to seconds
-
 #
 ## FUNCTIONS
 #
@@ -78,7 +77,7 @@ for j, check in enumerate(checks):
 
     mfall_all_yr.append(mfall_yr)
 
-fig, ((ax0, ax1), (ax2, ax3)) = plt.subplots(2,2, figsize=(8, 6))
+fig, ((ax0, ax1), (ax2, ax3)) = plt.subplots(2,2, figsize=(15, 10))
 for i, check in enumerate(checks):
     mfall_toplot = mfall_all_yr[i] / (prel.tsol_cgs / (3600*24*365)) # convert to Msol/yr
     ax0.plot(time_array_yr, np.abs(mfall_toplot), label = checkslegend[i], color = colors[i])
@@ -89,7 +88,6 @@ ax0.loglog()
 ax0.grid()
 ax0.tick_params(axis='both', which='minor', length=4, width=.5)  # Make minor ticks larger
 ax0.tick_params(axis='both', which='major', length=5, width=1)  # Make minor ticks larger
-
 
 #%%
 tfb_all = []
@@ -111,6 +109,8 @@ for j, check in enumerate(checks):
     snapsLum = dataLum[:, 0]
     tfbLum = dataLum[:, 1]   
     Lum = dataLum[:, 2]   
+    if check == 'HiRes':
+        snapsLum, tfbLum, Lum = snapsLum[:-10], tfbLum[:-10], Lum[:-10] # remove the first element because it's nan
     
     eta_sh = np.zeros(len(tfb_cgs))
     R_sh = np.zeros(len(tfb_cgs))
@@ -140,7 +140,7 @@ for j, check in enumerate(checks):
 
 for i, check in enumerate(checks):
     # Load data RDiss
-    if check == '':
+    if check != 'HiRes':
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         dataDiss = np.loadtxt(f'{abspath}data/{folder}/Rdiss_{check}.txt')
         timeDiss, RDiss = dataDiss[0], dataDiss[1]
@@ -148,26 +148,34 @@ for i, check in enumerate(checks):
     mfall_toplot_days = mfall_all[i] / (prel.tsol_cgs / (3600*24)) # convert to Msol/days
     mfall_toplot = mfall_toplot_days / tfallback
     ax1.plot(tfb_all[i], np.abs(mfall_toplot), label = checkslegend[i], color = colors[i])
-    ax1.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 15)
-    ax1.grid()
 
     ax2.plot(tfb_all[i], eta_shL_all[i], label = checkslegend[i], color = colors[i])
-    ax2.set_ylabel(r'$\eta_{\rm sh}$', fontsize = 18)
-    ax2.set_ylim(1e-8, 1e-3)
 
     ax3.plot(tfb_all[i], R_sh_all[i], label = checkslegend[i], color = colors[i])
-    if check == '':
-        ax3.plot(timeDiss, np.abs(RDiss)   * prel.Rsol_cgs, linestyle = '--', color = colors[i])#, label = f'Rdiss {checkslegend[i]}')
-    ax3.set_ylabel(r'$R$ [cm]', fontsize = 15)
-    ax3.set_ylim(1e12, 1e17)
+    ax3.axhline(y=Rt*prel.Rsol_cgs, color = 'k', linestyle = 'dotted')
+    if check != 'HiRes':
+        ax3.plot(timeDiss, np.abs(RDiss) * prel.Rsol_cgs, linestyle = '--', color = colors[i])#, label = f'Rdiss {checkslegend[i]}')
+
+ax1.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 15)
+ax2.set_ylabel(r'$\eta_{\rm sh}$', fontsize = 18)
+ax2.set_ylim(1e-8, 1e-3)
+ax3.set_ylabel(r'$R$ [cm]', fontsize = 15)
+ax3.set_ylim(1e11, 1e17)
 
 for ax in [ax1, ax2, ax3]:
-    ax.set_yscale('log')
     ax.grid()
-    ax.set_xlabel(r't [t$_{\rm fb}$]', fontsize = 15)
+    ax.set_yscale('log')
+    ax.set_xlabel(r't [t$_{\rm fb}$]', fontsize = 20)
     ax.minorticks_on()  # Enable minor ticks
-    ax.tick_params(axis='both', which='minor', length=4, width=.5)  # Make minor ticks larger
-    ax.tick_params(axis='both', which='major', length=5, width=1)  # Make minor ticks larger
+    original_ticks = ax.get_xticks()
+    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+    ax.set_xticks(new_ticks)
+    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+    ax.set_xticklabels(labels)
+    ax.tick_params(axis='x', which='major', width=0.7, length=7)
+    ax.tick_params(axis='x', which='minor', width=0.5, length=5)
+    ax.set_xlim(0, 2)
 
-ax2.legend(fontsize = 10)
+ax1.legend(fontsize = 18)
 plt.tight_layout()

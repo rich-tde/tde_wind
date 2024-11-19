@@ -35,6 +35,9 @@ Lum = data[:, 2]
 dataH = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes/HiRes_red.csv', delimiter=',', dtype=float)
 tfbH = dataH[:, 1]
 Lum_H = dataH[:, 2]
+##########
+tfbH, Lum_H = tfbH[:-10], Lum_H[:-10]
+##########
 dataDoub = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}DoubleRad/DoubleRad_red.csv', delimiter=',', dtype=float)
 tfbDou = dataDoub[:, 1]
 Lum_Dou = dataDoub[:, 2]
@@ -69,25 +72,26 @@ with open(f'{path}/{check}_red.csv', 'r', newline='') as f:
         L.append(np.round(float(row[2]),2)) # Adjust index if needed
 """
 # Plot the data
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
 ax1.scatter(tfbDou, Lum_Dou, s = 4, label = 'DoubleRad', c ='navy')
 ax1.scatter(tfbL, Lum_L, s = 4, label= 'Low', c= 'b')
 ax1.scatter(tfb, Lum, s = 4, label = 'Fid', c ='darkorange')
 ax1.scatter(tfbH, Lum_H, s = 4, label= 'High', c = 'dodgerblue')
 ax1.axhline(y=Ledd, c = 'k', linestyle = '--')
-ax1.text(0.1, 1.2*Ledd, r'$L_{\rm Edd}$', fontsize = 18)
+ax1.text(0.1, 1.3*Ledd, r'$L_{\rm Edd}$', fontsize = 18)
 ax1.set_yscale('log')
-ax1.set_ylim(5e36, 4e42)
+ax1.set_ylim(1e37, 5e42)
 ax1.set_ylabel(r'Luminosity [erg/s]', fontsize = 20)
+ax1.grid()
 
 ax2.scatter(tfbDou, np.abs(diffDou), color = 'navy', s = 4, label = 'DoubleRad')
 ax2.scatter(tfbL, np.abs(diffL), color = 'b', s = 4, label = 'Low')
 ax2.scatter(tfbH, np.abs(diffH), color = 'dodgerblue', s = 4, label = 'High')
+ax2.set_yscale('log')
+ax2.set_ylim(1e-2, 1e2)
 ax2.set_xlabel(r'$t/t_{\rm fb}$', fontsize = 20)
 ax2.set_ylabel(r'$|\Delta_{\rm rel}|$ from Fid', fontsize = 16)
-ax1.grid()
 ax2.grid()
-ax2.set_yscale('log')
 ax1.legend(fontsize = 18)   
 
 # Get the existing ticks on the x-axis
@@ -101,6 +105,7 @@ for ax in [ax1, ax2]:
     ax.tick_params(axis='x', which='major', width=0.7, length=7)
     ax.tick_params(axis='x', which='minor', width=0.5, length=5)
     ax.set_xlim(np.min(tfb), np.max(tfb))
+
 plt.savefig(f'/Users/paolamartire/shocks/Figs/multiple/fld.pdf')
 plt.show()
 
