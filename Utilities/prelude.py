@@ -32,7 +32,7 @@ en_converter = Msol_cgs * Rsol_cgs**2 / tsol_cgs**2 # Energy converter
 
 # Healpy
 import healpy as hp
-NSIDE = 4
+NSIDE = 4  # observers = 12 * NSIDE **2
 NPIX = hp.nside2npix(NSIDE)#  int(NSIDE * 96)
 
     
@@ -52,7 +52,7 @@ plt.rcParams['ytick.labelsize'] = 20
 plt.rcParams['axes.labelsize'] = 20
 plt.rcParams['xtick.top'] = True
 plt.rcParams['ytick.right'] = True
-plt.tight_layout()
+plt.rcParams['text.usetex'] = False
 AEK = '#F1C410'
 
 if __name__ == '__main__':

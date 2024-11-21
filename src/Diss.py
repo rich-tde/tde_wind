@@ -39,11 +39,17 @@ for i,snap in enumerate(snaps):
     data = make_tree(path, snap, energy = True)
     Rsph = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
     cut = data.Den > 1e-19
-    Rsph, vol, Ediss = Rsph[cut], data.Vol[cut], data.Diss[cut]
+    Rsph, vol, Ediss_den = Rsph[cut], data.Vol[cut], data.Diss[cut]
+    Ediss = Ediss_den * vol
 
-    Rdiss[i] = np.sum(Rsph * vol * Ediss) / np.sum(vol * Ediss)
+    # Rdiss[i] = np.sum(Rsph * vol * Ediss) / np.sum(vol * Ediss)
+
+# with open(f'{abspath}/data/{folder}/Rdiss_{check}.txt','a') as file:
+#     file.write(f'# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+#     file.write(f'# Rdiss \n' + ' '.join(map(str, Rdiss)) + '\n')
+#     file.close()
 
 with open(f'{abspath}/data/{folder}/Rdiss_{check}.txt','a') as file:
     file.write(f'# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-    file.write(f'# Rdiss \n' + ' '.join(map(str, Rdiss)) + '\n')
+    file.write(f'# Rdiss \n' + ' '.join(map(str, Ediss)) + '\n')
     file.close()

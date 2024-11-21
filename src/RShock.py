@@ -73,9 +73,7 @@ for j, check in enumerate(checks):
     snapsLum = dataLum[:, 0]
     tfbLum = dataLum[:, 1]   
     Lum = dataLum[:, 2]   
-    if check == 'HiRes':
-        snapsLum, tfbLum, Lum = snapsLum[:-10], tfbLum[:-10], Lum[:-10] # remove the first element because it's nan   
-    
+  
     mfall_yr = np.zeros(len(time_array_cgs))
     mfall = np.zeros(len(tfb_cgs))
     eta_sh = np.zeros(len(tfb_cgs))
@@ -125,47 +123,45 @@ for i, check in enumerate(checks):
 
 for i, check in enumerate(checks):
     # Load data RDiss
-    if check != 'HiRes':
-        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-        dataDiss = np.loadtxt(f'{abspath}data/{folder}/Rdiss_{check}.txt')
-        timeDiss, RDiss = dataDiss[0], dataDiss[1]
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    dataDiss = np.loadtxt(f'{abspath}data/{folder}/Rdiss_{check}.txt')
+    timeDiss, RDiss = dataDiss[0], dataDiss[1]
     # Plot
     mfall_toplot_days = mfall_all[i] / (prel.tsol_cgs / (3600*24)) # convert to Msol/days
     mfall_toplot = mfall_toplot_days / tfallback
-    ax1.plot(tfb_all[i], np.abs(mfall_toplot), label = checkslegend[i], color = colors[i])
+    ax2.plot(tfb_all[i], np.abs(mfall_toplot), label = checkslegend[i], color = colors[i])
 
-    ax2.plot(tfb_all[i], eta_shL_all[i], label = checkslegend[i], color = colors[i])
+    ax1.plot(tfb_all[i], eta_shL_all[i], label = checkslegend[i], color = colors[i])
 
     ax3.plot(tfb_all[i], R_sh_all[i], label = checkslegend[i], color = colors[i])
     ax3.axhline(y=Rt*prel.Rsol_cgs, color = 'k', linestyle = 'dotted')
-    if check != 'HiRes':
-        ax3.plot(timeDiss, np.abs(RDiss) * prel.Rsol_cgs, linestyle = '--', color = colors[i])#, label = f'Rdiss {checkslegend[i]}')
+    ax3.plot(timeDiss, np.abs(RDiss) * prel.Rsol_cgs, linestyle = '--', color = colors[i])#, label = f'Rdiss {checkslegend[i]}')
 
 ax0.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot$/yr]', fontsize = 15)
-ax1.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 15)
-ax2.set_ylabel(r'$\eta_{\rm sh}$', fontsize = 18)
-ax2.set_ylim(1e-8, 1e-3)
+ax2.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 15)
+ax1.set_ylabel(r'$\eta_{\rm sh}$', fontsize = 18)
+ax1.set_ylim(1e-8, 1e-3)
 ax3.set_ylabel(r'$R$ [cm]', fontsize = 15)
 ax3.set_ylim(1e11, 1e17)
 
 for ax in [ax0, ax1, ax2, ax3]:
     ax.grid()
     if ax == ax0:
-        ax.set_xlabel(r't [yr]', fontsize = 15)
+        ax.set_xlabel(r't [yr]', fontsize = 20)
         ax.loglog()
     else:
         ax.set_yscale('log')
         ax.set_xlabel(r't [t$_{\rm fb}$]', fontsize = 20)
-        ax.set_xlim(0, 2)
-        ax.minorticks_on()  # Enable minor ticks
+        ax.set_xlim(0, 1.75)
+        # ax.minorticks_on()  # Enable minor ticks
         original_ticks = ax.get_xticks()
         midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
         new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
         ax.set_xticks(new_ticks)
         labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
         ax.set_xticklabels(labels)
-        ax.tick_params(axis='x', which='major', width=0.7, length=7)
-        ax.tick_params(axis='x', which='minor', width=0.5, length=5)
+    ax.tick_params(axis='x', which='major', width=0.7, length=7)
+    ax.tick_params(axis='x', which='minor', width=0.5, length=5)
 
-ax1.legend(fontsize = 18)
+ax2.legend(fontsize = 18)
 plt.tight_layout()

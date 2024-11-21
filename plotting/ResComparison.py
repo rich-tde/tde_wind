@@ -1,3 +1,4 @@
+#%%
 abspath = '/Users/paolamartire/shocks/'
 import sys
 sys.path.append(abspath)
@@ -52,12 +53,11 @@ print(f'Rt: {Rt}, Rg: {Rs}, R0: {R0}, Rp: {Rp}, apo: {apo}')
 print(f'In term of Rg: Rt: {Rt/Rg}, R0: {R0/Rg}, Rp: {Rp/Rg}, apo: {apo/Rg}')
 xcr0, ycr0, cr0 = orb.make_cfr(R0)
 xcrt, ycrt, crt = orb.make_cfr(Rt)
-
 #%%
 # LowRes
 pathL = f'{abspath}TDE/{folder}LowRes/{snap}'
 tfbL = days_since_distruption(f'{pathL}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
-dataL = make_tree(pathL, snap, energy = True)
+dataL = make_tree(pathL, snap)#, energy = True)
 finalcutL = dataL.Den > 1e-19 # throw fluff
 x_coordL, y_coordL, z_coordL, massL, denL, dim_cellL = \
     sec.make_slices([dataL.X, dataL.Y, dataL.Z, dataL.Mass, dataL.Den, dataL.Vol**(1/3)], finalcutL)
@@ -69,7 +69,7 @@ X_midplaneL, Y_midplaneL, Z_midplaneL, dim_midplaneL, Mass_midplaneL, Den_midpla
 # Fiducial
 path = f'{abspath}TDE/{folder}/{snap}'
 tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
-data = make_tree(path, snap, energy = True)
+data = make_tree(path, snap)#, energy = True)
 finalcut = data.Den > 1e-19 # throw fluff
 x_coord, y_coord, z_coord, mass, den, dim_cell = \
     sec.make_slices([data.X, data.Y, data.Z, data.Mass, data.Den, data.Vol**(1/3)], finalcut)
@@ -81,7 +81,7 @@ X_midplane, Y_midplane, Z_midplane, dim_midplane, Mass_midplane, Den_midplane = 
 # HiRes
 pathH = f'{abspath}TDE/{folder}HiRes/{snap}'
 tfbH = days_since_distruption(f'{pathH}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
-dataH = make_tree(pathH, snap, energy = True)
+dataH = make_tree(pathH, snap)#, energy = True)
 finalcutH = dataH.Den > 1e-19 # throw fluff
 x_coordH, y_coordH, z_coordH, massH, denH, dim_cellH = \
     sec.make_slices([ dataH.X, dataH.Y, dataH.Z, dataH.Mass, dataH.Den, dataH.Vol**(1/3) ], finalcutH)
@@ -133,14 +133,14 @@ for i, ax in enumerate([ax0, ax1, ax2, ax3, ax4, ax5]):
     ax.scatter(0,0, c= 'k', marker = 'x', s=80)
     ax.set_xlim(-40,25)
     ax.set_ylim(-40,40)
-    if i == 0:
-        check = 'Low'
-    elif i == 1:
-        check = 'Middle'
-    elif i == 2:
-        check = 'High'
-    if i in range(3):
-        ax.text(10,35, f'{check}', fontsize = 14)
+    # if i == 0:
+    #     check = 'Low'
+    # elif i == 1:
+    #     check = 'Middle'
+    # elif i == 2:
+    #     check = 'High'
+    # if i in range(3):
+    #     ax.text(10,35, f'{check}', fontsize = 14)
     ax.tick_params(axis = 'both', which = 'both', direction='in', labelsize=20)
 ax3.set_xlabel(r'X [$R_\odot$]', fontsize = 22)
 ax4.set_xlabel(r'X [$R_\odot$]', fontsize = 22)
@@ -149,7 +149,7 @@ ax0.set_ylabel(r'Y [$R_\odot$]', fontsize = 22)
 ax3.set_ylabel(r'Y [$R_\odot$]', fontsize = 22)
 plt.subplots_adjust(wspace=0.25)  # Wider spacing between the first and second plot
 plt.tight_layout()
-plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,2)))
+# plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,2)))
 if save:
     plt.savefig(f'{abspath}/Figs/multiple/compareRpMass_{snap}.png')
 plt.show()

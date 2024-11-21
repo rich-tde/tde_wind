@@ -21,6 +21,7 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 from Utilities.operators import make_tree
 
+#%%
 ##
 # CHOICES
 ##
@@ -128,40 +129,51 @@ for idx, snap in enumerate(snaps):
             ax[2].text(-.4, 0.42, f'Max: %.2e' % np.max(Rad_den_mid), fontsize = 16)
         
         if npanels == 6:
-            if int(snap)<310:
-                continue
             orb_en_mid = np.abs(orb_en_den_mid * dim_mid**3) * prel.en_converter
             ie_mid = (ie_den_mid * dim_mid**3) * prel.en_converter
             Rad_mid = (Rad_den_mid * dim_mid**3) * prel.en_converter
 
+            vminden = 2e-9 #np.percentile(den_mid, 5)
+            vmaxden = 5e-6 #np.percentile(den_mid, 99)
+            vminT = 1e4 #np.percentile(temp_mid, 5)
+            vmaxT = 4e6 #np.percentile(temp_mid, 99)
+            vminDim = 2e-2 ##np.percentile(dim_mid, 5)
+            vmaxDim = 1.2 #np.percentile(dim_mid, 99)
+            vminOrb = 5e39 #np.percentile(orb_en_mid, 5)
+            vmaxOrb = 7e42 #np.percentile(orb_en_mid, 99)
+            vminIE = 2e36 #np.percentile(ie_mid, 5)
+            vmaxIE = 2e39 #np.percentile(ie_mid, 99)
+            vminRad = 2e32 #np.percentile(Rad_mid, 5)
+            vmaxRad = 2e40 #np.percentile(Rad_mid, 99)
+
             fig, ax = plt.subplots(2,3, figsize = (20,10))
             img = ax[0][0].scatter(x_mid/apo, y_mid/apo, c = den_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = np.percentile(den_mid, 5), vmax = np.percentile(den_mid, 99)))
+                        norm = colors.LogNorm(vmin = vminden, vmax = vmaxden))
             cb = plt.colorbar(img)
             cb.set_label(r'Density [$M_\odot/R_\odot^3$]', fontsize = 14)
 
             img = ax[0][1].scatter(x_mid/apo, y_mid/apo, c = temp_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = np.percentile(temp_mid, 5), vmax = np.percentile(temp_mid, 99)))
+                        norm = colors.LogNorm(vmin = vminT, vmax = vmaxT))
             cb = plt.colorbar(img)
             cb.set_label(r'T [K]', fontsize = 14)
 
             img = ax[0][2].scatter(x_mid/apo, y_mid/apo, c = dim_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = np.percentile(dim_mid, 5), vmax = np.percentile(dim_mid, 99)))
+                        norm = colors.LogNorm(vmin = vminDim, vmax = vmaxDim))
             cb = plt.colorbar(img)
             cb.set_label(r'Cell size [$R_\odot$]', fontsize = 14)
 
             img = ax[1][0].scatter(x_mid/apo, y_mid/apo, c = orb_en_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = np.percentile(orb_en_mid, 5), vmax = np.percentile(orb_en_mid, 99)))
+                        norm = colors.LogNorm(vmin = vminOrb, vmax = vmaxOrb))
             cb = plt.colorbar(img)
             cb.set_label(r'Absolute specific orbital energy [erg]', fontsize = 14)
 
             img = ax[1][1].scatter(x_mid/apo, y_mid/apo, c = ie_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = np.percentile(ie_mid, 5), vmax = np.percentile(ie_mid, 99)))
+                        norm = colors.LogNorm(vmin = vminIE, vmax = vmaxIE))
             cb = plt.colorbar(img)
             cb.set_label(r'Specific IE [erg]', fontsize = 14)
 
             img = ax[1][2].scatter(x_mid/apo, y_mid/apo, c = Rad_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = np.percentile(Rad_mid, 5), vmax = np.percentile(Rad_mid, 99)))
+                        norm = colors.LogNorm(vmin = vminRad, vmax = vmaxRad))
             cb = plt.colorbar(img)
             cb.set_label(r'Radiation energy density [erg]', fontsize = 14)
         for i in range(2):
@@ -180,3 +192,4 @@ for idx, snap in enumerate(snaps):
         # plt.show()
 
     
+# %%

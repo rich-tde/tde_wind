@@ -24,7 +24,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 tfallback = 2.5777261297507925 * 24 * 3600 #2.5 days
-Ledd = 1.26e38 * Mbh # erg/s
+Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
 
 dataL = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes/LowRes_red.csv', delimiter=',', dtype=float)
 tfbL = dataL[:, 1]   
@@ -32,19 +32,25 @@ Lum_L = dataL[:, 2]
 data = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/_red.csv', delimiter=',', dtype=float)
 tfb = data[:, 1]   
 Lum = data[:, 2] 
+data8 = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/8_red.csv', delimiter=',', dtype=float)
+tfb8 = data8[:, 1]   
+Lum8 = data8[:, 2] 
 dataH = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes/HiRes_red.csv', delimiter=',', dtype=float)
 tfbH = dataH[:, 1]
 Lum_H = dataH[:, 2]
-##########
-tfbH, Lum_H = tfbH[:-10], Lum_H[:-10]
-##########
 dataDoub = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}DoubleRad/DoubleRad_red.csv', delimiter=',', dtype=float)
 tfbDou = dataDoub[:, 1]
 Lum_Dou = dataDoub[:, 2]
 
+diff8 = []
 diffL = []
 diffH = []
 diffDou = []
+
+for i8, time in enumerate(tfb8):
+    i = np.argmin(np.abs(tfb-time))
+    diff8.append(1-Lum8[i8]/Lum[i])
+
 for iL, time in enumerate(tfbL):
     i = np.argmin(np.abs(tfb-time))
     diffL.append(1-Lum_L[iL]/Lum[i])
@@ -57,20 +63,26 @@ for iDou, time in enumerate(tfbDou):
     i = np.argmin(np.abs(tfb-time))
     diffDou.append(1-Lum_Dou[iDou]/Lum[i])
 
+diff8 = np.array(diff8)
 diffL = np.array(diffL)
 diffH = np.array(diffH)
 diffDou = np.array(diffDou)
 
-""""
-other way to do it using csv:
-tfb = []
-L = []
-with open(f'{path}/{check}_red.csv', 'r', newline='') as f:
-    reader = csv.reader(f)
-    for row in reader:
-        tfb.append(np.round(float(row[1]),2))  # Adjust index if needed
-        L.append(np.round(float(row[2]),2)) # Adjust index if needed
-"""
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
+ax1.scatter(tfb, Lum, s = 20, label= 'NSIDE = 4',  c= 'darkorange')
+ax1.scatter(tfb8, Lum8,  s = 4, label = 'NSIDE = 8', c ='darkgreen')
+ax1.set_ylabel(r'Luminosity [erg/s]', fontsize = 20)
+ax1.legend(fontsize = 16)
+ax2.scatter(tfb8, np.abs(diff8), color = 'darkgreen', s = 4)
+ax2.set_xlabel(r'$t/t_{\rm fb}$', fontsize = 20)
+ax2.set_ylabel(r'$|\Delta_{\rm rel}|$ from Fid', fontsize = 16)
+for ax in [ax1, ax2]:
+    ax.set_yscale('log')
+    ax.set_xlim(0,0.9)
+    ax.grid()
+plt.savefig(f'/Users/paolamartire/shocks/Figs/multiple/fld_NSIDE.pdf')
+
+
 # Plot the data
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
 ax1.scatter(tfbDou, Lum_Dou, s = 4, label = 'DoubleRad', c ='navy')
@@ -107,6 +119,5 @@ for ax in [ax1, ax2]:
     ax.set_xlim(np.min(tfb), np.max(tfb))
 
 plt.savefig(f'/Users/paolamartire/shocks/Figs/multiple/fld.pdf')
-plt.show()
 
 
