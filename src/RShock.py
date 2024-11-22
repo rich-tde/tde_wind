@@ -58,6 +58,11 @@ tfb_all = []
 mfall_all = []
 eta_shL_all = []
 R_sh_all = []
+eta_shL_diss_all = []
+R_shDiss_all = []
+RDiss_all = []
+timeRDiss_all = []
+
 for j, check in enumerate(checks):
     # Load data
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -73,6 +78,10 @@ for j, check in enumerate(checks):
     snapsLum = dataLum[:, 0]
     tfbLum = dataLum[:, 1]   
     Lum = dataLum[:, 2]  
+    dataDiss = np.loadtxt(f'{abspath}data/{folder}/Rdiss_{check}.txt')
+    timeRDiss, RDiss, timeEDiss, EdotDiss = dataDiss[0], dataDiss[1], dataDiss[2], dataDiss[3]
+    timeRDiss_all.append(timeRDiss)
+    RDiss_all.append(np.abs(RDiss))
 
     # dataLum = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{check}_red.csv', delimiter=',', dtype=float)
     # tfbLum, Lum = dataLum[0], dataLum[1] 
@@ -81,6 +90,8 @@ for j, check in enumerate(checks):
     mfall = np.zeros(len(tfb_cgs))
     eta_sh = np.zeros(len(tfb_cgs))
     R_sh = np.zeros(len(tfb_cgs))
+    eta_sh_diss = np.zeros(len(tfb_cgs))
+    R_shDiss = np.zeros(len(tfb_cgs))
     
     for i, t in enumerate(time_array_cgs):
         # convert to code units
@@ -113,12 +124,18 @@ for j, check in enumerate(checks):
         Lum_t = Lum[idx]
         eta_sh[i] = efficiency_shock(Lum_t, mdot_cgs, prel.c_cgs) # [CGS]
         R_sh[i] = R_shock(Mbh_cgs, eta_sh[i], prel.G_cgs, prel.c_cgs) # [CGS]
+        idxDiss = np.argmin(np.abs(tfb[i]-timeEDiss)) # just to be sure that you match the data
+        Lum_diss = np.abs(EdotDiss[idxDiss]) * prel.en_converter / prel.tsol_cgs # [CGS]
+        eta_sh_diss[i] = efficiency_shock(Lum_diss, mdot_cgs, prel.c_cgs) # [CGS]
+        R_shDiss[i] = R_shock(Mbh_cgs, eta_sh_diss[i], prel.G_cgs, prel.c_cgs) # [CGS]
 
     tfb_all.append(tfb)
     mfall_all.append(mfall)
     eta_shL_all.append(eta_sh)    
     R_sh_all.append(R_sh)
-
+    eta_shL_diss_all.append(eta_sh_diss)
+    R_shDiss_all.append(R_shDiss)
+    
 fig, ((ax0, ax1), (ax2, ax3)) = plt.subplots(2,2, figsize=(15, 10))
 for i, check in enumerate(checks):
     mfall_toplot = mfall_all_yr[i] / (prel.tsol_cgs / (3600*24*365)) # convert to Msol/yr
@@ -126,20 +143,18 @@ for i, check in enumerate(checks):
     ax0.plot(time_array_yr, time_array_yr**(-5/3)/100, label = r'$t^{-5/3}$', color = 'k', linestyle = '--')
 
 for i, check in enumerate(checks):
-    # Load data RDiss
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-    dataDiss = np.loadtxt(f'{abspath}data/{folder}/Rdiss_{check}.txt')
-    timeDiss, RDiss = dataDiss[0], dataDiss[1]
     # Plot
     mfall_toplot_days = mfall_all[i] / (prel.tsol_cgs / (3600*24)) # convert to Msol/days
     mfall_toplot = mfall_toplot_days / tfallback
     ax2.plot(tfb_all[i], np.abs(mfall_toplot), label = checkslegend[i], color = colors[i])
 
     ax1.plot(tfb_all[i], eta_shL_all[i], label = checkslegend[i], color = colors[i])
-
+    ax1.plot(tfb_all[i], eta_shL_diss_all[i], linestyle = 'dotted', color = colors[i])#, label = f'EtaDiss {checkslegend[i]}')
+    
     ax3.plot(tfb_all[i], R_sh_all[i], label = checkslegend[i], color = colors[i])
+    ax3.plot(tfb_all[i], R_shDiss_all[i], linestyle = 'dotted', color = colors[i])#, label = f'Rdiss {checkslegend[i]}')
     ax3.axhline(y=Rt*prel.Rsol_cgs, color = 'k', linestyle = 'dotted')
-    ax3.plot(timeDiss, np.abs(RDiss) * prel.Rsol_cgs, linestyle = '--', color = colors[i])#, label = f'Rdiss {checkslegend[i]}')
+    ax3.plot(timeRDiss_all[i], RDiss_all[i] * prel.Rsol_cgs, linestyle = '--', color = colors[i])#, label = f'Rdiss {checkslegend[i]}')
 
 ax0.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot$/yr]', fontsize = 15)
 ax2.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 15)
