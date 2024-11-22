@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 # import colorcet
 import matplotlib.colors as colors
 import Utilities.prelude as prel
+import src.orbits as orb
 
 ##
 # PARAMETERS
@@ -19,7 +20,7 @@ compton = 'Compton'
 
 Rt = Rstar * (Mbh/mstar)**(1/3)
 R0 = 0.6 * Rt
-apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
+apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
 #
 ## DECISIONS

@@ -48,7 +48,7 @@ Rs = 2*G*Mbh / c**2
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 R0 = 0.6 * Rt
-apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
+apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
 
 radii = np.logspace(np.log10(R0), np.log10(1.5*apo),

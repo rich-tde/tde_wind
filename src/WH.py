@@ -48,7 +48,7 @@ Rs = 2*G*Mbh / c**2
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 R0 = 0.6 * Rp
-apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
+apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 path = f'{abspath}TDE/{folder}{check}/{snap}'

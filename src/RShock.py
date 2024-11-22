@@ -72,7 +72,10 @@ for j, check in enumerate(checks):
     dataLum = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{check}_red.csv', delimiter=',', dtype=float)
     snapsLum = dataLum[:, 0]
     tfbLum = dataLum[:, 1]   
-    Lum = dataLum[:, 2]   
+    Lum = dataLum[:, 2]  
+
+    # dataLum = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{check}_red.csv', delimiter=',', dtype=float)
+    # tfbLum, Lum = dataLum[0], dataLum[1] 
   
     mfall_yr = np.zeros(len(time_array_cgs))
     mfall = np.zeros(len(tfb_cgs))
@@ -105,7 +108,8 @@ for j, check in enumerate(checks):
         mfall[i] = mdot # code units
         mdot_cgs = mdot * prel.Msol_cgs / prel.tsol_cgs # [CGS]
         # Find the luminosity at time t
-        idx = np.argmin(np.abs(snaps[i]-snapsLum)) # just to be sure that you match the data
+        idx = np.argmin(np.abs(tfb[i]-tfbLum)) # just to be sure that you match the data
+        # idx = np.argmin(np.abs(snaps[i]-snapsLum)) # just to be sure that you match the data
         Lum_t = Lum[idx]
         eta_sh[i] = efficiency_shock(Lum_t, mdot_cgs, prel.c_cgs) # [CGS]
         R_sh[i] = R_shock(Mbh_cgs, eta_sh[i], prel.G_cgs, prel.c_cgs) # [CGS]

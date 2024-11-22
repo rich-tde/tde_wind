@@ -27,12 +27,13 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'LowRes'
+check = 'DoubleRad'
 Rt = Rstar * (Mbh/mstar)**(1/3)
 
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
 Rdiss = np.zeros(len(snaps))
+Edisstot = np.zeros(len(snaps))
 for i,snap in enumerate(snaps):
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
@@ -41,6 +42,7 @@ for i,snap in enumerate(snaps):
     cut = data.Den > 1e-19
     Rsph, vol, Ediss_den = Rsph[cut], data.Vol[cut], data.Diss[cut]
     Ediss = Ediss_den * vol
+    Edisstot[i] = np.sum(Ediss)
 
     # Rdiss[i] = np.sum(Rsph * vol * Ediss) / np.sum(vol * Ediss)
 
@@ -49,7 +51,7 @@ for i,snap in enumerate(snaps):
 #     file.write(f'# Rdiss \n' + ' '.join(map(str, Rdiss)) + '\n')
 #     file.close()
 
-with open(f'{abspath}/data/{folder}/Rdiss_{check}.txt','a') as file:
+with open(f'{abspath}/data/{folder}/Ediss_{check}.txt','a') as file:
     file.write(f'# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-    file.write(f'# Rdiss \n' + ' '.join(map(str, Ediss)) + '\n')
+    file.write(f'# Ediss \n' + ' '.join(map(str, Edisstot)) + '\n')
     file.close()

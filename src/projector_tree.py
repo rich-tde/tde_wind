@@ -24,17 +24,6 @@ from src.orbits import make_cfr
 from Utilities.sections import make_slices
 
 #
-## CONSTANTS
-#
-
-G = 1
-G_SI = 6.6743e-11
-Msol = 2e30 #1.98847e30 # kg
-Rsol = 7e8 #6.957e8 # m
-t = np.sqrt(Rsol**3 / (Msol*G_SI ))
-c = 3e8 / (7e8/t)
-
-#
 ## FUNCTIONS
 #
 

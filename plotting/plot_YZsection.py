@@ -51,7 +51,7 @@ Rs = 2*G*Mbh / c**2
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 R0 = 0.6 * Rt
-apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
+apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
 #%% Load data and cut
 data = make_tree(path, snap, energy = True)
