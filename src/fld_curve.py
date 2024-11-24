@@ -82,13 +82,37 @@ def linearpad(D0,z0):
     return np.array(D), z
 
 def pad_interp(x,y,V):
-    Vn, xn = linearpad(V, x)
-    Vn, xn = linearpad(np.fliplr(Vn), np.flip(xn))
+    Vn, xn = new_interp(V, x)
+    Vn, xn = new_interp(np.fliplr(Vn), np.flip(xn))
     Vn = Vn.T
-    Vn, yn = linearpad(Vn, y)
-    Vn, yn = linearpad(np.fliplr(Vn), np.flip(yn))
+    Vn, yn = new_interp(Vn, y)
+    Vn, yn = new_interp(np.fliplr(Vn), np.flip(yn))
     Vn = Vn.T
     return xn, yn, Vn
+
+def new_interp(V, y, extrarows = 60):
+    # Low extrapolation
+    yslope_low = y[1] - y[0]
+    y_extra_low = [y[0] - yslope_low * (i + 1) for i in range(extrarows)]
+    
+    # High extrapolation
+    yslope_h = y[-1] - y[-2]
+    y_extra_high = [y[-1] + yslope_h * (i + 1) for i in range(extrarows)]
+    
+    # Stack, reverse low to stack properly
+    yn = np.concatenate([y_extra_low[::-1], y, y_extra_high])
+    
+    # 2D low
+    Vslope_low = V[1, :] - V[0, :]
+    Vextra_low = [V[0, :] - 10*Vslope_low * (i + 1) for i in range(extrarows)]
+    
+    # 2D high
+    Vslope_high = V[-1, :] - V[-2, :]  # Linear difference
+    Vextra_high = [V[-1, :] + Vslope_high * (i + 1) for i in range(extrarows)]
+
+    Vn = np.vstack([Vextra_low[::-1], V, Vextra_high]) 
+
+    return Vn, yn
 
 T_cool2, Rho_cool2, rossland2 = pad_interp(T_cool, Rho_cool, rossland.T)
 _, _, plank2 = pad_interp(T_cool, Rho_cool, plank.T)
@@ -288,7 +312,7 @@ for idx_s, snap in enumerate(snaps):
     if save:
         pre_saving = f'{abspath}/data/{folder}'
         data = [snap, tfb[idx_s], Lphoto_snap]
-        with open(f'{pre_saving}/{check}_red.csv', 'a', newline='') as file:
+        with open(f'{pre_saving}/{check}_redNEW.csv', 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(data)
         file.close()
