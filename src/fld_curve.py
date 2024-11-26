@@ -60,7 +60,7 @@ frequencies = np.logspace(np.log10(f_min), np.log10(f_max), f_num)
 opac_path = f'{abspath}/src/Opacity'
 T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
-plank = np.loadtxt(f'{opac_path}/planck.txt')
+# plank = np.loadtxt(f'{opac_path}/planck.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 
 # Fill value none extrapolates
@@ -115,7 +115,7 @@ def new_interp(V, y, extrarows = 60):
     return Vn, yn
 
 T_cool2, Rho_cool2, rossland2 = pad_interp(T_cool, Rho_cool, rossland.T)
-_, _, plank2 = pad_interp(T_cool, Rho_cool, plank.T)
+# _, _, plank2 = pad_interp(T_cool, Rho_cool, plank.T)
 
 # MATLAB GOES WHRRRR, thanks Cindy.
 eng = matlab.engine.start_matlab()
@@ -227,19 +227,19 @@ for idx_s, snap in enumerate(snaps):
         sigma_rossland = [sigma_rossland[0][i] for i in range(N_ray)]
         sigma_rossland_eval = np.exp(sigma_rossland) 
 
-        sigma_plank = eng.interp2(T_cool2,Rho_cool2,plank2,np.log(t),np.log(d),'linear',0)
-        sigma_plank = [sigma_plank[0][i] for i in range(N_ray)]
-        sigma_plank_eval = np.exp(sigma_plank)
-        del sigma_rossland, sigma_plank 
+        # sigma_plank = eng.interp2(T_cool2,Rho_cool2,plank2,np.log(t),np.log(d),'linear',0)
+        # sigma_plank = [sigma_plank[0][i] for i in range(N_ray)]
+        # sigma_plank_eval = np.exp(sigma_plank)
+        del sigma_rossland#, sigma_plank 
         gc.collect()
 
         # Optical Depth ---------------------------------------------------------------
         # Okay, line 232, this is the hard one.
         r_fuT = np.flipud(r.T)
         kappa_rossland = np.flipud(sigma_rossland_eval) 
-        los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, r_fuT, initial = 0)) * prel.Rsol_cgs # dont know what it do but this is the conversion
-        k_effective = np.sqrt(3 * np.flipud(sigma_plank_eval) * np.flipud(sigma_rossland_eval)) 
-        los_effective = - np.flipud(sci.cumulative_trapezoid(k_effective, r_fuT, initial = 0)) * prel.Rsol_cgs
+        los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
+        # k_effective = np.sqrt(3 * np.flipud(sigma_plank_eval) * np.flipud(sigma_rossland_eval)) 
+        # los_effective = - np.flipud(sci.cumulative_trapezoid(k_effective, r_fuT, initial = 0)) * prel.Rsol_cgs
 
         # Red -----------------------------------------------------------------------
         # Get 20 unique, nearest neighbors
@@ -247,7 +247,7 @@ for idx_s, snap in enumerate(snaps):
         xyz3 = np.array([X[idx], Y[idx], Z[idx]]).T
         _, idxnew = tree.query(xyz3, k=20)
         idxnew = np.unique(idxnew).T
-        dx = 0.5 * Vol[idx]**(1/3) # Cell radius
+        dx = 0.5 * Vol[idx]**(1/3) # Cell radius #the constant should be 0.62
 
         # Get the Grads
         # sphere and get the gradient on them. Is it neccecery to re-interpolate?
@@ -294,12 +294,13 @@ for idx_s, snap in enumerate(snaps):
         try:
             b = np.where( ((smoothed_flux>0) & (los<2/3) ))[0][0] 
         except IndexError:
+            print('No b found, observer ', i)
             b = 3117 # elad_b = 3117
         Lphoto2 = 4*np.pi*prel.c_cgs*smoothed_flux[b] * prel.Msol_cgs / (prel.tsol_cgs**2)
         EEr = Rad_den[idx]
         if Lphoto2 < 0:
             Lphoto2 = 1e100 # it means that it will always pick max_length for the negatives
-        max_length = 4*np.pi*prel.c_cgs*EEr[b]*r[b]**2 * prel.Msol_cgs * prel.Rsol_cgs / (prel.tsol_cgs**2)
+        max_length = 4*np.pi*prel.c_cgs*EEr[b]*r[b]**2 * prel.Msol_cgs * prel.Rsol_cgs / (prel.tsol_cgs**2) #the conversion is for Erad: energy*r^2/lenght^3 [in SI would be kg m^2/s^2 * m^2 * 1/m^3]
         Lphoto = np.min( [Lphoto2, max_length])
         reds[i] = Lphoto
         del smoothed_flux, R_lamda, fld_factor, EEr, los,
@@ -317,15 +318,4 @@ for idx_s, snap in enumerate(snaps):
             writer.writerow(data)
         file.close()
 
-# Save all days and red
-# if save:
-#     pre_saving = f'/data1/martirep/shocks/shock_capturing/data/{folder}/red'
-#     if check == '':
-#         print('change check')
-#         check = 'Low'
-#     with open(f'{pre_saving}/{check}_eladred.txt', 'a') as file:
-#         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-#         file.write('# FLD \n' + ' '.join(map(str, Lphoto_all)) + '\n')
-#         file.close()
-#     print('saved all days and red')
 eng.exit()

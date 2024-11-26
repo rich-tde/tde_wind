@@ -96,7 +96,7 @@ cb.set_label(r'Energy density [erg/cm$^3$]', fontsize = 20, labelpad = 2)
 for i in range(3):
     ax[i].axvline(Rt/apo, linestyle ='dashed', c = 'k', linewidth = 1.2)
     ax[i].set_xscale('log')
-    ax[i].set_xlabel(r'$R/R_a$', fontsize = 20)
+    ax[i].set_xlabel(r'$R [R_a$]', fontsize = 20)
     # Get the existing ticks on the x-axis
     original_ticks = ax[i].get_yticks()
     # Calculate midpoints between each pair of ticks
@@ -111,7 +111,7 @@ for i in range(3):
     ax[i].tick_params(axis='x', which='minor', width=0.5, length=5)
     ax[i].tick_params(axis='y', which='both', width=0.7, length=5)
     ax[i].set_ylim(np.min(tfb_res1), np.max(tfb_res1))
-ax[0].set_ylabel(r't/t$_{fb}$', fontsize = 20)
+ax[0].set_ylabel(r't [t$_{fb}]$', fontsize = 20)
 plt.tight_layout()
 if save:
     plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}{res1}/coloredE_radii.pdf')
@@ -225,25 +225,25 @@ cb = fig.colorbar(img)
 cb.ax.tick_params(labelsize=20)
 cb.set_label(r'$\Delta_{\rm rel}$ Middle-High', fontsize = 24)
 
+# Get the existing ticks on the x-axis
+original_ticks = ax[0][0].get_yticks()
+# Calculate midpoints between each pair of ticks
+midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+# Combine the original ticks and midpoints
+new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+# labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
 for i in range(2):
     for j in range(2):
         ax[i][j].axvline(Rt/apo, linestyle ='dashed', c = 'k', linewidth = 1.2)
         ax[i][j].set_xscale('log')
         if i == 1:
-            ax[i][j].set_xlabel(r'$R/R_{\rm a}$', fontsize = 22)
+            ax[i][j].set_xlabel(r'$R [R_{\rm a}]$', fontsize = 22)
         if j == 0:
-            ax[i][j].set_ylabel(r't/t$_{\rm fb}$', fontsize = 24)
+            ax[i][j].set_ylabel(r't [t$_{\rm fb}]$', fontsize = 24)
 
-        # Get the existing ticks on the x-axis
-        original_ticks = ax[i][j].get_yticks()
-        # Calculate midpoints between each pair of ticks
-        midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-        # Combine the original ticks and midpoints
-        new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
         # Set tick labels: empty labels for midpoints
         ax[i][j].set_yticks(new_ticks)
-        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-        ax[i][j].set_yticklabels(labels)
+        # ax[i][j].set_yticklabels(labels)
         ax[i][j].tick_params(axis='x', which='major', width=0.7, length=7)
         ax[i][j].tick_params(axis='x', which='minor', width=0.5, length=5)
         ax[i][j].tick_params(axis='y', which='both', width=0.7, length=5)
@@ -266,7 +266,7 @@ plt.plot(tfb_res2, median_rel_orbH, '--', label = r'$\Delta_{OE}$ Middle-High', 
 plt.plot(tfb_res0, median_rel_ieL, label = r'$\Delta_{IE}$ Low-Middle', c = 'coral')
 plt.plot(tfb_res2, median_rel_ieH, '--', label = r'$\Delta_{IE}$ Middle-High', c = 'coral')
 plt.ylabel('Median relative difference', fontsize = 25)
-plt.xlabel(r't/t$_{fb}$', fontsize = 25)
+plt.xlabel(r't [t$_{fb}]$', fontsize = 25)
 plt.yscale('log')
 plt.legend(fontsize = 20)
 plt.tight_layout()
@@ -284,26 +284,26 @@ img = ax[1].pcolormesh(radiires2/apo, tfb_res2, rel_Rad_absH, cmap=cmap, norm=no
 cb = fig.colorbar(img)
 cb.set_label(r'$\Delta_{\rm rel}$ Middle-High', fontsize = 24)
 
+# Get the existing ticks on the x-axis
+original_ticks = ax[0].get_yticks()
+# Calculate midpoints between each pair of ticks
+midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+# Combine the original ticks and midpoints
+new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+# labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
 for i in range(2):
     ax[i].axvline(Rt/apo, linestyle ='--', c = 'k', linewidth = 1.5)
     ax[i].set_xscale('log')
-    ax[i].set_ylabel(r't/t$_{\rm fb}$', fontsize = 25)
-    # Get the existing ticks on the x-axis
-    original_ticks = ax[i].get_yticks()
-    # Calculate midpoints between each pair of ticks
-    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-    # Combine the original ticks and midpoints
-    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+    ax[i].set_ylabel(r't [t$_{\rm fb}]$', fontsize = 25)
     # Set tick labels: empty labels for midpoints
     ax[i].set_yticks(new_ticks)
-    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-    ax[i].set_yticklabels(labels)
+    # ax[i].set_yticklabels(labels)
     ax[i].tick_params(axis='x', which='major', width=0.7, length=7)
     ax[i].tick_params(axis='x', which='minor', width=0.5, length=5)
     ax[i].tick_params(axis='y', which='both', width=0.7, length=5)
 ax[0].set_ylim(np.min(tfb_res0), np.max(tfb_res0))
 ax[1].set_ylim(np.min(tfb_res2), np.max(tfb_res2))
-ax[1].set_xlabel(r'$R/R_{\rm a}$', fontsize = 25)
+ax[1].set_xlabel(r'$R [R_{\rm a}]$', fontsize = 25)
 
 plt.tick_params(axis = 'both', which = 'both', direction='in')
 plt.tight_layout()
@@ -316,7 +316,7 @@ plt.figure(figsize = (7,5))
 plt.plot(tfb_res0, median_rel_radL, label = r'$\Delta_{rad}$ Low-Middle', c = 'navy')
 plt.plot(tfb_res2, median_rel_radH, '--', label = r'$\Delta_{rad}$ Middle-High', c = 'navy')
 plt.ylabel('Median relative difference', fontsize = 25)
-plt.xlabel(r't/t$_{fb}$', fontsize = 25)
+plt.xlabel(r't [t_{fb}]$', fontsize = 25)
 plt.yscale('log')
 plt.legend(fontsize = 20)
 plt.tight_layout()
@@ -324,113 +324,114 @@ if save:
     plt.savefig(f'/Users/paolamartire/shocks/Figs/multiple/rad_diffTime.pdf')
 plt.show()
 
-#%% Lines
-indices = [np.argmin(np.abs(tfb_res1-0.5)), np.argmin(np.abs(tfb_res1-0.7)), np.argmin(np.abs(tfb_res1-0.86))]
-heigth_text = np.array([3e40, 1e43, 4e44])
-colors_indices = ['navy', 'royalblue', 'deepskyblue']
-col_Lum0 = np.load(f'{path}LowRes/colormapE_alice/coloredE_LowRes_radiimixedLum.npy') 
-radiiLum0 = np.load(f'{path}LowRes/colormapE_alice/radiiEn_LowResLum.npy')
-col_Lum0 = col_Lum0 * prel.en_den_converter
-col_Lum1 = np.load(f'{path}/colormapE_alice/coloredE__radiimixedLum.npy') 
-radiiLum1 = np.load(f'{path}/colormapE_alice/radiiEn_Lum.npy')
-col_Lum1 = col_Lum1 * prel.en_den_converter
-col_Lum2 = np.load(f'{path}HiRes/colormapE_alice/coloredE_HiRes_radiimixedLum.npy') 
-radiiLum2 = np.load(f'{path}HiRes/colormapE_alice/radiiEn_HiResLum.npy')
-col_Lum2 = col_Lum2 * prel.en_den_converter
+#%% Free streaming luminosity. See what happpen at large radii, where L=4pi R^2 c Erad
+free_streaming = False
+if free_streaming:
+    indices = [np.argmin(np.abs(tfb_res1-0.5)), np.argmin(np.abs(tfb_res1-0.7)), np.argmin(np.abs(tfb_res1-0.86))]
+    heigth_text = np.array([3e40, 1e43, 4e44])
+    colors_indices = ['navy', 'royalblue', 'deepskyblue']
+    col_Lum0 = np.load(f'{path}LowRes/colormapE_alice/coloredE_LowRes_radiimixedLum.npy') 
+    radiiLum0 = np.load(f'{path}LowRes/colormapE_alice/radiiEn_LowResLum.npy')
+    col_Lum0 = col_Lum0 * prel.en_den_converter
+    col_Lum1 = np.load(f'{path}/colormapE_alice/coloredE__radiimixedLum.npy') 
+    radiiLum1 = np.load(f'{path}/colormapE_alice/radiiEn_Lum.npy')
+    col_Lum1 = col_Lum1 * prel.en_den_converter
+    col_Lum2 = np.load(f'{path}HiRes/colormapE_alice/coloredE_HiRes_radiimixedLum.npy') 
+    radiiLum2 = np.load(f'{path}HiRes/colormapE_alice/radiiEn_HiResLum.npy')
+    col_Lum2 = col_Lum2 * prel.en_den_converter
 
-radiiLum0 = np.repeat([radiiLum0],len(col_Lum0), axis = 0)
-radiiLum1 = np.repeat([radiiLum1],len(col_Lum1), axis = 0)
-radiiLum2 = np.repeat([radiiLum2],len(col_Lum2), axis = 0)
+    radiiLum0 = np.repeat([radiiLum0],len(col_Lum0), axis = 0)
+    radiiLum1 = np.repeat([radiiLum1],len(col_Lum1), axis = 0)
+    radiiLum2 = np.repeat([radiiLum2],len(col_Lum2), axis = 0)
 
-Lum0_cgs = col_Lum0  * prel.c * 4 * np.pi * (radiiLum0*prel.Rsol_cgs)**2 
-Lum_cgs = col_Lum1  * prel.c * 4 * np.pi * (radiiLum1*prel.Rsol_cgs)**2 
-Lum2_cgs = col_Lum2 * prel.c * 4 * np.pi * (radiiLum2*prel.Rsol_cgs)**2 
+    Lum0_cgs = col_Lum0  * prel.c * 4 * np.pi * (radiiLum0*prel.Rsol_cgs)**2 
+    Lum_cgs = col_Lum1  * prel.c * 4 * np.pi * (radiiLum1*prel.Rsol_cgs)**2 
+    Lum2_cgs = col_Lum2 * prel.c * 4 * np.pi * (radiiLum2*prel.Rsol_cgs)**2 
 
-Lum_difference0 = []
-for i in range(len(tfb_res0)):
-    # find the comparable time in res1
-    time = tfb_res0[i]
-    idx = np.argmin(np.abs(tfb_res1 - time))
-    denom0 = (Lum_cgs[idx] + Lum0_cgs[i])/2
-    Lum_difference0.append(np.abs(Lum_cgs[idx]-Lum0_cgs[i])/denom0)
+    Lum_difference0 = []
+    for i in range(len(tfb_res0)):
+        # find the comparable time in res1
+        time = tfb_res0[i]
+        idx = np.argmin(np.abs(tfb_res1 - time))
+        denom0 = (Lum_cgs[idx] + Lum0_cgs[i])/2
+        Lum_difference0.append(np.abs(Lum_cgs[idx]-Lum0_cgs[i])/denom0)
 
-Lum_difference2 = []
-for i in range(len(tfb_res2)):
-    # find the comparable time in res1
-    time = tfb_res2[i]
-    idx = np.argmin(np.abs(tfb_res1 - time))
-    denom2 = (Lum_cgs[idx] + Lum2_cgs[i])/2
-    Lum_difference2.]append(np.abs(Lum_cgs[idx]-Lum2_cgs[i])/denom2)
+    Lum_difference2 = []
+    for i in range(len(tfb_res2)):
+        # find the comparable time in res1
+        time = tfb_res2[i]
+        idx = np.argmin(np.abs(tfb_res1 - time))
+        denom2 = (Lum_cgs[idx] + Lum2_cgs[i])/2
+        Lum_difference2.append(np.abs(Lum_cgs[idx]-Lum2_cgs[i])/denom2)
 
-img, ax = plt.subplots(1,2, figsize = (20,7))
-for i,idx in enumerate(indices):
-    where_zero0 = np.concatenate(np.where(Lum0_cgs[idx]<1e-18))
-    where_zero = np.concatenate(np.where(Lum_cgs[idx]<1e-18))
-    where_zero2 = np.concatenate(np.where(Lum2_cgs[idx]<1e-18))
-    where_zero0 = np.concatenate([where_zero0, where_zero])
-    where_zero2 = np.concatenate([where_zero2, where_zero])
-    Lum0_cgs_toplot= np.delete(Lum0_cgs[idx], where_zero0)
-    Lum_cgs_toplot= np.delete(Lum_cgs[idx], where_zero)
-    Lum2_cgs_toplot = np.delete(Lum2_cgs[idx], where_zero2)
+    img, ax = plt.subplots(1,2, figsize = (20,7))
+    for i,idx in enumerate(indices):
+        where_zero0 = np.concatenate(np.where(Lum0_cgs[idx]<1e-18))
+        where_zero = np.concatenate(np.where(Lum_cgs[idx]<1e-18))
+        where_zero2 = np.concatenate(np.where(Lum2_cgs[idx]<1e-18))
+        where_zero0 = np.concatenate([where_zero0, where_zero])
+        where_zero2 = np.concatenate([where_zero2, where_zero])
+        Lum0_cgs_toplot= np.delete(Lum0_cgs[idx], where_zero0)
+        Lum_cgs_toplot= np.delete(Lum_cgs[idx], where_zero)
+        Lum2_cgs_toplot = np.delete(Lum2_cgs[idx], where_zero2)
 
-    radiiLum0_toplot = np.delete(radiiLum0[idx], where_zero0)
-    radiiLum1_toplot = np.delete(radiiLum1[idx], where_zero)
-    radiiLum2_toplot = np.delete(radiiLum2[idx], where_zero2)
+        radiiLum0_toplot = np.delete(radiiLum0[idx], where_zero0)
+        radiiLum1_toplot = np.delete(radiiLum1[idx], where_zero)
+        radiiLum2_toplot = np.delete(radiiLum2[idx], where_zero2)
 
-    Lum_difference0_toplot =  np.delete(Lum_difference0[idx], where_zero0) #Lum_difference0[idx]#
-    Lum_difference2_toplot = np.delete(Lum_difference2[idx], where_zero2) #Lum_difference2[idx]
+        Lum_difference0_toplot =  np.delete(Lum_difference0[idx], where_zero0) #Lum_difference0[idx]#
+        Lum_difference2_toplot = np.delete(Lum_difference2[idx], where_zero2) #Lum_difference2[idx]
 
-    ax[0].text(np.min(radiiLum0_toplot)/apo, heigth_text[i], f't = {np.round(tfb_res1[indices[i]],2)}' +  r'$t_{fb}$', fontsize = 16)
-    if i == 0:
-        ax[0].plot(radiiLum0_toplot/apo, Lum0_cgs_toplot, linestyle = 'dotted', c = colors_indices[i], label = f'{res0} res')#t/tfb = {np.round(tfb_Low,2)}')
-        ax[0].plot(radiiLum1_toplot/apo, Lum_cgs_toplot, c = colors_indices[i], label = f'{res1} res')#t/tfb = {np.round(tfb_Low,2)}')
-        ax[0].plot(radiiLum2_toplot/apo, Lum2_cgs_toplot, '--', c = colors_indices[i], label = f'{res2} res')#t/tfb = {np.round(tfb_res2,2)}')
-        ax[1].plot(radiiLum0_toplot/apo, Lum_difference0_toplot,  c = colors_indices[i], label = f'Low-middle')
-        ax[1].plot(radiiLum2_toplot/apo, Lum_difference2_toplot, c = colors_indices[i], label = f'High-middle')
-    else:   
-        ax[0].plot(radiiLum0_toplot/apo, Lum0_cgs_toplot, linestyle = 'dotted', c = colors_indices[i])
-        ax[0].plot(radiiLum1_toplot/apo, Lum_cgs_toplot, c = colors_indices[i])
-        ax[0].plot(radiiLum2_toplot/apo, Lum2_cgs_toplot, '--', c = colors_indices[i])
-        ax[1].plot(radiiLum0_toplot/apo, Lum_difference0_toplot, c = colors_indices[i])
-        ax[1].plot(radiiLum2_toplot/apo, Lum_difference2_toplot, '--', c = colors_indices[i])
+        ax[0].text(np.min(radiiLum0_toplot)/apo, heigth_text[i], f't = {np.round(tfb_res1[indices[i]],2)}' +  r'$t_{fb}$', fontsize = 16)
+        if i == 0:
+            ax[0].plot(radiiLum0_toplot/apo, Lum0_cgs_toplot, linestyle = 'dotted', c = colors_indices[i], label = f'{res0} res')#t/tfb = {np.round(tfb_Low,2)}')
+            ax[0].plot(radiiLum1_toplot/apo, Lum_cgs_toplot, c = colors_indices[i], label = f'{res1} res')#t/tfb = {np.round(tfb_Low,2)}')
+            ax[0].plot(radiiLum2_toplot/apo, Lum2_cgs_toplot, '--', c = colors_indices[i], label = f'{res2} res')#t/tfb = {np.round(tfb_res2,2)}')
+            ax[1].plot(radiiLum0_toplot/apo, Lum_difference0_toplot,  c = colors_indices[i], label = f'Low-middle')
+            ax[1].plot(radiiLum2_toplot/apo, Lum_difference2_toplot, c = colors_indices[i], label = f'High-middle')
+        else:   
+            ax[0].plot(radiiLum0_toplot/apo, Lum0_cgs_toplot, linestyle = 'dotted', c = colors_indices[i])
+            ax[0].plot(radiiLum1_toplot/apo, Lum_cgs_toplot, c = colors_indices[i])
+            ax[0].plot(radiiLum2_toplot/apo, Lum2_cgs_toplot, '--', c = colors_indices[i])
+            ax[1].plot(radiiLum0_toplot/apo, Lum_difference0_toplot, c = colors_indices[i])
+            ax[1].plot(radiiLum2_toplot/apo, Lum_difference2_toplot, '--', c = colors_indices[i])
 
-    mean_error0 =  np.round(np.mean(Lum_difference0_toplot[-15:-1]),2)
-    mean_error2 =  np.round(np.mean(Lum_difference2_toplot[-15:-1]),2)
-    print(f'Mean relative error for t/tfb = {tfb_res1[indices[i]]} is {mean_error0} for the low-middle and {mean_error2} for the high-middle')
+        mean_error0 =  np.round(np.mean(Lum_difference0_toplot[-15:-1]),2)
+        mean_error2 =  np.round(np.mean(Lum_difference2_toplot[-15:-1]),2)
+        print(f'Mean relative error for t/tfb = {tfb_res1[indices[i]]} is {mean_error0} for the low-middle and {mean_error2} for the high-middle')
 
-ax[0].set_ylim(1e40, 5e45)
-ax[1].set_ylim(0.1, 1.8)
+    ax[0].set_ylim(1e40, 5e45)
+    ax[1].set_ylim(0.1, 1.8)
 
-ax[0].tick_params(axis='both', which='major', labelsize=25)
-ax[1].tick_params(axis='both', which='major', labelsize=25)
-ax[0].tick_params(axis='both', which='minor', size=4)
-ax[1].tick_params(axis='both', which='minor', size=4)
-ax[0].tick_params(axis='both', which='major', size=6)
-ax[1].tick_params(axis='both', which='major', size=6)
-ax[0].set_xlabel(r'R/R$_a$', fontsize = 28)
-ax[1].set_xlabel(r'$R/R_a$', fontsize = 28)
-ax[0].set_ylabel(r'Luminosity [erg/s]', fontsize = 25)
-ax[1].set_ylabel(r'Relative difference', fontsize = 25, labelpad = 1)
-ax[0].loglog()
-ax[0].legend(fontsize = 25)
-ax[0].grid()
-ax[1].grid()
-ax[1].loglog()
-plt.subplots_adjust(wspace=4)
-plt.tight_layout()
-if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/multiple/Luminositymixed.pdf')
-plt.show()
+    ax[0].tick_params(axis='both', which='major', labelsize=25)
+    ax[1].tick_params(axis='both', which='major', labelsize=25)
+    ax[0].tick_params(axis='both', which='minor', size=4)
+    ax[1].tick_params(axis='both', which='minor', size=4)
+    ax[0].tick_params(axis='both', which='major', size=6)
+    ax[1].tick_params(axis='both', which='major', size=6)
+    ax[0].set_xlabel(r'R/R$_a$', fontsize = 28)
+    ax[1].set_xlabel(r'$R/R_a$', fontsize = 28)
+    ax[0].set_ylabel(r'Luminosity [erg/s]', fontsize = 25)
+    ax[1].set_ylabel(r'Relative difference', fontsize = 25, labelpad = 1)
+    ax[0].loglog()
+    ax[0].legend(fontsize = 25)
+    ax[0].grid()
+    ax[1].grid()
+    ax[1].loglog()
+    plt.subplots_adjust(wspace=4)
+    plt.tight_layout()
+    if save:
+        plt.savefig(f'/Users/paolamartire/shocks/Figs/multiple/Luminositymixed.pdf')
+    plt.show()
 
-# for i,idx in enumerate(indices):
-#     if i ==2:
-#         continue
-#     after = Lum2_cgs[indices[i+1]]
-#     before = Lum2_cgs[indices[i]]
-#     mean_lastafter = np.mean(after[-10:-1])
-#     mean_lastbefore = np.mean(before[-10:-1])
-#     print(tfb_res1[indices[i+1]], tfb_res1[indices[i]])
-    # print(f'The relative difference of the last point of the high res line is {np.round((mean_lastafter-mean_lastbefore),2)}')
+    # for i,idx in enumerate(indices):
+    #     if i ==2:
+    #         continue
+    #     after = Lum2_cgs[indices[i+1]]
+    #     before = Lum2_cgs[indices[i]]
+    #     mean_lastafter = np.mean(after[-10:-1])
+    #     mean_lastbefore = np.mean(before[-10:-1])
+    #     print(tfb_res1[indices[i+1]], tfb_res1[indices[i]])
+        # print(f'The relative difference of the last point of the high res line is {np.round((mean_lastafter-mean_lastbefore),2)}')
 
 
-# %%
