@@ -102,7 +102,7 @@ if __name__ == '__main__':
             np.save(f'{abspath}/data/{folder}/radiiEcc_{check}.npy', radii)
     
     else:
-        difference = False
+        difference = True
 
         if not difference:
             path = f'{abspath}/data/{folder}'
@@ -183,16 +183,16 @@ if __name__ == '__main__':
 
             #%% Plot
             fig = plt.figure(figsize=(20, 6))
-            gs = gridspec.GridSpec(2, 3, width_ratios=[1,1,1.5], height_ratios=[3, 0.5], hspace=0.4, wspace = 0.3)
+            gs = gridspec.GridSpec(2, 3, width_ratios=[1,1,1.5], height_ratios=[3, 0.5], hspace=0.5, wspace = 0.3)
             ax1 = fig.add_subplot(gs[0, 0])  # First plot
             ax2 = fig.add_subplot(gs[0, 1])  # Second plot
             ax3 = fig.add_subplot(gs[0, 2])  # Third plot
 
-            img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'plasma', norm = colors.LogNorm(vmin = 1e-3, vmax=1e-1))
+            img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'inferno', norm = colors.LogNorm(vmin = 1e-3, vmax=1e-1))
             ax1.set_xscale('log')
             ax1.set_title('Low and Middle', fontsize = 20)
 
-            img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'plasma', norm = colors.LogNorm(vmin = 1e-3, vmax=1e-1))
+            img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'inferno', norm = colors.LogNorm(vmin = 1e-3, vmax=1e-1))
             ax2.set_xscale('log')
             ax2.set_title('Middle and High', fontsize = 20)
 
@@ -211,9 +211,13 @@ if __name__ == '__main__':
             ax3.grid()
 
             for ax in [ax1, ax2, ax3]:
-                ax.set_xlabel(r'$R/R_{a}$', fontsize = 20)
+                ax.set_xlabel(r'$R [R_{a}]$', fontsize = 20)
                 if ax!=ax3:
-                    ax.set_ylabel(r'$t/t_{fb}$', fontsize = 20)
+                    ax.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed')
+                    ax.tick_params(axis='x', which='major', width=1.2, length=7, color = 'white',)
+                    ax.tick_params(axis='x', which='minor', width=1, length=5, color = 'white',)
+                    ax.tick_params(axis='y', which='both', width=1.2, length=6, color = 'k',)
+                    ax.set_ylabel(r'$t [t_{fb}]$', fontsize = 20)
             
             plt.savefig(f'{abspath}/Figs/multiple/ecc_diff.pdf')
 

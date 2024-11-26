@@ -23,6 +23,7 @@ import scipy.integrate as sci
 from scipy.interpolate import griddata
 import matlab.engine
 from sklearn.neighbors import KDTree
+from src.Opacity.linextrapolator import extrapolator_flipper
 
 
 import Utilities.prelude as prel
@@ -64,58 +65,60 @@ Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 
 # Fill value none extrapolates
-def linearpad(D0,z0):
-    factor = 100
-    dz = z0[-1] - z0[-2]
-    # print(np.shape(D0))
-    dD = D0[:,-1] - D0[:,-2]
+# def linearpad(D0,z0):
+#     factor = 100
+#     dz = z0[-1] - z0[-2]
+#     # print(np.shape(D0))
+#     dD = D0[:,-1] - D0[:,-2]
     
-    z = [zi for zi in z0]
-    z.append(z[-1] + factor*dz)
-    z = np.array(z)
-    #D = [di for di in D0]
+#     z = [zi for zi in z0]
+#     z.append(z[-1] + factor*dz)
+#     z = np.array(z)
+#     #D = [di for di in D0]
 
-    to_stack = np.add(D0[:,-1], factor*dD)
-    to_stack = np.reshape(to_stack, (len(to_stack),1) )
-    D = np.hstack((D0, to_stack))
-    #D.append(to_stack)
-    return np.array(D), z
+#     to_stack = np.add(D0[:,-1], factor*dD)
+#     to_stack = np.reshape(to_stack, (len(to_stack),1) )
+#     D = np.hstack((D0, to_stack))
+#     #D.append(to_stack)
+#     return np.array(D), z
 
-def pad_interp(x,y,V):
-    Vn, xn = new_interp(V, x)
-    Vn, xn = new_interp(np.fliplr(Vn), np.flip(xn))
-    Vn = Vn.T
-    Vn, yn = new_interp(Vn, y)
-    Vn, yn = new_interp(np.fliplr(Vn), np.flip(yn))
-    Vn = Vn.T
-    return xn, yn, Vn
+# def pad_interp(x,y,V):
+#     Vn, xn = new_interp(V, x)
+#     Vn, xn = new_interp(np.fliplr(Vn), np.flip(xn))
+#     Vn = Vn.T
+#     Vn, yn = new_interp(Vn, y)
+#     Vn, yn = new_interp(np.fliplr(Vn), np.flip(yn))
+#     Vn = Vn.T
+#     return xn, yn, Vn
 
-def new_interp(V, y, extrarows = 60):
-    # Low extrapolation
-    yslope_low = y[1] - y[0]
-    y_extra_low = [y[0] - yslope_low * (i + 1) for i in range(extrarows)]
+# def new_interp(V, y, extrarows = 60):
+#     # Low extrapolation
+#     yslope_low = y[1] - y[0]
+#     y_extra_low = [y[0] - yslope_low * (i + 1) for i in range(extrarows)]
     
-    # High extrapolation
-    yslope_h = y[-1] - y[-2]
-    y_extra_high = [y[-1] + yslope_h * (i + 1) for i in range(extrarows)]
+#     # High extrapolation
+#     yslope_h = y[-1] - y[-2]
+#     y_extra_high = [y[-1] + yslope_h * (i + 1) for i in range(extrarows)]
     
-    # Stack, reverse low to stack properly
-    yn = np.concatenate([y_extra_low[::-1], y, y_extra_high])
+#     # Stack, reverse low to stack properly
+#     yn = np.concatenate([y_extra_low[::-1], y, y_extra_high])
     
-    # 2D low
-    Vslope_low = V[1, :] - V[0, :]
-    Vextra_low = [V[0, :] - 10*Vslope_low * (i + 1) for i in range(extrarows)]
+#     # 2D low
+#     Vslope_low = V[1, :] - V[0, :]
+#     Vextra_low = [V[0, :] - 10*Vslope_low * (i + 1) for i in range(extrarows)]
     
-    # 2D high
-    Vslope_high = V[-1, :] - V[-2, :]  # Linear difference
-    Vextra_high = [V[-1, :] + Vslope_high * (i + 1) for i in range(extrarows)]
+#     # 2D high
+#     Vslope_high = V[-1, :] - V[-2, :]  # Linear difference
+#     Vextra_high = [V[-1, :] + Vslope_high * (i + 1) for i in range(extrarows)]
 
-    Vn = np.vstack([Vextra_low[::-1], V, Vextra_high]) 
+#     Vn = np.vstack([Vextra_low[::-1], V, Vextra_high]) 
 
-    return Vn, yn
+#     return Vn, yn
 
-T_cool2, Rho_cool2, rossland2 = pad_interp(T_cool, Rho_cool, rossland.T)
-# _, _, plank2 = pad_interp(T_cool, Rho_cool, plank.T)
+# T_cool2, Rho_cool2, rossland2 = pad_interp(T_cool, Rho_cool, rossland.T)
+
+T_cool2, Rho_cool2, rossland2 = extrapolator_flipper(T_cool, Rho_cool, rossland.T)
+# _, _, plank2 = extrapolator_flipper(T_cool, Rho_cool, plank.T)
 
 # MATLAB GOES WHRRRR, thanks Cindy.
 eng = matlab.engine.start_matlab()

@@ -96,7 +96,7 @@ vminmass = np.percentile(Mass_midplaneH, 5)
 vmaxmass = np.percentile(Mass_midplaneH, 95)
 vmindim = np.percentile(dim_midplaneH, 5)
 vmaxdim = np.percentile(dim_midplaneH, 95)
-fig = plt.figure(figsize=(14, 8))
+fig = plt.figure(figsize=(13, 8))
 gs = gridspec.GridSpec(2, 4, width_ratios=[1, 1, 1, 0.05])  # Adjust width_ratios for panels
 ax0 = fig.add_subplot(gs[0, 0])
 imgL = ax0.scatter(X_midplaneL, Y_midplaneL, c = Mass_midplaneL, s = 1, cmap = 'plasma', norm=colors.LogNorm(vmin=vminmass, vmax=vmaxmass))

@@ -108,21 +108,21 @@ if alice:
     
 if compare_times:
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    datadays = np.loadtxt(f'{abspath}data/{folder}/dMdE__days.txt')
+    datadays = np.loadtxt(f'{abspath}data/{folder}/dMdEdistrib__days.txt')
     snaps, tfb= datadays[0], datadays[1]
-    bins = np.loadtxt(f'{abspath}data/{folder}/dMdE__bins.txt')
+    bins = np.loadtxt(f'{abspath}data/{folder}/dMdEdistrib__bins.txt')
     mid_points = (bins[:-1]+bins[1:])/2
-    data = np.loadtxt(f'{abspath}data/{folder}/dMdE_.txt')
+    data = np.loadtxt(f'{abspath}data/{folder}/dMdEdistrib_.txt')
     
-    datadaysH = np.loadtxt(f'{abspath}data/{folder}HiRes/dMdE_HiRes_days.txt')
+    datadaysH = np.loadtxt(f'{abspath}data/{folder}HiRes/dMdEdistrib_HiRes_days.txt')
     snapsH, tfbH = datadaysH[0], datadaysH[1]
-    dataH = np.loadtxt(f'{abspath}data/{folder}HiRes/dMdE_HiRes.txt')
+    dataH = np.loadtxt(f'{abspath}data/{folder}HiRes/dMdEdistrib_HiRes.txt')
     
-    datadaysL = np.loadtxt(f'{abspath}data/{folder}LowRes/dMdE_LowRes_days.txt')
+    datadaysL = np.loadtxt(f'{abspath}data/{folder}LowRes/dMdEdistrib_LowRes_days.txt')
     snapsL, tfbL = datadaysL[0], datadaysL[1]
-    dataL = np.loadtxt(f'{abspath}data/{folder}LowRes/dMdE_LowRes.txt')
+    dataL = np.loadtxt(f'{abspath}data/{folder}LowRes/dMdEdistrib_LowRes.txt')
 
-    selected_times = [0.05, 0.7, 0.86]#, tfbH[-1]]
+    selected_times = [0.05, 1., tfbH[-1]]
     colors = ['forestgreen', 'seagreen', 'darkgreen']
     colorsH = ['maroon', 'coral', 'orange']
     colorsL = ['dodgerblue', 'slateblue', 'skyblue']
