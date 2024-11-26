@@ -15,7 +15,6 @@ else:
 import numpy as np
 import matplotlib.pyplot as plt
 import colorcet
-import pickle
 import matplotlib.colors as colors
 from Utilities.operators import make_tree, single_branch
 import Utilities.sections as sec
@@ -115,26 +114,28 @@ if __name__ == '__main__':
             radii = np.load(f'{path}/radiiEcc2_{check}.npy')
             
             # Plot
-            img = plt.pcolormesh(radii/apo, tfb, ecc, vmin = 0.6, vmax = 1, cmap = 'cet_rainbow4')
+            plt.figure(figsize=(10,8))
+            img = plt.pcolormesh(radii/apo, tfb, ecc, vmin = 0.55, vmax = 1, cmap = 'plasma')
             cb = plt.colorbar(img)
+            cb.ax.tick_params(labelsize=25)
+            cb.set_label(r'Eccentricity', fontsize = 25, labelpad = 1)
+            plt.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed')
             plt.xscale('log')
-            cb.set_label(r'Eccentricity', fontsize = 20, labelpad = 2)
-            plt.xlabel(r'$R/R_{a}$', fontsize = 20)
-            plt.ylabel(r'$t/t_{fb}$', fontsize = 20)
+            plt.xlabel(r'$R [R_{a}]$', fontsize = 25)
+            plt.ylabel(r'$t [t_{fb}]$', fontsize = 25)
             # Bigger ticks:
             # Get the existing ticks on the x-axis
-            original_ticks = plt.yticks()[0]
+            # original_ticks = plt.yticks()[0]
             # Calculate midpoints between each pair of ticks
-            midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+            # midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
             # Combine the original ticks and midpoints
-            new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+            # new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
             # Set tick labels: empty labels for midpoints
-            labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]
-            plt.yticks(new_ticks, labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks])
-            plt.tick_params(axis='x', which='major', width=1, length=8)
-            plt.tick_params(axis='y', which='major', width=1, length=8, color = 'white')
-            plt.tick_params(axis='x', which='minor', width=1, length=5)
-            plt.tick_params(axis='y', which='minor', width=1, length=5, color = 'white')
+            # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]
+            # plt.yticks(new_ticks, labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks])
+            plt.tick_params(axis='x', which='major', width=1.2, length=8, color = 'white', labelsize=25)
+            plt.tick_params(axis='y', which='major', width=1, length=8, color = 'white', labelsize=25)
+            plt.tick_params(axis='x', which='minor', width=1, length=5, color = 'white', labelsize=25)
             plt.ylim(np.min(tfb), np.max(tfb))
             plt.savefig(f'{abspath}/Figs/{folder}/ecc.pdf')
        

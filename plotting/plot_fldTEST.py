@@ -32,8 +32,10 @@ Lum_oldP = data_oldP[:, 2]
 
 data_oldK = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/_redKONST.csv', delimiter=',', dtype=float)
 tfb_oldK = data_oldK[:, 1]   
-Lum_oldK = data_oldK[:, 2]
-print(Lum_oldP[50],Lum_oldK[50], tfb_oldP[50])
+Lum_oldK_todivide = data_oldK[:, 2]
+# the old date from K have to be divided by 4pi
+Lum_oldK = Lum_oldK_todivide/(4*np.pi)
+
 dataL = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes/LowRes_redNEW.csv', delimiter=',', dtype=float)
 tfbL = dataL[:, 1]   
 Lum_L = dataL[:, 2]  
@@ -63,8 +65,7 @@ diffH = np.array(diffH)
 
 plt.figure()
 plt.scatter(tfb_oldP, Lum_oldP, s = 10, label = 'P', c = 'r')
-plt.scatter(tfb_oldK, Lum_oldK/(4*np.pi), s = 2, label = r'K/4$\pi$', c ='darkorange')
-plt.scatter(tfb_oldK, Lum_oldK, s = 8, label = 'K', c ='dodgerblue')
+plt.scatter(tfb_oldK, Lum_oldK, s = 5, label = 'K', c ='dodgerblue')
 plt.yscale('log')
 plt.ylim(1e37, 5e42)
 plt.xlabel(r'$t/t_{\rm fb}$', fontsize = 25)
@@ -74,10 +75,10 @@ plt.title('Fiducial run with old extrapolation.')
 
 # Plot the data (divide by 4pi before)
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-ax1.scatter(tfbP, LumP/(4*np.pi), s = 10, label = r'new Fid P/4$\pi$', c = 'r')
-ax1.scatter(tfb, Lum/(4*np.pi), s = 4, label = r'new Fid K', c ='darkorange')
-ax1.scatter(tfbH, Lum_H/(4*np.pi), s = 4, label= 'High', c = 'dodgerblue')
-ax1.scatter(tfbL, Lum_L/(4*np.pi), s = 4, label= 'Low', c= 'b')
+# ax1.scatter(tfbP, LumP, s = 10, label = r'new Fid P', c = 'r')
+ax1.scatter(tfb, Lum, s = 4, label = r'new Fid K', c ='darkorange')
+ax1.scatter(tfbH, Lum_H, s = 4, label= 'High', c = 'dodgerblue')
+ax1.scatter(tfbL, Lum_L, s = 4, label= 'Low', c= 'b')
 ax1.axhline(y=Ledd, c = 'k', linestyle = '--')
 ax1.text(0.1, 1.3*Ledd, r'$L_{\rm Edd}$', fontsize = 18)
 ax1.set_yscale('log')

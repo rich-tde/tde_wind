@@ -149,12 +149,18 @@ for i in range(len(tfb_res0)):
     median_rel_radL[i] = np.median(rel_rad_time)
 
 # compute the median value of all the data in the matrixes rel_ie_absL, rel_orb_en_absL, rel_Rad_absL 
-median_orbL = np.median(rel_ie_absL)
-median_ieL = np.median(rel_orb_en_absL)
+median_orbL = np.median(rel_orb_en_absL)
+median_ieL = np.median(rel_ie_absL)
 median_radL = np.median(rel_Rad_absL)
+idx25 = np.argmin(np.abs(tfb_res0 - 0.25))
+median_orbL25 = np.median(rel_orb_en_absL[idx25:])
+median_ieL25 = np.median(rel_ie_absL[idx25:])
+median_radL25 = np.median(rel_Rad_absL[idx25:])
 
-print(f'The median relative difference of fiducial from L are \n')
+print(f'The median relative difference of fiducial from L are')
 print(f'-orbital energy: {np.round(median_orbL,2)}, \n-specific internal energy: {np.round(median_ieL,2)}, \n-radiation energy density: {np.round(median_radL,2)}')
+print(f'for times after 0.25 are: \n-orbital energy: {np.round(median_orbL25,2)}, \n-specific internal energy: {np.round(median_ieL25,2)}, \n-radiation energy density: {np.round(median_radL25,2)}')
+
 
 # relative relerence H and middle
 rel_ie_absH = []
@@ -192,10 +198,13 @@ for i in range(len(tfb_res2)):
 median_orbH = np.median(rel_orb_en_absH)
 median_ieH = np.median(rel_ie_absH)
 median_radH = np.median(rel_Rad_absH)
-
-print(f'The median relative difference of fiducial from H are \n')
+idx25H = np.argmin(np.abs(tfb_res2 - 0.25))
+median_orbH25 = np.median(rel_orb_en_absH[idx25H:])
+median_ieH25 = np.median(rel_ie_absH[idx25H:])
+median_radH25 = np.median(rel_Rad_absH[idx25H:])
+print(f'\nThe median relative difference of fiducial from H are')
 print(f'-orbital energy: {np.round(median_orbH,2)}, \n-specific internal energy: {np.round(median_ieH,2)}, \n-radiation energy density: {np.round(median_radH,2)}')
-
+print(f'for times after 0.25 are: \n -orbital energy: {np.round(median_orbH25,2)}, \n-specific internal energy: {np.round(median_ieH25,2)}, \n-radiation energy density: {np.round(median_radH25,2)}')
 
 #%%
 cmap = plt.cm.inferno

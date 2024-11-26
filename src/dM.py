@@ -58,24 +58,24 @@ norm = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call
 
 # Choose what to do
 save = True
-compare_times = False
-movie = True 
+compare_times = True
+movie = False 
 
 if alice:
-    checks = ['LowRes', '','HiRes', 'DoubleRad'] 
+    checks = ['LowRes', '','HiRes'] 
     print('Normalization for energy:', norm)
 
     for check in checks:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         print(f'Check: {check}')
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
-        bins = np.linspace(-5,5,1000) # np.arange(-2, 2, .1)
+        bins = np.arange(-2, 2, .1) #np.linspace(-5,5,1000) 
         # save snaps, tfb and energy bins
-        with open(f'{abspath}/data/{folder}/dMdE_{check}_days.txt','a') as filedays:
+        with open(f'{abspath}/data/{folder}/dMdEdistrib_{check}_days.txt','a') as filedays:
             filedays.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
             filedays.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
             filedays.close()
-        with open(f'{abspath}/data/{folder}/dMdE_{check}_bins.txt','w') as file:
+        with open(f'{abspath}/data/{folder}/dMdEdistrib_{check}_bins.txt','w') as file:
             file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
             file.write((' '.join(map(str, bins)) + '\n'))
             file.close()
@@ -101,44 +101,60 @@ if alice:
             mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
             dm_dE = mass_binned / (np.diff(bins_edges)*norm)
 
-            with open(f'{abspath}/data/{folder}/dMdE_{check}.txt','a') as file:
+            with open(f'{abspath}/data/{folder}/dMdEdistrib_{check}.txt','a') as file:
                 file.write(f'# dM/dE snap {snap} \n')
                 file.write((' '.join(map(str, dm_dE)) + '\n'))
                 file.close()
     
 if compare_times:
-    datadays = np.loadtxt(f'{abspath}data/{folder}/dMdE_days_HiRes.txt')
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+    datadays = np.loadtxt(f'{abspath}data/{folder}/dMdE__days.txt')
     snaps, tfb= datadays[0], datadays[1]
-    bins = np.loadtxt(f'{abspath}data/{folder}/dMdE_bins.txt')
+    bins = np.loadtxt(f'{abspath}data/{folder}/dMdE__bins.txt')
     mid_points = (bins[:-1]+bins[1:])/2
-    dataL = np.loadtxt(f'{abspath}data/{folder}/dMdE_Low.txt')
-    dataH = np.loadtxt(f'{abspath}data/{folder}/dMdE_HiRes.txt')
-    dataL = dataL[:len(dataH)]
+    data = np.loadtxt(f'{abspath}data/{folder}/dMdE_.txt')
+    
+    datadaysH = np.loadtxt(f'{abspath}data/{folder}HiRes/dMdE_HiRes_days.txt')
+    snapsH, tfbH = datadaysH[0], datadaysH[1]
+    dataH = np.loadtxt(f'{abspath}data/{folder}HiRes/dMdE_HiRes.txt')
+    
+    datadaysL = np.loadtxt(f'{abspath}data/{folder}LowRes/dMdE_LowRes_days.txt')
+    snapsL, tfbL = datadaysL[0], datadaysL[1]
+    dataL = np.loadtxt(f'{abspath}data/{folder}LowRes/dMdE_LowRes.txt')
 
-    selected_times = [0.05, 0.5, 0.7, 1.2]
-    colorsL = ['k', 'b', 'dodgerblue', 'slateblue', 'skyblue']
-    colorsM = ['maroon', 'r', 'coral', 'orange', 'gold']
+    selected_times = [0.05, 0.7, 0.86]#, tfbH[-1]]
+    colors = ['forestgreen', 'seagreen', 'darkgreen']
+    colorsH = ['maroon', 'coral', 'orange']
+    colorsL = ['dodgerblue', 'slateblue', 'skyblue']
     markers = ['o', 's', 'v', 'd', 'p']
+    
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
     for i,selected_time in enumerate(selected_times):
         idx_snap = np.argmin(np.abs(tfb - selected_time))
+        idx_snapH = np.argmin(np.abs(tfbH - selected_time))
+        idx_snapL = np.argmin(np.abs(tfbL - selected_time))
         time = tfb[idx_snap]
+        timeH = tfbH[idx_snapH]
+        timeL = tfbL[idx_snapL]
+        print(f't = {time}, tH = {timeH}, tL = {timeL}')
         if i == 0:
-            ax1.plot(mid_points, dataL[idx_snap], c = colorsL[i], alpha = 0.5, label = r't = 0')
+            ax1.plot(mid_points, data[idx_snap], c = 'k', alpha = 0.5, label = r't = 0')
         else:
-            ax1.scatter(mid_points, dataL[idx_snap], c = colorsL[i], marker=markers[i], s = 50, label = f'Low, t = {np.round(time,2)} ' + r't$_{fb}$')
-            ax1.scatter(mid_points, dataH[idx_snap], c = colorsM[i], marker=markers[i], s = 25, label = f'High, t = {np.round(time,2)} ' + r't$_{fb}$')
-            ax2.plot(mid_points, np.abs(1-dataL[i]/dataH[i]), c = colorsM[i], label = f't = {np.round(time,2)} ' + r't$_{fb}$')
+            ax1.scatter(mid_points[::18], dataL[idx_snapL][::18], c = colorsL[i], marker=markers[i], s = 25, label = f'Low, t = {np.round(time,2)} ' + r't$_{fb}$')            
+            ax1.scatter(mid_points[::18], data[idx_snap][::18], c = colors[i], marker=markers[i], s = 50, label = f'Middle, t = {np.round(time,2)} ' + r't$_{fb}$')
+            ax1.scatter(mid_points[::18], dataH[idx_snapH][::18], c = colorsH[i], marker=markers[i], s = 25, label = f'High, t = {np.round(time,2)} ' + r't$_{fb}$')
+            ax2.plot(mid_points[::18], np.abs(1-data[idx_snap][::18]/dataL[idx_snapL][::18]), c = colorsL[i], label = f't = {np.round(time,2)} ' + r't$_{fb}$, L-M')
+            ax2.plot(mid_points[::18], np.abs(1-data[idx_snap][::18]/dataH[idx_snapH][::18]), c = colorsH[i], label = f't = {np.round(time,2)} ' + r't$_{fb}$, M-H')
 
     ax2.set_xlabel(r'$E/\Delta E$', fontsize = 16)
     ax1.set_ylabel('dM/dE', fontsize = 16)
     ax2.set_ylabel(r'$\Delta_{rel}$', fontsize = 16)
     ax1.set_yscale('log')
     ax2.set_yscale('log')
-    ax1.set_xlim(-2,2)
-    ax2.set_xlim(-2,2)
-    ax1.set_ylim(9e-7, 1.5e-2)
-    ax2.set_ylim(1e-4, 1e-1)
+    ax1.set_xlim(-2.5,2.5)
+    ax2.set_xlim(-2.5,2.5)
+    ax1.set_ylim(9e-7, 2e-2)
+    ax2.set_ylim(1e-3, 2e-1)
     # put the legend outside the plot
     ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
     ax2.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
