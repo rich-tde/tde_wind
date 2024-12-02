@@ -1,4 +1,8 @@
 import numpy as np
+import matplotlib.colors as colors
+import colorcet 
+import cmocean #to call the color cmocean.cm.[color]
+# colorblind friendly colors: cividis, viridis, plasma, magma, inferno, Gray
 
 # User lines
 import sys

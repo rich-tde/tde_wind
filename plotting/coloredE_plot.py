@@ -223,7 +223,7 @@ img = ax[0][1].pcolormesh(radiires0/apo, tfb_res0, rel_ie_absL, cmap=cmap, norm=
 cb = fig.colorbar(img)
 cb.ax.tick_params(labelsize=20)
 ax[0][1].set_title('Specific internal energy', fontsize = 20)
-cb.set_label(r'$\Delta_{\rm rel}$ Low-Middle', fontsize = 24)
+cb.set_label(r'$\Delta_{\rm rel}$ Low and Middle', fontsize = 22)
 
 img = ax[1][0].pcolormesh(radiires2/apo, tfb_res2, rel_orb_en_absH, cmap=cmap, norm=norm_orb_en)
 cb = fig.colorbar(img)
@@ -232,7 +232,7 @@ cb = fig.colorbar(img)
 img = ax[1][1].pcolormesh(radiires2/apo, tfb_res2, rel_ie_absH, cmap=cmap, norm=norm_ie)
 cb = fig.colorbar(img)
 cb.ax.tick_params(labelsize=20)
-cb.set_label(r'$\Delta_{\rm rel}$ Middle-High', fontsize = 24)
+cb.set_label(r'$\Delta_{\rm rel}$ Middle and High', fontsize = 22)
 
 # Get the existing ticks on the x-axis
 original_ticks = ax[0][0].get_yticks()

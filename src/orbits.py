@@ -42,7 +42,7 @@ def keplerian_orbit(theta, a, Rp, ecc=1):
     return radius
 
 def apocentre(Rstar, mstar, Mbh, beta):
-    # comes from Ra=a(1+e), a=Rt^2/2Rstar, e=1-2*Rstar/(beta*Rt
+    # comes from Ra=a(1+e), a=Rt^2/2Rstar, e=1-2*Rstar/(beta*Rt)
     Rt = Rstar * (Mbh/mstar)**(1/3)
     apo = Rt**2/Rstar - Rt/beta 
     return apo

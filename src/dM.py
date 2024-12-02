@@ -140,20 +140,20 @@ if compare_times:
         if i == 0:
             ax1.plot(mid_points, data[idx_snap], c = 'k', alpha = 0.5, label = r't = 0')
         else:
-            ax1.scatter(mid_points[::18], dataL[idx_snapL][::18], c = colorsL[i], marker=markers[i], s = 25, label = f'Low, t = {np.round(time,2)} ' + r't$_{fb}$')            
-            ax1.scatter(mid_points[::18], data[idx_snap][::18], c = colors[i], marker=markers[i], s = 50, label = f'Middle, t = {np.round(time,2)} ' + r't$_{fb}$')
-            ax1.scatter(mid_points[::18], dataH[idx_snapH][::18], c = colorsH[i], marker=markers[i], s = 25, label = f'High, t = {np.round(time,2)} ' + r't$_{fb}$')
-            ax2.plot(mid_points[::18], np.abs(1-data[idx_snap][::18]/dataL[idx_snapL][::18]), c = colorsL[i], label = f't = {np.round(time,2)} ' + r't$_{fb}$, L-M')
-            ax2.plot(mid_points[::18], np.abs(1-data[idx_snap][::18]/dataH[idx_snapH][::18]), c = colorsH[i], label = f't = {np.round(time,2)} ' + r't$_{fb}$, M-H')
+            ax1.scatter(mid_points, dataL[idx_snapL], c = colorsL[i], marker=markers[i], s = 25, label = f'Low, t = {np.round(time,2)} ' + r't$_{fb}$')            
+            ax1.scatter(mid_points, data[idx_snap], c = colors[i], marker=markers[i], s = 50, label = f'Middle, t = {np.round(time,2)} ' + r't$_{fb}$')
+            ax1.scatter(mid_points, dataH[idx_snapH], c = colorsH[i], marker=markers[i], s = 25, label = f'High, t = {np.round(time,2)} ' + r't$_{fb}$')
+            ax2.plot(mid_points, np.abs(1-data[idx_snap]/dataL[idx_snapL]), c = colorsL[i], label = f't = {np.round(time,2)} ' + r't$_{fb}$, L-M')
+            ax2.plot(mid_points, np.abs(1-data[idx_snap]/dataH[idx_snapH]), c = colorsH[i], label = f't = {np.round(time,2)} ' + r't$_{fb}$, M-H')
 
     ax2.set_xlabel(r'$E/\Delta E$', fontsize = 16)
     ax1.set_ylabel('dM/dE', fontsize = 16)
     ax2.set_ylabel(r'$\Delta_{rel}$', fontsize = 16)
     ax1.set_yscale('log')
     ax2.set_yscale('log')
-    ax1.set_xlim(-2.5,2.5)
-    ax2.set_xlim(-2.5,2.5)
-    ax1.set_ylim(9e-7, 2e-2)
+    # ax1.set_xlim(-2.5,2.5)
+    # ax2.set_xlim(-2.5,2.5)
+    ax1.set_ylim(2e-6, 2e-2)
     ax2.set_ylim(1e-3, 2e-1)
     # put the legend outside the plot
     ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)

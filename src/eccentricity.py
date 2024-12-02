@@ -14,8 +14,9 @@ else:
 
 import numpy as np
 import matplotlib.pyplot as plt
-import colorcet
+import Utilities.prelude
 import matplotlib.colors as colors
+import cmocean #to call the color cmocean.cm.[color]
 from Utilities.operators import make_tree, single_branch
 import Utilities.sections as sec
 import src.orbits as orb
@@ -115,7 +116,7 @@ if __name__ == '__main__':
             
             # Plot
             plt.figure(figsize=(10,8))
-            img = plt.pcolormesh(radii/apo, tfb, ecc, vmin = 0.55, vmax = 1, cmap = 'plasma')
+            img = plt.pcolormesh(radii/apo, tfb, ecc, vmin = 0.58, vmax = 1, cmap = 'viridis')#cmocean.cm.balance)
             cb = plt.colorbar(img)
             cb.ax.tick_params(labelsize=25)
             cb.set_label(r'Eccentricity', fontsize = 25, labelpad = 1)
@@ -182,7 +183,7 @@ if __name__ == '__main__':
                 medianH[i] = np.median(rel_diff_time_i)
 
             #%% Plot
-            fig = plt.figure(figsize=(20, 6))
+            fig = plt.figure(figsize=(25, 9))
             gs = gridspec.GridSpec(2, 3, width_ratios=[1,1,1.5], height_ratios=[3, 0.5], hspace=0.5, wspace = 0.3)
             ax1 = fig.add_subplot(gs[0, 0])  # First plot
             ax2 = fig.add_subplot(gs[0, 1])  # Second plot
@@ -199,13 +200,13 @@ if __name__ == '__main__':
             # Create a colorbar that spans the first two subplots
             cbar_ax = fig.add_subplot(gs[1, 0:2])  # Colorbar subplot below the first two
             cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
-            cb.set_label(r'Relative difference', fontsize = 20)
+            cb.set_label(r'$\Delta_{\rm rel}$ eccentricity', fontsize = 25)
 
-            ax3.plot(tfbL, medianL, c = 'dodgerblue', label = 'Low and Middle')
-            ax3.plot(tfbH, medianH, c = 'coral', label = 'Middle and High')
+            ax3.plot(tfbL, medianL, c = 'C4', linestyle = '--', label = 'Low and Middle')
+            ax3.plot(tfbH, medianH, c = 'C1', label = 'Middle and High')
             ax3.set_yscale('log')
             ax3.legend(fontsize = 20)
-            ax3.set_ylabel('Relative difference', fontsize = 20)
+            ax3.set_ylabel(r'$\Delta_{\rm rel}$ eccentricity', fontsize = 22)
             ax3.set_xlim(0.2, tfbL[-1])
             ax3.set_ylim(1e-3, 0.1)
             ax3.grid()
