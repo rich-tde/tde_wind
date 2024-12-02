@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import colorcet
 import cmocean
-from src.Opacity.linextrapolator import extrapolator_flipper, extrapolatorfit_flipper
+from src.Opacity.linextrapolator import extrapolator_flipper
 import Utilities.prelude as prel
 
 ##
@@ -186,7 +186,7 @@ ax3.axvline(np.log10(np.max(T_plot)), color = 'k', linestyle = '--')
 ax3.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
 ax3.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
 ax3.set_xlabel(r'$\log_{10} T$')
-ax3.set_ylabel(r'$\log_{10} \rho$')
+# ax3.set_ylabel(r'$\log_{10} \rho$')
 ax3.set_title('RICH Extrapolation')
 
 plt.tight_layout()
