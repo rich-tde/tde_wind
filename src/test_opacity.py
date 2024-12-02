@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import colorcet
 import cmocean
-from src.Opacity.linextrapolator import extrapolator_flipper
+from src.Opacity.linextrapolator import extrapolator_flipper, extrapolatorfit_flipper
+import Utilities.prelude as prel
 
 ##
 # FUNCTIONS
@@ -60,12 +61,19 @@ T_plot2 = np.exp(T_cool2)
 Rho_plot2 = np.exp(Rho_cool2)
 exp_ross2 = np.exp(rossland2)
 
-# RICH
+# RICH from me and K
 T_cool3, Rho_cool3, rossland3_t = extrapolator_flipper(T_cool, Rho_cool, rossland.T)
 rossland3 = rossland3_t.T  #transpose back
 T_plot3 = np.exp(T_cool3)
 Rho_plot3 = np.exp(Rho_cool3)
 exp_ross3 = np.exp(rossland3)
+
+# RICH from me and K
+T_cool4, Rho_cool4, rossland4_t = extrapolatorfit_flipper(T_cool, Rho_cool, rossland.T)
+rossland4 = rossland4_t.T  #transpose back
+T_plot4 = np.exp(T_cool4)
+Rho_plot4 = np.exp(Rho_cool4)
+exp_ross4 = np.exp(rossland4)
 
 #%% Test to understand colormesh
 # x = np.arange(100)
@@ -109,11 +117,11 @@ ax2.set_title(f'den = {chosenRho}')
 ax2.legend()
 plt.tight_layout()
 
-fig, (ax1,ax2,ax3) = plt.subplots(1,3, figsize = (15,5))
+fig, ((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2, figsize = (10,10))
 img = ax1.pcolormesh(np.log10(T_plot), np.log10(Rho_plot), exp_ross.T, norm = LogNorm(vmin=1e-15, vmax=1e10), cmap = 'cet_rainbow4') #exp_ross.T have rows = fixed rho, columns = fixed T
 cbar = plt.colorbar(img)
-cbar.set_label(r'$\kappa$')
-ax1.set_xlabel(r'$\log_{10} T$')
+# cbar.set_label(r'$\kappa$')
+# ax1.set_xlabel(r'$\log_{10} T$')
 ax1.set_ylabel(r'$\log_{10} \rho$')
 ax1.set_title('Original')
 
@@ -124,23 +132,29 @@ ax2.axvline(np.log10(np.min(T_plot)), color = 'k', linestyle = '--')
 ax2.axvline(np.log10(np.max(T_plot)), color = 'k', linestyle = '--')
 ax2.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
 ax2.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
-ax2.set_xlabel(r'$\log_{10} T$')
+# ax2.set_xlabel(r'$\log_{10} T$')
 # ax2.set_ylabel(r'$\log_{10} \rho$')
 ax2.set_title('Old Extrapolation (factor 100)')
 
 img = ax3.pcolormesh(np.log10(T_plot3), np.log10(Rho_plot3), exp_ross3.T,  norm = LogNorm(vmin = 1e-15, vmax=1e10), cmap = 'cet_rainbow4') #exp_ross.T have rows = fixed rho, columns = fixed T
 cbar = plt.colorbar(img)
-cbar.set_label(r'$\kappa$')
+# cbar.set_label(r'$\kappa$')
 ax3.axvline(np.log10(np.min(T_plot)), color = 'k', linestyle = '--')
 ax3.axvline(np.log10(np.max(T_plot)), color = 'k', linestyle = '--')
 ax3.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
 ax3.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
 ax3.set_xlabel(r'$\log_{10} T$')
-# ax3.set_ylabel(r'$\log_{10} \rho$')
+ax3.set_ylabel(r'$\log_{10} \rho$')
 ax3.set_title('New Extrapolation')
 
-for ax in [ax2,ax3]:
-    ax.set_ylim(-19,11)
-    ax.set_xlim(1,11) 
+img = ax4.pcolormesh(np.log10(T_plot4), np.log10(Rho_plot4), exp_ross4.T,  norm = LogNorm(vmin = 1e-15, vmax=1e10), cmap = 'cet_rainbow4') #exp_ross.T have rows = fixed rho, columns = fixed T
+cbar = plt.colorbar(img)
+cbar.set_label(r'$\kappa$')
+ax4.axvline(np.log10(np.min(T_plot)), color = 'k', linestyle = '--')
+ax4.axvline(np.log10(np.max(T_plot)), color = 'k', linestyle = '--')
+ax4.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
+ax4.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
+ax4.set_xlabel(r'$\log_{10} T$')
+ax4.set_title('?? New K Extrapolation ??')
 
 plt.tight_layout()

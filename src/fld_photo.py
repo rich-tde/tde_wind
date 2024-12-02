@@ -42,7 +42,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiRes' # '' or 'HiRes'
+check = '' # '' or 'HiRes'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True
@@ -70,6 +70,8 @@ eng = matlab.engine.start_matlab()
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 
 for idx_s, snap in enumerate(snaps):
+    if int(snap)!= 164:
+        continue
     print('\n Snapshot: ', snap, '\n')
     box = np.zeros(6)
     #%% Load data -----------------------------------------------------------------
@@ -119,7 +121,7 @@ for idx_s, snap in enumerate(snaps):
     yphot = np.zeros(prel.NPIX) ####
     zphot = np.zeros(prel.NPIX) 
     time_start = 0
-    for i in range(1):#prel.NPIX):
+    for i in range(prel.NPIX):
         # Progress 
         time_end = time.time()
         print(f'Snap: {snap}, Obs: {i}', flush=False)
@@ -248,9 +250,6 @@ for idx_s, snap in enumerate(snaps):
     if save:
         pre_saving = f'{abspath}/data/{folder}'
         data = [xphot, yphot, zphot]
-        with open(f'{pre_saving}/{check}_photo.csv', 'a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(data)
-        file.close()
+        np.savetxt(f'{pre_saving}/{check}_photo{snap}.txt', data)
 
 eng.exit()
