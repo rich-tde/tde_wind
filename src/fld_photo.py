@@ -177,7 +177,7 @@ for idx_s, snap in enumerate(snaps):
         xobs, yobs, Zobs = X[idx], Y[idx], Z[idx]
 
         # Interpolate ----------------------------------------------------------
-        sigma_rossland = eng.interp2(T_cool2,Rho_cool2,rossland2,np.log(t),np.log(d),'linear',0)
+        sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
         sigma_rossland = [sigma_rossland[0][i] for i in range(N_ray)]
         sigma_rossland_eval = np.exp(sigma_rossland) 
 
