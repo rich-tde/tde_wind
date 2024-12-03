@@ -74,7 +74,7 @@ eng = matlab.engine.start_matlab()
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 
 for idx_s, snap in enumerate(snaps):
-    if int(snap)!= 348:
+    if int(snap)!= 164:
         continue
     print('\n Snapshot: ', snap, '\n')
     box = np.zeros(6)
