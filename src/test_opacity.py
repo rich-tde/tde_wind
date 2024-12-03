@@ -54,7 +54,7 @@ scatt = 0.2*(1+0.7381) * Rho_plot #cm^2/g
 # multiply column i of ross by Rho_plot[i] to get kappa
 ross_rho = []
 for i in range(len(T_plot)):
-    ross_rho.append(exp_ross[i, :] / Rho_plot)
+    ross_rho.append(exp_ross[i, :]/Rho_plot)
 ross_rho = np.array(ross_rho)
 
 # As we were doing all this time from Matlab
@@ -65,7 +65,7 @@ Rho_plot2 = np.exp(Rho_cool2)
 exp_ross2 = np.exp(rossland2)
 ross_rho2 = []
 for i in range(len(T_plot2)):
-    ross_rho2.append(exp_ross2[i, :] / Rho_plot2)
+    ross_rho2.append(exp_ross2[i, :]/Rho_plot2)
 ross_rho2 = np.array(ross_rho2)
 
 # RICH from me and K
@@ -76,7 +76,7 @@ Rho_plot3 = np.exp(Rho_cool3)
 exp_ross3 = np.exp(rossland3)
 ross_rho3 = []
 for i in range(len(T_plot3)):
-    ross_rho3.append(exp_ross3[i, :] / Rho_plot3)
+    ross_rho3.append(exp_ross3[i, :]/Rho_plot3)
 ross_rho3 = np.array(ross_rho3)
 #%% Test to understand colormesh
 # x = np.arange(100)
@@ -86,7 +86,6 @@ ross_rho3 = np.array(ross_rho3)
 # you expect: opacity to increase with density, decrease with temperature
 #%%
 chosenTs = [1e4, 1e5, 1e7]
-chosenRho = 1e-10
 
 fig, ax = plt.subplots(1,3, figsize = (15,5))
 for i,chosenT in enumerate(chosenTs):
@@ -105,21 +104,28 @@ for i,chosenT in enumerate(chosenTs):
     ax[i].set_title(f'T = {chosenT} K')
     ax[i].legend()
 ax[0].set_ylabel(r'$\kappa [cm^2g^{-1}]$')
-
-# irho = np.argmin(np.abs(Rho_plot - chosenRho))
-# irho_2 = np.argmin(np.abs(Rho_plot2 - chosenRho))
-# irho_3 = np.argmin(np.abs(Rho_plot3 - chosenRho))
-# ax2.plot(T_plot2, ross_rho2[:, irho_2],  label = '100 extrap')
-# ax2.plot(T_plot3, ross_rho3[:, irho_3], '-.', label = 'RICH extrap')
-# ax2.plot(T_plot, ross_rho[:, irho], '--', label = 'original')
-# ax2.set_xlabel(r'T')
-# ax2.set_ylabel(r'$\kappa [cm^2/g]$')
-# ax2.set_ylim(1e-4, 1e4)
-# ax2.set_xlim(1e3,1e9)
-# ax2.loglog()
-# ax2.set_title(f'den = {chosenRho}')
-# ax2.legend()
 plt.tight_layout()
+
+#%%
+# print(np.min(Rho_plot))
+chosenRhos = [1e-10, 1e-9] 
+fig, ax = plt.subplots(1,2, figsize = (10,5))
+for i,chosenRho in enumerate(chosenRhos):
+    irho = np.argmin(np.abs(Rho_plot - chosenRho))
+    irho_2 = np.argmin(np.abs(Rho_plot2 - chosenRho))
+    irho_3 = np.argmin(np.abs(Rho_plot3 - chosenRho))
+    ax[i].plot(T_plot2, ross_rho2[:, irho_2],  label = '100 extrap')
+    ax[i].plot(T_plot3, ross_rho3[:, irho_3], '-.', label = 'RICH extrap')
+    ax[i].plot(T_plot, ross_rho[:, irho], '--', label = 'original')
+    ax[i].set_xlabel(r'T')
+    ax[i].set_ylabel(r'$\kappa [cm^2/g]$')
+    ax[i].set_ylim(7e-3, 2e2) #the axis from 7e-4 to 2e1 m2/g
+    ax[i].set_xlim(1e1,1e9)
+    ax[i].loglog()
+    ax[i].set_title(r'$\rho$ = ' +  f'{chosenRho}' + r'$g/cm^3$')
+    ax[i].legend()
+    ax[i].grid()
+    plt.tight_layout()
 
 #%%
 fig, (ax1,ax2) = plt.subplots(1,2, figsize = (12,5))
@@ -162,32 +168,63 @@ plt.suptitle('Original, hypothesis: table NOT in CGS. Not reasonable', fontsize 
 plt.tight_layout() 
 #%%
 fig, (ax1,ax2,ax3) = plt.subplots(1,3, figsize = (15,5))
-img = ax1.pcolormesh(np.log10(T_plot), np.log10(Rho_plot), ross_rho.T, norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'jet') #exp_ross.T have rows = fixed rho, columns = fixed T
+img = ax1.pcolormesh(np.log10(T_plot), np.log10(Rho_plot), ross_rho.T, norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'gist_rainbow', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
 cbar = plt.colorbar(img)
-ax1.set_xlabel(r'$\log_{10} T$')
 ax1.set_ylabel(r'$\log_{10} \rho$')
 ax1.set_title('Original')
 
-img = ax2.pcolormesh(np.log10(T_plot2), np.log10(Rho_plot2), ross_rho2.T, norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'jet') #exp_ross.T have rows = fixed rho, columns = fixed T
+img = ax2.pcolormesh(np.log10(T_plot2), np.log10(Rho_plot2), ross_rho2.T, norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'gist_rainbow', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
 cbar = plt.colorbar(img)
 ax2.axvline(np.log10(np.min(T_plot)), color = 'k', linestyle = '--')
 ax2.axvline(np.log10(np.max(T_plot)), color = 'k', linestyle = '--')
 ax2.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
 ax2.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
-ax2.set_xlabel(r'$\log_{10} T$')
-# ax2.set_ylabel(r'$\log_{10} \rho$')
 ax2.set_title('Old Extrapolation (factor 100)')
 
-img = ax3.pcolormesh(np.log10(T_plot3), np.log10(Rho_plot3), ross_rho3.T,  norm = LogNorm(vmin = 1e-5, vmax=1e5), cmap = 'jet') #exp_ross.T have rows = fixed rho, columns = fixed T
+img = ax3.pcolormesh(np.log10(T_plot3), np.log10(Rho_plot3), ross_rho3.T,  norm = LogNorm(vmin = 1e-5, vmax=1e5), cmap = 'gist_rainbow', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\kappa [cm^2/g]$')
 ax3.axvline(np.log10(np.min(T_plot)), color = 'k', linestyle = '--')
 ax3.axvline(np.log10(np.max(T_plot)), color = 'k', linestyle = '--')
 ax3.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
 ax3.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
-ax3.set_xlabel(r'$\log_{10} T$')
-# ax3.set_ylabel(r'$\log_{10} \rho$')
 ax3.set_title('RICH Extrapolation')
+
+for ax in [ax1, ax2, ax3]:
+    # Get the existing ticks on the x-axis
+    original_ticksx = ax.get_xticks()
+    # Calculate midpoints between each pair of ticks
+    if ax==ax1:
+        midpointsx = (original_ticksx[:-1] + original_ticksx[1:]) / 2
+    else:
+        midpointsx = np.arange(original_ticksx[0], original_ticksx[-1])
+    # Combine the original ticks and midpointsx
+    new_ticksx = np.sort(np.concatenate((original_ticksx, midpointsx)))
+    labelsx = [str(np.round(tick,2)) if tick in original_ticksx else "" for tick in new_ticksx]   
+    ax.set_xticks(new_ticksx)
+    ax.set_xticklabels(labelsx)
+
+    original_ticks = ax.get_yticks()
+    # Calculate midpoints between each pair of ticks
+    if ax==ax1:
+        midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+    else:
+        midpoints = np.arange(original_ticks[0], original_ticks[-1], 2)
+    # Combine the original ticks and midpoints
+    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]   
+    ax.set_yticks(new_ticks)
+    ax.set_yticklabels(labels)
+
+    ax.tick_params(axis='x', which='major', width=1.6, length=7, color = 'k')
+    ax.tick_params(axis='y', which='major', width=1.6, length=7, color = 'k')
+    ax.set_xlabel(r'$\log_{10} T$')
+    if ax == ax1:
+        ax.set_xlim(np.min(np.log10(T_plot)), np.max(np.log10(T_plot)))
+        ax.set_ylim(np.min(np.log10(Rho_plot)), np.max(np.log10(Rho_plot)))
+    else:
+        ax.set_xlim(0.8,11)
+        ax.set_ylim(-19,11)
 
 plt.tight_layout()
 

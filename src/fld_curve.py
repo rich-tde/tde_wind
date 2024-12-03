@@ -43,7 +43,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiRes' # '' or 'HiRes'
+check = '' # '' or 'HiRes'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True
@@ -138,11 +138,6 @@ for idx_s, snap in enumerate(snaps):
         Rad = np.load(f'{pre}/snap_{snap}/Rad_{snap}.npy')
         Vol = np.load(f'{pre}/snap_{snap}/Vol_{snap}.npy')
         box = np.load(f'{pre}/snap_{snap}/box_{snap}.npy')
-        # with h5py.File(f'{pre}/snap_{snap}/snap_{snap}.h5', 'r') as fileh:
-        #     for i in range(len(box)):
-        #         box[i] = fileh['Box'][i]
-            # fileh.close()
-        # day = np.loadtxt(f'{pre}/snap_{snap}/tbytfb_{snap}.txt')
     else:
         X = np.load(f'{pre}/{snap}/CMx_{snap}.npy')
         Y = np.load(f'{pre}/{snap}/CMy_{snap}.npy')
@@ -176,6 +171,9 @@ for idx_s, snap in enumerate(snaps):
 
     # Dynamic Box -----------------------------------------------------------------
     reds = np.zeros(prel.NPIX)
+    ## just to check photosphere
+    ph_idx = np.zeros(prel.NPIX)
+    ##
     time_start = 0
     for i in range(prel.NPIX):
         # Progress 
@@ -306,6 +304,9 @@ for idx_s, snap in enumerate(snaps):
         max_length = 4*np.pi*prel.c_cgs*EEr[b]*r[b]**2 * prel.Msol_cgs * prel.Rsol_cgs / (prel.tsol_cgs**2) #the conversion is for Erad: energy*r^2/lenght^3 [in SI would be kg m^2/s^2 * m^2 * 1/m^3]
         Lphoto = np.min( [Lphoto2, max_length])
         reds[i] = Lphoto
+        ## just to check photosphere
+        ph_idx[i] = idx[b]
+        ##
         del smoothed_flux, R_lamda, fld_factor, EEr, los,
         gc.collect()
     Lphoto_snap = np.mean(reds)
@@ -321,4 +322,12 @@ for idx_s, snap in enumerate(snaps):
             writer.writerow(data)
         file.close()
 
+        ## just to check photosphere
+        with open(f'{pre_saving}/{check}_phidx.txt', 'a') as fileph:
+            fileph.write(f'# {folder}_{check} \n')
+            fileph.write('# t/tfb \n')
+            fileph.write(tfb[idx_s] + '\n')
+            fileph.write('# photosphere indices \n'+ ' '.join(map(str, ph_idx)) + '\n')
+            file.close()
+        ##
 eng.exit()

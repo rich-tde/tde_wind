@@ -253,9 +253,9 @@ for i in range(2):
         # Set tick labels: empty labels for midpoints
         ax[i][j].set_yticks(new_ticks)
         # ax[i][j].set_yticklabels(labels)
-        ax[i][j].tick_params(axis='x', which='major', width=1.2, length=7, color = 'white',)
-        ax[i][j].tick_params(axis='x', which='minor', width=1, length=5, color = 'white',)
-        ax[i][j].tick_params(axis='y', which='both', width=1.2, length=6, color = 'k',)
+        ax[i][j].tick_params(axis='x', which='major', width=1.2, length=7, color = 'white')
+        ax[i][j].tick_params(axis='x', which='minor', width=1, length=5, color = 'white')
+        ax[i][j].tick_params(axis='y', which='both', width=1.2, length=6, color = 'k')
 
         if i == 0:
             ax[i][j].set_ylim(np.min(tfb_res0), np.max(tfb_res0))
