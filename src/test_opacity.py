@@ -250,3 +250,46 @@ plt.tight_layout()
 
 
 # %%
+# diff between 3 and 4
+diff = np.zeros((len(T_plot4), len(Rho_plot4)))
+for i in range(len(T_plot4)):
+    for j in range(len(Rho_plot4)):
+        diff[i,j] = 2*np.abs(ross_rho3[i, j] - ross_rho4[i,j])/(ross_rho4[i,j]+ross_rho3[i, j])
+
+
+#%%
+fig, (ax3,ax4, ax1) = plt.subplots(1,3, figsize = (15,5))
+img = ax3.pcolormesh(np.log10(T_plot3), np.log10(Rho_plot3), ross_rho3.T,  norm = LogNorm(vmin = 1e-12, vmax=1e10), cmap = 'gist_rainbow', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+cbar = plt.colorbar(img)
+cbar.set_label(r'$\kappa [cm^2/g]$')
+ax3.axvline(np.log10(np.min(T_plot)), color = 'k', linestyle = '--')
+ax3.axvline(np.log10(np.max(T_plot)), color = 'k', linestyle = '--')
+ax3.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
+ax3.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
+ax3.set_title('K+P RICH Extrapolation')
+
+img = ax4.pcolormesh(np.log10(T_plot4), np.log10(Rho_plot4), ross_rho4.T,  norm = LogNorm(vmin = 1e-12, vmax=1e10), cmap = 'gist_rainbow', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+cbar = plt.colorbar(img)
+cbar.set_label(r'$\kappa [cm^2/g]$')
+ax4.axvline(np.log10(np.min(T_plot)), color = 'k', linestyle = '--')
+ax4.axvline(np.log10(np.max(T_plot)), color = 'k', linestyle = '--')
+ax4.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
+ax4.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
+ax4.set_title('My new RICH Extrapolation')
+
+img = ax1.pcolormesh(np.log10(T_plot4), np.log10(Rho_plot4), diff, cmap = 'Oranges')
+cbar=plt.colorbar(img)
+cbar.set_label(r'$\log_{10}\Delta_{rel}$')
+
+for ax in [ax1, ax3, ax4]:
+    ax.axvline(np.log10(np.min(T_plot)), color = 'k', linestyle = '--')
+    ax.axvline(np.log10(np.max(T_plot)), color = 'k', linestyle = '--')
+    ax.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
+    ax.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
+    ax.set_xlim(np.min(np.log10(T_plot4)), np.max(np.log10(T_plot4)))
+    ax.set_ylim(np.min(np.log10(Rho_plot4)), np.max(np.log10(Rho_plot4)))
+    ax.set_xlabel(r'$\log_{10} T$')
+    ax.set_ylabel(r'$\log_{10} \rho$')
+
+plt.tight_layout()
+# %%

@@ -22,7 +22,7 @@ import scipy.integrate as sci
 from scipy.interpolate import griddata
 import matlab.engine
 from sklearn.neighbors import KDTree
-from src.Opacity.linextrapolator import extrapolator_flipper, pad_interp
+from src.Opacity.linextrapolator import extrapolator_flipper, pad_interp, double_extrapolator
 
 
 import Utilities.prelude as prel
@@ -43,7 +43,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = '' # '' or 'HiRes'
-extr = '100'
+extr = 'double'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True
@@ -67,6 +67,8 @@ if extr == '100':
     T_cool2, Rho_cool2, rossland2 = pad_interp(T_cool, Rho_cool, rossland.T)
 if extr == '':
     T_cool2, Rho_cool2, rossland2 = extrapolator_flipper(T_cool, Rho_cool, rossland.T)
+if extr == 'double':
+    T_cool2, Rho_cool2, rossland2 = double_extrapolator(T_cool, Rho_cool, rossland)
 
 # MATLAB GOES WHRRRR, thanks Cindy.
 eng = matlab.engine.start_matlab()

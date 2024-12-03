@@ -36,20 +36,22 @@ def pad_interp(x,y,V):
 
 def lin_extrapolator(y, V, slope_length, extrarows):
     # Low extrapolation
-    yslope_low = y[slope_length - 1] - y[0] 
-    y_extra_low = [y[0] - yslope_low * (i + 1) for i in range(extrarows)]
+    deltay_low = y[1] - y[0]
+    y_extra_low = [y[0] - deltay_low * (i + 1) for i in range(extrarows)]
     # High extrapolation
-    yslope_high = y[-1] - y[-slope_length]
-    y_extra_high = [y[-1] + yslope_high * (i + 1) for i in range(extrarows)]
+    deltay_high= y[-1] - y[-2]    
+    y_extra_high = [y[-1] + deltay_high * (i + 1) for i in range(extrarows)]
     
     # Stack, reverse low to stack properly
     yn = np.concatenate([y_extra_low[::-1], y, y_extra_high])
     
     # 2D low
+    yslope_low = y[slope_length - 1] - y[0]
     Vslope_low = (V[slope_length - 1, :] - V[0, :]) / yslope_low
     Vextra_low = [V[0, :] + Vslope_low * (y_extra_low[i] - y[0]) for i in range(extrarows)]
 
     # 2D high
+    yslope_high = y[-1] - y[-slope_length]
     Vslope_high = (V[-1, :] - V[-slope_length, :]) / yslope_high
     Vextra_high = [V[-1, :] + Vslope_high * (y_extra_high[i] - y[-1]) for i in range(extrarows)]
     
@@ -57,22 +59,23 @@ def lin_extrapolator(y, V, slope_length, extrarows):
     
     return yn, Vn
 
-def extrapolator_flipper(x ,y, V, slope_length = 5, extrarows = 25):
+def extrapolator_flipper(x ,y, V, slope_length = 5, extrarows = 100):
     xn, Vn = lin_extrapolator(x, V, slope_length, extrarows)
     yn, Vn = lin_extrapolator(y, Vn.T, slope_length, extrarows)
     return xn, yn, Vn.T
 
-def double_extrapolator(x, y, K, slope_length = 5, extrarowsx=100, extrarowsy=100):
+def double_extrapolator(x, y, K, slope_length = 5, extrarowsx= 100, extrarowsy= 100):
     # Extend x and y, adding data equally space (this suppose x,y as array equally spaced)
     # Low extrapolation
-    deltaxn = x[1] - x[0]
-    deltayn = y[1] - y[0] 
-    # Low extrapolation
-    x_extra_low = [x[0] - deltaxn * (i + 1) for i in range(extrarowsx)]
-    y_extra_low = [y[0] - deltayn * (i + 1) for i in range(extrarowsy)]
+    deltaxn_low = x[1] - x[0]
+    deltayn_low = y[1] - y[0] 
+    x_extra_low = [x[0] - deltaxn_low * (i + 1) for i in range(extrarowsx)]
+    y_extra_low = [y[0] - deltayn_low * (i + 1) for i in range(extrarowsy)]
     # High extrapolation
-    x_extra_high = [x[-1] + deltaxn * (i + 1) for i in range(extrarowsx)]
-    y_extra_high = [y[-1] + deltayn * (i + 1) for i in range(extrarowsy)]
+    deltaxn_high = x[-1] - x[-2]
+    deltayn_high = y[-1] - y[-2]
+    x_extra_high = [x[-1] + deltaxn_high * (i + 1) for i in range(extrarowsx)]
+    y_extra_high = [y[-1] + deltayn_high * (i + 1) for i in range(extrarowsy)]
     
     # Stack, reverse low to stack properly
     xn = np.concatenate([x_extra_low[::-1], x, x_extra_high])
@@ -114,9 +117,19 @@ def double_extrapolator(x, y, K, slope_length = 5, extrarowsx=100, extrarowsy=10
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kxslope = (K[-slope_length, iy_inK] - K[-1, iy_inK]) / deltax
                     Kn[ix][iy] = K[-1, iy_inK] + Kxslope * (xsel - x[-1])
+            # x is correct, check y
             else:
                 ix_inK = np.argmin(np.abs(x - xsel))
-                iy_inK = np.argmin(np.abs(y - ysel))
-                Kn[ix][iy] = K[ix_inK, iy_inK]
+                if ysel < y[0]:
+                    deltay = y[slope_length - 1] - y[0]
+                    Kyslope = (K[ix_inK, slope_length - 1] - K[ix_inK, 0]) / deltay
+                    Kn[ix][iy] = K[ix_inK, 0] + Kyslope * (ysel - y[0])
+                elif ysel > y[-1]:
+                    deltay = y[-1] - y[-slope_length]
+                    Kyslope = (K[ix_inK, -1] - K[ix_inK, -slope_length]) / deltay
+                    Kn[ix][iy] = K[ix_inK, -1] + Kyslope * (ysel - y[-1])
+                else:
+                    iy_inK = np.argmin(np.abs(y - ysel))
+                    Kn[ix][iy] = K[ix_inK, iy_inK]
     
     return xn, yn, Kn
