@@ -59,12 +59,12 @@ def lin_extrapolator(y, V, slope_length, extrarows):
     
     return yn, Vn
 
-def extrapolator_flipper(x ,y, V, slope_length = 5, extrarows = 100):
-    xn, Vn = lin_extrapolator(x, V, slope_length, extrarows)
-    yn, Vn = lin_extrapolator(y, Vn.T, slope_length, extrarows)
+def extrapolator_flipper(x ,y, V, slope_length = 5, extrarowsx = 99, extrarowsy = 100):
+    xn, Vn = lin_extrapolator(x, V, slope_length, extrarowsx) 
+    yn, Vn = lin_extrapolator(y, Vn.T, slope_length, extrarowsy)
     return xn, yn, Vn.T
 
-def double_extrapolator(x, y, K, slope_length = 5, extrarowsx= 100, extrarowsy= 100):
+def double_extrapolator(x, y, K, slope_length = 5, extrarowsx= 99, extrarowsy= 100):
     # Extend x and y, adding data equally space (this suppose x,y as array equally spaced)
     # Low extrapolation
     deltaxn_low = x[1] - x[0]

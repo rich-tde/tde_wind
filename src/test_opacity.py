@@ -69,8 +69,7 @@ for i in range(len(T_plot2)):
 ross_rho2 = np.array(ross_rho2)
 
 # RICH from me and K
-T_cool3, Rho_cool3, rossland3_t = extrapolator_flipper(T_cool, Rho_cool, rossland.T, slope_length=5)
-rossland3 = rossland3_t.T  #transpose back
+T_cool3, Rho_cool3, rossland3 = extrapolator_flipper(T_cool, Rho_cool, rossland, slope_length=5)
 T_plot3 = np.exp(T_cool3)
 Rho_plot3 = np.exp(Rho_cool3)
 exp_ross3 = np.exp(rossland3)
@@ -103,10 +102,11 @@ for i,chosenT in enumerate(chosenTs):
     iT = np.argmin(np.abs(T_plot - chosenT))
     iT_2 = np.argmin(np.abs(T_plot2 - chosenT))
     iT_3 = np.argmin(np.abs(T_plot3 - chosenT))
+    iT_4 = np.argmin(np.abs(T_plot4 - chosenT))
     ax[i].plot(Rho_plot2, ross_rho2[iT_2, :], label = '100 extrap')
     ax[i].plot(Rho_plot3, ross_rho3[iT_3, :], '-.', label = 'RICH extrap')
+    ax[i].plot(Rho_plot4, ross_rho4[iT_4, :], ':', label = 'double Extrapolation')
     ax[i].plot(Rho_plot, ross_rho[iT, :], '--', label = 'original')
-    # ax1.plot(Rho_plot, exp_abs[iT, :],  label = 'absorption')
     ax[i].plot(Rho_plot, scatt/Rho_plot,  color = 'r', linestyle = '--', label = 'scattering')
     ax[i].loglog()
     ax[i].set_ylim(5e-2, 1e4)
@@ -125,8 +125,10 @@ for i,chosenRho in enumerate(chosenRhos):
     irho = np.argmin(np.abs(Rho_plot - chosenRho))
     irho_2 = np.argmin(np.abs(Rho_plot2 - chosenRho))
     irho_3 = np.argmin(np.abs(Rho_plot3 - chosenRho))
+    irho_4 = np.argmin(np.abs(Rho_plot4 - chosenRho))
     ax[i].plot(T_plot2, ross_rho2[:, irho_2],  label = '100 extrap')
     ax[i].plot(T_plot3, ross_rho3[:, irho_3], '-.', label = 'RICH extrap')
+    ax[i].plot(T_plot4, ross_rho4[:, irho_4], ':', label = 'double Extrapolation')
     ax[i].plot(T_plot, ross_rho[:, irho], '--', label = 'original')
     ax[i].set_xlabel(r'T')
     ax[i].set_ylabel(r'$\kappa [cm^2/g]$')
@@ -277,7 +279,7 @@ ax4.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
 ax4.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
 ax4.set_title('My new RICH Extrapolation')
 
-img = ax1.pcolormesh(np.log10(T_plot4), np.log10(Rho_plot4), diff, cmap = 'Oranges')
+img = ax1.pcolormesh(np.log10(T_plot4), np.log10(Rho_plot4), diff.T, cmap = 'Oranges')
 cbar=plt.colorbar(img)
 cbar.set_label(r'$\log_{10}\Delta_{rel}$')
 

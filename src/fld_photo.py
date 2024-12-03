@@ -66,7 +66,7 @@ rossland = np.loadtxt(f'{opac_path}/ross.txt')
 if extr == '100':
     T_cool2, Rho_cool2, rossland2 = pad_interp(T_cool, Rho_cool, rossland.T)
 if extr == '':
-    T_cool2, Rho_cool2, rossland2 = extrapolator_flipper(T_cool, Rho_cool, rossland.T)
+    T_cool2, Rho_cool2, rossland2 = extrapolator_flipper(T_cool, Rho_cool, rossland)
 if extr == 'double':
     T_cool2, Rho_cool2, rossland2 = double_extrapolator(T_cool, Rho_cool, rossland)
 

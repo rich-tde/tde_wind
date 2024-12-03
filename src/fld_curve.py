@@ -117,7 +117,7 @@ rossland = np.loadtxt(f'{opac_path}/ross.txt')
 
 # T_cool2, Rho_cool2, rossland2 = pad_interp(T_cool, Rho_cool, rossland.T)
 
-T_cool2, Rho_cool2, rossland2 = extrapolator_flipper(T_cool, Rho_cool, rossland.T)
+T_cool2, Rho_cool2, rossland2 = extrapolator_flipper(T_cool, Rho_cool, rossland)
 # _, _, plank2 = extrapolator_flipper(T_cool, Rho_cool, plank.T)
 
 # MATLAB GOES WHRRRR, thanks Cindy.
