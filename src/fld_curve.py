@@ -126,6 +126,8 @@ eng = matlab.engine.start_matlab()
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 print('we are in: ', pre)
 for idx_s, snap in enumerate(snaps):
+    if int(snap) != 164:
+        continue
     print('\n Snapshot: ', snap, '\n')
     box = np.zeros(6)
     #%% Load data -----------------------------------------------------------------
