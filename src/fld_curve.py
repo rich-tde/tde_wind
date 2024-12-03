@@ -325,7 +325,7 @@ for idx_s, snap in enumerate(snaps):
         ## just to check photosphere
         time_rph = np.concatenate([[snap[idx_s],tfb[idx_s]], ph_idx])
         with open(f'{pre_saving}/{check}_phidx.txt', 'a') as fileph:
-            fileph.write(f'# {folder}_{check}. First data in time (in t_fb), the rest are the photosphere indices \n')
+            fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
             fileph.write(' '.join(map(str, time_rph)) + '\n')
             file.close()
         ##
