@@ -34,7 +34,7 @@ def pad_interp(x,y,V):
     Vn = Vn.T
     return xn, yn, Vn
 
-def lin_extrapolator(y, V, slope_length = 2 ,extrarows = 3):
+def lin_extrapolator(y, V, slope_length = 5 ,extrarows = 3):
     # Low extrapolation
     yslope_low = y[slope_length - 1] - y[0] 
     y_extra_low = [y[0] - yslope_low * (i + 1) for i in range(extrarows)]
@@ -61,3 +61,27 @@ def extrapolator_flipper(x ,y, V, slope_length = 5, extrarows = 25):
     xn, Vn = lin_extrapolator(x, V, slope_length, extrarows)
     yn, Vn = lin_extrapolator(y, Vn.T, slope_length, extrarows)
     return xn, yn, Vn.T
+
+
+# def double_extrapolator(x, y, V, slope_length = 5 ,extrarows = 3):
+#     # Low extrapolation
+#     xslope_low = x[slope_length - 1] - x[0] 
+#     x_extra_low = [x[0] - xslope_low * (i + 1) for i in range(extrarows)]
+#     # High extrapolation
+#     xslope_high = x[-1] - x[-slope_length]
+#     x_extra_high = [x[-1] + xslope_high * (i + 1) for i in range(extrarows)]
+    
+#     # Stack, reverse low to stack properlx
+#     xn = np.concatenate([x_extra_low[::-1], x, x_extra_high])
+    
+#     # 2D low
+#     Vslope_low = (V[slope_length - 1, :] - V[0, :]) / xslope_low
+#     Vextra_low = [V[0, :] + Vslope_low * (x_extra_low[i] - x[0]) for i in range(extrarows)]
+
+#     # 2D high
+#     Vslope_high = (V[-1, :] - V[-slope_length, :]) / xslope_high
+#     Vextra_high = [V[-1, :] + Vslope_high * (x_extra_high[i] - x[-1]) for i in range(extrarows)]
+    
+#     Vn = np.vstack([Vextra_low[::-1], V, Vextra_high]) 
+    
+#     return xn, Vn

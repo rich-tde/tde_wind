@@ -69,7 +69,7 @@ for i in range(len(T_plot2)):
 ross_rho2 = np.array(ross_rho2)
 
 # RICH from me and K
-T_cool3, Rho_cool3, rossland3_t = extrapolator_flipper(T_cool, Rho_cool, rossland.T)
+T_cool3, Rho_cool3, rossland3_t = extrapolator_flipper(T_cool, Rho_cool, rossland.T, slope_length=5)
 rossland3 = rossland3_t.T  #transpose back
 T_plot3 = np.exp(T_cool3)
 Rho_plot3 = np.exp(Rho_cool3)
@@ -86,7 +86,7 @@ ross_rho3 = np.array(ross_rho3)
 # you expect: opacity to increase with density, decrease with temperature
 #%%
 chosenTs = [1e4, 1e5, 1e7]
-
+print('min T:' , np.min(T_plot), 'max T:', np.max(T_plot))
 fig, ax = plt.subplots(1,3, figsize = (15,5))
 for i,chosenT in enumerate(chosenTs):
     iT = np.argmin(np.abs(T_plot - chosenT))
