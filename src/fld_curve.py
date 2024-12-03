@@ -325,10 +325,10 @@ for idx_s, snap in enumerate(snaps):
         file.close()
 
         ## just to check photosphere
+        time_rph = np.concatenate([tfb[idx_s], ph_idx])
         with open(f'{pre_saving}/{check}_phidx.txt', 'a') as fileph:
-            fileph.write(f'# {folder}_{check} \n')
-            fileph.write(f'# t/tfb {tfb[idx_s]} \n')
-            fileph.write('# photosphere indices \n'+ ' '.join(map(str, ph_idx)) + '\n')
+            fileph.write(f'# {folder}_{check}. First data in time (in t_fb), the rest are the photosphere indices \n')
+            fileph.write(' '.join(map(str, time_rph)) + '\n')
             file.close()
         ##
 eng.exit()
