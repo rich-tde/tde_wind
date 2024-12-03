@@ -7,11 +7,11 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import colorcet
 import cmocean
-from src.Opacity.linextrapolator import extrapolator_flipper
+from src.Opacity.linextrapolator import extrapolator_flipper, double_extrapolator
 import Utilities.prelude as prel
 
 ##
-# FUNCTIONS
+#%% FUNCTIONS
 ##
 # Old functions from MATLAB Elad
 def linearpad(D0,z0):
@@ -78,6 +78,17 @@ ross_rho3 = []
 for i in range(len(T_plot3)):
     ross_rho3.append(exp_ross3[i, :]/Rho_plot3)
 ross_rho3 = np.array(ross_rho3)
+
+#%% RICH from me
+T_cool4, Rho_cool4, rossland4 = double_extrapolator(T_cool, Rho_cool, rossland, slope_length=5)
+T_plot4 = np.exp(T_cool4)
+Rho_plot4 = np.exp(Rho_cool4)
+exp_ross4 = np.exp(rossland4)
+ross_rho4 = []
+for i in range(len(T_plot4)):
+    ross_rho4.append(exp_ross4[i, :]/Rho_plot4)
+ross_rho4 = np.array(ross_rho4)
+
 #%% Test to understand colormesh
 # x = np.arange(100)
 # y = np.arange(80)
@@ -167,7 +178,7 @@ ax2.set_ylabel(r'$\log_{10} \rho$')
 plt.suptitle('Original, hypothesis: table NOT in CGS. Not reasonable', fontsize = 20)
 plt.tight_layout() 
 #%%
-fig, (ax1,ax2,ax3) = plt.subplots(1,3, figsize = (15,5))
+fig, (ax1,ax2,ax3,ax4) = plt.subplots(1,4, figsize = (20,5))
 img = ax1.pcolormesh(np.log10(T_plot), np.log10(Rho_plot), ross_rho.T, norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'gist_rainbow', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
 cbar = plt.colorbar(img)
 ax1.set_ylabel(r'$\log_{10} \rho$')
@@ -188,9 +199,18 @@ ax3.axvline(np.log10(np.min(T_plot)), color = 'k', linestyle = '--')
 ax3.axvline(np.log10(np.max(T_plot)), color = 'k', linestyle = '--')
 ax3.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
 ax3.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
-ax3.set_title('RICH Extrapolation')
+ax3.set_title('K+P RICH Extrapolation')
 
-for ax in [ax1, ax2, ax3]:
+img = ax4.pcolormesh(np.log10(T_plot4), np.log10(Rho_plot4), ross_rho4.T,  norm = LogNorm(vmin = 1e-5, vmax=1e5), cmap = 'gist_rainbow', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+cbar = plt.colorbar(img)
+cbar.set_label(r'$\kappa [cm^2/g]$')
+ax4.axvline(np.log10(np.min(T_plot)), color = 'k', linestyle = '--')
+ax4.axvline(np.log10(np.max(T_plot)), color = 'k', linestyle = '--')
+ax4.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
+ax4.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
+ax4.set_title('My new RICH Extrapolation')
+
+for ax in [ax1, ax2, ax3, ax4]:
     # Get the existing ticks on the x-axis
     original_ticksx = ax.get_xticks()
     # Calculate midpoints between each pair of ticks
