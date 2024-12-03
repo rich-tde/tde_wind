@@ -326,7 +326,7 @@ for idx_s, snap in enumerate(snaps):
         with open(f'{pre_saving}/{check}_phidx.txt', 'a') as fileph:
             fileph.write(f'# {folder}_{check} \n')
             fileph.write('# t/tfb \n')
-            fileph.write(tfb[idx_s] + '\n')
+            fileph.write(' '.join(map(str,tfb[idx_s])) + '\n')
             fileph.write('# photosphere indices \n'+ ' '.join(map(str, ph_idx)) + '\n')
             file.close()
         ##
