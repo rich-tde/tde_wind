@@ -126,8 +126,6 @@ eng = matlab.engine.start_matlab()
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 print('we are in: ', pre)
 for idx_s, snap in enumerate(snaps):
-    if int(snap) != 164:
-        continue
     print('\n Snapshot: ', snap, '\n')
     box = np.zeros(6)
     #%% Load data -----------------------------------------------------------------
@@ -325,7 +323,7 @@ for idx_s, snap in enumerate(snaps):
         file.close()
 
         ## just to check photosphere
-        time_rph = np.concatenate([tfb[idx_s], ph_idx])
+        time_rph = np.concatenate([[tfb[idx_s]], ph_idx])
         with open(f'{pre_saving}/{check}_phidx.txt', 'a') as fileph:
             fileph.write(f'# {folder}_{check}. First data in time (in t_fb), the rest are the photosphere indices \n')
             fileph.write(' '.join(map(str, time_rph)) + '\n')
