@@ -64,7 +64,7 @@ def extrapolator_flipper(x ,y, V, slope_length = 5, extrarowsx = 99, extrarowsy 
     yn, Vn = lin_extrapolator(y, Vn.T, slope_length, extrarowsy)
     return xn, yn, Vn.T
 
-def double_extrapolator(x, y, K, slope_length = 5, extrarowsx= 99, extrarowsy= 100):
+def rich_extrapolator(x, y, K, slope_length = 5, extrarowsx= 99, extrarowsy= 100, highT_slope = -3.5):
     # Extend x and y, adding data equally space (this suppose x,y as array equally spaced)
     # Low extrapolation
     deltaxn_low = x[1] - x[0]
@@ -92,7 +92,7 @@ def double_extrapolator(x, y, K, slope_length = 5, extrarowsx= 99, extrarowsy= 1
                     Kxslope = (K[slope_length - 1, 0] - K[0, 0]) / deltax
                     Kyslope = (K[0, slope_length - 1] - K[0, 0]) / deltay
                     Kn[ix][iy] = K[0, 0] + Kxslope * (xsel - x[0]) + Kyslope * (ysel - y[0])
-                elif ysel > y[-1]:
+                elif ysel > y[-1]: #this cover the extrapolation from Elad's code
                     deltay = y[-1] - y[-slope_length] 
                     Kxslope = (K[slope_length - 1, -1] - K[0, -1]) / deltax
                     Kyslope = (K[0, -1] - K[0, -slope_length]) / deltay
@@ -101,35 +101,39 @@ def double_extrapolator(x, y, K, slope_length = 5, extrarowsx= 99, extrarowsy= 1
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kxslope = (K[slope_length - 1, iy_inK] - K[0, iy_inK]) / deltax
                     Kn[ix][iy] = K[0, iy_inK] + Kxslope * (xsel - x[0])
-            elif xsel > x[-1]:
-                deltax = x[-1] - x[-slope_length]
+                continue
+            if xsel > x[-1]:
+                # deltax = x[-1] - x[-slope_length]
                 if ysel < y[0]:
                     deltay = y[slope_length - 1] - y[0]
-                    Kxslope = (K[-1, 0] - K[-slope_length, 0]) / deltax
+                    Kxslope = highT_slope #(K[-1, 0] - K[-slope_length, 0]) / deltax
                     Kyslope = (K[-1, slope_length - 1] - K[-1, 0]) / deltay
                     Kn[ix][iy] = K[-1, 0] + Kxslope * (xsel - x[-1]) + Kyslope * (ysel - y[0])
-                elif ysel > y[-1]:
+                elif ysel > y[-1]: # this cover the interpolation in Elad's code
                     deltay = y[-1] - y[-slope_length] 
-                    Kxslope = (K[-1, -1] - K[-slope_length, -1]) / deltax
+                    Kxslope = highT_slope #(K[-1, -1] - K[-slope_length, -1]) / deltax
                     Kyslope = (K[-1, -1] - K[-1, -slope_length]) / deltay
                     Kn[ix][iy] = K[-1, -1] + Kxslope * (xsel - x[-1]) + Kyslope * (ysel - y[-1])
                 else:
                     iy_inK = np.argmin(np.abs(y - ysel))
-                    Kxslope = (K[-slope_length, iy_inK] - K[-1, iy_inK]) / deltax
+                    Kxslope = highT_slope #(K[-1, iy_inK] - K[-slope_length, iy_inK]) / deltax
                     Kn[ix][iy] = K[-1, iy_inK] + Kxslope * (xsel - x[-1])
-            # x is correct, check y
-            else:
+                continue
+            if ysel < y[0]: # x is in the ranege of the table, check y
                 ix_inK = np.argmin(np.abs(x - xsel))
-                if ysel < y[0]:
-                    deltay = y[slope_length - 1] - y[0]
-                    Kyslope = (K[ix_inK, slope_length - 1] - K[ix_inK, 0]) / deltay
-                    Kn[ix][iy] = K[ix_inK, 0] + Kyslope * (ysel - y[0])
-                elif ysel > y[-1]:
-                    deltay = y[-1] - y[-slope_length]
-                    Kyslope = (K[ix_inK, -1] - K[ix_inK, -slope_length]) / deltay
-                    Kn[ix][iy] = K[ix_inK, -1] + Kyslope * (ysel - y[-1])
-                else:
-                    iy_inK = np.argmin(np.abs(y - ysel))
-                    Kn[ix][iy] = K[ix_inK, iy_inK]
+                deltay = y[slope_length - 1] - y[0]
+                Kyslope = (K[ix_inK, slope_length - 1] - K[ix_inK, 0]) / deltay
+                Kn[ix][iy] = K[ix_inK, 0] + Kyslope * (ysel - y[0])
+                continue
+
+            ix_inK = np.argmin(np.abs(x - xsel))
+            if ysel > y[-1]:
+                deltay = y[-1] - y[-slope_length]
+                Kyslope = (K[ix_inK, -1] - K[ix_inK, -slope_length]) / deltay
+                Kn[ix][iy] = K[ix_inK, -1] + Kyslope * (ysel - y[-1])
+                continue
+    
+            iy_inK = np.argmin(np.abs(y - ysel))
+            Kn[ix][iy] = K[ix_inK, iy_inK]
     
     return xn, yn, Kn

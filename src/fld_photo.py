@@ -22,7 +22,7 @@ import scipy.integrate as sci
 from scipy.interpolate import griddata
 import matlab.engine
 from sklearn.neighbors import KDTree
-from src.Opacity.linextrapolator import extrapolator_flipper, pad_interp, double_extrapolator
+from src.Opacity.linextrapolator import extrapolator_flipper, pad_interp, rich_extrapolator
 
 
 import Utilities.prelude as prel
@@ -67,8 +67,8 @@ if extr == '100':
     T_cool2, Rho_cool2, rossland2 = pad_interp(T_cool, Rho_cool, rossland.T)
 if extr == '':
     T_cool2, Rho_cool2, rossland2 = extrapolator_flipper(T_cool, Rho_cool, rossland)
-if extr == 'double':
-    T_cool2, Rho_cool2, rossland2 = double_extrapolator(T_cool, Rho_cool, rossland)
+if extr == 'rich':
+    T_cool2, Rho_cool2, rossland2 = rich_extrapolator(T_cool, Rho_cool, rossland)
 
 # MATLAB GOES WHRRRR, thanks Cindy.
 eng = matlab.engine.start_matlab()
