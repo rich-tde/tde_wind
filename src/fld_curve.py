@@ -320,7 +320,7 @@ for idx_s, snap in enumerate(snaps):
     if save:
         pre_saving = f'{abspath}/data/{folder}'
         data = [snap, tfb[idx_s], Lphoto_snap]
-        with open(f'{pre_saving}/{check}_redNEW.csv', 'a', newline='') as file:
+        with open(f'{pre_saving}/{check}{extr}_red.csv', 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(data)
         file.close()
