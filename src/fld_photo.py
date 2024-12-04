@@ -43,7 +43,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = '' # '' or 'HiRes'
-extr = 'double'
+extr = 'rich'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True

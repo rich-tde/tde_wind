@@ -23,7 +23,7 @@ import scipy.integrate as sci
 from scipy.interpolate import griddata
 import matlab.engine
 from sklearn.neighbors import KDTree
-from src.Opacity.linextrapolator import extrapolator_flipper
+from src.Opacity.linextrapolator import extrapolator_flipper, rich_extrapolator
 
 
 import Utilities.prelude as prel
@@ -44,6 +44,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = '' # '' or 'HiRes'
+extr = 'rich' #'rich' or ''
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True
@@ -117,8 +118,10 @@ rossland = np.loadtxt(f'{opac_path}/ross.txt')
 
 # T_cool2, Rho_cool2, rossland2 = pad_interp(T_cool, Rho_cool, rossland.T)
 
-T_cool2, Rho_cool2, rossland2 = extrapolator_flipper(T_cool, Rho_cool, rossland)
-# _, _, plank2 = extrapolator_flipper(T_cool, Rho_cool, plank.T)
+if extr == '':
+    T_cool2, Rho_cool2, rossland2 = extrapolator_flipper(T_cool, Rho_cool, rossland)
+if extr == 'rich':
+    T_cool2, Rho_cool2, rossland2 = rich_extrapolator(T_cool, Rho_cool, rossland)
 
 # MATLAB GOES WHRRRR, thanks Cindy.
 eng = matlab.engine.start_matlab()
@@ -324,7 +327,7 @@ for idx_s, snap in enumerate(snaps):
 
         ## just to check photosphere
         time_rph = np.concatenate([[snap,tfb[idx_s]], ph_idx])
-        with open(f'{pre_saving}/{check}_phidx.txt', 'a') as fileph:
+        with open(f'{pre_saving}/{check}{extr}_phidx.txt', 'a') as fileph:
             # fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
             fileph.write(' '.join(map(str, time_rph)) + '\n')
             file.close()
