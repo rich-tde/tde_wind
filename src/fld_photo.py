@@ -263,7 +263,7 @@ for idx_s, snap in enumerate(snaps):
             data = [xphot, yphot, zphot]
             np.savetxt(f'{pre_saving}/{check}{extr}_photo{snap}.txt', data)
 
-    eng.exit()
+        eng.exit()
 
     if how == 'fromfld':
         from Utilities.operators import make_tree

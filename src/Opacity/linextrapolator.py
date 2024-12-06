@@ -34,6 +34,30 @@ def pad_interp(x,y,V):
     Vn = Vn.T
     return xn, yn, Vn
 
+# def new_interp(V, y, extrarows = 60):
+#     # Low extrapolation
+#     yslope_low = y[1] - y[0]
+#     y_extra_low = [y[0] - yslope_low * (i + 1) for i in range(extrarows)]
+    
+#     # High extrapolation
+#     yslope_h = y[-1] - y[-2]
+#     y_extra_high = [y[-1] + yslope_h * (i + 1) for i in range(extrarows)]
+    
+#     # Stack, reverse low to stack properly
+#     yn = np.concatenate([y_extra_low[::-1], y, y_extra_high])
+    
+#     # 2D low
+#     Vslope_low = V[1, :] - V[0, :]
+#     Vextra_low = [V[0, :] - 10*Vslope_low * (i + 1) for i in range(extrarows)]
+    
+#     # 2D high
+#     Vslope_high = V[-1, :] - V[-2, :]  # Linear difference
+#     Vextra_high = [V[-1, :] + Vslope_high * (i + 1) for i in range(extrarows)]
+
+#     Vn = np.vstack([Vextra_low[::-1], V, Vextra_high]) 
+
+#     return Vn, yn
+
 def lin_extrapolator(y, V, slope_length, extrarows):
     # Low extrapolation
     deltay_low = y[1] - y[0]

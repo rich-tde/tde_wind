@@ -40,7 +40,7 @@ for idx, time in enumerate(tfbrich):
     diff.append(1-Lumrich[idx]/Lum[i])
 
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-ax1.scatter(tfb, Lum, s = 4, label = 'P+K rich', c ='darkorange')
+ax1.scatter(tfb, Lum, s = 15, label = 'P+K rich', c ='darkorange')
 ax1.scatter(tfbrich, Lumrich, s = 4, label= 'P rich', c = 'dodgerblue')
 ax1.axhline(y=Ledd, c = 'k', linestyle = '--')
 ax1.text(0.1, 1.3*Ledd, r'$L_{\rm Edd}$', fontsize = 18)
@@ -51,11 +51,10 @@ ax1.grid()
 
 ax2.scatter(tfbrich, np.abs(diff), color = 'darkorange', s = 4)
 # ax2.set_yscale('log')
-ax2.set_ylim(1e-2, 1e2)
+ax2.set_ylim(-0.1, 0.7)
 ax2.set_xlabel(r'$t/t_{\rm fb}$', fontsize = 20)
 ax2.set_ylabel(r'$|\Delta_{\rm rel}|$ from Fid', fontsize = 16)
 ax2.grid()
-ax2.set_ylim(-0.5, np.max(diff))
 ax1.legend(fontsize = 18)   
 #%%
 dataL = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes/LowRes_red.csv', delimiter=',', dtype=float)
