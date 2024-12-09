@@ -68,10 +68,8 @@ x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad
     
 # Load the data
 photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}{extr}_photo{snap}.txt')
-print(photo.shape)
 xph, yph, zph, volph, denph, Tempph = photo[0], photo[1], photo[2], photo[3], photo[4], photo[5]
 rph = np.sqrt(xph**2 + yph**2 + zph**2)
-print(len(rph))
 dim_cell_ph = (volph)**(1/3)
 # Midplane
 mid = np.abs(zph) < dim_cell_ph

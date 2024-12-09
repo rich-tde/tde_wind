@@ -48,7 +48,7 @@ n = 1.5
 compton = 'Compton'
 check = '' 
 extr = 'rich'
-how = 'fromfld' #'justph'
+how = 'justph' #'justph'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre_saving = f'{abspath}/data/{folder}'
@@ -87,6 +87,8 @@ if alice:
     for idx_s, snap in enumerate(snaps):
         print('\n Snapshot: ', snap, '\n')
         if how == 'justph':
+            if int(snap) not in [164, 216]:
+                continue
             eng = matlab.engine.start_matlab()
             box = np.zeros(6)
             #%% Load data -----------------------------------------------------------------
