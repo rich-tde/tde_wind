@@ -1,4 +1,5 @@
-""" TEST CHANGES IN FLD."""
+""" FLD curve accoring to Elad's script. 
+Written to be run on alice."""
 from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
@@ -43,7 +44,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = '' # '' or 'HiRes'
+check = 'HiRes' # '' or 'HiRes'
 extr = 'rich' #'rich' or ''
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
