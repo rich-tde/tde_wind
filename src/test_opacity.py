@@ -81,7 +81,7 @@ for i in range(len(T_plot100)):
     ross_rho100.append(exp_ross100[i, :]/Rho_plot100)
 ross_rho100 = np.array(ross_rho100)
 
-# RICH from me and K
+# K+P RICH 
 T_coolflip, Rho_coolflip, rosslandflip = extrapolator_flipper(T_cool, Rho_cool, rossland, slope_length=5)
 T_plotflip = np.exp(T_coolflip)
 Rho_plotflip = np.exp(Rho_coolflip)
@@ -92,14 +92,14 @@ for i in range(len(T_plotflip)):
 ross_rhoflip = np.array(ross_rhoflip)
 
 #%% RICH from me
-T_cool4, Rho_cool4, rossland4 = rich_extrapolator(T_cool, Rho_cool, rossland, slope_length=5)
-T_plot4 = np.exp(T_cool4)
-Rho_plot4 = np.exp(Rho_cool4)
-exp_ross4 = np.exp(rossland4)
-ross_rho4 = []
-for i in range(len(T_plot4)):
-    ross_rho4.append(exp_ross4[i, :]/Rho_plot4)
-ross_rho4 = np.array(ross_rho4)
+T_RICH, Rho_RICH, rosslandRICH = rich_extrapolator(T_cool, Rho_cool, rossland)
+T_plotRICH = np.exp(T_RICH)
+Rho_plotRICH = np.exp(Rho_RICH)
+exp_rossRICH = np.exp(rosslandRICH)
+ross_rhoRICH = []
+for i in range(len(T_plotRICH)):
+    ross_rhoRICH.append(exp_rossRICH[i, :]/Rho_plotRICH)
+ross_rhoRICH = np.array(ross_rhoRICH)
 
 #%% Test to understand colormesh
 # x = np.arange(100)
@@ -113,12 +113,12 @@ print('min T:' , np.min(T_plot), 'max T:', np.max(T_plot))
 fig, ax = plt.subplots(1,3, figsize = (15,5))
 for i,chosenT in enumerate(chosenTs):
     iT = np.argmin(np.abs(T_plot - chosenT))
-    iT_2 = np.argmin(np.abs(T_plot100 - chosenT))
+    # iT_2 = np.argmin(np.abs(T_plot100 - chosenT))
     iT_3 = np.argmin(np.abs(T_plotflip - chosenT))
-    iT_4 = np.argmin(np.abs(T_plot4 - chosenT))
-    ax[i].plot(Rho_plot100, ross_rho100[iT_2, :], label = '100 extrap')
+    iT_4 = np.argmin(np.abs(T_plotRICH - chosenT))
+    # ax[i].plot(Rho_plot100, ross_rho100[iT_2, :], label = '100 extrap')
     ax[i].plot(Rho_plotflip, ross_rhoflip[iT_3, :], '-.', label = 'RICH extrap')
-    ax[i].plot(Rho_plot4, ross_rho4[iT_4, :], ':', label = 'double Extrapolation')
+    ax[i].plot(Rho_plotRICH, ross_rhoRICH[iT_4, :], ':', label = 'double Extrapolation')
     ax[i].plot(Rho_plot, ross_rho[iT, :], '--', label = 'original')
     ax[i].plot(Rho_plot, scatt/Rho_plot,  color = 'r', linestyle = '--', label = 'scattering')
     ax[i].loglog()
@@ -131,81 +131,107 @@ ax[0].set_ylabel(r'$\kappa [cm^2g^{-1}]$')
 plt.tight_layout()
 
 #%%
-# print(np.min(Rho_plot))
-chosenRhos = [1e-10, 1e-12] 
-fig, ax = plt.subplots(1,2, figsize = (10,5))
+chosenRhos = [1e-9, 1e-14] # you want 1e-6, 1e-11 kg/m^3 (too far from Elad's table, u want plot it)
+colors_plot = ['forestgreen', 'r']
+lines = ['solid', 'dashed']
+plt.figure(figsize = (10,5))
 for i,chosenRho in enumerate(chosenRhos):
-    irho = np.argmin(np.abs(Rho_plot - chosenRho))
-    irho_2 = np.argmin(np.abs(Rho_plot100 - chosenRho)) 
-    irho_3 = np.argmin(np.abs(Rho_plotflip - chosenRho))
-    irho_4 = np.argmin(np.abs(Rho_plot4 - chosenRho))
-    # ax[i].plot(T_plot100, ross_rho100[:, irho_2],  label = '100 extrap')
-    ax[i].plot(T_plotflip, ross_rhoflip[:, irho_3], '-.', label = 'RICH extrap')
-    ax[i].plot(T_plot4, ross_rho4[:, irho_4], ':', label = 'double Extrapolation')
-    ax[i].plot(T_plot, ross_rho[:, irho], '--', label = 'original')
-    ax[i].set_xlabel(r'T')
-    ax[i].set_ylabel(r'$\kappa [cm^2/g]$')
-    ax[i].set_ylim(7e-3, 2e2) #the axis from 7e-4 to 2e1 m2/g
-    ax[i].set_xlim(1e1,1e9)
-    ax[i].loglog()
-    ax[i].set_title(r'$\rho$ = ' +  f'{chosenRho}' + r'$g/cm^3$')
-    ax[i].legend()
-    ax[i].grid()
-    plt.tight_layout()
-
-#%%
-fig, (ax1,ax2) = plt.subplots(1,2, figsize = (12,5))
-img = ax1.pcolormesh(np.log10(T_plot), np.log10(Rho_plot), exp_ross.T, norm = LogNorm(vmin=1e-15, vmax=1e12), cmap = 'jet') #exp_ross.T have rows = fixed rho, columns = fixed T
-cbar = plt.colorbar(img)
-cbar.set_label(r'$\kappa_E [1/cm]$')
-# cbar.set_label(r'$\kappa$')
-ax1.set_xlabel(r'$\log_{10} T$')
-ax1.set_ylabel(r'$\log_{10} \rho$')
-
-img = ax2.pcolormesh(np.log10(T_plot), np.log10(Rho_plot), np.transpose(ross_rho), norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'jet') #exp_ross.T have rows = fixed rho, columns = fixed T
-cbar = plt.colorbar(img)
-cbar.set_label(r'$\kappa [cm^2/g]$')
-ax1.set_xlabel(r'$\log_{10} T$')
-ax2.set_ylabel(r'$\log_{10} \rho$')
-
-plt.suptitle('Original, no conversion', fontsize = 20)
+    irho_4 = np.argmin(np.abs(Rho_plotRICH - chosenRho))
+    plt.plot(T_plotRICH, ross_rhoRICH[:, irho_4], linestyle = lines[i], c = colors_plot[i], label = r'$\rho$ = '+f'{chosenRho} g/cm3')
+plt.xlabel(r'T')
+plt.ylabel(r'$\kappa [cm^2/g]$')
+plt.ylim(7e-3, 2e2) #the axis from 7e-4 to 2e1 m2/g
+plt.xlim(1e1,1e7)
+plt.loglog()
+plt.legend()
+plt.grid()
 plt.tight_layout()
 
-#%% CHECK if is CGS
-exp_ross_conv = exp_ross /prel.Rsol_cgs #convert to CGS?
-ross_rho_conv = ross_rho * prel.Rsol_cgs**2/prel.Msol_cgs
-Rho_conv = Rho_plot * prel.Msol_cgs/prel.Rsol_cgs**3
+#%% CHECK mine and K+P RICH extrap
+# print(np.min(Rho_plot))
+# chosenRhos = [1e-14, 1e-9] # you want 1e-6, 1e-11 kg/m^3 (too far from Elad's table, u want plot it)
+# fig, ax = plt.subplots(1,2, figsize = (15,5))
+# for i,chosenRho in enumerate(chosenRhos):
+#     # irho = np.argmin(np.abs(Rho_plot - chosenRho))
+#     irho_2 = np.argmin(np.abs(Rho_plot100 - chosenRho)) 
+#     irho_3 = np.argmin(np.abs(Rho_plotflip - chosenRho))
+#     irho_4 = np.argmin(np.abs(Rho_plotRICH - chosenRho))
+#     # ax[i].plot(T_plot100, ross_rho100[:, irho_2],  label = '100 extrap')
+#     ax[i].plot(T_plotflip, ross_rhoflip[:, irho_3], '-.', label = 'K+P extrap')
+#     ax[i].plot(T_plotRICH, ross_rhoRICH[:, irho_4], ':', label = 'RICH')
+#     # ax[i].plot(T_plot, ross_rho[:, irho], '--', label = 'original')
+#     ax[i].set_xlabel(r'T')
+#     ax[i].set_ylabel(r'$\kappa [cm^2/g]$')
+#     ax[i].set_ylim(7e-3, 2e2) #the axis from 7e-4 to 2e1 m2/g
+#     ax[i].set_xlim(1e1,1e7)
+#     ax[i].loglog()
+#     ax[i].set_title(r'$\rho$ = ' +  f'{chosenRho}' + r'$g/cm^3$')
+#     ax[i].legend()
+#     ax[i].grid()
+#     plt.tight_layout()
 
-fig, (ax1,ax2) = plt.subplots(1,2, figsize = (12,5))
-img = ax1.pcolormesh(np.log10(T_plot), np.log10(Rho_conv), exp_ross_conv.T, norm = LogNorm(vmin=1e-19, vmax=1e-4), cmap = 'jet') #exp_ross.T have rows = fixed rho, columns = fixed T
-cbar = plt.colorbar(img)
-cbar.set_label(r'$\kappa_E [1/cm]$')
-# cbar.set_label(r'$\kappa$')
-ax1.set_xlabel(r'$\log_{10} T$')
-ax1.set_ylabel(r'$\log_{10} \rho$')
+#%% Test if it's in CGS
+# fig, (ax1,ax2) = plt.subplots(1,2, figsize = (12,5))
+# img = ax1.pcolormesh(np.log10(T_plot), np.log10(Rho_plot), exp_ross.T, norm = LogNorm(vmin=1e-15, vmax=1e12), cmap = 'jet') #exp_ross.T have rows = fixed rho, columns = fixed T
+# cbar = plt.colorbar(img)
+# cbar.set_label(r'$\kappa_E [1/cm]$')
+# # cbar.set_label(r'$\kappa$')
+# ax1.set_xlabel(r'$\log_{10} T$')
+# ax1.set_ylabel(r'$\log_{10} \rho$')
 
-img = ax2.pcolormesh(np.log10(T_plot), np.log10(Rho_conv), ross_rho_conv.T, norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'jet') #exp_ross.T have rows = fixed rho, columns = fixed T
-cbar = plt.colorbar(img)
-cbar.set_label(r'$\kappa [cm^2/g]$')
-ax1.set_xlabel(r'$\log_{10} T$')
-ax2.set_ylabel(r'$\log_{10} \rho$')
+# img = ax2.pcolormesh(np.log10(T_plot), np.log10(Rho_plot), np.transpose(ross_rho), norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'jet') #exp_ross.T have rows = fixed rho, columns = fixed T
+# cbar = plt.colorbar(img)
+# cbar.set_label(r'$\kappa [cm^2/g]$')
+# ax1.set_xlabel(r'$\log_{10} T$')
+# ax2.set_ylabel(r'$\log_{10} \rho$')
 
-plt.suptitle('Original, hypothesis: table NOT in CGS. Not reasonable', fontsize = 20)
-plt.tight_layout() 
+# plt.suptitle('Original, no conversion', fontsize = 20)
+# plt.tight_layout()
+
+# #%% CHECK if is CGS
+# exp_ross_conv = exp_ross /prel.Rsol_cgs #convert to CGS?
+# ross_rho_conv = ross_rho * prel.Rsol_cgs**2/prel.Msol_cgs
+# Rho_conv = Rho_plot * prel.Msol_cgs/prel.Rsol_cgs**3
+
+# fig, (ax1,ax2) = plt.subplots(1,2, figsize = (12,5))
+# img = ax1.pcolormesh(np.log10(T_plot), np.log10(Rho_conv), exp_ross_conv.T, norm = LogNorm(vmin=1e-19, vmax=1e-4), cmap = 'jet') #exp_ross.T have rows = fixed rho, columns = fixed T
+# cbar = plt.colorbar(img)
+# cbar.set_label(r'$\kappa_E [1/cm]$')
+# # cbar.set_label(r'$\kappa$')
+# ax1.set_xlabel(r'$\log_{10} T$')
+# ax1.set_ylabel(r'$\log_{10} \rho$')
+
+# img = ax2.pcolormesh(np.log10(T_plot), np.log10(Rho_conv), ross_rho_conv.T, norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'jet') #exp_ross.T have rows = fixed rho, columns = fixed T
+# cbar = plt.colorbar(img)
+# cbar.set_label(r'$\kappa [cm^2/g]$')
+# ax1.set_xlabel(r'$\log_{10} T$')
+# ax2.set_ylabel(r'$\log_{10} \rho$')
+
+# plt.suptitle('Original, hypothesis: table NOT in CGS. Not reasonable', fontsize = 20)
+# plt.tight_layout() 
 #%%
-fig, (ax1,ax2,ax3,ax4) = plt.subplots(1,4, figsize = (20,5))
+fig, (ax1,ax2,ax3) = plt.subplots(1,3, figsize = (18,5))
 img = ax1.pcolormesh(np.log10(T_plot), np.log10(Rho_plot), ross_rho.T, norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
 cbar = plt.colorbar(img)
 ax1.set_ylabel(r'$\log_{10} \rho$')
-ax1.set_title('Original')
+ax1.set_title('Table')
 
-img = ax2.pcolormesh(np.log10(T_plot100), np.log10(Rho_plot100), ross_rho100.T, norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+# img = ax2.pcolormesh(np.log10(T_plot100), np.log10(Rho_plot100), ross_rho100.T, norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+# cbar = plt.colorbar(img)
+# ax2.axvline(np.log10(np.min(T_plot)), color = 'k', linestyle = '--')
+# ax2.axvline(np.log10(np.max(T_plot)), color = 'k', linestyle = '--')
+# ax2.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
+# ax2.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
+# ax2.set_title('Old Extrapolation (factor 100)')
+
+img = ax2.pcolormesh(np.log10(T_plotRICH), np.log10(Rho_plotRICH), ross_rhoRICH.T,  norm = LogNorm(vmin = 1e-5, vmax=1e5), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
 cbar = plt.colorbar(img)
+cbar.set_label(r'$\kappa [cm^2/g]$')
 ax2.axvline(np.log10(np.min(T_plot)), color = 'k', linestyle = '--')
 ax2.axvline(np.log10(np.max(T_plot)), color = 'k', linestyle = '--')
 ax2.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
 ax2.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
-ax2.set_title('Old Extrapolation (factor 100)')
+ax2.set_title('RICH Extrapolation')
 
 img = ax3.pcolormesh(np.log10(T_plotflip), np.log10(Rho_plotflip), ross_rhoflip.T,  norm = LogNorm(vmin = 1e-5, vmax=1e5), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
 cbar = plt.colorbar(img)
@@ -214,18 +240,10 @@ ax3.axvline(np.log10(np.min(T_plot)), color = 'k', linestyle = '--')
 ax3.axvline(np.log10(np.max(T_plot)), color = 'k', linestyle = '--')
 ax3.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
 ax3.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
-ax3.set_title('K+P RICH Extrapolation')
+ax3.set_title('K+P Extrapolation')
 
-img = ax4.pcolormesh(np.log10(T_plot4), np.log10(Rho_plot4), ross_rho4.T,  norm = LogNorm(vmin = 1e-5, vmax=1e5), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
-cbar = plt.colorbar(img)
-cbar.set_label(r'$\kappa [cm^2/g]$')
-ax4.axvline(np.log10(np.min(T_plot)), color = 'k', linestyle = '--')
-ax4.axvline(np.log10(np.max(T_plot)), color = 'k', linestyle = '--')
-ax4.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
-ax4.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
-ax4.set_title('My new RICH Extrapolation')
 
-for ax in [ax1, ax2, ax3, ax4]:
+for ax in [ax1, ax2, ax3]:
     # Get the existing ticks on the x-axis
     original_ticksx = ax.get_xticks()
     # Calculate midpoints between each pair of ticks
@@ -266,10 +284,10 @@ plt.tight_layout()
 
 # %%
 # diff between 3 and 4
-diff = np.zeros((len(T_plot4), len(Rho_plot4)))
-for i in range(len(T_plot4)):
-    for j in range(len(Rho_plot4)):
-        diff[i,j] = 2*np.abs(ross_rhoflip[i, j] - ross_rho4[i,j])/(ross_rho4[i,j]+ross_rhoflip[i, j])
+diff = np.zeros((len(T_plotRICH), len(Rho_plotRICH)))
+for i in range(len(T_plotRICH)):
+    for j in range(len(Rho_plotRICH)):
+        diff[i,j] = 2*np.abs(ross_rhoflip[i, j] - ross_rhoRICH[i,j])/(ross_rhoRICH[i,j]+ross_rhoflip[i, j])
 
 
 #%%
@@ -301,7 +319,7 @@ ax3.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
 ax3.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
 ax3.set_title('K+P RICH Extrapolation')
 
-img = ax4.pcolormesh(np.log10(T_plot4), np.log10(Rho_plot4), ross_rho4.T,  norm = LogNorm(vmin = 1e-12, vmax=1e10), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+img = ax4.pcolormesh(np.log10(T_plotRICH), np.log10(Rho_plotRICH), ross_rhoRICH.T,  norm = LogNorm(vmin = 1e-12, vmax=1e10), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\kappa [cm^2/g]$')
 ax4.axvline(np.log10(np.min(T_plot)), color = 'k', linestyle = '--')
@@ -310,7 +328,7 @@ ax4.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
 ax4.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
 ax4.set_title('My new RICH Extrapolation')
 
-img = ax1.pcolormesh(np.log10(T_plot4), np.log10(Rho_plot4), diff.T, cmap = 'jet')
+img = ax1.pcolormesh(np.log10(T_plotRICH), np.log10(Rho_plotRICH), diff.T, cmap = 'jet')
 ax1.scatter(np.log10(Tph), np.log10(Rhoph), color = 'k', s = 1)
 cbar=plt.colorbar(img)
 cbar.set_label(r'$\log_{10}\Delta_{rel}$')
@@ -320,8 +338,8 @@ for ax in [ax1, ax3, ax4]:
     ax.axvline(np.log10(np.max(T_plot)), color = 'k', linestyle = '--')
     ax.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
     ax.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
-    ax.set_xlim(np.min(np.log10(T_plot4)), np.max(np.log10(T_plot4)))
-    ax.set_ylim(np.min(np.log10(Rho_plot4)), np.max(np.log10(Rho_plot4)))
+    ax.set_xlim(np.min(np.log10(T_plotRICH)), np.max(np.log10(T_plotRICH)))
+    ax.set_ylim(np.min(np.log10(Rho_plotRICH)), np.max(np.log10(Rho_plotRICH)))
     ax.set_xlabel(r'$\log_{10} T$')
     ax.set_ylabel(r'$\log_{10} \rho$')
 

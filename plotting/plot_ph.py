@@ -8,6 +8,7 @@ from src import orbits as orb
 import matplotlib.colors as colors
 import Utilities.prelude as prel
 import healpy as hp
+from Utilities.sections import make_slices
 matplotlib.rcParams['figure.dpi'] = 150
 
 
@@ -23,8 +24,9 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 check = '' # '' or 'HiRes' or 'LowRes'
-snap = '267'
+snap = '164'
 compton = 'Compton'
+extr = 'rich'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 path = f'{abspath}TDE/{folder}/{snap}'
@@ -64,18 +66,24 @@ zslice = np.load(f'/Users/paolamartire/shocks/data/{folder}/slices/z0slice_{snap
 x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid =\
         zslice[0], zslice[1], zslice[2], zslice[3], zslice[4], zslice[5], zslice[6], zslice[7], zslice[8]
     
-dataph = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/_photo{snap}.txt')
-xph, yph, zph = dataph[0], dataph[1], dataph[2]  
+# Load the data
+photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}{extr}_photo{snap}.txt')
+print(photo.shape)
+xph, yph, zph, volph, denph, Tempph = photo[0], photo[1], photo[2], photo[3], photo[4], photo[5]
 rph = np.sqrt(xph**2 + yph**2 + zph**2)
-xph_eq, yph_eq, zph_eq = xph[first_eq:final_eq], yph[first_eq:final_eq], zph[first_eq:final_eq]
-rph_eq = np.sqrt(xph_eq**2 + yph_eq**2 + zph_eq**2)
+print(len(rph))
+dim_cell_ph = (volph)**(1/3)
+# Midplane
+mid = np.abs(zph) < dim_cell_ph
+xph_mid, yph_mid, zph_mid, denph_mid, Tempph_mid = make_slices([xph, yph, zph, denph, Tempph], mid)
+rph_mid = np.sqrt(xph_mid**2 + yph_mid**2 + zph_mid**2)
 
 #%% Plot on the equatorial plane
 fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize = (20,8))
 img = ax1.scatter(x_mid/apo, y_mid/apo, c = den_mid, s = 1, cmap = 'winter', norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-5))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\rho$ ', fontsize = 16)
-ax1.scatter(xph_eq/apo, yph_eq/apo, c = 'r', s = 20)
+ax1.scatter(xph_mid/apo, yph_mid/apo, c = 'r', s = 20)
 ax1.scatter(0,0,c= 'k', marker = 'x', s=80)
 ax1.set_xlim(-4,0.5)
 ax1.set_ylim(-2,2)

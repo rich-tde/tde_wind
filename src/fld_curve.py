@@ -1,5 +1,4 @@
-""" FLD curve accoring to Elad's script. 
-Written to be run on alice."""
+""" TEST CHANGES IN FLD."""
 from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
@@ -80,13 +79,24 @@ for idx_s, snap in enumerate(snaps):
     box = np.zeros(6)
     # Load data -----------------------------------------------------------------
     if alice:
-        path = f'{pre}/snap_{snap}'
+        X = np.load(f'{pre}/snap_{snap}/CMx_{snap}.npy')
+        Y = np.load(f'{pre}/snap_{snap}/CMy_{snap}.npy')
+        Z = np.load(f'{pre}/snap_{snap}/CMz_{snap}.npy')
+        T = np.load(f'{pre}/snap_{snap}/T_{snap}.npy')
+        Den = np.load(f'{pre}/snap_{snap}/Den_{snap}.npy')
+        Rad = np.load(f'{pre}/snap_{snap}/Rad_{snap}.npy')
+        Vol = np.load(f'{pre}/snap_{snap}/Vol_{snap}.npy')
+        box = np.load(f'{pre}/snap_{snap}/box_{snap}.npy')
     else:
-        path = f'{pre}/{snap}'
-    data = make_tree(path, snap, energy = False)
-    X, Y, Z, T, Den, Rad, Vol = \
-        data.X, data.Y, data.Z, data.T, data.Den, data.Rad, data.Vol
-    box = np.load(f'{pre}/snap_{snap}/box_{snap}.npy')
+        X = np.load(f'{pre}/{snap}/CMx_{snap}.npy')
+        Y = np.load(f'{pre}/{snap}/CMy_{snap}.npy')
+        Z = np.load(f'{pre}/{snap}/CMz_{snap}.npy')
+        T = np.load(f'{pre}/{snap}/T_{snap}.npy')
+        Den = np.load(f'{pre}/{snap}/Den_{snap}.npy')
+        Rad = np.load(f'{pre}/{snap}/Rad_{snap}.npy')
+        Vol = np.load(f'{pre}/{snap}/Vol_{snap}.npy')
+        box = np.load(f'{pre}/{snap}/box_{snap}.npy')
+    
     denmask = Den > 1e-19
     X, Y, Z, T, Den, Rad, Vol = make_slices([X, Y, Z, T, Den, Rad, Vol], denmask)
     Rad_den = np.multiply(Rad,Den) # now you have energy density
@@ -160,7 +170,7 @@ for idx_s, snap in enumerate(snaps):
         t = T[idx]
 
         # Interpolate ----------------------------------------------------------
-        sigma_rossland = eng.interp2(T_cool2,Rho_cool2,rossland2,np.log(t),np.log(d),'linear',0)
+        sigma_rossland = eng.interp2(T_cool2,Rho_cool2,rossland2.T,np.log(t),np.log(d),'linear',0)
         sigma_rossland = [sigma_rossland[0][i] for i in range(N_ray)]
         sigma_rossland_eval = np.exp(sigma_rossland) 
         del sigma_rossland
