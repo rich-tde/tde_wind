@@ -131,6 +131,8 @@ ax[0].set_ylabel(r'$\kappa [cm^2g^{-1}]$')
 plt.tight_layout()
 
 #%%
+print(np.min(Rho_plot))
+#%%
 chosenRhos = [1e-9, 1e-14] # you want 1e-6, 1e-11 kg/m^3 (too far from Elad's table, u want plot it)
 colors_plot = ['forestgreen', 'r']
 lines = ['solid', 'dashed']
@@ -148,27 +150,23 @@ plt.grid()
 plt.tight_layout()
 
 #%% CHECK mine and K+P RICH extrap
-# print(np.min(Rho_plot))
-# chosenRhos = [1e-14, 1e-9] # you want 1e-6, 1e-11 kg/m^3 (too far from Elad's table, u want plot it)
-# fig, ax = plt.subplots(1,2, figsize = (15,5))
-# for i,chosenRho in enumerate(chosenRhos):
-#     # irho = np.argmin(np.abs(Rho_plot - chosenRho))
-#     irho_2 = np.argmin(np.abs(Rho_plot100 - chosenRho)) 
-#     irho_3 = np.argmin(np.abs(Rho_plotflip - chosenRho))
-#     irho_4 = np.argmin(np.abs(Rho_plotRICH - chosenRho))
-#     # ax[i].plot(T_plot100, ross_rho100[:, irho_2],  label = '100 extrap')
-#     ax[i].plot(T_plotflip, ross_rhoflip[:, irho_3], '-.', label = 'K+P extrap')
-#     ax[i].plot(T_plotRICH, ross_rhoRICH[:, irho_4], ':', label = 'RICH')
-#     # ax[i].plot(T_plot, ross_rho[:, irho], '--', label = 'original')
-#     ax[i].set_xlabel(r'T')
-#     ax[i].set_ylabel(r'$\kappa [cm^2/g]$')
-#     ax[i].set_ylim(7e-3, 2e2) #the axis from 7e-4 to 2e1 m2/g
-#     ax[i].set_xlim(1e1,1e7)
-#     ax[i].loglog()
-#     ax[i].set_title(r'$\rho$ = ' +  f'{chosenRho}' + r'$g/cm^3$')
-#     ax[i].legend()
-#     ax[i].grid()
-#     plt.tight_layout()
+print(np.min(Rho_plot))
+chosenRhos = [1e-5, 1e-9] # you want 1e-6, 1e-11 kg/m^3 (too far from Elad's table, u want plot it)
+fig, ax = plt.subplots(1,2, figsize = (15,5))
+for i,chosenRho in enumerate(chosenRhos):
+    irho = np.argmin(np.abs(Rho_plot - chosenRho))
+    irho_4 = np.argmin(np.abs(Rho_plotRICH - chosenRho))
+    ax[i].plot(T_plotRICH, ross_rhoRICH[:, irho_4], ':', label = 'RICH')
+    ax[i].plot(T_plot, ross_rho[:, irho], '--', label = 'original')
+    ax[i].set_xlabel(r'T')
+    ax[i].set_ylabel(r'$\kappa [cm^2/g]$')
+    ax[i].set_ylim(7e-3, 2e2) #the axis from 7e-4 to 2e1 m2/g
+    ax[i].set_xlim(1e1,1e7)
+    ax[i].loglog()
+    ax[i].set_title(r'$\rho$ = ' +  f'{chosenRho}' + r'$g/cm^3$')
+    ax[i].legend()
+    ax[i].grid()
+    plt.tight_layout()
 
 #%% Test if it's in CGS
 # fig, (ax1,ax2) = plt.subplots(1,2, figsize = (12,5))
@@ -345,3 +343,4 @@ for ax in [ax1, ax3, ax4]:
 
 plt.tight_layout()
 # %%
+

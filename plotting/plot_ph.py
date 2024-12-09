@@ -9,6 +9,7 @@ import matplotlib.colors as colors
 import Utilities.prelude as prel
 import healpy as hp
 from Utilities.sections import make_slices
+from Utilities.operators import make_tree
 matplotlib.rcParams['figure.dpi'] = 150
 
 
@@ -24,7 +25,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 check = '' # '' or 'HiRes' or 'LowRes'
-snap = '164'
+snap = '216'
 compton = 'Compton'
 extr = 'rich'
 
@@ -67,38 +68,61 @@ x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad
         zslice[0], zslice[1], zslice[2], zslice[3], zslice[4], zslice[5], zslice[6], zslice[7], zslice[8]
     
 # Load the data
+# photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}{extr}_photo{snap}.txt')
+# xph, yph, zph, volph, denph, Tempph = photo[0], photo[1], photo[2], photo[3], photo[4], photo[5]
+# dim_cell_ph = (volph)**(1/3)
+# mid = np.abs(zph) < dim_cell_ph
+# xph_mid, yph_mid, zph_mid, denph_mid, Tempph_mid = make_slices([xph, yph, zph, denph, Tempph], mid)
+# rph_mid = np.sqrt(xph_mid**2 + yph_mid**2 + zph_mid**2)
 photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}{extr}_photo{snap}.txt')
-xph, yph, zph, volph, denph, Tempph = photo[0], photo[1], photo[2], photo[3], photo[4], photo[5]
+xph, yph, zph = photo[0], photo[1], photo[2]
 rph = np.sqrt(xph**2 + yph**2 + zph**2)
-dim_cell_ph = (volph)**(1/3)
 # Midplane
-mid = np.abs(zph) < dim_cell_ph
-xph_mid, yph_mid, zph_mid, denph_mid, Tempph_mid = make_slices([xph, yph, zph, denph, Tempph], mid)
-rph_mid = np.sqrt(xph_mid**2 + yph_mid**2 + zph_mid**2)
+xph_mid, yph_mid, zph_mid = xph[first_eq:final_eq], yph[first_eq:final_eq], zph[first_eq:final_eq]
 
+# data = make_tree(path, snap, energy = False)
+# x, y, z, den = data.X, data.Y, data.Z, data.Den
+# x_xz, z_xz, den_xz = x[np.abs(y<10)], z[np.abs(y<10)], den[np.abs(y<10)]
 #%% Plot on the equatorial plane
-fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize = (20,8))
-img = ax1.scatter(x_mid/apo, y_mid/apo, c = den_mid, s = 1, cmap = 'winter', norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-5))
+fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize = (25,8))
+img = ax1.scatter(x_mid, y_mid, c = den_mid, s = 1, cmap = 'winter', norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-5))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\rho$ ', fontsize = 16)
-ax1.scatter(xph_mid/apo, yph_mid/apo, c = 'r', s = 20)
+ax1.scatter(xph_mid, yph_mid, c = 'r', s = 20)
 ax1.scatter(0,0,c= 'k', marker = 'x', s=80)
-ax1.set_xlim(-4,0.5)
-ax1.set_ylim(-2,2)
+ax1.set_xlim(-1200,200)
+ax1.set_ylim(-800,200)
 ax1.set_xlabel(r'X [$R_a$]', fontsize = 18)
 ax1.set_ylabel(r'Y [$R_a$]', fontsize = 18)
-ax1.text(-3.5,1.5, '"RICH extrapolation"', fontsize = 16)
 
-ax2.scatter(np.arange(192),rph/apo, c = 'orange')
+ax2.scatter(np.arange(192),rph, c = 'orange')
 ax2.set_ylabel(r'R [$R_a$]', fontsize = 18)
-ax2.axhline(np.mean(rph/apo), c = 'r', ls = '--')
-ax2.text(0, np.mean(rph/apo)+0.1, f'mean: {np.mean(rph):.2f}' + r'$R_\odot$', fontsize = 20)
+ax2.axhline(np.mean(rph), c = 'r', ls = '--')
+ax2.text(0, np.mean(rph)+0.1, f'mean: {np.mean(rph):.2f}' + r'$R_\odot$', fontsize = 20)
 ax2.set_xlabel('observer number', fontsize = 18)
 
-ax3.scatter(np.arange(first_eq, final_eq),rph[first_eq:final_eq]/apo, c = 'r')
+ax3.scatter(np.arange(first_eq, final_eq),rph[first_eq:final_eq], c = 'r')
 ax3.set_ylabel(r'R [$R_a$]', fontsize = 18)
 ax3.set_xlabel('observer number', fontsize = 18)
+
+# img = ax4.scatter(x_xz, z_xz, c = den_xz, s = 1, cmap = 'winter', norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-5))
+# cbar = plt.colorbar(img)
+# cbar.set_label(r'$\rho$ ', fontsize = 16)
+# ax4.scatter(xph_mid, yph_mid, c = 'r', s = 20)
+# ax4.scatter(0,0,c= 'k', marker = 'x', s=80)
+# ax4.set_xlim(-5,0.8)
+# ax4.set_ylim(-2,2)
+# ax4.set_xlabel(r'X [$R_a$]', fontsize = 18)
+# ax4.set_ylabel(r'Z [$R_a$]', fontsize = 18)
+
+# ax5.scatter(np.arange(192),rph, c = 'orange')
+# ax5.set_ylabel(r'R [$R_a$]', fontsize = 18)
+# ax5.axhline(np.mean(rph), c = 'r', ls = '--')
+# ax5.text(0, np.mean(rph)+0.1, f'mean: {np.mean(rph):.2f}' + r'$R_\odot$', fontsize = 20)
+# ax5.set_xlabel('observer number', fontsize = 18)
+
 
 plt.suptitle(f'Snap {snap}', fontsize = 20)
 plt.tight_layout()
 plt.show()
+# %%
