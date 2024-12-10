@@ -281,6 +281,12 @@ for idx_s, snap in enumerate(snaps):
         xph, yph, zph, volph, denph, Tempph = make_slices([x, y, z, vol, den, Temp], single_indices_ph)
         # save the photosphere
         with open(f'{pre_saving}/photo/{check}{extr}_photo{snap}.txt', 'a') as f:
-            np.savetxt(f, '# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph \n')
-            np.savetxt(f, [xph, yph, zph, volph, denph, Tempph])
-        # np.savetxt(f'{pre_saving}/photo/{check}{extr}_photo{snap}.txt', 'a',[xph, yph, zph, volph, denph, Tempph])
+            f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph \n')
+            f.write(' '.join(map(str, xph)) + '\n')
+            f.write(' '.join(map(str, yph)) + '\n')
+            f.write(' '.join(map(str, zph)) + '\n')
+            f.write(' '.join(map(str, volph)) + '\n')
+            f.write(' '.join(map(str, denph)) + '\n')
+            f.write(' '.join(map(str, Tempph)) + '\n')
+            f.close()
+            # np.savetxt(f'{pre_saving}/photo/{check}{extr}_photo{snap}.txt', 'a',[xph, yph, zph, volph, denph, Tempph])
