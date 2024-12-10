@@ -268,8 +268,6 @@ for idx_s, snap in enumerate(snaps):
 
     if how == 'fromfld':
         from Utilities.operators import make_tree
-        if int(snap)!=164:
-            continue
         # Find the line corresponding to the snap and take the indices of the photosphere radii 
         selected_idx = np.argmin(np.abs(snaps_ph - snap))
         single_indices_ph = allindices_ph[selected_idx]
@@ -282,4 +280,7 @@ for idx_s, snap in enumerate(snaps):
         x, y, z, vol, den, Temp = make_slices([x, y, z, vol, den, Temp], cut)
         xph, yph, zph, volph, denph, Tempph = make_slices([x, y, z, vol, den, Temp], single_indices_ph)
         # save the photosphere
-        np.savetxt(f'{pre_saving}/photo/{check}{extr}_photo{snap}.txt', [xph, yph, zph, volph, denph, Tempph])
+        with open(f'{pre_saving}/photo/{check}{extr}_photo{snap}.txt', 'a') as f:
+            np.savetxt(f, '# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph \n')
+            np.savetxt(f, [xph, yph, zph, volph, denph, Tempph])
+        # np.savetxt(f'{pre_saving}/photo/{check}{extr}_photo{snap}.txt', 'a',[xph, yph, zph, volph, denph, Tempph])
