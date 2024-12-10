@@ -68,17 +68,17 @@ x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad
         zslice[0], zslice[1], zslice[2], zslice[3], zslice[4], zslice[5], zslice[6], zslice[7], zslice[8]
     
 # Load the data
-# photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}{extr}_photo{snap}.txt')
-# xph, yph, zph, volph, denph, Tempph = photo[0], photo[1], photo[2], photo[3], photo[4], photo[5]
-# dim_cell_ph = (volph)**(1/3)
-# mid = np.abs(zph) < dim_cell_ph
-# xph_mid, yph_mid, zph_mid, denph_mid, Tempph_mid = make_slices([xph, yph, zph, denph, Tempph], mid)
-# rph_mid = np.sqrt(xph_mid**2 + yph_mid**2 + zph_mid**2)
 photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}{extr}_photo{snap}.txt')
-xph, yph, zph = photo[0], photo[1], photo[2]
+xph, yph, zph, volph, denph, Tempph = photo[0], photo[1], photo[2], photo[3], photo[4], photo[5]
 rph = np.sqrt(xph**2 + yph**2 + zph**2)
-# Midplane
-xph_mid, yph_mid, zph_mid = xph[first_eq:final_eq], yph[first_eq:final_eq], zph[first_eq:final_eq]
+dim_cell_ph = (volph)**(1/3)
+mid = np.abs(zph) < dim_cell_ph
+xph_mid, yph_mid, zph_mid, rph_mid, denph_mid, Tempph_mid = make_slices([xph, yph, zph, rph, denph, Tempph], mid)
+
+# photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}{extr}_photo{snap}.txt')
+# xph, yph, zph = photo[0], photo[1], photo[2]
+# rph = np.sqrt(xph**2 + yph**2 + zph**2)
+# xph_mid, yph_mid, zph_mid = xph[first_eq:final_eq], yph[first_eq:final_eq], zph[first_eq:final_eq]
 
 # data = make_tree(path, snap, energy = False)
 # x, y, z, den = data.X, data.Y, data.Z, data.Den
