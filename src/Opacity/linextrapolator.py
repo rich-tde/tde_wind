@@ -177,16 +177,16 @@ if __name__ == '__main__':
     T_tab = np.loadtxt(f'{opac_path}/T.txt') 
     Rho_tab = np.loadtxt(f'{opac_path}/rho.txt') 
     rossland_tab = np.loadtxt(f'{opac_path}/ross.txt') # Each row is a fixed T, column a fixed rho
-    T_plot = np.exp(T_tab)
-    Rho_plot = np.exp(Rho_tab)
-    ross_plot = np.exp(rossland_tab)
-    scatt = 0.2*(1+0.7381) * Rho_plot #cm^2/g
+    T_plot_tab = np.exp(T_tab)
+    Rho_plot_tab = np.exp(Rho_tab)
+    ross_plot_tab = np.exp(rossland_tab)
+    scatt = 0.2*(1+0.7381) * Rho_plot_tab #cm^2/g
 
-    # multiply column i of ross by Rho_plot[i] to get kappa
-    ross_rho = []
-    for i in range(len(T_plot)):
-        ross_rho.append(ross_plot[i, :]/Rho_plot)
-    ross_rho = np.array(ross_rho)
+    # multiply column i of ross by Rho_plot_tab[i] to get kappa
+    ross_rho_tab = []
+    for i in range(len(T_plot_tab)):
+        ross_rho_tab.append(ross_plot_tab[i, :]/Rho_plot_tab)
+    ross_rho_tab = np.array(ross_rho_tab)
 
     # Extrapolate
     T_RICH, Rho_RICH, rosslandRICH = rich_extrapolator(T_tab, Rho_tab, rossland_tab)
@@ -202,11 +202,11 @@ if __name__ == '__main__':
     chosenTs = [1e4, 1e5, 1e7]
     fig, ax = plt.subplots(1,3, figsize = (15,5))
     for i,chosenT in enumerate(chosenTs):
-        iT = np.argmin(np.abs(T_plot - chosenT))
+        iT = np.argmin(np.abs(T_plot_tab - chosenT))
         iT_4 = np.argmin(np.abs(T_plotRICH - chosenT))
         ax[i].plot(Rho_plotRICH, ross_rhoRICH[iT_4, :], ':', label = 'double Extrapolation')
-        ax[i].plot(Rho_plot, ross_rho[iT, :], '--', label = 'original')
-        ax[i].plot(Rho_plot, scatt/Rho_plot,  color = 'r', linestyle = '--', label = 'scattering')
+        ax[i].plot(Rho_plot_tab, ross_rho_tab[iT, :], '--', label = 'original')
+        ax[i].plot(Rho_plot_tab, scatt/Rho_plot_tab,  color = 'r', linestyle = '--', label = 'scattering')
         ax[i].loglog()
         ax[i].set_ylim(5e-2, 1e4)
         ax[i].set_xlim(1e-18,1e6)
@@ -235,7 +235,7 @@ if __name__ == '__main__':
 
     #%%
     fig, (ax1,ax2) = plt.subplots(1,2, figsize = (12,5))
-    img = ax1.pcolormesh(np.log10(T_plot), np.log10(Rho_plot), ross_rho.T, norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+    img = ax1.pcolormesh(np.log10(T_plot_tab), np.log10(Rho_plot_tab), ross_rho_tab.T, norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
     cbar = plt.colorbar(img)
     ax1.set_ylabel(r'$\log_{10} \rho$')
     ax1.set_title('Table')
@@ -243,10 +243,10 @@ if __name__ == '__main__':
     img = ax2.pcolormesh(np.log10(T_plotRICH), np.log10(Rho_plotRICH), ross_rhoRICH.T,  norm = LogNorm(vmin = 1e-5, vmax=1e5), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
     cbar = plt.colorbar(img)
     cbar.set_label(r'$\kappa [cm^2/g]$')
-    ax2.axvline(np.log10(np.min(T_plot)), color = 'k', linestyle = '--')
-    ax2.axvline(np.log10(np.max(T_plot)), color = 'k', linestyle = '--')
-    ax2.axhline(np.log10(np.min(Rho_plot)), color = 'k', linestyle = '--')
-    ax2.axhline(np.log10(np.max(Rho_plot)), color = 'k', linestyle = '--')
+    ax2.axvline(np.log10(np.min(T_plot_tab)), color = 'k', linestyle = '--')
+    ax2.axvline(np.log10(np.max(T_plot_tab)), color = 'k', linestyle = '--')
+    ax2.axhline(np.log10(np.min(Rho_plot_tab)), color = 'k', linestyle = '--')
+    ax2.axhline(np.log10(np.max(Rho_plot_tab)), color = 'k', linestyle = '--')
     ax2.set_title('Extrapolation')
 
     for ax in [ax1, ax2]:
@@ -279,8 +279,8 @@ if __name__ == '__main__':
         ax.tick_params(axis='y', which='major', width=1.6, length=7, color = 'k')
         ax.set_xlabel(r'$\log_{10} T$')
         if ax == ax1:
-            ax.set_xlim(np.min(np.log10(T_plot)), np.max(np.log10(T_plot)))
-            ax.set_ylim(np.min(np.log10(Rho_plot)), np.max(np.log10(Rho_plot)))
+            ax.set_xlim(np.min(np.log10(T_plot_tab)), np.max(np.log10(T_plot_tab)))
+            ax.set_ylim(np.min(np.log10(Rho_plot_tab)), np.max(np.log10(Rho_plot_tab)))
         else:
             ax.set_xlim(0.8,11)
             ax.set_ylim(-19,11)
@@ -288,35 +288,54 @@ if __name__ == '__main__':
     plt.tight_layout()
     #%% OPAL
     import pandas as pd
-    opal = pd.read_csv(f'{opac_path}/opal.txt', sep = '\s+')
+    optable = 'opal0'
+    opal = pd.read_csv(f'{opac_path}/{optable}.txt', sep = '\s+')
     Tpd, Rhopd, Kpd = opal['t=log(T)'], opal['r=log(rho)'], opal['G=log(ross)']
     Tpd_plot, Rhopd_plot, Kpd_plot = 10**(Tpd), 10**(Rhopd), 10**(Kpd)
 
     # Colormesh
-    plt.figure(figsize = (6,5))
-    img = plt.scatter(Tpd_plot, Rhopd_plot, c = Kpd_plot, cmap = 'jet', norm = LogNorm(vmin=1e-5, vmax=1e5))
+    fig, (ax1,ax2) = plt.subplots(1,2, figsize = (10,5))
+    img = ax1.pcolormesh(np.log10(T_plot_tab), np.log10(Rho_plot_tab), ross_rho_tab.T, norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'jet') #exp_ross.T have rows = fixed rho, columns = fixed T
+    # cbar = plt.colorbar(img)
+    ax1.set_ylabel(r'$\log_{10} \rho$')
+    ax1.set_title('RICH')
+    ax2.set_xlabel(r'$\log_{10}$ T')
+
+    img = ax2.scatter(np.log10(Tpd_plot), np.log10(Rhopd_plot), c = Kpd_plot, cmap = 'jet', norm = LogNorm(vmin=1e-5, vmax=1e5))
     cbar = plt.colorbar(img)
-    plt.axvline(np.min(T_plot), color = 'k', linestyle = '--')
-    plt.axvline(np.max(T_plot), color = 'k', linestyle = '--')
-    plt.axhline(np.min(Rho_plot), color = 'k', linestyle = '--')
-    plt.axhline(np.max(Rho_plot), color = 'k', linestyle = '--')
-    plt.xlabel(r'T')
-    plt.ylabel(r'$\rho [g/cm^3]$')
+    ax2.set_xlim(np.log10(np.min(T_plot_tab)), np.log10(np.max(T_plot_tab)))
+    ax2.set_ylim(np.log10(np.min(Rho_plot_tab)), np.log10(np.max(Rho_plot_tab)))
+    ax2.set_xlabel(r'$\log_{10}$ T')
+    # ax2.ylabel(r'$\rho [g/cm^3]$')
     cbar.set_label(r'$\kappa [cm^2/g]$')
-    plt.loglog()
-    plt.title('OPAL')
+    ax2.set_title('OPAL')
     plt.tight_layout()
+    plt.savefig(f'{abspath}Figs/Test/OPAL/{optable}_mesh.png')
 
     #%% Line
-    indices9 = np.concatenate(np.where(Rhopd == -9))
-    T9, K9 = Tpd_plot[indices9], Kpd_plot[indices9]
-    plt.figure()
-    plt.plot(T9, K9, label = r'$\rho = 10^{-9} g/cm^3$')
-    plt.xlabel(r'T')
-    plt.ylabel(r'$\kappa [cm^2/g]$')
-    plt.loglog()
-    plt.legend()
-    plt.grid()
+    values = np.array([1e-9, 1e-5])
+    valueslog = np.log10(values)
+    fig, ax = plt.subplots(1,2, figsize = (10,5))
+    for i,vallog in enumerate(valueslog):
+        indOP = np.concatenate(np.where(Rhopd == vallog))
+        TOP, KOP = Tpd_plot[indOP], Kpd_plot[indOP]
+        irho_rich = np.argmin(np.abs(Rho_plotRICH - values[i]))
+        irho_table = np.argmin(np.abs(Rho_plot_tab - values[i]))
+        # print(Rho_plot[irho_table], Rho_plotRICH[irho_rich])
+
+        ax[i].plot(TOP, KOP, c = 'forestgreen', label = r'OPAL')
+        ax[i].plot(T_plot_tab, ross_rho_tab[:, irho_table], linestyle = '--', c = 'r', label = r'RICH Table')
+        ax[i].plot(T_plotRICH, ross_rhoRICH[:, irho_rich], linestyle = ':', c = 'b', label = r'RICH extrapolation')
+        ax[i].set_title(r'$\rho$ = '+f'{values[i]} g/cm3')
+        ax[i].grid()
+        ax[i].loglog()
+        ax[i].set_xlim(1e1,1e7)
+        ax[i].set_xlabel(r'T [K]')
+
+    ax[0].set_ylabel(r'$\kappa [cm^2/g]$')
+    ax[0].set_ylim(7e-3, 2e2) #the axis from 7e-4 to 2e1 m2/g
+    ax[1].set_ylim(1e-1, 5e4) #the axis from 7e-4 to 2e1 m2/g
+    plt.legend(fontsize=12)
     plt.tight_layout()
-    
+    plt.savefig(f'{abspath}Figs/Test/OPAL/{optable}_lines.png')
 # %%

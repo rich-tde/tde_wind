@@ -25,7 +25,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 check = '' # '' or 'HiRes' or 'LowRes'
-snap = '216'
+snap = '164'
 compton = 'Compton'
 extr = 'rich'
 
