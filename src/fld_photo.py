@@ -266,7 +266,7 @@ for idx_s, snap in enumerate(snaps):
             data = [xphot, yphot, zphot]
             np.savetxt(f'{pre_saving}/{check}{extr}_photo{snap}.txt', data)
 
-            np.savetxt(f'{pre_saving}/{check}{extr}_Rphoto{snap}.txt', r)
+            np.savetxt(f'{pre_saving}/{check}{extr}_Rphoto{snap}.txt', rphot)
 
         eng.exit()
 

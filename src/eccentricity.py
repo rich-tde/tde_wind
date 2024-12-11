@@ -103,7 +103,8 @@ if __name__ == '__main__':
             np.save(f'{abspath}/data/{folder}/radiiEcc_{check}.npy', radii)
     
     else:
-        difference = True
+        difference = False
+        ecc_crit = orb.eccentricity(Rstar, mstar, Mbh, beta)
 
         if not difference:
             path = f'{abspath}/data/{folder}'
@@ -116,14 +117,15 @@ if __name__ == '__main__':
             
             # Plot
             plt.figure(figsize=(10,8))
-            img = plt.pcolormesh(radii/apo, tfb, ecc, vmin = 0.58, vmax = 1, cmap = 'viridis')#cmocean.cm.balance)
+            img = plt.pcolormesh(radii/apo, tfb, ecc/ecc_crit, vmin = 0.58, vmax = 1, cmap = 'viridis')#cmocean.cm.balance)
             cb = plt.colorbar(img)
             cb.ax.tick_params(labelsize=25)
-            cb.set_label(r'Eccentricity', fontsize = 25, labelpad = 1)
+            cb.set_label(r'Eccentricity [e$_{mb}$]', fontsize = 25, labelpad = 1)
             plt.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed')
             plt.xscale('log')
             plt.xlabel(r'$R [R_{a}]$', fontsize = 25)
             plt.ylabel(r'$t [t_{fb}]$', fontsize = 25)
+            plt.text(0.5, 1.6, r'e$_{mb}$ = ' + f'{np.round(ecc_crit,2)}', fontsize = 20, color = 'k')
             # Bigger ticks:
             # Get the existing ticks on the x-axis
             # original_ticks = plt.yticks()[0]
@@ -138,7 +140,7 @@ if __name__ == '__main__':
             plt.tick_params(axis='y', which='major', width=1, length=8, color = 'white', labelsize=25)
             plt.tick_params(axis='x', which='minor', width=1, length=5, color = 'white', labelsize=25)
             plt.ylim(np.min(tfb), np.max(tfb))
-            plt.savefig(f'{abspath}/Figs/{folder}/ecc.pdf')
+            plt.savefig(f'{abspath}/Figs/{folder}/ecc_norm.pdf')
        
         else:
             import matplotlib.gridspec as gridspec

@@ -21,8 +21,9 @@ compton = 'Compton'
 Rt = Rstar * (Mbh/mstar)**(1/3)
 R0 = 0.6 * Rt
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
+DeltaE = orb.energy_mb(Rstar, mstar, Mbh, G=1)
 
-#
+#%%
 ## DECISIONS
 ##
 save = True

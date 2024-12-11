@@ -48,10 +48,15 @@ def apocentre(Rstar, mstar, Mbh, beta):
     return apo
 
 def eccentricity(Rstar, mstar, Mbh, beta):
-    # comes from Rp = a(1-e), a = Rt^2/2Rstar
+    # eccentricity of most bound derbis. It comes from Rp = a(1-e), a = Rt^2/2Rstar
     Rt = Rstar * (Mbh/mstar)**(1/3)
     ecc = 1-2*Rstar/(beta*Rt)
     return ecc
+
+def energy_mb(Rstar, mstar, Mbh, G):
+    Rt = Rstar * (Mbh/mstar)**(1/3)
+    En = G * Mbh * Rstar / Rt**2
+    return En
 
 def parameters_orbit(Rp, Ra, Mbh, c, G ):
     # Rp, Ra, Mbh, c, G = params_orb[0], params_orb[1], params_orb[2], params_orb[3], params_orb[4]
