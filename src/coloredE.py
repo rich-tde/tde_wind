@@ -12,7 +12,7 @@ else:
 
 import numpy as np
 from Utilities.selectors_for_snap import select_snap
-from Utilities.operators import make_tree, single_branch, to_cylindric
+from Utilities.operators import make_tree, single_branch, multiple_branch, to_cylindric
 import Utilities.sections as sec
 import src.orbits as orb
 
@@ -38,7 +38,6 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = '' 
-xaxis = 'radii'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True
@@ -58,6 +57,7 @@ snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 col_ie = []
 col_orb_en = []
 col_Rad = []
+col_Rad_den = []
 for i,snap in enumerate(snaps):
     print(snap)
     if alice:
@@ -80,23 +80,28 @@ for i,snap in enumerate(snaps):
     cut = den > 1e-19 
     Rsph_cut, theta_cut, mass_cut, den_cut, ie_cut, ie_onmass_cut, orb_en_cut, orb_en_onmass_cut, Rad_cut, Rad_den_cut, vol_cut = \
             sec.make_slices([Rsph, theta, mass, den, ie, ie_onmass, orb_en, orb_en_onmass, Rad, Rad_den, vol], cut)
-
+    Rad_onmass_cut = Rad_cut / mass_cut
     tocast_cut = Rsph_cut
         
     # Cast down 
-    ie_cast = single_branch(radii, xaxis, tocast_cut, ie_onmass_cut, weights = mass_cut)
-    orb_en_cast = single_branch(radii, xaxis, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
-    Rad_cast = single_branch(radii, xaxis, tocast_cut, Rad_den_cut, weights = Rad_cut)
+    # ie_cast = single_branch(radii, tocast_cut, ie_onmass_cut, weights = mass_cut)
+    # orb_en_cast = single_branch(radii, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
+    # Rad_den_cast = single_branch(radii, tocast_cut, Rad_den_cut, weights = Rad_cut)
+    tocast_matrix = [ie_onmass_cut, orb_en_onmass_cut, Rad_onmass_cut, Rad_den_cut]
+    weights_matrix = [mass_cut, mass_cut, mass_cut, Rad_cut]
+    casted = multiple_branch(radii, tocast_cut, tocast_matrix, weights_matrix)
+    ie_cast, orb_en_cast, Rad_cast, Rad_den_cast = casted[0], casted[1], casted[2], casted[3]
 
     col_ie.append(ie_cast)
     col_orb_en.append(orb_en_cast)
     col_Rad.append(Rad_cast)
+    col_Rad_den.append(Rad_den_cast)
 
 #%%
 if save:
-    np.save(f'{abspath}/data/{folder}/coloredE_{check}_{xaxis}.npy', [col_ie, col_orb_en, col_Rad])
+    np.save(f'{abspath}/data/{folder}/coloredE_{check}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_den])
     with open(f'{abspath}/data/{folder}/coloredE_{check}_days.txt', 'w') as file:
         file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
         file.close()
-    np.save(f'{abspath}/data/{folder}/{xaxis}En_{check}.npy', radii)
+    np.save(f'{abspath}/data/{folder}/En_{check}.npy', radii)

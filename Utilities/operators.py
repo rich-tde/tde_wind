@@ -154,20 +154,16 @@ def make_tree(filename, snap, energy = False):
         data = data_snap(sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T)
     return data
 
-def single_branch(radii, xaxis, R, tocast, weights, keep_track = False):
+def single_branch(radii, R, tocast, weights, keep_track = False):
     """ Casts a quantity down to a smaller size vector
     Parameters
     ----------
     radii : arr,
         Array of radii/angles we want to cast to.
-    xaxis : str,
-        'angles' or 'radii'.
     R : arr,
         Coordinates' data from simulation to be casted.
-    sim_coord : Narr (N,3),
-        Coordinates' data from simulation to be casted. 
     tocast: arr,
-        Simulation data to cast.
+        Simulation data to cast corresponing to R.
     weights: arr,
         Weights to use in the casting. If it's an integer: no weights are used.
     keep_track: bool,
@@ -194,10 +190,7 @@ def single_branch(radii, xaxis, R, tocast, weights, keep_track = False):
             width = radii[-1] - radii[-2]
         else:
             width = (radii[i+1] - radii[i-1])/2
-        if xaxis == 'angles':
-            width = width
-        elif xaxis == 'radii':
-            width *= 2 # make it slightly bigger to smooth things
+        width *= 2 # make it slightly bigger to smooth things
         # indices = tree.query_ball_point(radius, width) #if KDTree from scipy
         indices = tree.query_radius(radius, width) #if KDTree from sklearn
         indices = np.concatenate(indices)
@@ -223,6 +216,62 @@ def single_branch(radii, xaxis, R, tocast, weights, keep_track = False):
         return final_casted, cells_used
     else:
         return final_casted
+
+def multiple_branch(radii, R, tocast_matrix, weights_matrix):
+    """ Casts quantities down to a smaller size vector.
+    Parameters
+    ----------
+    radii : arr,
+        Array of radii we want to cast to.
+    R : arr,
+        Coordinates' data from simulation to be casted according to radii.
+    tocast_matrix: Narr,
+        Simulation data (more than one) corresponing to R.
+    weights: Narr,
+        Weights (more than one) to use in the casting. If it's an integer: no weights are used.
+    Returns
+    -------
+    final_casted: Narr
+        Casted down version of tocast
+    """
+    casted_array = []
+    for i, tocast in enumerate(tocast_matrix):
+        gridded_tocast = np.zeros((len(radii)))
+        weights = weights_matrix[i]
+        # check if weights is an integer
+        if type(weights) != int:
+            gridded_weights = np.zeros((len(radii)))
+        R = R.reshape(-1, 1) # Reshaping to 2D array with one column
+        tree = KDTree(R) 
+        for i in range(len(radii)):
+            radius = np.array([radii[i]]).reshape(1, -1) # reshape to match the tree
+            if i == 0:
+                width = radii[1] - radii[0]
+            elif i == len(radii)-1:
+                width = radii[-1] - radii[-2]
+            else:
+                width = (radii[i+1] - radii[i-1])/2
+            width *= 2 # make it slightly bigger to smooth things
+            # indices = tree.query_ball_point(radius, width) #if KDTree from scipy
+            indices = tree.query_radius(radius, width) #if KDTree from sklearn
+            indices = np.concatenate(indices)
+            if len(indices) < 2 :
+                gridded_tocast[i] = 0
+            else:    
+                indices = [int(idx) for idx in indices]
+                if type(weights) != int:
+                    gridded_tocast[i] = np.sum(tocast[indices] * weights[indices])
+                    gridded_weights[i] = np.sum(weights[indices])
+                else:
+                    gridded_tocast[i] = np.sum(tocast[indices])
+        if type(weights) != int:
+            gridded_weights += 1e-20 # avoid division by zero
+            final_casted = np.divide(gridded_tocast, gridded_weights)
+        else:
+            final_casted = gridded_tocast
+        casted_array.append(final_casted)
+
+    return casted_array
 
 def select_near_1d(sim_tree, X, Y, Z, point, delta, coord):
     """ Find (within the tree) the nearest cell along one direction to the one chosen. 

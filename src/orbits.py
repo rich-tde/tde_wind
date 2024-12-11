@@ -54,6 +54,7 @@ def eccentricity(Rstar, mstar, Mbh, beta):
     return ecc
 
 def energy_mb(Rstar, mstar, Mbh, G):
+    """ (Specific) energy of most bound debris """
     Rt = Rstar * (Mbh/mstar)**(1/3)
     En = G * Mbh * Rstar / Rt**2
     return En

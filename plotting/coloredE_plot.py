@@ -21,7 +21,8 @@ compton = 'Compton'
 Rt = Rstar * (Mbh/mstar)**(1/3)
 R0 = 0.6 * Rt
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
-DeltaE = orb.energy_mb(Rstar, mstar, Mbh, G=1)
+DeltaE = orb.energy_mb(Rstar, mstar, Mbh, G=1) # specific energy of the mb debris 
+DeltaE_cgs = DeltaE * prel.en_converter/prel.Msol_cgs
 
 #%%
 ## DECISIONS
@@ -77,6 +78,45 @@ col_orb_enres2 *= prel.en_converter/prel.Msol_cgs
 col_Radres2 *= prel.en_den_converter
 abs_col_orb_enres2 = np.abs(col_orb_enres2)
 
+#%% Plot Res1 NORMALIZED
+fig, ax = plt.subplots(1,2, figsize = (10,5))
+img = ax[0].pcolormesh(radiires1/apo, tfb_res1, abs_col_orb_enres1/DeltaE_cgs, norm=colors.LogNorm(vmin=4e-1, vmax = 10), cmap = 'viridis')
+cb = fig.colorbar(img)
+ax[0].set_title('Orbital energy', fontsize = 20)
+# cb.set_label(r'Energy/$\Delta$E', fontsize = 20, labelpad = 2)
+
+img = ax[1].pcolormesh(radiires1/apo, tfb_res1, col_ieres1/DeltaE_cgs,  norm=colors.LogNorm(vmin=7e-4, vmax = 1e-1), cmap = 'viridis')
+cb = fig.colorbar(img)
+cb.set_label(r'Energy/$\Delta$E', fontsize = 20, labelpad = 2)
+ax[1].set_title('Internal energy', fontsize = 20)
+
+# img = ax[2].pcolormesh(radiires1/apo, tfb_res1, /DeltaE_cgs, norm=colors.LogNorm(vmin=1e-10, vmax= 7e-6), cmap = 'viridis')
+# cb = fig.colorbar(img)
+# ax[2].set_title('Radiation energy density', fontsize = 20)
+# cb.set_label(r'Energy/$\Delta$E', fontsize = 20, labelpad = 2)
+
+for i in range(2):
+    ax[i].axvline(Rt/apo, linestyle ='dashed', c = 'k', linewidth = 1.2)
+    ax[i].set_xscale('log')
+    ax[i].set_xlabel(r'$R [R_a$]', fontsize = 20)
+    # Get the existing ticks on the x-axis
+    original_ticks = ax[i].get_yticks()
+    # Calculate midpoints between each pair of ticks
+    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+    # Combine the original ticks and midpoints
+    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+    # Set tick labels: empty labels for midpoints
+    ax[i].set_yticks(new_ticks)
+    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+    ax[i].set_yticklabels(labels)
+    ax[i].tick_params(axis='x', which='major', width=1, length=7)
+    ax[i].tick_params(axis='x', which='minor', width=0.5, length=5)
+    ax[i].tick_params(axis='y', which='both', width=0.7, length=5)
+    ax[i].set_ylim(np.min(tfb_res1), np.max(tfb_res1))
+ax[0].set_ylabel(r't [t$_{fb}]$', fontsize = 20)
+plt.tight_layout()
+if save:
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}{res1}/coloredE_radii_norm.pdf')
 #%% Plot Res1
 fig, ax = plt.subplots(1,3, figsize = (16,5))
 img = ax[0].pcolormesh(radiires1/apo, tfb_res1, abs_col_orb_enres1, norm=colors.LogNorm(vmin=4e16, vmax = 1e18), cmap = 'viridis')
