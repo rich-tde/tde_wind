@@ -25,12 +25,16 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 check = '' # '' or 'HiRes' or 'LowRes'
-snap = '164'
+snap = '199'
 compton = 'Compton'
 extr = 'rich'
+if snap in ['100', '164', '199', '216']:
+        also_xz = True
+else:
+      also_xz = False
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-path = f'{abspath}TDE/{folder}/{snap}'
+path = f'{abspath}/TDE/{folder}/{snap}'
 saving_path = f'Figs/{folder}/{check}'
 print(f'We are in: {path}, \nWe save in: {saving_path}')
 
@@ -75,54 +79,77 @@ dim_cell_ph = (volph)**(1/3)
 mid = np.abs(zph) < dim_cell_ph
 xph_mid, yph_mid, zph_mid, rph_mid, denph_mid, Tempph_mid = make_slices([xph, yph, zph, rph, denph, Tempph], mid)
 
-# photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}{extr}_photo{snap}.txt')
-# xph, yph, zph = photo[0], photo[1], photo[2]
-# rph = np.sqrt(xph**2 + yph**2 + zph**2)
-# xph_mid, yph_mid, zph_mid = xph[first_eq:final_eq], yph[first_eq:final_eq], zph[first_eq:final_eq]
-
-# data = make_tree(path, snap, energy = False)
-# x, y, z, den = data.X, data.Y, data.Z, data.Den
-# x_xz, z_xz, den_xz = x[np.abs(y<10)], z[np.abs(y<10)], den[np.abs(y<10)]
+# justph = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/justph_photo{snap}.txt')
+# xph_justph, yph_justph, zph_justph = justph[0], justph[1], justph[2]
+# rph_justph = np.sqrt(xph_justph**2 + yph_justph**2 + zph_justph**2)
 #%% Plot on the equatorial plane
-fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize = (25,8))
-img = ax1.scatter(x_mid, y_mid, c = den_mid, s = 1, cmap = 'winter', norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-5))
+if also_xz:
+        data = make_tree(path, snap, energy = False)
+        x, y, z, den, vol = data.X, data.Y, data.Z, data.Den, data.Vol
+        cut = np.logical_and(den>1e-19, np.abs(y) < vol**(1/3))
+        x_xz, z_xz, den_xz = x[cut], z[cut], den[cut]
+        xz_cut = np.abs(yph) < dim_cell_ph
+        xph_xz, zph_xz, rph_xz, denph_xz, Tempph_xz = make_slices([xph, zph, rph, denph, Tempph], xz_cut)
+        fig, ((ax1, ax4), (ax2, ax3)) = plt.subplots(2,2, figsize = (20,15))
+else:
+        fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize = (25,8))
+
+img = ax1.scatter(x_mid, y_mid, c = den_mid, s = 1, cmap = 'viridis', norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-5))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\rho$ ', fontsize = 16)
-ax1.scatter(xph_mid, yph_mid, c = 'r', s = 20)
+ax1.scatter(xph_mid, yph_mid, c = 'r', s = 25, label = 'Midplane photo')
 ax1.scatter(0,0,c= 'k', marker = 'x', s=80)
-ax1.set_xlim(-1200,200)
-ax1.set_ylim(-800,200)
-ax1.set_xlabel(r'X [$R_a$]', fontsize = 18)
-ax1.set_ylabel(r'Y [$R_a$]', fontsize = 18)
+ax1.set_xlim(-1200,600)
+ax1.set_ylim(-800,500)
+ax1.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
+ax1.set_ylabel(r'Y [$R_\odot$]', fontsize = 18)
+ax1.legend(fontsize = 25)
 
-ax2.scatter(np.arange(192),rph, c = 'orange')
-ax2.set_ylabel(r'R [$R_a$]', fontsize = 18)
+ax2.scatter(np.arange(192), rph, c = denph, s = 25, cmap = 'viridis', norm = colors.LogNorm(vmin = 1e-14, vmax = 1e-11))
+ax2.set_ylabel(r'R [$R_\odot$]', fontsize = 18)
 ax2.axhline(np.mean(rph), c = 'r', ls = '--')
 ax2.text(0, np.mean(rph)+0.1, f'mean: {np.mean(rph):.2f}' + r'$R_\odot$', fontsize = 20)
 ax2.set_xlabel('observer number', fontsize = 18)
+ax2.grid()
 
-ax3.scatter(np.arange(first_eq, final_eq),rph[first_eq:final_eq], c = 'r')
-ax3.set_ylabel(r'R [$R_a$]', fontsize = 18)
-ax3.set_xlabel('observer number', fontsize = 18)
+img = ax3.scatter(np.arange(len(rph_mid)), rph_mid, c = denph_mid, s = 25, cmap = 'viridis', norm = colors.LogNorm(vmin = 1e-14, vmax = 1e-11))
+cbar = plt.colorbar(img)
+cbar.set_label(r'$\rho$ ', fontsize = 20)
+ax3.set_ylabel(r'R [$R_\odot$]', fontsize = 18)
+# ax3.set_xlabel('observer number', fontsize = 18)
+ax3.grid()
 
-# img = ax4.scatter(x_xz, z_xz, c = den_xz, s = 1, cmap = 'winter', norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-5))
-# cbar = plt.colorbar(img)
-# cbar.set_label(r'$\rho$ ', fontsize = 16)
-# ax4.scatter(xph_mid, yph_mid, c = 'r', s = 20)
-# ax4.scatter(0,0,c= 'k', marker = 'x', s=80)
-# ax4.set_xlim(-5,0.8)
-# ax4.set_ylim(-2,2)
-# ax4.set_xlabel(r'X [$R_a$]', fontsize = 18)
-# ax4.set_ylabel(r'Z [$R_a$]', fontsize = 18)
-
-# ax5.scatter(np.arange(192),rph, c = 'orange')
-# ax5.set_ylabel(r'R [$R_a$]', fontsize = 18)
-# ax5.axhline(np.mean(rph), c = 'r', ls = '--')
-# ax5.text(0, np.mean(rph)+0.1, f'mean: {np.mean(rph):.2f}' + r'$R_\odot$', fontsize = 20)
-# ax5.set_xlabel('observer number', fontsize = 18)
-
+if also_xz:
+        img = ax4.scatter(x_xz, z_xz, c = den_xz, s = 1, cmap = 'viridis', norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-5))
+        cbar = plt.colorbar(img)
+        cbar.set_label(r'$\rho$ ', fontsize = 16)
+        ax4.scatter(xph, zph, c = 'b', s = 25, label = 'Projected photo')
+        ax4.scatter(0,0,c= 'k', marker = 'x', s=80)
+        ax4.set_xlim(-50,50)
+        ax4.set_ylim(-10,10)
+        ax4.set_xlabel(r'X [$R_\odot$]', fontsize = 18)
+        ax4.set_ylabel(r'Z [$R_\odot$]', fontsize = 18)
+        ax4.legend(fontsize = 25)
 
 plt.suptitle(f'Snap {snap}', fontsize = 20)
 plt.tight_layout()
-plt.show()
+plt.savefig(f'{abspath}/Figs/{folder}/photo_{snap}.png')
+# %% NB DATA ARE NOT SORTED
+snaps_time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}{extr}_phidx.txt')
+snaps = np.sort(snaps_time[:,0].astype(int))
+tfb = np.sort(snaps_time[:,1])
+mean_rph = np.zeros(len(tfb))
+for i, snapi in enumerate(snaps):
+        photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}{extr}_photo{snapi}.txt')
+        xph_i, yph_i, zph_i = photo[0], photo[1], photo[2]
+        rph_i = np.sqrt(xph_i**2 + yph_i**2 + zph_i**2)
+        mean_rph[i] = np.mean(rph_i)
+plt.figure()
+plt.plot(tfb, mean_rph, c = 'k')
+plt.xlabel(r't [$t_{fb}$]')
+plt.ylabel(r'$\langle R_{ph} [R_\odot] \rangle$')
+plt.yscale('log')
+plt.grid()
+
+plt.savefig(f'{abspath}/Figs/{folder}/photo_mean.png')
 # %%

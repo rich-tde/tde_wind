@@ -146,7 +146,7 @@ def make_tree(filename, snap, energy = False):
 
     sim_value = [X, Y, Z] 
     sim_value = np.transpose(sim_value) #array of shape (number_points, 3)
-    sim_tree = KDTree(sim_value) 
+    sim_tree = KDTree(sim_value)#, leaf_size=50) #avoid leaf_size
 
     if energy:
         data = data_snap(sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, IE, Rad, Diss)

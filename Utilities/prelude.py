@@ -39,6 +39,18 @@ import healpy as hp
 NSIDE = 4  # observers = 12 * NSIDE **2
 NPIX = hp.nside2npix(NSIDE)#  int(NSIDE * 96)
 
+# TOPS abundancies in the order you have to put them to have opacity (https://aphysics2.lanl.gov/apps/)
+X = 0.9082339738214822 #1 
+He = 0.09082339738214791 #2 
+C = 0.0002229450033069998 #6 
+N = 7.730324827099994e-05 #7 
+O = 0.00044483376340899965 #8 
+Ne = 9.082339738199991e-05 #10 
+Mg = 3.149181875599997e-05 #12 
+Si = 3.149181875599997e-05 #14 
+S = 1.6527141419999988e-05 #16 
+Fe = 2.5597511293999976e-05 #26 
+Ni = 1.6150937749999985e-06 #28
     
 # Plotting
 import matplotlib as mpl

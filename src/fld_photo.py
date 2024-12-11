@@ -48,7 +48,7 @@ n = 1.5
 compton = 'Compton'
 check = '' 
 extr = 'rich'
-how = 'fromfld' #'justph' or 'fromfld'
+how = 'justph' #'justph' or 'fromfld'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre_saving = f'{abspath}/data/{folder}'
@@ -73,8 +73,8 @@ T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 
-if extr == '':
-    T_cool2, Rho_cool2, rossland2 = extrapolator_flipper(T_cool, Rho_cool, rossland)
+# if extr == '':
+#     T_cool2, Rho_cool2, rossland2 = extrapolator_flipper(T_cool, Rho_cool, rossland)
 if extr == 'rich':
     T_cool2, Rho_cool2, rossland2 = rich_extrapolator(T_cool, Rho_cool, rossland)
 
@@ -83,7 +83,7 @@ pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 for idx_s, snap in enumerate(snaps):
     print('\n Snapshot: ', snap, '\n')
     if how == 'justph':
-        if int(snap) not in [164, 216]:
+        if int(snap)!=80:
             continue
         eng = matlab.engine.start_matlab()
         box = np.zeros(6)
@@ -133,6 +133,7 @@ for idx_s, snap in enumerate(snaps):
         xphot = np.zeros(prel.NPIX) ####
         yphot = np.zeros(prel.NPIX) ####
         zphot = np.zeros(prel.NPIX) 
+        rphot = np.zeros(prel.NPIX)
         time_start = 0
         for i in range(prel.NPIX):
             # Progress 
@@ -181,7 +182,7 @@ for idx_s, snap in enumerate(snaps):
             idx = [ int(idx[i][0]) for i in range(len(idx))] # no -1 because we start from 0
             d = Den[idx] * prel.den_converter
             t = T[idx]
-            xobs, yobs, Zobs = X[idx], Y[idx], Z[idx]
+            xobs, yobs, zobs = X[idx], Y[idx], Z[idx]
 
             # Interpolate ----------------------------------------------------------
             sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
@@ -256,13 +257,16 @@ for idx_s, snap in enumerate(snaps):
                 print('No b found, observer ', i)
                 b = 3117 # elad_b = 3117
             
-            xphot[i], yphot[i], zphot[i] = xobs[b], yobs[b], Zobs[b]
+            xphot[i], yphot[i], zphot[i] = xobs[b], yobs[b], zobs[b]
+            rphot[i] = r[b]
             gc.collect()
 
         # Save red of the single snap
         if save:
             data = [xphot, yphot, zphot]
             np.savetxt(f'{pre_saving}/{check}{extr}_photo{snap}.txt', data)
+
+            np.savetxt(f'{pre_saving}/{check}{extr}_Rphoto{snap}.txt', r)
 
         eng.exit()
 
@@ -289,4 +293,3 @@ for idx_s, snap in enumerate(snaps):
             f.write(' '.join(map(str, denph)) + '\n')
             f.write(' '.join(map(str, Tempph)) + '\n')
             f.close()
-            # np.savetxt(f'{pre_saving}/photo/{check}{extr}_photo{snap}.txt', 'a',[xph, yph, zph, volph, denph, Tempph])
