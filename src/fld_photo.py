@@ -264,9 +264,9 @@ for idx_s, snap in enumerate(snaps):
         # Save red of the single snap
         if save:
             data = [xphot, yphot, zphot]
-            np.savetxt(f'{pre_saving}/{check}{extr}_photo{snap}.txt', data)
+            np.savetxt(f'{pre_saving}/{check}{how}_photo{snap}.txt', data)
 
-            np.savetxt(f'{pre_saving}/{check}{extr}_Rphoto{snap}.txt', rphot)
+            np.savetxt(f'{pre_saving}/{check}{how}_Rphoto{snap}.txt', rphot)
 
         eng.exit()
 
@@ -284,7 +284,7 @@ for idx_s, snap in enumerate(snaps):
         x, y, z, vol, den, Temp = make_slices([x, y, z, vol, den, Temp], cut)
         xph, yph, zph, volph, denph, Tempph = make_slices([x, y, z, vol, den, Temp], single_indices_ph)
         # save the photosphere
-        with open(f'{pre_saving}/photo/{check}{extr}_photo{snap}.txt', 'a') as f:
+        with open(f'{pre_saving}/photo/{check}{how}_photo{snap}.txt', 'a') as f:
             f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph \n')
             f.write(' '.join(map(str, xph)) + '\n')
             f.write(' '.join(map(str, yph)) + '\n')

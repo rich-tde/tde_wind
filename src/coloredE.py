@@ -104,4 +104,4 @@ if save:
         file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
         file.close()
-    np.save(f'{abspath}/data/{folder}/En_{check}.npy', radii)
+    np.save(f'{abspath}/data/{folder}/coloredE_{check}_radii.npy', radii)

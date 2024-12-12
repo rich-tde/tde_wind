@@ -164,9 +164,8 @@ rel_Rad_absL = []
 median_rel_orbL = np.zeros(len(tfb_res0))
 median_rel_ieL = np.zeros(len(tfb_res0))
 median_rel_radL = np.zeros(len(tfb_res0))
-for i in range(len(tfb_res0)):
+for i,time in enumerate(tfb_res0):
     # find the comparable time in res1
-    time = tfb_res0[i]
     idx = np.argmin(np.abs(tfb_res1 - time))
     # compute the relative difference for orbital energy
     rel_orb_time = 2*np.abs((col_orb_enres1[idx] - col_orb_enres0[i]) / (col_orb_enres1[idx] + col_orb_enres0[i]))
@@ -364,12 +363,14 @@ plt.show()
 #%%
 plt.figure(figsize = (7,5))
 plt.plot(tfb_res0, median_rel_radL, label = r'$\Delta_{rad}$ Low-Middle', c = 'navy')
-plt.plot(tfb_res2, median_rel_radH, '--', label = r'$\Delta_{rad}$ Middle-High', c = 'navy')
+plt.plot(tfb_res2, median_rel_radH, '--', label = r'$\Delta_{rad}$ Middle-High', c = 'maroon')
 plt.ylabel('Median relative difference', fontsize = 25)
-plt.xlabel(r't [t_{fb}]$', fontsize = 25)
+plt.xlabel(r't [t$_{fb}]$', fontsize = 25)
 plt.yscale('log')
+plt.ylim(9e-2, 1.5)
 plt.legend(fontsize = 20)
 plt.tight_layout()
+plt.grid()
 if save:
     plt.savefig(f'/Users/paolamartire/shocks/Figs/multiple/rad_diffTime.pdf')
 plt.show()
