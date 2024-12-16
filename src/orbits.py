@@ -41,6 +41,11 @@ def keplerian_orbit(theta, a, Rp, ecc=1):
     radius = p / (1 + ecc * np.cos(theta))
     return radius
 
+def semimajor_axis(Rstar, mstar, Mbh, G):
+    E = energy_mb(Rstar, mstar, Mbh, G)
+    a = G * Mbh / (2*E)
+    return a
+
 def apocentre(Rstar, mstar, Mbh, beta):
     # comes from Ra=a(1+e), a=Rt^2/2Rstar, e=1-2*Rstar/(beta*Rt)
     Rt = Rstar * (Mbh/mstar)**(1/3)

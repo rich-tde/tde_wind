@@ -76,8 +76,7 @@ photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}{extr
 xph, yph, zph, volph, denph, Tempph = photo[0], photo[1], photo[2], photo[3], photo[4], photo[5]
 rph = np.sqrt(xph**2 + yph**2 + zph**2)
 dim_cell_ph = (volph)**(1/3)
-mid = np.abs(zph) < dim_cell_ph
-xph_mid, yph_mid, zph_mid, rph_mid, denph_mid, Tempph_mid = make_slices([xph, yph, zph, rph, denph, Tempph], mid)
+xph_mid, yph_mid, zph_mid, rph_mid, denph_mid, Tempph_mid = xph[first_eq:final_eq], yph[first_eq:final_eq], zph[first_eq:final_eq], rph[first_eq:final_eq], denph[first_eq:final_eq], Tempph[first_eq:final_eq]
 
 # justph = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/justph_photo{snap}.txt')
 # xph_justph, yph_justph, zph_justph = justph[0], justph[1], justph[2]
@@ -145,11 +144,16 @@ for i, snapi in enumerate(snaps):
         rph_i = np.sqrt(xph_i**2 + yph_i**2 + zph_i**2)
         mean_rph[i] = np.mean(rph_i)
 plt.figure()
-plt.plot(tfb, mean_rph, c = 'k')
+plt.plot(tfb, mean_rph/apo, c = 'k')
 plt.xlabel(r't [$t_{fb}$]')
-plt.ylabel(r'$\langle R_{ph} [R_\odot] \rangle$')
+plt.ylabel(r'$\langle R_{ph} [R_a] \rangle$')
 plt.yscale('log')
 plt.grid()
-
 plt.savefig(f'{abspath}/Figs/{folder}/photo_mean.png')
+
+with open(f'{abspath}/data/{folder}/photo_mean.txt', 'a') as f:
+        f.write(f'# tfb, mean_rph\n')
+        f.write(' '.join(map(str, tfb)) + '\n')
+        f.write(' '.join(map(str, mean_rph)) + '\n')
+        f.close()
 # %%
