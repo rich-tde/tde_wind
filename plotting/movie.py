@@ -9,17 +9,17 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiRes'
+check = ''
 npanels = 6
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 # For Denproj
-# path = f'{abspath}/Figs/{folder}/projection/denproj'
-# output_path = f'{abspath}/Figs/{folder}/movie_proj{check}{cut}.mp4'
+path = f'{abspath}/Figs/{folder}/projection/denproj'
+output_path = f'{abspath}/Figs/{folder}/movie_proj{check}.mp4'
 
 # For Slices 
-path = f'{abspath}/Figs/{folder}/slices/Panel{npanels}Slice'
-output_path = f'{abspath}/Figs/{folder}/movie{npanels}Panels_{check}.mp4'
+# path = f'{abspath}/Figs/{folder}/slices/Panel{npanels}Slice'
+# output_path = f'{abspath}/Figs/{folder}/movie{npanels}Panels_{check}.mp4'
 
 start = 100
 slow_down_factor = 2  # Increase this value to make the video slower

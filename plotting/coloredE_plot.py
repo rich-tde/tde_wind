@@ -25,7 +25,7 @@ apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 DeltaE = orb.energy_mb(Rstar, mstar, Mbh, G=1) # specific energy of the mb debris 
 DeltaE_cgs = DeltaE * prel.en_converter/prel.Msol_cgs
 a = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
-print(a/apo)
+print(1.2*apo, 0.5*apo, 40/apo)
 
 #%%
 ## DECISIONS
