@@ -32,7 +32,6 @@ Rt = Rstar * (Mbh/mstar)**(1/3)
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
 Rdiss = np.zeros(len(snaps))
-Edisstot = np.zeros(len(snaps))
 Eradtot = np.zeros(len(snaps))
 for i,snap in enumerate(snaps):
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -45,15 +44,13 @@ for i,snap in enumerate(snaps):
     else:
         Ediss_den = data.Diss
     Rsph, vol, Rad_den, Ediss_den = Rsph[cut], data.Vol[cut], data.Rad[cut], Ediss_den[cut]
-    Ediss = np.abs(Ediss_den) * vol
-    Rdiss[i] = np.sum(Rsph * vol * Ediss) / np.sum(vol * Ediss)
-    Edisstot[i] = np.sum(Ediss)
-    Erad = Rad_den * vol
-    Eradtot[i] = np.sum(Erad)
+    Ediss_tot = np.sum(np.abs(Ediss_den) * vol) 
+    # average weighted by energy dissipation rate [energy/time]
+    Rdiss[i] = np.sum(Rsph * vol * np.abs(Ediss_den)) / Ediss_tot
+    Eradtot[i] = np.sum(Rad_den * vol)
 
 with open(f'{abspath}/data/{folder}/Rdiss_{check}.txt','a') as file:
     file.write(f'# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
     file.write(f'# Rdiss \n' + ' '.join(map(str, Rdiss)) + '\n')
-    file.write(f'# Edotdiss \n' + ' '.join(map(str, Edisstot)) + '\n')
-    file.write(f'# Erad \n' + ' '.join(map(str, Eradtot)) + '\n')
+    file.write(f'# Total radiation energy [energy in code units] \n' + ' '.join(map(str, Eradtot)) + '\n')
     file.close()
