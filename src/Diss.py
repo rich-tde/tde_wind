@@ -21,7 +21,6 @@ from Utilities.selectors_for_snap import select_snap
 ## 
 m = 4
 Mbh = 10**m
-Mbh_cgs = Mbh * prel.Msol_cgs
 beta = 1
 mstar = .5
 Rstar = .47
@@ -41,18 +40,20 @@ for i,snap in enumerate(snaps):
     data = make_tree(path, snap, energy = True)
     Rsph = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
     cut = data.Den > 1e-19
-    Rsph, vol, Ediss_den, Rad_den = Rsph[cut], data.Vol[cut], data.Diss[cut], data.Rad[cut]
-    # Ediss = np.abs(Ediss_den) * vol
-    # Edisstot[i] = np.sum(Ediss)
+    if check == '':
+        Ediss_den = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/dissdata{m}/Diss_{snap}.npy')
+    else:
+        Ediss_den = data.Diss
+    Rsph, vol, Rad_den, Ediss_den = Rsph[cut], data.Vol[cut], data.Rad[cut], Ediss_den[cut]
+    Ediss = np.abs(Ediss_den) * vol
+    Rdiss[i] = np.sum(Rsph * vol * Ediss) / np.sum(vol * Ediss)
+    Edisstot[i] = np.sum(Ediss)
     Erad = Rad_den * vol
     Eradtot[i] = np.sum(Erad)
-    # Rdiss[i] = np.sum(Rsph * vol * Ediss) / np.sum(vol * Ediss)
 
 with open(f'{abspath}/data/{folder}/Rdiss_{check}.txt','a') as file:
-    # file.write(f'# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-    # file.write(f'# Rdiss \n' + ' '.join(map(str, Rdiss)) + '\n')
-    # file.write(f'# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-    # file.write(f'# Edotdiss \n' + ' '.join(map(str, Edisstot)) + '\n')
     file.write(f'# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+    file.write(f'# Rdiss \n' + ' '.join(map(str, Rdiss)) + '\n')
+    file.write(f'# Edotdiss \n' + ' '.join(map(str, Edisstot)) + '\n')
     file.write(f'# Erad \n' + ' '.join(map(str, Eradtot)) + '\n')
     file.close()
