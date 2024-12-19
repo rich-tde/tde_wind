@@ -27,7 +27,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'DoubleRad'
+check = ''
 Rt = Rstar * (Mbh/mstar)**(1/3)
 
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 

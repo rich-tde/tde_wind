@@ -34,14 +34,14 @@ def grid_maker(path, snap, m, mstar, Rstar, x_num, y_num, z_num = 100):
     # R0 = 0.6 * Rt
     apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
-    x_start = -40_000#-1.2*apo
-    x_stop = 40_000#40
+    x_start = -11*apo#-1.2*apo
+    x_stop = 10*apo#40
     xs = np.linspace(x_start, x_stop, num = x_num )
-    y_start = -1_000#-0.5 * apo 
-    y_stop = 1_000 #0.5 * apo
+    y_start = -4*apo #-0.5 * apo 
+    y_stop = 4*apo #0.5 * apo
     ys = np.linspace(y_start, y_stop, num = y_num)
-    z_start = -apo#-2 * Rt
-    z_stop = apo#2 * Rt
+    z_start = -apo #-2 * Rt
+    z_stop = apo #2 * Rt
     zs = np.linspace(z_start, z_stop, z_num) #simulator units
 
     # data = make_tree(path, snap, energy = True)
@@ -101,15 +101,13 @@ if __name__ == '__main__':
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
     if alice:
-        snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
-        if save:
-            with open(f'{prepath}/data/{folder}/projection/time_proj.txt', 'a') as f:
-                f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
-                f.write(f'# t/t_fb \n' + ' '.join(map(str, tfb)) + '\n')
-                f.close()
+        snaps = [348] #, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
+        # if save:
+        #     with open(f'{prepath}/data/{folder}/projection/time_proj.txt', 'a') as f:
+        #         f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
+        #         f.write(f'# t/t_fb \n' + ' '.join(map(str, tfb)) + '\n')
+        #         f.close()
         for snap in snaps:
-            if int(snap) != 348:
-                continue
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
             else:
