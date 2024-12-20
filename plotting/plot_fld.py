@@ -100,11 +100,13 @@ ax2.scatter(tfbDou, np.abs(diffDou), color = 'navy', s = 4, label = 'DoubleRad')
 ax2.scatter(tfbL, np.abs(diffL), color = 'b', s = 4, label = 'Low')
 ax2.scatter(tfbH, np.abs(diffH), color = 'dodgerblue', s = 4, label = 'High')
 ax2.set_yscale('log')
-ax2.set_ylim(1e-1, 1)
-ax2.set_xlabel(r'$t/t_{\rm fb}$', fontsize = 20)
+ax2.set_ylim(1e-2, 1e2)
+ax2.set_xlabel(r'$t [t_{\rm fb}]$', fontsize = 20)
 ax2.set_ylabel(r'$|\Delta_{\rm rel}|$ from Fid', fontsize = 16)
 ax2.grid()
 ax1.legend(fontsize = 18)   
+ax2.tick_params(axis='y', which='minor', length = 3)
+ax2.tick_params(axis='y', which='major', length = 5)
 
 # Get the existing ticks on the x-axis
 for ax in [ax1, ax2]:
@@ -118,6 +120,6 @@ for ax in [ax1, ax2]:
     ax.tick_params(axis='x', which='minor', width=0.5, length=5)
     ax.set_xlim(np.min(tfb), np.max(tfb))
 
-# plt.savefig(f'/Users/paolamartire/shocks/Figs/multiple/fld.pdf')
+plt.savefig(f'/Users/paolamartire/shocks/Figs/multiple/fld.pdf')
 
 

@@ -25,7 +25,8 @@ apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 DeltaE = orb.energy_mb(Rstar, mstar, Mbh, G=1) # specific energy of the mb debris 
 DeltaE_cgs = DeltaE * prel.en_converter/prel.Msol_cgs
 a = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
-print(1.2*apo, 0.5*apo, 40/apo)
+Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
+Enden_quasi_norm = Ledd / (4 * np.pi * prel.c_cgs) # [erg/cm^2] normalization for the radiation energy density. Missing the /R, which you'll do later
 
 #%%
 ## DECISIONS
@@ -64,9 +65,10 @@ col_ieres1, col_orb_enres1, col_Rad_res1, col_Rad_denres1 = datares1[0], datares
 # convert to cgs
 col_ieres1 *= prel.en_converter/prel.Msol_cgs
 col_orb_enres1 *= prel.en_converter/prel.Msol_cgs
+abs_col_orb_enres1 = np.abs(col_orb_enres1)
 col_Rad_res1 *= prel.en_converter/prel.Msol_cgs
 col_Rad_denres1 *= prel.en_den_converter
-abs_col_orb_enres1 = np.abs(col_orb_enres1)
+Enden_norm = Enden_quasi_norm / (radiires1*prel.Rsol_cgs)**2
 
 #%% Res2 data
 datares2 = np.load(f'{path}{res2}/colormapE_Alice/coloredE_{res2}_radii.npy')
@@ -83,7 +85,7 @@ col_Radres2 *= prel.en_den_converter
 abs_col_orb_enres2 = np.abs(col_orb_enres2)
 
 #%% Plot Res1 NORMALIZED
-fig, ax = plt.subplots(1,3, figsize = (18,5))
+fig, ax = plt.subplots(1,2, figsize = (11,5))
 img = ax[0].pcolormesh(radiires1/apo, tfb_res1, abs_col_orb_enres1/DeltaE_cgs, norm=colors.LogNorm(vmin=4e-1, vmax = 11), cmap = 'viridis')
 cb = fig.colorbar(img)
 #longer ticks to cb
@@ -96,17 +98,10 @@ img = ax[1].pcolormesh(radiires1/apo, tfb_res1, col_ieres1/DeltaE_cgs,  norm=col
 cb = fig.colorbar(img)
 cb.ax.tick_params(which='minor',length = 3)
 cb.ax.tick_params(which='major',length = 6)
-# cb.set_label(r'Specific energy/$\Delta$E', fontsize = 20, labelpad = 2)
 ax[1].set_title('Internal energy', fontsize = 20)
-
-img = ax[2].pcolormesh(radiires1/apo, tfb_res1, col_Rad_res1/DeltaE_cgs, norm=colors.LogNorm(vmin=1e-4, vmax= 1.1), cmap = 'viridis')
-cb = fig.colorbar(img)
-cb.ax.tick_params(which='minor',length = 3)
-cb.ax.tick_params(which='major',length = 6)
-ax[2].set_title('Radiation energy', fontsize = 20)
 cb.set_label(r'Specific energy/$\Delta$E', fontsize = 20, labelpad = 2)
 
-for i in range(3):
+for i in range(2):
     ax[i].axvline(Rt/apo, linestyle ='dashed', c = 'k', linewidth = 1.2)
     ax[i].set_xscale('log')
     ax[i].set_xlabel(r'$R [R_a$]', fontsize = 20)
@@ -127,7 +122,35 @@ for i in range(3):
 ax[0].set_ylabel(r't [t$_{fb}]$', fontsize = 20)
 plt.tight_layout()
 if save:
-    plt.savefig(f'{abspath}/Figs/{folder}{res1}/coloredE_radii_norm.pdf')
+    plt.savefig(f'{abspath}/Figs/{folder}{res1}/coloredEdyn.pdf')
+
+#%%
+fig, ax = plt.subplots(1,1, figsize = (6,5))
+img = plt.pcolormesh(radiires1/apo, tfb_res1, col_Rad_denres1/Enden_norm, norm=colors.LogNorm(vmin=1e-4, vmax= 5), cmap = 'viridis')
+cb = fig.colorbar(img)
+cb.ax.tick_params(which='minor',length = 3)
+cb.ax.tick_params(which='major',length = 6)
+cb.set_label(r'Energy density/C', fontsize = 20, labelpad = 2)
+ax.axvline(Rt/apo, linestyle ='dashed', c = 'k', linewidth = 1.2)
+ax.set_xscale('log')
+ax.set_xlabel(r'$R [R_a$]', fontsize = 20)
+# Get the existing ticks on the x-axis
+original_ticks = ax.get_yticks()
+# Calculate midpoints between each pair of ticks
+midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+# Combine the original ticks and midpoints
+new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+# Set tick labels: empty labels for midpoints
+ax.set_yticks(new_ticks)
+labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+ax.set_yticklabels(labels)
+ax.tick_params(axis='x', which='major', width = 1.5, length = 10, color = 'white')
+ax.tick_params(axis='x', which='minor', width = 1, length = 7, color = 'white')
+ax.tick_params(axis='y', which='both', width = 1.5, length = 7)
+ax.set_ylim(np.min(tfb_res1), np.max(tfb_res1))
+ax.set_ylabel(r't [t$_{fb}]$', fontsize = 20)
+plt.tight_layout()
+
 #%% Plot Res1
 fig, ax = plt.subplots(1,3, figsize = (16,5))
 img = ax[0].pcolormesh(radiires1/apo, tfb_res1, abs_col_orb_enres1, norm=colors.LogNorm(vmin=4e16, vmax = 1e18), cmap = 'viridis')

@@ -46,7 +46,7 @@ Rg = Rs/2
 R0 = 0.6 * Rt
 Rp =  Rt / beta
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
-snap = '258'
+snap = '267'
 compton = 'Compton'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 print(f'Rt: {Rt}, Rg: {Rs}, R0: {R0}, Rp: {Rp}, apo: {apo}')
@@ -56,7 +56,6 @@ xcrt, ycrt, crt = orb.make_cfr(Rt)
 #%%
 # LowRes
 pathL = f'{abspath}TDE/{folder}LowRes/{snap}'
-tfbL = days_since_distruption(f'{pathL}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
 dataL = make_tree(pathL, snap)#, energy = True)
 finalcutL = dataL.Den > 1e-19 # throw fluff
 x_coordL, y_coordL, z_coordL, massL, denL, dim_cellL = \
@@ -68,7 +67,6 @@ X_midplaneL, Y_midplaneL, Z_midplaneL, dim_midplaneL, Mass_midplaneL, Den_midpla
 
 # Fiducial
 path = f'{abspath}TDE/{folder}/{snap}'
-tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
 data = make_tree(path, snap)#, energy = True)
 finalcut = data.Den > 1e-19 # throw fluff
 x_coord, y_coord, z_coord, mass, den, dim_cell = \
@@ -80,7 +78,6 @@ X_midplane, Y_midplane, Z_midplane, dim_midplane, Mass_midplane, Den_midplane = 
 
 # HiRes
 pathH = f'{abspath}TDE/{folder}HiRes/{snap}'
-tfbH = days_since_distruption(f'{pathH}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
 dataH = make_tree(pathH, snap)#, energy = True)
 finalcutH = dataH.Den > 1e-19 # throw fluff
 x_coordH, y_coordH, z_coordH, massH, denH, dim_cellH = \
@@ -133,14 +130,14 @@ for i, ax in enumerate([ax0, ax1, ax2, ax3, ax4, ax5]):
     ax.scatter(0,0, c= 'k', marker = 'x', s=80)
     ax.set_xlim(-40,25)
     ax.set_ylim(-40,40)
-    # if i == 0:
-    #     check = 'Low'
-    # elif i == 1:
-    #     check = 'Middle'
-    # elif i == 2:
-    #     check = 'High'
-    # if i in range(3):
-    #     ax.text(10,35, f'{check}', fontsize = 14)
+    if ax == ax0:
+        check = 'Low'
+    elif ax == ax1:
+        check = 'Fid'
+    elif ax == ax2:
+        check = 'High'
+    if ax in [ax0, ax1, ax2]:
+        ax.text(-35,-35, f'{check} res', fontsize = 20, color = 'w')
     ax.tick_params(axis = 'both', which = 'both', direction='in', labelsize=20)
 ax3.set_xlabel(r'X [$R_\odot$]', fontsize = 22)
 ax4.set_xlabel(r'X [$R_\odot$]', fontsize = 22)
@@ -156,9 +153,9 @@ plt.show()
 
 #%% CDF 
 # Around the pericenter
-cutzoomL = np.logical_and(x_coordL>R0, np.logical_and(x_coordL<25, np.abs(y_coordL)<4))
-cutzoom = np.logical_and(x_coord>R0, np.logical_and(x_coord<25, np.abs(y_coord)<4))
-cutzoomH = np.logical_and(x_coordH>R0, np.logical_and(x_coordH<25, np.abs(y_coordH)<4))
+cutzoomL = np.logical_and(x_coordL>R0, np.logical_and(x_coordL<2*Rt, np.abs(y_coordL)<Rt))
+cutzoom = np.logical_and(x_coord>R0, np.logical_and(x_coord<2*Rt, np.abs(y_coord)<Rt))
+cutzoomH = np.logical_and(x_coordH>R0, np.logical_and(x_coordH<2*Rt, np.abs(y_coordH)<Rt))
 x_coordLzoom, y_coordLzoom, z_coordLzoom, massLzoom, denLzoom, dim_cellLzoom = \
     sec.make_slices([x_coordL, y_coordL, z_coordL, massL, denL, dim_cellL], cutzoomL)
 x_coordzoom, y_coordzoom, z_coordzoom, masszoom, denzoom, dim_cellzoom = \
@@ -195,33 +192,45 @@ dim_cellH = np.sort(dim_cellH)
 cumH = list(np.arange(len(massH))/len(massH))
 cumL = list(np.arange(len(massL))/len(massL))
 cum = list(np.arange(len(mass))/len(mass))
+cumH.append(cumH[-1])
+cumL.append(cumL[-1])
+cum.append(cum[-1])
 cumdimH = list(np.arange(len(dim_cellH))/len(dim_cellH))
 cumdimL = list(np.arange(len(dim_cellL))/len(dim_cellL))
 cumdim = list(np.arange(len(dim_cell))/len(dim_cell))
+cumdimH.append(cumdimH[-1])
+cumdimL.append(cumdimL[-1])
+cumdim.append(cumdim[-1])
 massL = list(massL)
 mass = list(mass)
 massH = list(massH)
+mass.append(3e-7)
+massL.append(3e-7)
+massH.append(3e-7)
 dim_cellL = list(dim_cellL)
 dim_cell = list(dim_cell)
 dim_cellH = list(dim_cellH)
+dim_cell.append(2)
+dim_cellL.append(2)
+dim_cellH.append(2)
 
-#%% Plot
+# Plot
 fig, (ax1, ax2) = plt.subplots(2,1, figsize = (5,8))
-ax1.plot(massH, cumH, color = 'C4', linestyle = 'dashed')#, label = 'High res')
-ax1.plot(mass, cum, color = 'C2', linestyle = 'dashed')#, label = 'Middle res')
+ax1.plot(massH, cumH, color = 'darkviolet', linestyle = 'dashed')#, label = 'High res')
+ax1.plot(mass, cum, color = 'yellowgreen', linestyle = 'dashed')#, label = 'Middle res')
 ax1.plot(massL, cumL, color = 'C1', linestyle = 'dashed')#, label = 'Low res')
-ax1.axvline(price24, color = 'C7', linestyle = 'dotted', label = 'Price24')
-ax1.axvline(bonlu20, color = 'red', linestyle = 'dashdot', label = 'BonnerotLu20')
-ax1.plot(massHzoom, cumHzoom, color = 'C4')#, label = 'High res')
-ax1.plot(masszoom, cumzoom, color = 'C2')#, label = 'Middle res')
+ax1.axvline(price24, color = 'k', linestyle = 'dotted', label = 'Price24')
+ax1.axvline(bonlu20, color = 'dodgerblue', linestyle = 'dashdot', label = 'BonnerotLu20')
+ax1.plot(massHzoom, cumHzoom, color = 'darkviolet')#, label = 'High res')
+ax1.plot(masszoom, cumzoom, color = 'yellowgreen')#, label = 'Middle res')
 ax1.plot(massLzoom, cumLzoom, color = 'C1')#, label = 'Low res')
-ax2.plot(dim_cellH, cumdimH, color = 'C4',  linestyle = 'dashed')#, label = 'High res')
-ax2.plot(dim_cell, cumdim, color = 'C2', linestyle = 'dashed')#, label = 'Middle res')
+ax2.plot(dim_cellH, cumdimH, color = 'darkviolet',  linestyle = 'dashed')#, label = 'High res')
+ax2.plot(dim_cell, cumdim, color = 'yellowgreen', linestyle = 'dashed')#, label = 'Middle res')
 ax2.plot(dim_cellL, cumdimL, color = 'C1', linestyle = 'dashed')#, label = 'Low res')
-ax2.plot(dim_cellHzoom, cumdimHzoom, color = 'C4')#, label = 'High res')
-ax2.plot(dim_cellzoom, cumdimzoom, color = 'C2')#, label = 'Middle res')
+ax2.plot(dim_cellHzoom, cumdimHzoom, color = 'darkviolet')#, label = 'High res')
+ax2.plot(dim_cellzoom, cumdimzoom, color = 'yellowgreen')#, label = 'Middle res')
 ax2.plot(dim_cellLzoom, cumdimLzoom, color = 'C1')#, label = 'Low res')
-ax2.axvline(ryu23, color = 'C7', linestyle = 'dotted', label = 'Ryu+23 initial')
+ax2.axvline(ryu23, color = 'k', linestyle = 'dotted', label = 'Ryu+23 initial')
 # ax2.axvline(sad16, color = 'r', linestyle = 'dotted', label = 'Sadowski+16')
 
 for ax in [ax1, ax2]:
@@ -233,7 +242,7 @@ for ax in [ax1, ax2]:
 ax1.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 15)
 ax2.set_xlabel(r'Cell size [$R_\odot$]', fontsize = 15)
 ax1.set_xlim(5e-13, 3e-7)
-ax2.set_xlim(7e-2, 1)
+ax2.set_xlim(7e-2, 2)
 # plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
 plt.tight_layout()
 if save:
@@ -241,3 +250,6 @@ if save:
 plt.show()
 
 # %%
+xtest = np.arange(0, 10, 1)
+plt.figure()
+plt.plot(xtest, np.log(xtest), color = 'greenyellow')
