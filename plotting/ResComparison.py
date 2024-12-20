@@ -248,8 +248,3 @@ plt.tight_layout()
 if save:
     plt.savefig(f'{abspath}/Figs/multiple/compareHistToget_{snap}.pdf')
 plt.show()
-
-# %%
-xtest = np.arange(0, 10, 1)
-plt.figure()
-plt.plot(xtest, np.log(xtest), color = 'greenyellow')

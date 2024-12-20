@@ -44,7 +44,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiRes' # '' or 'HiRes'
+check = '' # '' or 'HiRes'
 extr = 'rich' #'rich' or ''
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -124,6 +124,7 @@ for idx_s, snap in enumerate(snaps):
     reds = np.zeros(prel.NPIX)
     ## just to check photosphere
     ph_idx = np.zeros(prel.NPIX)
+    fluxes = np.zeros(prel.NPIX)
     ##
     for i in range(prel.NPIX):
         # Progress 
@@ -247,6 +248,10 @@ for idx_s, snap in enumerate(snaps):
         reds[i] = Lphoto
         ## just to check photosphere
         ph_idx[i] = idx[b]
+        flux_tokeep = smoothed_flux[b]
+        if flux_tokeep < 0 or Lphoto2 > max_length:
+            flux_tokeep = max_length/(4*np.pi*r[b]**2)
+        fluxes[i] = flux_tokeep
         ##
         del smoothed_flux, R_lamda, fld_factor, EEr, los,
         gc.collect()
@@ -258,16 +263,19 @@ for idx_s, snap in enumerate(snaps):
     if save:
         pre_saving = f'{abspath}/data/{folder}'
         data = [snap, tfb[idx_s], Lphoto_snap]
-        with open(f'{pre_saving}/{check}{extr}_red.csv', 'a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(data)
-        file.close()
+        # with open(f'{pre_saving}/{check}{extr}_red.csv', 'a', newline='') as file:
+        #     writer = csv.writer(file)
+        #     writer.writerow(data)
+        # file.close()
 
         ## just to check photosphere
         time_rph = np.concatenate([[snap,tfb[idx_s]], ph_idx])
-        with open(f'{pre_saving}/{check}{extr}_phidx.txt', 'a') as fileph:
-            # fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
+        time_fluxes = np.concatenate([[snap,tfb[idx_s]], fluxes])
+        with open(f'{pre_saving}/{check}{extr}_phidx_fluxes.txt', 'a') as fileph:
+            fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
             fileph.write(' '.join(map(str, time_rph)) + '\n')
-            file.close()
+            fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes for each obs \n')
+            fileph.write(' '.join(map(str, time_fluxes)) + '\n')
+            fileph.close()
         ##
 eng.exit()
