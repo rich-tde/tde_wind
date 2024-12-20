@@ -248,10 +248,7 @@ for idx_s, snap in enumerate(snaps):
         reds[i] = Lphoto
         ## just to check photosphere
         ph_idx[i] = idx[b]
-        flux_tokeep = smoothed_flux[b]
-        if flux_tokeep < 0 or Lphoto2 > max_length:
-            flux_tokeep = max_length/(4*np.pi*r[b]**2)
-        fluxes[i] = flux_tokeep
+        fluxes[i] = Lphoto / (4*np.pi*(r[b]*prel.Rsol_cgs)**2)
         ##
         del smoothed_flux, R_lamda, fld_factor, EEr, los,
         gc.collect()
