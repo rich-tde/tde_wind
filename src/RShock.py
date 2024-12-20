@@ -26,12 +26,11 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-tfallback = 2.5777261297507925 #days 
+
+tfallback = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2) #[days]
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
 Rt = Rstar * (Mbh/mstar)**(1/3)
 norm_dMdE = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call \Delta E). It's GM/Rt^2 * Rstar
-time_array_yr = np.linspace(1e-1,2, 100) # yr
-time_array_cgs = time_array_yr * 365 * 24 * 3600 # converted to seconds
 
 #
 ## FUNCTIONS
@@ -47,10 +46,12 @@ def R_shock(Mbh, eta_sh, const_G, const_c):
 ##
 # MAIN
 ##
+time_array_yr = np.linspace(1e-1,2, 100) # yr
+time_array_cgs = time_array_yr * 365 * 24 * 3600 # converted to seconds
 
-checks = ['DoubleRad', 'LowRes', '', 'HiRes' ]
-checkslegend = ['DoubleRad', 'Low', 'Middle', 'High']
-colors = ['navy', 'b', 'darkorange', 'dodgerblue']
+checks = ['LowRes', '']#, 'HiRes' ]
+checkslegend = ['Low', 'Fid']#, 'High']
+colors = ['b', 'darkorange']#, 'dodgerblue']
 
 # Fallback rate for long times
 mfall_all_yr = []
@@ -69,22 +70,17 @@ for j, check in enumerate(checks):
     datadays = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}_days.txt')
     snaps, tfb = datadays[0], datadays[1]
     tfb_cgs = tfb * tfallback_cgs #converted to seconds
-    databins = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}_bins.txt')
-    bins = databins[:-1] * norm_dMdE # get rid of the normalization
+    bins = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}_bins.txt')
+    mid_points = (bins[:-1]+bins[1:])* norm_dMdE/2  # get rid of the normalization
     # bins_cgs = bins * (prel.en_converter/prel.Msol_cgs) #  and convert to CGS (they are bins in SPECIFIC orbital energy)
     dMdE_distr = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}.txt')[0] # distribution just after the disruption
-    bins_tokeep, dMdE_distr_tokeep = bins[bins<0], dMdE_distr[bins<0] # keep only the bound energies
-    dataLum = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{check}_red.csv', delimiter=',', dtype=float)
-    snapsLum = dataLum[:, 0]
-    tfbLum = dataLum[:, 1]   
-    Lum = dataLum[:, 2]  
+    bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
+    dataLum = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{check}rich_red.csv', delimiter=',', dtype=float)
+    snapsLum, tfbLum, Lum = dataLum[:, 0], dataLum[:, 1], dataLum[:, 2] 
     dataDiss = np.loadtxt(f'{abspath}data/{folder}/Rdiss_{check}.txt')
-    timeRDiss, RDiss, timeEDiss, EdotDiss = dataDiss[0], dataDiss[1], dataDiss[2], dataDiss[3]
+    timeRDiss, RDiss, Eradtot = dataDiss[0], dataDiss[1], dataDiss[2]
     timeRDiss_all.append(timeRDiss)
-    RDiss_all.append(np.abs(RDiss))
-
-    # dataLum = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{check}_red.csv', delimiter=',', dtype=float)
-    # tfbLum, Lum = dataLum[0], dataLum[1] 
+    RDiss_all.append(RDiss)
   
     mfall_yr = np.zeros(len(time_array_cgs))
     mfall = np.zeros(len(tfb_cgs))
@@ -124,7 +120,7 @@ for j, check in enumerate(checks):
         Lum_t = Lum[idx]
         eta_sh[i] = efficiency_shock(Lum_t, mdot_cgs, prel.c_cgs) # [CGS]
         R_sh[i] = R_shock(Mbh_cgs, eta_sh[i], prel.G_cgs, prel.c_cgs) # [CGS]
-        idxDiss = np.argmin(np.abs(tfb[i]-timeEDiss)) # just to be sure that you match the data
+        idxDiss = np.argmin(np.abs(tfb[i]-timeRDiss)) # just to be sure that you match the data
         Lum_diss = np.abs(EdotDiss[idxDiss]) * prel.en_converter / prel.tsol_cgs # [CGS]
         eta_sh_diss[i] = efficiency_shock(Lum_diss, mdot_cgs, prel.c_cgs) # [CGS]
         R_shDiss[i] = R_shock(Mbh_cgs, eta_sh_diss[i], prel.G_cgs, prel.c_cgs) # [CGS]

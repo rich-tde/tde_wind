@@ -242,9 +242,11 @@ for ax in [ax1, ax2]:
 ax1.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 15)
 ax2.set_xlabel(r'Cell size [$R_\odot$]', fontsize = 15)
 ax1.set_xlim(5e-13, 3e-7)
-ax2.set_xlim(7e-2, 2)
+ax2.set_xlim(4e-2, 2)
 # plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
 plt.tight_layout()
 if save:
     plt.savefig(f'{abspath}/Figs/multiple/compareHistToget_{snap}.pdf')
 plt.show()
+
+# %%

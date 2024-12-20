@@ -33,6 +33,7 @@ snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True)
 
 Rdiss = np.zeros(len(snaps))
 Eradtot = np.zeros(len(snaps))
+Ldisstot = np.zeros(len(snaps))
 for i,snap in enumerate(snaps):
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
@@ -43,9 +44,11 @@ for i,snap in enumerate(snaps):
     Ediss = np.abs(Ediss_den) * vol # energy dissipation rate [energy/time] in code units
     Rdiss[i] = np.sum(Rsph * Ediss) / np.sum(Ediss)
     Eradtot[i] = np.sum(Rad_den * vol)
+    Ldisstot[i] = np.sum(Ediss)
 
 with open(f'{abspath}/data/{folder}/Rdiss_{check}.txt','a') as file:
     file.write(f'# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
     file.write(f'# Rdiss [R_\odot] \n' + ' '.join(map(str, Rdiss)) + '\n')
     file.write(f'# Total radiation energy [energy in code units] \n' + ' '.join(map(str, Eradtot)) + '\n')
+    file.write(f'# Total dissipation luminosity [energy/time in code units] \n' + ' '.join(map(str, Ldisstot)) + '\n')
     file.close()

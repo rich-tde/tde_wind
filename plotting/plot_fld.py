@@ -25,6 +25,7 @@ n = 1.5
 compton = 'Compton'
 tfallback = 2.5777261297507925 * 24 * 3600 #2.5 days
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
+print
 
 dataL = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes/LowResrich_red.csv', delimiter=',', dtype=float)
 tfbL = dataL[:, 1]   
@@ -32,9 +33,9 @@ Lum_L = dataL[:, 2]
 data = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/rich_red.csv', delimiter=',', dtype=float)
 tfb = data[:, 1]   
 Lum = data[:, 2] 
-data8 = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/8_red.csv', delimiter=',', dtype=float)
-tfb8 = data8[:, 1]   
-Lum8 = data8[:, 2] 
+# data8 = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/8_red.csv', delimiter=',', dtype=float)
+# tfb8 = data8[:, 1]   
+# Lum8 = data8[:, 2] 
 dataH = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes/HiResrich_red.csv', delimiter=',', dtype=float)
 tfbH = dataH[:, 1]
 Lum_H = dataH[:, 2]
@@ -47,9 +48,9 @@ diffL = []
 diffH = []
 diffDou = []
 
-for i8, time in enumerate(tfb8):
-    i = np.argmin(np.abs(tfb-time))
-    diff8.append(1-Lum8[i8]/Lum[i])
+# for i8, time in enumerate(tfb8):
+#     i = np.argmin(np.abs(tfb-time))
+#     diff8.append(1-Lum8[i8]/Lum[i])
 
 for iL, time in enumerate(tfbL):
     i = np.argmin(np.abs(tfb-time))
@@ -63,25 +64,42 @@ for iDou, time in enumerate(tfbDou):
     i = np.argmin(np.abs(tfb-time))
     diffDou.append(1-Lum_Dou[iDou]/Lum[i])
 
-diff8 = np.array(diff8)
+# diff8 = np.array(diff8)
 diffL = np.array(diffL)
 diffH = np.array(diffH)
 diffDou = np.array(diffDou)
 
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-ax1.scatter(tfb, Lum, s = 20, label= 'NSIDE = 4',  c= 'darkorange')
-ax1.scatter(tfb8, Lum8,  s = 4, label = 'NSIDE = 8', c ='darkgreen')
-ax1.set_ylabel(r'Luminosity [erg/s]', fontsize = 20)
-ax1.legend(fontsize = 16)
-ax2.scatter(tfb8, np.abs(diff8), color = 'darkgreen', s = 4)
-ax2.set_xlabel(r'$t/t_{\rm fb}$', fontsize = 20)
-ax2.set_ylabel(r'$|\Delta_{\rm rel}|$ from Fid', fontsize = 16)
-for ax in [ax1, ax2]:
-    ax.set_yscale('log')
-    ax.set_xlim(0,0.9)
-    ax.grid()
-plt.savefig(f'/Users/paolamartire/shocks/Figs/multiple/fld_NSIDE.pdf')
-
+# fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
+# ax1.scatter(tfb, Lum, s = 20, label= 'NSIDE = 4',  c= 'darkorange')
+# ax1.scatter(tfb8, Lum8,  s = 4, label = 'NSIDE = 8', c ='darkgreen')
+# ax1.set_ylabel(r'Luminosity [erg/s]', fontsize = 20)
+# ax1.legend(fontsize = 16)
+# ax2.scatter(tfb8, np.abs(diff8), color = 'darkgreen', s = 4)
+# ax2.set_xlabel(r'$t/t_{\rm fb}$', fontsize = 20)
+# ax2.set_ylabel(r'$|\Delta_{\rm rel}|$ from Fid', fontsize = 16)
+# for ax in [ax1, ax2]:
+#     ax.set_yscale('log')
+#     ax.set_xlim(0,0.9)
+#     ax.grid()
+# plt.savefig(f'/Users/paolamartire/shocks/Figs/multiple/fld_NSIDE.pdf')
+fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+ax.scatter(tfb, Lum, s = 4, label = 'Fid', c ='darkorange')
+ax.axhline(y=Ledd, c = 'k', linestyle = '--')
+ax.text(0.1, 1.3*Ledd, r'$L_{\rm Edd}$', fontsize = 18)
+ax.set_yscale('log')
+ax.set_ylim(1e37, 5e42)
+ax.set_ylabel(r'Luminosity [erg/s]', fontsize = 20)
+ax.grid()
+original_ticks = ax.get_xticks()
+midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+ax.set_xticks(new_ticks)
+labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+ax.set_xticklabels(labels)
+ax.tick_params(axis='x', which='major', width=0.7, length=7)
+ax.tick_params(axis='x', which='minor', width=0.5, length=5)
+ax.set_xlim(np.min(tfb), np.max(tfb))
+plt.savefig(f'/Users/paolamartire/shocks/Figs/onefld.pdf')
 
 # Plot the data
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
