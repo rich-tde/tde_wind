@@ -12,6 +12,7 @@ else:
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import Utilities.prelude as prel
 import src.orbits as orb
 
@@ -53,9 +54,10 @@ def eta_from_R(Mbh, R_sh, const_G, const_c):
 time_array_yr = np.linspace(1e-1,2, 100) # yr
 time_yr_cgs = time_array_yr * 365 * 24 * 3600 # converted to seconds
 
-checks = ['LowRes', '']#, 'HiRes' ]
-checkslegend = ['Low', 'Fid']#, 'High']
-colors = ['b', 'darkorange']#, 'dodgerblue']
+checks = ['LowRes', '', 'HiRes' ]
+checkslegend = ['Low', 'Fid', 'High']
+markerslegend = ['o', 's']#, 'D']
+colorslegend = ['C1', 'yellowgreen', 'darkviolet']
 
 # list of arrays. Each line contains the data for one resolution
 mfall_all_yr = []
@@ -82,7 +84,7 @@ for j, check in enumerate(checks):
     dataLum = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{check}rich_red.csv', delimiter=',', dtype=float)
     snapsLum, tfbLum, Lum = dataLum[:, 0], dataLum[:, 1], dataLum[:, 2] 
     dataDiss = np.loadtxt(f'{abspath}data/{folder}/Rdiss_{check}.txt')
-    timeRDiss, RDiss, Eradtot = dataDiss[0], dataDiss[1], dataDiss[2] # dataDiss[3] is LDiss
+    timeRDiss, RDiss, Eradtot, LDiss = dataDiss[0], dataDiss[1], dataDiss[2], dataDiss[3] 
 
     timeRDiss_all.append(timeRDiss)
     RDiss_all.append(RDiss)
@@ -142,23 +144,35 @@ for j, check in enumerate(checks):
     # eta_shL_diss_all.append(eta_sh_diss)
     # R_shDiss_all.append(R_shDiss)
 
+
 Rlim_min = 1e11
 Rlim_max = 1e16   
-fig, (ax0, ax1) = plt.subplots(1,2, figsize=(15, 5))
+fig, (ax0, ax1) = plt.subplots(1,2, figsize=(14, 5))
+ax0.plot(tfb_all[1][-90:], 1e-2*(tfb_all[1][-90:])**(-5/3), c = 'k', alpha = 0.5, linestyle = '--')
 for i, check in enumerate(checks):
     # Plot
     mfall_toplot_days = mfall_all[i] / (prel.tsol_cgs / (3600*24)) # convert to Msol/days
     mfall_toplot = mfall_toplot_days / tfallback
-    ax0.plot(tfb_all[i]*tfallback, np.abs(mfall_toplot), label = checkslegend[i], color = colors[i])
+    ax0.plot(tfb_all[i], np.abs(mfall_toplot), label = checkslegend[i], color = colorslegend[i])
 
-    ax1.plot(tfb_all[i]*tfallback, R_sh_all[i], label = checkslegend[i], color = colors[i])
-    # ax1.plot(tfb_all[i]*tfallback, R_shDiss_all[i], linestyle = 'dotted', color = colors[i])#, label = f'Rdiss {checkslegend[i]}')
+    # ax1.plot(tfb_all[i], R_shDiss_all[i], linestyle = 'dotted', color = colorslegend[i])#, label = f'Rdiss {checkslegend[i]}')
     ax1.axhline(y=Rt*prel.Rsol_cgs, color = 'k', linestyle = 'dotted')
-    ax1.text(1.8, .4* Rt*prel.Rsol_cgs, r'$R_{\rm t}$', fontsize = 20, color = 'k')
-    ax1.plot(timeRDiss_all[i], RDiss_all[i] * prel.Rsol_cgs, linestyle = '--', color = colors[i])#, label = f'Rdiss {checkslegend[i]}')
+    ax1.text(1.65, .4* Rt*prel.Rsol_cgs, r'$R_{\rm t}$', fontsize = 20, color = 'k')
+    if i == 2:
+        ax1.plot(tfb_all[i], R_sh_all[i], color = colorslegend[i], label = r'$R_{\rm sh}$')
+        ax1.plot(timeRDiss_all[i], RDiss_all[i] * prel.Rsol_cgs, linestyle = '--', color = colorslegend[i], label = r'$R_{\rm diss}$')
+    else:
+        ax1.plot(tfb_all[i], R_sh_all[i], color = colorslegend[i])
+        ax1.plot(timeRDiss_all[i], RDiss_all[i] * prel.Rsol_cgs, linestyle = '--', color = colorslegend[i])
 
-ax0.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 15)
-ax1.set_ylabel(r'$R$ [cm]', fontsize = 15)
+    # ax1.scatter(tfb_all[i], R_sh_all[i], c = np.log10(eta_shL_all[i]), marker = markerslegend[i], cmap = 'viridis', vmin = -7, vmax = -1, label = checkslegend[i])
+    # # ax1.scatter(tfb_all[i], R_shDiss_all[i], linestyle = 'dotted', color = eta_shL_diss_all[i])#, label = f'Rdiss {checkslegend[i]}')
+    # ax1.axhline(y=Rt*prel.Rsol_cgs, color = 'k', linestyle = 'dotted')
+    # ax1.text(1.8, .4* Rt*prel.Rsol_cgs, r'$R_{\rm t}$', fontsize = 20, color = 'k')
+    # ax1.plot(timeRDiss_all[i], RDiss_all[i] * prel.Rsol_cgs, linestyle = '--', color = colorslegend[i])#, label = f'Rdiss {checkslegend[i]}')
+
+ax0.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 18)
+ax1.set_ylabel(r'$R$ [cm]', fontsize = 18)
 ax1.set_ylim(Rlim_min, Rlim_max)
 # Set primary y-axis ticks
 R_ticks = np.logspace(np.log10(Rlim_min), np.log10(Rlim_max), num=5)
@@ -178,15 +192,16 @@ midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
 for ax in [ax0, ax1, ax2]:
     ax.set_yscale('log')
-    ax.set_xlabel(r't [days]', fontsize = 20)
+    ax.set_xlabel(r't [$t_{\rm fb}$]', fontsize = 20)
     if ax!=ax2:
         ax.grid()
+        ax.legend(fontsize = 18)
         ax.set_xticks(new_ticks)
         labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
         ax.set_xticklabels(labels)
         ax.tick_params(axis='x', which='major', width=0.7, length=7)
         ax.tick_params(axis='x', which='minor', width=0.5, length=5)
-    ax.set_xlim(0, 4.5)
+    ax.set_xlim(0, 1.8)
 
-ax0.legend(fontsize = 18)
 plt.tight_layout()
+plt.savefig(f'{abspath}/Figs/multiple/Reta.pdf')

@@ -271,7 +271,7 @@ for idx_s, snap in enumerate(snaps):
         with open(f'{pre_saving}/{check}{extr}_phidx_fluxes.txt', 'a') as fileph:
             fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
             fileph.write(' '.join(map(str, time_rph)) + '\n')
-            fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes for each obs \n')
+            fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes [cgs] for each obs \n')
             fileph.write(' '.join(map(str, time_fluxes)) + '\n')
             fileph.close()
         ##

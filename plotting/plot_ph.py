@@ -8,8 +8,9 @@ from src import orbits as orb
 import matplotlib.colors as colors
 import Utilities.prelude as prel
 import healpy as hp
+from scipy.stats import gmean
 from Utilities.sections import make_slices
-from Utilities.operators import make_tree
+from Utilities.operators import make_tree, sort_list
 matplotlib.rcParams['figure.dpi'] = 150
 
 
@@ -28,7 +29,7 @@ check = '' # '' or 'HiRes' or 'LowRes'
 snap = '199'
 compton = 'Compton'
 extr = 'rich'
-if snap in ['100', '164', '199', '216']:
+if snap in ['164', '248']:
         also_xz = True
 else:
       also_xz = False
@@ -134,17 +135,31 @@ plt.suptitle(f'Snap {snap}', fontsize = 20)
 plt.tight_layout()
 plt.savefig(f'{abspath}/Figs/{folder}/photo_{snap}.png')
 # %% NB DATA ARE NOT SORTED
-snaps_time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}{extr}_phidx.txt')
-snaps = np.sort(snaps_time[:,0].astype(int))
-tfb = np.sort(snaps_time[:,1])
+ph_data = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}{extr}_phidx_fluxes.txt')
+snaps, tfb, allindices_ph = ph_data[:, 0].astype(int), ph_data[:, 1], ph_data[:, 2:]
+allindices_ph = sort_list(allindices_ph, snaps)
+tfb = np.sort(tfb)
+print(len(snap)/(2*269))
+# eliminate the even rows (photosphere indices) of allindices_ph
+allindices_ph = allindices_ph[::2]
+snaps = np.unique(np.sort(snaps))
+tfb = np.unique(tfb)
+
 mean_rph = np.zeros(len(tfb))
+mean_rph_weig = np.zeros(len(tfb))
+gmean_ph = np.zeros(len(tfb))
+
 for i, snapi in enumerate(snaps):
         photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}{extr}_photo{snapi}.txt')
         xph_i, yph_i, zph_i = photo[0], photo[1], photo[2]
         rph_i = np.sqrt(xph_i**2 + yph_i**2 + zph_i**2)
         mean_rph[i] = np.mean(rph_i)
+        gmean_ph[i] = gmean(rph_i)
+        mean_rph_weig[i] = np.sum(rph_i*allindices_ph[i])/np.sum(allindices_ph[i])
 plt.figure()
 plt.plot(tfb, mean_rph/apo, c = 'k')
+plt.plot(tfb, mean_rph_weig/apo, c = 'r')
+plt.plot(tfb, gmean_ph/apo, c = 'b')
 plt.xlabel(r't [$t_{fb}$]')
 plt.ylabel(r'$\langle R_{ph} [R_a] \rangle$')
 plt.yscale('log')
@@ -152,8 +167,9 @@ plt.grid()
 plt.savefig(f'{abspath}/Figs/{folder}/photo_mean.png')
 
 with open(f'{abspath}/data/{folder}/photo_mean.txt', 'a') as f:
-        f.write(f'# tfb, mean_rph\n')
+        f.write(f'# tfb, mean_rph,gmean,  weighted by flux\n')
         f.write(' '.join(map(str, tfb)) + '\n')
         f.write(' '.join(map(str, mean_rph)) + '\n')
+        f.write(' '.join(map(str, gmean_ph)) + '\n')
+        f.write(' '.join(map(str, mean_rph_weig)) + '\n')
         f.close()
-# %%

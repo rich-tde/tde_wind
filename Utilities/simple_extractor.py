@@ -119,7 +119,7 @@ compton = 'Compton'
 check = 'HiRes'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-snaps = [267]#select_snap(m, check, mstar, Rstar, beta, n, time = True)
+snaps = select_snap(m, check, mstar, Rstar, beta, n, time = True)
 
 for snap in snaps:
     prepath = select_prefix(m, check, mstar, Rstar, beta, n, compton)

@@ -61,7 +61,7 @@ def find_step(theta_arr, i):
     return step
 
 def sort_list(list_passive, leading_list):
-    """ Sort list_passive based on the order of leading_list. If list_passive is a list of arrays."""
+    """ Sort list_passive based on the order of leading_list. List_passive is a list of arrays."""
     new_list = []
     for arr_passive in list_passive:
         zipped_pairs = zip(leading_list, arr_passive)

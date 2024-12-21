@@ -48,13 +48,14 @@ n = 1.5
 compton = 'Compton'
 check = '' 
 extr = 'rich'
-how = 'justph' #'justph' or 'fromfld'
+how = 'fromfld' #'justph' or 'fromfld'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre_saving = f'{abspath}/data/{folder}'
 if how == 'fromfld':
     # Load the data
-    alldata_ph = np.loadtxt(f'{pre_saving}/{check}{extr}_phidx.txt')
+    # alldata_ph = np.loadtxt(f'{pre_saving}/{check}{extr}_phidx.txt')
+    alldata_ph = np.loadtxt(f'{pre_saving}/{check}{extr}_phidx_fluxes.txt')
     snaps_ph, alltimes_ph, allindices_ph = alldata_ph[:, 0], alldata_ph[:, 1], alldata_ph[:, 2:]
     snaps_ph = np.array(snaps_ph)
 
@@ -273,7 +274,9 @@ for idx_s, snap in enumerate(snaps):
     if how == 'fromfld':
         from Utilities.operators import make_tree
         # Find the line corresponding to the snap and take the indices of the photosphere radii 
-        selected_idx = np.argmin(np.abs(snaps_ph - snap))
+        # selected_idx = np.argmin(np.abs(snaps_ph - snap))
+        selected_lines = np.concatenate(np.where(snaps_ph == snap))
+        selected_idx, selected_fluxes = selected_lines[0], selected_lines[1]
         single_indices_ph = allindices_ph[selected_idx]
         single_indices_ph = single_indices_ph.astype(int)
         # Load the data

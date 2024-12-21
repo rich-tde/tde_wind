@@ -4,6 +4,7 @@ sys.path.append(f'{abspath}')
 import numpy as np
 import matplotlib.pyplot as plt
 # import colorcet
+import matplotlib.gridspec as gridspec
 import matplotlib.colors as colors
 import Utilities.prelude as prel
 import src.orbits as orb
@@ -25,9 +26,10 @@ apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 DeltaE = orb.energy_mb(Rstar, mstar, Mbh, G=1) # specific energy of the mb debris 
 DeltaE_cgs = DeltaE * prel.en_converter/prel.Msol_cgs
 a = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
+ph_data = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/photo_mean.txt')
+Rph = ph_data[1]*prel.Rsol_cgs
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
-Enden_quasi_norm = Ledd / (4 * np.pi * prel.c_cgs) # [erg/cm^2] normalization for the radiation energy density. Missing the /R, which you'll do later
-
+Enden_norm_single = Ledd / (4 * np.pi * prel.c_cgs * Rph**2) # [erg/cm^2] normalization for the radiation energy density. Missing the /R, which you'll do later
 #%%
 ## DECISIONS
 ##
@@ -68,7 +70,8 @@ col_orb_enres1 *= prel.en_converter/prel.Msol_cgs
 abs_col_orb_enres1 = np.abs(col_orb_enres1)
 col_Rad_res1 *= prel.en_converter/prel.Msol_cgs
 col_Rad_denres1 *= prel.en_den_converter
-Enden_norm = Enden_quasi_norm / (radiires1*prel.Rsol_cgs)**2
+# Enden_norm = Enden_quasi_norm / (radiires1*prel.Rsol_cgs)**2
+Enden_norm = [Enden_norm_single]*len(tfb_res1)
 
 #%% Res2 data
 datares2 = np.load(f'{path}{res2}/colormapE_Alice/coloredE_{res2}_radii.npy')
@@ -85,71 +88,64 @@ col_Radres2 *= prel.en_den_converter
 abs_col_orb_enres2 = np.abs(col_orb_enres2)
 
 #%% Plot Res1 NORMALIZED
-fig, ax = plt.subplots(1,2, figsize = (11,5))
-img = ax[0].pcolormesh(radiires1/apo, tfb_res1, abs_col_orb_enres1/DeltaE_cgs, norm=colors.LogNorm(vmin=4e-1, vmax = 11), cmap = 'viridis')
-cb = fig.colorbar(img)
+fig = plt.figure(figsize=(21, 7))
+gs = gridspec.GridSpec(2, 3, width_ratios=[1,1,1], height_ratios=[0.2, 3], hspace=0.2, wspace = 0.3)
+ax1 = fig.add_subplot(gs[1, 0])  # First plot
+ax2 = fig.add_subplot(gs[1, 1])  # Second plot
+ax3 = fig.add_subplot(gs[1, 2])  # Third plot
+
+img = ax1.pcolormesh(radiires1/apo, tfb_res1, abs_col_orb_enres1/DeltaE_cgs, norm=colors.LogNorm(vmin=4e-1, vmax = 11), cmap = 'viridis')
+cbar_ax = fig.add_subplot(gs[0, 0])  # Colorbar subplot below the first two
+cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
 #longer ticks to cb
 cb.ax.tick_params(which='minor',length = 3)
 cb.ax.tick_params(which='major',length = 6)
-ax[0].set_title('Orbital energy', fontsize = 20)
-# cb.set_label(r'Specific energy/$\Delta$E', fontsize = 20, labelpad = 2)
+# ax1.set_title('Orbital energy', fontsize = 20)
+cb.set_label(r'Specific orbital energy/$\Delta$E', fontsize = 18, labelpad = 3)
+# cb.ax.xaxis.set_label_position('top')
+cb.ax.xaxis.set_ticks_position('top')
 
-img = ax[1].pcolormesh(radiires1/apo, tfb_res1, col_ieres1/DeltaE_cgs,  norm=colors.LogNorm(vmin=1e-4, vmax = 1.1), cmap = 'viridis')
-cb = fig.colorbar(img)
+img = ax2.pcolormesh(radiires1/apo, tfb_res1, col_ieres1/DeltaE_cgs,  norm=colors.LogNorm(vmin=1e-4, vmax = 1.1), cmap = 'viridis')
+cbar_ax = fig.add_subplot(gs[0, 1])  # Colorbar subplot below the first two
+cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
 cb.ax.tick_params(which='minor',length = 3)
 cb.ax.tick_params(which='major',length = 6)
-ax[1].set_title('Internal energy', fontsize = 20)
-cb.set_label(r'Specific energy/$\Delta$E', fontsize = 20, labelpad = 2)
+# put the label on the top of the colorbar
+cb.set_label(r'Specific internal energy/$\Delta$E', fontsize = 18, labelpad = 5)
+# cb.ax.xaxis.set_label_position('top')
+cb.ax.xaxis.set_ticks_position('top')
 
-for i in range(2):
-    ax[i].axvline(Rt/apo, linestyle ='dashed', c = 'k', linewidth = 1.2)
-    ax[i].set_xscale('log')
-    ax[i].set_xlabel(r'$R [R_a$]', fontsize = 20)
+img = ax3.pcolormesh(radiires1/apo, tfb_res1, col_Rad_denres1/Enden_norm, norm=colors.LogNorm(vmin=4e-2, vmax= 5e3), cmap = 'viridis')
+cbar_ax = fig.add_subplot(gs[0, 2])  # Colorbar subplot below the first two
+cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
+cb.ax.tick_params(which='minor',length = 3)
+cb.ax.tick_params(which='major',length = 6)
+cb.set_label(r'Radiation energy density/u$_{\rm Edd}$', fontsize = 18, labelpad = 5)
+# cb.ax.xaxis.set_label_position('top')
+cb.ax.xaxis.set_ticks_position('top')
+
+for ax in [ax1, ax2, ax3]:
+    ax.axvline(Rt/apo, linestyle ='dashed', c = 'k', linewidth = 1.2)
+    ax.set_xscale('log')
+    ax.set_xlabel(r'$R [R_a$]', fontsize = 20)
     # Get the existing ticks on the x-axis
-    original_ticks = ax[i].get_yticks()
+    original_ticks = ax.get_yticks()
     # Calculate midpoints between each pair of ticks
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
     # Combine the original ticks and midpoints
     new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
     # Set tick labels: empty labels for midpoints
-    ax[i].set_yticks(new_ticks)
+    ax.set_yticks(new_ticks)
     labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-    ax[i].set_yticklabels(labels)
-    ax[i].tick_params(axis='x', which='major', width = 1.5, length = 10, color = 'white')
-    ax[i].tick_params(axis='x', which='minor', width = 1, length = 7, color = 'white')
-    ax[i].tick_params(axis='y', which='both', width = 1.5, length = 7)
-    ax[i].set_ylim(np.min(tfb_res1), np.max(tfb_res1))
-ax[0].set_ylabel(r't [t$_{fb}]$', fontsize = 20)
+    ax.set_yticklabels(labels)
+    ax.tick_params(axis='x', which='major', width = 1.5, length = 10, color = 'white')
+    ax.tick_params(axis='x', which='minor', width = 1, length = 7, color = 'white')
+    ax.tick_params(axis='y', which='both', width = 1.5, length = 7)
+    ax.set_ylim(np.min(tfb_res1), np.max(tfb_res1))
+ax1.set_ylabel(r't [t$_{fb}]$', fontsize = 20)
 plt.tight_layout()
 if save:
-    plt.savefig(f'{abspath}/Figs/{folder}{res1}/coloredEdyn.pdf')
-
-#%%
-fig, ax = plt.subplots(1,1, figsize = (6,5))
-img = plt.pcolormesh(radiires1/apo, tfb_res1, col_Rad_denres1/Enden_norm, norm=colors.LogNorm(vmin=1e-4, vmax= 5), cmap = 'viridis')
-cb = fig.colorbar(img)
-cb.ax.tick_params(which='minor',length = 3)
-cb.ax.tick_params(which='major',length = 6)
-cb.set_label(r'Energy density/C', fontsize = 20, labelpad = 2)
-ax.axvline(Rt/apo, linestyle ='dashed', c = 'k', linewidth = 1.2)
-ax.set_xscale('log')
-ax.set_xlabel(r'$R [R_a$]', fontsize = 20)
-# Get the existing ticks on the x-axis
-original_ticks = ax.get_yticks()
-# Calculate midpoints between each pair of ticks
-midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-# Combine the original ticks and midpoints
-new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-# Set tick labels: empty labels for midpoints
-ax.set_yticks(new_ticks)
-labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-ax.set_yticklabels(labels)
-ax.tick_params(axis='x', which='major', width = 1.5, length = 10, color = 'white')
-ax.tick_params(axis='x', which='minor', width = 1, length = 7, color = 'white')
-ax.tick_params(axis='y', which='both', width = 1.5, length = 7)
-ax.set_ylim(np.min(tfb_res1), np.max(tfb_res1))
-ax.set_ylabel(r't [t$_{fb}]$', fontsize = 20)
-plt.tight_layout()
+    plt.savefig(f'{abspath}/Figs/{folder}{res1}/coloredE_norm.pdf')
 
 #%% Plot Res1
 fig, ax = plt.subplots(1,3, figsize = (16,5))
@@ -166,7 +162,7 @@ ax[1].set_title('Specific internal energy', fontsize = 20)
 img = ax[2].pcolormesh(radiires1/apo, tfb_res1, col_Rad_denres1, norm=colors.LogNorm(vmin=1e4, vmax= 7e9), cmap = 'viridis')
 cb = fig.colorbar(img)
 ax[2].set_title('Radiation energy density', fontsize = 20)
-cb.set_label(r'Energy density [erg/cm$^3$]', fontsize = 20, labelpad = 2)
+cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 20, labelpad = 2)
 
 for i in range(3):
     ax[i].axvline(Rt/apo, linestyle ='dashed', c = 'k', linewidth = 1.2)
