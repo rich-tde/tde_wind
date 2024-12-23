@@ -90,6 +90,8 @@ for idx, snap in enumerate(snaps):
                  [x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid])
         
     else:
+        if int(snap)!=300:
+            continue 
         # you are not in alice
         import matplotlib.pyplot as plt
         import matplotlib.colors as colors

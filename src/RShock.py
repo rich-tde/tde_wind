@@ -205,3 +205,5 @@ for ax in [ax0, ax1, ax2]:
 
 plt.tight_layout()
 plt.savefig(f'{abspath}/Figs/multiple/Reta.pdf')
+
+

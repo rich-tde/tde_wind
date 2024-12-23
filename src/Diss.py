@@ -26,8 +26,9 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = ''
+check = 'HiRes'
 Rt = Rstar * (Mbh/mstar)**(1/3)
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
@@ -35,7 +36,6 @@ Rdiss = np.zeros(len(snaps))
 Eradtot = np.zeros(len(snaps))
 Ldisstot = np.zeros(len(snaps))
 for i,snap in enumerate(snaps):
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
     data = make_tree(path, snap, energy = True)
     Rsph = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)

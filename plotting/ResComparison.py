@@ -87,7 +87,9 @@ midplaneH = np.abs(z_coordH) < dim_cellH
 X_midplaneH, Y_midplaneH, Z_midplaneH,  dim_midplaneH, Mass_midplaneH, Den_midplaneH = \
     sec.make_slices([x_coordH, y_coordH, z_coordH,  dim_cellH, massH, denH], midplaneH)
 
-
+#%%
+print('min mass fiducial:', np.min(mass), 'min mass high:', np.min(massH))
+print('min dim fiducial:', np.min(dim_cell), 'min dim high:', np.min(dim_cellH))
 #%% Compare midplane resolution with a scatterplot
 vminmass = np.percentile(Mass_midplaneH, 5)
 vmaxmass = np.percentile(Mass_midplaneH, 95)
@@ -153,9 +155,9 @@ plt.show()
 
 #%% CDF 
 # Around the pericenter
-cutzoomL = np.logical_and(x_coordL>R0, np.logical_and(x_coordL<2*Rt, np.abs(y_coordL)<Rt))
-cutzoom = np.logical_and(x_coord>R0, np.logical_and(x_coord<2*Rt, np.abs(y_coord)<Rt))
-cutzoomH = np.logical_and(x_coordH>R0, np.logical_and(x_coordH<2*Rt, np.abs(y_coordH)<Rt))
+cutzoomL = np.logical_and(np.logical_and(x_coordL>R0, np.logical_and(x_coordL<2*Rt, np.abs(y_coordL)<Rt)), np.abs(z_coordL)<Rt)
+cutzoom = np.logical_and(np.logical_and(x_coord>R0, np.logical_and(x_coord<2*Rt, np.abs(y_coord)<Rt)), np.abs(z_coord)<Rt)
+cutzoomH = np.logical_and(np.logical_and(x_coordH>R0, np.logical_and(x_coordH<2*Rt, np.abs(y_coordH)<Rt)), np.abs(z_coordH)<Rt)
 x_coordLzoom, y_coordLzoom, z_coordLzoom, massLzoom, denLzoom, dim_cellLzoom = \
     sec.make_slices([x_coordL, y_coordL, z_coordL, massL, denL, dim_cellL], cutzoomL)
 x_coordzoom, y_coordzoom, z_coordzoom, masszoom, denzoom, dim_cellzoom = \
@@ -192,29 +194,35 @@ dim_cellH = np.sort(dim_cellH)
 cumH = list(np.arange(len(massH))/len(massH))
 cumL = list(np.arange(len(massL))/len(massL))
 cum = list(np.arange(len(mass))/len(mass))
-cumH.append(cumH[-1])
-cumL.append(cumL[-1])
-cum.append(cum[-1])
 cumdimH = list(np.arange(len(dim_cellH))/len(dim_cellH))
 cumdimL = list(np.arange(len(dim_cellL))/len(dim_cellL))
 cumdim = list(np.arange(len(dim_cell))/len(dim_cell))
-cumdimH.append(cumdimH[-1])
-cumdimL.append(cumdimL[-1])
-cumdim.append(cumdim[-1])
 massL = list(massL)
 mass = list(mass)
 massH = list(massH)
-mass.append(3e-7)
-massL.append(3e-7)
-massH.append(3e-7)
 dim_cellL = list(dim_cellL)
 dim_cell = list(dim_cell)
 dim_cellH = list(dim_cellH)
+
+#%%
+print('min midplane mass fiducial:', np.min(Mass_midplane), 'min midplane mass high:', np.min(Mass_midplaneH))
+print('min midplane dim fiducial:', np.min(dim_midplane), 'min midplane dim high:', np.min(dim_midplaneH))
+print('min zoom mass fiducial:', np.min(masszoom), 'min zoom mass high:', np.min(massHzoom))
+print('min zoom dim fiducial:', np.min(dim_cellzoom), 'min zoom dim high:', np.min(dim_cellHzoom))
+#%% Plot
+cumH.append(cumH[-1])
+cumL.append(cumL[-1])
+cum.append(cum[-1])
+cumdimH.append(cumdimH[-1])
+cumdimL.append(cumdimL[-1])
+cumdim.append(cumdim[-1])
+mass.append(3e-7)
+massL.append(3e-7)
+massH.append(3e-7)
 dim_cell.append(2)
 dim_cellL.append(2)
 dim_cellH.append(2)
 
-# Plot
 fig, (ax1, ax2) = plt.subplots(2,1, figsize = (5,8))
 ax1.plot(massH, cumH, color = 'darkviolet', linestyle = 'dashed')#, label = 'High res')
 ax1.plot(mass, cum, color = 'yellowgreen', linestyle = 'dashed')#, label = 'Middle res')

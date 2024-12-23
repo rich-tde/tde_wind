@@ -27,9 +27,13 @@ DeltaE = orb.energy_mb(Rstar, mstar, Mbh, G=1) # specific energy of the mb debri
 DeltaE_cgs = DeltaE * prel.en_converter/prel.Msol_cgs
 a = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 ph_data = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/photo_mean.txt')
-Rph = ph_data[1]*prel.Rsol_cgs
+tfbRph, Rph = ph_data[0], ph_data[2]*prel.Rsol_cgs
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
-Enden_norm_single = Ledd / (4 * np.pi * prel.c_cgs * Rph**2) # [erg/cm^2] normalization for the radiation energy density. Missing the /R, which you'll do later
+Enden_norm_single = Ledd / (4 * np.pi * prel.c_cgs * Rph**2) # [erg/cm^3] 
+
+#%%
+print(np.max(tfbRph))
+plt.plot(tfbRph, Rph)
 #%%
 ## DECISIONS
 ##
@@ -356,9 +360,6 @@ if save:
 plt.show()
 
 #%% Relative errors for the radiation energy density
-meanRph = np.loadtxt(f'{abspath}/data/{folder}/photo_mean.txt')
-tfbRph, Rph = meanRph[0], meanRph[1]
-
 fig, ax = plt.subplots(2,1, figsize = (7,9))
 img = ax[0].pcolormesh(radiires0/apo, tfb_res0, rel_Rad_absL, cmap = 'cividis', norm=norm_Rad)
 cb = fig.colorbar(img)

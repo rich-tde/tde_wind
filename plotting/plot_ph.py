@@ -139,7 +139,8 @@ ph_data = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}{extr}_ph
 snaps, tfb, allindices_ph = ph_data[:, 0].astype(int), ph_data[:, 1], ph_data[:, 2:]
 allindices_ph = sort_list(allindices_ph, snaps)
 tfb = np.sort(tfb)
-print(len(snap)/(2*269))
+print(len(snaps)/(2*269))
+print(len(snaps), len(np.unique(snaps)))
 # eliminate the even rows (photosphere indices) of allindices_ph
 allindices_ph = allindices_ph[::2]
 snaps = np.unique(np.sort(snaps))
@@ -166,6 +167,7 @@ plt.yscale('log')
 plt.grid()
 plt.savefig(f'{abspath}/Figs/{folder}/photo_mean.png')
 
+#%%
 with open(f'{abspath}/data/{folder}/photo_mean.txt', 'a') as f:
         f.write(f'# tfb, mean_rph,gmean,  weighted by flux\n')
         f.write(' '.join(map(str, tfb)) + '\n')
@@ -173,3 +175,5 @@ with open(f'{abspath}/data/{folder}/photo_mean.txt', 'a') as f:
         f.write(' '.join(map(str, gmean_ph)) + '\n')
         f.write(' '.join(map(str, mean_rph_weig)) + '\n')
         f.close()
+
+# %%
