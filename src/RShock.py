@@ -56,7 +56,6 @@ time_yr_cgs = time_array_yr * 365 * 24 * 3600 # converted to seconds
 
 checks = ['LowRes', '', 'HiRes' ]
 checkslegend = ['Low', 'Fid', 'High']
-markerslegend = ['o', 's']#, 'D']
 colorslegend = ['C1', 'yellowgreen', 'darkviolet']
 
 # list of arrays. Each line contains the data for one resolution
@@ -205,5 +204,3 @@ for ax in [ax0, ax1, ax2]:
 
 plt.tight_layout()
 plt.savefig(f'{abspath}/Figs/multiple/Reta.pdf')
-
-

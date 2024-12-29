@@ -9,7 +9,10 @@ from Utilities.time_extractor import days_since_distruption
 
 def select_prefix(m, check, mstar, rstar, beta, n, compton):
     Mbh = 10**m
-    folder = f'R{rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    if m == 6:
+        folder = f'R{rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    else:
+        folder = f'R{rstar}M{mstar}BH1e+0{m}beta{beta}S60n{n}{compton}{check}'
     if alice:
         prepath = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}'
     else: 

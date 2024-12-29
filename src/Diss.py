@@ -36,6 +36,7 @@ Rdiss = np.zeros(len(snaps))
 Eradtot = np.zeros(len(snaps))
 Ldisstot = np.zeros(len(snaps))
 for i,snap in enumerate(snaps):
+    print(snap)
     path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
     data = make_tree(path, snap, energy = True)
     Rsph = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)

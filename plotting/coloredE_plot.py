@@ -27,13 +27,10 @@ DeltaE = orb.energy_mb(Rstar, mstar, Mbh, G=1) # specific energy of the mb debri
 DeltaE_cgs = DeltaE * prel.en_converter/prel.Msol_cgs
 a = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 ph_data = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/photo_mean.txt')
-tfbRph, Rph = ph_data[0], ph_data[2]*prel.Rsol_cgs
+tfbRph, Rph = ph_data[0], ph_data[3]
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
-Enden_norm_single = Ledd / (4 * np.pi * prel.c_cgs * Rph**2) # [erg/cm^3] 
+Enden_norm_single = Ledd / (4 * np.pi * prel.c_cgs * (Rph*prel.Rsol_cgs)**2) # [erg/cm^3] 
 
-#%%
-print(np.max(tfbRph))
-plt.plot(tfbRph, Rph)
 #%%
 ## DECISIONS
 ##
@@ -75,7 +72,7 @@ abs_col_orb_enres1 = np.abs(col_orb_enres1)
 col_Rad_res1 *= prel.en_converter/prel.Msol_cgs
 col_Rad_denres1 *= prel.en_den_converter
 # Enden_norm = Enden_quasi_norm / (radiires1*prel.Rsol_cgs)**2
-Enden_norm = [Enden_norm_single]*len(tfb_res1)
+Enden_norm = np.transpose([Enden_norm_single]*len(radiires1))
 
 #%% Res2 data
 datares2 = np.load(f'{path}{res2}/colormapE_Alice/coloredE_{res2}_radii.npy')
@@ -360,13 +357,13 @@ if save:
 plt.show()
 
 #%% Relative errors for the radiation energy density
+import matplotlib.patheffects as pe
 fig, ax = plt.subplots(2,1, figsize = (7,9))
-img = ax[0].pcolormesh(radiires0/apo, tfb_res0, rel_Rad_absL, cmap = 'cividis', norm=norm_Rad)
+img = ax[0].pcolormesh(radiires0/apo, tfb_res0, rel_Rad_absL, cmap = 'inferno', norm=norm_Rad)
 cb = fig.colorbar(img)
 cb.set_label(r'$\Delta_{\rm rel}$ Low-Middle', fontsize = 24)
-ax[0].set_xlim(np.min(radiires0/apo), np.max(radiires0/apo))
 
-img = ax[1].pcolormesh(radiires2/apo, tfb_res2, rel_Rad_absH, cmap = 'cividis', norm=norm_Rad)
+img = ax[1].pcolormesh(radiires2/apo, tfb_res2, rel_Rad_absH, cmap = 'inferno', norm=norm_Rad)
 cb = fig.colorbar(img)
 cb.set_label(r'$\Delta_{\rm rel}$ Middle-High', fontsize = 24)
 ax[1].set_xlim(np.min(radiires2/apo), np.max(radiires2/apo))
@@ -379,8 +376,9 @@ midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
 # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
 for i in range(2):
+    ax[i].set_xlim(np.min(radiires0/apo), np.max(radiires0/apo))
     ax[i].axvline(Rt/apo, linestyle ='--', c = 'k', linewidth = 2)
-    ax[i].plot(Rph[5:]/apo, tfbRph[5:], c = 'r', linestyle = '--', label = 'Photosphere', linewidth = 2)
+    ax[i].plot(Rph[5:]/apo, tfbRph[5:], c = 'yellowgreen', path_effects=[pe.Stroke(linewidth=5, foreground='k'), pe.Normal()], linestyle = 'solid', label = 'Photosphere', linewidth = 2)
     ax[i].set_xscale('log')
     ax[i].set_ylabel(r't [t$_{\rm fb}]$', fontsize = 25)
     # Set tick labels: empty labels for midpoints
