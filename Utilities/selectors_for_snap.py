@@ -21,13 +21,15 @@ def select_prefix(m, check, mstar, rstar, beta, n, compton):
 
 def select_snap(m, check, mstar, rstar, beta, n, compton = 'Compton',  time = False):
     pre = select_prefix(m, check, mstar, rstar, beta, n, compton)
-    if m == 4 :
-        snapshots = np.arange(80, 348 + 1, step = 1)
-        # select just the ones that actually exist
-        if alice:
-            snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/snap_{snap}/snap_{snap}.h5')]
-        else:
-            snapshots = [80, 164]#[snap for snap in snapshots if os.path.exists(f'{pre}/{snap}/snap_{snap}.h5')]
+    # select just the ones that actually exist
+    if alice:
+        if m ==4: 
+            snapshots = np.arange(80, 365 + 1, step = 1)
+        if m== 6: 
+            snapshots = np.arange(180, 444 + 1, step = 1) # before 180 they are not "snap_full" on Drive
+        snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/snap_{snap}/snap_{snap}.h5')]
+    else:
+        snapshots = [80, 164]#[snap for snap in snapshots if os.path.exists(f'{pre}/{snap}/snap_{snap}.h5')]
     if time:
         days = np.zeros(len(snapshots))
         for i,snap in enumerate(snapshots):
