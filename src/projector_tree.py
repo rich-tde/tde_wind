@@ -87,7 +87,7 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
 if __name__ == '__main__':
     save = True
     
-    m = 4
+    m = 6
     Mbh = 10**m
     beta = 1
     mstar = .5
@@ -101,7 +101,7 @@ if __name__ == '__main__':
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
     if alice:
-        snaps = [348] #, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
+        snaps = [444] #, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
         # if save:
         #     with open(f'{prepath}/data/{folder}/projection/time_proj.txt', 'a') as f:
         #         f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')

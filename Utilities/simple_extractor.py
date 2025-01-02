@@ -109,7 +109,7 @@ def extractor(filename):
 # MAIN
 ##
 
-m = 4
+m = 6
 Mbh = 10**m
 beta = 1
 mstar = .5
@@ -117,7 +117,10 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiRes'
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+if m == 6:
+    folder = f'R{Rstar}M{mstar}BH1e+0{m}beta{beta}S60n{n}{compton}{check}'
+else: 
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 snaps, _ = select_snap(m, check, mstar, Rstar, beta, n, time = True)
 
