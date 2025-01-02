@@ -34,8 +34,8 @@ def grid_maker(path, snap, m, mstar, Rstar, x_num, y_num, z_num = 100):
     # R0 = 0.6 * Rt
     apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
-    x_start = -11*apo#-1.2*apo
-    x_stop = 10*apo#40
+    x_start = -8*apo#-1.2*apo
+    x_stop = 5*apo#40
     xs = np.linspace(x_start, x_stop, num = x_num )
     y_start = -4*apo #-0.5 * apo 
     y_stop = 4*apo #0.5 * apo
@@ -98,15 +98,18 @@ if __name__ == '__main__':
     apocenter = Rt**2 / Rstar
     check = ''
     compton = 'Compton'
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    if m== 6:
+        folder = f'R{Rstar}M{mstar}BH1e+0{m}beta{beta}S60n{n}{compton}{check}'
+    else:
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
     if alice:
         snaps = [444] #, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
-        # if save:
-        #     with open(f'{prepath}/data/{folder}/projection/time_proj.txt', 'a') as f:
-        #         f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
-        #         f.write(f'# t/t_fb \n' + ' '.join(map(str, tfb)) + '\n')
-        #         f.close()
+        if save:
+            with open(f'{prepath}/data/{folder}/projection/time_proj.txt', 'a') as f:
+                f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
+                f.write(f'# t/t_fb \n' + ' '.join(map(str, tfb)) + '\n')
+                f.close()
         for snap in snaps:
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
@@ -123,17 +126,20 @@ if __name__ == '__main__':
 
     else:
         import src.orbits as orb
-        time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/time_proj.txt')
-        snaps = [int(i) for i in time[0]]
-        tfb = time[1]
+        import Utilities.prelude as prel
+        if m!=6:
+            time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/time_proj.txt')
+            snaps = [int(i) for i in time[0]]
+            tfb = time[1]
         xcrt, ycrt, crt = orb.make_cfr(Rt)
 
         # Load and clean
+        snaps = [444]
         for i, snap in enumerate(snaps):
             flat_den = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/denproj{snap}.txt')
+            flat_den *= prel.Msol_cgs/prel.Rsol_cgs**2
             x_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/xarray.txt')
             y_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/yarray.txt')
-            tfb_single = tfb[i]
                 
             # p5 = np.percentile(flat_den, 5)
             # p95 = np.percentile(flat_den, 95)
@@ -142,17 +148,19 @@ if __name__ == '__main__':
             ax.set_xlabel(r'$X/R_{\rm a}$', fontsize = 20)
             ax.set_ylabel(r'$Y/R_{\rm a}$', fontsize = 20)
             img = ax.pcolormesh(x_radii/apocenter, y_radii/apocenter, flat_den.T, cmap = 'inferno',
-                                norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-5))
+                                norm = colors.LogNorm(vmin = 5e-2, vmax = 1e2))
             cb = plt.colorbar(img)
-            cb.set_label(r'Column density [$M_\odot/R_\odot^2$])', fontsize = 18)
+            cb.set_label(r'Column density [$g/cm^2$])', fontsize = 18)
             ax.contour(xcrt, ycrt, crt,  linestyles = 'dashed', colors = 'w', alpha = 1)
             ax.scatter(0, 0, color = 'k', edgecolors = 'orange', s = 40)
-            ax.text(-410/apocenter, -0.4, r't/t$_{\rm fb}$ = ' + f'{np.round(tfb_single,2)}', color = 'white', fontsize = 18)
-            ax.set_xlim(-1.2, 0.1)
-            ax.set_ylim(-0.5, 0.5) 
+            if m!=6:
+                tfb_single = tfb[i]
+                ax.text(-410/apocenter, -0.4, r't/t$_{\rm fb}$ = ' + f'{np.round(tfb_single,2)}', color = 'white', fontsize = 18)
+            ax.set_xlim(-11, 5)
+            ax.set_ylim(-4, 4) 
             plt.tight_layout()
             if save:
                 plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/denproj{snap}.png')
-            # plt.show()
+            plt.show()
             plt.close()
 
