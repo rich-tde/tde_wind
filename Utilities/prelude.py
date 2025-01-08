@@ -16,6 +16,7 @@ alpha_cgs = 7.5646 * 10**(-15) # radiation density [erg/cm^3K^4]
 sigma_T_cgs = 6.6524e-25 #[cm^2] thomson cross section
 G_cgs = 6.6743e-8 # cgs
 Rsol_cgs = 6.957e10 # [cm]
+Rsol_AU = 0.00465 # [AU]
 Msol_cgs = 1.989e33 # [g]
 
 # Solar and SI units
@@ -26,6 +27,7 @@ Rsol_SI = 7e8 #6.957e8 # m
 
 # Sim units
 G = 1
+solarR_to_au = 215
 
 # Converters
 tsol_cgs = np.sqrt(Rsol_cgs**3 / (Msol_cgs*G_cgs )) # Follows from G = 1

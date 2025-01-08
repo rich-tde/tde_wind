@@ -214,7 +214,7 @@ else:
         ax3.grid()
 
         for ax in [ax1, ax2, ax3]:
-            ax.set_xlabel(r'$R [R_{a}]$', fontsize = 22)
+            ax.set_xlabel(r'$\rm t [t_{fb}]$', fontsize = 22)
             ax.tick_params(labelsize=25)
             if ax!=ax3:
                 ax.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed')
@@ -223,5 +223,6 @@ else:
                 ax.tick_params(axis='y', which='both', width=1.2, length=8, color = 'k')
         
         plt.savefig(f'{abspath}/Figs/multiple/ecc_diff.pdf')
+        plt.savefig(f'{abspath}/Figs/multiple/ecc_diff.png')
 
 # %%

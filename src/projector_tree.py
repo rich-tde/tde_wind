@@ -78,7 +78,7 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
     flat_den =  np.zeros(( len(x_radii), len(y_radii) ))
     for i in range(len(x_radii)):
         for j in range(len(y_radii)):
-            for k in range(len(z_radii) - 1): # NOTE SKIPPING LAST Z PLANE
+            for k in range(len(z_radii) - 1): 
                 dz = (z_radii[k+1] - z_radii[k]) 
                 flat_den[i,j] += gridded_den[i,j,k] * dz
 
@@ -87,7 +87,7 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
 if __name__ == '__main__':
     save = True
     
-    m = 6
+    m = 4
     Mbh = 10**m
     beta = 1
     mstar = .5
@@ -104,18 +104,18 @@ if __name__ == '__main__':
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
     if alice:
-        snaps = [444] #, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
+        snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
+        t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
+
         if save:
             with open(f'{prepath}/data/{folder}/projection/time_proj.txt', 'a') as f:
                 f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
-                f.write(f'# t/t_fb \n' + ' '.join(map(str, tfb)) + '\n')
+                f.write(f'# t/t_fb (t_fb = {t_fall})\n' + ' '.join(map(str, tfb)) + '\n')
                 f.close()
         for snap in snaps:
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-            else:
-                path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
-
+            
             _, grid_den, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, x_num=500, y_num=500, z_num = 100)
             flat_den = projector(grid_den, x_radii, y_radii, z_radii)
 
@@ -127,37 +127,37 @@ if __name__ == '__main__':
     else:
         import src.orbits as orb
         import Utilities.prelude as prel
-        if m!=6:
-            time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/time_proj.txt')
-            snaps = [int(i) for i in time[0]]
-            tfb = time[1]
+        t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
+        print(t_fall)
+        time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/time_proj.txt')
+        snaps = time[0]#[int(i) for i in time[0]]
+        tfb = time[1]
         xcrt, ycrt, crt = orb.make_cfr(Rt)
 
         # Load and clean
-        snaps = [444]
+        snaps = [348]
         for i, snap in enumerate(snaps):
-            flat_den = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/denproj{snap}.txt')
+            flat_den = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/bigdenproj{snap}.txt')
             flat_den *= prel.Msol_cgs/prel.Rsol_cgs**2
-            x_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/xarray.txt')
-            y_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/yarray.txt')
+            x_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/bigxarray.txt')
+            y_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/bigyarray.txt')
                 
             # p5 = np.percentile(flat_den, 5)
             # p95 = np.percentile(flat_den, 95)
             
-            fig, ax = plt.subplots(1,1, figsize = (14,6))
-            ax.set_xlabel(r'$X/R_{\rm a}$', fontsize = 20)
-            ax.set_ylabel(r'$Y/R_{\rm a}$', fontsize = 20)
-            img = ax.pcolormesh(x_radii/apocenter, y_radii/apocenter, flat_den.T, cmap = 'inferno',
+            fig, ax = plt.subplots(1,1, figsize = (14,8))
+            ax.set_xlabel(r'$X [AU]$', fontsize = 20)
+            ax.set_ylabel(r'$Y [AU]$', fontsize = 20)
+            img = ax.pcolormesh(x_radii*prel.Rsol_AU, y_radii*prel.Rsol_AU, flat_den.T, cmap = 'inferno',
                                 norm = colors.LogNorm(vmin = 5e-2, vmax = 1e2))
             cb = plt.colorbar(img)
             cb.set_label(r'Column density [$g/cm^2$])', fontsize = 18)
-            ax.contour(xcrt, ycrt, crt,  linestyles = 'dashed', colors = 'w', alpha = 1)
+            # ax.contour(xcrt, ycrt, crt,  linestyles = 'dashed', colors = 'w', alpha = 1)
             ax.scatter(0, 0, color = 'k', edgecolors = 'orange', s = 40)
-            if m!=6:
-                tfb_single = tfb[i]
-                ax.text(-410/apocenter, -0.4, r't/t$_{\rm fb}$ = ' + f'{np.round(tfb_single,2)}', color = 'white', fontsize = 18)
-            ax.set_xlim(-11, 5)
-            ax.set_ylim(-4, 4) 
+            tfb_single = tfb#tfb[i]
+            # ax.text(-7*apocenter**prel.Rsol_AU, 3.5*apocenter**prel.Rsol_AU, r't = ' + f'{np.round(tfb_single*t_fall,2)} days', color = 'white', fontsize = 18)
+            # ax.set_xlim(-210, 140)
+            # ax.set_ylim(-90, 90) 
             plt.tight_layout()
             if save:
                 plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/denproj{snap}.png')

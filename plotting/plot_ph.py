@@ -140,7 +140,7 @@ snaps, tfb, allindices_ph = ph_data[:, 0].astype(int), ph_data[:, 1], ph_data[:,
 allindices_ph = sort_list(allindices_ph, snaps)
 tfb = np.sort(tfb)
 # eliminate the even rows (photosphere indices) of allindices_ph
-allindices_ph = allindices_ph[::2]
+fluxes = allindices_ph[1::2]
 snaps = np.unique(np.sort(snaps))
 tfb = np.unique(tfb)
 
@@ -150,11 +150,11 @@ gmean_ph = np.zeros(len(tfb))
 
 for i, snapi in enumerate(snaps):
         photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}{extr}_photo{snapi}.txt')
-        xph_i, yph_i, zph_i = photo[0], photo[1], photo[2]
+        xph_i, yph_i, zph_i = photo[0], photo[1], photo[2] 
         rph_i = np.sqrt(xph_i**2 + yph_i**2 + zph_i**2)
         mean_rph[i] = np.mean(rph_i)
         gmean_ph[i] = gmean(rph_i)
-        mean_rph_weig[i] = np.sum(rph_i*allindices_ph[i])/np.sum(allindices_ph[i])
+        mean_rph_weig[i] = np.sum(rph_i*fluxes[i])/np.sum(fluxes[i])
 plt.figure()
 plt.plot(tfb, mean_rph/apo, c = 'k')
 plt.plot(tfb, mean_rph_weig/apo, c = 'r')

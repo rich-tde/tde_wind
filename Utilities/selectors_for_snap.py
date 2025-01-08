@@ -26,7 +26,7 @@ def select_snap(m, check, mstar, rstar, beta, n, compton = 'Compton',  time = Fa
         if m ==4: 
             snapshots = np.arange(80, 365 + 1, step = 1)
         if m== 6: 
-            snapshots = np.arange(180, 444, step = 1) # before 180 they are not "snap_full" on Drive
+            snapshots = np.arange(444,445)#(180, 444, step = 1) # before 180 they are not "snap_full" on Drive
         snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/snap_{snap}/snap_{snap}.h5')]
     else:
         snapshots = [80, 164]#[snap for snap in snapshots if os.path.exists(f'{pre}/{snap}/snap_{snap}.h5')]

@@ -223,17 +223,14 @@ for i,time in enumerate(tfb_res0):
 median_orbL = np.median(rel_orb_en_absL, axis = 1)
 median_ieL = np.median(rel_ie_absL, axis = 1)
 median_radL = np.median(rel_Rad_absL, axis = 1)
-idx25 = np.argmin(np.abs(tfb_res0 - 0.25))
-median_orbL25 = np.median(rel_orb_en_absL[idx25:], axis = 1)
-median_ieL25 = np.median(rel_ie_absL[idx25:], axis = 1)
-median_radL25 = np.median(rel_Rad_absL[idx25:], axis = 1)
-
-# print(f'The median relative difference of fiducial from L are')
-# print(f'-orbital energy: {np.round(np.median(median_orbL),2)}, \n-specific internal energy: {np.round(np.median(median_ieL),2)}, \n-radiation energy density: {np.round(np.median(median_radL),2)}')
-# print(f'for times after 0.25 are: \n-orbital energy: {np.round(np.median(median_orbL25),2)}, \n-specific internal energy: {np.round(np.median(median_ieL25),2)}, \n-radiation energy density: {np.round(np.median(median_radL25),2)}')
+idx30 = np.argmin(np.abs(tfb_res0 - 0.3))
+median_orbL30 = np.median(rel_orb_en_absL[idx30:], axis = 1)
+median_ieL30 = np.median(rel_ie_absL[idx30:], axis = 1)
+median_radL30 = np.median(rel_Rad_absL[idx30:], axis = 1)
 
 print(f'The median relative difference of fiducial from L are')
 print(f'-orbital energy: {np.round(np.median(rel_orb_en_absL),2)}, \n-specific internal energy: {np.round(np.median(rel_ie_absL),2)}, \n-radiation energy density: {np.round(np.median(rel_Rad_absL),2)}')
+print(f'\n For times after 0.30 are: \n-orbital energy: {np.round(np.median(median_orbL30),2)}, \n-specific internal energy: {np.round(np.median(median_ieL30),2)}, \n-radiation energy density: {np.round(np.median(median_radL30),2)}')
 
 # relative difference H and middle
 rel_ie_absH = []
@@ -271,13 +268,13 @@ for i in range(len(tfb_res2)):
 median_orbH = np.median(rel_orb_en_absH, axis = 1)
 median_ieH = np.median(rel_ie_absH, axis = 1)
 median_radH = np.median(rel_Rad_absH, axis = 1)
-idx25H = np.argmin(np.abs(tfb_res2 - 0.25))
-median_orbH25 = np.median(rel_orb_en_absH[idx25H:], axis = 1)
-median_ieH25 = np.median(rel_ie_absH[idx25H:], axis = 1)
-median_radH25 = np.median(rel_Rad_absH[idx25H:], axis = 1)
+idx30H = np.argmin(np.abs(tfb_res2 - 0.30))
+median_orbH30 = np.median(rel_orb_en_absH[idx30H:], axis = 1)
+median_ieH30 = np.median(rel_ie_absH[idx30H:], axis = 1)
+median_radH30 = np.median(rel_Rad_absH[idx30H:], axis = 1)
 print(f'\nThe median relative difference of fiducial from H are')
 print(f'-orbital energy: {np.round(np.median(median_orbH),2)}, \n-specific internal energy: {np.round(np.median(median_ieH),2)}, \n-radiation energy density: {np.round(np.median(median_radH),2)}')
-print(f'for times after 0.25 are: \n -orbital energy: {np.round(np.median(median_orbH25),2)}, \n-specific internal energy: {np.round(np.median(median_ieH25),2)}, \n-radiation energy density: {np.round(np.median(median_radH25),2)}')
+print(f'\n For times after 0.30 are: \n -orbital energy: {np.round(np.median(median_orbH30),2)}, \n-specific internal energy: {np.round(np.median(median_ieH30),2)}, \n-radiation energy density: {np.round(np.median(median_radH30),2)}')
 
 #%%
 cmap = plt.cm.inferno
@@ -296,7 +293,7 @@ img = ax[0][1].pcolormesh(radiires0/apo, tfb_res0, rel_ie_absL, cmap=cmap, norm=
 cb = fig.colorbar(img)
 cb.ax.tick_params(labelsize=20)
 ax[0][1].set_title('Specific internal energy', fontsize = 20)
-cb.set_label(r'$\Delta_{\rm rel}$ Low and Middle', fontsize = 22)
+cb.set_label(r'$\Delta_{\rm rel}$ Low and Fid', fontsize = 22)
 
 img = ax[1][0].pcolormesh(radiires2/apo, tfb_res2, rel_orb_en_absH, cmap=cmap, norm=norm_orb_en)
 cb = fig.colorbar(img)
@@ -305,7 +302,7 @@ cb = fig.colorbar(img)
 img = ax[1][1].pcolormesh(radiires2/apo, tfb_res2, rel_ie_absH, cmap=cmap, norm=norm_ie)
 cb = fig.colorbar(img)
 cb.ax.tick_params(labelsize=20)
-cb.set_label(r'$\Delta_{\rm rel}$ Middle and High', fontsize = 22)
+cb.set_label(r'$\Delta_{\rm rel}$ Fid and High', fontsize = 22)
 
 # Get the existing ticks on the x-axis
 original_ticks = ax[0][0].get_yticks()
@@ -338,34 +335,46 @@ for i in range(2):
 plt.tick_params(axis = 'both', which = 'both', direction='in', labelsize = 20)
 plt.tight_layout()
 if save:
+    plt.savefig(f'{abspath}/Figs/multiple/orbE_IE_relative_diff.png')
     plt.savefig(f'{abspath}/Figs/multiple/orbE_IE_relative_diff.pdf')
 plt.show()
 
 #%%
-plt.figure(figsize = (7,5))
-plt.plot(tfb_res0, median_orbL, label = r'$\Delta_{OE}$ Low-Middle', c = 'navy')
-plt.plot(tfb_res2, median_orbH, '--', label = r'$\Delta_{OE}$ Middle-High', c = 'navy')
-plt.plot(tfb_res0, median_ieL, label = r'$\Delta_{IE}$ Low-Middle', c = 'coral')
-plt.plot(tfb_res2, median_ieH, '--', label = r'$\Delta_{IE}$ Middle-High', c = 'coral')
-plt.ylabel('Median relative difference', fontsize = 25)
-plt.xlabel(r't [t$_{fb}]$', fontsize = 25)
-plt.yscale('log')
-plt.legend(fontsize = 20)
-plt.tight_layout()
-if save:
-    plt.savefig(f'{abspath}/Figs/multiple/orbE_IE_diffTime.pdf')
-plt.show()
+# plt.figure(figsize = (7,5))
+# plt.plot(tfb_res0, median_orbL, label = r'$\Delta_{OE}$ Low-Middle', c = 'navy')
+# plt.plot(tfb_res2, median_orbH, '--', label = r'$\Delta_{OE}$ Middle-High', c = 'navy')
+# plt.plot(tfb_res0, median_ieL, label = r'$\Delta_{IE}$ Low-Middle', c = 'coral')
+# plt.plot(tfb_res2, median_ieH, '--', label = r'$\Delta_{IE}$ Middle-High', c = 'coral')
+# plt.ylabel('Median relative difference', fontsize = 25)
+# plt.xlabel(r't [t$_{fb}]$', fontsize = 25)
+# plt.yscale('log')
+# plt.legend(fontsize = 20)
+# plt.tight_layout()
+# if save:
+#     plt.savefig(f'{abspath}/Figs/multiple/orbE_IE_diffTime.pdf')
+# plt.show()
 
 #%% Relative errors for the radiation energy density
 import matplotlib.patheffects as pe
+error_ph0 = np.zeros(len(tfb_res0))
+for i,t in enumerate(tfb_res0):
+    idx_r = np.argmin(np.abs(radiires0 - Rph[i]))
+    error_ph0[i] = rel_Rad_absL[i][idx_r]
+error_ph2 = np.zeros(len(tfb_res2))
+for i,t in enumerate(tfb_res2):
+    idx_r = np.argmin(np.abs(radiires2 - Rph[i]))
+    error_ph2[i] = rel_Rad_absH[i][idx_r]
+print(f'The median relative difference of the photosphere from the fiducial are')
+print(f'-Low-Middle: {np.round(np.median(error_ph0),2)}, \n-Middle-High: {np.round(np.median(error_ph2),2)}')
+
 fig, ax = plt.subplots(2,1, figsize = (7,9))
 img = ax[0].pcolormesh(radiires0/apo, tfb_res0, rel_Rad_absL, cmap = 'inferno', norm=norm_Rad)
 cb = fig.colorbar(img)
-cb.set_label(r'$\Delta_{\rm rel}$ Low-Middle', fontsize = 24)
+cb.set_label(r'$\Delta_{\rm rel}$ Low-Fid', fontsize = 24)
 
 img = ax[1].pcolormesh(radiires2/apo, tfb_res2, rel_Rad_absH, cmap = 'inferno', norm=norm_Rad)
 cb = fig.colorbar(img)
-cb.set_label(r'$\Delta_{\rm rel}$ Middle-High', fontsize = 24)
+cb.set_label(r'$\Delta_{\rm rel}$ Fid-High', fontsize = 24)
 ax[1].set_xlim(np.min(radiires2/apo), np.max(radiires2/apo))
 
 # Get the existing ticks on the x-axis
@@ -395,6 +404,7 @@ plt.tick_params(axis = 'both', which = 'both', direction='in')
 plt.tight_layout()
 if save:
     plt.savefig(f'{abspath}/Figs/multiple/Rad_relative_diff.pdf')
+    plt.savefig(f'{abspath}/Figs/multiple/Rad_relative_diff.png')
 plt.show()
 
 #%%
