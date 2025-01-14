@@ -85,6 +85,7 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
     return flat_den
  
 if __name__ == '__main__':
+    from src import orbits as orb
     save = True
     
     m = 4
@@ -95,7 +96,7 @@ if __name__ == '__main__':
     n = 1.5
     Rt = Rstar * (Mbh/mstar)**(1/3)
     xcrt, ycrt, crt = make_cfr(Rt)
-    apocenter = Rt**2 / Rstar
+    apocenter = orb.apocentre(Rstar, mstar, Mbh, beta)
     check = ''
     compton = 'Compton'
     if m== 6:
@@ -128,14 +129,14 @@ if __name__ == '__main__':
         import src.orbits as orb
         import Utilities.prelude as prel
         t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
-        print(t_fall)
+
         time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/time_proj.txt')
         snaps = time[0]#[int(i) for i in time[0]]
         tfb = time[1]
         xcrt, ycrt, crt = orb.make_cfr(Rt)
 
         # Load and clean
-        snaps = [348]
+        snaps = [267]
         for i, snap in enumerate(snaps):
             flat_den = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/bigdenproj{snap}.txt')
             flat_den *= prel.Msol_cgs/prel.Rsol_cgs**2

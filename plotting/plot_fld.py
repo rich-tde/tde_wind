@@ -1,3 +1,4 @@
+#%%
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 
@@ -11,7 +12,9 @@ import csv
 import numpy as np
 import matplotlib.pyplot as plt
 import Utilities.prelude as prel
+import matplotlib.colors as colors
 from Utilities.operators import sort_list
+from src import orbits as orb
 
 ##
 # PARAMETERS
@@ -25,6 +28,7 @@ n = 1.5
 compton = 'Compton'
 tfallback = 2.5777261297507925 * 24 * 3600 #2.5 days
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
+apocenter = orb.apocentre(Rstar, mstar, Mbh, beta)
 
 dataL = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes/LowResrich_red.csv', delimiter=',', dtype=float)
 tfbL = dataL[:, 1]   
@@ -45,6 +49,11 @@ dataDoub = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{
 tfbDou = dataDoub[:, 1]
 Lum_Dou = dataDoub[:, 2]
 tfbDou, Lum_Dou = sort_list([tfbDou, Lum_Dou], tfbDou)
+ph_data = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/photo_mean.txt')
+
+# Photosphere data
+tfbRph, Rph = ph_data[0], ph_data[3]
+tfbRph, Rph = sort_list([tfbRph, Rph], tfbRph)
 
 diff8 = []
 diffL = []
@@ -85,8 +94,12 @@ diffDou = np.array(diffDou)
 #     ax.set_xlim(0,0.9)
 #     ax.grid()
 # plt.savefig(f'/Users/paolamartire/shocks/Figs/multiple/fld_NSIDE.pdf')
-fig, ax = plt.subplots(1, 1, figsize=(8, 6))
-ax.scatter(tfb, Lum, s = 4, label = 'Fid', c ='yellowgreen')
+#%%
+fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+img = ax.scatter(tfb, Lum, s = 5, c = Rph/apocenter, cmap = 'viridis', norm = colors.LogNorm(
+                 vmin = 1e-2, vmax =3))
+cbar = fig.colorbar(img)
+cbar.set_label(r'$<R_{\rm ph}> [R_a]$', fontsize = 20)
 ax.axhline(y=Ledd, c = 'k', linestyle = '--')
 ax.text(0.1, 1.3*Ledd, r'$L_{\rm Edd}$', fontsize = 18)
 ax.set_yscale('log')
@@ -102,16 +115,16 @@ ax.set_xticklabels(labels)
 ax.tick_params(axis='x', which='major', width=0.7, length=7)
 ax.tick_params(axis='x', which='minor', width=0.5, length=5)
 ax.set_xlim(np.min(tfb), np.max(tfb))
-plt.savefig(f'/Users/paolamartire/shocks/Figs/onefld.pdf')
+plt.savefig(f'/Users/paolamartire/shocks/Figs/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/onefld.pdf')
 
-# Plot the data
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
+#%% Plot the data
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
 # ax1.scatter(tfbDou, Lum_Dou, s = 4, label = 'DoubleRad', c ='navy')
 ax1.plot(tfbL, Lum_L, label= 'Low', c= 'C1')
 ax1.plot(tfb, Lum, label = 'Fid', c ='yellowgreen')
 ax1.plot(tfbH, Lum_H, label= 'High', c = 'darkviolet')
-ax1.axhline(y=Ledd, c = 'k', linestyle = '--')
-ax1.text(0.1, 1.3*Ledd, r'$L_{\rm Edd}$', fontsize = 18)
+# ax1.axhline(y=Ledd, c = 'k', linestyle = '--')
+# ax1.text(0.1, 1.3*Ledd, r'$L_{\rm Edd}$', fontsize = 18)
 ax1.set_yscale('log')
 ax1.set_ylim(1e37, 5e42)
 ax1.set_ylabel(r'Luminosity [erg/s]', fontsize = 20)
@@ -130,10 +143,10 @@ ax2.tick_params(axis='y', which='minor', length = 3)
 ax2.tick_params(axis='y', which='major', length = 5)
 
 # Get the existing ticks on the x-axis
+original_ticks = ax1.get_xticks()
+midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
 for ax in [ax1, ax2]:
-    original_ticks = ax.get_xticks()
-    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
     ax.set_xticks(new_ticks)
     labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
     ax.set_xticklabels(labels)
@@ -145,3 +158,5 @@ plt.savefig(f'/Users/paolamartire/shocks/Figs/multiple/fld.pdf')
 print('last errors L-fid', np.median(np.abs(diffL[-10:-5])))
 print('last errors H-fid', np.median(np.abs(diffH[-10:-1])))
 
+
+# %%

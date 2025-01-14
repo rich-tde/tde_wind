@@ -88,8 +88,17 @@ X_midplaneH, Y_midplaneH, Z_midplaneH,  dim_midplaneH, Mass_midplaneH, Den_midpl
     sec.make_slices([x_coordH, y_coordH, z_coordH,  dim_cellH, massH, denH], midplaneH)
 
 #%%
-print('min mass fiducial:', np.min(mass), 'min mass high:', np.min(massH))
-print('min dim fiducial:', np.min(dim_cell), 'min dim high:', np.min(dim_cellH))
+print('min mass low:', np.min(massL), 'min dim low:', np.min(dim_cellL))
+print('min mass fiducial:', np.min(mass),'min dim fiducial:', np.min(dim_cell))
+print('min mass high:', np.min(massH), 'min dim high:', np.min(dim_cellH))
+#%%
+print('50 percentile low mass', np.percentile(massL, 50), '90 percentile low mass', np.percentile(massL, 90))
+print('50 percentile fiducial mass', np.percentile(mass, 50), '90 percentile fiducial mass', np.percentile(mass, 90))
+print('50 percentile high mass', np.percentile(massH, 50), '90 percentile high mass', np.percentile(massH, 90))
+#%%
+print('50 percentile low dim', np.percentile(dim_cellL, 50), '90 percentile low dim', np.percentile(dim_cellL, 90))
+print('50 percentile fiducial dim', np.percentile(dim_cell, 50), '90 percentile fiducial dim', np.percentile(dim_cell, 90))
+print('50 percentile high dim', np.percentile(dim_cellH, 50), '90 percentile high dim', np.percentile(dim_cellH, 90))
 #%% Compare midplane resolution with a scatterplot
 vminmass = np.percentile(Mass_midplaneH, 5)
 vmaxmass = np.percentile(Mass_midplaneH, 95)
