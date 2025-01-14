@@ -34,11 +34,11 @@ def grid_maker(path, snap, m, mstar, Rstar, x_num, y_num, z_num = 100):
     # R0 = 0.6 * Rt
     apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
-    x_start = -8*apo#-1.2*apo
+    x_start = -7*apo#-1.2*apo
     x_stop = 5*apo#40
     xs = np.linspace(x_start, x_stop, num = x_num )
     y_start = -4*apo #-0.5 * apo 
-    y_stop = 4*apo #0.5 * apo
+    y_stop = 3*apo #0.5 * apo
     ys = np.linspace(y_start, y_stop, num = y_num)
     z_start = -apo #-2 * Rt
     z_stop = apo #2 * Rt
@@ -114,16 +114,18 @@ if __name__ == '__main__':
                 f.write(f'# t/t_fb (t_fb = {t_fall})\n' + ' '.join(map(str, tfb)) + '\n')
                 f.close()
         for snap in snaps:
+            if int(snap)!= 348:
+                continue
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
             
-            _, grid_den, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, x_num=500, y_num=500, z_num = 100)
+            _, grid_den, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, x_num=800, y_num=800, z_num = 100)
             flat_den = projector(grid_den, x_radii, y_radii, z_radii)
 
             if save:
                 np.savetxt(f'{prepath}/data/{folder}/projection/bigdenproj{snap}.txt', flat_den) 
-                np.savetxt(f'{prepath}/data/{folder}/projection/bigxarray.txt', x_radii)
-                np.savetxt(f'{prepath}/data/{folder}/projection/bigyarray.txt', y_radii)
+                np.savetxt(f'{prepath}/data/{folder}/projection/bigxarray{snap}.txt', x_radii)
+                np.savetxt(f'{prepath}/data/{folder}/projection/bigyarray{snap}.txt', y_radii)
 
     else:
         import src.orbits as orb

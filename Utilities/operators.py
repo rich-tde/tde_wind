@@ -15,6 +15,7 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 
 import numpy as np
+import astropy.coordinates as coord
 # from scipy.spatial import KDTree
 from sklearn.neighbors import KDTree
 import math
@@ -43,6 +44,12 @@ def from_cylindric(theta, r):
     x = r * np.cos(theta)
     y = r * np.sin(theta)
     return x, y
+
+def J_cart_in_sphere(lat, long):
+    matrix = np.array([[np.sin(lat)*np.cos(long), np.cos(lat)*np.cos(long), -np.sin(long)],
+                        [np.sin(lat)*np.sin(long), np.cos(lat)*np.sin(long), np.cos(long)],
+                        [np.cos(lat), -np.sin(lat), 0]])
+    return matrix
 
 def Ryan_sampler(theta_arr):
     """ Function to sample the angle in the orbital plane so that you have more points also at apocenter."""
