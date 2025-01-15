@@ -11,6 +11,7 @@ else:
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
 import Utilities.prelude as prel
 import matplotlib.colors as colors
 from Utilities.operators import sort_list
@@ -49,11 +50,17 @@ dataDoub = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{
 tfbDou = dataDoub[:, 1]
 Lum_Dou = dataDoub[:, 2]
 tfbDou, Lum_Dou = sort_list([tfbDou, Lum_Dou], tfbDou)
-ph_data = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/photo_mean.txt')
 
 # Photosphere data
+ph_data = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/photo_mean.txt')
 tfbRph, Rph = ph_data[0], ph_data[3]
 tfbRph, Rph = sort_list([tfbRph, Rph], tfbRph)
+dataDissL = np.loadtxt(f'{abspath}data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes/Rdiss_LowRes.txt')
+LDissL = dataDissL[3]
+dataDiss = np.loadtxt(f'{abspath}data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/Rdiss_.txt')
+LDiss = dataDiss[3]
+dataDissH = np.loadtxt(f'{abspath}data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes/Rdiss_HiRes.txt')
+LDissH = dataDissH[3]
 
 diff8 = []
 diffL = []
@@ -118,11 +125,29 @@ ax.set_xlim(np.min(tfb), np.max(tfb))
 plt.savefig(f'/Users/paolamartire/shocks/Figs/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/onefld.pdf')
 
 #%% Plot the data
+# Create segments for LineCollection
+pointsL = np.array([tfbL, Lum_L]).T.reshape(-1, 1, 2)
+segmentsL = np.concatenate([pointsL[:-1], pointsL[1:]], axis=1)
+points = np.array([tfb, Lum]).T.reshape(-1, 1, 2)
+segments = np.concatenate([points[:-1], points[1:]], axis=1)
+pointsH = np.array([tfbH, Lum_H]).T.reshape(-1, 1, 2)
+segmentsH = np.concatenate([pointsH[:-1], pointsH[1:]], axis=1)
+
+
+# Create a LineCollection with varying line widths
+norm = np.mean(LDiss)
+lcL = LineCollection(segmentsL, linewidths=LDissL/norm, color='C1', label='Low')
+lc = LineCollection(segments, linewidths=LDiss/norm, color='yellowgreen', label='Fid')
+lcH = LineCollection(segmentsH, linewidths=LDissH/norm, color='darkviolet', label='High')
+
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
 # ax1.scatter(tfbDou, Lum_Dou, s = 4, label = 'DoubleRad', c ='navy')
-ax1.plot(tfbL, Lum_L, label= 'Low', c= 'C1')
-ax1.plot(tfb, Lum, label = 'Fid', c ='yellowgreen')
-ax1.plot(tfbH, Lum_H, label= 'High', c = 'darkviolet')
+ax1.add_collection(lc)
+ax1.add_collection(lcL)
+ax1.add_collection(lcH)
+# ax1.plot(tfbL, Lum_L, label= 'Low', c= 'C1')
+# ax1.plot(tfb, Lum, label = 'Fid', c ='yellowgreen')
+# ax1.plot(tfbH, Lum_H, label= 'High', c = 'darkviolet')
 # ax1.axhline(y=Ledd, c = 'k', linestyle = '--')
 # ax1.text(0.1, 1.3*Ledd, r'$L_{\rm Edd}$', fontsize = 18)
 ax1.set_yscale('log')
@@ -138,7 +163,7 @@ ax2.set_ylim(1e-2, 1e2)
 ax2.set_xlabel(r'$t [t_{\rm fb}]$', fontsize = 20)
 ax2.set_ylabel(r'$|\Delta_{\rm rel}|$ from Fid', fontsize = 16)
 ax2.grid()
-ax1.legend(fontsize = 18)   
+ax1.legend(fontsize = 18, loc = 'lower right')   
 ax2.tick_params(axis='y', which='minor', length = 3)
 ax2.tick_params(axis='y', which='major', length = 5)
 
@@ -159,4 +184,3 @@ print('last errors L-fid', np.median(np.abs(diffL[-10:-5])))
 print('last errors H-fid', np.median(np.abs(diffH[-10:-1])))
 
 
-# %%

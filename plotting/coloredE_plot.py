@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 # import colorcet
 import matplotlib.gridspec as gridspec
 import matplotlib.colors as colors
+import matplotlib.patheffects as pe
 import Utilities.prelude as prel
 import src.orbits as orb
 
@@ -23,6 +24,7 @@ compton = 'Compton'
 Rt = Rstar * (Mbh/mstar)**(1/3)
 R0 = 0.6 * Rt
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
+print(apo)
 DeltaE = orb.energy_mb(Rstar, mstar, Mbh, G=1) # specific energy of the mb debris 
 DeltaE_cgs = DeltaE * prel.en_converter/prel.Msol_cgs
 a = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
@@ -71,7 +73,9 @@ col_orb_enres1 *= prel.en_converter/prel.Msol_cgs
 abs_col_orb_enres1 = np.abs(col_orb_enres1)
 col_Rad_res1 *= prel.en_converter/prel.Msol_cgs
 col_Rad_denres1 *= prel.en_den_converter
-# Enden_norm = Enden_quasi_norm / (radiires1*prel.Rsol_cgs)**2
+# Enden_quasi_norm = Ledd / (4 * np.pi * prel.c_cgs)
+# Enden_qquasi_norm = Enden_quasi_norm / (radiires1*prel.Rsol_cgs)**2
+# Enden_norm = [Enden_qquasi_norm]*len(tfb_res1)
 Enden_norm = np.transpose([Enden_norm_single]*len(radiires1))
 
 #%% Res2 data
@@ -119,6 +123,7 @@ cb.ax.xaxis.set_ticks_position('top')
 img = ax3.pcolormesh(radiires1/apo, tfb_res1, col_Rad_denres1/Enden_norm, norm=colors.LogNorm(vmin=4e-2, vmax= 5e3), cmap = 'viridis')
 cbar_ax = fig.add_subplot(gs[0, 2])  # Colorbar subplot below the first two
 cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
+ax3.plot(Rph[5:]/apo, tfbRph[5:], c = 'k', linestyle = 'solid', label = 'Photosphere')
 cb.ax.tick_params(which='minor',length = 3)
 cb.ax.tick_params(which='major',length = 6)
 cb.set_label(r'Radiation energy density/u$_{\rm Edd}$', fontsize = 18, labelpad = 5)
@@ -144,6 +149,7 @@ for ax in [ax1, ax2, ax3]:
     ax.tick_params(axis='y', which='both', width = 1.5, length = 7)
     ax.set_ylim(np.min(tfb_res1), np.max(tfb_res1))
 ax1.set_ylabel(r't [t$_{fb}]$', fontsize = 20)
+ax.set_xlim(np.min(radiires1)/apo, np.max(radiires1)/apo)
 plt.tight_layout()
 if save:
     plt.savefig(f'{abspath}/Figs/{folder}{res1}/coloredE_norm.pdf')
@@ -293,31 +299,33 @@ ax5 = fig.add_subplot(gs[2, 1])  # Second plot
 ax6 = fig.add_subplot(gs[2, 2])  # Third plot
 
 img = ax1.pcolormesh(radiires0/apo, tfb_res0, rel_orb_en_absL, cmap=cmap, norm=norm_orb_en)
-ax1.text(0.3, 0.9*np.max(tfb_res0), 'Low and Fid', fontsize = 20, color = 'white')
+ax1.text(Rt/apo + 0.01, 0.9*np.max(tfb_res0), 'Low and Fid', fontsize = 20, color = 'white')
 img = ax2.pcolormesh(radiires2/apo, tfb_res2, rel_orb_en_absH, cmap=cmap, norm=norm_orb_en)
-ax2.text(0.3, 0.9*np.max(tfb_res2), 'High and Fid', fontsize = 20, color = 'white')
+ax2.text(Rt/apo + 0.01, 0.9*np.max(tfb_res2), 'High and Fid', fontsize = 20, color = 'white')
 cbar_ax = fig.add_subplot(gs[1, 0:2])  # Colorbar subplot below the first two
 cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
 cb.ax.tick_params(labelsize=20)
-cb.set_label(r'$\Delta_{\rm rel}$ specific (absolute) orbital energy', fontsize = 16, labelpad = 3)
+cb.set_label(r'$\Delta_{\rm rel}$ specific (absolute) orbital energy', fontsize = 20, labelpad = 3)
 
 ax4.pcolormesh(radiires0/apo, tfb_res0, rel_ie_absL, cmap=cmap, norm=norm_ie)
+ax4.text(Rt/apo + 0.01, 0.9*np.max(tfb_res0), 'Low and Fid', fontsize = 20, color = 'white')
 img = ax5.pcolormesh(radiires2/apo, tfb_res2, rel_ie_absH, cmap=cmap, norm=norm_ie)
+ax5.text(Rt/apo + 0.01, 0.9*np.max(tfb_res2), 'High and Fid', fontsize = 20, color = 'white')
 cbar_ax = fig.add_subplot(gs[3, 0:2])
 cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
 cb.ax.tick_params(labelsize=20)
-cb.set_label(r'$\Delta_{\rm rel}$ specific internal energy', fontsize = 16, labelpad = 3)
+cb.set_label(r'$\Delta_{\rm rel}$ specific internal energy', fontsize = 20, labelpad = 3)
 
-ax3.plot(tfb_res0, median_rel_orbL, '--', label = r'$\Delta_{rad}$ Low and Fid', c = 'darkorange')
-ax3.plot(tfb_res2, median_rel_orbH, label = r'$\Delta_{rad}$ Fid and High', c = 'darkviolet')
+ax3.plot(tfb_res0, median_rel_orbL, '--', label = r'Low and Fid', c = 'darkorange')
+ax3.plot(tfb_res2, median_rel_orbH, label = r'Fid and High', c = 'darkviolet')
 # plt.ylabel('Median relative difference', fontsize = 25)
 ax3.set_yscale('log')
 ax3.set_ylim(1e-2, 1)
 ax3.legend(fontsize = 15)
 ax3.grid()
 
-ax6.plot(tfb_res0, median_rel_ieL, '--', label = r'$\Delta_{rad}$ Low and Fid', c = 'darkorange')
-ax6.plot(tfb_res2, median_rel_ieH, label = r'$\Delta_{rad}$ Fid and High', c = 'darkviolet')
+ax6.plot(tfb_res0, median_rel_ieL, '--', label = r'Low and Fid', c = 'darkorange')
+ax6.plot(tfb_res2, median_rel_ieH, label = r'Fid and High', c = 'darkviolet')
 # plt.ylabel('Median relative difference', fontsize = 25)
 ax6.set_yscale('log')
 ax6.set_ylim(3e-2, 2)
@@ -325,32 +333,33 @@ ax6.legend(fontsize = 15)
 ax6.grid()
 
 # Get the existing ticks on the x-axis
-original_ticks = ax1.get_yticks()
+original_ticks = ax2.get_yticks()
 # Calculate midpoints between each pair of ticks
-midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+# midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 # Combine the original ticks and midpoints
-new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+# new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
 for ax in [ax1, ax2, ax3, ax4, ax5, ax6]:
     if ax in [ax1, ax2, ax4, ax5]:
         ax.axvline(Rt/apo, linestyle ='dashed', c = 'k', linewidth = 1.2)
         ax.set_xscale('log')
         if ax in [ax1, ax4]:
             ax.set_ylabel(r't [t$_{\rm fb}]$', fontsize = 24)
-        # Set tick labels: empty labels for midpoints
-        ax.set_yticks(new_ticks)
+        # ax.set_yticks(original_ticks)
         # ax.set_yticklabels(labels)
         ax.tick_params(axis='x', which='major', width=1.2, length=7, color = 'white')
         ax.tick_params(axis='x', which='minor', width=1, length=5, color = 'white')
         ax.tick_params(axis='y', which='both', width=1.2, length=6, color = 'k')
-        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-        if i in [ax1, ax2]:
+        # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+        if ax in [ax1, ax4]:
             ax.set_ylim(np.min(tfb_res0), np.max(tfb_res0))
         else:
             ax.set_ylim(np.min(tfb_res2), np.max(tfb_res2))
         if ax in [ax4, ax5, ax6]:
             ax.set_xlabel(r'$R [R_{\rm a}]$', fontsize = 22)
-        if ax == ax6:
-            ax.set_xlabel(r'$t [t_{\rm fb}]$', fontsize = 22)
+    if ax in [ax3, ax6]:
+        ax.set_xticks(original_ticks)
+        ax.set_xlabel(r'$t [t_{\rm fb}]$', fontsize = 22)
+        ax.set_ylabel(r'$\Delta_{\rm rel}$', fontsize = 22)
 
 plt.tick_params(axis = 'both', which = 'both', direction='in', labelsize = 20)
 plt.tight_layout()
@@ -375,7 +384,6 @@ plt.show()
 # plt.show()
 
 #%% Relative errors for the radiation energy density
-import matplotlib.patheffects as pe
 error_ph0 = np.zeros(len(tfb_res0))
 for i,t in enumerate(tfb_res0):
     idx_r = np.argmin(np.abs(radiires0 - Rph[i]))

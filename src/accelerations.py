@@ -28,12 +28,13 @@ n = 1.5
 compton = 'Compton'
 check = ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snap = 348
+snap = 164
 
 Rt = Rstar * (Mbh/mstar)**(1/3)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta) 
 amin = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 solarR_to_au = 215
+t = np.sqrt(prel.Rsol_cgs**3 / (prel.Msol_cgs*prel.G_cgs )) # Follows from G = 1
 
 def dPdR(DpDx, DpDy, DpDz, lat, long):
     dP_radial = DpDx * np.sin(lat) * np.cos(long) + DpDy * np.sin(lat) * np.sin(long) + DpDz * np.cos(lat)
@@ -50,8 +51,10 @@ def v_theta(Vx, Vy, Vz, lat, long):
 # Load the data
 path = f'{abspath}/TDE/{folder}/{snap}' #f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
 data = make_tree(path, snap, energy = False)
-X, Y, Z, Den, Vx, Vy, Vz, Vol = data.X, data.Y, data.Z, data.Den, data.VX, data.VY, data.VZ, data.Vol
+X, Y, Z, Den, Vx, Vy, Vz, Vol, Temp = data.X, data.Y, data.Z, data.Den, data.VX, data.VY, data.VZ, data.Vol, data.Temp
+V = np.sqrt(Vx**2 + Vy**2 + Vz**2)
 R, lat, long = coord.cartesian_to_spherical(X, Y, Z) # r, latitude, longitude 
+orb_en = orb.orbital_energy(R, V, data.Mass, 1, 3e8 / (7e8/t), Mbh)
 DpDx = np.load(f'{path}/DpDx_{snap}.npy')
 DpDy = np.load(f'{path}/DpDy_{snap}.npy')
 DpDz = np.load(f'{path}/DpDz_{snap}.npy')
@@ -66,11 +69,11 @@ ratio = a_centrifugal / a_P
 
 #%%
 mid = np.logical_and(np.abs(Z) < Vol**(1/3), Den > 1e-19)
-x_mid, y_mid, z_mid, den_mid, ratio_mid = X[mid], Y[mid], Z[mid], Den[mid], ratio[mid]
+x_mid, y_mid, z_mid, den_mid, ratio_mid, temp_mid, vel_mid, orb_en_mid = X[mid], Y[mid], Z[mid], Den[mid], ratio[mid], Temp[mid], Vx[mid], orb_en[mid]
 
 fig, (ax1,ax2) = plt.subplots(1,2, figsize=(20, 5))
-img = ax1.scatter(x_mid/solarR_to_au, y_mid/solarR_to_au, c=den_mid, cmap='plasma', s = 1, norm=colors.LogNorm(vmin=1e-10, vmax=1e-6))
-ax1.scatter(x_mid[ratio_mid<1]/solarR_to_au, y_mid[ratio_mid<1]/solarR_to_au, c='k',s = 1, norm=colors.LogNorm(vmin=1e-20, vmax=1e-19))
+img = ax1.scatter(x_mid/solarR_to_au, y_mid/solarR_to_au, c=orb_en_mid, cmap='coolwarm', s = .1)#, norm=colors.LogNorm())#vmin=1e3, vmax=1e7))
+# ax1.scatter(x_mid[ratio_mid<1]/solarR_to_au, y_mid[ratio_mid<1]/solarR_to_au, c='k',s = 1, norm=colors.LogNorm(vmin=1e-20, vmax=1e-19))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$\rho$', fontsize = 20)
 img = ax2.scatter(x_mid/solarR_to_au, y_mid/solarR_to_au, c=ratio_mid, cmap='viridis', s = 1, norm=colors.LogNorm(vmin=1e-2, vmax=1e2))

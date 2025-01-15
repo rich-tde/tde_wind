@@ -49,9 +49,8 @@ Rp =  Rt / beta
 R0 = 0.6 * Rt
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
-
-radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
-                    num=200)  # simulator units
+radii = np.logspace(np.log10(R0), np.log10(3*apo),
+                    num=400)  # simulator units
 
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 col_ie = []
@@ -99,9 +98,9 @@ for i,snap in enumerate(snaps):
 
 #%%
 if save:
-    np.save(f'{abspath}/data/{folder}/coloredE_{check}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_den])
-    with open(f'{abspath}/data/{folder}/coloredE_{check}_days.txt', 'w') as file:
+    np.save(f'{abspath}/data/{folder}/BIGcoloredE_{check}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_den])
+    with open(f'{abspath}/data/{folder}/BIGcoloredE_{check}_days.txt', 'w') as file:
         file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
         file.close()
-    np.save(f'{abspath}/data/{folder}/coloredE_{check}_radii.npy', radii)
+    np.save(f'{abspath}/data/{folder}/BIGcoloredE_{check}_radii.npy', radii)

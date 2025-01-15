@@ -155,13 +155,14 @@ for j, check in enumerate(checks):
 
 Rlim_min = 1e11
 Rlim_max = 1e16   
-fig, (ax0, ax1) = plt.subplots(1,2, figsize=(14, 5))
-ax0.plot(tfb_all[1][-90:], 1e-2*(tfb_all[1][-90:])**(-5/3), c = 'k', alpha = 0.5, linestyle = '--')
+# fig, (ax0, ax1) = plt.subplots(1,2, figsize=(14, 5))
+fig, ax1 = plt.subplots(1, 1, figsize=(8, 5))
+# ax0.plot(tfb_all[1][-90:], 1e-2*(tfb_all[1][-90:])**(-5/3), c = 'k', alpha = 0.5, linestyle = '--')
 for i, check in enumerate(checks):
     # Plot
     mfall_toplot_days = mfall_all[i] / (prel.tsol_cgs / (3600*24)) # convert to Msol/days
     mfall_toplot = mfall_toplot_days / tfallback
-    ax0.plot(tfb_all[i], np.abs(mfall_toplot), label = checkslegend[i], color = colorslegend[i])
+    # ax0.plot(tfb_all[i], np.abs(mfall_toplot), label = checkslegend[i], color = colorslegend[i])
 
     # ax1.plot(tfb_all[i], R_shDiss_all[i], linestyle = 'dotted', color = colorslegend[i])#, label = f'Rdiss {checkslegend[i]}')
     ax1.axhline(y=Rt*prel.Rsol_cgs, color = 'k', linestyle = 'dotted')
@@ -183,7 +184,7 @@ for i, check in enumerate(checks):
 
 # ax1.plot(tfbRph, Rph * prel.Rsol_cgs, color = 'k', label = 'Rph')
 # ax1.axhline(y=apo*prel.Rsol_cgs, color = 'r', linestyle = 'dotted')
-ax0.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 18)
+# ax0.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 18)
 ax1.set_ylabel(r'$R$ [cm]', fontsize = 18)
 ax1.set_ylim(Rlim_min, Rlim_max)
 # Set primary y-axis ticks
@@ -199,10 +200,10 @@ ax2.set_yticks(eta_ticks)
 ax2.set_ylim(etalim_max, etalim_min)
 ax2.set_ylabel(r'$\eta_{\rm sh}$', fontsize = 18)
 
-original_ticks = ax0.get_xticks()
+original_ticks = ax1.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-for ax in [ax0, ax1, ax2]:
+for ax in [ax1, ax2]:
     ax.set_yscale('log')
     ax.set_xlabel(r't [$t_{\rm fb}$]', fontsize = 20)
     if ax!=ax2:

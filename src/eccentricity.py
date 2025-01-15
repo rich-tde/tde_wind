@@ -101,7 +101,7 @@ if alice:
         np.save(f'{abspath}/data/{folder}/radiiEcc_{check}.npy', radii)
 
 else:
-    difference = True
+    difference = False
     ecc_crit = orb.eccentricity(Rstar, mstar, Mbh, beta)
 
     if not difference:
@@ -138,7 +138,7 @@ else:
         plt.tick_params(axis='y', which='major', width=1, length=8, color = 'white', labelsize=25)
         plt.tick_params(axis='x', which='minor', width=1, length=5, color = 'white', labelsize=25)
         plt.ylim(np.min(tfb), np.max(tfb))
-        plt.savefig(f'{abspath}/Figs/{folder}/ecc.pdf')
+        plt.savefig(f'{abspath}/Figs/{folder}/ecc.png')
     
     else:
         import matplotlib.gridspec as gridspec

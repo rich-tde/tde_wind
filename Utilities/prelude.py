@@ -70,7 +70,7 @@ plt.rcParams['ytick.labelsize'] = 20
 plt.rcParams['axes.labelsize'] = 20
 plt.rcParams['xtick.top'] = True
 plt.rcParams['ytick.right'] = True
-plt.rcParams['text.usetex'] = False
+# plt.rcParams['text.usetex'] = False
 AEK = '#F1C410'
 
 if __name__ == '__main__':
