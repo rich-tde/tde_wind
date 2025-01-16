@@ -93,13 +93,27 @@ col_Radres2 *= prel.en_den_converter
 abs_col_orb_enres2 = np.abs(col_orb_enres2)
 
 #%% Plot Res1 NORMALIZED
+# data for bigger proj
+BIGdatares1 = np.load(f'{path}{res1}/colormapE_Alice/BIGcoloredE_{res1}.npy') #shape (3, len(tfb), len(radii))
+tfb_BIGdatares1 = np.loadtxt(f'{path}{res1}/colormapE_Alice/BIGcoloredE_{res1}_days.txt')
+BIGtfb_res1 = tfb_BIGdatares1[1]
+BIGradiires1 = np.load(f'{path}{res1}/colormapE_Alice/BIGcoloredE_{res1}_radii.npy')
+BIGcol_ieres1, BIGcol_orb_enres1, BIGcol_Rad_res1, BIGcol_Rad_denres1 = BIGdatares1[0], BIGdatares1[1], BIGdatares1[2], BIGdatares1[3]
+# convert to cgs
+BIGcol_ieres1 *= prel.en_converter/prel.Msol_cgs
+BIGcol_orb_enres1 *= prel.en_converter/prel.Msol_cgs
+abs_BIGcol_orb_enres1 = np.abs(BIGcol_orb_enres1)
+BIGcol_Rad_res1 *= prel.en_converter/prel.Msol_cgs
+BIGcol_Rad_denres1 *= prel.en_den_converter
+BIGEnden_norm = np.transpose([Enden_norm_single]*len(BIGradiires1))
+
 fig = plt.figure(figsize=(21, 7))
 gs = gridspec.GridSpec(2, 3, width_ratios=[1,1,1], height_ratios=[0.2, 3], hspace=0.2, wspace = 0.3)
 ax1 = fig.add_subplot(gs[1, 0])  # First plot
 ax2 = fig.add_subplot(gs[1, 1])  # Second plot
 ax3 = fig.add_subplot(gs[1, 2])  # Third plot
 
-img = ax1.pcolormesh(radiires1/apo, tfb_res1, abs_col_orb_enres1/DeltaE_cgs, norm=colors.LogNorm(vmin=4e-1, vmax = 11), cmap = 'viridis')
+img = ax1.pcolormesh(BIGradiires1/apo, BIGtfb_res1, abs_BIGcol_orb_enres1/DeltaE_cgs, norm=colors.LogNorm(vmin=4e-1, vmax = 11), cmap = 'viridis')
 cbar_ax = fig.add_subplot(gs[0, 0])  # Colorbar subplot below the first two
 cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
 #longer ticks to cb
@@ -110,7 +124,7 @@ cb.set_label(r'Specific orbital energy/$\Delta$E', fontsize = 18, labelpad = 3)
 # cb.ax.xaxis.set_label_position('top')
 cb.ax.xaxis.set_ticks_position('top')
 
-img = ax2.pcolormesh(radiires1/apo, tfb_res1, col_ieres1/DeltaE_cgs,  norm=colors.LogNorm(vmin=1e-4, vmax = 1.1), cmap = 'viridis')
+img = ax2.pcolormesh(BIGradiires1/apo, BIGtfb_res1, BIGcol_ieres1/DeltaE_cgs,  norm=colors.LogNorm(vmin=1e-4, vmax = 1.1), cmap = 'viridis')
 cbar_ax = fig.add_subplot(gs[0, 1])  # Colorbar subplot below the first two
 cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
 cb.ax.tick_params(which='minor',length = 3)
@@ -120,7 +134,7 @@ cb.set_label(r'Specific internal energy/$\Delta$E', fontsize = 18, labelpad = 5)
 # cb.ax.xaxis.set_label_position('top')
 cb.ax.xaxis.set_ticks_position('top')
 
-img = ax3.pcolormesh(radiires1/apo, tfb_res1, col_Rad_denres1/Enden_norm, norm=colors.LogNorm(vmin=4e-2, vmax= 5e3), cmap = 'viridis')
+img = ax3.pcolormesh(BIGradiires1/apo, BIGtfb_res1, BIGcol_Rad_denres1/BIGEnden_norm, norm=colors.LogNorm(vmin=4e-2, vmax= 5e3), cmap = 'viridis')
 cbar_ax = fig.add_subplot(gs[0, 2])  # Colorbar subplot below the first two
 cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
 ax3.plot(Rph[5:]/apo, tfbRph[5:], c = 'k', linestyle = 'solid', label = 'Photosphere')
@@ -149,7 +163,7 @@ for ax in [ax1, ax2, ax3]:
     ax.tick_params(axis='y', which='both', width = 1.5, length = 7)
     ax.set_ylim(np.min(tfb_res1), np.max(tfb_res1))
 ax1.set_ylabel(r't [t$_{fb}]$', fontsize = 20)
-ax.set_xlim(np.min(radiires1)/apo, np.max(radiires1)/apo)
+ax.set_xlim(np.min(BIGradiires1)/apo, np.max(BIGradiires1)/apo)
 plt.tight_layout()
 if save:
     plt.savefig(f'{abspath}/Figs/{folder}{res1}/coloredE_norm.pdf')

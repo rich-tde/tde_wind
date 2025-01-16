@@ -44,7 +44,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = '' # '' or 'HiRes'
+check = 'LowRes' # '' or 'HiRes'
 extr = 'rich' #'rich' or ''
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -259,11 +259,11 @@ for idx_s, snap in enumerate(snaps):
     # Save red of the single snap
     if save:
         pre_saving = f'{abspath}/data/{folder}'
-        data = [snap, tfb[idx_s], Lphoto_snap]
-        with open(f'{pre_saving}/{check}{extr}_red.csv', 'a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(data)
-        file.close()
+        # data = [snap, tfb[idx_s], Lphoto_snap]
+        # with open(f'{pre_saving}/{check}{extr}_red.csv', 'a', newline='') as file:
+        #     writer = csv.writer(file)
+        #     writer.writerow(data)
+        # file.close()
 
         ## just to check photosphere
         time_rph = np.concatenate([[snap,tfb[idx_s]], ph_idx])

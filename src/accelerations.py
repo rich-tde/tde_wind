@@ -1,4 +1,4 @@
-""" Compute the accelerations due to centrifugal force and radial pathssure to understand the Eddingotn envelope."""
+""" Compute the accelerations due to centrifugal force and radial pressure to understand the Eddingotn envelope."""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 
@@ -13,8 +13,11 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import astropy.coordinates as coord
 import Utilities.prelude as prel
+from astropy import units as u
 import src.orbits as orb
-from Utilities.operators import make_tree, J_cart_in_sphere
+from Utilities.operators import make_tree
+from Utilities.sections import make_slices
+from Utilities.time_extractor import days_since_distruption
 
 ##
 # PARAMETERS
@@ -28,20 +31,21 @@ n = 1.5
 compton = 'Compton'
 check = ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snap = 164
+snap = 348
+tfb = days_since_distruption(f'{abspath}TDE/{folder}/{snap}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+
 
 Rt = Rstar * (Mbh/mstar)**(1/3)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta) 
 amin = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 solarR_to_au = 215
-t = np.sqrt(prel.Rsol_cgs**3 / (prel.Msol_cgs*prel.G_cgs )) # Follows from G = 1
 
 def dPdR(DpDx, DpDy, DpDz, lat, long):
     dP_radial = DpDx * np.sin(lat) * np.cos(long) + DpDy * np.sin(lat) * np.sin(long) + DpDz * np.cos(lat)
     return dP_radial
 
 def v_phi(Vx, Vy, long):
-    v_phi = - Vy * np.sin(long) + Vx * np.cos(long)
+    v_phi = - Vx * np.sin(long) + Vy * np.cos(long)
     return v_phi
 
 def v_theta(Vx, Vy, Vz, lat, long):
@@ -53,8 +57,9 @@ path = f'{abspath}/TDE/{folder}/{snap}' #f'/home/martirep/data_pi-rossiem/TDE_da
 data = make_tree(path, snap, energy = False)
 X, Y, Z, Den, Vx, Vy, Vz, Vol, Temp = data.X, data.Y, data.Z, data.Den, data.VX, data.VY, data.VZ, data.Vol, data.Temp
 V = np.sqrt(Vx**2 + Vy**2 + Vz**2)
-R, lat, long = coord.cartesian_to_spherical(X, Y, Z) # r, latitude, longitude 
-orb_en = orb.orbital_energy(R, V, data.Mass, 1, 3e8 / (7e8/t), Mbh)
+R, lat_astro, long = coord.cartesian_to_spherical(X, Y, Z) # r, latitude, longitude 
+lat = lat_astro + (np.pi / 2) * u.rad # so is from 0 to pi
+# orb_en = orb.orbital_energy(R, V, data.Mass, 1, 3e8 / (7e8/t), Mbh)
 DpDx = np.load(f'{path}/DpDx_{snap}.npy')
 DpDy = np.load(f'{path}/DpDy_{snap}.npy')
 DpDz = np.load(f'{path}/DpDz_{snap}.npy')
@@ -69,21 +74,35 @@ ratio = a_centrifugal / a_P
 
 #%%
 mid = np.logical_and(np.abs(Z) < Vol**(1/3), Den > 1e-19)
-x_mid, y_mid, z_mid, den_mid, ratio_mid, temp_mid, vel_mid, orb_en_mid = X[mid], Y[mid], Z[mid], Den[mid], ratio[mid], Temp[mid], Vx[mid], orb_en[mid]
+x_mid, y_mid, z_mid, den_mid, ratio_mid, temp_mid, vel_mid, Vx_mid, Vy_mid, Vz_mid = make_slices([X, Y, Z, Den, ratio, Temp, V, Vx, Vy, Vz], mid)
 
-fig, (ax1,ax2) = plt.subplots(1,2, figsize=(20, 5))
-img = ax1.scatter(x_mid/solarR_to_au, y_mid/solarR_to_au, c=orb_en_mid, cmap='coolwarm', s = .1)#, norm=colors.LogNorm())#vmin=1e3, vmax=1e7))
-# ax1.scatter(x_mid[ratio_mid<1]/solarR_to_au, y_mid[ratio_mid<1]/solarR_to_au, c='k',s = 1, norm=colors.LogNorm(vmin=1e-20, vmax=1e-19))
+fig, ((ax1,ax2), (ax3,ax4)) = plt.subplots(2,2, figsize=(20, 10))
+img = ax1.scatter(x_mid/solarR_to_au, y_mid/solarR_to_au, c=Vx_mid, cmap = 'coolwarm', vmin = -1, vmax = 1, s = 1)
 cbar = plt.colorbar(img)
-cbar.set_label(r'$\rho$', fontsize = 20)
-img = ax2.scatter(x_mid/solarR_to_au, y_mid/solarR_to_au, c=ratio_mid, cmap='viridis', s = 1, norm=colors.LogNorm(vmin=1e-2, vmax=1e2))
+cbar.set_label(r'$V_x$', fontsize = 20)
+img = ax2.scatter(x_mid/solarR_to_au, y_mid/solarR_to_au, c=Vy_mid, cmap = 'coolwarm', vmin = -1, vmax = 1, s = 1)
+cbar = plt.colorbar(img)
+cbar.set_label(r'$V_y$', fontsize = 20)
+# img = ax3.scatter(x_mid/solarR_to_au, y_mid/solarR_to_au, c=Vz_mid, cmap = 'coolwarm', s = 1, vmin = -.1, vmax = .1)#norm=colors.LogNorm(vmin=1e-10, vmax=1e-4))
+# cbar = plt.colorbar(img)
+img = ax3.scatter(x_mid/solarR_to_au, y_mid/solarR_to_au, c=den_mid, cmap = 'viridis', s = 1, vmin = 1e-10, vmax = 1e-3)#norm=colors.LogNorm(vmin=1e-10, vmax=1e-4))
+cbar = plt.colorbar(img)
+cbar.set_label(r'$V_z$', fontsize = 20)
+img = ax4.scatter(x_mid/solarR_to_au, y_mid/solarR_to_au, c=ratio_mid, cmap = 'viridis', s = 1, norm=colors.LogNorm(vmin=1e-2, vmax=1e2))
 cbar = plt.colorbar(img)
 cbar.set_label(r'$a_{\rm \omega}/a_{\rm P}$', fontsize = 20)
-ax1.set_ylabel(r'$Y [AU]$', fontsize = 20)
-for ax in [ax1, ax2]:
+for ax in [ax1, ax2, ax3, ax4]:
+    if ax in [ax1, ax3]:
+        ax.set_ylabel(r'$Y [AU]$', fontsize = 20)
+    if ax in [ax3, ax4]:
+        ax.set_xlabel(r'$X [AU]$', fontsize = 20)
     ax.scatter(0, 0, c='k', s = 10)
-    ax.set_xlabel(r'$X [AU]$', fontsize = 20)
-    ax.set_xlim(-4, 2)
-    ax.set_ylim(-2, 2)
+    ax.set_xlim(-10.5, 7.5)
+    ax.set_ylim(-4.5, 4.5)
+plt.suptitle(f't = {np.round(tfb,2)}' + r' $t_{\rm fb}$', fontsize = 20)
+plt.tight_layout()
+
+plt.savefig(f'{abspath}/Figs/{folder}/accelerations{m}_{snap}.png')
+
 
 # %%
