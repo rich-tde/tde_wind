@@ -38,6 +38,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = '' 
+who = 'all' #'' or 'all'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True
@@ -54,10 +55,16 @@ radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
                     num=200)  # simulator units
 
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
-col_ie = []
-col_orb_en = []
-col_Rad = []
-col_Rad_den = []
+if who == '':
+    col_ie = []
+    col_orb_en = []
+    col_Rad = []
+    col_Rad_den = []
+else:
+    col_ie = np.zeros(len(snaps))
+    col_orb_en = np.zeros(len(snaps))
+    col_Rad = np.zeros(len(snaps))
+    col_Rad_den = np.zeros(len(snaps))
 for i,snap in enumerate(snaps):
     print(snap)
     if alice:
@@ -87,21 +94,27 @@ for i,snap in enumerate(snaps):
     # ie_cast = single_branch(radii, tocast_cut, ie_onmass_cut, weights = mass_cut)
     # orb_en_cast = single_branch(radii, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
     # Rad_den_cast = single_branch(radii, tocast_cut, Rad_den_cut, weights = Rad_cut)
-    tocast_matrix = [ie_onmass_cut, orb_en_onmass_cut, Rad_onmass_cut, Rad_den_cut]
-    weights_matrix = [mass_cut, mass_cut, mass_cut, Rad_cut]
-    casted = multiple_branch(radii, tocast_cut, tocast_matrix, weights_matrix)
-    ie_cast, orb_en_cast, Rad_cast, Rad_den_cast = casted[0], casted[1], casted[2], casted[3]
+    if who == '':
+        tocast_matrix = [ie_onmass_cut, orb_en_onmass_cut, Rad_onmass_cut, Rad_den_cut]
+        weights_matrix = [mass_cut, mass_cut, mass_cut, Rad_cut]
+        casted = multiple_branch(radii, tocast_cut, tocast_matrix, weights_matrix)
+        ie_cast, orb_en_cast, Rad_cast, Rad_den_cast = casted[0], casted[1], casted[2], casted[3]
 
-    col_ie.append(ie_cast)
-    col_orb_en.append(orb_en_cast)
-    col_Rad.append(Rad_cast)
-    col_Rad_den.append(Rad_den_cast)
-
+        col_ie.append(ie_cast)
+        col_orb_en.append(orb_en_cast)
+        col_Rad.append(Rad_cast)
+        col_Rad_den.append(Rad_den_cast)
+    else:
+        col_ie[i] = np.sum(ie_onmass_cut * mass_cut)/np.sum(mass_cut)
+        col_orb_en[i] = np.sum(orb_en_onmass_cut * mass_cut)/np.sum(mass_cut)
+        col_Rad[i] = np.sum(Rad_onmass_cut * mass_cut)/np.sum(mass_cut)
+        col_Rad_den[i] = np.sum(Rad_den_cut * Rad_cut)/np.sum(Rad_cut)
 #%%
 if save:
-    np.save(f'{abspath}/data/{folder}/coloredE_{check}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_den])
-    with open(f'{abspath}/data/{folder}/coloredE_{check}_days.txt', 'w') as file:
-        file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
-        file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-        file.close()
-    np.save(f'{abspath}/data/{folder}/coloredE_{check}_radii.npy', radii)
+    if who == '':
+        np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_den])
+        with open(f'{abspath}/data/{folder}/coloredE{who}_{check}_days.txt', 'w') as file:
+            file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
+            file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+            file.close()
+        np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}_radii.npy', radii)
