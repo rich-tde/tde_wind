@@ -46,7 +46,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = '' 
+check = 'LowRes' 
 extr = 'rich'
 how = 'fromfld' #'justph' or 'fromfld'
 

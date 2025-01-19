@@ -174,3 +174,35 @@ with open(f'{abspath}/data/{folder}/photo_mean.txt', 'a') as f:
         f.write(' '.join(map(str, mean_rph_weig)) + '\n')
         f.close()
 
+
+#%% compare with other resolutions
+ph_dataL = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}LowRes/LowRes{extr}_phidx_fluxes.txt')
+snapsL, tfbL, allindices_phL = ph_dataL[:, 0].astype(int), ph_dataL[:, 1], ph_dataL[:, 2:]
+allindices_phL = sort_list(allindices_phL, snapsL)
+tfbL = np.sort(tfbL)
+# eliminate the even rows (photosphere indices) of allindices_phL
+fluxesL = allindices_phL[1::2]
+snapsL = np.unique(np.sort(snapsL))
+tfbL = np.unique(tfbL)
+
+mean_rphL = np.zeros(len(tfbL))
+mean_rphL_weig = np.zeros(len(tfbL))
+gmean_phL = np.zeros(len(tfbL))
+
+for i, snapi in enumerate(snapsL):
+        photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}LowRes/photo/LowRes{extr}_photo{snapi}.txt')
+        xph_i, yph_i, zph_i = photo[0], photo[1], photo[2] 
+        rph_i = np.sqrt(xph_i**2 + yph_i**2 + zph_i**2)
+        mean_rphL[i] = np.mean(rph_i)
+        gmean_phL[i] = gmean(rph_i)
+        mean_rphL_weig[i] = np.sum(rph_i*fluxesL[i])/np.sum(fluxesL[i])
+
+#%%
+plt.figure()
+plt.plot(tfbL, mean_rphL_weig/apo, c = 'darkorange', label = 'Low')
+plt.plot(tfb, mean_rph_weig/apo, c = 'yellowgreen', label = 'Fid')
+plt.xlabel(r't [$t_{fb}$]')
+plt.ylabel(r'$\langle R_{ph} [R_a] \rangle$')
+plt.yscale('log')
+plt.legend()
+plt.grid()

@@ -111,10 +111,9 @@ for i,snap in enumerate(snaps):
         col_Rad_den[i] = np.sum(Rad_den_cut * Rad_cut)/np.sum(Rad_cut)
 #%%
 if save:
-    if who == '':
-        np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_den])
-        with open(f'{abspath}/data/{folder}/coloredE{who}_{check}_days.txt', 'w') as file:
-            file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
-            file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-            file.close()
-        np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}_radii.npy', radii)
+    np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_den])
+    with open(f'{abspath}/data/{folder}/coloredE{who}_{check}_days.txt', 'w') as file:
+        file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
+        file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+        file.close()
+    np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}_radii.npy', radii)

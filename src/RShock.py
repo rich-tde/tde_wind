@@ -155,8 +155,8 @@ for j, check in enumerate(checks):
 
 Rlim_min = 1e11
 Rlim_max = 1e16   
-# fig, (ax0, ax1) = plt.subplots(1,2, figsize=(14, 5))
-fig, ax1 = plt.subplots(1, 1, figsize=(8, 5))
+#%%
+fig, ax1 = plt.subplots(1, 1, figsize=(10, 5))
 # ax0.plot(tfb_all[1][-90:], 1e-2*(tfb_all[1][-90:])**(-5/3), c = 'k', alpha = 0.5, linestyle = '--')
 for i, check in enumerate(checks):
     # Plot
@@ -165,10 +165,6 @@ for i, check in enumerate(checks):
     # ax0.plot(tfb_all[i], np.abs(mfall_toplot), label = checkslegend[i], color = colorslegend[i])
 
     # ax1.plot(tfb_all[i], R_shDiss_all[i], linestyle = 'dotted', color = colorslegend[i])#, label = f'Rdiss {checkslegend[i]}')
-    ax1.axhline(y=Rt*prel.Rsol_cgs, color = 'k', linestyle = 'dotted')
-    ax1.text(1.6, .4* Rt*prel.Rsol_cgs, r'$R_{\rm t}$', fontsize = 20, color = 'k')
-    ax1.axhline(y=amin*prel.Rsol_cgs, color = 'k', linestyle = '--')
-    ax1.text(1.6, .4* amin*prel.Rsol_cgs, r'$a_{\rm mb}$', fontsize = 20, color = 'k')
     if i == 2:
         ax1.plot(tfb_all[i], R_sh_all[i], color = colorslegend[i], label = r'$R_{\rm sh}$')
         ax1.plot(timeRDiss_all[i], RDiss_all[i] * prel.Rsol_cgs, linestyle = '--', color = colorslegend[i], label = r'$R_{\rm diss}$')
@@ -182,7 +178,11 @@ for i, check in enumerate(checks):
     # ax1.text(1.8, .4* Rt*prel.Rsol_cgs, r'$R_{\rm t}$', fontsize = 20, color = 'k')
     # ax1.plot(timeRDiss_all[i], RDiss_all[i] * prel.Rsol_cgs, linestyle = '--', color = colorslegend[i])#, label = f'Rdiss {checkslegend[i]}')
 
-# ax1.plot(tfbRph, Rph * prel.Rsol_cgs, color = 'k', label = 'Rph')
+ax1.axhline(y=Rt*prel.Rsol_cgs, color = 'k', linestyle = 'dotted')
+ax1.text(1.85, .4* Rt*prel.Rsol_cgs, r'$R_{\rm t}$', fontsize = 20, color = 'k')
+ax1.axhline(y=amin*prel.Rsol_cgs, color = 'k', linestyle = '--')
+ax1.text(1.85, .4* amin*prel.Rsol_cgs, r'$a_{\rm mb}$', fontsize = 20, color = 'k')
+ax1.plot(tfbRph, Rph * prel.Rsol_cgs, color = 'k', label = r'$R_{\rm ph}$')
 # ax1.axhline(y=apo*prel.Rsol_cgs, color = 'r', linestyle = 'dotted')
 # ax0.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 18)
 ax1.set_ylabel(r'$R$ [cm]', fontsize = 18)
@@ -208,13 +208,13 @@ for ax in [ax1, ax2]:
     ax.set_xlabel(r't [$t_{\rm fb}$]', fontsize = 20)
     if ax!=ax2:
         ax.grid()
-        ax.legend(fontsize = 18)
         ax.set_xticks(new_ticks)
         labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
         ax.set_xticklabels(labels)
         ax.tick_params(axis='x', which='major', width=0.7, length=7)
         ax.tick_params(axis='x', which='minor', width=0.5, length=5)
-    ax.set_xlim(0, 1.8)
+    ax.set_xlim(0, 2)
+ax1.legend(fontsize = 16, loc = 'upper right')
 
 plt.tight_layout()
 plt.savefig(f'{abspath}/Figs/multiple/Reta.pdf')
