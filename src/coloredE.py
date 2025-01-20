@@ -105,13 +105,15 @@ for i,snap in enumerate(snaps):
         col_Rad.append(Rad_cast)
         col_Rad_den.append(Rad_den_cast)
     else:
-        col_ie[i] = np.sum(ie_onmass_cut * mass_cut)/np.sum(mass_cut)
-        col_orb_en[i] = np.sum(orb_en_onmass_cut * mass_cut)/np.sum(mass_cut)
-        col_Rad[i] = np.sum(Rad_onmass_cut * mass_cut)/np.sum(mass_cut)
-        col_Rad_den[i] = np.sum(Rad_den_cut * Rad_cut)/np.sum(Rad_cut)
+        col_ie[i] = np.sum(ie_onmass_cut * mass_cut)
+        col_orb_en[i] = np.sum(orb_en_onmass_cut * mass_cut)
+        col_Rad[i] = np.sum(Rad_den_cut * vol_cut)
 #%%
 if save:
-    np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_den])
+    if who == '':
+        np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_den])
+    else:
+        np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}.npy', [col_ie, col_orb_en, col_Rad])
     with open(f'{abspath}/data/{folder}/coloredE{who}_{check}_days.txt', 'w') as file:
         file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
