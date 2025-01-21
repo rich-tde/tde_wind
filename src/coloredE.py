@@ -61,20 +61,33 @@ for i,snap in enumerate(snaps):
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
     else:
         path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
+    
     data = make_tree(path, snap, energy = True)
-    Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))
-    vel = np.sqrt(np.power(data.VX, 2) + np.power(data.VY, 2) + np.power(data.VZ, 2))
-    mass, vol, den, ie_den, Rad_den = data.Mass, data.Vol, data.Den, data.IE, data.Rad
+    X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den = \
+        data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Mass, data.Vol, data.Den, data.IE, data.Rad
+    box = np.load(f'{path}/snap_{snap}/box_{snap}.npy')
+    boxL = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/{folder}LowRes/snap_{snap}/snap_{snap}/box_{snap}.npy')
+    boxH = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/{folder}HiRes/snap_{snap}/snap_{snap}/box_{snap}.npy')
+    xmin, ymin, zmin = np.max(box[0], boxL[0], boxH[0], -240)
+    xmax, ymax, zmax = np.min(box[1], boxL[1], boxH[1])
+    cutx = (X > xmin) & (X < xmax)
+    cuty = (Y > ymin) & (Y < ymax)
+    cutz = (Z > zmin) & (Z < zmax)
+    cut_coord = cutx & cuty & cutz
+    X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den = \
+        sec.make_slices([X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den], cut_coord)
+    Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
+    vel = np.sqrt(np.power(VX, 2) + np.power(VY, 2) + np.power(VZ, 2))
     orb_en = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh)
     Rad = Rad_den * vol
     ie = ie_den * vol
     dim_cell = (3/(4*np.pi) * vol)**(1/3)
-    ie_onmass = ie_den / data.Den
+    ie_onmass = ie_den / den
     orb_en_onmass = orb_en / mass
 
     # throw fluff
     cut = den > 1e-19 
-    Rsph_cut, mass_cut, den_cut, ie_cut, ie_onmass_cut, orb_en_cut, orb_en_onmass_cut, Rad_cut, Rad_den_cut, vol_cut = \
+    x_cut, y_cut, z_cut, Rsph_cut, mass_cut, den_cut, ie_cut, ie_onmass_cut, orb_en_cut, orb_en_onmass_cut, Rad_cut, Rad_den_cut, vol_cut = \
             sec.make_slices([Rsph, mass, den, ie, ie_onmass, orb_en, orb_en_onmass, Rad, Rad_den, vol], cut)
     Rad_onmass_cut = Rad_cut / mass_cut
     tocast_cut = Rsph_cut
@@ -96,13 +109,14 @@ for i,snap in enumerate(snaps):
     else:
         col_ie[i] = np.sum(ie_cut)
         col_orb_en[i] = np.sum(orb_en_cut)
-        col_Rad[i] = np.sum(Rad_cut)
+        # NO cut for radiation
+        col_Rad[i] = np.sum(Rad)
 #%%
 if save:
     if who == '':
         np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_den])
     else:
-        np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}.npy', [col_ie, col_orb_en, col_Rad])
+        np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}_thresh.npy', [col_ie, col_orb_en, col_Rad])
     with open(f'{abspath}/data/{folder}/coloredE{who}_{check}_days.txt', 'w') as file:
         file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
