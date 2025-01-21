@@ -27,7 +27,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = '' 
+check = 'LowRes' 
 who = 'all' #'' or 'all'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -65,11 +65,19 @@ for i,snap in enumerate(snaps):
     data = make_tree(path, snap, energy = True)
     X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den = \
         data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Mass, data.Vol, data.Den, data.IE, data.Rad
-    box = np.load(f'{path}/snap_{snap}/box_{snap}.npy')
-    boxL = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/{folder}LowRes/snap_{snap}/snap_{snap}/box_{snap}.npy')
-    boxH = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/{folder}HiRes/snap_{snap}/snap_{snap}/box_{snap}.npy')
-    xmin, ymin, zmin = np.max(box[0], boxL[0], boxH[0], -240)
-    xmax, ymax, zmax = np.min(box[1], boxL[1], boxH[1])
+    box = np.load(f'{path}/box_{snap}.npy')
+    if int(snap) <= 317:
+        boxL = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes/snap_{snap}/box_{snap}.npy')
+        if int(snap) <= 267:
+            boxH = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes/snap_{snap}/box_{snap}.npy')
+        else:
+            boxH = box
+    else: 
+        boxH = box
+        boxL = box
+
+    xmin, ymin, zmin = np.max([box[0], boxL[0], boxH[0], -240]), np.max([box[1], boxL[1], boxH[1]]), np.max([box[2], boxL[2], boxH[2]])
+    xmax, ymax, zmax = np.min([box[3], boxL[3], boxH[3]]), np.min([box[4], boxL[4], boxH[4]]), np.min([box[5], boxL[5], boxH[5]])
     cutx = (X > xmin) & (X < xmax)
     cuty = (Y > ymin) & (Y < ymax)
     cutz = (Z > zmin) & (Z < zmax)
@@ -87,7 +95,7 @@ for i,snap in enumerate(snaps):
 
     # throw fluff
     cut = den > 1e-19 
-    x_cut, y_cut, z_cut, Rsph_cut, mass_cut, den_cut, ie_cut, ie_onmass_cut, orb_en_cut, orb_en_onmass_cut, Rad_cut, Rad_den_cut, vol_cut = \
+    Rsph_cut, mass_cut, den_cut, ie_cut, ie_onmass_cut, orb_en_cut, orb_en_onmass_cut, Rad_cut, Rad_den_cut, vol_cut = \
             sec.make_slices([Rsph, mass, den, ie, ie_onmass, orb_en, orb_en_onmass, Rad, Rad_den, vol], cut)
     Rad_onmass_cut = Rad_cut / mass_cut
     tocast_cut = Rsph_cut

@@ -136,6 +136,7 @@ for idx_s, snap in enumerate(snaps):
         mu_z = observers_xyz[i][2]
 
         # Box is for dynamic ray making
+        # box gives -x, -y, -z, +x, +y, +z
         if mu_x < 0:
             rmax = box[0] / mu_x
             # print('x-', rmax)
