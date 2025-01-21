@@ -15,17 +15,7 @@ from Utilities.selectors_for_snap import select_snap
 from Utilities.operators import make_tree, single_branch, multiple_branch, to_cylindric
 import Utilities.sections as sec
 import src.orbits as orb
-
-#
-## CONSTANTS
-#
-
-G = 1
-G_SI = 6.6743e-11
-Msol = 2e30 #1.98847e30 # kg
-Rsol = 7e8 #6.957e8 # m
-t = np.sqrt(Rsol**3 / (Msol*G_SI ))
-c = 3e8 / (7e8/t)
+import Utilities.prelude as prel
 
 #
 ## PARAMETERS STAR AND BH
@@ -44,7 +34,7 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True
 
 Mbh = 10**m
-Rs = 2*G*Mbh / c**2
+Rs = 2*prel.G*Mbh / prel.csol_cgs**2
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 R0 = 0.6 * Rt
@@ -75,8 +65,7 @@ for i,snap in enumerate(snaps):
     Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))
     vel = np.sqrt(np.power(data.VX, 2) + np.power(data.VY, 2) + np.power(data.VZ, 2))
     mass, vol, den, ie_den, Rad_den = data.Mass, data.Vol, data.Den, data.IE, data.Rad
-    theta, _ = to_cylindric(data.X, data.Y)
-    orb_en = orb.orbital_energy(Rsph, vel, mass, G, c, Mbh)
+    orb_en = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh)
     Rad = Rad_den * vol
     ie = ie_den * vol
     dim_cell = (3/(4*np.pi) * vol)**(1/3)
@@ -85,8 +74,8 @@ for i,snap in enumerate(snaps):
 
     # throw fluff
     cut = den > 1e-19 
-    Rsph_cut, theta_cut, mass_cut, den_cut, ie_cut, ie_onmass_cut, orb_en_cut, orb_en_onmass_cut, Rad_cut, Rad_den_cut, vol_cut = \
-            sec.make_slices([Rsph, theta, mass, den, ie, ie_onmass, orb_en, orb_en_onmass, Rad, Rad_den, vol], cut)
+    Rsph_cut, mass_cut, den_cut, ie_cut, ie_onmass_cut, orb_en_cut, orb_en_onmass_cut, Rad_cut, Rad_den_cut, vol_cut = \
+            sec.make_slices([Rsph, mass, den, ie, ie_onmass, orb_en, orb_en_onmass, Rad, Rad_den, vol], cut)
     Rad_onmass_cut = Rad_cut / mass_cut
     tocast_cut = Rsph_cut
         
@@ -105,9 +94,9 @@ for i,snap in enumerate(snaps):
         col_Rad.append(Rad_cast)
         col_Rad_den.append(Rad_den_cast)
     else:
-        col_ie[i] = np.sum(ie_onmass_cut * mass_cut)
-        col_orb_en[i] = np.sum(orb_en_onmass_cut * mass_cut)
-        col_Rad[i] = np.sum(Rad_den_cut * vol_cut)
+        col_ie[i] = np.sum(ie_cut)
+        col_orb_en[i] = np.sum(orb_en_cut)
+        col_Rad[i] = np.sum(Rad_cut)
 #%%
 if save:
     if who == '':

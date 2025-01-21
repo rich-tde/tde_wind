@@ -83,6 +83,12 @@ def Witta_orbit(theta_data, Rp, Ra, Mbh, c, G):
     r = 1/u
     return r
 
+def precession_angle(Rstar, mstar, Mbh, beta, c, G,):
+    a = semimajor_axis(Rstar, mstar, Mbh, beta)
+    e = eccentricity(Rstar, mstar, Mbh, beta)
+    theta = 6 * np.pi * G * Mbh / (c**2 * a * (1-e**2))
+    return theta
+
 def orbital_energy(r, vel, mass, G, c, M):
     # no angular momentum??
     Rs = 2*G*M/c**2
