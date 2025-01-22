@@ -24,7 +24,7 @@ from scipy.interpolate import griddata
 import matlab.engine
 from sklearn.neighbors import KDTree
 from src.Opacity.linextrapolator import extrapolator_flipper, rich_extrapolator
-from scipy.ndimage import uniform_filter1d # does moving mean without fucking the shape up
+from scipy.ndimage import uniform_filter1d
 
 
 import Utilities.prelude as prel

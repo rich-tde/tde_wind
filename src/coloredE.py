@@ -28,7 +28,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'LowRes' 
-who = 'all' #'' or 'all'
+who = 'RadRph' #'' or 'all'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True
@@ -114,19 +114,27 @@ for i,snap in enumerate(snaps):
         col_orb_en.append(orb_en_cast)
         col_Rad.append(Rad_cast)
         col_Rad_den.append(Rad_den_cast)
-    else:
+
+    elif who == 'all':
         col_ie[i] = np.sum(ie_cut)
         col_orb_en[i] = np.sum(orb_en_cut)
         # NO cut for radiation
         col_Rad[i] = np.sum(Rad)
+    
+    elif who == 'RadRph':
+        if int(snap) == 267:
+            Rad_cast = single_branch(radii, Rsph, Rad, weights = 1)
+            np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}{snap}.npy', Rad_cast)
+
 #%%
 if save:
+    np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}_radii.npy', radii)
     if who == '':
         np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_den])
-    else:
+    elif who == 'all':
         np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}_thresh.npy', [col_ie, col_orb_en, col_Rad])
-    with open(f'{abspath}/data/{folder}/coloredE{who}_{check}_days.txt', 'w') as file:
-        file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
-        file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-        file.close()
-    np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}_radii.npy', radii)
+    if who != 'RadRph':
+        with open(f'{abspath}/data/{folder}/coloredE{who}_{check}_days.txt', 'w') as file:
+            file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
+            file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+            file.close()
