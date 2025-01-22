@@ -284,15 +284,17 @@ for idx_s, snap in enumerate(snaps):
         datasnap = make_tree(path, snap, energy = False)
         x, y, z, vol, den, Temp = datasnap.X, datasnap.Y, datasnap.Z, datasnap.Vol, datasnap.Den, datasnap.Temp
         cut = den > 1e-19
-        x, y, z, vol, den, Temp = make_slices([x, y, z, vol, den, Temp], cut)
-        xph, yph, zph, volph, denph, Tempph = make_slices([x, y, z, vol, den, Temp], single_indices_ph)
+        x, y, z, vol, den, Temp, Rad_den = make_slices([x, y, z, vol, den, Temp, Rad_den], cut)
+        Rad = np.multiply(Rad_den, vol)
+        xph, yph, zph, volph, denph, Tempph, Radph = make_slices([x, y, z, vol, den, Temp, Rad], single_indices_ph)
         # save the photosphere
         with open(f'{pre_saving}/photo/{check}{how}_photo{snap}.txt', 'a') as f:
-            f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph \n')
-            f.write(' '.join(map(str, xph)) + '\n')
-            f.write(' '.join(map(str, yph)) + '\n')
-            f.write(' '.join(map(str, zph)) + '\n')
-            f.write(' '.join(map(str, volph)) + '\n')
-            f.write(' '.join(map(str, denph)) + '\n')
-            f.write(' '.join(map(str, Tempph)) + '\n')
+            # f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph, Radph (radiation energy NOT density) \n')
+            # f.write(' '.join(map(str, xph)) + '\n')
+            # f.write(' '.join(map(str, yph)) + '\n')
+            # f.write(' '.join(map(str, zph)) + '\n')
+            # f.write(' '.join(map(str, volph)) + '\n')
+            # f.write(' '.join(map(str, denph)) + '\n')
+            # f.write(' '.join(map(str, Tempph)) + '\n')
+            f.write(' '.join(map(str, Radph)) + '\n')
             f.close()
