@@ -23,7 +23,7 @@ import scipy.integrate as sci
 from scipy.interpolate import griddata
 import matlab.engine
 from sklearn.neighbors import KDTree
-from src.Opacity.linextrapolator import extrapolator_flipper, rich_extrapolator
+from src.Opacity.linextrapolator import nouveau_rich, rich_extrapolator
 from scipy.ndimage import uniform_filter1d
 
 
@@ -45,7 +45,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'LowRes' # '' or 'HiRes'
-extr = 'rich' #'rich' or ''
+extr = 'nouvrich' #'rich' or ''
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True
@@ -65,8 +65,8 @@ T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 
-if extr == '':
-    T_cool2, Rho_cool2, rossland2 = extrapolator_flipper(T_cool, Rho_cool, rossland)
+if extr == 'nouvrich':
+    T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland)
 if extr == 'rich':
     T_cool2, Rho_cool2, rossland2 = rich_extrapolator(T_cool, Rho_cool, rossland)
 

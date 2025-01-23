@@ -46,7 +46,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'LowRes' 
+check = '' 
 extr = 'rich'
 how = 'fromfld' #'justph' or 'fromfld'
 
@@ -82,6 +82,8 @@ if extr == 'rich':
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 
 for idx_s, snap in enumerate(snaps):
+    if int(snap)!=267:
+        continue
     print('\n Snapshot: ', snap, '\n')
     if how == 'justph':
         if int(snap)!=80:
@@ -281,14 +283,14 @@ for idx_s, snap in enumerate(snaps):
         single_indices_ph = single_indices_ph.astype(int)
         # Load the data
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-        datasnap = make_tree(path, snap, energy = False)
-        x, y, z, vol, den, Temp = datasnap.X, datasnap.Y, datasnap.Z, datasnap.Vol, datasnap.Den, datasnap.Temp
+        datasnap = make_tree(path, snap, energy = True)
+        x, y, z, vol, den, Temp, Rad_den = datasnap.X, datasnap.Y, datasnap.Z, datasnap.Vol, datasnap.Den, datasnap.Temp, datasnap.Rad
         cut = den > 1e-19
         x, y, z, vol, den, Temp, Rad_den = make_slices([x, y, z, vol, den, Temp, Rad_den], cut)
         Rad = np.multiply(Rad_den, vol)
         xph, yph, zph, volph, denph, Tempph, Radph = make_slices([x, y, z, vol, den, Temp, Rad], single_indices_ph)
         # save the photosphere
-        with open(f'{pre_saving}/photo/{check}{how}_photo{snap}.txt', 'a') as f:
+        with open(f'{pre_saving}/photo/{check}_photo{snap}.txt', 'a') as f:
             # f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph, Radph (radiation energy NOT density) \n')
             # f.write(' '.join(map(str, xph)) + '\n')
             # f.write(' '.join(map(str, yph)) + '\n')
