@@ -40,7 +40,6 @@ Rp =  Rt / beta
 R0 = 0.6 * Rt
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
-
 radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
                     num=200)  # simulator units
 

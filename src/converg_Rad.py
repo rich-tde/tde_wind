@@ -45,7 +45,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = '' 
+check = 'HiRes' 
 extr = 'rich'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -92,8 +92,8 @@ for idx_s, snap in enumerate(snaps):
     Mass = np.load(f'{pre}/snap_{snap}/Mass_{snap}.npy')
     box = np.load(f'{pre}/snap_{snap}/box_{snap}.npy')
     denmask = Den > 1e-19
-    X, Y, Z, T, Den, Rad_onmass, IE_onmass, Mass, Vol = \
-        make_slices([X, Y, Z, T, Den, Rad_onmass, IE_onmass, Mass, Vol], denmask)
+    X, Y, Z, VX, VY, VZ, T, Den, Rad_onmass, IE_onmass, Mass, Vol = \
+        make_slices([X, Y, Z, VX, VY, VZ, T, Den, Rad_onmass, IE_onmass, Mass, Vol], denmask)
     Rad_den = np.multiply(Rad_onmass,Den) # now you have enrgy density
     Rad = np.multiply(Rad_den, Vol)
     IE = np.multiply(IE_onmass, Den)
@@ -249,7 +249,7 @@ for idx_s, snap in enumerate(snaps):
         Radphot[i] = np.sum(Rad_obs[b:])
         IEphot[i] = np.sum(IE_obs[b:])
         OEphot[i] = np.sum(OE_obs[b:])
-        print('radii from photo outside', R[idx][b:])
+        # print('radii from photo outside', R[idx][b:])
         gc.collect()
 
     # Save red of the single snap

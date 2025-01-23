@@ -162,7 +162,7 @@ def rich_extrapolator(x, y, K, slope_length = 5, extrarowsx= 99, extrarowsy= 100
     return xn, yn, Kn
 
 
-def nouveau_rich(x, y, K, what = 'scatter', slope_length = 26, extrarowsx = 99,
+def nouveau_rich(x, y, K, what = 'scatter', slope_length = 26, extrarowsx = 100,
                  extrarowsy = 100, highT_slope = -3.5):
     '''
     what, str: either scattering or absorption
@@ -259,6 +259,8 @@ def nouveau_rich(x, y, K, what = 'scatter', slope_length = 26, extrarowsx = 99,
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kn[ix][iy] = K[ix_inK, iy_inK]
                     # continue
+
+    return xn, yn, Kn
 
 
 if __name__ == '__main__':
