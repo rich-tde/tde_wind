@@ -321,3 +321,53 @@ plt.savefig(f'{abspath}/Figs/multiple/Rph_diff.pdf')
 
 
 # %%
+Nph_data = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/nouvrich{check}_phidx_fluxes.txt')
+Nsnaps, Ntfb, Nallindices_ph = Nph_data[:, 0].astype(int), Nph_data[:, 1], Nph_data[:, 2:]
+Nallindices_ph = sort_list(Nallindices_ph, Nsnaps)
+Ntfb = np.sort(Ntfb)
+# eliminate the even rows (photosphere indices) of Nallindices_ph
+Nfluxes = Nallindices_ph[1::2]
+Nsnaps = np.unique(np.sort(Nsnaps))
+Ntfb = np.unique(Ntfb)
+
+Nph_dataL = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/nouvrich{check}_phidx_fluxes.txt')
+NsnapsL, NtfbL, Nallindices_phL = Nph_dataL[:, 0].astype(int), Nph_dataL[:, 1], Nph_dataL[:, 2:]
+Nallindices_phL = sort_list(Nallindices_phL, NsnapsL)
+NtfbL = np.sort(NtfbL)
+# eliminate the even rows (photosphere indices) of Nallindices_phL
+Nfluxes = Nallindices_phL[1::2]
+NsnapsL = np.unique(np.sort(NsnapsL))
+NtfbL = np.unique(NtfbL)
+# %
+# %%
+plt.figure()
+for i, snapi in enumerate(Nsnaps):
+        photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}{extr}_photo{snapi}.txt')
+        xph_i, yph_i, zph_i, vol_i = photo[0], photo[1], photo[2], photo[3]
+        rph_i = np.sqrt(xph_i**2 + yph_i**2 + zph_i**2)
+        Nphoto = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/nouvrich{check}_photo{snapi}.txt')
+        Nxph_i, Nyph_i, Nzph_i, Nvol_i = Nphoto[0], Nphoto[1], Nphoto[2], Nphoto[3]
+        Nrph_i = np.sqrt(Nxph_i**2 + Nyph_i**2 + Nzph_i**2)
+        plt.scatter(np.arange(192), rph_i/Nrph_i, s = 10, label = 't/tfb = '+f'{np.round(Ntfb[i],2)}')
+        plt.ylabel(r'$R_{ph, old}/ R_{ph, new}$')
+        plt.xlabel('Observer')
+        plt.yscale('log')
+plt.legend()
+plt.grid()
+# %%
+plt.figure()
+for i, snapi in enumerate(Nsnaps):
+        photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}LowRes/photo/LowRes_photo{snapi}.txt')
+        xph_i, yph_i, zph_i, vol_i = photo[0], photo[1], photo[2], photo[3]
+        rph_i = np.sqrt(xph_i**2 + yph_i**2 + zph_i**2)
+        Nphoto = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}LowRes/photo/nouvrichLowRes_photo{snapi}.txt')
+        Nxph_i, Nyph_i, Nzph_i, Nvol_i = Nphoto[0], Nphoto[1], Nphoto[2], Nphoto[3]
+        Nrph_i = np.sqrt(Nxph_i**2 + Nyph_i**2 + Nzph_i**2)
+        plt.scatter(np.arange(192), rph_i/Nrph_i, s = 10, label = 't/tfb = '+f'{np.round(Ntfb[i],2)}')
+        plt.ylabel(r'$R_{ph, old}/ R_{ph, new}$')
+        plt.xlabel('Observer')
+        plt.yscale('log')
+plt.legend()
+plt.title('Check: Low')
+plt.grid()
+# %%

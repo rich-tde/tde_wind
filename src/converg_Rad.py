@@ -45,7 +45,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = '' 
+check = 'HiRes' 
 extr = 'rich'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -91,7 +91,7 @@ for idx_s, snap in enumerate(snaps):
     Vol = np.load(f'{pre}/snap_{snap}/Vol_{snap}.npy')
     Mass = np.load(f'{pre}/snap_{snap}/Mass_{snap}.npy')
     box = np.load(f'{pre}/snap_{snap}/box_{snap}.npy')
-    denmask = Den > 1e-19
+    denmask = Den > -100#1e-19
     X, Y, Z, VX, VY, VZ, T, Den, Rad_onmass, IE_onmass, Mass, Vol = \
         make_slices([X, Y, Z, VX, VY, VZ, T, Den, Rad_onmass, IE_onmass, Mass, Vol], denmask)
     Rad_den = np.multiply(Rad_onmass, Den) # now you have enrgy density
@@ -257,6 +257,6 @@ for idx_s, snap in enumerate(snaps):
     # Save red of the single snap
     if save:
         data = [Radphot, IEphot, OEphot, Rad_denphot]
-        np.savetxt(f'{pre_saving}/convEn{check}_{snap}.txt', data)
+        np.savetxt(f'{pre_saving}/convEnNOcut{check}_{snap}.txt', data)
     eng.exit()
 
