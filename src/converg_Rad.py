@@ -45,7 +45,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiRes' 
+check = '' 
 extr = 'rich'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -94,9 +94,9 @@ for idx_s, snap in enumerate(snaps):
     denmask = Den > 1e-19
     X, Y, Z, VX, VY, VZ, T, Den, Rad_onmass, IE_onmass, Mass, Vol = \
         make_slices([X, Y, Z, VX, VY, VZ, T, Den, Rad_onmass, IE_onmass, Mass, Vol], denmask)
-    Rad_den = np.multiply(Rad_onmass,Den) # now you have enrgy density
+    Rad_den = np.multiply(Rad_onmass, Den) # now you have enrgy density
     Rad = np.multiply(Rad_den, Vol)
-    IE = np.multiply(IE_onmass, Den)
+    IE = np.multiply(IE_onmass, Mass)
     del Rad_onmass, IE_onmass
     R = np.sqrt(X**2 + Y**2 + Z**2)
     vel = np.sqrt(VX**2 + VY**2 + VZ**2)
@@ -120,6 +120,7 @@ for idx_s, snap in enumerate(snaps):
 
     # Dynamic Box -----------------------------------------------------------------
     Radphot = np.zeros(prel.NPIX) ####
+    Rad_denphot = np.zeros(prel.NPIX) ####
     IEphot = np.zeros(prel.NPIX) ####
     OEphot = np.zeros(prel.NPIX) 
     time_start = 0
@@ -170,7 +171,7 @@ for idx_s, snap in enumerate(snaps):
         idx = [ int(idx[i][0]) for i in range(len(idx))] # no -1 because we start from 0
         d = Den[idx] * prel.den_converter
         t = T[idx]
-        Rad_obs, IE_obs, OE_obs = Rad[idx], IE[idx], orb_en[idx]
+        Rad_obs, IE_obs, OE_obs, Rad_denobs = Rad[idx], IE[idx], orb_en[idx], Rad_den[idx]
         xobs, yobs, zobs = X[idx], Y[idx], Z[idx]
 
         # Interpolate ----------------------------------------------------------
@@ -249,12 +250,13 @@ for idx_s, snap in enumerate(snaps):
         Radphot[i] = np.sum(Rad_obs[b:])
         IEphot[i] = np.sum(IE_obs[b:])
         OEphot[i] = np.sum(OE_obs[b:])
+        Rad_denphot[i] = np.sum(Rad_denobs[b:])
         # print('radii from photo outside', R[idx][b:])
         gc.collect()
 
     # Save red of the single snap
     if save:
-        data = [Radphot, IEphot, OEphot]
+        data = [Radphot, IEphot, OEphot, Rad_denphot]
         np.savetxt(f'{pre_saving}/convEn{check}_{snap}.txt', data)
     eng.exit()
 
