@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from src import orbits as orb
-import matplotlib.colors as colors
+import matplotlib.colors as colorsx
 import Utilities.prelude as prel
 import healpy as hp
 from scipy.stats import gmean, ks_2samp, tstd
@@ -51,27 +51,27 @@ observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
 observers_xyz = np.array(observers_xyz).T
 
 #%% HEALPIX
-# x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
-# r = np.sqrt(x**2 + y**2 + z**2)   # Radius (should be 1 for unit vectors)
-# theta = np.arctan2(y, x)          # Azimuthal angle in radians
-# phi = np.arccos(z / r)            # Elevation angle in radians
-# # Convert to latitude and longitude
-# longitude = theta              
-# latitude = np.pi / 2 - phi 
-# # Plot in 2D using a Mollweide projection
-# fig, ax = plt.subplots(figsize=(10, 5), subplot_kw={'projection': 'mollweide'})
-# img = ax.scatter(longitude, latitude, s=20, c=np.arange(192))
-# ax.scatter(longitude[first_eq:final_eq], latitude[first_eq:final_eq], s=10, c='r')
-# plt.colorbar(img, ax=ax, label='Observer Number')
-# ax.set_title("Observers on the Sphere (Mollweide Projection)")
-# ax.grid(True)
-# ax.set_xticks(np.radians(np.linspace(-180, 180, 9)))
-# ax.set_xticklabels(['-180°', '-135°', '-90°', '-45°', '0°', '45°', '90°', '135°', '180°'])
-# plt.title(f' Oribital plane indices: {int(first_eq)} - {int(final_eq)}')
-# plt.tight_layout()
-# plt.show()
+x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
+r = np.sqrt(x**2 + y**2 + z**2)   # Radius (should be 1 for unit vectors)
+theta = np.arctan2(y, x)          # Azimuthal angle in radians
+phi = np.arccos(z / r)            # Elevation angle in radians
+# Convert to latitude and longitude
+longitude = theta              
+latitude = np.pi / 2 - phi 
+# Plot in 2D using a Mollweide projection
+fig, ax = plt.subplots(figsize=(10, 5), subplot_kw={'projection': 'mollweide'})
+img = ax.scatter(longitude, latitude, s=20, c=np.arange(192))
+ax.scatter(longitude[first_eq:final_eq], latitude[first_eq:final_eq], s=10, c='r')
+plt.colorbar(img, ax=ax, label='Observer Number')
+ax.set_title("Observers on the Sphere (Mollweide Projection)")
+ax.grid(True)
+ax.set_xticks(np.radians(np.linspace(-180, 180, 9)))
+ax.set_xticklabels(['-180°', '-135°', '-90°', '-45°', '0°', '45°', '90°', '135°', '180°'])
+plt.title(f' Oribital plane indices: {int(first_eq)} - {int(final_eq)}')
+plt.tight_layout()
+plt.show()
 
-# NB DATA ARE NOT SORTED
+#%% NB DATA ARE NOT SORTED
 ph_data = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}{extr}_phidx_fluxes.txt')
 snaps, tfb, allindices_ph = ph_data[:, 0].astype(int), ph_data[:, 1], ph_data[:, 2:]
 allindices_ph = sort_list(allindices_ph, snaps)
@@ -320,8 +320,8 @@ plt.tight_layout()
 plt.savefig(f'{abspath}/Figs/multiple/Rph_diff.pdf')
 
 
-# %%
-Nph_data = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/nouvrich{check}_phidx_fluxes.txt')
+# %% Compare with new extrapolation for the low and the fiducial resolution
+Nph_data = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/nouvrich_phidx_fluxes.txt')
 Nsnaps, Ntfb, Nallindices_ph = Nph_data[:, 0].astype(int), Nph_data[:, 1], Nph_data[:, 2:]
 Nallindices_ph = sort_list(Nallindices_ph, Nsnaps)
 Ntfb = np.sort(Ntfb)
@@ -330,7 +330,7 @@ Nfluxes = Nallindices_ph[1::2]
 Nsnaps = np.unique(np.sort(Nsnaps))
 Ntfb = np.unique(Ntfb)
 
-Nph_dataL = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/nouvrich{check}_phidx_fluxes.txt')
+Nph_dataL = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/nouvrich_phidx_fluxes.txt')
 NsnapsL, NtfbL, Nallindices_phL = Nph_dataL[:, 0].astype(int), Nph_dataL[:, 1], Nph_dataL[:, 2:]
 Nallindices_phL = sort_list(Nallindices_phL, NsnapsL)
 NtfbL = np.sort(NtfbL)
@@ -338,8 +338,8 @@ NtfbL = np.sort(NtfbL)
 Nfluxes = Nallindices_phL[1::2]
 NsnapsL = np.unique(np.sort(NsnapsL))
 NtfbL = np.unique(NtfbL)
-# %
-# %%
+
+# Plot the fiducial 
 plt.figure()
 for i, snapi in enumerate(Nsnaps):
         photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}{extr}_photo{snapi}.txt')
@@ -352,9 +352,11 @@ for i, snapi in enumerate(Nsnaps):
         plt.ylabel(r'$R_{ph, old}/ R_{ph, new}$')
         plt.xlabel('Observer')
         plt.yscale('log')
+plt.title('Res: Fid')
 plt.legend()
+
 plt.grid()
-# %%
+# Plot the low resolution
 plt.figure()
 for i, snapi in enumerate(Nsnaps):
         photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}LowRes/photo/LowRes_photo{snapi}.txt')
@@ -368,6 +370,6 @@ for i, snapi in enumerate(Nsnaps):
         plt.xlabel('Observer')
         plt.yscale('log')
 plt.legend()
-plt.title('Check: Low')
+plt.title('Res: Low')
 plt.grid()
 # %%

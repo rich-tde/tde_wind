@@ -28,7 +28,8 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'LowRes' 
-who = 'RadRph' #'' or 'all'
+who = '' #'' or 'all' or 'RadRph'
+fs = 'fs' #'fs' if free streaming and you just care far away, '' otherwise
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True
@@ -40,14 +41,19 @@ Rp =  Rt / beta
 R0 = 0.6 * Rt
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
-radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
+if fs == 'fs':
+    radii = np.logspace(np.log10(1.5*apo),np.log10(5000*apo),
+                    num=400)  # simulator units
+else:
+    radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
                     num=200)  # simulator units
 
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 if who == '':
     col_ie = []
     col_orb_en = []
-    col_Rad = []
+    col_Radcut = []
+    col_Radcut_den = []
     col_Rad_den = []
 else:
     col_ie = np.zeros(len(snaps))
@@ -104,14 +110,15 @@ for i,snap in enumerate(snaps):
     # orb_en_cast = single_branch(radii, tocast_cut, orb_en_onmass_cut, weights = mass_cut)
     # Rad_den_cast = single_branch(radii, tocast_cut, Rad_den_cut, weights = Rad_cut)
     if who == '':
-        tocast_matrix = [ie_onmass_cut, orb_en_onmass_cut, Rad_onmass_cut, Rad_den_cut]
-        weights_matrix = [mass_cut, mass_cut, mass_cut, Rad_cut]
+        tocast_matrix = [ie_onmass_cut, orb_en_onmass_cut, Rad_onmass_cut, Rad_den_cut, Rad_den]
+        weights_matrix = [mass_cut, mass_cut, mass_cut, Rad_cut, Rad]
         casted = multiple_branch(radii, tocast_cut, tocast_matrix, weights_matrix)
-        ie_cast, orb_en_cast, Rad_cast, Rad_den_cast = casted[0], casted[1], casted[2], casted[3]
+        ie_cast, orb_en_cast, Rad_cut_cast, Rad_dencut_cast, Rad_den_cast = casted[0], casted[1], casted[2], casted[3], casted[4]
 
         col_ie.append(ie_cast)
         col_orb_en.append(orb_en_cast)
-        col_Rad.append(Rad_cast)
+        col_Radcut.append(Rad_cut_cast)
+        col_Radcut_den.append(Rad_dencut_cast)
         col_Rad_den.append(Rad_den_cast)
 
     elif who == 'all':
@@ -127,13 +134,13 @@ for i,snap in enumerate(snaps):
 
 #%%
 if save:
-    np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}_radii.npy', radii)
+    np.save(f'{abspath}/data/{folder}/{fs}coloredE{who}_{check}_radii.npy', radii)
     if who == '':
-        np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}.npy', [col_ie, col_orb_en, col_Rad, col_Rad_den])
+        np.save(f'{abspath}/data/{folder}/{fs}coloredE{who}_{check}.npy', [col_ie, col_orb_en, col_Radcut, col_Radcut_den, col_Rad_den])
     elif who == 'all':
         np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}_thresh.npy', [col_ie, col_orb_en, col_Rad])
     if who != 'RadRph':
-        with open(f'{abspath}/data/{folder}/coloredE{who}_{check}_days.txt', 'w') as file:
+        with open(f'{abspath}/data/{folder}/{fs}coloredE{who}_{check}_days.txt', 'w') as file:
             file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
             file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
             file.close()
