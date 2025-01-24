@@ -81,14 +81,16 @@ for i,snap in enumerate(snaps):
         boxH = box
         boxL = box
 
-    xmin, ymin, zmin = np.max([box[0], boxL[0], boxH[0], -240]), np.max([box[1], boxL[1], boxH[1]]), np.max([box[2], boxL[2], boxH[2]])
-    xmax, ymax, zmax = np.min([box[3], boxL[3], boxH[3]]), np.min([box[4], boxL[4], boxH[4]]), np.min([box[5], boxL[5], boxH[5]])
-    cutx = (X > xmin) & (X < xmax)
-    cuty = (Y > ymin) & (Y < ymax)
-    cutz = (Z > zmin) & (Z < zmax)
-    cut_coord = cutx & cuty & cutz
-    X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den = \
-        sec.make_slices([X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den], cut_coord)
+    if fs != 'fs':
+        xmin, ymin, zmin = np.max([box[0], boxL[0], boxH[0], -240]), np.max([box[1], boxL[1], boxH[1]]), np.max([box[2], boxL[2], boxH[2]])
+        xmax, ymax, zmax = np.min([box[3], boxL[3], boxH[3]]), np.min([box[4], boxL[4], boxH[4]]), np.min([box[5], boxL[5], boxH[5]])
+        cutx = (X > xmin) & (X < xmax)
+        cuty = (Y > ymin) & (Y < ymax)
+        cutz = (Z > zmin) & (Z < zmax)
+        cut_coord = cutx & cuty & cutz
+        X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den = \
+            sec.make_slices([X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den], cut_coord)
+        
     Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
     vel = np.sqrt(np.power(VX, 2) + np.power(VY, 2) + np.power(VZ, 2))
     orb_en = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh)
@@ -134,13 +136,13 @@ for i,snap in enumerate(snaps):
 
 #%%
 if save:
-    np.save(f'{abspath}/data/{folder}/{fs}coloredE{who}_{check}_radii.npy', radii)
+    np.save(f'{abspath}/data/{folder}/{fs}NOcutcoord_coloredE{who}_{check}_radii.npy', radii)
     if who == '':
-        np.save(f'{abspath}/data/{folder}/{fs}coloredE{who}_{check}.npy', [col_ie, col_orb_en, col_Radcut, col_Radcut_den, col_Rad_den])
+        np.save(f'{abspath}/data/{folder}/{fs}NOcutcoord_coloredE{who}_{check}.npy', [col_ie, col_orb_en, col_Radcut, col_Radcut_den, col_Rad_den])
     elif who == 'all':
         np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}_thresh.npy', [col_ie, col_orb_en, col_Rad])
     if who != 'RadRph':
-        with open(f'{abspath}/data/{folder}/{fs}coloredE{who}_{check}_days.txt', 'w') as file:
+        with open(f'{abspath}/data/{folder}/{fs}NOcutcoord_coloredE{who}_{check}_days.txt', 'w') as file:
             file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
             file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
             file.close()

@@ -373,3 +373,4 @@ plt.legend()
 plt.title('Res: Low')
 plt.grid()
 # %%
+plt
