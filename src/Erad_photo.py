@@ -41,8 +41,8 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'LowRes' 
-extr = 'nouvrich'
+check = 'HiRes' 
+extr = 'rich'
 how = 'fromfld' #'justph' or 'fromfld'
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 r_arr = np.logspace(1, np.log10(10*apo) , 1000)
@@ -95,17 +95,13 @@ for idx_s, snap in enumerate(snaps):
     Rad_den_tot = np.zeros(len(r_arr))
     # Dynamic Box ----------------------------------------------------------------
     for j, r_plot in enumerate(r_arr):
+        print(f'R: {j}', flush=False) 
+        sys.stdout.flush()
         for i in range(prel.NPIX):
             if rph[i] > r_plot:
                 continue
             else:
                 # Progress 
-                time_end = time.time()
-                print(f'Snap: {snap}, Obs: {i}', flush=False)
-                print(f'Time for prev. Obs: {(time_end - time_start)/60} min', flush = False)
-                time_start = time.time()
-                sys.stdout.flush()
-
                 mu_x = observers_xyz[i][0]
                 mu_y = observers_xyz[i][1]
                 mu_z = observers_xyz[i][2]
@@ -147,6 +143,7 @@ for idx_s, snap in enumerate(snaps):
                 robs = np.sqrt(xobs**2 + yobs**2 + zobs**2)
                 idx_r = np.abs(np.argmin(np.abs(robs - r_plot)))
                 Rad_den_tot[j] += Rad_denobs[idx_r]
+                
                 del xobs, yobs, zobs, Rad_denobs, robs
                 gc.collect()
 

@@ -65,10 +65,10 @@ T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 
-if extr == 'nouvrich':
-    T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland)
-if extr == 'rich':
-    T_cool2, Rho_cool2, rossland2 = rich_extrapolator(T_cool, Rho_cool, rossland)
+# if extr == 'nouvrich':
+T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland)
+# if extr == 'rich':
+#     T_cool2, Rho_cool2, rossland2 = rich_extrapolator(T_cool, Rho_cool, rossland)
 
 # MATLAB GOES WHRRRR, thanks Cindy.
 eng = matlab.engine.start_matlab()
@@ -261,7 +261,7 @@ for idx_s, snap in enumerate(snaps):
     if save:
         pre_saving = f'{abspath}/data/{folder}'
         data = [snap, tfb[idx_s], Lphoto_snap]
-        with open(f'{pre_saving}/{check}{extr}_red.csv', 'a', newline='') as file:
+        with open(f'{pre_saving}/{check}_red.csv', 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(data)
         file.close()
@@ -269,7 +269,7 @@ for idx_s, snap in enumerate(snaps):
         ## just to check photosphere
         time_rph = np.concatenate([[snap,tfb[idx_s]], ph_idx])
         time_fluxes = np.concatenate([[snap,tfb[idx_s]], fluxes])
-        with open(f'{pre_saving}/{check}{extr}_phidx_fluxes.txt', 'a') as fileph:
+        with open(f'{pre_saving}/{check}_phidx_fluxes.txt', 'a') as fileph:
             fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
             fileph.write(' '.join(map(str, time_rph)) + '\n')
             fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes [cgs] for each obs \n')
