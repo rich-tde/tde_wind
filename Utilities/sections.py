@@ -130,8 +130,8 @@ if __name__ == '__main__':
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = 'Low'
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}'
+    check = ''
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}Compton'
     snap = '164'
     path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
     Rt = Rstar * (Mbh/mstar)**(1/3)
@@ -139,7 +139,7 @@ if __name__ == '__main__':
     step = 0.02
     params = [Mbh, Rstar, mstar, beta]
     xcfr, ycfr, cfr = make_cfr(Rt)
-    data = make_tree(path, snap, is_tde = True, energy = False)
+    data = make_tree(path, snap, energy = False)
     dim_cell = data.Vol**(1/3)
 
     stream = np.load(f'/Users/paolamartire/shocks/data/{folder}/stream_{check}{snap}.npy' )

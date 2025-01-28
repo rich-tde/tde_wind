@@ -354,9 +354,27 @@ for i, snapi in enumerate(Nsnaps):
         plt.yscale('log')
 plt.title('Res: Fid')
 plt.legend()
-
 plt.grid()
-# Plot the low resolution
+# %%
+datamid = np.load(f'/Users/paolamartire/shocks/data/{folder}/slices/z0slice_{snapi}.npy')
+x_mid, y_mid, den_mid = datamid[0], datamid[1], datamid[4]
+img, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5), gridspec_kw={'width_ratios': [2, 3]})
+img = ax1.scatter(np.arange(192), Nrph_i, c = Nxph_i, vmin = -300, vmax = -180)
+cbar = plt.colorbar(img)
+cbar.set_label(r'X [$R_\odot]$')
+ax1.set_ylabel(r'$R_{ph}$')
+ax1.set_xlabel('Observer')
+ax1.grid()
+
+ax2.scatter(x_mid, y_mid, c = den_mid, s = 1, norm = colorsx.LogNorm(vmin=1e-10, vmax=1e-6), alpha = 0.5)
+ax2.scatter(Nxph_i[first_eq:final_eq], Nyph_i[first_eq:final_eq], s = 10, c = 'r')
+ax2.set_xlabel('X')
+ax2.set_ylabel('Y')
+ax2.set_xlim(-2000,500)
+ax2.set_ylim(-900,900)
+plt.suptitle(f'Fiducial resolution, snap {snapi}')
+plt.tight_layout()
+#%%  Plot the low resolution
 plt.figure()
 for i, snapi in enumerate(Nsnaps):
         photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}LowRes/photo/LowRes_photo{snapi}.txt')
@@ -372,5 +390,3 @@ for i, snapi in enumerate(Nsnaps):
 plt.legend()
 plt.title('Res: Low')
 plt.grid()
-# %%
-plt

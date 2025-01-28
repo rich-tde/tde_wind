@@ -91,7 +91,7 @@ for idx_s, snap in enumerate(snaps):
     Vol = np.load(f'{pre}/snap_{snap}/Vol_{snap}.npy')
     Mass = np.load(f'{pre}/snap_{snap}/Mass_{snap}.npy')
     box = np.load(f'{pre}/snap_{snap}/box_{snap}.npy')
-    denmask = Den > -100#1e-19
+    denmask = Den > 1e-19
     X, Y, Z, VX, VY, VZ, T, Den, Rad_onmass, IE_onmass, Mass, Vol = \
         make_slices([X, Y, Z, VX, VY, VZ, T, Den, Rad_onmass, IE_onmass, Mass, Vol], denmask)
     Rad_den = np.multiply(Rad_onmass, Den) # now you have enrgy density
