@@ -25,7 +25,7 @@ import healpy as hp
 import scipy.integrate as sci
 from scipy.interpolate import griddata
 from sklearn.neighbors import KDTree
-from src.Opacity.linextrapolator import rich_extrapolator
+from src.Opacity.linextrapolator import nouveau_rich
 
 import Utilities.prelude as prel
 from scipy.ndimage import uniform_filter1d # does moving mean without fucking the shape up
@@ -45,8 +45,8 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiRes' 
-extr = 'rich'
+check = '' 
+what = '' #''  or 'sum'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre_saving = f'{abspath}/data/{folder}'
@@ -66,8 +66,7 @@ T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 
-if extr == 'rich':
-    T_cool2, Rho_cool2, rossland2 = rich_extrapolator(T_cool, Rho_cool, rossland)
+T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland)
 
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 
@@ -119,10 +118,17 @@ for idx_s, snap in enumerate(snaps):
     F_photo_temp = np.zeros((prel.NPIX, f_num))
 
     # Dynamic Box -----------------------------------------------------------------
-    Radphot = np.zeros(prel.NPIX) ####
-    Rad_denphot = np.zeros(prel.NPIX) ####
-    IEphot = np.zeros(prel.NPIX) ####
-    OEphot = np.zeros(prel.NPIX) 
+    if what == 'sum':
+        Radphot = np.zeros(prel.NPIX) ####
+        Rad_denphot = np.zeros(prel.NPIX) ####
+        IEphot = np.zeros(prel.NPIX) ####
+        OEphot = np.zeros(prel.NPIX) 
+    else: 
+        Radphot = []
+        Rad_denphot = []
+        X_phot = []
+        Y_phot = []
+        Z_phot = []
     time_start = 0
     for i in range(prel.NPIX):
         # Progress 
@@ -247,16 +253,25 @@ for idx_s, snap in enumerate(snaps):
             print('No b found, observer ', i)
             b = 3117 # elad_b = 3117
         
-        Radphot[i] = np.sum(Rad_obs[b:])
-        IEphot[i] = np.sum(IE_obs[b:])
-        OEphot[i] = np.sum(OE_obs[b:])
-        Rad_denphot[i] = np.sum(Rad_denobs[b:])
-        # print('radii from photo outside', R[idx][b:])
+        if what == 'sum':
+            Radphot[i] = np.sum(Rad_obs[b:])
+            IEphot[i] = np.sum(IE_obs[b:])
+            OEphot[i] = np.sum(OE_obs[b:])
+            Rad_denphot[i] = np.sum(Rad_denobs[b:])
+        else:
+            X_phot.append(xobs[b:])
+            Y_phot.append(yobs[b:])
+            Z_phot.append(zobs[b:])
+            Radphot.append(Rad_obs[b:])
+            Rad_denphot.append(Rad_denobs[b:])
         gc.collect()
 
     # Save red of the single snap
     if save:
-        data = [Radphot, IEphot, OEphot, Rad_denphot]
-        np.savetxt(f'{pre_saving}/convEnNOcut{check}_{snap}.txt', data)
+        if what == 'sum':
+            data = [Radphot, IEphot, OEphot, Rad_denphot]
+            np.savetxt(f'{pre_saving}/convEnNOcut{check}_{snap}.txt', data)
+        else:
+            np.save(f'{pre_saving}/Eradobs{check}_{snap}.npy', [X_phot, Y_phot, Z_phot, Radphot, Rad_denphot])
     eng.exit()
 
