@@ -28,7 +28,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'LowRes' 
-who = '' #'' or 'all' or 'RadRph'
+who = 'all' #'' or 'all' or 'RadRph'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True
@@ -76,7 +76,16 @@ for i,snap in enumerate(snaps):
     else: 
         boxH = box
         boxL = box
-
+    # consider the small box
+    xmin, ymin, zmin = np.max([box[0], boxL[0], boxH[0], -0.75*apo]), np.max([box[1], boxL[1], boxH[1]]), np.max([box[2], boxL[2], boxH[2]])
+    xmax, ymax, zmax = np.min([box[3], boxL[3], boxH[3]]), np.min([box[4], boxL[4], boxH[4]]), np.min([box[5], boxL[5], boxH[5]])
+    cutx = (X > xmin) & (X < xmax)
+    cuty = (Y > ymin) & (Y < ymax)
+    cutz = (Z > zmin) & (Z < zmax)
+    cut_coord = cutx & cuty & cutz
+    X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den = \
+        sec.make_slices([X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den], cut_coord)
+        
     Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
     vel = np.sqrt(np.power(VX, 2) + np.power(VY, 2) + np.power(VZ, 2))
     orb_en = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh)

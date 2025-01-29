@@ -56,7 +56,7 @@ alldata_ph = np.loadtxt(f'{pre_saving}/{check}{extr}_phidx_fluxes.txt')
 snaps_ph, alltimes_ph, allindices_ph = alldata_ph[:, 0], alldata_ph[:, 1], alldata_ph[:, 2:]
 snaps_ph = np.array(snaps_ph)
 
-snap = [267]
+snap = 267
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 
 print('\n Snapshot: ', snap, '\n')
