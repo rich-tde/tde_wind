@@ -45,7 +45,7 @@ check = 'HiRes'
 extr = 'rich'
 how = 'fromfld' #'justph' or 'fromfld'
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
-r_arr = np.logspace(1, np.log10(10*apo) , 1000)
+r_arr = np.logspace(10, np.log10(10*apo) , 100)
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre_saving = f'{abspath}/data/{folder}'
