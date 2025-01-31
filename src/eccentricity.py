@@ -101,7 +101,7 @@ if alice:
         np.save(f'{abspath}/data/{folder}/radiiEcc_{check}.npy', radii)
 
 else:
-    difference = False
+    difference = True
     ecc_crit = orb.eccentricity(Rstar, mstar, Mbh, beta)
 
     if not difference:
@@ -204,8 +204,10 @@ else:
         cb.set_label(r'$\Delta_{\rm rel}$ eccentricity', fontsize = 25)
         cb.ax.tick_params(labelsize=25)
 
-        ax3.plot(tfbL, medianL, c = 'orange', linestyle = '--', label = 'Low and Middle')
-        ax3.plot(tfbH, medianH, c = 'darkviolet', label = 'Middle and High')
+        ax3.plot(tfbL, medianL, c = 'yellowgreen')
+        ax3.plot(tfbL, medianL, c = 'darkorange', linestyle = (0, (5, 10)), label = 'Low and Middle')
+        ax3.plot(tfbH, medianH, c = 'yellowgreen')
+        ax3.plot(tfbH, medianH, c = 'darkviolet', linestyle = (0, (5, 10)), label = 'Middle and High')
         ax3.set_yscale('log')
         ax3.legend(fontsize = 20)
         ax3.set_ylabel(r'$\Delta_{\rm rel}$ eccentricity', fontsize = 25)
@@ -222,7 +224,6 @@ else:
                 ax.tick_params(axis='x', which='minor', width=1.2, length=5, color = 'white',)
                 ax.tick_params(axis='y', which='both', width=1.2, length=8, color = 'k')
         
-        plt.savefig(f'{abspath}/Figs/multiple/ecc_diff.pdf')
         plt.savefig(f'{abspath}/Figs/multiple/ecc_diff.png')
 
 # %%

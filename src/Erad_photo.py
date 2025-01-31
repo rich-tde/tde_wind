@@ -141,9 +141,10 @@ for j, r_plot in enumerate(r_arr):
             robs = np.sqrt(xobs**2 + yobs**2 + zobs**2)
             idx_r = np.abs(np.argmin(np.abs(robs - r_plot)))
             Rad_den_tot[j] += Rad_denobs[idx_r]
-            
             del xobs, yobs, zobs, Rad_denobs, robs
             gc.collect()
+    # in case it doesn't finish, you have the values printed
+    print(Rad_den_tot[j])
 
 eng.exit()
 

@@ -35,7 +35,7 @@ def grid_maker(path, snap, m, mstar, Rstar, x_num, y_num, z_num = 100):
     apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
     x_start = -7*apo#-1.2*apo
-    x_stop = 5*apo#40
+    x_stop = 2.5*apo#40
     xs = np.linspace(x_start, x_stop, num = x_num )
     y_start = -4*apo #-0.5 * apo 
     y_stop = 3*apo #0.5 * apo
@@ -87,6 +87,7 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
 if __name__ == '__main__':
     from src import orbits as orb
     save = True
+    compute = True
     
     m = 4
     Mbh = 10**m
@@ -104,20 +105,21 @@ if __name__ == '__main__':
     else:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-    if alice:
+    if compute:
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
         t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
 
         if save:
-            with open(f'{prepath}/data/{folder}/projection/time_proj.txt', 'a') as f:
+            with open(f'{prepath}/data/{folder}/projection/bigtime_proj.txt', 'a') as f:
                 f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
                 f.write(f'# t/t_fb (t_fb = {t_fall})\n' + ' '.join(map(str, tfb)) + '\n')
                 f.close()
         for snap in snaps:
-            if int(snap)!= 348:
-                continue
+            print(snap)
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+            else:
+                path = f'{prepath}/TDE/{folder}/{snap}'
             
             _, grid_den, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, x_num=800, y_num=800, z_num = 100)
             flat_den = projector(grid_den, x_radii, y_radii, z_radii)
@@ -138,7 +140,7 @@ if __name__ == '__main__':
         xcrt, ycrt, crt = orb.make_cfr(Rt)
 
         # Load and clean
-        snaps = [267]
+        snaps = [100, 237]
         for i, snap in enumerate(snaps):
             flat_den = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/bigdenproj{snap}.txt')
             flat_den *= prel.Msol_cgs/prel.Rsol_cgs**2
@@ -167,3 +169,6 @@ if __name__ == '__main__':
             plt.show()
             plt.close()
 
+#%%
+print(len(x_radii))
+# %%
