@@ -42,6 +42,7 @@ def keplerian_orbit(theta, a, Rp, ecc=1):
     return radius
 
 def semimajor_axis(Rstar, mstar, Mbh, G):
+    """ Semimajor axis of the most bound debris """
     E = energy_mb(Rstar, mstar, Mbh, G)
     a = G * Mbh / (2*E)
     return a
@@ -59,7 +60,7 @@ def eccentricity(Rstar, mstar, Mbh, beta):
     return ecc
 
 def energy_mb(Rstar, mstar, Mbh, G):
-    """ (Specific) energy of most bound debris """
+    """ Specific orbital energy of most bound debris """
     Rt = Rstar * (Mbh/mstar)**(1/3)
     En = G * Mbh * Rstar / Rt**2
     return En

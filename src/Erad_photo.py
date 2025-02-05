@@ -41,11 +41,11 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'LowRes' 
+check = 'HiRes' 
 extr = '' #'' if you use Konst new extr
 how = 'fromfld' #'justph' or 'fromfld'
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
-r_arr = np.logspace(10, np.log10(10*apo) , 100)
+r_arr = np.logspace(np.log10(10), np.log10(10*apo) , 100)
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 print(folder)
@@ -144,7 +144,10 @@ for j, r_plot in enumerate(r_arr):
             del xobs, yobs, zobs, Rad_denobs, robs
             gc.collect()
     # in case it doesn't finish, you have the values printed
-    print(Rad_den_tot[j])
+    print(Rad_den_tot[j], flush=False) 
+    sys.stdout.flush()
+    np.save(f'{pre_saving}/{check}{extr}{snap}_Radden_partial.npy', Rad_den_tot[:j+1])
+    np.save(f'{pre_saving}/{check}{extr}{snap}_R_Radden_partial.npy', r_arr[:j+1])
 
 eng.exit()
 

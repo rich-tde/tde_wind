@@ -111,7 +111,7 @@ plt.savefig(f'{abspath}/Figs/{folder}/photo_mean.png')
 
 try:
         print('exists')
-        data = np.loadtxt(f'{abspath}/data/{folder}/photo_mean.txt')
+        data = np.loadtxt(f'{abspath}/data/{folder}/photo_mean.txt', 'w')
 except:
         with open(f'{abspath}/data/{folder}/photo_mean.txt', 'a') as f:
                 f.write(f'# tfb, mean_rph,gmean,  weighted by flux\n')

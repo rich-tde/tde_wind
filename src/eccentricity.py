@@ -16,7 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Utilities.prelude
 import matplotlib.colors as colors
-from Utilities.operators import make_tree, single_branch
+from Utilities.operators import make_tree, single_branch, find_ratio
 import Utilities.sections as sec
 import src.orbits as orb
 from Utilities.selectors_for_snap import select_snap
@@ -101,10 +101,10 @@ if alice:
         np.save(f'{abspath}/data/{folder}/radiiEcc_{check}.npy', radii)
 
 else:
-    difference = True
+    error = True
     ecc_crit = orb.eccentricity(Rstar, mstar, Mbh, beta)
 
-    if not difference:
+    if not error:
         path = f'{abspath}/data/{folder}'
         ecc2 = np.load(f'{path}/Ecc2_{check}.npy') 
         ecc = np.sqrt(ecc2)
@@ -170,7 +170,7 @@ else:
         for i in range(len(eccL)):
             time = tfbL[i]
             idx = np.argmin(np.abs(tfb - time))
-            rel_diff_time_i = 2*np.abs(eccL[i] - ecc[idx]) / (eccL[i]+ecc[idx])
+            rel_diff_time_i = find_ratio(eccL[i], ecc[idx]) # 2*np.abs(eccL[i] - ecc[idx]) / (eccL[i]+ecc[idx])
             rel_diffL.append(rel_diff_time_i)
             medianL[i] = np.median(rel_diff_time_i)
         rel_diffH = []
@@ -178,7 +178,7 @@ else:
         for i in range(len(eccH)):
             time = tfbH[i]
             idx = np.argmin(np.abs(tfb - time))
-            rel_diff_time_i = 2*np.abs(eccH[i] - ecc[idx]) / (eccH[i]+ecc[idx])
+            rel_diff_time_i = find_ratio(eccH[i], ecc[idx]) #2*np.abs(eccH[i] - ecc[idx]) / (eccH[i]+ecc[idx])
             rel_diffH.append(rel_diff_time_i)
             medianH[i] = np.median(rel_diff_time_i)
 
@@ -189,14 +189,14 @@ else:
         ax2 = fig.add_subplot(gs[0, 1])  # Second plot
         ax3 = fig.add_subplot(gs[0, 2])  # Third plot
 
-        img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'inferno', norm = colors.LogNorm(vmin = 1e-3, vmax=1e-1))
+        img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'inferno', vmin = 0.9, vmax = 1.1)
         ax1.set_xscale('log')
-        ax1.text(0.35, 0.9*np.max(tfbL), 'Fid-Low', fontsize = 22, color = 'white')
+        ax1.text(0.3, .9*np.max(tfbL), 'Fid-Low', fontsize = 28, color = 'white')
         ax1.set_ylabel(r'$t [t_{fb}]$', fontsize = 25)
 
-        img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'inferno', norm = colors.LogNorm(vmin = 1e-3, vmax=1e-1))
+        img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'inferno', vmin = 0.9, vmax = 1.1)
         ax2.set_xscale('log')
-        ax2.text(0.35, 0.9*np.max(tfbH), 'Fid-High', fontsize = 22, color = 'white')
+        ax2.text(0.29, 0.9*np.max(tfbH), 'Fid-High', fontsize = 28, color = 'white')
 
         # Create a colorbar that spans the first two subplots
         cbar_ax = fig.add_subplot(gs[1, 0:2])  # Colorbar subplot below the first two
@@ -208,21 +208,19 @@ else:
         ax3.plot(tfbL, medianL, c = 'darkorange', linestyle = (0, (5, 10)), label = 'Low and Middle')
         ax3.plot(tfbH, medianH, c = 'yellowgreen')
         ax3.plot(tfbH, medianH, c = 'darkviolet', linestyle = (0, (5, 10)), label = 'Middle and High')
-        ax3.set_yscale('log')
-        ax3.legend(fontsize = 20)
         ax3.set_ylabel(r'$\Delta_{\rm rel}$ eccentricity', fontsize = 25)
         ax3.set_xlim(0.2, tfbL[-1])
-        ax3.set_ylim(3e-4, 0.1)
+        ax3.set_ylim(0.96, 1.07)
         ax3.grid()
 
         for ax in [ax1, ax2, ax3]:
-            ax.set_xlabel(r'$\rm t [t_{fb}]$', fontsize = 22)
-            ax.tick_params(labelsize=25)
+            ax.set_xlabel(r'$\rm t [t_{fb}]$', fontsize = 25)
+            ax.tick_params(labelsize=26)
             if ax!=ax3:
                 ax.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed')
-                ax.tick_params(axis='x', which='major', width=1.4, length=10, color = 'white',)
-                ax.tick_params(axis='x', which='minor', width=1.2, length=5, color = 'white',)
-                ax.tick_params(axis='y', which='both', width=1.2, length=8, color = 'k')
+                ax.tick_params(axis='x', which='major', width=1.4, length=11, color = 'k',)
+                ax.tick_params(axis='y', which='major', width=1.4, length=9, color = 'k',)
+                ax.tick_params(axis='x', which='minor', width=1.2, length=7, color = 'k',)
         
         plt.savefig(f'{abspath}/Figs/multiple/ecc_diff.png')
 

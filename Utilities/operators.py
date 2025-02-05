@@ -82,6 +82,18 @@ def sort_list(list_passive, leading_list):
         new_list.append(np.array(z))
     return new_list
 
+def find_ratio(L1, L2):
+    """ Find the ratio between the two lists."""
+    # if type(L1) != int: 
+    #     L1 = np.array(L1)
+    #     L2 = np.array(L2)
+    #     ratio = np.zeros(len(L1))
+    #     for i in range(len(L1)):
+    #         ratio[i] = max(np.abs(L1[i]), np.abs(L2[i]))/min(np.abs(L1[i]), np.abs(L2[i]))
+    # else:
+    ratio = max(np.abs(L1), np.abs(L2))/min(np.abs(L1), np.abs(L2))
+    return ratio
+
 # def median_array(points, window_size=7):
 #     n = len(points)
 #     half_window = window_size // 2
