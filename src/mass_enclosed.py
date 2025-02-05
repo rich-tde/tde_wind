@@ -1,5 +1,5 @@
-""" Find the mass enclosed in a sphere of radius R0"""
-
+""" If alice: Find the mass enclosed in a sphere of radius R0, Rt, a_mb, apo for all the snapshots.ù
+If local: check energy dissipation."""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 
@@ -8,7 +8,7 @@ alice, plot = isalice()
 if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
 else:
-    abspath = '/Users/paolamartire/shocks/'
+    abspath = '/Users/paolamartire/shocks'
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
@@ -37,24 +37,96 @@ Rp =  Rt / beta
 R0 = 0.6 * Rt
 a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
-
-snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
-
 Rcheck = np.array([R0, Rt, a_mb, apo])
-Mass_encl = np.zeros((len(snaps), len(Rcheck)))
-Mass_encl_cut = np.zeros((len(snaps), len(Rcheck)))
-for i,snap in enumerate(snaps):
-    print(snap)
-    path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-    data = make_tree(path, snap, energy = True)
-    mass, den = data.Mass, data.Den
-    Rsph = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
-    cut = den > 1e-19
-    mass_cut, Rsph_cut = mass[cut], Rsph[cut]
-    for j,R in enumerate(Rcheck):
-        Mass_encl[i,j] = np.sum(mass[Rsph < R])
-        Mass_encl_cut[i,j] = np.sum(mass_cut[Rsph_cut < R])
+tfallback = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2) #[days]
+tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
 
-np.savetxt(f'{abspath}/data/{folder}/{check}Mass_encl.txt', Mass_encl)
-np.savetxt(f'{abspath}/data/{folder}/{check}Mass_encl_cut.txt', Mass_encl_cut)
-np.savetxt(f'{abspath}/data/{folder}/{check}Mass_encl_time.txt', tfb)
+if alice:
+    snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
+
+    Mass_encl = np.zeros((len(snaps), len(Rcheck)))
+    Diss_encl = np.zeros((len(snaps), len(Rcheck)))
+    Mass_encl_cut = np.zeros((len(snaps), len(Rcheck)))
+    for i,snap in enumerate(snaps):
+        print(snap)
+        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+        data = make_tree(path, snap, energy = True)
+        mass, den, vol, diss = data.Mass, data.Den, data.Vol, data.Diss
+        Rsph = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
+        cut = den > 1e-19
+        mass_cut, Rsph_cut = mass[cut], Rsph[cut]
+        for j,R in enumerate(Rcheck):
+            Mass_encl[i,j] = np.sum(mass[Rsph < R])
+            Diss_encl[i,j] = np.sum(diss[Rsph < R] * vol[Rsph < R])
+            Mass_encl_cut[i,j] = np.sum(mass_cut[Rsph_cut < R])
+
+    np.savetxt(f'{abspath}/data/{folder}/{check}Mass_encl.txt', Mass_encl)
+    np.savetxt(f'{abspath}/data/{folder}/{check}Diss_encl.txt', Diss_encl)
+    np.savetxt(f'{abspath}/data/{folder}/{check}Mass_encl_cut.txt', Mass_encl_cut)
+    np.savetxt(f'{abspath}/data/{folder}/{check}Mass_encl_time.txt', tfb)
+
+else:
+    checks = ['LowRes', '', 'HiRes']
+    checklab = ['Low', 'Fid', 'High']
+    colorcheck = ['C1', 'yellowgreen', 'darkviolet']
+    tfb = np.loadtxt(f'{abspath}/data/{folder}/{check}Mass_encl_time.txt')
+    tfb_cgs = tfb * tfallback_cgs
+    Mass_encl = np.loadtxt(f'{abspath}/data/{folder}/{check}Mass_encl.txt')
+    Mass_encl = np.transpose(Mass_encl)
+    Mass_encl_diff = np.diff(Mass_encl, axis = 1)
+    Mdot = (Mass_encl_diff * prel.Msol_cgs) / np.diff(tfb_cgs)
+    Lacc = 0.05 * Mdot * prel.c_cgs**2
+    Diss_encl = np.loadtxt(f'{abspath}/data/{folder}/{check}Diss_encl.txt')
+    Diss_encl = (np.transpose(Diss_encl)) * prel.en_converter/prel.tsol_cgs
+    # Mass_encl_cut = np.loadtxt(f'{abspath}/data/{folder}/{check}Mass_encl_cut.txt')
+    # Mass_encl_cut = np.transpose(Mass_encl_cut)
+
+    ## Plot as Extended figure 3 in SteinbergStone24
+    plt.figure(figsize = (10, 7))
+    plt.plot(tfb, Mass_encl[0]/mstar, c = 'deepskyblue', linewidth = 2, label = r'$R = R_0$')
+    plt.plot(tfb, Mass_encl[1]/mstar, c = 'coral', linewidth = 2, label = r'$R = R_{\rm t}$')
+    plt.plot(tfb, Mass_encl[2]/mstar, c = 'mediumseagreen', linewidth = 2, label = r'$R = a_{\rm mb}$')
+    plt.plot(tfb, Mass_encl[3]/mstar, c = 'm', linewidth = 2, label = r'$R = R_{\rm a}$')
+    plt.ylabel(r'Mass enclosed $[M_\star]$')#, fontsize = 25)
+    plt.xlabel(r'$\rm t [t_{fb}]$')
+    plt.yscale('log')
+    plt.ylim(1e-7, 2)
+    plt.legend(fontsize = 15)
+    plt.grid()
+    plt.title('Fiducial', fontsize = 20)
+    plt.savefig(f'{abspath}/Figs/{folder}/mass_encl{check}.png', bbox_inches='tight')
+    
+    plt.figure(figsize = (10, 7))
+    plt.plot(tfb[1:], Lacc[0], c = 'deepskyblue', linewidth = 2, label = r'$\eta \dot{M}_{\rm encl}c^2$')
+    plt.plot(tfb, Diss_encl[0], c = 'coral', linewidth = 2, label = r'Diss')
+    plt.ylabel(r'L$_{\rm acc}$ [erg/s]')#, fontsize = 25)
+    plt.xlabel(r'$\rm t [t_{fb}]$')
+    plt.yscale('log')
+    # plt.ylim(1e-7, 2)
+    plt.legend(fontsize = 15)
+    plt.title(r'Inside $R_0$', fontsize = 20)
+    plt.grid()
+
+    plt.savefig(f'{abspath}/Figs/{folder}/Maccr_encl{check}.png', bbox_inches='tight')
+
+    # Resolutions test for R0
+    plt.figure()
+    for i, check in enumerate(checks):
+        tfb = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl_time.txt')
+        tfb_cgs = tfb * tfallback_cgs
+        Mass_encl = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl.txt')
+        Mass_encl = np.transpose(Mass_encl)
+        Mass_encl_diff = np.diff(Mass_encl, axis = 1)
+        Mdot = (Mass_encl_diff * prel.Msol_cgs) / np.diff(tfb_cgs)
+        Lacc = 0.05 * Mdot * prel.c_cgs**2
+        # Mass_encl_cut = np.loadtxt(f'{abspath}/data/{folder}/{check}Mass_encl_cut.txt')
+        # Mass_encl_cut = np.transpose(Mass_encl_cut)
+        plt.plot(tfb, Mass_encl[0]/mstar, c = colorcheck[i], linewidth = 2, label = f'{checklab[i]}')
+    
+    plt.ylabel(r'Mass enclosed $[M_\star]$ inside $R_0$')#, fontsize = 25)
+    plt.xlabel(r'$\rm t [t_{fb}]$')
+    plt.yscale('log')
+    plt.ylim(1e-9, 1e-3)
+    plt.legend(fontsize = 15)
+    plt.grid()
+    plt.savefig(f'{abspath}/Figs/multiple/Mass_encl.png', bbox_inches='tight')

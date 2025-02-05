@@ -101,7 +101,7 @@ if alice:
         np.save(f'{abspath}/data/{folder}/radiiEcc_{check}.npy', radii)
 
 else:
-    error = True
+    error = False
     ecc_crit = orb.eccentricity(Rstar, mstar, Mbh, beta)
 
     if not error:
@@ -121,8 +121,8 @@ else:
         cb.set_label(r'Eccentricity $[e_{\rm mb}]$', fontsize = 25, labelpad = 1)
         plt.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed')
         plt.xscale('log')
-        plt.xlabel(r'$R [R_{a}]$', fontsize = 25)
-        plt.ylabel(r'$t [t_{fb}]$', fontsize = 25)
+        plt.xlabel(r'$R [R_{a}]$')#, fontsize = 25)
+        plt.ylabel(r'$t [t_{fb}]$')#, fontsize = 25)
         # plt.text(0.5, 1.6, r'e$_{mb}$ = ' + f'{np.round(ecc_crit,2)}', fontsize = 20, color = 'k')
         # Bigger ticks:
         # Get the existing ticks on the x-axis
@@ -138,7 +138,7 @@ else:
         plt.tick_params(axis='y', which='major', width=1, length=8, color = 'white', labelsize=25)
         plt.tick_params(axis='x', which='minor', width=1, length=5, color = 'white', labelsize=25)
         plt.ylim(np.min(tfb), np.max(tfb))
-        plt.savefig(f'{abspath}/Figs/{folder}/ecc_norm.png')
+        plt.savefig(f'{abspath}/Figs/{folder}/ecc_norm.png', bbox_inches='tight')
     
     else:
         import matplotlib.gridspec as gridspec
@@ -191,37 +191,43 @@ else:
 
         img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'inferno', vmin = 0.9, vmax = 1.1)
         ax1.set_xscale('log')
-        ax1.text(0.3, .9*np.max(tfbL), 'Fid-Low', fontsize = 28, color = 'white')
-        ax1.set_ylabel(r'$t [t_{fb}]$', fontsize = 25)
+        ax1.text(0.29, .88*np.max(tfbL), 'Fid-Low', fontsize = 28, color = 'k')
+        ax1.set_ylabel(r'$t [t_{fb}]$')#, fontsize = 25)
 
         img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'inferno', vmin = 0.9, vmax = 1.1)
         ax2.set_xscale('log')
-        ax2.text(0.29, 0.9*np.max(tfbH), 'Fid-High', fontsize = 28, color = 'white')
+        ax2.text(0.28, 0.88*np.max(tfbH), 'Fid-High', fontsize = 28, color = 'k')
 
         # Create a colorbar that spans the first two subplots
         cbar_ax = fig.add_subplot(gs[1, 0:2])  # Colorbar subplot below the first two
         cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
         cb.set_label(r'$\Delta_{\rm rel}$ eccentricity', fontsize = 25)
         cb.ax.tick_params(labelsize=25)
+        # label with 3 decimals in the colorbar
+        cb.set_ticks([0.9, 0.95, 1, 1.05, 1.1])
+        cb.set_ticklabels(['0.9', '0.95', '1', '1.05', '1.1']) 
+        cb.ax.tick_params(width=1, length=11, color = 'k',)
 
-        ax3.plot(tfbL, medianL, c = 'yellowgreen')
-        ax3.plot(tfbL, medianL, c = 'darkorange', linestyle = (0, (5, 10)), label = 'Low and Middle')
-        ax3.plot(tfbH, medianH, c = 'yellowgreen')
-        ax3.plot(tfbH, medianH, c = 'darkviolet', linestyle = (0, (5, 10)), label = 'Middle and High')
-        ax3.set_ylabel(r'$\Delta_{\rm rel}$ eccentricity', fontsize = 25)
+        ax3.plot(tfbL, medianL, c = 'yellowgreen', linewidth = 4)
+        ax3.plot(tfbL, medianL, c = 'darkorange', linewidth = 4, linestyle = (0, (5, 10)), label = 'Low and Middle')
+        ax3.text(0.4, 1.03, 'Fid-Low', fontsize = 27, color = 'k')
+        ax3.plot(tfbH, medianH, c = 'yellowgreen', linewidth = 4)
+        ax3.plot(tfbH, medianH, c = 'darkviolet', linewidth = 4, linestyle = (0, (5, 10)), label = 'Middle and High')
+        ax3.text(0.4, 1.002, 'Fid-High', fontsize = 27, color = 'k')
+        ax3.set_ylabel(r'$\Delta_{\rm rel}$ eccentricity')#, fontsize = 25)
         ax3.set_xlim(0.2, tfbL[-1])
-        ax3.set_ylim(0.96, 1.07)
+        ax3.set_ylim(0.99, 1.05)
         ax3.grid()
 
         for ax in [ax1, ax2, ax3]:
             ax.set_xlabel(r'$\rm t [t_{fb}]$', fontsize = 25)
-            ax.tick_params(labelsize=26)
+            # ax.tick_params(labelsize=26)
             if ax!=ax3:
                 ax.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed')
                 ax.tick_params(axis='x', which='major', width=1.4, length=11, color = 'k',)
                 ax.tick_params(axis='y', which='major', width=1.4, length=9, color = 'k',)
                 ax.tick_params(axis='x', which='minor', width=1.2, length=7, color = 'k',)
         
-        plt.savefig(f'{abspath}/Figs/multiple/ecc_diff.png')
+        plt.savefig(f'{abspath}/Figs/multiple/ecc_diff.png', bbox_inches='tight')
 
 # %%
