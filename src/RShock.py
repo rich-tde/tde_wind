@@ -28,6 +28,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
+cut = '' # '' or 'cutCoord' or 'cutDenCoord'
 
 tfallback = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2) #[days]
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
@@ -54,9 +55,9 @@ def eta_from_R(Mbh, R_sh, const_G, const_c):
 
 ##
 # MAIN
-##
+#%%
 ph_data = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/photo_mean.txt')
-tfbRph, Rph = ph_data[0], ph_data[3]
+tfbRph, Rph = ph_data[0], ph_data[1]
 time_array_yr = np.linspace(1e-1,2, 100) # yr
 time_yr_cgs = time_array_yr * 365 * 24 * 3600 # converted to seconds
 
@@ -65,7 +66,6 @@ checkslegend = ['Low', 'Fid', 'High']
 colorslegend = ['C1', 'yellowgreen', 'darkviolet']
 
 # list of arrays. Each line contains the data for one resolution
-mfall_all_yr = []
 tfb_all = []
 mfall_all = []
 eta_shL_all = []
@@ -90,10 +90,9 @@ for j, check in enumerate(checks):
     bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
     dataLum = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{check}rich_red.csv', delimiter=',', dtype=float)
     snapsLum, tfbLum, Lum = dataLum[:, 0], dataLum[:, 1], dataLum[:, 2] 
-    dataDiss = np.loadtxt(f'{abspath}data/{folder}/Rdiss_{check}.txt')
+    dataDiss = np.loadtxt(f'{abspath}data/{folder}/Rdiss_{check}{cut}.txt')
     timeRDiss, RDiss, Eradtot, LDiss = dataDiss[0], dataDiss[1], dataDiss[2], dataDiss[3] 
     if check == 'LowRes':
-        print('here')
         timeRDiss = np.concatenate([timeRDiss[:127], timeRDiss[129:]])
         RDiss = np.concatenate([RDiss[:127], RDiss[129:]])
 
@@ -102,28 +101,11 @@ for j, check in enumerate(checks):
     Eradtot_all.append(Eradtot)
     LDiss_all.append(LDiss)
   
-    mfall_yr = np.zeros(len(time_yr_cgs))
     mfall = np.zeros(len(tfb_cgs))
     eta_sh = np.zeros(len(tfb_cgs))
     R_sh = np.zeros(len(tfb_cgs))
     eta_sh_diss = np.zeros(len(tfb_cgs))
     R_shDiss = np.zeros(len(tfb_cgs))
-    
-    # Fallback rate in a longer range of time
-    for i, t in enumerate(time_yr_cgs):
-        # convert to code units
-        tsol = t / prel.tsol_cgs
-        # Find the energy of the element at time t [all in code units]
-        energy = orb.keplerian_energy(Mbh, prel.G, tsol)
-        # Find the bin that corresponds to the energy of the element and its dMdE (in CGS)
-        i_bin = np.argmin(np.abs(energy-np.abs(bins_tokeep))) # just to be sure that you match the data
-        if energy/bins_tokeep[i_bin] > 2:
-            print('You do not match the data')
-        dMdE_t = dMdE_distr_tokeep[i_bin]
-        mdot = orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t)
-        mfall_yr[i] = mdot # code units
-
-    mfall_all_yr.append(mfall_yr)
 
     # compute Rshock and eta_shock in the simualtion time range
     for i, t in enumerate(tfb_cgs):
@@ -161,7 +143,7 @@ for j, check in enumerate(checks):
 # ratioDissL = find_ratio(RDiss_all[1][1:len(RDiss_all[2])+1], RDiss_all[2])
 Rlim_min = 1e11/(apo*prel.Rsol_cgs)
 Rlim_max = 1e16/(apo*prel.Rsol_cgs) 
-#%%
+#
 fig, ax1 = plt.subplots(1, 1, figsize=(10, 6))
 # fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(10, 10), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
 # ax0.plot(tfb_all[1][-90:], 1e-2*(tfb_all[1][-90:])**(-5/3), c = 'k', alpha = 0.5, linestyle = '--')
@@ -192,7 +174,7 @@ ax1.text(1.85, .4* amin/apo, r'$a_{\rm mb}$', fontsize = 20, color = 'k')
 ax1.plot(tfbRph, Rph/apo, color = 'k', label = r'$R_{\rm ph}$')
 # ax1.axhline(y=apo/apo, color = 'r', linestyle = 'dotted')
 # ax0.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 18)
-ax1.set_ylabel(r'$R [R_{\rm a}$]', fontsize = 18)
+ax1.set_ylabel(r'$R [R_{\rm a}$]')#, fontsize = 18)
 ax1.set_ylim(Rlim_min, Rlim_max)
 # Set primary y-axis ticks
 R_ticks = np.logspace(np.log10(Rlim_min), np.log10(Rlim_max), num=5)
@@ -205,106 +187,25 @@ etalim_min = eta_from_R(Mbh_cgs, Rlim_max*apo*prel.Rsol_cgs, prel.G_cgs, prel.c_
 etalim_max = eta_from_R(Mbh_cgs, Rlim_min*apo*prel.Rsol_cgs, prel.G_cgs, prel.c_cgs)
 ax2.set_yticks(eta_ticks)
 ax2.set_ylim(etalim_max, etalim_min)
-ax2.set_ylabel(r'$\eta_{\rm sh}$', fontsize = 18)
+ax2.set_ylabel(r'$\eta_{\rm sh}$')#, fontsize = 18)
 
-# original_ticks = ax1.get_xticks()
-# midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-# new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+original_ticks = ax1.get_xticks()
+midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
 for ax in [ax1, ax2]:
     ax.set_yscale('log')
-    ax.set_xlabel(r't [$t_{\rm fb}$]', fontsize = 20)
+    ax.set_xlabel(r't [$t_{\rm fb}$]')#, fontsize = 20)
     if ax!=ax2:
         ax.grid()
-        # ax.set_xticks(new_ticks)
-        # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-        # ax.set_xticklabels(labels)
+        ax.set_xticks(new_ticks)
+        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+        ax.set_xticklabels(labels)
         ax.tick_params(axis='x', which='major', width=0.7, length=7)
         ax.tick_params(axis='x', which='minor', width=0.5, length=5)
     ax.set_xlim(0, 2)
 ax1.legend(fontsize = 16, loc = 'upper right')
 
 plt.tight_layout()
-plt.savefig(f'{abspath}/Figs/multiple/Reta.pdf')
-plt.savefig(f'{abspath}/Figs/multiple/Reta.png')
+plt.savefig(f'{abspath}/Figs/multiple/Reta{cut}.pdf')
+plt.savefig(f'{abspath}/Figs/multiple/Reta{cut}.png')
 
-#%% Which light 
-Lc = []
-tLc = []
-dataL = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes/LowResrich_red.csv', delimiter=',', dtype=float)
-data = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/rich_red.csv', delimiter=',', dtype=float)
-dataH = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes/HiResrich_red.csv', delimiter=',', dtype=float)
-tLc.append(dataL[:, 1])
-tLc.append(data[:, 1])
-tLc.append(dataH[:, 1]) 
-Lc.append(dataL[:, 2])
-Lc.append(data[:, 2])
-Lc.append(dataH[:, 2])
-t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
-t_fall_cgs = t_fall * 24 * 3600
-
-fig, ax = plt.subplots(3,1,figsize=(12, 10))
-for i in range(len(checks)):
-    Lumrad_i = Eradtot_all[i]*prel.en_converter/(timeRDiss_all[i]*t_fall_cgs) # [erg/s]
-    Lc[i], tLc[i] = sort_list([Lc[i], tLc[i]], tLc[i])
-    if i == 2:
-        ax[i].plot(timeRDiss_all[i], LDiss_all[i]*prel.en_converter/prel.tsol_cgs, color = colorslegend[i], label = r'E$_{\rm diss}$')
-        ax[i].plot(tLc[i], Lc[i], label = 'Light curve', color = colorslegend[i], linestyle = '--') 
-        ax[i].plot(timeRDiss_all[i], Lumrad_i, color = colorslegend[i], linestyle = '-.', label = r'$\Sigma (u_{rad}V)/t$')
-    else:
-        ax[i].plot(timeRDiss_all[i], LDiss_all[i]*prel.en_converter/prel.tsol_cgs, color = colorslegend[i])
-        ax[i].plot(tLc[i], Lc[i], color = colorslegend[i], linestyle = '--') 
-        ax[i].plot(timeRDiss_all[i], Lumrad_i, color = colorslegend[i], linestyle = '-.')
-ax[2].set_xlabel(r't [$t_{\rm fb}$]', fontsize = 20)
-for i in range(3):
-    ax[i].set_ylabel(r'Luminosity [erg/s]', fontsize = 20)
-    ax[i].set_yscale('log')
-    ax[i].set_title(checkslegend[i], fontsize = 20)
-    ax[i].set_xlim(0, 1.8)
-plt.legend(fontsize = 20)
-plt.tight_layout()
-plt.savefig(f'{abspath}/Figs/multiple/LCDiss.png')
-
-# %% Investigate what happens in the drop of Low res (snap 208)
-from Utilities.sections import make_slices
-from Utilities.time_extractor import days_since_distruption
-snapsLow = [207, 208, 209]
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes'
-
-fig, ax = plt.subplots(len(snapsLow), 2, figsize=(30, 15))
-for i, snap in enumerate(snapsLow):
-    path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
-    time = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
-    X = np.load(f'{path}/CMx_{snap}.npy')
-    Y = np.load(f'{path}/CMy_{snap}.npy')
-    Z = np.load(f'{path}/CMz_{snap}.npy')
-    Vol = np.load(f'{path}/Vol_{snap}.npy')
-    Den = np.load(f'{path}/Den_{snap}.npy')
-    Diss_den = np.load(f'{path}/Diss_{snap}.npy')
-    Diss = np.abs(Diss_den) * Vol
-    # make cut in density
-    cutden = Den > 1e-19
-    x_cut, y_cut, z_cut, den_cut, vol_cut, diss_cut = \
-        make_slices([X, Y, Z, Den, Vol,  Diss], cutden)
-    mid = np.abs(z_cut) < vol_cut**(1/3)
-    x_mid, y_mid, z_mid, den_mid, vol_mid, diss_mid = \
-        make_slices([x_cut, y_cut, z_cut, den_cut, vol_cut, diss_cut], mid)
-    
-    img = ax[i][0].scatter(x_mid/apo, y_mid/apo, c = den_mid, cmap = 'viridis', s = 2,
-                        norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-3))
-    cb = plt.colorbar(img)
-    cb.set_label(r'Density$ [M_\odot/R_\odot^3]$', fontsize = 20)
-
-    img = ax[i][1].scatter(x_mid/apo, y_mid/apo, c = diss_mid*prel.en_converter/prel.tsol_cgs, cmap = 'cet_fire', s = 2,
-                        norm = colors.LogNorm(vmin = 1e36, vmax = 1e38))
-    cb = plt.colorbar(img)
-    cb.set_label(r'E$_{diss}$ [erg/s]', fontsize = 20)
-    ax[i][0].text(-1.15, -0.4, f't = {np.round(time,3)}' + r't$_{fb}$', fontsize = 25)
-    ax[i][0].set_ylabel('Y [R$_a$]')
-    for j in range(2):
-        ax[i][j].set_xlim(-1.2, 0.2)
-        ax[i][j].set_ylim(-0.5, 0.5)
-        ax[2][j].set_xlabel('X [$R_a$]') 
-plt.tight_layout()
-plt.savefig(f'{abspath}/Figs/{folder}/checkDiss.png')
-
-# %%

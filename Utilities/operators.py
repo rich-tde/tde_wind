@@ -298,6 +298,18 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix):
 
     return casted_array
 
+def calc_deriv(x, y):
+    """ calculate the derivative of y with respect to x using the point before and after"""
+    dy = y[2:] - y[:-2]
+    dx = x[2:] - x[:-2]
+    deriv_mid = dy / dx
+    # add the first and last point
+    deriv = np.zeros(len(x))
+    deriv[1:-1] = deriv_mid
+    deriv[0] = (y[1] - y[0]) / (x[1] - x[0])
+    deriv[-1] = (y[-1] - y[-2]) / (x[-1] - x[-2])
+    return deriv
+
 def select_near_1d(sim_tree, X, Y, Z, point, delta, coord):
     """ Find (within the tree) the nearest cell along one direction to the one chosen. 
      Parameters

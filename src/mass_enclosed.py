@@ -14,7 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import Utilities.prelude as prel
-from Utilities.operators import make_tree
+from Utilities.operators import make_tree, calc_deriv
 from Utilities.selectors_for_snap import select_snap
 import src.orbits as orb
 
@@ -32,6 +32,9 @@ compton = 'Compton'
 check = ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
+##
+# MAIN
+##
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 R0 = 0.6 * Rt
@@ -69,47 +72,55 @@ else:
     checks = ['LowRes', '', 'HiRes']
     checklab = ['Low', 'Fid', 'High']
     colorcheck = ['C1', 'yellowgreen', 'darkviolet']
-    tfb = np.loadtxt(f'{abspath}/data/{folder}/{check}Mass_encl_time.txt')
-    tfb_cgs = tfb * tfallback_cgs
-    Mass_encl = np.loadtxt(f'{abspath}/data/{folder}/{check}Mass_encl.txt')
-    Mass_encl = np.transpose(Mass_encl)
-    Mass_encl_diff = np.diff(Mass_encl, axis = 1)
-    Mdot = (Mass_encl_diff * prel.Msol_cgs) / np.diff(tfb_cgs)
-    Lacc = 0.05 * Mdot * prel.c_cgs**2
-    Diss_encl = np.loadtxt(f'{abspath}/data/{folder}/{check}Diss_encl.txt')
-    Diss_encl = (np.transpose(Diss_encl)) * prel.en_converter/prel.tsol_cgs
-    # Mass_encl_cut = np.loadtxt(f'{abspath}/data/{folder}/{check}Mass_encl_cut.txt')
-    # Mass_encl_cut = np.transpose(Mass_encl_cut)
 
     ## Plot as Extended figure 3 in SteinbergStone24
-    plt.figure(figsize = (10, 7))
-    plt.plot(tfb, Mass_encl[0]/mstar, c = 'deepskyblue', linewidth = 2, label = r'$R = R_0$')
-    plt.plot(tfb, Mass_encl[1]/mstar, c = 'coral', linewidth = 2, label = r'$R = R_{\rm t}$')
-    plt.plot(tfb, Mass_encl[2]/mstar, c = 'mediumseagreen', linewidth = 2, label = r'$R = a_{\rm mb}$')
-    plt.plot(tfb, Mass_encl[3]/mstar, c = 'm', linewidth = 2, label = r'$R = R_{\rm a}$')
-    plt.ylabel(r'Mass enclosed $[M_\star]$')#, fontsize = 25)
-    plt.xlabel(r'$\rm t [t_{fb}]$')
-    plt.yscale('log')
-    plt.ylim(1e-7, 2)
-    plt.legend(fontsize = 15)
-    plt.grid()
-    plt.title('Fiducial', fontsize = 20)
-    plt.savefig(f'{abspath}/Figs/{folder}/mass_encl{check}.png', bbox_inches='tight')
+    fig, ax = plt.subplots(1,3, figsize = (18, 5))
+    for i, check in enumerate(checks):
+        tfb = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl_time.txt')
+        tfb_cgs = tfb * tfallback_cgs
+        Mass_encl = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl.txt')
+        Mass_encl = np.transpose(Mass_encl)
+        # Mass_encl_cut = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl_cut.txt')
+        # Mass_encl_cut = np.transpose(Mass_encl_cut)
+        ax[i].plot(tfb, Mass_encl[0]/mstar, c = 'deepskyblue', linewidth = 2, label = r'$R = R_0$')
+        ax[i].plot(tfb, Mass_encl[1]/mstar, c = 'coral', linewidth = 2, label = r'$R = R_{\rm t}$')
+        ax[i].plot(tfb, Mass_encl[2]/mstar, c = 'mediumseagreen', linewidth = 2, label = r'$R = a_{\rm mb}$')
+        ax[i].plot(tfb, Mass_encl[3]/mstar, c = 'm', linewidth = 2, label = r'$R = R_{\rm a}$')
+        ax[i].set_xlabel(r'$\rm t [t_{fb}]$')
+        ax[i].set_yscale('log')
+        ax[i].set_ylim(1e-7, 2)
+        ax[i].grid()
+        ax[i].set_title(f'{checklab[i]}', fontsize = 20)
+    ax[0].legend(fontsize = 15)
+    ax[0].set_ylabel(r'Mass enclosed $[M_\star]$', fontsize = 20)
+    plt.tight_layout()
+    plt.savefig(f'{abspath}/Figs/multiple/mass_encl_all.png', bbox_inches='tight')
     
-    plt.figure(figsize = (10, 7))
-    plt.plot(tfb[1:], Lacc[0], c = 'deepskyblue', linewidth = 2, label = r'$\eta \dot{M}_{\rm encl}c^2$')
-    plt.plot(tfb, Diss_encl[0], c = 'coral', linewidth = 2, label = r'Diss')
-    plt.ylabel(r'L$_{\rm acc}$ [erg/s]')#, fontsize = 25)
-    plt.xlabel(r'$\rm t [t_{fb}]$')
-    plt.yscale('log')
-    # plt.ylim(1e-7, 2)
-    plt.legend(fontsize = 15)
-    plt.title(r'Inside $R_0$', fontsize = 20)
-    plt.grid()
+    fig, ax = plt.subplots(1,3, figsize = (20, 5))
+    for i, check in enumerate(checks):
+        tfb = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl_time.txt')
+        tfb_cgs = tfb * tfallback_cgs
+        Mass_encl = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl.txt')
+        Mass_encl = np.transpose(Mass_encl)
+        Mdot0 = calc_deriv(tfb_cgs, Mass_encl[0]) * prel.Msol_cgs 
+        Lacc0 = 0.05 * Mdot0 * prel.c_cgs**2
+        Diss_encl = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Diss_encl.txt')
+        Diss_encl = (np.transpose(Diss_encl)) * prel.en_converter/prel.tsol_cgs
+        # Mass_encl_cut = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl_cut.txt')
+        # Mass_encl_cut = np.transpose(Mass_encl_cut)
+        ax[i].scatter(tfb, Lacc0, c = 'deepskyblue', s = 5, label = r'$\eta \dot{M}_{\rm encl}c^2$')
+        ax[i].scatter(tfb, Diss_encl[0], c = 'coral', s = 5, label = r'Diss')
+        ax[i].set_xlabel(r'$\rm t [t_{fb}]$')
+        ax[i].set_yscale('log')
+        ax[i].set_ylim(1e37, 1e44)
+        ax[i].set_title(r'Inside $R_0$, ' + f'res: {checklab[i]}', fontsize = 20)
+        ax[i].grid()
 
-    plt.savefig(f'{abspath}/Figs/{folder}/Maccr_encl{check}.png', bbox_inches='tight')
+    ax[0].set_ylabel(r'L$_{\rm acc}$ [erg/s]')#, fontsize = 25)
+    ax[0].legend(fontsize = 15)
+    plt.savefig(f'{abspath}/Figs/multiple/Maccr_encl.png', bbox_inches='tight')
 
-    # Resolutions test for R0
+    #%% Resolutions test for R0
     plt.figure()
     for i, check in enumerate(checks):
         tfb = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl_time.txt')
@@ -126,7 +137,9 @@ else:
     plt.ylabel(r'Mass enclosed $[M_\star]$ inside $R_0$')#, fontsize = 25)
     plt.xlabel(r'$\rm t [t_{fb}]$')
     plt.yscale('log')
-    plt.ylim(1e-9, 1e-3)
+    plt.ylim(1e-9, 1e-4)
     plt.legend(fontsize = 15)
     plt.grid()
     plt.savefig(f'{abspath}/Figs/multiple/Mass_encl.png', bbox_inches='tight')
+
+# %%
