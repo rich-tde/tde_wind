@@ -23,7 +23,7 @@ import scipy.integrate as sci
 from scipy.interpolate import griddata
 import matlab.engine
 from sklearn.neighbors import KDTree
-from src.Opacity.linextrapolator import nouveau_rich, rich_extrapolator
+from src.Opacity.linextrapolator import nouveau_rich
 from scipy.ndimage import uniform_filter1d
 
 
@@ -45,7 +45,6 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'LowRes' # '' or 'HiRes'
-extr = 'nouvrich' #'rich' or ''
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True

@@ -26,7 +26,7 @@ import healpy as hp
 import scipy.integrate as sci
 from scipy.interpolate import griddata
 from sklearn.neighbors import KDTree
-from src.Opacity.linextrapolator import nouveau_rich, rich_extrapolator
+from src.Opacity.linextrapolator import nouveau_rich
 
 
 import Utilities.prelude as prel
@@ -47,7 +47,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'LowRes' 
-extr = 'nouvrich'
+# extr = 'nouvrich'
 how = 'fromfld' #'justph' or 'fromfld'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -55,7 +55,7 @@ pre_saving = f'{abspath}/data/{folder}'
 if how == 'fromfld':
     # Load the data
     # alldata_ph = np.loadtxt(f'{pre_saving}/{check}{extr}_phidx.txt')
-    alldata_ph = np.loadtxt(f'{pre_saving}/{check}{extr}_phidx_fluxes.txt')
+    alldata_ph = np.loadtxt(f'{pre_saving}/{check}_phidx_fluxes.txt')
     snaps_ph, alltimes_ph, allindices_ph = alldata_ph[:, 0], alldata_ph[:, 1], alldata_ph[:, 2:]
     snaps_ph = np.array(snaps_ph)
 
@@ -74,10 +74,9 @@ T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 
-if extr == 'nouvrich':
-    T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland)
-if extr == 'rich':
-    T_cool2, Rho_cool2, rossland2 = rich_extrapolator(T_cool, Rho_cool, rossland)
+T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland)
+# if extr == 'rich':
+#     T_cool2, Rho_cool2, rossland2 = rich_extrapolator(T_cool, Rho_cool, rossland)
 
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 
@@ -288,7 +287,7 @@ for idx_s, snap in enumerate(snaps):
         Rad = np.multiply(Rad_den, vol)
         xph, yph, zph, volph, denph, Tempph, Radph = make_slices([x, y, z, vol, den, Temp, Rad], single_indices_ph)
         # save the photosphere
-        with open(f'{pre_saving}/photo/{extr}{check}_photo{snap}.txt', 'a') as f:
+        with open(f'{pre_saving}/photo/{check}_photo{snap}.txt', 'a') as f:
             f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph, Radph (radiation energy NOT density) \n')
             f.write(' '.join(map(str, xph)) + '\n')
             f.write(' '.join(map(str, yph)) + '\n')
