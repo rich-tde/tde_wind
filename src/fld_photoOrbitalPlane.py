@@ -27,7 +27,7 @@ from scipy.ndimage import uniform_filter1d
 
 
 import Utilities.prelude as prel
-from Utilities.operators import make_tree
+from Utilities.operators import Ryan_sampler
 # from Utilities.parser import parse
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
@@ -37,6 +37,7 @@ def generate_orbital_observers(num_observers, radius=1):
     Generates `num_observers` points in a circular distribution in the orbital plane (xy-plane).
     """
     angles = np.linspace(0, 2 * np.pi, num_observers, endpoint=False)  # Evenly spaced angles
+    angles = Ryan_sampler(angles)
     x = radius * np.cos(angles)
     y = radius * np.sin(angles)
     z = np.zeros_like(x)  # All points in the xy-plane

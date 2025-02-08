@@ -47,7 +47,6 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'LowRes' 
-# extr = 'nouvrich'
 how = 'fromfld' #'justph' or 'fromfld'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -55,7 +54,7 @@ pre_saving = f'{abspath}/data/{folder}'
 if how == 'fromfld':
     # Load the data
     # alldata_ph = np.loadtxt(f'{pre_saving}/{check}{extr}_phidx.txt')
-    alldata_ph = np.loadtxt(f'{pre_saving}/{check}_phidx_fluxes.txt')
+    alldata_ph = np.loadtxt(f'{pre_saving}/{check}_phidx_fluxes.txt') 
     snaps_ph, alltimes_ph, allindices_ph = alldata_ph[:, 0], alldata_ph[:, 1], alldata_ph[:, 2:]
     snaps_ph = np.array(snaps_ph)
 
