@@ -117,11 +117,10 @@ for idx_s, snap in enumerate(snaps):
     # Example: 100 observers in a circular orbit
     observers_xyz = generate_orbital_observers(100, radius=1.0)
     # Line 17, * is matrix multiplication, ' is .T
-    observers_xyz = np.array(observers_xyz).T
+    observers_xyz = np.array(observers_xyz)
     cross_dot = np.matmul(observers_xyz,  observers_xyz.T)
     cross_dot[cross_dot<0] = 0
-    cross_dot *= 4/len(observers_xyz.T)
-    print(len(observers_xyz.T), prel.NPIX)
+    cross_dot *= 4/len(observers_xyz)
 
     # Tree ----------------------------------------------------------------------
     #from scipy.spatial import KDTree
@@ -129,12 +128,12 @@ for idx_s, snap in enumerate(snaps):
     N_ray = 5_000
 
     # Dynamic Box -----------------------------------------------------------------
-    reds = np.zeros(len(observers_xyz.T))
+    reds = np.zeros(len(observers_xyz))
     ## just to check photosphere
-    ph_idx = np.zeros(len(observers_xyz.T))
-    fluxes = np.zeros(len(observers_xyz.T))
+    ph_idx = np.zeros(len(observers_xyz))
+    fluxes = np.zeros(len(observers_xyz))
     ##
-    for i in range(len(observers_xyz.T)):
+    for i in range(len(observers_xyz)):
         # Progress 
         print(f'Snap: {snap}, Obs: {i}', flush=False)
         sys.stdout.flush()
