@@ -120,8 +120,8 @@ for idx_s, snap in enumerate(snaps):
     observers_xyz = np.array(observers_xyz).T
     cross_dot = np.matmul(observers_xyz,  observers_xyz.T)
     cross_dot[cross_dot<0] = 0
-    cross_dot *= 4/len(observers_xyz)
-    print(len(observers_xyz), prel.NPIX)
+    cross_dot *= 4/len(observers_xyz.T)
+    print(len(observers_xyz.T), prel.NPIX)
 
     # Tree ----------------------------------------------------------------------
     #from scipy.spatial import KDTree
@@ -129,12 +129,12 @@ for idx_s, snap in enumerate(snaps):
     N_ray = 5_000
 
     # Dynamic Box -----------------------------------------------------------------
-    reds = np.zeros(len(observers_xyz))
+    reds = np.zeros(len(observers_xyz.T))
     ## just to check photosphere
-    ph_idx = np.zeros(len(observers_xyz))
-    fluxes = np.zeros(len(observers_xyz))
+    ph_idx = np.zeros(len(observers_xyz.T))
+    fluxes = np.zeros(len(observers_xyz.T))
     ##
-    for i in range(len(observers_xyz)):
+    for i in range(len(observers_xyz.T)):
         # Progress 
         print(f'Snap: {snap}, Obs: {i}', flush=False)
         sys.stdout.flush()
