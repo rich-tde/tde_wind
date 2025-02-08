@@ -81,8 +81,6 @@ T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland)
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 
 for idx_s, snap in enumerate(snaps):
-    if int(snap) not in np.arange(81, 268, 40):
-        continue
     print('\n Snapshot: ', snap, '\n')
     if how == 'justph':
         eng = matlab.engine.start_matlab()
