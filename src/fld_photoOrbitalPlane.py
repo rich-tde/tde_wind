@@ -1,5 +1,5 @@
-""" FLD curve accoring to Elad's script. 
-Written to be run on alice."""
+""" Find photosphere following FLD curve Elad's script. 
+Just for the orbital plane, no Helapix."""
 from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
@@ -17,27 +17,24 @@ warnings.filterwarnings('ignore')
 import csv
 
 import numpy as np
-# import h5py
 import scipy.integrate as sci
 from scipy.interpolate import griddata
 import matlab.engine
 from sklearn.neighbors import KDTree
-from src.Opacity.linextrapolator import nouveau_rich
 from scipy.ndimage import uniform_filter1d
-
-
 import Utilities.prelude as prel
-from Utilities.operators import Ryan_sampler
-# from Utilities.parser import parse
+import scipy.integrate as spi
+import scipy.optimize as spo
+from src.Opacity.linextrapolator import nouveau_rich
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
 
 def generate_orbital_observers(num_observers, radius=1):
     """
-    Generates `num_observers` points in a circular distribution in the orbital plane (xy-plane).
+    Generates `num_observers` points in a circular distribution in the orbital plane (xy-plane). 
+    They are evenly spaced in angle.
     """
     angles = np.linspace(0, 2 * np.pi, num_observers, endpoint=False)  # Evenly spaced angles
-    angles = Ryan_sampler(angles)
     x = radius * np.cos(angles)
     y = radius * np.sin(angles)
     z = np.zeros_like(x)  # All points in the xy-plane
@@ -45,8 +42,46 @@ def generate_orbital_observers(num_observers, radius=1):
     observers_xyz = np.vstack((x, y, z)).T  # Stack into (N, 3) format
     return observers_xyz
 
+def generate_parabolic_observers(num_observers, x_min=-1, x_max=1):
+    """
+    Generates `num_observers` points evenly spaced along the arc length of the parabola y = x^2.
 
-#%% Choose parameters -----------------------------------------------------------------
+    Parameters:
+    - num_observers: Number of observer points to generate.
+    - x_min, x_max: Range of the parabola to sample points from.
+
+    Returns:
+    - observers_xyz: (num_observers, 3) array of points in 3D space (x, y, z).
+    """
+    def parabola(x):
+        return x**2
+
+    def arc_length_integrand(x):
+        return np.sqrt(1 + (2*x)**2)  # sqrt(1 + (dy/dx)^2)
+
+    # Compute total arc length from x_min to x_max
+    total_arc_length, _ = spi.quad(arc_length_integrand, x_min, x_max)
+
+    # Generate evenly spaced arc-length values
+    s_values = np.linspace(0, total_arc_length, num_observers)
+
+    # Function to map arc length to x-value
+    def arc_length_to_x(target_s):
+        return spo.root_scalar(lambda x: spi.quad(arc_length_integrand, x_min, x)[0] - target_s, 
+                               bracket=[x_min, x_max]).root
+
+    # Compute x-values for evenly spaced arc lengths
+    x_values = np.array([arc_length_to_x(s) for s in s_values])
+    y_values = parabola(x_values)
+    z_values = np.zeros_like(x_values)  # Observers lie in the xy-plane
+
+    # Stack into (N, 3) format
+    observers_xyz = np.vstack((x_values, y_values, z_values)).T
+    return observers_xyz
+
+##
+# MAIN
+##
 save = True
 
 m = 4
@@ -116,7 +151,8 @@ for idx_s, snap in enumerate(snaps):
     R = np.sqrt(X**2 + Y**2 + Z**2)
     # Cross dot -----------------------------------------------------------------
     # Example: 100 observers in a circular orbit
-    observers_xyz = generate_orbital_observers(100, radius=1.0)
+    # observers_xyz = generate_orbital_observers(100, radius=1.0)
+    observers_xyz = generate_parabolic_observers(200, x_min=-1, x_max=1)
     # Line 17, * is matrix multiplication, ' is .T
     observers_xyz = np.array(observers_xyz)
     cross_dot = np.matmul(observers_xyz,  observers_xyz.T)
@@ -268,15 +304,14 @@ for idx_s, snap in enumerate(snaps):
     # Save red of the single snap
     if save:
         pre_saving = f'{abspath}/data/{folder}'
-
-        ## just to check photosphere
         time_rph = np.concatenate([[snap,tfb[idx_s]], ph_idx])
         time_fluxes = np.concatenate([[snap,tfb[idx_s]], fluxes])
-        with open(f'{pre_saving}/{check}_phidx_fluxes_OrbPl.txt', 'a') as fileph:
+        with open(f'{pre_saving}/{check}_phidx_fluxes_OrbPl200.txt', 'a') as fileph:
             fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
             fileph.write(' '.join(map(str, time_rph)) + '\n')
             fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes [cgs] for each obs \n')
             fileph.write(' '.join(map(str, time_fluxes)) + '\n')
             fileph.close()
-        ##
+        # save observers position
+        np.save(f'{pre_saving}/{check}_observers200_{snap}', observers_xyz)
 eng.exit()
