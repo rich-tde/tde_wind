@@ -31,7 +31,6 @@ params = [Mbh, Rstar, mstar, beta]
 snap = '164'
 snaps_cdf = [164, 199, 267]
 compton = 'Compton'
-extr = 'rich'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 path = f'{abspath}/TDE/{folder}/{snap}'
@@ -127,11 +126,13 @@ plt.savefig(f'{abspath}/Figs/{folder}/photo_means.png')
 
 try:
         print('exists')
-        data = np.loadtxt(f'{abspath}/data/{folder}/photo_mean.txt', 'w')
-except:
-        with open(f'{abspath}/data/{folder}/photo_mean.txt', 'a') as f:
-                f.write(f'# tfb, mean_rph,gmean,  weighted by flux\n')
+        data = np.loadtxt(f'{abspath}/data/{folder}/photo_stat.txt')
+except NameError:
+        print('save')
+        with open(f'{abspath}/data/{folder}/photo_stat.txt', 'a') as f:
+                f.write(f'# tfb, median_ph, mean_rph, gmean, weighted by flux\n')
                 f.write(' '.join(map(str, tfb)) + '\n')
+                f.write(' '.join(map(str, median_ph)) + '\n')
                 f.write(' '.join(map(str, mean_rph)) + '\n')
                 f.write(' '.join(map(str, gmean_ph)) + '\n')
                 f.write(' '.join(map(str, mean_rph_weig)) + '\n')
@@ -151,7 +152,7 @@ for i, snap in enumerate(snaps_phL):
 tfbL = np.sort(np.unique(tfbL))
 snapsL = np.sort(np.unique(snapsL))
 
-ph_dataH = np.loadtxt(f'{abspath}/data/{folder}HiRes/HiRes{extr}_phidx_fluxes.txt')
+ph_dataH = np.loadtxt(f'{abspath}/data/{folder}HiRes/HiRes_phidx_fluxes.txt')
 snapsH, tfbH, allindices_phH = ph_dataH[:, 0].astype(int), ph_dataH[:, 1], ph_dataH[:, 2:]
 snaps_phH = np.arange(np.min(snapsH), np.max(snapsH)+1)
 fluxesH = []
@@ -255,10 +256,14 @@ for i, chosen_snap in enumerate(snaps_cdf):
         xph, yph, zph = photo[0], photo[1], photo[2] 
         rph = np.sqrt(xph**2 + yph**2 + zph**2)
         rph_weig = rph*fluxes[chosen_idx]/np.sum(fluxes[chosen_idx])
+        time = tfb[np.argmin(np.abs(snapsL - chosen_snap))]
+        chosen_idx = np.argmin(np.abs(snapsL - chosen_snap))
         photoL = np.loadtxt(f'{abspath}/data/{folder}LowRes/photo/LowRes_photo{chosen_snap}.txt')
         xphL, yphL, zphL = photoL[0], photoL[1], photoL[2]
         rphL = np.sqrt(xphL**2 + yphL**2 + zphL**2)
         rphL_weig = rphL * fluxesL[chosen_idx]/np.sum(fluxesL[chosen_idx])
+        time = tfb[np.argmin(np.abs(snapsH - chosen_snap))]
+        chosen_idx = np.argmin(np.abs(snapsH - chosen_snap))
         photoH = np.loadtxt(f'{abspath}/data/{folder}HiRes/photo/HiRes_photo{chosen_snap}.txt')
         xphH, yphH, zphH = photoH[0], photoH[1], photoH[2]
         rphH = np.sqrt(xphH**2 + yphH**2 + zphH**2)
@@ -328,10 +333,14 @@ for i, chosen_snap in enumerate(snaps_cdf):
         xph, yph, zph = photo[0], photo[1], photo[2] 
         rph = np.sqrt(xph**2 + yph**2 + zph**2)
         rph_weig = rph*fluxes[chosen_idx]/np.sum(fluxes[chosen_idx])
+        time = tfb[np.argmin(np.abs(snapsL - chosen_snap))]
+        chosen_idx = np.argmin(np.abs(snapsL - chosen_snap))
         photoL = np.loadtxt(f'{abspath}/data/{folder}LowRes/photo/LowRes_photo{chosen_snap}.txt')
         xphL, yphL, zphL = photoL[0], photoL[1], photoL[2]
         rphL = np.sqrt(xphL**2 + yphL**2 + zphL**2)
         rphL_weig = rphL * fluxesL[chosen_idx]/np.sum(fluxesL[chosen_idx])
+        time = tfb[np.argmin(np.abs(snapsH - chosen_snap))]
+        chosen_idx = np.argmin(np.abs(snapsH - chosen_snap))
         photoH = np.loadtxt(f'{abspath}/data/{folder}HiRes/photo/HiRes_photo{chosen_snap}.txt')
         xphH, yphH, zphH = photoH[0], photoH[1], photoH[2]
         rphH = np.sqrt(xphH**2 + yphH**2 + zphH**2)
@@ -371,10 +380,14 @@ for i, chosen_snap in enumerate(snaps_cdf):
         xph, yph, zph = photo[0], photo[1], photo[2] 
         rph = np.sqrt(xph**2 + yph**2 + zph**2)
         rph_weig = rph*fluxes[chosen_idx]/np.sum(fluxes[chosen_idx])
+        time = tfb[np.argmin(np.abs(snapsL - chosen_snap))]
+        chosen_idx = np.argmin(np.abs(snapsL - chosen_snap))
         photoL = np.loadtxt(f'{abspath}/data/{folder}LowRes/photo/LowRes_photo{chosen_snap}.txt')
         xphL, yphL, zphL = photoL[0], photoL[1], photoL[2]
         rphL = np.sqrt(xphL**2 + yphL**2 + zphL**2)
         rphL_weig = rphL * fluxesL[chosen_idx]/np.sum(fluxesL[chosen_idx])
+        time = tfb[np.argmin(np.abs(snapsH - chosen_snap))]
+        chosen_idx = np.argmin(np.abs(snapsH - chosen_snap))
         photoH = np.loadtxt(f'{abspath}/data/{folder}HiRes/photo/HiRes_photo{chosen_snap}.txt')
         xphH, yphH, zphH = photoH[0], photoH[1], photoH[2]
         rphH = np.sqrt(xphH**2 + yphH**2 + zphH**2)
@@ -416,10 +429,14 @@ for i, chosen_snap in enumerate(snaps_cdf):
         xph, yph, zph = photo[0], photo[1], photo[2] 
         rph = np.sqrt(xph**2 + yph**2 + zph**2)
         rph_weig = rph*fluxes[chosen_idx]/np.sum(fluxes[chosen_idx])
+        time = tfb[np.argmin(np.abs(snapsL - chosen_snap))]
+        chosen_idx = np.argmin(np.abs(snapsL - chosen_snap))
         photoL = np.loadtxt(f'{abspath}/data/{folder}LowRes/photo/LowRes_photo{chosen_snap}.txt')
         xphL, yphL, zphL = photoL[0], photoL[1], photoL[2]
         rphL = np.sqrt(xphL**2 + yphL**2 + zphL**2)
         rphL_weig = rphL * fluxesL[chosen_idx]/np.sum(fluxesL[chosen_idx])
+        time = tfb[np.argmin(np.abs(snapsH - chosen_snap))]
+        chosen_idx = np.argmin(np.abs(snapsH - chosen_snap))
         photoH = np.loadtxt(f'{abspath}/data/{folder}HiRes/photo/HiRes_photo{chosen_snap}.txt')
         xphH, yphH, zphH = photoH[0], photoH[1], photoH[2]
         rphH = np.sqrt(xphH**2 + yphH**2 + zphH**2)
@@ -449,10 +466,14 @@ for i, chosen_snap in enumerate(snaps_cdf):
         xph, yph, zph = photo[0], photo[1], photo[2] 
         rph = np.sqrt(xph**2 + yph**2 + zph**2)
         rph_weig = rph*fluxes[chosen_idx]/np.sum(fluxes[chosen_idx])
+        time = tfb[np.argmin(np.abs(snapsL - chosen_snap))]
+        chosen_idx = np.argmin(np.abs(snapsL - chosen_snap))
         photoL = np.loadtxt(f'{abspath}/data/{folder}LowRes/photo/LowRes_photo{chosen_snap}.txt')
         xphL, yphL, zphL = photoL[0], photoL[1], photoL[2]
         rphL = np.sqrt(xphL**2 + yphL**2 + zphL**2)
         rphL_weig = rphL * fluxesL[chosen_idx]/np.sum(fluxesL[chosen_idx])
+        time = tfb[np.argmin(np.abs(snapsH - chosen_snap))]
+        chosen_idx = np.argmin(np.abs(snapsH - chosen_snap))
         photoH = np.loadtxt(f'{abspath}/data/{folder}HiRes/photo/HiRes_photo{chosen_snap}.txt')
         xphH, yphH, zphH = photoH[0], photoH[1], photoH[2]
         rphH = np.sqrt(xphH**2 + yphH**2 + zphH**2)

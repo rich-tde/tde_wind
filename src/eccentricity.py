@@ -115,7 +115,7 @@ else:
         
         # Plot
         plt.figure(figsize=(10,8))
-        img = plt.pcolormesh(radii/apo, tfb, ecc/ecc_crit, vmin = 0.58, vmax = 1, cmap = 'viridis')#cmocean.cm.balance)
+        img = plt.pcolormesh(radii/apo, tfb, ecc/ecc_crit, vmin = 0.58, vmax = 1, cmap = 'viridis', rasterized = True)#cmocean.cm.balance)
         cb = plt.colorbar(img)
         cb.ax.tick_params(labelsize=25)
         cb.set_label(r'Eccentricity $[e_{\rm mb}]$', fontsize = 25, labelpad = 1)
@@ -138,7 +138,7 @@ else:
         plt.tick_params(axis='y', which='major', width=1, length=8, color = 'white', labelsize=25)
         plt.tick_params(axis='x', which='minor', width=1, length=5, color = 'white', labelsize=25)
         plt.ylim(np.min(tfb), np.max(tfb))
-        plt.savefig(f'{abspath}/Figs/{folder}/ecc_norm.png', bbox_inches='tight')
+        plt.savefig(f'{abspath}/Figs/paper/ecc_norm.pdf', bbox_inches='tight')
     
     else:
         import matplotlib.gridspec as gridspec
@@ -189,12 +189,12 @@ else:
         ax2 = fig.add_subplot(gs[0, 1])  # Second plot
         ax3 = fig.add_subplot(gs[0, 2])  # Third plot
 
-        img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'inferno', vmin = 0.9, vmax = 1.1)
+        img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'inferno', vmin = 0.9, vmax = 1.1, rasterized = True)
         ax1.set_xscale('log')
         ax1.text(0.29, .88*np.max(tfbL), 'Fid-Low', fontsize = 28, color = 'k')
         ax1.set_ylabel(r'$t [t_{fb}]$')#, fontsize = 25)
 
-        img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'inferno', vmin = 0.9, vmax = 1.1)
+        img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'inferno', vmin = 0.9, vmax = 1.1, rasterized = True)
         ax2.set_xscale('log')
         ax2.text(0.28, 0.88*np.max(tfbH), 'Fid-High', fontsize = 28, color = 'k')
 
@@ -228,6 +228,6 @@ else:
                 ax.tick_params(axis='y', which='major', width=1.4, length=9, color = 'k',)
                 ax.tick_params(axis='x', which='minor', width=1.2, length=7, color = 'k',)
         
-        plt.savefig(f'{abspath}/Figs/multiple/ecc_diff.png', bbox_inches='tight')
+        plt.savefig(f'{abspath}/Figs/paper/ecc_diff.pdf', bbox_inches='tight')
 
 # %%

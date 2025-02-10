@@ -161,7 +161,7 @@ for idx_s, snap in enumerate(snaps):
     # Cross dot -----------------------------------------------------------------
     # Example: 100 observers in a circular orbit
     # observers_xyz = generate_orbital_observers(100, radius=1.0)
-    observers_xyz = generate_elliptical_observers(200, x_min=-1, x_max=1)
+    observers_xyz = generate_elliptical_observers(num_observers = 200, amb = a_mb, emb = e_mb)
     # Line 17, * is matrix multiplication, ' is .T
     observers_xyz = np.array(observers_xyz)
     cross_dot = np.matmul(observers_xyz,  observers_xyz.T)
