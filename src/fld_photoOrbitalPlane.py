@@ -28,6 +28,7 @@ import scipy.optimize as spo
 from src.Opacity.linextrapolator import nouveau_rich
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
+import src.orbits as orb
 
 def generate_orbital_observers(num_observers, radius=1):
     """
@@ -42,42 +43,48 @@ def generate_orbital_observers(num_observers, radius=1):
     observers_xyz = np.vstack((x, y, z)).T  # Stack into (N, 3) format
     return observers_xyz
 
-def generate_parabolic_observers(num_observers, x_min=-1, x_max=1):
+def generate_elliptical_observers(num_observers, amb=1, emb=0.5):
     """
-    Generates `num_observers` points evenly spaced along the arc length of the parabola y = x^2.
+    Generates `num_observers` points evenly spaced along the arc length of an ellipse.
 
     Parameters:
     - num_observers: Number of observer points to generate.
-    - x_min, x_max: Range of the parabola to sample points from.
+    - amb: Semi-major axis length (a).
+    - emb: Eccentricity of the ellipse (e).
 
     Returns:
-    - observers_xyz: (num_observers, 3) array of points in 3D space (x, y, z).
+    - observers_xyz: (num_observers, 3) array of observer positions in 3D space (x, y, z).
     """
-    def parabola(x):
-        return x**2
+    a = amb  # Semi-major axis
+    b = a * np.sqrt(1 - emb**2)  # Compute semi-minor axis
 
-    def arc_length_integrand(x):
-        return np.sqrt(1 + (2*x)**2)  # sqrt(1 + (dy/dx)^2)
+    # Arc length integrand
+    def arc_length_integrand(theta):
+        return np.sqrt((a * np.sin(theta))**2 + (b * np.cos(theta))**2)
 
-    # Compute total arc length from x_min to x_max
-    total_arc_length, _ = spi.quad(arc_length_integrand, x_min, x_max)
+    # Compute total perimeter (arc length from 0 to 2π)
+    total_arc_length, _ = spi.quad(arc_length_integrand, 0, 2 * np.pi)
 
     # Generate evenly spaced arc-length values
-    s_values = np.linspace(0, total_arc_length, num_observers)
+    s_values = np.linspace(0, total_arc_length, num_observers, endpoint=False)
 
-    # Function to map arc length to x-value
-    def arc_length_to_x(target_s):
-        return spo.root_scalar(lambda x: spi.quad(arc_length_integrand, x_min, x)[0] - target_s, 
-                               bracket=[x_min, x_max]).root
+    # Function to find theta for a given arc length
+    def arc_length_to_theta(target_s):
+        return spo.root_scalar(lambda theta: spi.quad(arc_length_integrand, 0, theta)[0] - target_s, 
+                               bracket=[0, 2 * np.pi]).root
 
-    # Compute x-values for evenly spaced arc lengths
-    x_values = np.array([arc_length_to_x(s) for s in s_values])
-    y_values = parabola(x_values)
-    z_values = np.zeros_like(x_values)  # Observers lie in the xy-plane
+    # Compute theta values for evenly spaced arc lengths
+    theta_values = np.array([arc_length_to_theta(s) for s in s_values])
+
+    # Convert to Cartesian coordinates
+    x_values = a * np.cos(theta_values)
+    y_values = b * np.sin(theta_values)
+    z_values = np.zeros_like(x_values)  # Observers in the xy-plane
 
     # Stack into (N, 3) format
     observers_xyz = np.vstack((x_values, y_values, z_values)).T
     return observers_xyz
+
 
 ##
 # MAIN
@@ -92,11 +99,13 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = '' # '' or 'HiRes'
+save = True
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-save = True
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 Lphoto_all = np.zeros(len(snaps))
+a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
+e_mb = orb.eccentricity(Rstar, mstar, Mbh, beta)
 
 #%% Opacities -----------------------------------------------------------------
 # Freq range
@@ -152,7 +161,7 @@ for idx_s, snap in enumerate(snaps):
     # Cross dot -----------------------------------------------------------------
     # Example: 100 observers in a circular orbit
     # observers_xyz = generate_orbital_observers(100, radius=1.0)
-    observers_xyz = generate_parabolic_observers(200, x_min=-1, x_max=1)
+    observers_xyz = generate_elliptical_observers(200, x_min=-1, x_max=1)
     # Line 17, * is matrix multiplication, ' is .T
     observers_xyz = np.array(observers_xyz)
     cross_dot = np.matmul(observers_xyz,  observers_xyz.T)
@@ -313,5 +322,5 @@ for idx_s, snap in enumerate(snaps):
             fileph.write(' '.join(map(str, time_fluxes)) + '\n')
             fileph.close()
         # save observers position
-        np.save(f'{pre_saving}/{check}_observers200_{snap}', observers_xyz)
+        np.save(f'{pre_saving}/{check}_observers200', observers_xyz)
 eng.exit()
