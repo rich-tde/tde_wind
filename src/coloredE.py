@@ -28,7 +28,6 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'LowRes' 
-who = 'all' #'' or 'all' or 'RadRph'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True
@@ -45,19 +44,13 @@ radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
                     num=200)  # simulator units
 
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
-if who == '':
-    col_ie = []
-    col_orb_en = []
-    col_Radcut = []
-    col_Radcut_den = []
-    col_Rad_den = []
-else:
-    col_ie = np.zeros(len(snaps))
-    col_orb_en = np.zeros(len(snaps))
-    col_Rad = np.zeros(len(snaps))
-    col_ie_thres = np.zeros(len(snaps))
-    col_orb_en_thres = np.zeros(len(snaps))
-    col_Rad_thres = np.zeros(len(snaps))
+
+col_ie = []
+col_orb_en = []
+col_Radcut = []
+col_Radcut_den = []
+col_Rad_den = []
+
 
 for i,snap in enumerate(snaps):
     print(snap)
@@ -69,84 +62,32 @@ for i,snap in enumerate(snaps):
     data = make_tree(path, snap, energy = True)
     X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den = \
         data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Mass, data.Vol, data.Den, data.IE, data.Rad
+    Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
     cut = den > 1e-19 #NOT for radiation
     Rad = Rad_den * vol
-    X_cut, Y_cut, Z_cut, VX_cut, VY_cut, VZ_cut, mass_cut, vol_cut, den_cut, ie_den_cut = \
-        sec.make_slices([X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den], cut)
-    Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
-    vel = np.sqrt(np.power(VX, 2) + np.power(VY, 2) + np.power(VZ, 2))
-    orb_en = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh)
-    ie = ie_den * vol
-    # consider the small box
-    box = np.load(f'{path}/box_{snap}.npy')
-    if int(snap) <= 317:
-        boxL = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes/snap_{snap}/box_{snap}.npy')
-        if int(snap) <= 267:
-            boxH = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes/snap_{snap}/box_{snap}.npy')
-        else:
-            boxH = box
-    else: 
-        boxH = box
-        boxL = box
-    xmin, ymin, zmin = np.max([box[0], boxL[0], boxH[0], -0.75*apo]), np.max([box[1], boxL[1], boxH[1]]), np.max([box[2], boxL[2], boxH[2]])
-    xmax, ymax, zmax = np.min([box[3], boxL[3], boxH[3]]), np.min([box[4], boxL[4], boxH[4]]), np.min([box[5], boxL[5], boxH[5]])
-    cutx = (X > xmin) & (X < xmax)
-    cuty = (Y > ymin) & (Y < ymax)
-    cutz = (Z > zmin) & (Z < zmax)
-    cut_coord = cutx & cuty & cutz 
-    den_thresh, orb_en_thresh, ie_thresh, Rad_thresh = \
-        sec.make_slices([den, orb_en, ie, Rad], cut_coord)
+    Rsph_cut, VX_cut, VY_cut, VZ_cut, mass_cut, vol_cut, den_cut, ie_den_cut = \
+        sec.make_slices([Rsph, VX, VY, VZ, mass, vol, den, ie_den], cut)
+    vel_cut = np.sqrt(np.power(VX_cut, 2) + np.power(VY_cut, 2) + np.power(VZ_cut, 2))
+    orb_en_cut = orb.orbital_energy(Rsph_cut, vel_cut, mass_cut, prel.G, prel.csol_cgs, Mbh)
+    ie_cut = ie_den_cut * vol_cut
         
-    # throw fluff
-    cut_den = den_thresh > 1e-19  
-    den_cut, orb_en_cut, ie_cut, Rad_cut = \
-            sec.make_slices([den_thresh, orb_en_thresh, ie_thresh, Rad_thresh], cut_den)
-        
-    # Cast down 
-    if who == '':
-        Rsph_thresh, mass_thresh, ie_den_thresh, Rad_den_thresh = \
-            sec.make_slices([Rsph, mass, ie_den, Rad_den], cut_coord)
-        Rsph_cut, mass_cut, ie_den_cut, Rad_den_cut = \
-            sec.make_slices([Rsph_thresh, mass_thresh, ie_den_thresh, Rad_den_thresh], cut_coord)
-        ie_onmass_cut = ie_den_cut / den_cut
-        orb_en_onmass_cut = orb_en_cut / mass_cut
-        Rad_onmass_cut = Rad_cut / mass_cut
-        tocast_matrix = [ie_onmass_cut, orb_en_onmass_cut, Rad_onmass_cut, Rad_den_cut, Rad_den]
-        weights_matrix = [mass_cut, mass_cut, mass_cut, Rad_cut, Rad]
-        casted = multiple_branch(radii, Rsph_cut, tocast_matrix, weights_matrix)
-        ie_cast, orb_en_cast, Rad_cut_cast, Rad_dencut_cast, Rad_den_cast = casted[0], casted[1], casted[2], casted[3], casted[4]
+    ie_onmass_cut = ie_den_cut / den_cut
+    orb_en_onmass_cut = orb_en_cut / mass_cut
+    Rad_onmass = Rad / mass
+    ie_cast, orb_en_cast = multiple_branch(radii, Rsph_cut, [ie_onmass_cut, orb_en_onmass_cut], [mass_cut, mass_cut])
+    casted = multiple_branch(radii, Rsph, [Rad_onmass, Rad_den], [mass, Rad])
+    Rad_cast, Rad_den_cast = casted[0], casted[1]
 
-        col_ie.append(ie_cast)
-        col_orb_en.append(orb_en_cast)
-        col_Radcut.append(Rad_cut_cast)
-        col_Radcut_den.append(Rad_dencut_cast)
-        col_Rad_den.append(Rad_den_cast)
-
-    elif who == 'all':
-        col_orb_en[i] = np.sum(orb_en_cut)
-        col_ie[i] = np.sum(ie_cut)
-        # NO cut for radiation
-        col_Rad[i] = np.sum(Rad)
-
-        col_orb_en[i] = np.sum(orb_en_cut)
-        col_ie[i] = np.sum(ie_cut)
-        # NO cut for radiation
-        col_Rad[i] = np.sum(Rad)
-    
-    elif who == 'RadRph':
-        if int(snap) == 267:
-            Rad_cast = single_branch(radii, Rsph, Rad, weights = 1)
-            np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}{snap}.npy', Rad_cast)
+    col_ie.append(ie_cast)
+    col_orb_en.append(orb_en_cast)
+    col_Radcut.append(Rad_cast)
+    col_Rad_den.append(Rad_den_cast)
 
 #%%
 if save:
-    np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}_radii.npy', radii)
-    if who == '':
-        np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}.npy', [col_ie, col_orb_en, col_Radcut, col_Radcut_den, col_Rad_den])
-    elif who == 'all':
-        np.save(f'{abspath}/data/{folder}/coloredE{who}_{check}.npy', [col_ie, col_orb_en, col_Rad])
-    if who != 'RadRph':
-        with open(f'{abspath}/data/{folder}/coloredE{who}_{check}_days.txt', 'w') as file:
+    np.save(f'{abspath}/data/{folder}/coloredE_{check}_radii.npy', radii)
+    np.save(f'{abspath}/data/{folder}/coloredE_{check}.npy', [col_ie, col_orb_en, col_Radcut, col_Radcut_den, col_Rad_den])
+    with open(f'{abspath}/data/{folder}/coloredE_{check}_days.txt', 'w') as file:
             file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
             file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
             file.close()

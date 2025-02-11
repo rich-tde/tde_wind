@@ -1,6 +1,6 @@
-""" Space-time colorplot of energies using tree. 
-It has been written to be run on alice.
-Cut in density at 1e-19 code units."""
+""" Total energies (orbital, internal and radiation) at each snapshot, both with cut in coordinates and not.
+Cut in density (at 1e-19 code units) is done in both the cases, but not for radiation.
+Written to be run on alice"""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 from Utilities.isalice import isalice
@@ -12,7 +12,7 @@ else:
 
 import numpy as np
 from Utilities.selectors_for_snap import select_snap
-from Utilities.operators import make_tree, single_branch, multiple_branch
+from Utilities.operators import make_tree
 import Utilities.sections as sec
 import src.orbits as orb
 import Utilities.prelude as prel
@@ -30,19 +30,8 @@ compton = 'Compton'
 check = 'LowRes' 
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-save = True
-
 Mbh = 10**m
-Rs = 2*prel.G*Mbh / prel.csol_cgs**2
-Rt = Rstar * (Mbh/mstar)**(1/3)
-Rp =  Rt / beta
-R0 = 0.6 * Rt
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
-
-
-radii = np.logspace(np.log10(R0), np.log10(1.5*apo),
-                    num=200)  # simulator units
-
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 
 col_ie = np.zeros(len(snaps))
@@ -55,15 +44,13 @@ col_Rad_thres = np.zeros(len(snaps))
 for i,snap in enumerate(snaps):
     print(snap, flush=False)
     sys.stdout.flush()
-    if alice:
-        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-    else:
-        path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
-    
+
+    path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
     data = make_tree(path, snap, energy = True)
     X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den = \
         data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Mass, data.Vol, data.Den, data.IE, data.Rad
-    # cut in density NOY in radiation
+    Rad = Rad_den * vol
+    # cut in density NOT in radiation
     cut = den > 1e-19 
     X_cut, Y_cut, Z_cut, VX_cut, VY_cut, VZ_cut, mass_cut, vol_cut, den_cut, ie_den_cut = \
         sec.make_slices([X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den], cut)
@@ -71,9 +58,13 @@ for i,snap in enumerate(snaps):
     vel_cut = np.sqrt(np.power(VX_cut, 2) + np.power(VY_cut, 2) + np.power(VZ_cut, 2))
     orb_en_cut = orb.orbital_energy(Rsph_cut, vel_cut, mass_cut, prel.G, prel.csol_cgs, Mbh)
     ie_cut = ie_den_cut * vol_cut
-    Rad = Rad_den * vol
 
-    # consider the small box
+    # total energies with only the cut in density (not in radiation)
+    col_ie[i] = np.sum(ie_cut)
+    col_orb_en[i] = np.sum(orb_en_cut)
+    col_Rad[i] = np.sum(Rad)
+
+    # consider the small box for the cut in coordinates
     box = np.load(f'{path}/box_{snap}.npy')
     if int(snap) <= 317:
         boxL = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes/snap_{snap}/box_{snap}.npy')
@@ -92,21 +83,14 @@ for i,snap in enumerate(snaps):
     den_thresh, orb_en_thresh, ie_thresh = \
         sec.make_slices([den_cut, orb_en_cut, ie_cut], cut_den_coord)
 
-    col_ie[i] = np.sum(ie_cut)
-    col_orb_en[i] = np.sum(orb_en_cut)
-    # NO cut for radiation
-    col_Rad[i] = np.sum(Rad)
-
+    # total energies with the cut in density (not in radiation) and coordinates
     col_ie_thres[i] = np.sum(ie_thresh)
     col_orb_en_thres[i] = np.sum(orb_en_thresh)
-    # NO cut for radiation
     col_Rad_thres[i] = np.sum(Rad_thresh)
 
-if save:
-    np.save(f'{abspath}/data/{folder}/convE_{check}_radii.npy', radii)
-    np.save(f'{abspath}/data/{folder}/convE_{check}.npy', [col_ie, col_orb_en, col_Rad])
-    np.save(f'{abspath}/data/{folder}/convE_{check}_thresh.npy', [col_ie_thres, col_orb_en_thres, col_Rad_thres])
-    with open(f'{abspath}/data/{folder}/convE_{check}_days.txt', 'w') as file:
-            file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
-            file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-            file.close()
+np.save(f'{abspath}/data/{folder}/convE_{check}.npy', [col_ie, col_orb_en, col_Rad])
+np.save(f'{abspath}/data/{folder}/convE_{check}_thresh.npy', [col_ie_thres, col_orb_en_thres, col_Rad_thres])
+with open(f'{abspath}/data/{folder}/convE_{check}_days.txt', 'w') as file:
+        file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
+        file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+        file.close()

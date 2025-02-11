@@ -40,7 +40,7 @@ Enden_norm_single = Ledd / (4 * np.pi * prel.c_cgs * (Rph*prel.Rsol_cgs)**2) # [
 #%%
 ## DECISIONS
 ##
-save = True
+save = False
 res0 = 'LowRes'
 res1 = '' #'', 'HiRes', 'DoubleRad', 'LowRes'
 res2 = 'HiRes' 
