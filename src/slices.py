@@ -25,12 +25,6 @@ from Utilities.operators import make_tree
 ##
 # CHOICES
 ##
-cut_chosen = 0
-coord_to_cut = 'x' # 'x', 'y', 'z'
-
-#
-## PARAMETERS STAR AND BH
-#
 m = 4
 Mbh = 10**m
 beta = 1
@@ -39,20 +33,26 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = '' # 'Low' or 'HiRes'
+Rt = Rstar * (Mbh/mstar)**(1/3)
+Rp =  Rt / beta
+coord_to_cut = 'x' # 'x', 'y', 'z'
+cut_chosen = Rp
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 Mbh = 10**m
 Rs = 2*prel.G*Mbh / prel.csol_cgs**2
-Rt = Rstar * (Mbh/mstar)**(1/3)
-Rp =  Rt / beta
 R0 = 0.6 * Rt
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
+if cut_chosen == Rp:
+    cut_name = 'Rp'
+else:
+    cut_name =  int(cut_chosen)
 
 if alice:
     # get ready to slice and save
     do = True
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
-    with open(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{int(cut_chosen)}_time.txt','w') as file:
+    with open(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}_time.txt','w') as file:
         file.write('#Snap \n') 
         file.write(' '.join(map(str, snaps)) + '\n')
         file.write('# Time \n')
@@ -61,7 +61,7 @@ if alice:
 else:
     # get ready to plot
     do = False
-    time = np.loadtxt(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{int(cut_chosen)}_time.txt')
+    time = np.loadtxt(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}_time.txt')
     snaps = time[0]
     snaps = [int(snap) for snap in snaps]
     tfb = time[1]
@@ -92,7 +92,7 @@ for idx, snap in enumerate(snaps):
         x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut = \
             sec.make_slices([X, Y, Z, dim_cell, den, data.Temp, ie_den, orb_en_den, Rad_den], cut)
         
-        np.save(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{int(cut_chosen)}slice_{snap}.npy',\
+        np.save(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy',\
                  [x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut])
         
     else:
