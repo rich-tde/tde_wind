@@ -21,11 +21,12 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 from Utilities.operators import make_tree
 
-#%%
+#
 ##
 # CHOICES
 ##
-z_chosen = 0
+cut_chosen = 0
+coord_to_cut = 'x' # 'x', 'y', 'z'
 
 #
 ## PARAMETERS STAR AND BH
@@ -38,8 +39,8 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = '' # 'Low' or 'HiRes'
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 Mbh = 10**m
 Rs = 2*prel.G*Mbh / prel.csol_cgs**2
 Rt = Rstar * (Mbh/mstar)**(1/3)
@@ -47,12 +48,11 @@ Rp =  Rt / beta
 R0 = 0.6 * Rt
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
-#%%
 if alice:
     # get ready to slice and save
     do = True
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
-    with open(f'{abspath}/data/{folder}/slices/z{z_chosen}_time.txt','w') as file:
+    with open(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{int(cut_chosen)}_time.txt','w') as file:
         file.write('#Snap \n') 
         file.write(' '.join(map(str, snaps)) + '\n')
         file.write('# Time \n')
@@ -61,7 +61,7 @@ if alice:
 else:
     # get ready to plot
     do = False
-    time = np.loadtxt(f'{abspath}data/{folder}/slices/z{z_chosen}_time.txt')
+    time = np.loadtxt(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{int(cut_chosen)}_time.txt')
     snaps = time[0]
     snaps = [int(snap) for snap in snaps]
     tfb = time[1]
@@ -72,22 +72,28 @@ for idx, snap in enumerate(snaps):
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
 
         data = make_tree(path, snap, energy = True)
-        Rsph = np.sqrt(np.power(data.X, 2) + np.power(data.Y, 2) + np.power(data.Z, 2))
+        X, Y, Z, den, mass, vol, ie_den, Rad_den = data.X, data.Y, data.Z, data.Den, data.Mass, data.Vol, data.IE, data.Rad
+        Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
         vel = np.sqrt(np.power(data.VX, 2) + np.power(data.VY, 2) + np.power(data.VZ, 2))
-        mass, vol, ie_den, Rad_den = data.Mass, data.Vol, data.IE, data.Rad
         orb_en = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh)
         orb_en_den = orb_en/vol
         dim_cell = (3/(4*np.pi) * vol)**(1/3)
+        if coord_to_cut == 'x':
+            cutcoord = X
+        elif coord_to_cut == 'y':
+            cutcoord = Y
+        elif coord_to_cut == 'z':
+            cutcoord = Z
 
-        # make Z slices 
-        density_cut = data.Den > 1e-19
-        midplane_cut = np.abs(data.Z-z_chosen) < dim_cell
-        cut = np.logical_and(density_cut, midplane_cut)
-        x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid = \
-            sec.make_slices([data.X, data.Y, data.Z, dim_cell, data.Den, data.Temp, ie_den, orb_en_den, Rad_den], cut)
+        # make slices 
+        density_cut = den > 1e-19
+        coordinate_cut = np.abs(cutcoord-cut_chosen) < dim_cell
+        cut = np.logical_and(density_cut, coordinate_cut)
+        x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut = \
+            sec.make_slices([X, Y, Z, dim_cell, den, data.Temp, ie_den, orb_en_den, Rad_den], cut)
         
-        np.save(f'{abspath}/data/{folder}/slices/z{z_chosen}slice_{snap}.npy',\
-                 [x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid])
+        np.save(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{int(cut_chosen)}slice_{snap}.npy',\
+                 [x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut])
         
     else:
         if int(snap)!=300:
@@ -99,7 +105,7 @@ for idx, snap in enumerate(snaps):
         npanels = 6 # 3 or 6
 
         # load the data
-        data = np.load(f'{abspath}data/{folder}/slices/z{z_chosen}slice_{snap}.npy')
+        data = np.load(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{int(cut_chosen)}slice_{snap}.npy')
         x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid =\
             data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]
 

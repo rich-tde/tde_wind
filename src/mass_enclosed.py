@@ -96,7 +96,7 @@ else:
     plt.tight_layout()
     plt.savefig(f'{abspath}/Figs/multiple/mass_encl_all.png', bbox_inches='tight')
     
-    fig, ax = plt.subplots(1,3, figsize = (20, 5))
+    fig, ax = plt.subplots(1,3, figsize = (22, 5))
     for i, check in enumerate(checks):
         tfb = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl_time.txt')
         tfb_cgs = tfb * tfallback_cgs
@@ -106,22 +106,40 @@ else:
         Lacc0 = 0.05 * Mdot0 * prel.c_cgs**2
         Diss_encl = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Diss_encl.txt')
         Diss_encl = (np.transpose(Diss_encl)) * prel.en_converter/prel.tsol_cgs
-        # Mass_encl_cut = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl_cut.txt')
-        # Mass_encl_cut = np.transpose(Mass_encl_cut)
-        ax[i].scatter(tfb, Lacc0, c = 'deepskyblue', s = 5, label = r'$\eta \dot{M}_{\rm encl}c^2$')
-        ax[i].scatter(tfb, Diss_encl[0], c = 'coral', s = 5, label = r'Diss')
+        Diss_encl0 = Diss_encl[0]
+        nan = np.isnan(Diss_encl0)
+        Diss_encl0 = Diss_encl0[~nan]
+        tfbDis = tfb[~nan]
+        # exclude the 127 because old data for LowRes
+        if check == 'LowRes':
+            Diss_encl0 = np.delete(Diss_encl0, 127)
+            tfbDis = np.delete(tfbDis, 127)
+        # find where Lacc0 give nan and remove it from Lacc0 and tfb
+        nan = np.isnan(Lacc0)
+        Lacc0 = Lacc0[~nan]
+        tfbL = tfb[~nan]
+        ax[i].plot(tfbDis, np.abs(Diss_encl0), c = 'cornflowerblue', label = r'L$_{\rm diss}$')
+        ax[i].plot(tfbL, np.abs(Lacc0), c = 'chocolate', label = r'L$_{\rm acc}$')
         ax[i].set_xlabel(r'$\rm t [t_{fb}]$')
         ax[i].set_yscale('log')
         ax[i].set_ylim(1e37, 1e44)
-        ax[i].set_title(r'Inside $R_0$, ' + f'res: {checklab[i]}', fontsize = 20)
+        ax[i].text(np.max(tfbL)-0.4, 2e37, f'{checklab[i]} res', fontsize = 25)
         ax[i].grid()
+        original_ticks = ax[i].get_xticks()
+        midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+        new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+        ax[i].set_xticks(new_ticks)
+        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+        ax[i].set_xticklabels(labels)
+        ax[i].set_xlim(0, np.max(tfbL))
 
-    ax[0].set_ylabel(r'L$_{\rm acc}$ [erg/s]')#, fontsize = 25)
-    ax[0].legend(fontsize = 15)
-    plt.savefig(f'{abspath}/Figs/multiple/Maccr_encl.png', bbox_inches='tight')
+
+    ax[0].set_ylabel(r'L [erg/s]')#, fontsize = 25)
+    ax[0].legend(fontsize = 18)
+    plt.savefig(f'{abspath}/Figs/paper/Maccr_encl.pdf', bbox_inches='tight')
 
     #%% Resolutions test for R0
-    plt.figure()
+    fig, ax = plt.subplots(1,1, figsize= (10,7))
     for i, check in enumerate(checks):
         tfb = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl_time.txt')
         tfb_cgs = tfb * tfallback_cgs
@@ -132,14 +150,21 @@ else:
         Lacc = 0.05 * Mdot * prel.c_cgs**2
         # Mass_encl_cut = np.loadtxt(f'{abspath}/data/{folder}/{check}Mass_encl_cut.txt')
         # Mass_encl_cut = np.transpose(Mass_encl_cut)
-        plt.plot(tfb, Mass_encl[0]/mstar, c = colorcheck[i], linewidth = 2, label = f'{checklab[i]}')
+        ax.plot(tfb, Mass_encl[0]/mstar, c = colorcheck[i], linewidth = 2, label = f'{checklab[i]}')
     
-    plt.ylabel(r'Mass enclosed $[M_\star]$ inside $R_0$')#, fontsize = 25)
-    plt.xlabel(r'$\rm t [t_{fb}]$')
-    plt.yscale('log')
-    plt.ylim(1e-9, 1e-4)
-    plt.legend(fontsize = 15)
-    plt.grid()
-    plt.savefig(f'{abspath}/Figs/multiple/Mass_encl.png', bbox_inches='tight')
+    original_ticks = ax.get_xticks()
+    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+    ax.set_xticks(new_ticks)
+    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+    ax.set_xticklabels(labels)
+    ax.set_ylabel(r'Mass enclosed $[M_\star]$ inside $R_0$')#, fontsize = 25)
+    ax.set_xlabel(r'$\rm t [t_{fb}]$')
+    ax.set_yscale('log')
+    ax.set_ylim(1e-9, 1e-4)
+    ax.set_xlim(0, 1.75)
+    ax.legend(fontsize = 20)
+    ax.grid()
+    plt.savefig(f'{abspath}/Figs/paper/Mass_encl.pdf', bbox_inches='tight')
 
 # %%
