@@ -44,7 +44,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'LowRes' # '' or 'HiRes'
+check = '' # '' or 'HiRes'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True
@@ -124,6 +124,7 @@ for idx_s, snap in enumerate(snaps):
     ## just to check photosphere
     ph_idx = np.zeros(prel.NPIX)
     fluxes = np.zeros(prel.NPIX)
+    r_initial = np.zeros(prel.NPIX)
     ##
     for i in range(prel.NPIX):
         # Progress 
@@ -157,6 +158,7 @@ for idx_s, snap in enumerate(snaps):
             # print('z+', rmax)
 
         r = np.logspace( -0.25, np.log10(rmax), N_ray)
+        r_initial[i] = rmax
         alpha = (r[1] - r[0]) / (0.5 * ( r[0] + r[1]))
         dr = alpha * r
 
@@ -274,5 +276,6 @@ for idx_s, snap in enumerate(snaps):
             fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes [cgs] for each obs \n')
             fileph.write(' '.join(map(str, time_fluxes)) + '\n')
             fileph.close()
+        np.save(f'{pre_saving}/{check}_observersHealpix_{snap}', [r_initial, observers_xyz[:,0], observers_xyz[:,1], observers_xyz[:,2]])
         ##
 eng.exit()
