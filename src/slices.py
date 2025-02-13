@@ -96,8 +96,6 @@ for idx, snap in enumerate(snaps):
                  [x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut])
         
     else:
-        if int(snap)!=300:
-            continue 
         # you are not in alice
         import matplotlib.pyplot as plt
         import matplotlib.colors as colors
@@ -201,4 +199,3 @@ for idx, snap in enumerate(snaps):
         # plt.show()
 
     
-# %%

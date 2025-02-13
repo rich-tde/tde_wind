@@ -13,27 +13,47 @@ check = ''
 npanels = 6
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-# For Denproj
-# path = f'{abspath}/Figs/{folder}/projection/denproj'
-# output_path = f'{abspath}/Figs/{folder}/movie_proj{check}.mp4'
-
-# For Slices 
-path = f'{abspath}/Figs/{folder}/slices/Panel{npanels}Slice'
-output_path = f'{abspath}/Figs/{folder}/movie{npanels}Panels_{check}.mp4'
-
 start = 80
 slow_down_factor = 2  # Increase this value to make the video slower
 
+# For Denproj
+# path = f'{abspath}/Figs/{folder}/projection/denproj'
+# output_path = f'{abspath}/Figs/{folder}/movie_proj{check}.mp4'
 # ffmpeg_command = (
 #     f'ffmpeg -y -start_number {start} -i {path}%03d{cut}.png -vf "setpts={slow_down_factor}*PTS" '
 #     f'-frames:v {end_frame+ 1} -c:v libx264 -pix_fmt yuv420p {output_path}'
 # )
 
-ffmpeg_command = (
-    f'ffmpeg -y -start_number {start} -i {path}%d.png -vf "setpts={slow_down_factor}*PTS" '
-    f'-c:v libx264 -pix_fmt yuv420p {output_path}'
-    )
+# For Slices 
+path = f'{abspath}/Figs/EddingtonEnvelope/movie/%d.png' 
+output_path = f'{abspath}/Figs/EddingtonEnvelope/movie.mp4'
 
-subprocess.run(ffmpeg_command, shell=True)
+# Get the height of the first image to calculate the scale
+def get_image_size(image_path):
+    result = subprocess.run(['ffprobe', '-v', 'error', '-show_entries',
+                             'stream=width,height', '-of', 'default=noprint_wrappers=1', image_path],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    output = result.stdout.decode('utf-8')
+    width = int(output.split("width=")[1].split("\n")[0])
+    height = int(output.split("height=")[1].split("\n")[0])
+    return width, height
+
+first_image_path = f'{abspath}/Figs/EddingtonEnvelope/movie/{start}.png'
+width, height = get_image_size(first_image_path)
+
+# Ensure the height is even by subtracting 1 if it's odd.
+if height % 2 != 0:
+    new_height = height - 1
+else:
+    new_height = height
+
+# Construct the FFmpeg command with scaling
+ffmpeg_command = (
+    f'ffmpeg -y -start_number {start} -i "{path}" -vf "setpts={slow_down_factor}*PTS,scale={width}:{new_height}" '
+    f'-c:v libx264 -pix_fmt yuv420p "{output_path}"'
+)
+
+subprocess.run(ffmpeg_command, shell=True, check=True) # added check=True
 
 print('Done')

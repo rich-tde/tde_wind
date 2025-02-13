@@ -1,5 +1,8 @@
 """ Find photosphere following FLD curve Elad's script. 
 Just for the orbital plane, no Helapix."""
+#%%
+import sys
+sys.path.append('/Users/paolamartire/shocks/')
 from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
@@ -19,7 +22,8 @@ import csv
 import numpy as np
 import scipy.integrate as sci
 from scipy.interpolate import griddata
-import matlab.engine
+if alice:
+    import matlab.engine
 from sklearn.neighbors import KDTree
 from scipy.ndimage import uniform_filter1d
 import Utilities.prelude as prel
@@ -106,6 +110,29 @@ snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 Lphoto_all = np.zeros(len(snaps))
 a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 e_mb = orb.eccentricity(Rstar, mstar, Mbh, beta)
+apo = orb.apocentre(Rstar, mstar, Mbh, beta)
+
+# observers
+observers_xyz = generate_elliptical_observers(num_observers = 200, amb = a_mb, emb = e_mb)
+observers_xyz = np.array(observers_xyz)
+cross_dot = np.matmul(observers_xyz,  observers_xyz.T)
+cross_dot[cross_dot<0] = 0
+cross_dot *= 4/len(observers_xyz)
+
+if not alice:
+    import matplotlib.pyplot as plt
+    import healpy as hp
+    # figure the ellipse on the orbital plane without squeesing
+    observers_xyzH = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
+    # Line 17, * is matrix multiplication, ' is .T
+    observers_xyzH = np.array(observers_xyzH).T
+    fig = plt.figure()
+    ax = fig.add_subplot(111, aspect='equal')
+    ax.scatter(observers_xyz[:,0], observers_xyz[:,1], c='r', label = 'Paola new obs')
+    ax.scatter(observers_xyzH[:,0], observers_xyzH[:,1], c='b', label = 'Healpix')
+    plt.legend()
+    plt.savefig(f'{abspath}/Figs/Test/observersOrbPl.png')
+    plt.show()
 
 #%% Opacities -----------------------------------------------------------------
 # Freq range
@@ -157,16 +184,7 @@ for idx_s, snap in enumerate(snaps):
     X, Y, Z, T, Den, Rad, Vol = make_slices([X, Y, Z, T, Den, Rad, Vol], denmask)
     Rad_den = np.multiply(Rad,Den) # now you have energy density
     del Rad   
-    R = np.sqrt(X**2 + Y**2 + Z**2)
-    # Cross dot -----------------------------------------------------------------
-    # Example: 100 observers in a circular orbit
-    # observers_xyz = generate_orbital_observers(100, radius=1.0)
-    observers_xyz = generate_elliptical_observers(num_observers = 200, amb = a_mb, emb = e_mb)
-    # Line 17, * is matrix multiplication, ' is .T
-    observers_xyz = np.array(observers_xyz)
-    cross_dot = np.matmul(observers_xyz,  observers_xyz.T)
-    cross_dot[cross_dot<0] = 0
-    cross_dot *= 4/len(observers_xyz)
+    R = np.sqrt(X**2 + Y**2 + Z**2)    
 
     # Tree ----------------------------------------------------------------------
     #from scipy.spatial import KDTree
@@ -178,6 +196,7 @@ for idx_s, snap in enumerate(snaps):
     ## just to check photosphere
     ph_idx = np.zeros(len(observers_xyz))
     fluxes = np.zeros(len(observers_xyz))
+    r_initial = np.zeros(len(observers_xyz))
     ##
     for i in range(len(observers_xyz)):
         # Progress 
@@ -211,6 +230,7 @@ for idx_s, snap in enumerate(snaps):
             # print('z+', rmax)
 
         r = np.logspace( -0.25, np.log10(rmax), N_ray)
+        r_initial[i] = rmax
         alpha = (r[1] - r[0]) / (0.5 * ( r[0] + r[1]))
         dr = alpha * r
 
@@ -322,5 +342,5 @@ for idx_s, snap in enumerate(snaps):
             fileph.write(' '.join(map(str, time_fluxes)) + '\n')
             fileph.close()
         # save observers position
-        np.save(f'{pre_saving}/{check}_observers200', observers_xyz)
+        np.save(f'{pre_saving}/{check}_observers200_{snap}', [r_initial, observers_xyz[:,0], observers_xyz[:,1], observers_xyz[:,2]])
 eng.exit()

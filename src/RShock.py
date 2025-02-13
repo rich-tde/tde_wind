@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import Utilities.prelude as prel
 import src.orbits as orb
-from Utilities.operators import sort_list, find_ratio
 
 ##
 # PARAMETERS
@@ -56,7 +55,7 @@ def eta_from_R(Mbh, R_sh, const_G, const_c):
 ##
 # MAIN
 #%%
-ph_data = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/photo_mean.txt')
+ph_data = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/photo_stat.txt')
 tfbRph, Rph = ph_data[0], ph_data[1]
 time_array_yr = np.linspace(1e-1,2, 100) # yr
 time_yr_cgs = time_array_yr * 365 * 24 * 3600 # converted to seconds
@@ -88,7 +87,7 @@ for j, check in enumerate(checks):
     # bins_cgs = bins * (prel.en_converter/prel.Msol_cgs) #  and convert to CGS (they are bins in SPECIFIC orbital energy)
     dMdE_distr = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}.txt')[0] # distribution just after the disruption
     bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
-    dataLum = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{check}rich_red.csv', delimiter=',', dtype=float)
+    dataLum = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{check}_red.csv', delimiter=',', dtype=float)
     snapsLum, tfbLum, Lum = dataLum[:, 0], dataLum[:, 1], dataLum[:, 2] 
     dataDiss = np.loadtxt(f'{abspath}data/{folder}/Rdiss_{check}{cut}.txt')
     timeRDiss, RDiss, Eradtot, LDiss = dataDiss[0], dataDiss[1], dataDiss[2], dataDiss[3] 
@@ -131,7 +130,10 @@ for j, check in enumerate(checks):
         # Lum_diss = np.abs(LDiss[idxDiss]) * prel.en_converter / prel.tsol_cgs # [CGS]
         # eta_sh_diss[i] = efficiency_shock(Lum_diss, mdot_cgs, prel.c_cgs) # [CGS]
         # R_shDiss[i] = R_shock(Mbh_cgs, eta_sh_diss[i], prel.G_cgs, prel.c_cgs) # [CGS]
-
+    
+    nan = np.isnan(R_sh)
+    R_sh = R_sh[~nan]
+    tfb = tfb[~nan]
     tfb_all.append(tfb)
     mfall_all.append(mfall)
     eta_shL_all.append(eta_sh)    
@@ -168,10 +170,10 @@ for i, check in enumerate(checks):
     # ax1.plot(timeRDiss_all[i], RDiss_all[i] * prel.Rsol_cgs, linestyle = '--', color = colorslegend[i])#, label = f'Rdiss {checkslegend[i]}')
 
 ax1.axhline(y=Rp/apo, color = 'k', linestyle = 'dotted')
-ax1.text(1.85, .4* Rp/apo, r'$R_{\rm p}$', fontsize = 20, color = 'k')
+ax1.text(1.85, .5* Rp/apo, r'$R_{\rm p}$', fontsize = 20, color = 'k')
 ax1.axhline(y=amin/apo, color = 'k', linestyle = '--')
-ax1.text(1.85, .4* amin/apo, r'$a_{\rm mb}$', fontsize = 20, color = 'k')
-ax1.plot(tfbRph, Rph/apo, color = 'k', label = r'$R_{\rm ph}$')
+ax1.text(1.85, .5* amin/apo, r'$a_{\rm mb}$', fontsize = 20, color = 'k')
+ax1.plot(tfbRph, Rph/apo, color = 'k')#, label = r'$R_{\rm ph}$')
 # ax1.axhline(y=apo/apo, color = 'r', linestyle = 'dotted')
 # ax0.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 18)
 ax1.set_ylabel(r'$R [R_{\rm a}$]')#, fontsize = 18)
@@ -206,6 +208,8 @@ for ax in [ax1, ax2]:
 ax1.legend(fontsize = 16, loc = 'upper right')
 
 plt.tight_layout()
-plt.savefig(f'{abspath}/Figs/multiple/Reta{cut}.pdf')
-plt.savefig(f'{abspath}/Figs/multiple/Reta{cut}.png')
+plt.savefig(f'{abspath}/Figs/paper/Reta{cut}.pdf', bbox_inches = 'tight')
+plt.savefig(f'{abspath}/Figs/multiple/Reta{cut}.png', bbox_inches = 'tight')
 
+
+# %%
