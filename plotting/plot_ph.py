@@ -45,6 +45,7 @@ apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
 #%%
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
+print(np.shape(observers_xyz))
 observers_xyz = np.array(observers_xyz).T
 # HEALPIX
 x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
@@ -75,6 +76,90 @@ ax.set_xticks(np.radians(np.linspace(-180, 180, 9)))
 ax.set_xticklabels(['-180°', '-135°', '-90°', '-45°', '0°', '45°', '90°', '135°', '180°'])
 plt.tight_layout()
 plt.show()
+
+#%% Check the starting point of the observers
+data348mine = np.load(f'{abspath}/data/{folder}/_observers200_348.npy')
+mineR_initial, mineObs_x, mineObs_y, mineObs_z = data348mine[0], data348mine[1], data348mine[2], data348mine[3]
+mine_Robs = np.sqrt(mineObs_x**2 + mineObs_y**2 + mineObs_z**2)
+data_phmine = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/_photo348_OrbPl200.txt')
+xph_mine, yph_mine, zph_mine, volph_mine= data_phmine[0], data_phmine[1], data_phmine[2], data_phmine[3]
+rph_mine = np.sqrt(xph_mine**2 + yph_mine**2 + zph_mine**2)
+midph_mine = np.abs(zph_mine) < volph_mine**(1/3)
+mineR_initial_mid, xph_mine_mid, yph_mine_mid, zph_mine_mid, rph_mid_mine, mine_rObs_mid = \
+        make_slices([mineR_initial, xph_mine, yph_mine, zph_mine, rph_mine, mine_Robs], midph_mine)
+
+data348Healp = np.load(f'{abspath}/data/{folder}/_observersHealpix_348.npy')
+healpR_initial, healpObs_x, healpObs_y, healpObs_z = data348Healp[0], data348Healp[1], data348Healp[2], data348Healp[3]
+heal_Robs = np.sqrt(healpObs_x**2 + healpObs_y**2 + healpObs_z**2)
+photoHeal = np.loadtxt(f'{abspath}/data/{folder}/photo/_photo348.txt')
+xph_Heal, yph_Heal, zph_Heal, dvol_Heal = photoHeal[0], photoHeal[1], photoHeal[2], photoHeal[3] 
+rph_Heal = np.sqrt(xph_Heal**2 + yph_Heal**2 + zph_Heal**2)
+midph_Heal = np.abs(zph_Heal) < dvol_Heal**(1/3)
+healpR_initial_Heal, xph_Heal_mid, yph_Heal_mid, zph_Heal_mid, rph_mid_Heal, heal_rObs_mid = \
+        make_slices([healpR_initial, xph_Heal, yph_Heal, zph_Heal, rph_Heal, heal_Robs], midph_Heal)
+
+fig = plt.figure()
+ax = fig.add_subplot(111, aspect='equal')
+ax.scatter(mineObs_x/apo, mineObs_y/apo, s = 10, c = 'r', label = 'Mine')
+ax.scatter(healpObs_x/apo, healpObs_y/apo, s = 10, c = 'b', label = 'Healpix')
+ax.legend()
+ax.set_title('Initial position of the observers')
+ax.set_xlabel(r'x [R$_a$]')
+ax.set_ylabel(r'y [R$_a$]')
+plt.savefig(f'{abspath}/Figs/Test/photosphere/observersOrbPl.png', bbox_inches='tight')
+plt.show()
+
+fig, ax = plt.subplots(1, 1, figsize=(7, 5))
+ax.scatter(mineR_initial*mine_Robs/apo, rph_mine/apo, c = 'r', label = 'all mine')
+ax.scatter(mineR_initial_mid*mine_rObs_mid/apo, rph_mid_mine/apo, c = 'orange', s = 5, label = 'orbital plane mine')
+ax.scatter(healpR_initial*heal_Robs/apo, rph_Heal/apo, c = 'navy', label = 'all Healpix')
+ax.scatter(healpR_initial_Heal*heal_rObs_mid/apo, rph_mid_Heal/apo, c = 'dodgerblue', s = 5, label = 'orbital plane Healpix')
+# ax.axvline(x = Rt/apo, color = 'k', linestyle = 'dotted', label = r'$R_{\rm t}$')
+ax.set_xlabel(r'R$_{initial}$ [R$_a$]')
+ax.legend()
+ax.set_ylabel(r'R$_{ph}$ [R$_a$]')
+plt.savefig(f'{abspath}/Figs/Test/photosphere/initialR&Rph.png', bbox_inches='tight')
+
+#%% find the mine_obs_mid that are nearer to the healp_obs_mid as angles positions
+from sklearn.neighbors import KDTree
+from Utilities.operators import make_tree
+path = f'{abspath}/TDE/{folder}/348' #f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+data = make_tree(path, 348, energy = False)
+X, Y, Z, Den, Temp = data.X, data.Y, data.Z, data.Den, data.Temp
+mid = np.abs(Z) < data.Vol**(1/3)
+X_mid, Y_mid, Z_mid, Den_mid, Temp_mid = make_slices([X, Y, Z, Den, Temp], mid)
+
+theta_heal = np.arctan2(yph_Heal_mid, xph_Heal_mid)          # Azimuthal angle in radians
+phi_heal = np.arccos(zph_Heal_mid / healpR_initial_Heal)
+theta_mine = np.arctan2(yph_mine_mid, xph_mine_mid)          # Azimuthal angle in radians
+phi_mine = np.arccos(zph_mine_mid / mineR_initial_mid)
+points_toquery = np.transpose([theta_heal, phi_heal])
+tree = KDTree(np.transpose([theta_mine, phi_mine]))
+_, idx = tree.query(points_toquery, k=1)
+mineHeal_Rinitial_mid = mineR_initial_mid[idx]
+mineHeal_rObs_mid = mine_rObs_mid[idx]
+mineHeal_xph_mid, mineHeal_yph_mid, mineHeal_rph_mid = make_slices([xph_mine_mid, yph_mine_mid, rph_mid_mine], idx)
+
+#%%
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 15))
+ax1.scatter(mineHeal_Rinitial_mid*mineHeal_rObs_mid/apo, mineHeal_rph_mid/apo, s = 300, c = np.arange(len(mineHeal_rph_mid)), label = 'Mine', marker = '*', cmap = 'jet', edgecolors = 'k')
+ax1.scatter(healpR_initial_Heal*heal_rObs_mid/apo, rph_mid_Heal/apo, s = 200, c = np.arange(len(mineHeal_rph_mid)), label = 'Healpix', marker = 'o', cmap = 'jet', edgecolors = 'k')
+ax1.set_xlabel(r'R$_{initial}$ [R$_a$]', fontsize = 27)
+ax1.set_ylabel(r'R$_{ph}$ [R$_a$]', fontsize = 27)
+ax1.legend(fontsize = 27)
+
+ax2.scatter(X_mid/apo, Y_mid/apo, s = 10, c = Den_mid, cmap = 'gray', norm = colors.LogNorm(vmin=1e-15, vmax=1e-4))
+ax2.scatter(mineHeal_xph_mid/apo, mineHeal_yph_mid/apo, c = np.arange(len(mineHeal_rph_mid)), s = 300, marker = '*', cmap = 'jet', edgecolors = 'k')
+img = ax2.scatter(xph_Heal_mid/apo, yph_Heal_mid/apo, c = np.arange(len(mineHeal_rph_mid)), s = 200, marker = 'o', cmap = 'jet', edgecolors = 'k')
+cbar = plt.colorbar(img, orientation='horizontal', pad = 0.15)
+cbar.set_label('Observer Number')
+ax2.set_xlim(-9,2.5)
+ax2.set_ylim(-5,3)
+ax2.set_xlabel(r'X [R$_a$]', fontsize = 27)
+ax2.set_ylabel(r'Y [R$_a$]', fontsize = 27)
+plt.tight_layout()
+plt.savefig(f'{abspath}/Figs/Test/photosphere/initialR&Rph_mid.png', bbox_inches='tight')
+
 
 #%% NB DATA ARE NOT SORTED
 ph_data = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/_phidx_fluxes.txt')

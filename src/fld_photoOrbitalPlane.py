@@ -25,6 +25,7 @@ from scipy.interpolate import griddata
 if alice:
     import matlab.engine
 from sklearn.neighbors import KDTree
+import healpy as hp
 from scipy.ndimage import uniform_filter1d
 import Utilities.prelude as prel
 import scipy.integrate as spi
@@ -112,27 +113,29 @@ a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 e_mb = orb.eccentricity(Rstar, mstar, Mbh, beta)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
-# observers
-observers_xyz = generate_elliptical_observers(num_observers = 200, amb = a_mb, emb = e_mb)
-observers_xyz = np.array(observers_xyz)
-cross_dot = np.matmul(observers_xyz,  observers_xyz.T)
+# observers 
+observers_xyz_mine = generate_elliptical_observers(num_observers = 200, amb = a_mb, emb = e_mb)
+observers_xyz_mine = np.array(observers_xyz_mine)
+x_mine, y_mine, z_mine = observers_xyz_mine[:, 0], observers_xyz_mine[:, 1], observers_xyz_mine[:, 2]
+r_mine = np.sqrt(x_mine**2 + y_mine**2 + z_mine**2)
+cross_dot = np.matmul(observers_xyz_mine,  observers_xyz_mine.T)
 cross_dot[cross_dot<0] = 0
-cross_dot *= 4/len(observers_xyz)
+cross_dot *= 4/len(observers_xyz_mine)
 
-if not alice:
-    import matplotlib.pyplot as plt
-    import healpy as hp
-    # figure the ellipse on the orbital plane without squeesing
-    observers_xyzH = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
-    # Line 17, * is matrix multiplication, ' is .T
-    observers_xyzH = np.array(observers_xyzH).T
-    fig = plt.figure()
-    ax = fig.add_subplot(111, aspect='equal')
-    ax.scatter(observers_xyz[:,0], observers_xyz[:,1], c='r', label = 'Paola new obs')
-    ax.scatter(observers_xyzH[:,0], observers_xyzH[:,1], c='b', label = 'Healpix')
-    plt.legend()
-    plt.savefig(f'{abspath}/Figs/Test/observersOrbPl.png')
-    plt.show()
+# if not alice:
+#     import matplotlib.pyplot as plt
+#     import healpy as hp
+#     # figure the ellipse on the orbital plane without squeesing
+#     observers_xyzH = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
+#     # Line 17, * is matrix multiplication, ' is .T
+#     observers_xyzH = np.array(observers_xyzH).T
+#     fig = plt.figure()
+#     ax = fig.add_subplot(111, aspect='equal')
+#     ax.scatter(observers_xyz[:,0], observers_xyz[:,1], c='r', label = 'Paola new obs')
+#     ax.scatter(observers_xyzH[:,0], observers_xyzH[:,1], c='b', label = 'Healpix')
+#     plt.legend()
+#     plt.savefig(f'{abspath}/Figs/Test/photosphere/observersOrbPl.png')
+#     plt.show()
 
 #%% Opacities -----------------------------------------------------------------
 # Freq range
@@ -185,6 +188,33 @@ for idx_s, snap in enumerate(snaps):
     Rad_den = np.multiply(Rad,Den) # now you have energy density
     del Rad   
     R = np.sqrt(X**2 + Y**2 + Z**2)    
+
+    # Observers -----------------------------------------------------------------
+    observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) # shape is 3,N
+    # select only the observers in the orbital plane
+    mid = np.abs(observers_xyz[2]) == 0
+    observers_xyz = observers_xyz[mid]
+    x_heal, y_heal, z_heal = observers_xyz[0], observers_xyz[1], observers_xyz[2]
+    r_heal = np.sqrt(x_heal**2 + y_heal**2 + z_heal**2)   
+    print('observer healpix: ', observers_xyz)
+
+    # find the corresponding mine observer for each healpix observer
+    theta_heal = np.arctan2(y_heal, x_heal)          # Azimuthal angle in radians
+    phi_heal = np.arccos(z_heal / r_heal)
+    theta_mine = np.arctan2(y_mine, x_mine)          # Azimuthal angle in radians
+    phi_mine = np.arccos(z_mine / r_mine)
+    points_toquery = np.transpose([theta_heal, phi_heal])
+    tree = KDTree(np.transpose([theta_mine, phi_mine]))
+    _, idx = tree.query(points_toquery, k=1)
+    print('theta healp: ', theta_heal, 'theta mine: ', theta_mine)
+    print('phi healp: ', phi_heal, 'phi mine: ', phi_mine)
+
+    x_mine, y_mine, z_mine = x_mine[idx], y_mine[idx], z_mine[idx]
+    observers_xyz = np.array([x_mine, y_mine, z_mine]).T
+    print('shape obs: ', np.shape(observers_xyz))
+    cross_dot = np.matmul(observers_xyz,  observers_xyz.T)
+    cross_dot[cross_dot<0] = 0
+    cross_dot *= 4/len(observers_xyz)
 
     # Tree ----------------------------------------------------------------------
     #from scipy.spatial import KDTree
@@ -335,12 +365,12 @@ for idx_s, snap in enumerate(snaps):
         pre_saving = f'{abspath}/data/{folder}'
         time_rph = np.concatenate([[snap,tfb[idx_s]], ph_idx])
         time_fluxes = np.concatenate([[snap,tfb[idx_s]], fluxes])
-        with open(f'{pre_saving}/{check}_phidx_fluxes_OrbPl200.txt', 'a') as fileph:
+        with open(f'{pre_saving}/{check}_phidx_fluxes_Healp200.txt', 'a') as fileph:
             fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
             fileph.write(' '.join(map(str, time_rph)) + '\n')
             fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes [cgs] for each obs \n')
             fileph.write(' '.join(map(str, time_fluxes)) + '\n')
             fileph.close()
         # save observers position
-        np.save(f'{pre_saving}/{check}_observers200_{snap}', [r_initial, observers_xyz[:,0], observers_xyz[:,1], observers_xyz[:,2]])
+        np.save(f'{pre_saving}/{check}_observersHealp200_{snap}', [r_initial, observers_xyz[:,0], observers_xyz[:,1], observers_xyz[:,2]])
 eng.exit()
