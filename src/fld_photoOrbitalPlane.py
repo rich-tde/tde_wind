@@ -114,13 +114,12 @@ e_mb = orb.eccentricity(Rstar, mstar, Mbh, beta)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
 # observers 
-observers_xyz_mine = generate_elliptical_observers(num_observers = 200, amb = a_mb, emb = e_mb)
+observers_xyz_mine = generate_elliptical_observers(num_observers = 200, amb = a_mb, emb = e_mb) # shape: (200, 3)
 observers_xyz_mine = np.array(observers_xyz_mine)
+print(np.shape(observers_xyz_mine), flush=False)
+sys.stdout.flush()
 x_mine, y_mine, z_mine = observers_xyz_mine[:, 0], observers_xyz_mine[:, 1], observers_xyz_mine[:, 2]
 r_mine = np.sqrt(x_mine**2 + y_mine**2 + z_mine**2)
-cross_dot = np.matmul(observers_xyz_mine,  observers_xyz_mine.T)
-cross_dot[cross_dot<0] = 0
-cross_dot *= 4/len(observers_xyz_mine)
 
 # if not alice:
 #     import matplotlib.pyplot as plt
@@ -190,13 +189,14 @@ for idx_s, snap in enumerate(snaps):
     R = np.sqrt(X**2 + Y**2 + Z**2)    
 
     # Observers -----------------------------------------------------------------
-    observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) # shape is 3,N
+    observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
     # select only the observers in the orbital plane
-    mid = np.abs(observers_xyz[2]) == 0
-    observers_xyz = observers_xyz[mid]
+    mid = np.abs(observers_xyz[2]) == 0 # you can do that beacuse healpix gives you the observers also in the orbital plane (Z==0)
+    observers_xyz = observers_xyz[:,mid]
     x_heal, y_heal, z_heal = observers_xyz[0], observers_xyz[1], observers_xyz[2]
     r_heal = np.sqrt(x_heal**2 + y_heal**2 + z_heal**2)   
-    print('observer healpix: ', observers_xyz)
+    print('observer healpix: ', np.shape(observers_xyz), flush=False)
+    sys.stdout.flush()
 
     # find the corresponding mine observer for each healpix observer
     theta_heal = np.arctan2(y_heal, x_heal)          # Azimuthal angle in radians
@@ -206,12 +206,16 @@ for idx_s, snap in enumerate(snaps):
     points_toquery = np.transpose([theta_heal, phi_heal])
     tree = KDTree(np.transpose([theta_mine, phi_mine]))
     _, idx = tree.query(points_toquery, k=1)
-    print('theta healp: ', theta_heal, 'theta mine: ', theta_mine)
-    print('phi healp: ', phi_heal, 'phi mine: ', phi_mine)
-
-    x_mine, y_mine, z_mine = x_mine[idx], y_mine[idx], z_mine[idx]
-    observers_xyz = np.array([x_mine, y_mine, z_mine]).T
-    print('shape obs: ', np.shape(observers_xyz))
+    # print('diff theta healp-mine: ', theta_heal-theta_mine[idx],flush=False)
+    # sys.stdout.flush()
+    # print('diff phi healp-mine: ', phi_heal-phi_mine[idx], flush=False)
+    # sys.stdout.flush()
+    # print('shape healp obs: ', np.shape(observers_xyz), flush=False)
+    x_mine, y_mine, z_mine = np.concatenate(x_mine[idx]), np.concatenate(y_mine[idx]), np.concatenate(z_mine[idx])
+    # observers_xyz = np.array([x_mine, y_mine, z_mine]).T
+    r_mine = np.sqrt(x_mine**2 + y_mine**2 + z_mine**2)
+    print('len observers mine: ', np.shape(x_mine), flush=False)
+    sys.stdout.flush()
     cross_dot = np.matmul(observers_xyz,  observers_xyz.T)
     cross_dot[cross_dot<0] = 0
     cross_dot *= 4/len(observers_xyz)
@@ -236,29 +240,34 @@ for idx_s, snap in enumerate(snaps):
         mu_x = observers_xyz[i][0]
         mu_y = observers_xyz[i][1]
         mu_z = observers_xyz[i][2]
+        mu_x_mine = x_mine[i]
+        mu_y_mine = y_mine[i]
+        mu_z_mine = z_mine[i]
 
         # Box is for dynamic ray making
         # box gives -x, -y, -z, +x, +y, +z
         if mu_x < 0:
-            rmax = box[0] / mu_x
-            # print('x-', rmax)
+            # rmax = box[0] / mu_x
+            rmax_mine = box[0] / mu_x_mine
         else:
-            rmax = box[3] / mu_x
-            # print('x+', rmax)
+            # rmax = box[3] / mu_x
+            rmax_mine = box[3] / mu_x_mine
         if mu_y < 0:
-            rmax = min(rmax, box[1] / mu_y)
-            # print('y-', rmax)
+            # rmax = min(rmax, box[1] / mu_y)
+            rmax_mine = min(rmax_mine, box[1] / mu_y_mine)
         else:
-            rmax = min(rmax, box[4] / mu_y)
-            # print('y+', rmax)
+            # rmax = min(rmax, box[4] / mu_y)
+            rmax_mine = min(rmax_mine, box[4] / mu_y_mine)
 
         if mu_z < 0:
-            rmax = min(rmax, box[2] / mu_z)
-            # print('z-', rmax)
+            # rmax = min(rmax, box[2] / mu_z)
+            rmax_mine = min(rmax_mine, box[2] / mu_z_mine)
         else:
-            rmax = min(rmax, box[5] / mu_z)
-            # print('z+', rmax)
+            # rmax = min(rmax, box[5] / mu_z)
+            rmax_mine = min(rmax_mine, box[5] / mu_z_mine)
 
+        # we want rmax = rmax_mine*Robsmax_mine where Robs = sqrt(mu_ x_mine**2 + mu_ y_mine**2 + mu_ z_mine**2)
+        rmax = rmax_mine * np.sqrt(mu_x_mine**2 + mu_y_mine**2 + mu_z_mine**2)
         r = np.logspace( -0.25, np.log10(rmax), N_ray)
         r_initial[i] = rmax
         alpha = (r[1] - r[0]) / (0.5 * ( r[0] + r[1]))
@@ -365,12 +374,12 @@ for idx_s, snap in enumerate(snaps):
         pre_saving = f'{abspath}/data/{folder}'
         time_rph = np.concatenate([[snap,tfb[idx_s]], ph_idx])
         time_fluxes = np.concatenate([[snap,tfb[idx_s]], fluxes])
-        with open(f'{pre_saving}/{check}_phidx_fluxes_Healp200.txt', 'a') as fileph:
+        with open(f'{pre_saving}/{check}_phidx_fluxes_Healp200Rmax.txt', 'a') as fileph:
             fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
             fileph.write(' '.join(map(str, time_rph)) + '\n')
             fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes [cgs] for each obs \n')
             fileph.write(' '.join(map(str, time_fluxes)) + '\n')
             fileph.close()
         # save observers position
-        np.save(f'{pre_saving}/{check}_observersHealp200_{snap}', [r_initial, observers_xyz[:,0], observers_xyz[:,1], observers_xyz[:,2]])
+        np.save(f'{pre_saving}/{check}_observersHealp200Rmax_{snap}', [r_initial, observers_xyz[:,0], observers_xyz[:,1], observers_xyz[:,2]])
 eng.exit()
