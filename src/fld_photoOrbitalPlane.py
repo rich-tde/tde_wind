@@ -116,8 +116,6 @@ apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 # observers 
 observers_xyz_mine = generate_elliptical_observers(num_observers = 200, amb = a_mb, emb = e_mb) # shape: (200, 3)
 observers_xyz_mine = np.array(observers_xyz_mine)
-print(np.shape(observers_xyz_mine), flush=False)
-sys.stdout.flush()
 x_mine, y_mine, z_mine = observers_xyz_mine[:, 0], observers_xyz_mine[:, 1], observers_xyz_mine[:, 2]
 r_mine = np.sqrt(x_mine**2 + y_mine**2 + z_mine**2)
 
@@ -136,23 +134,13 @@ r_mine = np.sqrt(x_mine**2 + y_mine**2 + z_mine**2)
 #     plt.savefig(f'{abspath}/Figs/Test/photosphere/observersOrbPl.png')
 #     plt.show()
 
-#%% Opacities -----------------------------------------------------------------
-# Freq range
-f_min = prel.Kb_cgs * 1e3 / prel.h_cgs
-f_max = prel.Kb_cgs * 3e13 / prel.h_cgs
-f_num = 1_000
-frequencies = np.logspace(np.log10(f_min), np.log10(f_max), f_num)
-
 # Opacity Input
 opac_path = f'{abspath}/src/Opacity'
 T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 
-# if extr == 'nouvrich':
 T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland)
-# if extr == 'rich':
-#     T_cool2, Rho_cool2, rossland2 = rich_extrapolator(T_cool, Rho_cool, rossland)
 
 # MATLAB GOES WHRRRR, thanks Cindy.
 eng = matlab.engine.start_matlab()
@@ -190,13 +178,15 @@ for idx_s, snap in enumerate(snaps):
 
     # Observers -----------------------------------------------------------------
     observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
-    # select only the observers in the orbital plane
+    # select only the observers in the orbital plane (will give you a N bool array--> apply to columns)
     mid = np.abs(observers_xyz[2]) == 0 # you can do that beacuse healpix gives you the observers also in the orbital plane (Z==0)
     observers_xyz = observers_xyz[:,mid]
     x_heal, y_heal, z_heal = observers_xyz[0], observers_xyz[1], observers_xyz[2]
     r_heal = np.sqrt(x_heal**2 + y_heal**2 + z_heal**2)   
-    print('observer healpix: ', np.shape(observers_xyz), flush=False)
-    sys.stdout.flush()
+    observers_xyz = np.transpose(observers_xyz) #shape: Nx3
+    cross_dot = np.matmul(observers_xyz,  observers_xyz.T)
+    cross_dot[cross_dot<0] = 0
+    cross_dot *= 4/len(observers_xyz)
 
     # find the corresponding mine observer for each healpix observer
     theta_heal = np.arctan2(y_heal, x_heal)          # Azimuthal angle in radians
@@ -206,22 +196,10 @@ for idx_s, snap in enumerate(snaps):
     points_toquery = np.transpose([theta_heal, phi_heal])
     tree = KDTree(np.transpose([theta_mine, phi_mine]))
     _, idx = tree.query(points_toquery, k=1)
-    # print('diff theta healp-mine: ', theta_heal-theta_mine[idx],flush=False)
-    # sys.stdout.flush()
-    # print('diff phi healp-mine: ', phi_heal-phi_mine[idx], flush=False)
-    # sys.stdout.flush()
-    # print('shape healp obs: ', np.shape(observers_xyz), flush=False)
     x_mine, y_mine, z_mine = np.concatenate(x_mine[idx]), np.concatenate(y_mine[idx]), np.concatenate(z_mine[idx])
-    # observers_xyz = np.array([x_mine, y_mine, z_mine]).T
     r_mine = np.sqrt(x_mine**2 + y_mine**2 + z_mine**2)
-    print('len observers mine: ', np.shape(x_mine), flush=False)
-    sys.stdout.flush()
-    cross_dot = np.matmul(observers_xyz,  observers_xyz.T)
-    cross_dot[cross_dot<0] = 0
-    cross_dot *= 4/len(observers_xyz)
 
     # Tree ----------------------------------------------------------------------
-    #from scipy.spatial import KDTree
     xyz = np.array([X, Y, Z]).T
     N_ray = 5_000
 
@@ -233,13 +211,16 @@ for idx_s, snap in enumerate(snaps):
     r_initial = np.zeros(len(observers_xyz))
     ##
     for i in range(len(observers_xyz)):
+        # do just one observer
+        if i != 0:
+            continue
         # Progress 
         print(f'Snap: {snap}, Obs: {i}', flush=False)
         sys.stdout.flush()
 
-        mu_x = observers_xyz[i][0]
-        mu_y = observers_xyz[i][1]
-        mu_z = observers_xyz[i][2]
+        mu_x = observers_xyz[i][0] # mu_x = x_heal[i]
+        mu_y = observers_xyz[i][1] # mu_y = y_heal[i]
+        mu_z = observers_xyz[i][2] # mu_z = z_heal[i]
         mu_x_mine = x_mine[i]
         mu_y_mine = y_mine[i]
         mu_z_mine = z_mine[i]
@@ -247,29 +228,29 @@ for idx_s, snap in enumerate(snaps):
         # Box is for dynamic ray making
         # box gives -x, -y, -z, +x, +y, +z
         if mu_x < 0:
-            # rmax = box[0] / mu_x
+            rmax = box[0] / mu_x
             rmax_mine = box[0] / mu_x_mine
         else:
-            # rmax = box[3] / mu_x
+            rmax = box[3] / mu_x
             rmax_mine = box[3] / mu_x_mine
         if mu_y < 0:
-            # rmax = min(rmax, box[1] / mu_y)
+            rmax = min(rmax, box[1] / mu_y)
             rmax_mine = min(rmax_mine, box[1] / mu_y_mine)
         else:
-            # rmax = min(rmax, box[4] / mu_y)
+            rmax = min(rmax, box[4] / mu_y)
             rmax_mine = min(rmax_mine, box[4] / mu_y_mine)
-
         if mu_z < 0:
-            # rmax = min(rmax, box[2] / mu_z)
+            rmax = min(rmax, box[2] / mu_z)
             rmax_mine = min(rmax_mine, box[2] / mu_z_mine)
         else:
-            # rmax = min(rmax, box[5] / mu_z)
+            rmax = min(rmax, box[5] / mu_z)
             rmax_mine = min(rmax_mine, box[5] / mu_z_mine)
 
         # we want rmax = rmax_mine*Robsmax_mine where Robs = sqrt(mu_ x_mine**2 + mu_ y_mine**2 + mu_ z_mine**2)
-        rmax = rmax_mine * np.sqrt(mu_x_mine**2 + mu_y_mine**2 + mu_z_mine**2)
-        r = np.logspace( -0.25, np.log10(rmax), N_ray)
-        r_initial[i] = rmax
+        rmax_new = rmax_mine * np.sqrt(mu_x_mine**2 + mu_y_mine**2 + mu_z_mine**2)
+        print(rmax, rmax_new)
+        r = np.logspace( -0.25, np.log10(rmax_new), N_ray)
+        r_initial[i] = rmax_mine
         alpha = (r[1] - r[0]) / (0.5 * ( r[0] + r[1]))
         dr = alpha * r
 

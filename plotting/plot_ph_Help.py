@@ -131,19 +131,23 @@ mineHeal_Rinitial_mid = mineR_initial_mid[idx]
 mineHeal_rObs_mid = mine_rObs_mid[idx]
 mineHeal_xph_mid, mineHeal_yph_mid, mineHeal_rph_mid = make_slices([xph_mine_mid, yph_mine_mid, rph_mid_mine], idx)
 
-#%%
-print('R obs help:', heal_Robs)
-print('R obs mine:', mine_Robs)
+
 #%%
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 15))
-ax1.scatter(mineHeal_Rinitial_mid*mineHeal_rObs_mid/apo, mineHeal_rph_mid/apo, s = 300, c = np.arange(len(mineHeal_rph_mid)), label = 'Mine', marker = '*', cmap = 'jet', edgecolors = 'k')
+ax1.scatter(mineHeal_Rinitial_mid*mineHeal_rObs_mid/apo, mineHeal_rph_mid/apo, s = 700, c = np.arange(len(mineHeal_rph_mid)), label = 'Mine', marker = '*', cmap = 'jet', edgecolors = 'k')
 ax1.scatter(healpR_initial_Heal*heal_rObs_mid/apo, rph_Heal_mid/apo, s = 200, c = np.arange(len(mineHeal_rph_mid)), label = 'Healpix', marker = 'o', cmap = 'jet', edgecolors = 'k')
 ax1.set_xlabel(r'R$_{initial}$ [R$_a$]', fontsize = 27)
 ax1.set_ylabel(r'R$_{ph}$ [R$_a$]', fontsize = 27)
+ax1.set_yscale('log')
+ax1.grid()
+ax1.tick_params(axis='y', which='major', width = 1.5, length = 8)
+ax1.tick_params(axis='y', which='minor', width = 1.5, length = 5)
 ax1.legend(fontsize = 27)
 
-ax2.scatter(X_mid/apo, Y_mid/apo, s = 10, c = Den_mid, cmap = 'gray', norm = colors.LogNorm(vmin=1e-15, vmax=1e-4))
-ax2.scatter(mineHeal_xph_mid/apo, mineHeal_yph_mid/apo, c = np.arange(len(mineHeal_rph_mid)), s = 300, marker = '*', cmap = 'jet', edgecolors = 'k')
+img = ax2.scatter(X_mid/apo, Y_mid/apo, s = 10, c = Den_mid, cmap = 'gray', norm = colors.LogNorm(vmin=1e-13, vmax=1e-4))
+# cbar = plt.colorbar(img)
+# cbar.set_label('Density [$M_{\odot}/R_{\odot}^3$]')
+ax2.scatter(mineHeal_xph_mid/apo, mineHeal_yph_mid/apo, c = np.arange(len(mineHeal_rph_mid)), s = 700, marker = '*', cmap = 'jet', edgecolors = 'k')
 img = ax2.scatter(xph_Heal_mid/apo, yph_Heal_mid/apo, c = np.arange(len(mineHeal_rph_mid)), s = 200, marker = 'o', cmap = 'jet', edgecolors = 'k')
 cbar = plt.colorbar(img, orientation='horizontal', pad = 0.15)
 cbar.set_label('Observer Number')
@@ -155,7 +159,7 @@ plt.tight_layout()
 plt.savefig(f'{abspath}/Figs/Test/photosphere/initialR&Rph_mid.png', bbox_inches='tight')
 
 #%% Helapix observers substituting the ones on the orbital plane with mine
-dataH200 = np.load(f'{abspath}/data/{folder}/_observersHealp200_348.npy')
+dataH200 = np.load(f'{abspath}/data/{folder}/_observersHealp200Rmax_348.npy')
 H200R_initial, H200Obs_x, H200Obs_y, H200Obs_z = dataH200[0], dataH200[1], dataH200[2], dataH200[3]
 H200_Robs = np.sqrt(H200Obs_x**2 + H200Obs_y**2 + H200Obs_z**2)
 data_phH200 = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/_photo348_Healp200.txt')
@@ -167,9 +171,12 @@ ax1.scatter(mineHeal_Rinitial_mid * mineHeal_rObs_mid/apo, mineHeal_rph_mid/apo,
 ax1.scatter(H200R_initial*H200_Robs/apo, rph_H200/apo, c = np.arange(len(mineHeal_rph_mid)), label = 'Healpix with my distances', marker = 'H', cmap = 'jet', edgecolors = 'k')
 ax1.set_xlabel(r'R$_{initial}$ [R$_a$]', fontsize = 27)
 ax1.set_ylabel(r'R$_{ph}$ [R$_a$]', fontsize = 27)
+ax1.set_yscale('log')
 ax1.legend(fontsize = 27)
 
-ax2.scatter(X_mid/apo, Y_mid/apo, s = 10, c = Den_mid, cmap = 'gray', norm = colors.LogNorm(vmin=1e-15, vmax=1e-4))
+img = ax2.scatter(X_mid/apo, Y_mid/apo, s = 10, c = Den_mid, cmap = 'gray', norm = colors.LogNorm(vmin=1e-13, vmax=1e-4))
+cbar = plt.colorbar(img)
+cbar.set_label('Density [$M_{\odot}/R_{\odot}^3$]')
 ax2.scatter(mineHeal_xph_mid/apo, mineHeal_yph_mid/apo, c = np.arange(len(mineHeal_rph_mid)), s = 700, marker = '*', cmap = 'jet', edgecolors = 'k')
 img = ax2.scatter(xph_H200/apo, yph_H200/apo, c = np.arange(len(mineHeal_rph_mid)), s = 200, marker = 'H', cmap = 'jet', edgecolors = 'k')
 cbar = plt.colorbar(img, orientation='horizontal', pad = 0.15)
