@@ -285,10 +285,13 @@ for idx_s, snap in enumerate(snaps):
         xph, yph, zph, volph, denph, Tempph, Radph, Vxph, Vyph, Vzph = make_slices([x, y, z, vol, den, Temp, Rad, Vx, Vy, Vz], single_indices_ph)
         # save the photosphere
         with open(f'{pre_saving}/photo/{check}_photo{snap}.txt', 'a') as f:
-            f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph, Radph (radiation energy NOT density) \n')
+            f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph, Radph (radiation energy NOT density), Vxph, Vyph, Vzph \n')
             f.write(' '.join(map(str, xph)) + '\n')
             f.write(' '.join(map(str, yph)) + '\n')
             f.write(' '.join(map(str, zph)) + '\n')
+            f.write(' '.join(map(str, Vxph)) + '\n')
+            f.write(' '.join(map(str, Vyph)) + '\n')
+            f.write(' '.join(map(str, Vzph)) + '\n')
             f.write(' '.join(map(str, volph)) + '\n')
             f.write(' '.join(map(str, denph)) + '\n')
             f.write(' '.join(map(str, Tempph)) + '\n')
