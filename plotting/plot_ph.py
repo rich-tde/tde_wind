@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 from src import orbits as orb
 import matplotlib.colors as colors
+from matplotlib import cm
 import Utilities.prelude as prel
 import healpy as hp
 from matplotlib import gridspec
@@ -28,7 +29,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
-snap = '164'
+snap = '348'
 snaps_cdf = [164, 199, 267]
 compton = 'Compton'
 
@@ -43,6 +44,10 @@ R0 = 0.6 * Rt
 Rp =  Rt / beta
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
+#%%
+# tvisc = (R0**3/(prel.G*Mbh))**(1/2) * (1/0.1) * (1/0.3)**2
+# tvisc_days = tvisc*prel.tsol_cgs/(3660*24)
+# print(tvisc_days)
 #%%
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
 observers_xyz = np.array(observers_xyz).T
@@ -95,6 +100,7 @@ mean_rph = np.zeros(len(tfb))
 mean_rph_weig = np.zeros(len(tfb))
 gmean_ph = np.zeros(len(tfb))
 median_ph = np.zeros(len(tfb))
+size_at_median = np.zeros(len(tfb))
 mean_size = np.zeros(len(tfb))
 percentile16 = np.zeros(len(tfb))
 percentile84 = np.zeros(len(tfb))
@@ -108,9 +114,34 @@ for i, snapi in enumerate(snaps):
         mean_rph_weig[i] = np.sum(rph_i*fluxes[i])/np.sum(fluxes[i])
         gmean_ph[i] = gmean(rph_i)
         median_ph[i] = np.median(rph_i)
+        idx_median = np.argmin(np.abs(rph_i - median_ph[i]))
+        size_at_median[i] = dim_i[idx_median]
         mean_size[i] = np.mean(dim_i)
         percentile16[i] = np.percentile(rph_i, 16)
         percentile84[i] = np.percentile(rph_i, 84)
+plt.figure(figsize=(10, 5))
+plt.scatter(np.arange(192), rph_i/apo, c = np.arange(192), edgecolors = 'k', cmap = 'jet')
+plt.yscale('log')
+plt.xlabel('Observer index')
+plt.ylabel(r'$R_{ph} [R_a]$')
+plt.grid()
+plt.title(f'Photosphere radius for the snapshot {snapi}')
+plt.tight_layout()
+plt.savefig(f'{abspath}/Figs/Test/photosphere/{snapi}/ObsPh.png')
+
+#%% Check for the last snap the dimension of photosphere with respect to distance
+plt.figure(figsize=(10, 5))
+plt.scatter(rph_i/apo, dim_i/rph_i, c = 'deepskyblue', edgecolors = 'k', label = 'Others')
+plt.scatter(rph_i[88:104]/apo, dim_i[88:104]/rph_i[88:104], c = 'orange', edgecolors = 'k', label = 'Orb.plane')
+plt.xlabel(r'$R_{ph} [R_a]$')
+plt.ylabel(r'$R_{\rm cell}/R_{ph}$')
+plt.grid()
+plt.title(f'Snapshot {snapi}')
+plt.legend(fontsize = 15)       
+plt.tight_layout()
+plt.savefig(f'{abspath}/Figs/Test/photosphere/{snapi}/RcellOverRph.png')
+
+#%%
 plt.figure()
 plt.plot(tfb, mean_rph/apo, c = 'k', label = 'mean')
 plt.plot(tfb, mean_rph_weig/apo, c = 'r', label = 'weighted by flux')
@@ -174,6 +205,7 @@ mean_rphL = np.zeros(len(tfbL))
 mean_rphL_weig = np.zeros(len(tfbL))
 gmean_phL = np.zeros(len(tfbL))
 median_phL = np.zeros(len(tfbL))
+size_at_medianL = np.zeros(len(tfbL))
 mean_sizeL = np.zeros(len(tfbL))
 percentile16L = np.zeros(len(tfbL))
 percentile84L = np.zeros(len(tfbL))
@@ -199,6 +231,8 @@ for i, snapi in enumerate(snapsL):
         mean_rphL[i] = np.mean(rph_i)
         gmean_phL[i] = gmean(rph_i)
         median_phL[i] = np.median(rph_i)
+        idx_median = np.argmin(np.abs(rph_i - median_phL[i]))
+        size_at_medianL[i] = dim_i[idx_median]
         percentile16L[i] = np.percentile(rph_i, 16)
         percentile84L[i] = np.percentile(rph_i, 84)
         mean_rphL_weig[i] = np.sum(rph_i*fluxesL[i])/np.sum(fluxesL[i])
@@ -214,6 +248,7 @@ mean_rphH_weig = np.zeros(len(tfbH))
 gmean_phH = np.zeros(len(tfbH))
 mean_sizeH = np.zeros(len(tfbH))
 median_phH = np.zeros(len(tfbH))
+size_at_medianH = np.zeros(len(tfbH))
 percentile16H = np.zeros(len(tfbH))
 percentile84H = np.zeros(len(tfbH))
 statH = np.zeros(len(tfbH))
@@ -238,6 +273,8 @@ for i, snapi in enumerate(snapsH):
         mean_rphH[i] = np.mean(rph_i)
         gmean_phH[i] = gmean(rph_i)
         median_phH[i] = np.median(rph_i)
+        idx_median = np.argmin(np.abs(rph_i - median_phH[i]))
+        size_at_medianH[i] = dim_i[idx_median]
         percentile16H[i] = np.percentile(rph_i, 16)
         percentile84H[i] = np.percentile(rph_i, 84)
         mean_rphH_weig[i] = np.sum(rph_i*fluxesH[i])/np.sum(fluxesH[i])
@@ -546,38 +583,37 @@ plt.savefig(f'{abspath}/Figs/multiple/photo/WeightOrNotRph.png', bbox_inches='ti
 
 #%%
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-ax1.plot(tfbL, mean_rphL/apo, c = 'C1', label = 'Low')
-ax1.plot(tfbL, (mean_rphL + 0.5*mean_sizeL)/apo, c = 'C1', alpha = 0.5)
-ax1.plot(tfbL, (mean_rphL - 0.5*mean_sizeL)/apo, c = 'C1', alpha = 0.5)
-ax1.fill_between(tfbL, (mean_rphL - 0.5*mean_sizeL)/apo, (mean_rphL + 0.5*mean_sizeL)/apo, color = 'C1', alpha = 0.2)
-ax1.plot(tfb, mean_rph/apo, c = 'yellowgreen', label = 'Fid')
-ax1.plot(tfb, (mean_rph + 0.5*mean_size)/apo, c = 'yellowgreen', alpha = 0.5)
-ax1.plot(tfb, (mean_rph - 0.5*mean_size)/apo, c = 'yellowgreen', alpha = 0.5)
-ax1.fill_between(tfb, (mean_rph - 0.5*mean_size)/apo, (mean_rph + 0.5*mean_size)/apo, color = 'yellowgreen', alpha = 0.2)
-ax1.plot(tfbH, mean_rphH/apo, c = 'darkviolet', label = 'High')
-ax1.plot(tfbH, (mean_rphH + 0.5*mean_sizeH)/apo, c = 'darkviolet', alpha = 0.5)
-ax1.plot(tfbH, (mean_rphH - 0.5*mean_sizeH)/apo, c = 'darkviolet', alpha = 0.5)
-ax1.fill_between(tfbH, (mean_rphH - 0.5*mean_sizeH)/apo, (mean_rphH + 0.5*mean_sizeH)/apo, color = 'darkviolet', alpha = 0.2)
+ax1.plot(tfbL, median_phL/apo, c = 'C1', label = 'Low')
+ax1.plot(tfbL, (median_phL + 0.5*size_at_medianL)/apo, c = 'C1', alpha = 0.5)
+ax1.plot(tfbL, np.abs(median_phL - 0.5*size_at_medianL)/apo, c = 'C1', alpha = 0.5)
+ax1.fill_between(tfbL, np.abs(median_phL - 0.5*size_at_medianL)/apo, (median_phL + 0.5*size_at_medianL)/apo, color = 'C1', alpha = 0.2)
+ax1.plot(tfb, median_ph/apo, c = 'yellowgreen', label = 'Fid')
+ax1.plot(tfb, (median_ph + 0.5*size_at_median)/apo, c = 'yellowgreen', alpha = 0.5)
+ax1.plot(tfb, np.abs(median_ph - 0.5*size_at_median)/apo, c = 'yellowgreen', alpha = 0.5)
+ax1.fill_between(tfb, np.abs(median_ph - 0.5*size_at_median)/apo, (median_ph + 0.5*size_at_median)/apo, color = 'yellowgreen', alpha = 0.2)
+ax1.plot(tfbH, median_phH/apo, c = 'darkviolet', label = 'High')
+ax1.plot(tfbH, (median_phH + 0.5*size_at_medianH)/apo, c = 'darkviolet', alpha = 0.5)
+ax1.plot(tfbH, np.abs(median_phH - 0.5*size_at_medianH)/apo, c = 'darkviolet', alpha = 0.5)
+ax1.fill_between(tfbH, np.abs(median_phH - 0.5*size_at_medianH)/apo, (median_phH + 0.5*size_at_medianH)/apo, color = 'darkviolet', alpha = 0.2)
 ax1.set_yscale('log')
-ax1.set_ylabel(r'$\langle R_{ph} \rangle [R_a]$')
+ax1.set_ylabel(r'median $R_{ph}[R_a]$')
+ax1.set_ylim(5e-4, 3.5)
 ax1.legend(fontsize = 18)
 
-ax2.plot(tfbL, ratioL,  color = 'yellowgreen')
-ax2.plot(tfbL, ratioL, '--', color = 'darkorange')
-ax2.plot(tfbH, ratioH, color = 'yellowgreen')
-ax2.plot(tfbH, ratioH, '--', color = 'darkviolet')
+ax2.plot(tfbL, ratioLmedian,  color = 'yellowgreen')
+ax2.plot(tfbL, ratioLmedian, '--', color = 'darkorange')
+ax2.plot(tfbH, ratioHmedian, color = 'yellowgreen')
+ax2.plot(tfbH, ratioHmedian, '--', color = 'darkviolet')
 ax2.set_xlabel(r't [$t_{fb}$]')
 ax2.set_ylabel(r'$|\Delta_{\rm rel}|$')
-ax2.set_ylim(0.9, 3)
+ax2.set_ylim(0.9, 4)
 for ax in [ax1, ax2]:
         ax.grid()
         ax.set_xlim(0, np.max(tfb))
 ax2.set_xlabel(r't [$t_{fb}$]')
 # plt.suptitle('Standard average photosphere')
-print('median ratioL:', np.median(ratioL))
-print('median ratioH:', np.median(ratioH))
 plt.tight_layout()
-plt.savefig(f'{abspath}/Figs/multiple/photo/Rph_diffR.png')
+plt.savefig(f'{abspath}/Figs/Test/photosphere/Rph_medianSize.png')
 
 # %%
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
@@ -604,7 +640,7 @@ ax2.plot(tfbH, ratioHmedian, color = 'yellowgreen', linewidth = 2)
 ax2.plot(tfbH, ratioHmedian, '--', color = 'darkviolet', linewidth = 2)
 ax2.set_xlabel(r't [$t_{fb}$]')
 ax2.set_ylabel(r'$|\Delta_{\rm rel}|$')
-ax2.set_ylim(0.9, 4)
+ax2.set_ylim(0.9, 3.5)
 for ax in [ax1, ax2]:
         ax.grid()
         ax.set_xlim(0, np.max(tfb))

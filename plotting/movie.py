@@ -16,18 +16,6 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 start = 80
 slow_down_factor = 2  # Increase this value to make the video slower
 
-# For Denproj
-# path = f'{abspath}/Figs/{folder}/projection/denproj'
-# output_path = f'{abspath}/Figs/{folder}/movie_proj{check}.mp4'
-# ffmpeg_command = (
-#     f'ffmpeg -y -start_number {start} -i {path}%03d{cut}.png -vf "setpts={slow_down_factor}*PTS" '
-#     f'-frames:v {end_frame+ 1} -c:v libx264 -pix_fmt yuv420p {output_path}'
-# )
-
-# For Slices 
-path = f'{abspath}/Figs/EddingtonEnvelope/movie/%d.png' 
-output_path = f'{abspath}/Figs/EddingtonEnvelope/movie.mp4'
-
 # Get the height of the first image to calculate the scale
 def get_image_size(image_path):
     result = subprocess.run(['ffprobe', '-v', 'error', '-show_entries',
@@ -39,7 +27,25 @@ def get_image_size(image_path):
     height = int(output.split("height=")[1].split("\n")[0])
     return width, height
 
-first_image_path = f'{abspath}/Figs/EddingtonEnvelope/movie/{start}.png'
+# For Denproj
+# path = f'{abspath}/Figs/{folder}/projection/denproj'
+# output_path = f'{abspath}/Figs/{folder}/movie_proj{check}.mp4'
+# ffmpeg_command = (
+#     f'ffmpeg -y -start_number {start} -i {path}%03d{cut}.png -vf "setpts={slow_down_factor}*PTS" '
+#     f'-frames:v {end_frame+ 1} -c:v libx264 -pix_fmt yuv420p {output_path}'
+# )
+
+# For Slices 
+# path = f'{abspath}/Figs/EddingtonEnvelope/movie/%d.png' 
+# output_path = f'{abspath}/Figs/EddingtonEnvelope/movie.mp4'
+# first_image_path = f'{abspath}/Figs/EddingtonEnvelope/movie/{start}.png'
+# width, height = get_image_size(first_image_path)
+
+# For res insensitivity Rph
+path = f'{abspath}/Figs/Test/photosphere/164/164_RinRph_ray%d.png'
+output_path = f'{abspath}/Figs/Test/photosphere/164/164_RinRph_movie.mp4'
+start = 0
+first_image_path = f'{abspath}/Figs/Test/photosphere/164/164_RinRph_ray{start}.png'
 width, height = get_image_size(first_image_path)
 
 # Ensure the height is even by subtracting 1 if it's odd.
