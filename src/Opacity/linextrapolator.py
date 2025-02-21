@@ -192,11 +192,11 @@ def nouveau_rich(x, y, K, what = 'scatter', slope_length = 26, extrarowsx = 100,
     yn = np.concatenate([y_extra_low[::-1], y, y_extra_high])
     
     Kn = np.zeros((len(xn), len(yn)))
+    density_edge = np.argmin(np.abs(y[slope_length] - yn)) # add for wall by K
     for ix, xsel in enumerate(xn):
+        pivot = Kn[ix, density_edge] # add for wall by K
         for iy, ysel in enumerate(yn):
-            
-            # Too cold
-            if xsel < x[0]:
+            if xsel < x[0]: # Too cold
                 deltax = x[slope_length - 1] - x[0]
                 if ysel < y[0]: # Too rarefied
                     # slope_length = 2

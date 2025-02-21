@@ -1,6 +1,6 @@
 """ Find photosphere following FLD curve Elad's script. 
 Compare Healpix and my sample as Rinitial and Rph at the orbital plane.
-Check optical depth and density along rays for Healpix sample"""
+Check optical depth and density along rays for Healpix sample at the orbital plane"""
 #%%
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
@@ -95,7 +95,7 @@ def generate_elliptical_observers(num_observers, amb=1, emb=0.5):
 ##
 # MAIN
 ##
-save = True
+save = False
 
 m = 4
 Mbh = 10**m
@@ -112,6 +112,10 @@ a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 e_mb = orb.eccentricity(Rstar, mstar, Mbh, beta)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 Rt = Rstar * (Mbh/mstar)**(1/3)
+x_test = np.arange(1e-1, 20)
+y_test3 = 1e-13 * x_test**(-3)
+y_test4 = 1e-13 * x_test**(-4)
+y_test7 = 1e-10 * x_test**(-7)
 
 #%% observers 
 observers_xyz_mine = generate_elliptical_observers(num_observers = 200, amb = a_mb, emb = e_mb) # shape: (200, 3)
@@ -214,12 +218,12 @@ y_ph = []
 z_ph = []
 ph_idx = []
 r_initial = []
-## just to check photosphere
-img1, (ax4, ax5, ax6) = plt.subplots(3,1,figsize = (8,15))
+img1, (ax4, ax5, ax6) = plt.subplots(3,1,figsize = (8,15)) # this is to check all observers from Healpix on the orbital plane
 for i in range(len(observers_xyz)):
-    # Progress 
-    if int(i)!= 90:
+    # if you want to check a specific observer
+    if int(i) >=10:
         continue
+    # Progress 
     print(f'Obs: {i}', flush=False)
     sys.stdout.flush()
 
@@ -253,12 +257,12 @@ for i in range(len(observers_xyz)):
 
     # we want rmax = rmax_mine*Robsmax_mine where Robs = sqrt(mu_ x_mine**2 + mu_ y_mine**2 + mu_ z_mine**2)
     # rmax_new = rmax_mine * np.sqrt(mu_x_mine**2 + mu_y_mine**2 + mu_z_mine**2)
-    rs_max = [rmax, rmax_mine]
+    rs_max = [rmax]#, rmax_mine]
     label_rs = ['R_Healp', 'R_mine']
     linestyle_rs = ['--', 'solid']
     marker_rs = ['o', '*']
 
-    img, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(8, 10))
+    img, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(8, 10)) # this is to check Healpix with my sample
     x_ph_r = np.zeros(len(rs_max))
     y_ph_r = np.zeros(len(rs_max))
     z_ph_r = np.zeros(len(rs_max))
@@ -266,8 +270,6 @@ for i in range(len(observers_xyz)):
     r_initial_r = np.zeros(len(rs_max))
     for j, rmax_chosen in enumerate(rs_max):
         r = np.logspace( -0.25, np.log10(rmax_chosen), N_ray)
-        # alpha = (r[1] - r[0]) / (0.5 * ( r[0] + r[1]))
-        # dr = alpha * r
         if j == 0:
             x = r*mu_x
             y = r*mu_y
@@ -308,9 +310,6 @@ for i in range(len(observers_xyz)):
         dx = 0.5 * Vol[idx]**(1/3) # Cell radius #the constant should be 0.62
 
         # Get the Grads
-        # sphere and get the gradient on them. Is it neccecery to re-interpolate?
-        # scattered interpolant returns a function
-        # griddata DEMANDS that you pass it the values you want to eval at
         f_inter_input = np.array([ X[idxnew], Y[idxnew], Z[idxnew] ]).T
 
         gradx_p = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
@@ -360,8 +359,6 @@ for i in range(len(observers_xyz)):
             Lphoto2 = 1e100 # it means that it will always pick max_length for the negatives
         max_length = 4*np.pi*prel.c_cgs*EEr[b]*r[b]**2 * prel.Msol_cgs * prel.Rsol_cgs / (prel.tsol_cgs**2) #the conversion is for Erad: energy*r^2/lenght^3 [in SI would be kg m^2/s^2 * m^2 * 1/m^3]
         Lphoto = np.min( [Lphoto2, max_length])
-        # reds[i] = Lphoto
-        # just to check photosphere
         ph_idx_r[j] = idx[b]
         x_ph_r[j], y_ph_r[j], z_ph_r[j] = X[idx][b], Y[idx][b], Z[idx][b]
 
@@ -377,10 +374,8 @@ for i in range(len(observers_xyz)):
             ax.axvline(r[b]/apo, c = 'b', linestyle = linestyle_rs[j], label = f'Photosphere {label_rs[j]}')
             ax.axvline(r_initial_r[j]/apo, c = 'r', linestyle = linestyle_rs[j], label = f'R_initial {label_rs[j]}')
         
-        # plot of all the observers from Healpix
         if j == 0:
-            print('plot')
-            ax4.plot(r/apo, d, c = cm.jet(i / len(observers_xyz)))
+            ax4.plot(r/apo, d, c = cm.jet(i / len(observers_xyz)), label = f'{i}')
             ax5.plot(r/apo, t, c = cm.jet(i / len(observers_xyz)))
             ax6.plot(r/apo, los, c = cm.jet(i / len(observers_xyz)), label = f'{i}')
 
@@ -395,7 +390,6 @@ for i in range(len(observers_xyz)):
         ax.set_xlim(1e-1, 1e2)
     img.suptitle(f'Observer: {i}', fontsize=16)
     img.tight_layout()
-    plt.show()
     # img.savefig(f'{abspath}/Figs/Test/photosphere/{snap}/OrbPl/{snap}_ray{i}.png')
     # save data for photosphere
     r_initial.append(r_initial_r)
@@ -411,16 +405,23 @@ ax4.set_ylabel(r'$\rho$ [g/cm$^3]$')
 ax5.set_ylabel(r'T [K]')
 ax6.set_ylabel(r'$\tau$')
 ax6.set_xlabel(r'R [R$_a]$')
-ax6.set_ylim(2e-8, 1e11)
+# ax5.set_ylim(3e-1, 20)
+ax4.set_ylim(2e-17, 1e-5)#2e-9)
+# ax4.plot(x_test, y_test3, c = 'gray', ls = '--', label = r'$\rho \propto R^{-3}$')
+ax4.plot(x_test, y_test4, c = 'gray', ls = '-.', label = r'$\rho \propto R^{-4}$')
+ax4.plot(x_test, y_test7, c = 'gray', ls = '--', label = r'$\rho \propto R^{-7}$')
+
 # rph_h = np.sqrt((x_ph[0])**2 + (y_ph[0])**2 + (z_ph[0])**2)
 for ax in [ax4, ax5, ax6]:
     ax.loglog()
-    ax.set_xlim(1e-3, 1e2)
-    ax.axvline(Rt/apo, ls = 'dotted', c = 'k', label = r'R$_t$')
+    ax.set_xlim(3e-1, 20)#(1e-3, 1e2)
+    # ax.axvline(Rt/apo, ls = 'dotted', c = 'k', label = r'R$_t$')
+    ax.grid()
     # ax.axvline(np.median(rph_h)/apo, ls = 'dashed', c = 'b', label = r'median $R_{ph}$')
-ax6.legend(loc = 'lower left')
+ax4.legend(loc = 'upper right')
+img1.suptitle('Healpix Observers', fontsize=16)
 img1.tight_layout()
-# img1.savefig(f'{abspath}/Figs/Test/photosphere/{snap}/OrbPl/{snap}_raysH.png', bbox_inches='tight')
+img1.savefig(f'{abspath}/Figs/Test/photosphere/{snap}/OrbPl/{snap}_raysHzoom_up10.png', bbox_inches='tight')
 # data_to_save = [r_initial, x_ph, y_ph, z_ph, ph_idx] # 5x16x2 where 16=len(obsevers OrbPl)
 #%% Save red of the single snap
 if save:
@@ -443,18 +444,18 @@ X_mid, Y_mid, Z_mid, Den_mid, Vol_mid = make_slices([X, Y, Z, Den, Vol], mid)
 #%%
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 15))
 ax1.scatter(r_initial_h*apo, r_ph_h/apo, s = 400, c = np.arange(len(r_ph_h)), label = 'Healpix', marker = 'o', cmap = 'jet', edgecolors = 'k')
-ax1.scatter(r_initial_m*apo, r_ph_m/apo, s = 500, c = np.arange(len(r_ph_m)), label = 'Mine', marker = '*', cmap = 'jet', edgecolors = 'k')
+# ax1.scatter(r_initial_m*apo, r_ph_m/apo, s = 500, c = np.arange(len(r_ph_m)), label = 'Mine', marker = '*', cmap = 'jet', edgecolors = 'k')
 ax1.set_xlabel(r'R$_{initial}$ [R$_a$]', fontsize = 27)
 ax1.set_ylabel(r'R$_{ph}$ [R$_a$]', fontsize = 27)
 ax1.set_yscale('log')
 ax1.grid()
 ax1.tick_params(axis='y', which='major', width = 1.5, length = 8)
 ax1.tick_params(axis='y', which='minor', width = 1.5, length = 5)
-ax1.legend(fontsize = 27)
+# ax1.legend(fontsize = 27)
 
-img = ax2.scatter(X_mid/apo, Y_mid/apo, s = 10, c = Den_mid, cmap = 'gray', norm = colors.LogNorm(vmin=1e-13, vmax=1e-4))
-ax2.scatter(x_ph_h/apo, y_ph_h/apo, c = np.arange(len(x_ph_h)), s = 400, marker = 'o', cmap = 'jet', edgecolors = 'k', label = 'Healpix')  
-img = plt.scatter(x_ph_m/apo, y_ph_m/apo, c = np.arange(len(x_ph_m)), s = 500, marker = '*', cmap = 'jet', edgecolors = 'k',label = 'Mine')
+ax2.scatter(X_mid/apo, Y_mid/apo, s = 10, c = Den_mid, cmap = 'gray', norm = colors.LogNorm(vmin=1e-13, vmax=1e-4))
+img = ax2.scatter(x_ph_h/apo, y_ph_h/apo, c = np.arange(len(x_ph_h)), s = 400, marker = 'o', cmap = 'jet', edgecolors = 'k', label = 'Healpix')  
+# img = plt.scatter(x_ph_m/apo, y_ph_m/apo, c = np.arange(len(x_ph_m)), s = 500, marker = '*', cmap = 'jet', edgecolors = 'k',label = 'Mine')
 cbar = plt.colorbar(img, orientation='horizontal', pad = 0.15)
 cbar.set_label('Observer Number')
 ax2.set_xlim(-9,2.5)
@@ -462,7 +463,7 @@ ax2.set_ylim(-5,3)
 ax2.set_xlabel(r'X [R$_a$]', fontsize = 27)
 ax2.set_ylabel(r'Y [R$_a$]', fontsize = 27)
 plt.tight_layout()
-plt.savefig(f'{abspath}/Figs/Test/photosphere/{snap}/OrbPl/{snap}_photo.png', bbox_inches='tight')
+plt.savefig(f'{abspath}/Figs/Test/photosphere/{snap}/OrbPl/{snap}_DenHeal.png', bbox_inches='tight')
 
 # %%
 plt.figure(figsize=(15, 7))

@@ -51,7 +51,7 @@ compton = 'Compton'
 check = ''
 Rs = 2 * prel.G * Mbh / prel.csol_cgs**2
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snap = 237
+snap = 348
 
 Rt = Rstar * (Mbh/mstar)**(1/3)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta) 
@@ -78,23 +78,12 @@ DpDx = np.load(f'{path}/DpDx_{snap}.npy')
 DpDy = np.load(f'{path}/DpDy_{snap}.npy')
 DpDz = np.load(f'{path}/DpDz_{snap}.npy')
 dataph = np.loadtxt(f'{abspath}/data/{folder}/photo/_photo{snap}.txt')
-xph, yph, zph, volph= dataph[0], dataph[1], dataph[2], dataph[3]
-# midph= np.abs(zph) < volph**(1/3)
-# xph_mid, yph_mid, zph_mid = make_slices([xph, yph, zph], midph)
+xph, yph, zph, volph, Vxph, Vyph, Vzph = dataph[0], dataph[1], dataph[2], dataph[3], dataph[-3], dataph[-2], dataph[-1]
 
 data = make_tree(path, snap, energy = False)
 X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp = data.X, data.Y, data.Z, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Vol, data.Temp
 den_cut = Den > 1e-19
 X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp, DpDx, DpDy, DpDz = make_slices([X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp, DpDx, DpDy, DpDz], den_cut)
-
-alldata_ph = np.loadtxt(f'{abspath}/data/{folder}/{check}_phidx_fluxes.txt') 
-snaps_ph, alltimes_ph, allindices_ph = alldata_ph[:, 0], alldata_ph[:, 1], alldata_ph[:, 2:]
-snaps_ph = np.array(snaps_ph)
-selected_lines = np.concatenate(np.where(snaps_ph == snap))
-selected_idx, selected_fluxes = selected_lines[0], selected_lines[1]
-single_indices_ph = allindices_ph[selected_idx]
-single_indices_ph = single_indices_ph.astype(int)
-Vxph, Vyph, Vzph = make_slices([Vx, Vy, Vz], single_indices_ph)
 
 mid = np.abs(Z) < Vol**(1/3)
 X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp, DpDx, DpDy, DpDz = make_slices([X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp, DpDx, DpDy, DpDz], mid)
@@ -104,7 +93,7 @@ lat = lat_astro + (np.pi / 2) * u.rad # so is from 0 to pi
 # orb_en = orb.orbital_energy(R, V, data.Mass, 1, 3e8 / (7e8/t), Mbh)
 dP_radial = dPdR(DpDx, DpDy, DpDz, lat, long)
 
-# compute energies
+#%% compute energies
 KE = 0.5 * Mass * V**2
 PE = - prel.G * Mbh * Mass / R
 raio_E = KE / np.abs(PE)
@@ -125,7 +114,7 @@ cbar.set_label(r'$E_{\rm kin}/|E_{\rm pot}|$', fontsize = 20)
 plt.scatter(xph[indecesorbital]/apo, yph[indecesorbital]/apo, facecolors='none', edgecolors = 'k', s = 50)
 # arrow vx, vy on xph, yph
 for i in range(len(xph[indecesorbital])):
-    plt.arrow(xph[indecesorbital][i]/apo, yph[indecesorbital][i]/apo, Vxph[i]/50, Vyph[i]/50, color = 'k', head_width = 0.1, head_length = 0.1)
+    plt.arrow(xph[indecesorbital][i]/apo, yph[indecesorbital][i]/apo, Vxph[indecesorbital][i]/50, Vyph[indecesorbital][i]/50, color = 'k', head_width = 0.1, head_length = 0.1)
 plt.scatter(0, 0, c='k', s = 10)
 plt.xlim(-6, 2)
 plt.ylim(-3,2)#1, 1)
