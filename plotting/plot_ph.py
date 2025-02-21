@@ -158,7 +158,7 @@ plt.savefig(f'{abspath}/Figs/{folder}/photo_means.png')
 try:
         print('exists')
         data = np.loadtxt(f'{abspath}/data/{folder}/photo_stat.txt')
-except NameError:
+except FileNotFoundError:
         print('save')
         with open(f'{abspath}/data/{folder}/photo_stat.txt', 'a') as f:
                 f.write(f'# tfb, median_ph, mean_rph, gmean, weighted by flux\n')
@@ -242,6 +242,19 @@ for i, snapi in enumerate(snapsL):
         ratioL[i] = find_ratio(mean_rph[idx], mean_rphL[i])
         ratioLmedian[i] = find_ratio(median_ph[idx], median_phL[i])
         ratioL_weigh[i] = find_ratio(mean_rph_weig[idx], mean_rphL_weig[i])
+try:
+        data = np.loadtxt(f'{abspath}/data/{folder}LowRes/photo_statLowRes.txt')
+        print('exists')
+except FileNotFoundError:
+        print('save')
+        with open(f'{abspath}/data/{folder}LowRes/photo_statLowRes.txt', 'a') as f:
+                f.write(f'# tfb, median_ph, mean_rph, gmean, weighted by flux\n')
+                f.write(' '.join(map(str, tfb)) + '\n')
+                f.write(' '.join(map(str, median_ph)) + '\n')
+                f.write(' '.join(map(str, mean_rph)) + '\n')
+                f.write(' '.join(map(str, gmean_ph)) + '\n')
+                f.write(' '.join(map(str, mean_rph_weig)) + '\n')
+                f.close()
 
 mean_rphH = np.zeros(len(tfbH))
 mean_rphH_weig = np.zeros(len(tfbH))
@@ -284,6 +297,19 @@ for i, snapi in enumerate(snapsH):
         ratioH[i] = find_ratio(mean_rph[idx], mean_rphH[i])
         ratioHmedian[i] = find_ratio(median_ph[idx], median_phH[i])
         ratioH_weigh[i] = find_ratio(mean_rph_weig[idx], mean_rphH_weig[i])
+try:
+        data = np.loadtxt(f'{abspath}/data/{folder}HiRes/photo_statHiRes.txt')
+        print('exists')
+except FileNotFoundError:
+        print('save')
+        with open(f'{abspath}/data/{folder}HiRes/photo_statHiRes.txt', 'a') as f:
+                f.write(f'# tfb, median_ph, mean_rph, gmean, weighted by flux\n')
+                f.write(' '.join(map(str, tfb)) + '\n')
+                f.write(' '.join(map(str, median_ph)) + '\n')
+                f.write(' '.join(map(str, mean_rph)) + '\n')
+                f.write(' '.join(map(str, gmean_ph)) + '\n')
+                f.write(' '.join(map(str, mean_rph_weig)) + '\n')
+                f.close()
 #%% Compare the photosphere distribution
 fig, ax = plt.subplots(3, 3, figsize=(20, 12))
 for i, chosen_snap in enumerate(snaps_cdf):

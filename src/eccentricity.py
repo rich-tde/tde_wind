@@ -108,7 +108,6 @@ else:
         path = f'{abspath}/data/{folder}'
         ecc2 = np.load(f'{path}/Ecc2_{check}.npy') 
         ecc = np.sqrt(ecc2)
-        ecc = np.sqrt(ecc2)
         tfb_data = np.loadtxt(f'{path}/Ecc_{check}_days.txt')
         snap_, tfb = tfb_data[0], tfb_data[1]
         radii = np.load(f'{path}/radiiEcc_{check}.npy')
