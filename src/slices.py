@@ -60,11 +60,22 @@ if alice:
         file.close()
 else:
     # get ready to plot
+    import healpy as hp
     do = False
     time = np.loadtxt(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}_time.txt')
     snaps = time[0]
     snaps = [int(snap) for snap in snaps]
     tfb = time[1]
+    observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
+    observers_xyz = np.array(observers_xyz).T
+    x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
+    r = np.sqrt(x**2 + y**2 + z**2)   # Radius (should be 1 for unit vectors)
+    theta = np.arctan2(y, x)          # Azimuthal angle in radians
+    phi = np.arccos(z / r)            # Elevation angle in radians
+    longitude_moll = theta              
+    latitude_moll = np.pi / 2 - phi 
+    indecesorbital = np.concatenate(np.where(latitude_moll==0))
+
 
 for idx, snap in enumerate(snaps):
     if do:
@@ -102,10 +113,10 @@ for idx, snap in enumerate(snaps):
         import matplotlib.pyplot as plt
         import matplotlib.colors as colors
         # choose what to plot
-        npanels = 6 # 3 or 6
+        npanels = 1 # 1 or 3 or 6
 
         # load the data
-        data = np.load(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{int(cut_chosen)}slice_{snap}.npy')
+        data = np.load(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy', allow_pickle=True)
         x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid, VX_mid, VY_mid, VZ_mid =\
             data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11]
         mass_mid = den_mid * dim_mid**3
@@ -191,18 +202,38 @@ for idx, snap in enumerate(snaps):
                         norm = colors.LogNorm(vmin = vminRad, vmax = vmaxRad))
             cb = plt.colorbar(img)
             cb.set_label(r'Radiation energy density [erg]', fontsize = 14)
-        for i in range(2):
-            ax[i][0].set_ylabel(r'$Y/R_{\rm a}$', fontsize = 20)
-            for j in range(3):
-                ax[i][j].set_xlabel(r'$X/R_{\rm a}$', fontsize = 20)
-                ax[i][j].set_xlim(-1.2, 0.1)#(-340,25)
-                ax[i][j].set_ylim(-0.5, 0.5)#(-70,70)
-        ax[1][0].text(-1.05, 0.42, f't = {np.round(tfb[idx], 2)}' + r'$t_{\rm fb}$', fontsize = 20)
-        ax[0][0].text(-1.05, 0.38, f'snap {int(snaps[idx])}', fontsize = 16)
+        if npanels == 6 or npanels == 3:
+            for i in range(2):
+                ax[i][0].set_ylabel(r'$Y/R_{\rm a}$', fontsize = 20)
+                for j in range(3):
+                    ax[i][j].set_xlabel(r'$X/R_{\rm a}$', fontsize = 20)
+                    ax[i][j].set_xlim(-1.2, 0.1)#(-340,25)
+                    ax[i][j].set_ylim(-0.5, 0.5)#(-70,70)
+            ax[1][0].text(-1.05, 0.42, f't = {np.round(tfb[idx], 2)}' + r'$t_{\rm fb}$', fontsize = 20)
+            ax[0][0].text(-1.05, 0.38, f'snap {int(snaps[idx])}', fontsize = 16)
 
-        plt.tight_layout()
-        plt.savefig(f'{abspath}Figs/{folder}/slices/Panel{npanels}Slice{snap}.png')
-        plt.close()
+            plt.tight_layout()
+            plt.savefig(f'{abspath}Figs/{folder}/slices/Panel{npanels}Slice{snap}.png')
+            plt.close()
+
+        if npanels == 1:
+            dataph = np.loadtxt(f'{abspath}/data/{folder}/photo/_photo{snap}.txt')
+            xph, yph, zph, volph, Vxph, Vyph, Vzph = dataph[0], dataph[1], dataph[2], dataph[3], dataph[-3], dataph[-2], dataph[-1]
+            plt.figure(figsize=(15, 7))
+            img = plt.scatter(x_mid/apo, y_mid/apo, c=raio_E, cmap = 'coolwarm', s = 15, norm = colors.LogNorm(vmin = 1e-1, vmax = 10))
+            cbar = plt.colorbar(img)
+            cbar.set_label(r'$E_{\rm kin}/|E_{\rm pot}|$', fontsize = 20)
+            plt.scatter(xph[indecesorbital]/apo, yph[indecesorbital]/apo, facecolors='none', edgecolors = 'k', s = 50)
+            # arrow vx, vy on xph, yph
+            for i in range(len(xph[indecesorbital])):
+                plt.arrow(xph[indecesorbital][i]/apo, yph[indecesorbital][i]/apo, Vxph[indecesorbital][i]/40, Vyph[indecesorbital][i]/40, color = 'k', head_width = 0.1, head_length = 0.1)
+            plt.scatter(0, 0, c='k', s = 10)
+            plt.xlim(-5, 2)
+            plt.ylim(-2.5,2)#1, 1)
+            plt.xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
+            plt.ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
+            plt.tight_layout()
+            plt.savefig(f'{abspath}/Figs/EddingtonEnvelope/ratioE/E_{snap}.png', bbox_inches = 'tight')
         
         # plt.show()
 

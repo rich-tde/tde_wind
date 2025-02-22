@@ -78,7 +78,7 @@ DpDx = np.load(f'{path}/DpDx_{snap}.npy')
 DpDy = np.load(f'{path}/DpDy_{snap}.npy')
 DpDz = np.load(f'{path}/DpDz_{snap}.npy')
 dataph = np.loadtxt(f'{abspath}/data/{folder}/photo/_photo{snap}.txt')
-xph, yph, zph, volph, Vxph, Vyph, Vzph = dataph[0], dataph[1], dataph[2], dataph[3], dataph[-3], dataph[-2], dataph[-1]
+xph, yph, zph, volph= dataph[0], dataph[1], dataph[2], dataph[3]
 
 data = make_tree(path, snap, energy = False)
 X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp = data.X, data.Y, data.Z, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Vol, data.Temp
@@ -93,10 +93,6 @@ lat = lat_astro + (np.pi / 2) * u.rad # so is from 0 to pi
 # orb_en = orb.orbital_energy(R, V, data.Mass, 1, 3e8 / (7e8/t), Mbh)
 dP_radial = dPdR(DpDx, DpDy, DpDz, lat, long)
 
-#%% compute energies
-KE = 0.5 * Mass * V**2
-PE = - prel.G * Mbh * Mass / R
-raio_E = KE / np.abs(PE)
 # compute accelerations
 a_P = np.abs(dP_radial) / Den
 V_phi = v_phi(Vx, Vy, long)
@@ -105,23 +101,6 @@ a_centrifugal = V_phi**2 / R
 ratio = a_centrifugal / a_P
 a_grav = prel.G * Mbh / (R-Rs)**2
 ratio_env = (a_P + a_centrifugal)/a_grav
-
-#%% Plot energies
-plt.figure(figsize=(15, 7))
-img = plt.scatter(X/apo, Y/apo, c=raio_E, cmap = 'coolwarm', s = 15, norm = colors.LogNorm(vmin = 1e-1, vmax = 10))
-cbar = plt.colorbar(img)
-cbar.set_label(r'$E_{\rm kin}/|E_{\rm pot}|$', fontsize = 20)
-plt.scatter(xph[indecesorbital]/apo, yph[indecesorbital]/apo, facecolors='none', edgecolors = 'k', s = 50)
-# arrow vx, vy on xph, yph
-for i in range(len(xph[indecesorbital])):
-    plt.arrow(xph[indecesorbital][i]/apo, yph[indecesorbital][i]/apo, Vxph[indecesorbital][i]/50, Vyph[indecesorbital][i]/50, color = 'k', head_width = 0.1, head_length = 0.1)
-plt.scatter(0, 0, c='k', s = 10)
-plt.xlim(-6, 2)
-plt.ylim(-3,2)#1, 1)
-plt.xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
-plt.ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
-plt.tight_layout()
-plt.savefig(f'{abspath}/Figs/EddingtonEnvelope/ratioE{m}_{snap}.png', bbox_inches = 'tight')
 
 #%%
 fig, ((ax1,ax2), (ax3,ax4)) = plt.subplots(2,2, figsize=(20, 7))

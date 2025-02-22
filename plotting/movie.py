@@ -13,7 +13,7 @@ check = ''
 npanels = 6
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-start = 80
+start = 100
 slow_down_factor = 2  # Increase this value to make the video slower
 
 # Get the height of the first image to calculate the scale
@@ -36,23 +36,29 @@ def get_image_size(image_path):
 # )
 
 # For Slices 
-# path = f'{abspath}/Figs/EddingtonEnvelope/movie/%d.png' 
-# output_path = f'{abspath}/Figs/EddingtonEnvelope/movie.mp4'
-# first_image_path = f'{abspath}/Figs/EddingtonEnvelope/movie/{start}.png'
-# width, height = get_image_size(first_image_path)
+path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/E_%d.png' 
+output_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/collectionE.mp4'
+first_image_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/E_{start}.png'
+width, height = get_image_size(first_image_path)
 
 # For res insensitivity Rph
-path = f'{abspath}/Figs/Test/photosphere/164/164_RinRph_ray%d.png'
-output_path = f'{abspath}/Figs/Test/photosphere/164/164_RinRph_movie.mp4'
-start = 0
-first_image_path = f'{abspath}/Figs/Test/photosphere/164/164_RinRph_ray{start}.png'
-width, height = get_image_size(first_image_path)
+# path = f'{abspath}/Figs/Test/photosphere/164/164_RinRph_ray%d.png'
+# output_path = f'{abspath}/Figs/Test/photosphere/164/164_RinRph_movie.mp4'
+# start = 0
+# first_image_path = f'{abspath}/Figs/Test/photosphere/164/164_RinRph_ray{start}.png'
+# width, height = get_image_size(first_image_path)
 
 # Ensure the height is even by subtracting 1 if it's odd.
 if height % 2 != 0:
     new_height = height - 1
 else:
     new_height = height
+
+# Ensure width and height are even
+if width % 2 != 0:
+    width -= 1
+if height % 2 != 0:
+    height -= 1
 
 # Construct the FFmpeg command with scaling
 ffmpeg_command = (
