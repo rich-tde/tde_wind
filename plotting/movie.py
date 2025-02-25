@@ -36,17 +36,17 @@ def get_image_size(image_path):
 # )
 
 # For Slices 
-path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/E_%d.png' 
-output_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/collectionE.mp4'
-first_image_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/E_{start}.png'
-width, height = get_image_size(first_image_path)
+# path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/E_%d.png' 
+# output_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/collectionE.mp4'
+# first_image_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/E_{start}.png'
+# width, height = get_image_size(first_image_path)
 
 # For res insensitivity Rph
-# path = f'{abspath}/Figs/Test/photosphere/164/164_RinRph_ray%d.png'
-# output_path = f'{abspath}/Figs/Test/photosphere/164/164_RinRph_movie.mp4'
-# start = 0
-# first_image_path = f'{abspath}/Figs/Test/photosphere/164/164_RinRph_ray{start}.png'
-# width, height = get_image_size(first_image_path)
+path = f'{abspath}/Figs/Test/photosphere/348/348_RinRph_ray%d.png'
+output_path = f'{abspath}/Figs/Test/photosphere/348/348_RinRph_movie.mp4'
+start = 0
+first_image_path = f'{abspath}/Figs/Test/photosphere/348/348_RinRph_ray{start}.png'
+width, height = get_image_size(first_image_path)
 
 # Ensure the height is even by subtracting 1 if it's odd.
 if height % 2 != 0:

@@ -220,9 +220,6 @@ ph_idx = []
 r_initial = []
 img1, (ax4, ax5, ax6) = plt.subplots(3,1,figsize = (8,15)) # this is to check all observers from Healpix on the orbital plane
 for i in range(len(observers_xyz)):
-    # if you want to check a specific observer
-    if int(i) >=10:
-        continue
     # Progress 
     print(f'Obs: {i}', flush=False)
     sys.stdout.flush()
@@ -257,7 +254,7 @@ for i in range(len(observers_xyz)):
 
     # we want rmax = rmax_mine*Robsmax_mine where Robs = sqrt(mu_ x_mine**2 + mu_ y_mine**2 + mu_ z_mine**2)
     # rmax_new = rmax_mine * np.sqrt(mu_x_mine**2 + mu_y_mine**2 + mu_z_mine**2)
-    rs_max = [rmax]#, rmax_mine]
+    rs_max = [rmax, rmax_mine]
     label_rs = ['R_Healp', 'R_mine']
     linestyle_rs = ['--', 'solid']
     marker_rs = ['o', '*']
@@ -390,7 +387,7 @@ for i in range(len(observers_xyz)):
         ax.set_xlim(1e-1, 1e2)
     img.suptitle(f'Observer: {i}', fontsize=16)
     img.tight_layout()
-    # img.savefig(f'{abspath}/Figs/Test/photosphere/{snap}/OrbPl/{snap}_ray{i}.png')
+    img.savefig(f'{abspath}/Figs/Test/photosphere/{snap}/OrbPl/{snap}_ray{i}.png')
     # save data for photosphere
     r_initial.append(r_initial_r)
     x_ph.append(x_ph_r)
@@ -405,24 +402,20 @@ ax4.set_ylabel(r'$\rho$ [g/cm$^3]$')
 ax5.set_ylabel(r'T [K]')
 ax6.set_ylabel(r'$\tau$')
 ax6.set_xlabel(r'R [R$_a]$')
-# ax5.set_ylim(3e-1, 20)
-ax4.set_ylim(2e-17, 1e-5)#2e-9)
-# ax4.plot(x_test, y_test3, c = 'gray', ls = '--', label = r'$\rho \propto R^{-3}$')
-ax4.plot(x_test, y_test4, c = 'gray', ls = '-.', label = r'$\rho \propto R^{-4}$')
-ax4.plot(x_test, y_test7, c = 'gray', ls = '--', label = r'$\rho \propto R^{-7}$')
+ax5.set_ylim(3e-1, 20)
 
-# rph_h = np.sqrt((x_ph[0])**2 + (y_ph[0])**2 + (z_ph[0])**2)
+rph_h = np.sqrt((x_ph[0])**2 + (y_ph[0])**2 + (z_ph[0])**2)
 for ax in [ax4, ax5, ax6]:
     ax.loglog()
     ax.set_xlim(3e-1, 20)#(1e-3, 1e2)
     # ax.axvline(Rt/apo, ls = 'dotted', c = 'k', label = r'R$_t$')
     ax.grid()
-    # ax.axvline(np.median(rph_h)/apo, ls = 'dashed', c = 'b', label = r'median $R_{ph}$')
+    ax.axvline(np.median(rph_h)/apo, ls = 'dashed', c = 'b', label = r'median $R_{ph}$')
 ax4.legend(loc = 'upper right')
 img1.suptitle('Healpix Observers', fontsize=16)
 img1.tight_layout()
 img1.savefig(f'{abspath}/Figs/Test/photosphere/{snap}/OrbPl/{snap}_raysHzoom_up10.png', bbox_inches='tight')
-# data_to_save = [r_initial, x_ph, y_ph, z_ph, ph_idx] # 5x16x2 where 16=len(obsevers OrbPl)
+data_to_save = [r_initial, x_ph, y_ph, z_ph, ph_idx] # 5x16x2 where 16=len(obsevers OrbPl)
 #%% Save red of the single snap
 if save:
     pre_saving = f'{abspath}/data/{folder}/testRph'

@@ -51,7 +51,7 @@ compton = 'Compton'
 check = '' # '' or 'HiRes'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snap = 237
+snap = 348
 a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 e_mb = orb.eccentricity(Rstar, mstar, Mbh, beta)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
@@ -98,9 +98,7 @@ R = np.sqrt(X**2 + Y**2 + Z**2)
 
 #%% Observers -----------------------------------------------------------------
 observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
-# select only the observers in the orbital plane (will give you a N bool array--> apply to columns)
-# mid = np.abs(observers_xyz[2]) == 0 # you can do that beacuse healpix gives you the observers also in the orbital plane (Z==0)
-# observers_xyz = observers_xyz[:,mid]
+
 x_heal, y_heal, z_heal = observers_xyz[0], observers_xyz[1], observers_xyz[2]
 r_heal = np.sqrt(x_heal**2 + y_heal**2 + z_heal**2)   
 observers_xyz = np.transpose(observers_xyz) #shape: Nx3
@@ -120,10 +118,9 @@ ph_idx = []
 rph = []
 r_initial = []
 ## just to check photosphere
-for i in range(0, len(observers_xyz), 20):
+for i in range(len(observers_xyz)):
     # Progress 
-    print(f'Obs: {i}', flush=False)
-    sys.stdout.flush()
+    print(f'Obs: {i}')
 
     mu_x = observers_xyz[i][0] # mu_x = x_heal[i]
     mu_y = observers_xyz[i][1] # mu_y = y_heal[i]
@@ -157,8 +154,6 @@ for i in range(0, len(observers_xyz), 20):
     r_initial_r = np.zeros(len(rs_max))
     plt.figure(figsize=(10, 10))
     for j, rmax_chosen in enumerate(rs_max):
-        # print(f'Ray: {j}', flush=False)
-        # sys.stdout.flush()
         r = np.logspace( -0.25, np.log10(rmax_chosen), N_ray)
         x = r*mu_x
         y = r*mu_y
@@ -194,9 +189,6 @@ for i in range(0, len(observers_xyz), 20):
         dx = 0.5 * Vol[idx]**(1/3) # Cell radius #the constant should be 0.62
 
         # Get the Grads
-        # sphere and get the gradient on them. Is it neccecery to re-interpolate?
-        # scattered interpolant returns a function
-        # griddata DEMANDS that you pass it the values you want to eval at
         f_inter_input = np.array([ X[idxnew], Y[idxnew], Z[idxnew] ]).T
 
         gradx_p = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
@@ -270,7 +262,7 @@ for i in range(0, len(observers_xyz), 20):
     plt.ylim(1e-2, 9)
     plt.loglog()
     plt.legend()
-    plt.title(f'Observer {i}. ' + r'All R$_{\rm initial}$ are a multiple of R$_{\rm initial Healp}$')
+    plt.title(f'Observer {i}. ' + r'All R$_{\rm initial}$ are a multiple of R$_{\rm initial Healp}$. Error bars are cell dimesion.')
     plt.tight_layout()
     plt.savefig(f'{abspath}/Figs/Test/photosphere/{snap}/{snap}_RinRph_ray{i}.png', bbox_inches='tight')
 

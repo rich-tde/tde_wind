@@ -162,14 +162,17 @@ def rich_extrapolator(x, y, K, slope_length = 5, extrarowsx= 99, extrarowsy= 100
     return xn, yn, Kn
 
 
-def nouveau_rich(x, y, K, what = 'scatter', slope_length = 26, extrarowsx = 100,
-                 extrarowsy = 100, highT_slope = -3.5):
-    '''
+def nouveau_rich(x, y, K, what = 'scattering', slope_length = 5, extrarowsx = 101, 
+                 extrarowsy = 100, highT_slope = -3.5, correction = -2):
+    ''' 
     what, str: either scattering or absorption
     
     should be linear in log for absorption, everywhere,
     for scattering/density should be linear, irregardless of temperature,
     +opacity should never be below thompson'''
+    
+    # Idea. What if we extrapolated in cm2/g space and then converted back?
+    # K = np.log(np.divide(np.exp(K),np.exp(y)))
     
     X = 0.9082339738214822 # From table prescription
     thompson = 0.2 * (1 + X)
@@ -177,7 +180,7 @@ def nouveau_rich(x, y, K, what = 'scatter', slope_length = 26, extrarowsx = 100,
     # Extend x and y, adding data equally space (this suppose x,y as array equally spaced)
     # Low extrapolation
     deltaxn_low = x[1] - x[0]
-    deltayn_low = y[1] - y[0]
+    deltayn_low = y[1] - y[0] 
     x_extra_low = [x[0] - deltaxn_low * (i + 1) for i in range(extrarowsx)]
     y_extra_low = [y[0] - deltayn_low * (i + 1) for i in range(extrarowsy)]
     
@@ -192,25 +195,23 @@ def nouveau_rich(x, y, K, what = 'scatter', slope_length = 26, extrarowsx = 100,
     yn = np.concatenate([y_extra_low[::-1], y, y_extra_high])
     
     Kn = np.zeros((len(xn), len(yn)))
-    density_edge = np.argmin(np.abs(y[slope_length] - yn)) # add for wall by K
     for ix, xsel in enumerate(xn):
-        pivot = Kn[ix, density_edge] # add for wall by K
         for iy, ysel in enumerate(yn):
-            if xsel < x[0]: # Too cold
+            
+            # Too cold
+            if xsel < x[0]:
                 deltax = x[slope_length - 1] - x[0]
                 if ysel < y[0]: # Too rarefied
                     # slope_length = 2
                     deltay = y[slope_length - 1] - y[0]
                     Kxslope = (K[slope_length - 1, 0] - K[0, 0]) / deltax
                     Kyslope = (K[0, slope_length - 1] - K[0, 0]) / deltay
-                    Kn[ix][iy] = K[0, 0] + Kxslope * (xsel - x[0]) + Kyslope * (ysel - y[0])
-                    # if what == 'abs':
-                    #    Kn[ix][iy] = K[0, 0] + Kxslope * (x[0] - xsel) + Kyslope * (y[0]-ysel)
+                    Kn[ix][iy] = K[0, 0] + Kxslope * (xsel - x[0])  + Kyslope * (ysel - y[0])
                 elif ysel > y[-1]: # Too dense
-                    deltay = y[-1] - y[-slope_length]
+                    deltay = y[-1] - y[-slope_length] 
                     Kxslope = (K[slope_length - 1, -1] - K[0, -1]) / deltax
                     Kyslope = (K[0, -1] - K[0, -slope_length]) / deltay
-                    Kn[ix][iy] = K[0, -1] + Kxslope * (xsel - x[0]) + Kyslope * (ysel - y[-1])
+                    Kn[ix][iy] = K[0, -1] + Kxslope * (xsel - x[0]) + Kyslope * (ysel - y[-1]) 
                 else: # Density is inside the table
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kxslope = (K[slope_length - 1, iy_inK] - K[0, iy_inK]) / deltax
@@ -218,17 +219,17 @@ def nouveau_rich(x, y, K, what = 'scatter', slope_length = 26, extrarowsx = 100,
                 #continue
             
             # Too hot
-            elif xsel > x[-1]:
+            elif xsel > x[-1]: 
                 if ysel < y[0]: # Too rarefied
                     deltay = y[slope_length - 1] - y[0]
                     Kxslope = highT_slope #(K[-1, 0] - K[-slope_length, 0]) / deltax
                     Kyslope = (K[-1, slope_length - 1] - K[-1, 0]) / deltay
                     Kn[ix][iy] = K[-1, 0] + Kxslope * (xsel - x[-1]) + Kyslope * (ysel - y[0])        
                 elif ysel > y[-1]: # Too dense
-                    deltay = y[-1] - y[-slope_length]
+                    deltay = y[-1] - y[-slope_length] 
                     Kxslope = highT_slope #(K[-1, -1] - K[-slope_length, -1]) / deltax
                     Kyslope = (K[-1, -1] - K[-1, -slope_length]) / deltay
-                    Kn[ix][iy] = K[-1, -1] + Kxslope * (xsel - x[-1]) + Kyslope * (ysel - y[-1])
+                    Kn[ix][iy] = K[-1, -1] + Kxslope * (xsel - x[-1])  + Kyslope * (ysel - y[-1])
                 else: # Density is inside the table
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kxslope = highT_slope #(K[-1, iy_inK] - K[-slope_length, iy_inK]) / deltax
@@ -240,15 +241,20 @@ def nouveau_rich(x, y, K, what = 'scatter', slope_length = 26, extrarowsx = 100,
                         # print(Kn[ix][iy], thompson_this_den)
                         Kn[ix][iy] = thompson_this_den
                 #continue
-            else:
+            else: 
                 ix_inK = np.argmin(np.abs(x - xsel))
                 if ysel < y[0]: # Too rarefied, Temperature is inside table
                     # Something fucky is going on here
-                    # BS change i make to avoid the line
-                    # slope_length = 25
                     deltay = y[slope_length - 1] - y[0]
                     Kyslope = (K[ix_inK, slope_length - 1] - K[ix_inK, 0]) / deltay
                     Kn[ix][iy] = K[ix_inK, 0] + Kyslope * (ysel - y[0])
+                    
+                    # Idea
+                    # if Kn[ix][iy] > K[0][ix_inK]:
+                    #     print(Kn[ix][iy], K[ix_inK,0])
+                    #     print(np.exp(xsel), np.exp(ysel))
+                    #     Kn[ix][iy] = K[ix_inK][0] - 0.5 * (y[0] - ysel)
+
                     #continue
                 elif ysel > y[-1]:  # Too dense, Temperature is inside table
                     deltay = y[-1] - y[-slope_length]
@@ -259,7 +265,29 @@ def nouveau_rich(x, y, K, what = 'scatter', slope_length = 26, extrarowsx = 100,
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kn[ix][iy] = K[ix_inK, iy_inK]
                     # continue
-
+    
+    # Idea, correction loop
+    density_edge = np.argmin( np.abs(y[slope_length] - yn))
+    for ix, xsel in enumerate(xn):
+        pivot = Kn[ix][density_edge]
+        for iy, ysel in enumerate(yn):
+            if xsel <= x[0]: # too cold
+                if Kn[ix][iy] > pivot:
+                    Kn[ix][iy] = pivot + correction * (y[0] - ysel)
+    # wallmask = Kn > np.min([K[0,slope_length], K[0,0]])
+    # lowdenmask =  yn < y[1]
+    # depth_of_fuckery = np.argmax(K[:,0] > K[:slope_length])
+    # lowTmask = xn <= x[slope_length]
+    # lowdenmask_2d = (lowdenmask + np.zeros((len(xn), len(yn)))).T
+    # lowT_2d = (lowTmask + np.zeros((len(xn), len(yn))))
+    # mask = wallmask * lowdenmask_2d * lowT_2d
+    
+    # mask = np.array( mask, dtype = bool)
+    # plt.pcolormesh(xn, yn, wallmask.T)
+    # plt.axvline(x[0], c='r', alpha = 0.1)
+    # plt.axhline(y[0], c='r', alpha = 0.1)
+    # Kn[mask] = np.log(1e-19)
+    # Kn = np.log(np.multiply(np.exp(Kn), np.exp(yn)))
     return xn, yn, Kn
 
 
@@ -274,6 +302,7 @@ if __name__ == '__main__':
     from matplotlib.colors import LogNorm
     import Utilities.prelude as prel
 
+    save = False
     #%% Load data (they are the ln of the values)
     T_tab = np.loadtxt(f'{opac_path}/T.txt') 
     Rho_tab = np.loadtxt(f'{opac_path}/rho.txt') 
@@ -387,56 +416,58 @@ if __name__ == '__main__':
             ax.set_ylim(-19,11)
 
     plt.tight_layout()
-    #%% OPAL
-    import pandas as pd
-    optable = 'opal0'
-    opal = pd.read_csv(f'{opac_path}/{optable}.txt', sep = '\s+')
-    Tpd, Rhopd, Kpd = opal['t=log(T)'], opal['r=log(rho)'], opal['G=log(ross)']
-    Tpd_plot, Rhopd_plot, Kpd_plot = 10**(Tpd), 10**(Rhopd), 10**(Kpd)
+    #%% check with OPAL opacities 
+#     import pandas as pd
+#     optable = 'opal0'
+#     opal = pd.read_csv(f'{opac_path}/{optable}.txt', sep = '\s+')
+#     Tpd, Rhopd, Kpd = opal['t=log(T)'], opal['r=log(rho)'], opal['G=log(ross)']
+#     Tpd_plot, Rhopd_plot, Kpd_plot = 10**(Tpd), 10**(Rhopd), 10**(Kpd)
 
-    # Colormesh
-    fig, (ax1,ax2) = plt.subplots(1,2, figsize = (10,5))
-    img = ax1.pcolormesh(np.log10(T_plot_tab), np.log10(Rho_plot_tab), ross_rho_tab.T, norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'jet') #exp_ross.T have rows = fixed rho, columns = fixed T
-    # cbar = plt.colorbar(img)
-    ax1.set_ylabel(r'$\log_{10} \rho$')
-    ax1.set_title('RICH')
-    ax2.set_xlabel(r'$\log_{10}$ T')
+#     # Colormesh
+#     fig, (ax1,ax2) = plt.subplots(1,2, figsize = (10,5))
+#     img = ax1.pcolormesh(np.log10(T_plot_tab), np.log10(Rho_plot_tab), ross_rho_tab.T, norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'jet') #exp_ross.T have rows = fixed rho, columns = fixed T
+#     # cbar = plt.colorbar(img)
+#     ax1.set_ylabel(r'$\log_{10} \rho$')
+#     ax1.set_title('RICH')
+#     ax2.set_xlabel(r'$\log_{10}$ T')
 
-    img = ax2.scatter(np.log10(Tpd_plot), np.log10(Rhopd_plot), c = Kpd_plot, cmap = 'jet', norm = LogNorm(vmin=1e-5, vmax=1e5))
-    cbar = plt.colorbar(img)
-    ax2.set_xlim(np.log10(np.min(T_plot_tab)), np.log10(np.max(T_plot_tab)))
-    ax2.set_ylim(np.log10(np.min(Rho_plot_tab)), np.log10(np.max(Rho_plot_tab)))
-    ax2.set_xlabel(r'$\log_{10}$ T')
-    # ax2.ylabel(r'$\rho [g/cm^3]$')
-    cbar.set_label(r'$\kappa [cm^2/g]$')
-    ax2.set_title('OPAL')
-    plt.tight_layout()
-    plt.savefig(f'{abspath}Figs/Test/OPAL/{optable}_mesh.png')
+#     img = ax2.scatter(np.log10(Tpd_plot), np.log10(Rhopd_plot), c = Kpd_plot, cmap = 'jet', norm = LogNorm(vmin=1e-5, vmax=1e5))
+#     cbar = plt.colorbar(img)
+#     ax2.set_xlim(np.log10(np.min(T_plot_tab)), np.log10(np.max(T_plot_tab)))
+#     ax2.set_ylim(np.log10(np.min(Rho_plot_tab)), np.log10(np.max(Rho_plot_tab)))
+#     ax2.set_xlabel(r'$\log_{10}$ T')
+#     # ax2.ylabel(r'$\rho [g/cm^3]$')
+#     cbar.set_label(r'$\kappa [cm^2/g]$')
+#     ax2.set_title('OPAL')
+#     plt.tight_layout()
+#     if save:
+#         plt.savefig(f'{abspath}Figs/Test/OPAL/{optable}_mesh.png')
 
-    #%% Line
-    values = np.array([1e-9, 1e-5])
-    valueslog = np.log10(values)
-    fig, ax = plt.subplots(1,2, figsize = (10,5))
-    for i,vallog in enumerate(valueslog):
-        indOP = np.concatenate(np.where(Rhopd == vallog))
-        TOP, KOP = Tpd_plot[indOP], Kpd_plot[indOP]
-        irho_rich = np.argmin(np.abs(Rho_plotRICH - values[i]))
-        irho_table = np.argmin(np.abs(Rho_plot_tab - values[i]))
-        # print(Rho_plot[irho_table], Rho_plotRICH[irho_rich])
+#     #%% Line
+#     values = np.array([1e-9, 1e-5])
+#     valueslog = np.log10(values)
+#     fig, ax = plt.subplots(1,2, figsize = (10,5))
+#     for i,vallog in enumerate(valueslog):
+#         indOP = np.concatenate(np.where(Rhopd == vallog))
+#         TOP, KOP = Tpd_plot[indOP], Kpd_plot[indOP]
+#         irho_rich = np.argmin(np.abs(Rho_plotRICH - values[i]))
+#         irho_table = np.argmin(np.abs(Rho_plot_tab - values[i]))
+#         # print(Rho_plot[irho_table], Rho_plotRICH[irho_rich])
 
-        ax[i].plot(TOP, KOP, c = 'forestgreen', label = r'OPAL')
-        ax[i].plot(T_plot_tab, ross_rho_tab[:, irho_table], linestyle = '--', c = 'r', label = r'RICH Table')
-        ax[i].plot(T_plotRICH, ross_rhoRICH[:, irho_rich], linestyle = ':', c = 'b', label = r'RICH extrapolation')
-        ax[i].set_title(r'$\rho$ = '+f'{values[i]} g/cm3')
-        ax[i].grid()
-        ax[i].loglog()
-        ax[i].set_xlim(1e1,1e7)
-        ax[i].set_xlabel(r'T [K]')
+#         ax[i].plot(TOP, KOP, c = 'forestgreen', label = r'OPAL')
+#         ax[i].plot(T_plot_tab, ross_rho_tab[:, irho_table], linestyle = '--', c = 'r', label = r'RICH Table')
+#         ax[i].plot(T_plotRICH, ross_rhoRICH[:, irho_rich], linestyle = ':', c = 'b', label = r'RICH extrapolation')
+#         ax[i].set_title(r'$\rho$ = '+f'{values[i]} g/cm3')
+#         ax[i].grid()
+#         ax[i].loglog()
+#         ax[i].set_xlim(1e1,1e7)
+#         ax[i].set_xlabel(r'T [K]')
 
-    ax[0].set_ylabel(r'$\kappa [cm^2/g]$')
-    ax[0].set_ylim(7e-3, 2e2) #the axis from 7e-4 to 2e1 m2/g
-    ax[1].set_ylim(1e-1, 5e4) #the axis from 7e-4 to 2e1 m2/g
-    plt.legend(fontsize=12)
-    plt.tight_layout()
-    plt.savefig(f'{abspath}Figs/Test/OPAL/{optable}_lines.png')
-# %%
+#     ax[0].set_ylabel(r'$\kappa [cm^2/g]$')
+#     ax[0].set_ylim(7e-3, 2e2) #the axis from 7e-4 to 2e1 m2/g
+#     ax[1].set_ylim(1e-1, 5e4) #the axis from 7e-4 to 2e1 m2/g
+#     plt.legend(fontsize=12)
+#     plt.tight_layout()
+#     if save:
+#         plt.savefig(f'{abspath}Figs/Test/OPAL/{optable}_lines.png')
+

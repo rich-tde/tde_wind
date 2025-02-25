@@ -44,7 +44,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = '' # '' or 'HiRes'
+check = 'LowRes' # '' or 'HiRes'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 save = True
@@ -64,10 +64,7 @@ T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 
-# if extr == 'nouvrich':
-T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland)
-# if extr == 'rich':
-#     T_cool2, Rho_cool2, rossland2 = rich_extrapolator(T_cool, Rho_cool, rossland)
+T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
 
 # MATLAB GOES WHRRRR, thanks Cindy.
 eng = matlab.engine.start_matlab()
@@ -172,58 +169,64 @@ for idx_s, snap in enumerate(snaps):
         idx = [ int(idx[i][0]) for i in range(len(idx))] # no -1 because we start from 0
         d = Den[idx] * prel.den_converter
         t = T[idx]
+        ray_x = X[idx]
+        ray_y = Y[idx]
+        ray_z = Z[idx]
+        rad_den = Rad_den[idx]
+        volume = Vol[idx]
 
         # Interpolate ----------------------------------------------------------
-        sigma_rossland = eng.interp2(T_cool2,Rho_cool2,rossland2.T,np.log(t),np.log(d),'linear',0)
-        sigma_rossland = [sigma_rossland[0][i] for i in range(N_ray)]
+        # sigma_rossland = eng.interp2(T_cool2,Rho_cool2,rossland2.T,np.log(t),np.log(d),'linear',0)
+        # sigma_rossland = [sigma_rossland[0][i] for i in range(N_ray)]
+        sigma_rossland = eng.interp2(T_cool2,Rho_cool2,rossland2.T # needs T for the new RICH extrapol
+                                        ,np.log(t), np.log(d),'linear',0)
+        sigma_rossland = np.array(sigma_rossland)[0]
+        underflow_mask = sigma_rossland != 0.0
+        d, t, r, sigma_rossland, ray_x, ray_y, ray_z, rad_den, volume = make_slices([d, t, r, 
+                                                                sigma_rossland, 
+                                                                ray_x, ray_y, ray_z,
+                                                                rad_den, volume], underflow_mask)
         sigma_rossland_eval = np.exp(sigma_rossland) 
         del sigma_rossland
         gc.collect()
 
         # Optical Depth ---------------------------------------------------------------
-        # Okay, line 232, this is the hard one.
-        r_fuT = np.flipud(r.T)
+        r_fuT = np.flipud(r)#.T)
         kappa_rossland = np.flipud(sigma_rossland_eval) 
         los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
 
         # Red -----------------------------------------------------------------------
         # Get 20 unique, nearest neighbors
-        xyz3 = np.array([X[idx], Y[idx], Z[idx]]).T
-        xyz3 = np.array([X[idx], Y[idx], Z[idx]]).T
+        xyz3 = np.array([ray_x, ray_y, ray_z]).T
         _, idxnew = tree.query(xyz3, k=20)
         idxnew = np.unique(idxnew).T
-        dx = 0.5 * Vol[idx]**(1/3) # Cell radius #the constant should be 0.62
+        dx = 0.5 * volume**(1/3) # Cell radius #the constant should be 0.62
 
         # Get the Grads
-        # sphere and get the gradient on them. Is it neccecery to re-interpolate?
-        # scattered interpolant returns a function
-        # griddata DEMANDS that you pass it the values you want to eval at
-        f_inter_input = np.array([ X[idxnew], Y[idxnew], Z[idxnew] ]).T
+        f_inter_input = np.array([X[idxnew], Y[idxnew], Z[idxnew]]).T
 
         gradx_p = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
-                            xi = np.array([ X[idx]+dx, Y[idx], Z[idx]]).T )
+                            xi = np.array([ ray_x+dx, ray_y, ray_z]).T )
         gradx_m = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
-                            xi = np.array([ X[idx]-dx, Y[idx], Z[idx]]).T )
+                            xi = np.array([ ray_x-dx, ray_y, ray_z]).T )
         gradx = (gradx_p - gradx_m)/ (2*dx)
+        gradx = np.nan_to_num(gradx, nan =  0)
         del gradx_p, gradx_m
 
-        gradx = np.nan_to_num(gradx, nan =  0)
         grady_p = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
-                            xi = np.array([ X[idx], Y[idx]+dx, Z[idx]]).T )
+                            xi = np.array([ ray_x, ray_y+dx, ray_z]).T )
         grady_m = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
-                            xi = np.array([ X[idx], Y[idx]-dx, Z[idx]]).T )
+                            xi = np.array([ ray_x, ray_y-dx, ray_z]).T )
         grady = (grady_p - grady_m)/ (2*dx)
+        grady = np.nan_to_num(grady, nan =  0)
         del grady_p, grady_m
 
-        grady = np.nan_to_num(grady, nan =  0)
-
         gradz_p = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
-                            xi = np.array([ X[idx], Y[idx], Z[idx]+dx]).T )
+                            xi = np.array([ ray_x, ray_y, ray_z+dx]).T )
         gradz_m = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
-                            xi = np.array([ X[idx], Y[idx], Z[idx]-dx]).T )
-        # some nans here
-        gradz_m = np.nan_to_num(gradz_m, nan =  0)
+                            xi = np.array([ ray_x, ray_y, ray_z-dx]).T )
         gradz = (gradz_p - gradz_m)/ (2*dx)
+        gradz = np.nan_to_num(gradz, nan =  0)
         del gradz_p, gradz_m
 
         grad = np.sqrt(gradx**2 + grady**2 + gradz**2)
@@ -231,32 +234,28 @@ for idx_s, snap in enumerate(snaps):
         del gradx, grady, gradz
         gc.collect()
 
-        R_lamda = grad / ( prel.Rsol_cgs * sigma_rossland_eval* Rad_den[idx])
+        R_lamda = grad / ( prel.Rsol_cgs * sigma_rossland_eval* rad_den)
         R_lamda[R_lamda < 1e-10] = 1e-10
         fld_factor = 3 * (1/np.tanh(R_lamda) - 1/R_lamda) / R_lamda 
         smoothed_flux = -uniform_filter1d(r.T**2 * fld_factor * gradr / sigma_rossland_eval, 7) # i have remov
+        photosphere = np.where( ((smoothed_flux>0) & (los<2/3) ))[0][0]
         
-        try:
-            b = np.where( ((smoothed_flux>0) & (los<2/3) ))[0][0] 
-        except IndexError:
-            print('No b found, observer ', i)
-            b = 3117 # elad_b = 3117
-        Lphoto2 = 4*np.pi*prel.c_cgs*smoothed_flux[b] * prel.Msol_cgs / (prel.tsol_cgs**2)
-        EEr = Rad_den[idx]
+        Lphoto2 = 4*np.pi*prel.c_cgs*smoothed_flux[photosphere] * prel.Msol_cgs / (prel.tsol_cgs**2)
         if Lphoto2 < 0:
             Lphoto2 = 1e100 # it means that it will always pick max_length for the negatives
-        max_length = 4*np.pi*prel.c_cgs*EEr[b]*r[b]**2 * prel.Msol_cgs * prel.Rsol_cgs / (prel.tsol_cgs**2) #the conversion is for Erad: energy*r^2/lenght^3 [in SI would be kg m^2/s^2 * m^2 * 1/m^3]
+        max_length = 4*np.pi*prel.c_cgs*rad_den[photosphere]*r[photosphere]**2 * prel.Msol_cgs * prel.Rsol_cgs / (prel.tsol_cgs**2) #the conversion is for Erad: energy*r^2/lenght^3 [in SI would be kg m^2/s^2 * m^2 * 1/m^3]
         Lphoto = np.min( [Lphoto2, max_length])
         reds[i] = Lphoto
         ## just to check photosphere
-        ph_idx[i] = idx[b]
-        fluxes[i] = Lphoto / (4*np.pi*(r[b]*prel.Rsol_cgs)**2)
-        ##
-        del smoothed_flux, R_lamda, fld_factor, EEr, los,
+        ph_idx[i] = idx[photosphere]
+        fluxes[i] = Lphoto / (4*np.pi*(r[photosphere]*prel.Rsol_cgs)**2)
+        
+        del smoothed_flux, R_lamda, fld_factor, rad_den
         gc.collect()
     Lphoto_snap = np.mean(reds)
-    Lphoto_all[idx_s] = Lphoto_snap # save red
-    # Lphoto_all[idx_s] = 4*np.pi*np.mean(reds) # save red
+    print(Lphoto_snap, flush=True)
+    sys.stdout.flush()
+    Lphoto_all[idx_s] = Lphoto_snap 
 
     # Save red of the single snap
     if save:
