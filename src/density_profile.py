@@ -36,11 +36,30 @@ from Utilities.selectors_for_snap import select_prefix
 from Utilities.sections import make_slices
 import src.orbits as orb
 
+##
+#
+##
+def CouBegel(r, theta, q, gamma=4/3):
+    # I'm missing the noramlization
+    alpha = (1-q*(gamma-1))/(gamma-1)
+    rho = r**(-q) * np.abs(np.sin(theta))**(2*alpha)
+    return rho
 
+theta_test = np.linspace(-np.pi, np.pi, 100)
+d_test = CouBegel(1, theta_test, 0.5)
+d_test2 = CouBegel(1, theta_test, 1)
+d_test3 = CouBegel(1, theta_test, 1.5)
+plt.figure()
+plt.plot(theta_test, d_test, label = r'R=1, q = 0.5')
+plt.plot(theta_test, d_test2, label = r'R=1, q = 1')
+plt.plot(theta_test, d_test3, label = r'R=1, q = 1.5')
+plt.legend()
+plt.title(r'$\rho \propto R^{-q} \sin^{2\alpha}(\theta)$, $\alpha = \frac{1-q(\gamma-1)}{\gamma-1}, \gamma = 4/3$')
+#
 ##
 # MAIN
 ##
-save = False
+save = True
 
 m = 4
 Mbh = 10**m
@@ -62,6 +81,9 @@ x_test = np.arange(1e-1, 20)
 y_test3 = 2e-13 * x_test**(-3)
 y_test4 = 2e-13 * x_test**(-4)
 y_test7 = 1e-10 * x_test**(-7)
+r_const = np.array([Rt, 10*Rt, apo])
+r_const_label = [r'$R_t$', r'$10R_t$', r'$R_a$']
+r_const_colors = ['dodgerblue', 'darkviolet', 'forestgreen']
 
 # Opacity Input (they are ln)
 opac_path = f'{abspath}/src/Opacity'
@@ -105,8 +127,9 @@ R = np.sqrt(X**2 + Y**2 + Z**2)
 #%% Observers -----------------------------------------------------------------
 observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
 # select only the observers in the orbital plane (will give you a N bool array--> apply to columns)
-mid = np.abs(observers_xyz[2]) == 0 # you can do that beacuse healpix gives you the observers also in the orbital plane (Z==0)
-observers_xyz = observers_xyz[:,mid]
+# mid = np.abs(observers_xyz[2]) == 0 # you can do that beacuse healpix gives you the observers also in the orbital plane (Z==0)
+# observers_xyz, obs_indices = observers_xyz[:,mid], obs_indices[mid]
+observers_xyz = observers_xyz[:,np.arange(0,192,22)]
 x_heal, y_heal, z_heal = observers_xyz[0], observers_xyz[1], observers_xyz[2]
 r_heal = np.sqrt(x_heal**2 + y_heal**2 + z_heal**2)   
 observers_xyz = np.transpose(observers_xyz) #shape: Nx3
@@ -118,8 +141,6 @@ cross_dot *= 4/len(observers_xyz)
 theta_heal = np.arctan2(y_heal, x_heal)          # Azimuthal angle in radians
 phi_heal = np.arccos(z_heal / r_heal)
 
-
-#%% Tree ----------------------------------------------------------------------
 xyz = np.array([X, Y, Z]).T
 N_ray = 5_000
 
@@ -131,10 +152,13 @@ ph_idx = np.zeros(len(observers_xyz))
 r_initial = np.zeros(len(observers_xyz))
 idx_obs = np.zeros(len(observers_xyz))
 idx_b = np.zeros(len(observers_xyz))
+d_r = []
+##
 img1, (ax4, ax5, ax6) = plt.subplots(3,1,figsize = (8,15)) # this is to check all observers from Healpix on the orbital plane
 with open(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}.txt','w') as file:
     file.write(f'# radii, density profile. Look at den_prof_indices{snap} to know when, starting from inside, you stop \n')
     file.close()
+
 for i in range(len(observers_xyz)):
     # Progress 
     print(f'Obs: {i}', flush=False)
@@ -178,6 +202,12 @@ for i in range(len(observers_xyz)):
     ray_z = Z[idx]
     rad_den = Rad_den[idx]
     volume = Vol[idx]
+    # find density at a given R for each observer. Since observers are noramlized, you can directly use r to query.
+    r_fortree = r.reshape(-1, 1)
+    tree_r = KDTree(r_fortree, leaf_size=50)
+    _, idx_r = tree_r.query(r_const.reshape(-1,1), k=1)
+    idx_r = [ int(idx_r[i][0]) for i in range(len(idx_r))] # no -1 because we start from 0
+    d_r.append(d[idx_r] * prel.den_converter)
 
     # Interpolate ----------------------------------------------------------
     # sigma_rossland = eng.interp2(T_cool2,Rho_cool2,rossland2.T,np.log(t),np.log(d),'linear',0)
@@ -240,15 +270,10 @@ for i in range(len(observers_xyz)):
 
     R_lamda = grad / ( prel.Rsol_cgs * sigma_rossland_eval* rad_den)
     R_lamda[R_lamda < 1e-10] = 1e-10
-    fld_factor = 3 * (1/np.tanh(R_lamda) - 1/R_lamda) / R_lamda 
+    fld_factor = (1/np.tanh(R_lamda) - 1/R_lamda) / R_lamda 
     smoothed_flux = -uniform_filter1d(r.T**2 * fld_factor * gradr / sigma_rossland_eval, 7) # i have remov
     photosphere = np.where( ((smoothed_flux>0) & (los<2/3) ))[0][0]
     
-    Lphoto2 = 4*np.pi*prel.c_cgs*smoothed_flux[photosphere] * prel.Msol_cgs / (prel.tsol_cgs**2)
-    if Lphoto2 < 0:
-        Lphoto2 = 1e100 # it means that it will always pick max_length for the negatives
-    max_length = 4*np.pi*prel.c_cgs*rad_den[photosphere]*r[photosphere]**2 * prel.Msol_cgs * prel.Rsol_cgs / (prel.tsol_cgs**2) #the conversion is for Erad: energy*r^2/lenght^3 [in SI would be kg m^2/s^2 * m^2 * 1/m^3]
-    Lphoto = np.min( [Lphoto2, max_length])
     ph_idx[i] = idx[photosphere]
     x_ph[i], y_ph[i], z_ph[i] = ray_x[photosphere], ray_y[photosphere], ray_z[photosphere]
 
@@ -286,6 +311,19 @@ ax4.legend(loc = 'upper right')
 img1.tight_layout()
 np.save(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof_indices{snap}.npy', [idx_obs, idx_b])
 # data_to_save = [r_initial, x_ph, y_ph, z_ph, ph_idx] # 5x16x2 where 16=len(obsevers OrbPl)
+
+#%%
+d_r_trans = np.transpose(d_r)
+img, ax1 = plt.subplots(1,1,figsize = (7, 7)) # this is to check all observers from Healpix on the orbital plane
+for i, r in enumerate(r_const):
+    ax1.scatter(theta_heal, d_r_trans[i], c= r_const_colors[i], label = f'R = {r_const_label[i]}')
+    for j, theta in enumerate(theta_heal):
+        ax1.scatter(theta, CouBegel(r*prel.Rsol_cgs, theta, 1, 4/3), c= r_const_colors[i], marker = 'x')
+ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
+ax1.set_xlabel(r'$\theta$ [rad]')
+ax1.set_yscale('log')
+ax1.legend(loc='upper right')
+# ax1.set_ylim(2e-14, 2e-10)#2e-9)
 #%% 
 eng.exit()
 

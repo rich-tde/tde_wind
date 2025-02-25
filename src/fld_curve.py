@@ -236,7 +236,7 @@ for idx_s, snap in enumerate(snaps):
 
         R_lamda = grad / ( prel.Rsol_cgs * sigma_rossland_eval* rad_den)
         R_lamda[R_lamda < 1e-10] = 1e-10
-        fld_factor = 3 * (1/np.tanh(R_lamda) - 1/R_lamda) / R_lamda 
+        fld_factor = (1/np.tanh(R_lamda) - 1/R_lamda) / R_lamda 
         smoothed_flux = -uniform_filter1d(r.T**2 * fld_factor * gradr / sigma_rossland_eval, 7) # i have remov
         photosphere = np.where( ((smoothed_flux>0) & (los<2/3) ))[0][0]
         
