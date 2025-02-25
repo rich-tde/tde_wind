@@ -238,8 +238,13 @@ for idx_s, snap in enumerate(snaps):
         R_lamda[R_lamda < 1e-10] = 1e-10
         fld_factor = (1/np.tanh(R_lamda) - 1/R_lamda) / R_lamda 
         smoothed_flux = -uniform_filter1d(r.T**2 * fld_factor * gradr / sigma_rossland_eval, 7) # i have remov
-        photosphere = np.where( ((smoothed_flux>0) & (los<2/3) ))[0][0]
-        
+                
+        try:
+            photosphere = np.where( ((smoothed_flux>0) & (los<2/3) ))[0][0] 
+        except IndexError:
+            print(f'No b found, observer {i}', flush=False)
+            sys.stdout.flush()
+            photosphere = 3117 # elad_b = 3117
         Lphoto2 = 4*np.pi*prel.c_cgs*smoothed_flux[photosphere] * prel.Msol_cgs / (prel.tsol_cgs**2)
         if Lphoto2 < 0:
             Lphoto2 = 1e100 # it means that it will always pick max_length for the negatives
