@@ -35,7 +35,6 @@ from scipy.ndimage import uniform_filter1d # does moving mean without fucking th
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
 
-
 #%% Choose parameters -----------------------------------------------------------------
 save = True
 

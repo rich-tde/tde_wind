@@ -1,6 +1,4 @@
-""" Find photosphere following FLD curve Elad's script. 
-Compare Healpix and my sample as Rinitial and Rph at the orbital plane.
-Check optical depth and density along rays for Healpix sample at the orbital plane"""
+""" Finddensity profile"""
 #%%
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
@@ -39,11 +37,64 @@ import src.orbits as orb
 ##
 #
 ##
+def generate_elliptical_observers(num_observers, amb=1, emb=0.5):
+    """
+    Generates `num_observers` points evenly spaced along the arc length of an ellipse.
+
+    Parameters:
+    - num_observers: Number of observer points to generate.
+    - amb: Semi-major axis length (a).
+    - emb: Eccentricity of the ellipse (e).
+
+    Returns:
+    - observers_xyz: (num_observers, 3) array of observer positions in 3D space (x, y, z).
+    """
+    a = amb  # Semi-major axis
+    b = a * np.sqrt(1 - emb**2)  # Compute semi-minor axis
+
+    # Arc length integrand
+    def arc_length_integrand(theta):
+        return np.sqrt((a * np.sin(theta))**2 + (b * np.cos(theta))**2)
+
+    # Compute total perimeter (arc length from 0 to 2π)
+    total_arc_length, _ = spi.quad(arc_length_integrand, 0, 2 * np.pi)
+
+    # Generate evenly spaced arc-length values
+    s_values = np.linspace(0, total_arc_length, num_observers, endpoint=False)
+
+    # Function to find theta for a given arc length
+    def arc_length_to_theta(target_s):
+        return spo.root_scalar(lambda theta: spi.quad(arc_length_integrand, 0, theta)[0] - target_s, 
+                               bracket=[0, 2 * np.pi]).root
+
+    # Compute theta values for evenly spaced arc lengths
+    theta_values = np.array([arc_length_to_theta(s) for s in s_values])
+
+    # Convert to Cartesian coordinates
+    x_values = a * np.cos(theta_values)
+    y_values = b * np.sin(theta_values)
+    z_values = np.zeros_like(x_values)  # Observers in the xy-plane
+
+    # Stack into (N, 3) format
+    observers_xyz = np.vstack((x_values, y_values, z_values)).T
+    return observers_xyz
+
 def CouBegel(r, theta, q, gamma=4/3):
     # I'm missing the noramlization
     alpha = (1-q*(gamma-1))/(gamma-1)
-    rho = r**(-q) * np.abs(np.sin(theta))**(2*alpha)
+    rho = r**(-q) * np.sin(theta)**(2*alpha)
     return rho
+
+def Metzger(r, Rv, q, Me = 1):
+    # I'm missing the correct noramlization
+    norm = Me*(3-q)/(4*np.pi*Rv**3 * (7-2*q))
+    if norm == 0.0:
+        print('norm is 0')
+    if r < Rv:
+        rho = (r/Rv)**(-q)
+    else:
+        rho = np.exp(-(r-Rv)/Rv)
+    return (norm * rho)
 
 theta_test = np.linspace(-np.pi, np.pi, 100)
 d_test = CouBegel(1, theta_test, 0.5)
@@ -55,7 +106,7 @@ plt.plot(theta_test, d_test2, label = r'R=1, q = 1')
 plt.plot(theta_test, d_test3, label = r'R=1, q = 1.5')
 plt.legend()
 plt.title(r'$\rho \propto R^{-q} \sin^{2\alpha}(\theta)$, $\alpha = \frac{1-q(\gamma-1)}{\gamma-1}, \gamma = 4/3$')
-#
+#%%
 ##
 # MAIN
 ##
@@ -69,6 +120,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = '' # '' or 'HiRes'
+which_obs = 'elliptical' # 'healpix' or 'elliptical'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 snap = 348
@@ -125,26 +177,26 @@ del Rad
 R = np.sqrt(X**2 + Y**2 + Z**2)    
 
 #%% Observers -----------------------------------------------------------------
-observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
-# select only the observers in the orbital plane (will give you a N bool array--> apply to columns)
-# mid = np.abs(observers_xyz[2]) == 0 # you can do that beacuse healpix gives you the observers also in the orbital plane (Z==0)
-# observers_xyz, obs_indices = observers_xyz[:,mid], obs_indices[mid]
-observers_xyz = observers_xyz[:,np.arange(0,192,22)]
-x_heal, y_heal, z_heal = observers_xyz[0], observers_xyz[1], observers_xyz[2]
-r_heal = np.sqrt(x_heal**2 + y_heal**2 + z_heal**2)   
-observers_xyz = np.transpose(observers_xyz) #shape: Nx3
-cross_dot = np.matmul(observers_xyz,  observers_xyz.T)
-cross_dot[cross_dot<0] = 0
-cross_dot *= 4/len(observers_xyz)
+if which_obs == 'elliptical':
+    observers_xyz = generate_elliptical_observers(num_observers = 50, amb = a_mb, emb = e_mb) # shape: (200, 3)
+    observers_xyz = np.array(observers_xyz)
+    x_obs, y_obs, z_obs = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
+if which_obs == 'healpix':
+    observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
+    # select only the observers in the orbital plane (will give you a N bool array--> apply to columns)
+    # mid = np.abs(observers_xyz[2]) == 0 # you can do that beacuse healpix gives you the observers also in the orbital plane (Z==0)
+    # observers_xyz, obs_indices = observers_xyz[:,mid], obs_indices[mid]
+    observers_xyz = observers_xyz[:,np.arange(0,192,22)]
+    x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
+    observers_xyz = np.transpose(observers_xyz) #shape: Nx3
 
-#%% find the corresponding mine observer for each healpix observer
-theta_heal = np.arctan2(y_heal, x_heal)          # Azimuthal angle in radians
-phi_heal = np.arccos(z_heal / r_heal)
+r_obs = np.sqrt(x_obs**2 + y_obs**2 + z_obs**2)
+theta_obs = np.arctan2(y_obs, x_obs)          # Azimuthal angle in radians
+phi_obs = np.arccos(z_obs / r_obs)
 
+#%%
 xyz = np.array([X, Y, Z]).T
 N_ray = 5_000
-
-# Dynamic Box -----------------------------------------------------------------
 x_ph = np.zeros(len(observers_xyz))
 y_ph = np.zeros(len(observers_xyz))
 z_ph = np.zeros(len(observers_xyz))
@@ -153,17 +205,16 @@ r_initial = np.zeros(len(observers_xyz))
 idx_obs = np.zeros(len(observers_xyz))
 idx_b = np.zeros(len(observers_xyz))
 d_r = []
-##
 img1, (ax4, ax5, ax6) = plt.subplots(3,1,figsize = (8,15)) # this is to check all observers from Healpix on the orbital plane
 with open(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}.txt','w') as file:
     file.write(f'# radii, density profile. Look at den_prof_indices{snap} to know when, starting from inside, you stop \n')
     file.close()
-
 for i in range(len(observers_xyz)):
     # Progress 
     print(f'Obs: {i}', flush=False)
     sys.stdout.flush()
 
+    # Dynamic Box -----------------------------------------------------------------
     mu_x = observers_xyz[i][0] 
     mu_y = observers_xyz[i][1] 
     mu_z = observers_xyz[i][2]
@@ -187,6 +238,9 @@ for i in range(len(observers_xyz)):
     x = r*mu_x
     y = r*mu_y
     z = r*mu_z
+    r = r*np.sqrt(mu_x**2 + mu_y**2 + mu_z**2) #if you choose your elliptical, r CHANGE !!
+    rmax = np.max(r)
+
 
     r_initial[i] = rmax #np.max(r)
     xyz2 = np.array([x, y, z]).T
@@ -316,14 +370,14 @@ np.save(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof_indices{snap}.npy',
 d_r_trans = np.transpose(d_r)
 img, ax1 = plt.subplots(1,1,figsize = (7, 7)) # this is to check all observers from Healpix on the orbital plane
 for i, r in enumerate(r_const):
-    ax1.scatter(theta_heal, d_r_trans[i], c= r_const_colors[i], label = f'R = {r_const_label[i]}')
-    for j, theta in enumerate(theta_heal):
-        ax1.scatter(theta, CouBegel(r*prel.Rsol_cgs, theta, 1, 4/3), c= r_const_colors[i], marker = 'x')
+    ax1.scatter(theta_obs, d_r_trans[i], c= r_const_colors[i], label = f'R = {r_const_label[i]}')
+    for j, theta in enumerate(theta_obs):
+        ax1.scatter(theta, CouBegel(r*prel.Rsol_cgs, theta, .8, 4/3), c= r_const_colors[i], marker = 'x')
 ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
 ax1.set_xlabel(r'$\theta$ [rad]')
 ax1.set_yscale('log')
 ax1.legend(loc='upper right')
-# ax1.set_ylim(2e-14, 2e-10)#2e-9)
+ax1.set_ylim(2e-15, 2e-5)#2e-9)
 #%% 
 eng.exit()
 
@@ -338,10 +392,19 @@ for j, i in enumerate(i_all):
     r = r_all[j]
     d = d_all[j]
     idx_Rp = np.argmin(np.abs(r - Rp))
-    if int(i)<=10:
-        ax1.plot(r[idx_Rp:b+1]/apo, d[idx_Rp:b+1], c = cm.jet(j / len(i_all)), label = f'{j}')
+    den_Metzger3 = np.zeros(b+1-idx_Rp)
+    den_Metzger7 = np.zeros(b+1-idx_Rp)
+    for k in range(idx_Rp, b+1):
+        den_Metzger3[k] = Metzger(r[k]*prel.Rsol_cgs, Rv=apo*prel.Rsol_cgs, q = 2.8, Me = 0.2*mstar*prel.Msol_cgs)
+        den_Metzger7[k] = Metzger(r[k]*prel.Rsol_cgs, Rv=apo*prel.Rsol_cgs, q = 7, Me = 0.2*mstar*prel.Msol_cgs)
+    if y_obs[j] < 0:
+        ax1.plot(r[idx_Rp:b+1]/apo, d[idx_Rp:b+1], c = cm.jet(j / len(i_all)))#, label = f'{j}')
+        ax1.plot(r[idx_Rp:b+1]/apo, den_Metzger7, label = r'Metzger $\xi = 3, R_v=R_{\rm circ}$' if j == np.argmin(y_obs-20) else None) # dumb way to have the label once
     else:
-        ax2.plot(r[idx_Rp:b+1]/apo, d[idx_Rp:b+1], c = cm.jet(j / len(i_all)), label = f'{j}')
+        ax2.plot(r[idx_Rp:b+1]/apo, d[idx_Rp:b+1], c = cm.jet(j / len(i_all)))#, label = f'{j}')
+        ax2.plot(r[idx_Rp:b+1]/apo, den_Metzger3, label = r'Metzger $\xi = 3, R_v=R_{\rm circ}$' if j == np.argmin(np.abs(y_obs-20)) else None) # dumb way to have the label once
+ax1.set_title(r'Obs $y<0$')
+ax2.set_title(r'Obs $y>0$')
 ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
 ax2.plot(x_test, y_test3, c = 'gray', ls = '--', label = r'$\rho \propto R^{-3}$')
 ax1.plot(x_test, y_test4, c = 'gray', ls = '-.', label = r'$\rho \propto R^{-4}$')
@@ -357,4 +420,11 @@ for ax in [ax1, ax2]:
 img.tight_layout()
 img.savefig(f'{abspath}/Figs/Test/photosphere/{snap}/OrbPl/{snap}_raysHzoom.png', bbox_inches='tight')
 
+
+# %%
+plt.figure()
+plt.scatter(x_obs, y_obs, c= np.arange(len(x_obs)), cmap = 'jet', edgecolors='k')
+plt.xlabel('x')
+plt.ylabel('y')
+plt.title('Observers')
 # %%
