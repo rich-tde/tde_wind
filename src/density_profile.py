@@ -85,8 +85,9 @@ def CouBegel(r, theta, q, gamma=4/3):
     rho = r**(-q) * np.sin(theta)**(2*alpha)
     return rho
 
-def Metzger(r, Rv, q, Me = 1):
+def Metzger(r, q, Mbh, mstar, Rstar, k = 0.9, Me = 1, G = prel.G):
     # I'm missing the correct noramlization
+    Rv = 2 * Rstar/(5*k) * (Mbh/mstar)**(2/3) * Me/mstar
     norm = Me*(3-q)/(4*np.pi*Rv**3 * (7-2*q))
     if norm == 0.0:
         print('norm is 0')
@@ -121,17 +122,19 @@ n = 1.5
 compton = 'Compton'
 check = '' # '' or 'HiRes'
 which_obs = 'elliptical' # 'healpix' or 'elliptical'
-
+# Rg = Mbh * prel.G / prel.csol_cgs**2
+# print(Rg)
+#%%
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snap = 348
+snap = 237
 a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 e_mb = orb.eccentricity(Rstar, mstar, Mbh, beta)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp = Rt * beta
 x_test = np.arange(1e-1, 20)
-y_test3 = 2e-13 * x_test**(-3)
-y_test4 = 2e-13 * x_test**(-4)
+y_test3 = 2e-11 * x_test**(-3)
+y_test4 = 1e-14 * x_test**(-4)
 y_test7 = 1e-10 * x_test**(-7)
 r_const = np.array([Rt, 10*Rt, apo])
 r_const_label = [r'$R_t$', r'$10R_t$', r'$R_a$']
@@ -263,106 +266,106 @@ for i in range(len(observers_xyz)):
     idx_r = [ int(idx_r[i][0]) for i in range(len(idx_r))] # no -1 because we start from 0
     d_r.append(d[idx_r] * prel.den_converter)
 
-    # Interpolate ----------------------------------------------------------
-    # sigma_rossland = eng.interp2(T_cool2,Rho_cool2,rossland2.T,np.log(t),np.log(d),'linear',0)
-    # sigma_rossland = [sigma_rossland[0][i] for i in range(N_ray)]
-    sigma_rossland = eng.interp2(T_cool2,Rho_cool2,rossland2.T # needs T for the new RICH extrapol
-                                     ,np.log(t), np.log(d),'linear',0)
-    sigma_rossland = np.array(sigma_rossland)[0]
-    underflow_mask = sigma_rossland != 0.0
-    d, t, r, sigma_rossland, ray_x, ray_y, ray_z, rad_den, volume = make_slices([d, t, r, 
-                                                               sigma_rossland, 
-                                                               ray_x, ray_y, ray_z,
-                                                               rad_den, volume], underflow_mask)
-    sigma_rossland_eval = np.exp(sigma_rossland) 
-    del sigma_rossland
-    gc.collect()
+    # # Interpolate ----------------------------------------------------------
+    # # sigma_rossland = eng.interp2(T_cool2,Rho_cool2,rossland2.T,np.log(t),np.log(d),'linear',0)
+    # # sigma_rossland = [sigma_rossland[0][i] for i in range(N_ray)]
+    # sigma_rossland = eng.interp2(T_cool2,Rho_cool2,rossland2.T # needs T for the new RICH extrapol
+    #                                  ,np.log(t), np.log(d),'linear',0)
+    # sigma_rossland = np.array(sigma_rossland)[0]
+    # underflow_mask = sigma_rossland != 0.0
+    # d, t, r, sigma_rossland, ray_x, ray_y, ray_z, rad_den, volume = make_slices([d, t, r, 
+    #                                                            sigma_rossland, 
+    #                                                            ray_x, ray_y, ray_z,
+    #                                                            rad_den, volume], underflow_mask)
+    # sigma_rossland_eval = np.exp(sigma_rossland) 
+    # del sigma_rossland
+    # gc.collect()
 
-    # Optical Depth ---------------------------------------------------------------
-    r_fuT = np.flipud(r)#.T)
-    kappa_rossland = np.flipud(sigma_rossland_eval) 
-    los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
+    # # Optical Depth ---------------------------------------------------------------
+    # r_fuT = np.flipud(r)#.T)
+    # kappa_rossland = np.flipud(sigma_rossland_eval) 
+    # los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
 
-    # Red -----------------------------------------------------------------------
-    # Get 20 unique, nearest neighbors
-    xyz3 = np.array([ray_x, ray_y, ray_z]).T
-    _, idxnew = tree.query(xyz3, k=20)
-    idxnew = np.unique(idxnew).T
-    dx = 0.5 * volume**(1/3) # Cell radius #the constant should be 0.62
+    # # Red -----------------------------------------------------------------------
+    # # Get 20 unique, nearest neighbors
+    # xyz3 = np.array([ray_x, ray_y, ray_z]).T
+    # _, idxnew = tree.query(xyz3, k=20)
+    # idxnew = np.unique(idxnew).T
+    # dx = 0.5 * volume**(1/3) # Cell radius #the constant should be 0.62
 
-    # Get the Grads
-    f_inter_input = np.array([X[idxnew], Y[idxnew], Z[idxnew]]).T
+    # # Get the Grads
+    # f_inter_input = np.array([X[idxnew], Y[idxnew], Z[idxnew]]).T
 
-    gradx_p = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
-                        xi = np.array([ ray_x+dx, ray_y, ray_z]).T )
-    gradx_m = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
-                        xi = np.array([ ray_x-dx, ray_y, ray_z]).T )
-    gradx = (gradx_p - gradx_m)/ (2*dx)
-    gradx = np.nan_to_num(gradx, nan =  0)
-    del gradx_p, gradx_m
+    # gradx_p = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
+    #                     xi = np.array([ ray_x+dx, ray_y, ray_z]).T )
+    # gradx_m = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
+    #                     xi = np.array([ ray_x-dx, ray_y, ray_z]).T )
+    # gradx = (gradx_p - gradx_m)/ (2*dx)
+    # gradx = np.nan_to_num(gradx, nan =  0)
+    # del gradx_p, gradx_m
 
-    grady_p = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
-                        xi = np.array([ ray_x, ray_y+dx, ray_z]).T )
-    grady_m = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
-                        xi = np.array([ ray_x, ray_y-dx, ray_z]).T )
-    grady = (grady_p - grady_m)/ (2*dx)
-    grady = np.nan_to_num(grady, nan =  0)
-    del grady_p, grady_m
+    # grady_p = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
+    #                     xi = np.array([ ray_x, ray_y+dx, ray_z]).T )
+    # grady_m = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
+    #                     xi = np.array([ ray_x, ray_y-dx, ray_z]).T )
+    # grady = (grady_p - grady_m)/ (2*dx)
+    # grady = np.nan_to_num(grady, nan =  0)
+    # del grady_p, grady_m
 
-    gradz_p = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
-                        xi = np.array([ ray_x, ray_y, ray_z+dx]).T )
-    gradz_m = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
-                        xi = np.array([ ray_x, ray_y, ray_z-dx]).T )
-    gradz = (gradz_p - gradz_m)/ (2*dx)
-    gradz = np.nan_to_num(gradz, nan =  0)
-    del gradz_p, gradz_m
+    # gradz_p = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
+    #                     xi = np.array([ ray_x, ray_y, ray_z+dx]).T )
+    # gradz_m = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
+    #                     xi = np.array([ ray_x, ray_y, ray_z-dx]).T )
+    # gradz = (gradz_p - gradz_m)/ (2*dx)
+    # gradz = np.nan_to_num(gradz, nan =  0)
+    # del gradz_p, gradz_m
 
-    grad = np.sqrt(gradx**2 + grady**2 + gradz**2)
-    gradr = (mu_x * gradx) + (mu_y*grady) + (mu_z*gradz)
-    del gradx, grady, gradz
-    gc.collect()
+    # grad = np.sqrt(gradx**2 + grady**2 + gradz**2)
+    # gradr = (mu_x * gradx) + (mu_y*grady) + (mu_z*gradz)
+    # del gradx, grady, gradz
+    # gc.collect()
 
-    R_lamda = grad / ( prel.Rsol_cgs * sigma_rossland_eval* rad_den)
-    R_lamda[R_lamda < 1e-10] = 1e-10
-    fld_factor = (1/np.tanh(R_lamda) - 1/R_lamda) / R_lamda 
-    smoothed_flux = -uniform_filter1d(r.T**2 * fld_factor * gradr / sigma_rossland_eval, 7) # i have remov
-    photosphere = np.where( ((smoothed_flux>0) & (los<2/3) ))[0][0]
+    # R_lamda = grad / ( prel.Rsol_cgs * sigma_rossland_eval* rad_den)
+    # R_lamda[R_lamda < 1e-10] = 1e-10
+    # fld_factor = (1/np.tanh(R_lamda) - 1/R_lamda) / R_lamda 
+    # smoothed_flux = -uniform_filter1d(r.T**2 * fld_factor * gradr / sigma_rossland_eval, 7) # i have remov
+    # photosphere = np.where( ((smoothed_flux>0) & (los<2/3) ))[0][0]
     
-    ph_idx[i] = idx[photosphere]
-    x_ph[i], y_ph[i], z_ph[i] = ray_x[photosphere], ray_y[photosphere], ray_z[photosphere]
+    # ph_idx[i] = idx[photosphere]
+    # x_ph[i], y_ph[i], z_ph[i] = ray_x[photosphere], ray_y[photosphere], ray_z[photosphere]
 
-    del smoothed_flux, R_lamda, fld_factor, rad_den
-    gc.collect()
+    # del smoothed_flux, R_lamda, fld_factor, rad_den
+    # gc.collect()
 
-    # plot from inside till photosphere
-    ax4.plot(r[:photosphere+1]/apo, d[:photosphere+1], c = cm.jet(i / len(observers_xyz)), label = f'{i}')
-    ax5.plot(r[:photosphere+1]/apo, t[:photosphere+1], c = cm.jet(i / len(observers_xyz)))
-    ax6.plot(r[:photosphere+1]/apo, los[:photosphere+1], c = cm.jet(i / len(observers_xyz)), label = f'{i}')
-    idx_obs[i] = i
-    idx_b[i] = photosphere
+    # # plot from inside till photosphere
+    # ax4.plot(r[:photosphere+1]/apo, d[:photosphere+1], c = cm.jet(i / len(observers_xyz)), label = f'{i}')
+    # ax5.plot(r[:photosphere+1]/apo, t[:photosphere+1], c = cm.jet(i / len(observers_xyz)))
+    # ax6.plot(r[:photosphere+1]/apo, los[:photosphere+1], c = cm.jet(i / len(observers_xyz)), label = f'{i}')
+    # idx_obs[i] = i
+    # idx_b[i] = photosphere
     with open(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}.txt','a') as file:
         file.write(f' '.join(map(str, r)) + '\n')
         file.write(f' '.join(map(str, d)) + '\n')
         file.close()
 
-ax4.axhspan(np.min(np.exp(Rho_cool)), np.max(np.exp(Rho_cool)), alpha=0.2, color='gray')
-ax5.axhspan(np.min(np.exp(T_cool)), np.max(np.exp(T_cool)), alpha=0.2, color='gray')
-ax6.axhline(2/3, c = 'k', ls = '--', label = r'$\tau = 2/3$')
-ax4.set_ylabel(r'$\rho$ [g/cm$^3]$')
-ax5.set_ylabel(r'T [K]')
-ax6.set_ylabel(r'$\tau$')
-ax6.set_xlabel(r'R [R$_a]$')
-# ax5.set_ylim(3e-1, 20)
-ax4.set_ylim(2e-17, 1e-5)#2e-9)
+# ax4.axhspan(np.min(np.exp(Rho_cool)), np.max(np.exp(Rho_cool)), alpha=0.2, color='gray')
+# ax5.axhspan(np.min(np.exp(T_cool)), np.max(np.exp(T_cool)), alpha=0.2, color='gray')
+# ax6.axhline(2/3, c = 'k', ls = '--', label = r'$\tau = 2/3$')
+# ax4.set_ylabel(r'$\rho$ [g/cm$^3]$')
+# ax5.set_ylabel(r'T [K]')
+# ax6.set_ylabel(r'$\tau$')
+# ax6.set_xlabel(r'R [R$_a]$')
+# # ax5.set_ylim(3e-1, 20)
+# ax4.set_ylim(2e-17, 1e-5)#2e-9)
 
 # rph_h = np.sqrt((x_ph[0])**2 + (y_ph[0])**2 + (z_ph[0])**2)
-for ax in [ax4, ax5, ax6]:
-    ax.loglog()
-    # ax.set_xlim(3e-1, 20)
-    ax.axvline(Rt/apo, ls = 'dotted', c = 'k', label = r'R$_t$')
-    ax.grid()
-ax4.legend(loc = 'upper right')
-img1.tight_layout()
+# for ax in [ax4, ax5, ax6]:
+#     ax.loglog()
+#     # ax.set_xlim(3e-1, 20)
+#     ax.axvline(Rt/apo, ls = 'dotted', c = 'k', label = r'R$_t$')
+#     ax.grid()
+# ax4.legend(loc = 'upper right')
+# img1.tight_layout()
 np.save(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof_indices{snap}.npy', [idx_obs, idx_b])
 # data_to_save = [r_initial, x_ph, y_ph, z_ph, ph_idx] # 5x16x2 where 16=len(obsevers OrbPl)
 
@@ -378,53 +381,58 @@ ax1.set_xlabel(r'$\theta$ [rad]')
 ax1.set_yscale('log')
 ax1.legend(loc='upper right')
 ax1.set_ylim(2e-15, 2e-5)#2e-9)
-#%% 
-eng.exit()
 
 #%% Check density profile from Rin == Rp till Rout= Rph (but should be the colorsphere at tau=1)
 idx_load = np.load(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof_indices{snap}.npy')
 i_all, b_all = idx_load[0].astype(int), idx_load[1].astype(int)
 data_loaded = np.loadtxt(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}.txt')
 r_all, d_all = data_loaded[0::2], data_loaded[1::2]
-img, (ax1, ax2) = plt.subplots(1,2,figsize = (15, 5)) # this is to check all observers from Healpix on the orbital plane
+
+img, (ax1, ax2) = plt.subplots(1,2,figsize = (12, 5)) # this is to check all observers from Healpix on the orbital plane
 for j, i in enumerate(i_all):
+    if j not in np.arange(0, len(i_all), 5):
+        continue
     b = b_all[j]
     r = r_all[j]
     d = d_all[j]
     idx_Rp = np.argmin(np.abs(r - Rp))
-    den_Metzger3 = np.zeros(b+1-idx_Rp)
-    den_Metzger7 = np.zeros(b+1-idx_Rp)
-    for k in range(idx_Rp, b+1):
-        den_Metzger3[k] = Metzger(r[k]*prel.Rsol_cgs, Rv=apo*prel.Rsol_cgs, q = 2.8, Me = 0.2*mstar*prel.Msol_cgs)
-        den_Metzger7[k] = Metzger(r[k]*prel.Rsol_cgs, Rv=apo*prel.Rsol_cgs, q = 7, Me = 0.2*mstar*prel.Msol_cgs)
-    if y_obs[j] < 0:
-        ax1.plot(r[idx_Rp:b+1]/apo, d[idx_Rp:b+1], c = cm.jet(j / len(i_all)))#, label = f'{j}')
-        ax1.plot(r[idx_Rp:b+1]/apo, den_Metzger7, label = r'Metzger $\xi = 3, R_v=R_{\rm circ}$' if j == np.argmin(y_obs-20) else None) # dumb way to have the label once
+    den_Metzger3 = np.zeros(len(r))
+    den_Metzger7 = np.zeros(len(r))
+    for k in range(len(r)):
+        den_Metzger3[k] = Metzger(r[k], 2.8, Mbh, mstar, Rstar, Me = 0.8*mstar) 
+        den_Metzger7[k] = Metzger(r[k], 7, Mbh, mstar, Rstar, Me = 0.8*mstar)
+    if np.abs(theta_obs[j]) < np.pi/2:
+        ax1.plot(r/apo, d, c = cm.jet(j / len(i_all)))#, label = f'{j}')
     else:
-        ax2.plot(r[idx_Rp:b+1]/apo, d[idx_Rp:b+1], c = cm.jet(j / len(i_all)))#, label = f'{j}')
-        ax2.plot(r[idx_Rp:b+1]/apo, den_Metzger3, label = r'Metzger $\xi = 3, R_v=R_{\rm circ}$' if j == np.argmin(np.abs(y_obs-20)) else None) # dumb way to have the label once
-ax1.set_title(r'Obs $y<0$')
-ax2.set_title(r'Obs $y>0$')
+        ax2.plot(r/apo, d, c = cm.jet(j / len(i_all)))#, label = f'{j}')
+ax1.set_title(r'Obs $\theta\leq\pi/2$')
+ax2.set_title(r'Obs $\theta\geq\pi/2$')
 ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
-ax2.plot(x_test, y_test3, c = 'gray', ls = '--', label = r'$\rho \propto R^{-3}$')
+ax1.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto R^{-3}$')
 ax1.plot(x_test, y_test4, c = 'gray', ls = '-.', label = r'$\rho \propto R^{-4}$')
-ax1.plot(x_test, y_test7, c = 'gray', ls = '--', label = r'$\rho \propto R^{-7}$')
+ax1.plot(r/apo, den_Metzger3*prel.den_converter, c = 'gray', ls = '--', label = r'Metzger $\xi = 2.8, M_e = 0.8m_\star$')
+ax2.plot(r/apo, den_Metzger7*prel.den_converter, c = 'gray', ls = '--', label = r'Metzger $\xi = 7, M_e = 0.8m_\star$')
+ax2.plot(x_test, y_test7, c = 'gray', ls = 'dotted', label = r'$\rho \propto R^{-7}$')
 
 for ax in [ax1, ax2]:
     ax.axhspan(np.min(np.exp(Rho_cool)), np.max(np.exp(Rho_cool)), alpha=0.2, color='gray')
     ax.set_xlabel(r'R [R$_a]$')
-    ax.set_ylim(2e-14, 2e-4)#2e-9)
     ax.loglog()
     ax.grid()
-    ax.legend(loc='upper right')
+    ax.legend(loc='upper right', fontsize = 12)
+ax1.set_ylim(2e-19, 2e-7)
+ax2.set_ylim(2e-19, 2e-5)
 img.tight_layout()
-img.savefig(f'{abspath}/Figs/Test/photosphere/{snap}/OrbPl/{snap}_raysHzoom.png', bbox_inches='tight')
+# img.savefig(f'{abspath}/Figs/Test/photosphere/{snap}/OrbPl/{snap}_denprof.png', bbox_inches='tight')
 
-
+#%% 
+eng.exit()
 # %%
 plt.figure()
 plt.scatter(x_obs, y_obs, c= np.arange(len(x_obs)), cmap = 'jet', edgecolors='k')
 plt.xlabel('x')
 plt.ylabel('y')
 plt.title('Observers')
+# %%
+print(2*Rt/apo)
 # %%

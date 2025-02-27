@@ -1,23 +1,21 @@
-""" FLD curve accoring to Elad's script. 
-Written to be run on alice."""
+""" FLD curve accoring to Elad's script (MATLAB: start from 1 with indices, * is matrix multiplication, ' is .T). """
+import sys
+sys.path.append('/Users/paolamartire/shocks')
 from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
+    save = True
 else:
-    abspath = '/Users/paolamartire/shocks/'
-
-import sys
-sys.path.append(abspath)
+    abspath = '/Users/paolamartire/shocks'
+    save = False
 
 import gc
-import time
 import warnings
 warnings.filterwarnings('ignore')
 import csv
 
 import numpy as np
-# import h5py
 import healpy as hp
 import scipy.integrate as sci
 from scipy.interpolate import griddata
@@ -26,17 +24,11 @@ from sklearn.neighbors import KDTree
 from src.Opacity.linextrapolator import nouveau_rich
 from scipy.ndimage import uniform_filter1d
 
-
 import Utilities.prelude as prel
-from Utilities.operators import make_tree
-# from Utilities.parser import parse
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
 
-
 #%% Choose parameters -----------------------------------------------------------------
-save = True
-
 m = 4
 Mbh = 10**m
 beta = 1
@@ -44,34 +36,28 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'LowRes' # '' or 'HiRes'
+check = '' # '' or 'HiRes'
 
+## Snapshots stuff
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-save = True
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
-Lphoto_all = np.zeros(len(snaps))
+pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
+print('we are in: ', pre)
 
-#%% Opacities -----------------------------------------------------------------
-# Freq range
-f_min = prel.Kb_cgs * 1e3 / prel.h_cgs
-f_max = prel.Kb_cgs * 3e13 / prel.h_cgs
-f_num = 1_000
-frequencies = np.logspace(np.log10(f_min), np.log10(f_max), f_num)
-
-# Opacity Input
+#%% Opacities: load and interpolate ----------------------------------------------------------------
 opac_path = f'{abspath}/src/Opacity'
 T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
-
 T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
+N_ray = 5_000
 
 # MATLAB GOES WHRRRR, thanks Cindy.
 eng = matlab.engine.start_matlab()
-
-pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
-print('we are in: ', pre)
+Lphoto_all = np.zeros(len(snaps))
 for idx_s, snap in enumerate(snaps):
+    if int(snap)!= 164:
+        continue
     print('\n Snapshot: ', snap, '\n')
     box = np.zeros(6)
     # Load data -----------------------------------------------------------------
@@ -81,7 +67,7 @@ for idx_s, snap in enumerate(snaps):
         Z = np.load(f'{pre}/snap_{snap}/CMz_{snap}.npy')
         T = np.load(f'{pre}/snap_{snap}/T_{snap}.npy')
         Den = np.load(f'{pre}/snap_{snap}/Den_{snap}.npy')
-        Rad = np.load(f'{pre}/snap_{snap}/Rad_{snap}.npy')
+        Rad = np.load(f'{pre}/snap_{snap}/Rad_{snap}.npy') # specific rad energy
         Vol = np.load(f'{pre}/snap_{snap}/Vol_{snap}.npy')
         box = np.load(f'{pre}/snap_{snap}/box_{snap}.npy')
     else:
@@ -90,7 +76,7 @@ for idx_s, snap in enumerate(snaps):
         Z = np.load(f'{pre}/{snap}/CMz_{snap}.npy')
         T = np.load(f'{pre}/{snap}/T_{snap}.npy')
         Den = np.load(f'{pre}/{snap}/Den_{snap}.npy')
-        Rad = np.load(f'{pre}/{snap}/Rad_{snap}.npy')
+        Rad = np.load(f'{pre}/{snap}/Rad_{snap}.npy') # specific rad energy
         Vol = np.load(f'{pre}/{snap}/Vol_{snap}.npy')
         box = np.load(f'{pre}/{snap}/box_{snap}.npy')
     
@@ -98,31 +84,18 @@ for idx_s, snap in enumerate(snaps):
     X, Y, Z, T, Den, Rad, Vol = make_slices([X, Y, Z, T, Den, Rad, Vol], denmask)
     Rad_den = np.multiply(Rad,Den) # now you have energy density
     del Rad   
+    xyz = np.array([X, Y, Z]).T
     R = np.sqrt(X**2 + Y**2 + Z**2)
     # Cross dot -----------------------------------------------------------------
-    observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
-    # Line 17, * is matrix multiplication, ' is .T
-    observers_xyz = np.array(observers_xyz).T
-    cross_dot = np.matmul(observers_xyz,  observers_xyz.T)
-    cross_dot[cross_dot<0] = 0
-    cross_dot *= 4/prel.NPIX
+    observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) #shape: (3, 192)
+    observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
+    num_obs = prel.NPIX # you'll use it for the mean of the observers. It's 192, unless you don't find the photosphere for someone and so decrease of 1
 
-    # Tree ----------------------------------------------------------------------
-    #from scipy.spatial import KDTree
-    xyz = np.array([X, Y, Z]).T
-    N_ray = 5_000
-
-    # Flux
-    F_photo = np.zeros((prel.NPIX, f_num))
-    F_photo_temp = np.zeros((prel.NPIX, f_num))
-
-    # Dynamic Box -----------------------------------------------------------------
+    # Dynamic Box 
     reds = np.zeros(prel.NPIX)
-    ## just to check photosphere
     ph_idx = np.zeros(prel.NPIX)
     fluxes = np.zeros(prel.NPIX)
-    r_initial = np.zeros(prel.NPIX)
-    ##
+    r_initial = np.zeros(prel.NPIX) # initial starting point for Rph
     for i in range(prel.NPIX):
         # Progress 
         print(f'Snap: {snap}, Obs: {i}', flush=False)
@@ -154,19 +127,19 @@ for idx_s, snap in enumerate(snaps):
             rmax = min(rmax, box[5] / mu_z)
             # print('z+', rmax)
 
-        r = np.logspace( -0.25, np.log10(rmax), N_ray)
-        r_initial[i] = rmax
-        alpha = (r[1] - r[0]) / (0.5 * ( r[0] + r[1]))
-        dr = alpha * r
+        r = np.logspace(-0.25, np.log10(rmax), N_ray)
+        r_initial[i] = rmax # this is true if the observers are nomalized to have |R|=1
 
         x = r*mu_x
         y = r*mu_y
         z = r*mu_z
         xyz2 = np.array([x, y, z]).T
         del x, y, z
-        tree = KDTree(xyz, leaf_size=50)
+        # find the simulation cell corresponding to cells in the wanted ray
+        tree = KDTree(xyz, leaf_size=50) 
         _, idx = tree.query(xyz2, k=1)
-        idx = [ int(idx[i][0]) for i in range(len(idx))] # no -1 because we start from 0
+        idx = [ int(idx[i][0]) for i in range(len(idx))]
+        # Quantity corresponding to the ray
         d = Den[idx] * prel.den_converter
         t = T[idx]
         ray_x = X[idx]
@@ -175,34 +148,28 @@ for idx_s, snap in enumerate(snaps):
         rad_den = Rad_den[idx]
         volume = Vol[idx]
 
-        # Interpolate ----------------------------------------------------------
-        # sigma_rossland = eng.interp2(T_cool2,Rho_cool2,rossland2.T,np.log(t),np.log(d),'linear',0)
-        # sigma_rossland = [sigma_rossland[0][i] for i in range(N_ray)]
-        sigma_rossland = eng.interp2(T_cool2,Rho_cool2,rossland2.T # needs T for the new RICH extrapol
-                                        ,np.log(t), np.log(d),'linear',0)
+        # Interpolate opacity 
+        sigma_rossland = eng.interp2(T_cool2,Rho_cool2,rossland2.T,np.log(t), np.log(d),'linear',0)
         sigma_rossland = np.array(sigma_rossland)[0]
         underflow_mask = sigma_rossland != 0.0
-        d, t, r, sigma_rossland, ray_x, ray_y, ray_z, rad_den, volume = make_slices([d, t, r, 
-                                                                sigma_rossland, 
-                                                                ray_x, ray_y, ray_z,
-                                                                rad_den, volume], underflow_mask)
-        sigma_rossland_eval = np.exp(sigma_rossland) 
+        d, t, r, ray_x, ray_y, ray_z, sigma_rossland, rad_den, volume = \
+            make_slices([d, t, r, ray_x, ray_y, ray_z, sigma_rossland, rad_den, volume], underflow_mask)
+        sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
         del sigma_rossland
         gc.collect()
 
-        # Optical Depth ---------------------------------------------------------------
-        r_fuT = np.flipud(r)#.T)
+        # Optical Depth
+        r_fuT = np.flipud(r) #.T
         kappa_rossland = np.flipud(sigma_rossland_eval) 
+        # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
         los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
 
-        # Red -----------------------------------------------------------------------
-        # Get 20 unique, nearest neighbors
+        # Red 
+        # Get 20 unique nearest neighbors to each cell in the wanted ray and use them to compute the gradient along the ray
         xyz3 = np.array([ray_x, ray_y, ray_z]).T
         _, idxnew = tree.query(xyz3, k=20)
-        idxnew = np.unique(idxnew).T
-        dx = 0.5 * volume**(1/3) # Cell radius #the constant should be 0.62
-
-        # Get the Grads
+        idxnew = np.unique(idxnew) #.T
+        dx = 0.5 * volume**(1/3) # Cell radius 
         f_inter_input = np.array([X[idxnew], Y[idxnew], Z[idxnew]]).T
 
         gradx_p = griddata( f_inter_input, Rad_den[idxnew], method = 'linear',
@@ -229,41 +196,47 @@ for idx_s, snap in enumerate(snaps):
         gradz = np.nan_to_num(gradz, nan =  0)
         del gradz_p, gradz_m
 
-        grad = np.sqrt(gradx**2 + grady**2 + gradz**2)
-        gradr = (mu_x * gradx) + (mu_y*grady) + (mu_z*gradz)
+        grad = np.sqrt(gradx**2 + grady**2 + gradz**2) # grad = |grad|
+        gradr = (mu_x * gradx) + (mu_y*grady) + (mu_z*gradz) # projection of the gradient along the radial direction
         del gradx, grady, gradz
         gc.collect()
 
-        R_lamda = grad / ( prel.Rsol_cgs * sigma_rossland_eval* rad_den)
+        # Eq.(28) from Krumholz07.
+        R_lamda = grad / ( prel.Rsol_cgs * sigma_rossland_eval* rad_den) # this is the conversion for /r from the gradient. It's dimensionless
         R_lamda[R_lamda < 1e-10] = 1e-10
+        # Eq.(27) from Krumholz07.
         fld_factor = (1/np.tanh(R_lamda) - 1/R_lamda) / R_lamda 
-        smoothed_flux = -uniform_filter1d(r.T**2 * fld_factor * gradr / sigma_rossland_eval, 7) # i have remov
-                
-        try:
+        # Eq.(26) from Krumholz07. You miss a c, but it's in Lphoto2 for computational reasons.
+        # Before it was r.T
+        smoothed_flux = -uniform_filter1d(r**2 * fld_factor * gradr / sigma_rossland_eval, 7) #r^2 is here (but it's for the flux) otherwise you get annoying errors in the if. 
+
+        # You can have numerical errors at early times
+        try: 
             photosphere = np.where( ((smoothed_flux>0) & (los<2/3) ))[0][0] 
-        except IndexError:
-            print(f'No b found, observer {i}', flush=False)
+        except IndexError: # if you don't find the photosphere, exlude the observer
+            num_obs -= 1
+            print(f'No photosphere found for observer {i}, now observers are {num_obs}', flush=False)
             sys.stdout.flush()
-            photosphere = 3117 # elad_b = 3117
-        Lphoto2 = 4*np.pi*prel.c_cgs*smoothed_flux[photosphere] * prel.Msol_cgs / (prel.tsol_cgs**2)
+            continue
+        Lphoto2 = 4*np.pi * prel.c_cgs*smoothed_flux[photosphere] * prel.Msol_cgs / (prel.tsol_cgs**2) # you have to convert rad_den*r^2/lenght = energy/lenght^2 = mass/time^2
         if Lphoto2 < 0:
             Lphoto2 = 1e100 # it means that it will always pick max_length for the negatives
-        max_length = 4*np.pi*prel.c_cgs*rad_den[photosphere]*r[photosphere]**2 * prel.Msol_cgs * prel.Rsol_cgs / (prel.tsol_cgs**2) #the conversion is for Erad: energy*r^2/lenght^3 [in SI would be kg m^2/s^2 * m^2 * 1/m^3]
+        # free streaming emission
+        max_length = 4*np.pi*(r[photosphere]**2) * prel.c_cgs * rad_den[photosphere] * prel.Msol_cgs * prel.Rsol_cgs / (prel.tsol_cgs**2) #the conversion is for rad_den*r^2 = mass*len/time^2
         Lphoto = np.min( [Lphoto2, max_length])
-        reds[i] = Lphoto
-        ## just to check photosphere
+        reds[i] = Lphoto # cgs
         ph_idx[i] = idx[photosphere]
         fluxes[i] = Lphoto / (4*np.pi*(r[photosphere]*prel.Rsol_cgs)**2)
         
         del smoothed_flux, R_lamda, fld_factor, rad_den
         gc.collect()
-    Lphoto_snap = np.mean(reds)
+    Lphoto_snap = np.sum(reds)/num_obs # take the mean
     print(Lphoto_snap, flush=True)
     sys.stdout.flush()
     Lphoto_all[idx_s] = Lphoto_snap 
 
-    # Save red of the single snap
     if save:
+        # Save red of the single snap
         pre_saving = f'{abspath}/data/{folder}'
         data = [snap, tfb[idx_s], Lphoto_snap]
         with open(f'{pre_saving}/{check}_red.csv', 'a', newline='') as file:
@@ -271,7 +244,7 @@ for idx_s, snap in enumerate(snaps):
             writer.writerow(data)
         file.close()
 
-        ## just to check photosphere
+        # save Rph index and fluxes for each observer in the snapshot
         time_rph = np.concatenate([[snap,tfb[idx_s]], ph_idx])
         time_fluxes = np.concatenate([[snap,tfb[idx_s]], fluxes])
         with open(f'{pre_saving}/{check}_phidx_fluxes.txt', 'a') as fileph:
@@ -280,6 +253,5 @@ for idx_s, snap in enumerate(snaps):
             fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes [cgs] for each obs \n')
             fileph.write(' '.join(map(str, time_fluxes)) + '\n')
             fileph.close()
-        np.save(f'{pre_saving}/{check}_observersHealpix_{snap}', [r_initial, observers_xyz[:,0], observers_xyz[:,1], observers_xyz[:,2]])
-        ##
+        
 eng.exit()
