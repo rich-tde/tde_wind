@@ -32,7 +32,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = '' # 'Low' or 'HiRes'
+check = 'LowRes' # 'LowRes' or 'HiRes'
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 coord_to_cut = 'z' # 'x', 'y', 'z'
@@ -76,8 +76,9 @@ else:
     latitude_moll = np.pi / 2 - phi 
     indecesorbital = np.concatenate(np.where(latitude_moll==0))
 
-
+ratio_E = np.zeros(len(snaps))
 for idx, snap in enumerate(snaps):
+    print(snap)
     if do:
         # you are in alice
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
@@ -113,18 +114,18 @@ for idx, snap in enumerate(snaps):
         import matplotlib.pyplot as plt
         import matplotlib.colors as colors
         # choose what to plot
-        npanels = 3 # 3 or 6
+        npanels = '' # 3 or 6
 
         # load the data
         data = np.load(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy', allow_pickle=True)
         x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid, VX_mid, VY_mid, VZ_mid =\
             data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11]
-        mass_mid = den_mid * dim_mid**3
+
         V_mid = np.sqrt(VX_mid**2 + VY_mid**2 + VZ_mid**2)
         R_mid = np.sqrt(x_mid**2 + y_mid**2 + z_mid**2)
-        KE = 0.5 * mass_mid * V_mid**2
-        PE = - prel.G * Mbh * mass_mid / R_mid
-        raio_E = KE / np.abs(PE)
+        KE = 0.5 * V_mid**2
+        PE = - prel.G * Mbh / R_mid
+        ratio_E[idx] = np.mean(KE / np.abs(PE))
 
         if npanels == 3:
             orb_en_onmass_mid = np.abs(orb_en_den_mid/den_mid) * prel.en_converter / prel.Msol_cgs
@@ -202,20 +203,22 @@ for idx, snap in enumerate(snaps):
                         norm = colors.LogNorm(vmin = vminRad, vmax = vmaxRad))
             cb = plt.colorbar(img)
             cb.set_label(r'Radiation energy density [erg]', fontsize = 14)
-            
-        for i in range(2):
-            ax[i][0].set_ylabel(r'$Y/R_{\rm a}$', fontsize = 20)
-            for j in range(3):
-                ax[i][j].set_xlabel(r'$X/R_{\rm a}$', fontsize = 20)
-                ax[i][j].set_xlim(-1.2, 0.1)#(-340,25)
-                ax[i][j].set_ylim(-0.5, 0.5)#(-70,70)
-        ax[1][0].text(-1.05, 0.42, f't = {np.round(tfb[idx], 2)}' + r'$t_{\rm fb}$', fontsize = 20)
-        ax[0][0].text(-1.05, 0.38, f'snap {int(snaps[idx])}', fontsize = 16)
 
-        plt.tight_layout()
-        plt.savefig(f'{abspath}Figs/{folder}/slices/Panel{npanels}Slice{snap}.png')
-        plt.close()
+        if npanels == 6 or npanels == 3:    
+            for i in range(2):
+                ax[i][0].set_ylabel(r'$Y/R_{\rm a}$', fontsize = 20)
+                for j in range(3):
+                    ax[i][j].set_xlabel(r'$X/R_{\rm a}$', fontsize = 20)
+                    ax[i][j].set_xlim(-1.2, 0.1)#(-340,25)
+                    ax[i][j].set_ylim(-0.5, 0.5)#(-70,70)
+            ax[1][0].text(-1.05, 0.42, f't = {np.round(tfb[idx], 2)}' + r'$t_{\rm fb}$', fontsize = 20)
+            ax[0][0].text(-1.05, 0.38, f'snap {int(snaps[idx])}', fontsize = 16)
 
+            plt.tight_layout()
+            plt.savefig(f'{abspath}Figs/{folder}/slices/Panel{npanels}Slice{snap}.png')
+            plt.close()
 
+if not do:
+    np.save(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}_ratioE.npy', [snaps, tfb, ratio_E])
 
     
