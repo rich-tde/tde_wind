@@ -32,7 +32,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'LowRes' # 'LowRes' or 'HiRes'
+check = 'HiRes' # 'LowRes' or 'HiRes'
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 coord_to_cut = 'z' # 'x', 'y', 'z'
@@ -219,6 +219,7 @@ for idx, snap in enumerate(snaps):
             plt.close()
 
 if not do:
+    print(len(ratio_E))
     np.save(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}_ratioE.npy', [snaps, tfb, ratio_E])
 
     
