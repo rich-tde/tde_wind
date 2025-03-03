@@ -56,6 +56,8 @@ N_ray = 5_000
 eng = matlab.engine.start_matlab()
 Lphoto_all = np.zeros(len(snaps))
 for idx_s, snap in enumerate(snaps):
+    if int(snap)!= 164:
+        continue
     print('\n Snapshot: ', snap, '\n')
     box = np.zeros(6)
     # Load data -----------------------------------------------------------------
@@ -63,6 +65,9 @@ for idx_s, snap in enumerate(snaps):
         X = np.load(f'{pre}/snap_{snap}/CMx_{snap}.npy')
         Y = np.load(f'{pre}/snap_{snap}/CMy_{snap}.npy')
         Z = np.load(f'{pre}/snap_{snap}/CMz_{snap}.npy')
+        VX = np.load(f'{pre}/snap_{snap}/Vx_{snap}.npy')
+        VY = np.load(f'{pre}/snap_{snap}/Vy_{snap}.npy')
+        VZ = np.load(f'{pre}/snap_{snap}/Vz_{snap}.npy')
         T = np.load(f'{pre}/snap_{snap}/T_{snap}.npy')
         Den = np.load(f'{pre}/snap_{snap}/Den_{snap}.npy')
         Rad = np.load(f'{pre}/snap_{snap}/Rad_{snap}.npy') # specific rad energy
@@ -72,6 +77,9 @@ for idx_s, snap in enumerate(snaps):
         X = np.load(f'{pre}/{snap}/CMx_{snap}.npy')
         Y = np.load(f'{pre}/{snap}/CMy_{snap}.npy')
         Z = np.load(f'{pre}/{snap}/CMz_{snap}.npy')
+        VX = np.load(f'{pre}/{snap}/Vx_{snap}.npy')
+        VY = np.load(f'{pre}/{snap}/Vy_{snap}.npy')
+        VZ = np.load(f'{pre}/{snap}/Vz_{snap}.npy')
         T = np.load(f'{pre}/{snap}/T_{snap}.npy')
         Den = np.load(f'{pre}/{snap}/Den_{snap}.npy')
         Rad = np.load(f'{pre}/{snap}/Rad_{snap}.npy') # specific rad energy
@@ -79,7 +87,7 @@ for idx_s, snap in enumerate(snaps):
         box = np.load(f'{pre}/{snap}/box_{snap}.npy')
     
     denmask = Den > 1e-19
-    X, Y, Z, T, Den, Rad, Vol = make_slices([X, Y, Z, T, Den, Rad, Vol], denmask)
+    X, Y, Z, T, Den, Rad, Vol, VX, VY, VZ = make_slices([X, Y, Z, T, Den, Rad, Vol, VX, VY, VZ], denmask)
     Rad_den = np.multiply(Rad,Den) # now you have energy density
     del Rad   
     xyz = np.array([X, Y, Z]).T
@@ -92,6 +100,16 @@ for idx_s, snap in enumerate(snaps):
     # Dynamic Box 
     reds = np.zeros(prel.NPIX)
     ph_idx = np.zeros(prel.NPIX)
+    xph = np.zeros(prel.NPIX) 
+    yph = np.zeros(prel.NPIX)
+    zph = np.zeros(prel.NPIX)
+    volph = np.zeros(prel.NPIX)
+    denph = np.zeros(prel.NPIX) 
+    Tempph = np.zeros(prel.NPIX)
+    Rad_denph = np.zeros(prel.NPIX)
+    Vxph = np.zeros(prel.NPIX) 
+    Vyph = np.zeros(prel.NPIX)
+    Vzph = np.zeros(prel.NPIX)
     fluxes = np.zeros(prel.NPIX)
     r_initial = np.zeros(prel.NPIX) # initial starting point for Rph
     for i in range(prel.NPIX):
@@ -145,13 +163,17 @@ for idx_s, snap in enumerate(snaps):
         ray_z = Z[idx]
         rad_den = Rad_den[idx]
         volume = Vol[idx]
-
+        ray_vx = VX[idx]
+        ray_vy = VY[idx]
+        ray_vz = VZ[idx]
+        
         # Interpolate opacity 
-        sigma_rossland = eng.interp2(T_cool2,Rho_cool2,rossland2.T,np.log(t), np.log(d),'linear',0)
+        sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
         sigma_rossland = np.array(sigma_rossland)[0]
         underflow_mask = sigma_rossland != 0.0
-        d, t, r, ray_x, ray_y, ray_z, sigma_rossland, rad_den, volume = \
-            make_slices([d, t, r, ray_x, ray_y, ray_z, sigma_rossland, rad_den, volume], underflow_mask)
+        idx = np.array(idx)
+        d, t, r, ray_x, ray_y, ray_z, sigma_rossland, rad_den, volume, ray_vx, ray_vy, ray_vz, idx = \
+            make_slices([d, t, r, ray_x, ray_y, ray_z, sigma_rossland, rad_den, volume, ray_vx, ray_vy, ray_vz, idx], underflow_mask)
         sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
         del sigma_rossland
         gc.collect()
@@ -224,6 +246,16 @@ for idx_s, snap in enumerate(snaps):
         Lphoto = np.min( [Lphoto2, max_length])
         reds[i] = Lphoto # cgs
         ph_idx[i] = idx[photosphere]
+        xph[i] = ray_x[photosphere]
+        yph[i] = ray_y[photosphere]
+        zph[i] = ray_z[photosphere]
+        volph[i] = volume[photosphere]
+        denph[i] = d[photosphere]
+        Tempph[i] = t[photosphere]
+        Rad_denph[i] = rad_den[photosphere]
+        Vxph[i] = ray_vx[idx[photosphere]]
+        Vyph[i] = ray_vy[idx[photosphere]]
+        Vzph[i] = ray_vz[idx[photosphere]]
         fluxes[i] = Lphoto / (4*np.pi*(r[photosphere]*prel.Rsol_cgs)**2)
         
         del smoothed_flux, R_lamda, fld_factor, rad_den
@@ -231,7 +263,6 @@ for idx_s, snap in enumerate(snaps):
     Lphoto_snap = np.sum(reds)/num_obs # take the mean
     print(Lphoto_snap, flush=True)
     sys.stdout.flush()
-    Lphoto_all[idx_s] = Lphoto_snap 
 
     if save:
         # Save red of the single snap
@@ -251,5 +282,19 @@ for idx_s, snap in enumerate(snaps):
             fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes [cgs] for each obs \n')
             fileph.write(' '.join(map(str, time_fluxes)) + '\n')
             fileph.close()
+        
+        with open(f'{pre_saving}/photo/{check}_photo{snap}.txt', 'a') as f:
+            f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph \n')
+            f.write(' '.join(map(str, xph)) + '\n')
+            f.write(' '.join(map(str, yph)) + '\n')
+            f.write(' '.join(map(str, zph)) + '\n')
+            f.write(' '.join(map(str, volph)) + '\n')
+            f.write(' '.join(map(str, denph)) + '\n')
+            f.write(' '.join(map(str, Tempph)) + '\n')
+            f.write(' '.join(map(str, Rad_denph)) + '\n')
+            f.write(' '.join(map(str, Vxph)) + '\n')
+            f.write(' '.join(map(str, Vyph)) + '\n')
+            f.write(' '.join(map(str, Vzph)) + '\n')
+            f.close()
         
 eng.exit()
