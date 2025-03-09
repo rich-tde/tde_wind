@@ -13,7 +13,7 @@ check = ''
 npanels = 6
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-start = 100
+start = 80
 slow_down_factor = 2  # Increase this value to make the video slower
 
 # Get the height of the first image to calculate the scale
@@ -28,24 +28,21 @@ def get_image_size(image_path):
     return width, height
 
 # For Denproj
-# path = f'{abspath}/Figs/{folder}/projection/denproj'
-# output_path = f'{abspath}/Figs/{folder}/movie_proj{check}.mp4'
-# ffmpeg_command = (
-#     f'ffmpeg -y -start_number {start} -i {path}%03d{cut}.png -vf "setpts={slow_down_factor}*PTS" '
-#     f'-frames:v {end_frame+ 1} -c:v libx264 -pix_fmt yuv420p {output_path}'
-# )
+path = f'{abspath}/Figs/{folder}/projection/denproj%d.png'
+output_path = f'{abspath}/Figs/{folder}/movie_proj{check}.mp4'
+first_image_path = f'{abspath}/Figs/{folder}/projection/denproj{start}.png'
 
 # For Slices 
-# path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/E_%d.png' 
-# output_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/collectionE.mp4'
-# first_image_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/E_{start}.png'
-# width, height = get_image_size(first_image_path)
+# path = f'{abspath}/Figs/EddingtonEnvelope/vel/vel_%d.png' 
+# output_path = f'{abspath}/Figs/EddingtonEnvelope/vel/collection_vel.mp4'
+# first_image_path = f'{abspath}/Figs/EddingtonEnvelope/vel/vel_{start}.png'
 
 # For res insensitivity Rph
-path = f'{abspath}/Figs/Test/photosphere/348/348_RinRph_ray%d.png'
-output_path = f'{abspath}/Figs/Test/photosphere/348/348_RinRph_movie.mp4'
-start = 0
-first_image_path = f'{abspath}/Figs/Test/photosphere/348/348_RinRph_ray{start}.png'
+# path = f'{abspath}/Figs/Test/photosphere/348/348_RinRph_ray%d.png'
+# output_path = f'{abspath}/Figs/Test/photosphere/348/348_RinRph_movie.mp4'
+# start = 0
+# first_image_path = f'{abspath}/Figs/Test/photosphere/348/348_RinRph_ray{start}.png'
+
 width, height = get_image_size(first_image_path)
 
 # Ensure the height is even by subtracting 1 if it's odd.

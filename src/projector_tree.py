@@ -11,8 +11,10 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
     prepath = '/data1/martirep/shocks/shock_capturing'
+    compute = True
 else:
     prepath = '/Users/paolamartire/shocks/'
+    compute = False
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -87,7 +89,6 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
 if __name__ == '__main__':
     from src import orbits as orb
     save = True
-    compute = True
     
     m = 4
     Mbh = 10**m
@@ -132,43 +133,47 @@ if __name__ == '__main__':
     else:
         import src.orbits as orb
         import Utilities.prelude as prel
-        t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
+        faraway = False
 
+        # t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
         time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/time_proj.txt')
-        snaps = time[0]#[int(i) for i in time[0]]
+        snaps = [int(i) for i in time[0]]
         tfb = time[1]
         xcrt, ycrt, crt = orb.make_cfr(Rt)
 
         # Load and clean
-        snaps = [100, 237]
         for i, snap in enumerate(snaps):
-            flat_den = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/bigdenproj{snap}.txt')
-            flat_den *= prel.Msol_cgs/prel.Rsol_cgs**2
-            x_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/bigxarray.txt')
-            y_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/bigyarray.txt')
-                
-            # p5 = np.percentile(flat_den, 5)
-            # p95 = np.percentile(flat_den, 95)
+            # if int(snap)!= 348:
+            #     continue
             
-            fig, ax = plt.subplots(1,1, figsize = (14,8))
-            ax.set_xlabel(r'$X [AU]$', fontsize = 20)
-            ax.set_ylabel(r'$Y [AU]$', fontsize = 20)
-            img = ax.pcolormesh(x_radii*prel.Rsol_AU, y_radii*prel.Rsol_AU, flat_den.T, cmap = 'inferno',
-                                norm = colors.LogNorm(vmin = 5e-2, vmax = 1e2))
+            if faraway:
+                vmin = 5e-2
+                vmax = 2e7
+            else:
+                flat_den = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/denproj{snap}.txt')
+                x_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/xarray.txt')
+                y_radii = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/yarray.txt')
+                vmin = 1e3
+                vmax = 7e6
+            flat_den *= prel.Msol_cgs/prel.Rsol_cgs**2
+            
+            fig, ax = plt.subplots(1,1, figsize = (15,7))
+            ax.set_xlabel(r'$X [R_\odot]$', fontsize = 20)
+            ax.set_ylabel(r'$Y [R_\odot]$', fontsize = 20)
+            img = ax.pcolormesh(x_radii, y_radii, flat_den.T, cmap = 'inferno',
+                                norm = colors.LogNorm(vmin = vmin, vmax = vmax))
             cb = plt.colorbar(img)
-            cb.set_label(r'Column density [$g/cm^2$])', fontsize = 18)
-            # ax.contour(xcrt, ycrt, crt,  linestyles = 'dashed', colors = 'w', alpha = 1)
+            cb.set_label(r'Column density [g/cm$^2$])', fontsize = 18)
+            ax.contour(xcrt, ycrt, crt, [0], linestyles = 'dashed', colors = 'w', alpha = 1)
             ax.scatter(0, 0, color = 'k', edgecolors = 'orange', s = 40)
-            tfb_single = tfb#tfb[i]
-            # ax.text(-7*apocenter**prel.Rsol_AU, 3.5*apocenter**prel.Rsol_AU, r't = ' + f'{np.round(tfb_single*t_fall,2)} days', color = 'white', fontsize = 18)
-            # ax.set_xlim(-210, 140)
-            # ax.set_ylim(-90, 90) 
+            tfb_single = tfb[i]
+            ax.text(-400, 110, f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$', color = 'white', fontsize = 18)
+            # ax.set_xlim(-400, 140)
+            ax.set_ylim(-142, 142) 
             plt.tight_layout()
             if save:
                 plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/denproj{snap}.png')
-            plt.show()
+            # plt.show()
             plt.close()
 
-#%%
-print(len(x_radii))
-# %%
+

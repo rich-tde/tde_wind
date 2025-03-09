@@ -13,12 +13,12 @@ def make_slices(all_data, condition):
 
 def radial_plane(x_data, y_data, dim_data, theta_chosen):
     x_chosen, y_chosen = from_cylindric(theta_chosen, 1)
-    # Take the orthogonal vector to radial direction 
-    orthog_vector = np.array([-y_chosen, x_chosen])
-    r_data = np.transpose(np.array([x_data, y_data]))
+    # Take the orthogonal versor to radial direction 
+    orthog_vector = np.array([-y_chosen, x_chosen]) # 1x2 vector
+    r_data = np.transpose(np.array([x_data, y_data])) # Nx2 vector
     # and take the points orthogonal to that
     condition_plane = np.abs(np.dot(r_data, orthog_vector)) < dim_data
-    # Take points in the same quadrant as the chosen point
+    # Take points in the same quadrant as the chosen point (i.e. select half plane)
     condition_pos = (y_data * y_chosen > 0) & (x_data * x_chosen > 0)
     condition_coord = np.logical_and(condition_plane, condition_pos)
 

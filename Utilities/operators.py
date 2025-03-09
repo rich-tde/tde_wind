@@ -45,6 +45,16 @@ def from_cylindric(theta, r):
     y = r * np.sin(theta)
     return x, y
 
+def to_spherical_components(vec_x, vec_y, vec_z, lat, long):
+    """ Transform the components of a vector from cartesian to spherical coordinates.
+    NB: you need to pass the latitude and longitude (in radians) because 
+    vec_x, vec_y, vec_z are not necessarily postions, thus you can't use them to derive the angless.
+    lat (tehta) has to be in [0,pi] and long (phi) in [0, 2pi]."""
+    vec_r = np.sin(lat) * (vec_x * np.cos(long) + vec_y * np.sin(long)) + vec_z * np.cos(lat)
+    vec_theta = np.cos(lat) * (vec_x * np.cos(long) + vec_y * np.sin(long)) - vec_z * np.sin(lat)
+    vec_phi = - vec_x * np.sin(long) + vec_y * np.cos(long)
+    return vec_r, vec_theta, vec_phi
+
 def J_cart_in_sphere(lat, long):
     matrix = np.array([[np.sin(lat)*np.cos(long), np.cos(lat)*np.cos(long), -np.sin(long)],
                         [np.sin(lat)*np.sin(long), np.cos(lat)*np.sin(long), np.cos(long)],
@@ -155,7 +165,7 @@ def make_tree(filename, snap, energy = False):
         # convert from energy/mass to energy density
         IE *= Den  
         Rad *= Den
-        Diss = np.load(f'{filename}/Diss_{snap}.npy')
+        Diss = np.load(f'{filename}/Diss_{snap}.npy') # Dissipation rate density [energy/time/volume]
         # Entropy = np.load(f'{filename}/Entropy_{snap}.npy')
              
     P = np.load(f'{filename}/P_{snap}.npy')

@@ -176,9 +176,10 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     Mbh, Rstar, mstar, beta = params[0], params[1], params[2], params[3]
     Rt = Rstar * (Mbh/mstar)**(1/3)
     R0 = 0.6 * Rt
+    apo = apocentre(Rstar, mstar, Mbh, beta)
     # indeces = np.arange(len(x_data))
     # Cut a bit the data for computational reasons
-    cutting = np.logical_and(np.abs(z_data) < 50, np.abs(y_data) < 200)
+    cutting = np.logical_and(np.abs(z_data) < 100, np.abs(y_data) < 10*apo)
     x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut = \
         make_slices([x_data, y_data, z_data, dim_data, den_data, mass_data], cutting)
     # Find the radial maximum points to have a first guess of the stream (necessary for the threshold and the tg)

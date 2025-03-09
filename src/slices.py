@@ -32,7 +32,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiRes' # 'LowRes' or 'HiRes'
+check = '' # 'LowRes' or 'HiRes'
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 coord_to_cut = 'z' # 'x', 'y', 'z'
@@ -76,7 +76,6 @@ else:
     latitude_moll = np.pi / 2 - phi 
     indecesorbital = np.concatenate(np.where(latitude_moll==0))
 
-ratio_E = np.zeros(len(snaps))
 for idx, snap in enumerate(snaps):
     print(snap)
     if do:
@@ -84,7 +83,8 @@ for idx, snap in enumerate(snaps):
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
 
         data = make_tree(path, snap, energy = True)
-        X, Y, Z, den, mass, vol, ie_den, Rad_den, VX, VY, VZ = data.X, data.Y, data.Z, data.Den, data.Mass, data.Vol, data.IE, data.Rad, data.VX, data.VY, data.VZ
+        X, Y, Z, den, mass, vol, ie_den, Rad_den, VX, VY, VZ, Diss_den = \
+            data.X, data.Y, data.Z, data.Den, data.Mass, data.Vol, data.IE, data.Rad, data.VX, data.VY, data.VZ, data.Diss
         Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
         vel = np.sqrt(np.power(VX, 2) + np.power(VY, 2) + np.power(VZ, 2))
         orb_en = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh)
@@ -103,11 +103,11 @@ for idx, snap in enumerate(snaps):
         cut = np.logical_and(density_cut, coordinate_cut)
         # x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut = \
         #     sec.make_slices([X, Y, Z, dim_cell, den, data.Temp, ie_den, orb_en_den, Rad_den], cut)
-        x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut = \
-            sec.make_slices([X, Y, Z, dim_cell, den, data.Temp, ie_den, orb_en_den, Rad_den, VX, VY, VZ], cut)
+        x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut = \
+            sec.make_slices([X, Y, Z, dim_cell, den, data.Temp, ie_den, orb_en_den, Rad_den, VX, VY, VZ, Diss_den], cut)
         
         np.save(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy',\
-                 [x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut])
+                 [x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut])
         
     else:
         # you are not in alice
@@ -120,12 +120,6 @@ for idx, snap in enumerate(snaps):
         data = np.load(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy', allow_pickle=True)
         x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid, VX_mid, VY_mid, VZ_mid =\
             data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11]
-
-        V_mid = np.sqrt(VX_mid**2 + VY_mid**2 + VZ_mid**2)
-        R_mid = np.sqrt(x_mid**2 + y_mid**2 + z_mid**2)
-        KE = 0.5 * V_mid**2
-        PE = - prel.G * Mbh / R_mid
-        ratio_E[idx] = np.mean(KE / np.abs(PE))
 
         if npanels == 3:
             orb_en_onmass_mid = np.abs(orb_en_den_mid/den_mid) * prel.en_converter / prel.Msol_cgs
@@ -217,9 +211,3 @@ for idx, snap in enumerate(snaps):
             plt.tight_layout()
             plt.savefig(f'{abspath}Figs/{folder}/slices/Panel{npanels}Slice{snap}.png')
             plt.close()
-
-if not do:
-    print(len(ratio_E))
-    np.save(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}_ratioE.npy', [snaps, tfb, ratio_E])
-
-    

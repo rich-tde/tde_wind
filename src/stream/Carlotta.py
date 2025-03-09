@@ -44,6 +44,49 @@ def find_radial_com(x_data, y_data, z_data, dim_data, mass_data, theta_arr, R0):
         
     return x_com, y_com, z_com 
 
+@numba.njit
+def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
+    """ Find the T-Z threshold to cut the transverse plane (as a square) in width and height.
+    Parameters
+    ----------
+    t_plane, z_planr, r_plane, mass_plane, dim_plane : array
+        T, Z, radial (spherical) coordinates, mass and dimension of points in the TZ plane.
+    R0 : float
+        Smoothing radius.
+    Returns
+    -------
+    C : float
+        The (upper) threshold for t and z.
+    """
+    # First guess of C and find the mass enclosed in the initial boundaries
+    C = 2 #np.min([not_toovercome, 2])
+    condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
+    mass = mass_plane[condition]
+    total_mass = np.sum(mass)
+    while True:
+        # update 
+        step = 2*np.mean(dim_plane[condition])#2*np.max(dim_plane[condition])
+        C += step
+        condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
+        # Check that you add new points
+        if len(mass_plane[condition]) == len(mass):
+            C += 2
+            # print(C)
+        else:
+            tocheck = r_plane[condition]-R0
+            if tocheck.any()<0:
+                C -= step
+                print('overcome R0', C)
+                break
+            mass = mass_plane[condition]
+            new_mass = np.sum(mass) 
+            # old mass is > 95% of the new mass
+            if np.logical_and(total_mass > 0.95 * new_mass, total_mass != new_mass): # to be sure that you've done a step
+                break
+            total_mass = new_mass
+   
+    return C
+
 def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, theta_arr, params):
     """ Find the centres of mass in the transverse plane"""
     Mbh, Rstar, mstar, beta = params[0], params[1], params[2], params[3]
@@ -73,7 +116,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
             make_slices([x_cut, y_cut, z_cut, mass_cut, dim_cut], condition_T)
         # Cut the TZ plane to not keep points too far away.
         r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
-        thresh = orb.get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) #8 * Rstar * (r_stream_rad[idx]/Rp)**(1/2)
+        thresh = get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) #8 * Rstar * (r_stream_rad[idx]/Rp)**(1/2)
         condition_x = np.abs(x_T) < thresh
         condition_z = np.abs(z_plane) < thresh
         condition = condition_x & condition_z

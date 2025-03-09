@@ -56,8 +56,6 @@ N_ray = 5_000
 eng = matlab.engine.start_matlab()
 Lphoto_all = np.zeros(len(snaps))
 for idx_s, snap in enumerate(snaps):
-    if int(snap)!= 164:
-        continue
     print('\n Snapshot: ', snap, '\n')
     box = np.zeros(6)
     # Load data -----------------------------------------------------------------
@@ -253,9 +251,9 @@ for idx_s, snap in enumerate(snaps):
         denph[i] = d[photosphere]
         Tempph[i] = t[photosphere]
         Rad_denph[i] = rad_den[photosphere]
-        Vxph[i] = ray_vx[idx[photosphere]]
-        Vyph[i] = ray_vy[idx[photosphere]]
-        Vzph[i] = ray_vz[idx[photosphere]]
+        Vxph[i] = ray_vx[photosphere]
+        Vyph[i] = ray_vy[photosphere]
+        Vzph[i] = ray_vz[photosphere]
         fluxes[i] = Lphoto / (4*np.pi*(r[photosphere]*prel.Rsol_cgs)**2)
         
         del smoothed_flux, R_lamda, fld_factor, rad_den
@@ -267,11 +265,11 @@ for idx_s, snap in enumerate(snaps):
     if save:
         # Save red of the single snap
         pre_saving = f'{abspath}/data/{folder}'
-        data = [snap, tfb[idx_s], Lphoto_snap]
-        with open(f'{pre_saving}/{check}_red.csv', 'a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(data)
-        file.close()
+        # data = [snap, tfb[idx_s], Lphoto_snap]
+        # with open(f'{pre_saving}/{check}_red.csv', 'a', newline='') as file:
+        #     writer = csv.writer(file)
+        #     writer.writerow(data)
+        # file.close()
 
         # save Rph index and fluxes for each observer in the snapshot
         time_rph = np.concatenate([[snap,tfb[idx_s]], ph_idx])
