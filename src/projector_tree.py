@@ -51,19 +51,20 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
     X = np.load(f'{path}/CMx_{snap}.npy')
     Y = np.load(f'{path}/CMy_{snap}.npy')
     Z = np.load(f'{path}/CMz_{snap}.npy')
+    Den = np.load(f'{path}/Den_{snap}.npy')
     if what_to_grid == 'Diss':
-        Den = np.load(f'{path}/Diss_{snap}.npy')
-    else:
-        Den = np.load(f'{path}/Den_{snap}.npy')
+        to_grid = np.load(f'{path}/Diss_{snap}.npy')
+    if what_to_grid == 'Den':
+        to_grid = Den
     # make cut in density
     cutden = Den > 1e-19
-    x_cut, y_cut, z_ccut, den_cut = \
-        make_slices([X, Y, Z, Den], cutden)
-    points_tree = np.array([x_cut, y_cut, z_ccut]).T
+    x_cut, y_cut, z_cut, to_grid_cut = \
+        make_slices([X, Y, Z, to_grid], cutden)
+    points_tree = np.array([x_cut, y_cut, z_cut]).T
     sim_tree = KDTree(points_tree)
 
     gridded_indexes =  np.zeros(( len(xs), len(ys), len(zs) ))
-    gridded_den =  np.zeros(( len(xs), len(ys), len(zs) ))
+    gridded =  np.zeros(( len(xs), len(ys), len(zs) ))
     for i in range(len(xs)):
         for j in range(len(ys)):
             for k in range(len(zs)):
@@ -72,9 +73,9 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
                                     
                 # Store
                 gridded_indexes[i, j, k] = idx
-                gridded_den[i, j, k] = den_cut[idx]
+                gridded[i, j, k] = to_grid_cut[idx]
 
-    return gridded_indexes, gridded_den, xs, ys, zs
+    return gridded_indexes, gridded, xs, ys, zs
 
 @numba.njit
 def projector(gridded_den, x_radii, y_radii, z_radii):
@@ -92,7 +93,7 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
 if __name__ == '__main__':
     from src import orbits as orb
     save = True
-    what_to_grid = 'Diss' # den or diss
+    what_to_grid = 'Diss' # Den or Diss
     
     m = 4
     Mbh = 10**m
@@ -130,9 +131,9 @@ if __name__ == '__main__':
             flat_den = projector(grid_den, x_radii, y_radii, z_radii)
 
             if save:
-                np.savetxt(f'{prepath}/data/{folder}/projection/{what_to_grid}proj{snap}.txt', flat_den) 
-            np.savetxt(f'{prepath}/data/{folder}/projection/{what_to_grid}xarray{snap}.txt', x_radii)
-            np.savetxt(f'{prepath}/data/{folder}/projection/{what_to_grid}yarray{snap}.txt', y_radii)
+                np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}proj{snap}.npy', flat_den) 
+            np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}xarray{snap}.npy', x_radii)
+            np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}yarray{snap}.npy', y_radii)
 
     else:
         import src.orbits as orb
