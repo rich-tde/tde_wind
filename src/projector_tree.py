@@ -132,8 +132,8 @@ if __name__ == '__main__':
 
             if save:
                 np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}proj{snap}.npy', flat_den) 
-            np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}xarray{snap}.npy', x_radii)
-            np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}yarray{snap}.npy', y_radii)
+        np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}xarray.npy', x_radii)
+        np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}yarray.npy', y_radii)
 
     else:
         import src.orbits as orb
