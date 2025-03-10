@@ -29,21 +29,21 @@ from Utilities.sections import make_slices
 ## FUNCTIONS
 #
 
-def grid_maker(path, snap, m, mstar, Rstar, x_num, y_num, z_num = 100):
+def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 100):
     """ ALL outputs are in in solar units """
     Mbh = 10**m
     Rt = Rstar * (Mbh/mstar)**(1/3)
     # R0 = 0.6 * Rt
     apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
-    x_start = -7*apo#-1.2*apo
-    x_stop = 2.5*apo#40
+    x_start = -1.2*apo #-7*apo
+    x_stop = 0.4 * apo #2.5*apo
     xs = np.linspace(x_start, x_stop, num = x_num )
-    y_start = -4*apo #-0.5 * apo 
-    y_stop = 3*apo #0.5 * apo
+    y_start = -0.5 * apo #-4*apo 
+    y_stop = 0.5 * apo  #3*apo
     ys = np.linspace(y_start, y_stop, num = y_num)
-    z_start = -apo #-2 * Rt
-    z_stop = apo #2 * Rt
+    z_start = -2*Rt #-apo 
+    z_stop = 2*Rt #apo 
     zs = np.linspace(z_start, z_stop, z_num) #simulator units
 
     # data = make_tree(path, snap, energy = True)
@@ -51,7 +51,10 @@ def grid_maker(path, snap, m, mstar, Rstar, x_num, y_num, z_num = 100):
     X = np.load(f'{path}/CMx_{snap}.npy')
     Y = np.load(f'{path}/CMy_{snap}.npy')
     Z = np.load(f'{path}/CMz_{snap}.npy')
-    Den = np.load(f'{path}/Den_{snap}.npy')
+    if what_to_grid == 'Diss':
+        Den = np.load(f'{path}/Diss_{snap}.npy')
+    else:
+        Den = np.load(f'{path}/Den_{snap}.npy')
     # make cut in density
     cutden = Den > 1e-19
     x_cut, y_cut, z_ccut, den_cut = \
@@ -89,6 +92,7 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
 if __name__ == '__main__':
     from src import orbits as orb
     save = True
+    what_to_grid = 'Diss' # den or diss
     
     m = 4
     Mbh = 10**m
@@ -122,13 +126,13 @@ if __name__ == '__main__':
             else:
                 path = f'{prepath}/TDE/{folder}/{snap}'
             
-            _, grid_den, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, x_num=800, y_num=800, z_num = 100)
+            _, grid_den, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100)
             flat_den = projector(grid_den, x_radii, y_radii, z_radii)
 
             if save:
-                np.savetxt(f'{prepath}/data/{folder}/projection/bigdenproj{snap}.txt', flat_den) 
-                np.savetxt(f'{prepath}/data/{folder}/projection/bigxarray{snap}.txt', x_radii)
-                np.savetxt(f'{prepath}/data/{folder}/projection/bigyarray{snap}.txt', y_radii)
+                np.savetxt(f'{prepath}/data/{folder}/projection/{what_to_grid}proj{snap}.txt', flat_den) 
+            np.savetxt(f'{prepath}/data/{folder}/projection/{what_to_grid}xarray{snap}.txt', x_radii)
+            np.savetxt(f'{prepath}/data/{folder}/projection/{what_to_grid}yarray{snap}.txt', y_radii)
 
     else:
         import src.orbits as orb

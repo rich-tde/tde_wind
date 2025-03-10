@@ -20,13 +20,13 @@ Rstar = .47
 n = 1.5 
 compton = 'Compton'
 check = ''
-snap = '348'
+snap = '164'
 
 Rt = Rstar * (Mbh/mstar)**(1/3)
 R0 = 0.6 * Rt
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
-# Load data
+#%% Load data
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
 X = np.load(f'{path}/CMx_{snap}.npy')
@@ -37,11 +37,20 @@ Mass = np.load(f'{path}/Mass_{snap}.npy')
 Temp = np.load(f'{path}/T_{snap}.npy')
 cut = Den > 1e-19
 X, Y, Z, Den, Mass, Temp = make_slices([X, Y, Z, Den, Mass, Temp], cut)
-dataph = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/rich_photo{snap}.txt')
+dataph = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/_photo{snap}.txt')
 xph, yph, zph, volph, denph, Tempph = dataph[0], dataph[1], dataph[2], dataph[3], dataph[4], dataph[5]
 massph = denph * volph
 
-
+#%%
+from scipy.interpolate import griddata
+fig = plt.figure(figsize=(8, 6))
+ax = fig.add_subplot(111, projection='3d')
+# Triangular surface plot
+# Create a grid for interpolation
+grid_x, grid_y = np.mgrid[min(xph):max(xph):50j, min(yph):max(yph):50j]
+grid_z = griddata((xph, yph), zph, (grid_x, grid_y), method='cubic')
+# ax.plot_surface(grid_x/apo, grid_y/apo, grid_z/apo, cmap='viridis', alpha=0.8)
+ax.plot_trisurf(xph/apo, yph/apo, zph/apo, cmap='viridis', edgecolor='k', alpha=0.8)
 #%% Make a 3D plot for T
 xlimmin, xlimmax = -7, 5
 ylimmin, ylimmax = -4, 4
