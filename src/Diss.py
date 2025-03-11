@@ -74,12 +74,12 @@ for i,snap in enumerate(snaps):
     # Eradtot[i] = np.sum(Rad_den * vol)
     # Ldisstot[i] = np.sum(Ediss)
 
-    # cut = den > 1e-19
-    # Rsph_cut, vol_cut, Rad_den_cut, Ediss_den_cut = Rsph[cut], vol[cut], Rad_den[cut], Ediss_den[cut]
-    # Ediss_cut = np.abs(Ediss_den_cut) * vol_cut # energy dissipation rate [energy/time] in code units
-    # Rdiss_cut[i] = np.sum(Rsph_cut * Ediss_cut) / np.sum(Ediss_cut)
-    # Eradtot_cut[i] = np.sum(Rad_den_cut * vol_cut)
-    # Ldisstot_cut[i] = np.sum(Ediss_cut)
+    cut = den > 1e-19
+    Rsph_cut, vol_cut, Rad_den_cut, Ediss_den_cut = Rsph[cut], vol[cut], Rad_den[cut], Ediss_den[cut]
+    Ediss_cut = np.abs(Ediss_den_cut) * vol_cut # energy dissipation rate [energy/time] in code units
+    Rdiss_cut[i] = np.sum(Rsph_cut * Ediss_cut) / np.sum(Ediss_cut)
+    Eradtot_cut[i] = np.sum(Rad_den_cut * vol_cut)
+    Ldisstot_cut[i] = np.sum(Ediss_cut)
 
 # with open(f'{abspath}/data/{folder}/Rdiss_{check}cutCoord.txt','a') as file:
 #     file.write(f'# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
@@ -89,18 +89,19 @@ for i,snap in enumerate(snaps):
 #     file.close()
 
 # with open(f'{abspath}/data/{folder}/Rdiss_{check}cutDenCoord.txt','a') as file:
-#     file.write(f'# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-#     file.write(f'# Rdiss [R_\odot] \n' + ' '.join(map(str, Rdiss_cut)) + '\n')
-#     file.write(f'# Total radiation energy [energy in code units] \n' + ' '.join(map(str, Eradtot_cut)) + '\n')
-#     file.write(f'# Total dissipation luminosity [energy/time in code units] \n' + ' '.join(map(str, Ldisstot_cut)) + '\n')
-#     file.close()
-
-    cut = den > 1e-19
-    Rsph_cut, vol_cut, Rad_den_cut, Ediss_den_cut = Rsph[cut], vol[cut], Rad_den[cut], Ediss_den[cut]
-    Ediss_cut = np.abs(Ediss_den_cut) * vol_cut # energy dissipation rate [energy/time] in code units
-    Ldisstot_cut[i] = np.sum(Ediss_cut)
-
-with open(f'{abspath}/data/{folder}/Ldiss_{check}.txt','a') as file:
+with open(f'{abspath}/data/{folder}/Rdiss_{check}.txt','a') as file:
     file.write(f'# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+    file.write(f'# Rdiss [R_\odot] \n' + ' '.join(map(str, Rdiss_cut)) + '\n')
+    file.write(f'# Total radiation energy [energy in code units] \n' + ' '.join(map(str, Eradtot_cut)) + '\n')
     file.write(f'# Total dissipation luminosity [energy/time in code units] \n' + ' '.join(map(str, Ldisstot_cut)) + '\n')
     file.close()
+
+#     cut = den > 1e-19
+#     Rsph_cut, vol_cut, Rad_den_cut, Ediss_den_cut = Rsph[cut], vol[cut], Rad_den[cut], Ediss_den[cut]
+#     Ediss_cut = np.abs(Ediss_den_cut) * vol_cut # energy dissipation rate [energy/time] in code units
+#     Ldisstot_cut[i] = np.sum(Ediss_cut)
+
+# with open(f'{abspath}/data/{folder}/Ldiss_{check}.txt','a') as file:
+#     file.write(f'# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+#     file.write(f'# Total dissipation luminosity [energy/time in code units] \n' + ' '.join(map(str, Ldisstot_cut)) + '\n')
+    # file.close()
