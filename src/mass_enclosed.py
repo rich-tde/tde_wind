@@ -50,23 +50,28 @@ if alice:
     Mass_encl = np.zeros((len(snaps), len(Rcheck)))
     Diss_encl = np.zeros((len(snaps), len(Rcheck)))
     Mass_encl_cut = np.zeros((len(snaps), len(Rcheck)))
+    Diss_encl_cut = np.zeros((len(snaps), len(Rcheck)))
     for i,snap in enumerate(snaps):
         print(snap)
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         data = make_tree(path, snap, energy = True)
         mass, den, vol, diss = data.Mass, data.Den, data.Vol, data.Diss
+        diss = np.abs(diss)
         Rsph = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
         cut = den > 1e-19
-        mass_cut, Rsph_cut = mass[cut], Rsph[cut]
+        mass_cut, Rsph_cut, diss_cut, vol_cut = \
+            mass[cut], Rsph[cut], diss[cut], vol[cut]
         for j,R in enumerate(Rcheck):
             Mass_encl[i,j] = np.sum(mass[Rsph < R])
             Diss_encl[i,j] = np.sum(diss[Rsph < R] * vol[Rsph < R])
             Mass_encl_cut[i,j] = np.sum(mass_cut[Rsph_cut < R])
+            Diss_encl_cut[i,j] = np.sum(diss_cut[Rsph_cut < R] * vol_cut[Rsph_cut < R])
 
     np.savetxt(f'{abspath}/data/{folder}/{check}Mass_encl.txt', Mass_encl)
     np.savetxt(f'{abspath}/data/{folder}/{check}Diss_encl.txt', Diss_encl)
     np.savetxt(f'{abspath}/data/{folder}/{check}Mass_encl_cut.txt', Mass_encl_cut)
     np.savetxt(f'{abspath}/data/{folder}/{check}Mass_encl_time.txt', tfb)
+    np.savetxt(f'{abspath}/data/{folder}/{check}Diss_encl_cut.txt', Diss_encl_cut)
 
 else:
     checks = ['LowRes', '', 'HiRes']
