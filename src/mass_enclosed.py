@@ -1,4 +1,4 @@
-""" If alice: Find the mass enclosed in a sphere of radius R0, Rt, a_mb, apo for all the snapshots.ù
+""" If alice: Find the mass enclosed in a sphere of radius R0, Rt, a_mb, apo for all the snapshots.
 If local: check energy dissipation."""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
@@ -16,6 +16,7 @@ import matplotlib.colors as colors
 import Utilities.prelude as prel
 from Utilities.operators import make_tree, calc_deriv
 from Utilities.selectors_for_snap import select_snap
+from Utilities.sections import make_slices
 import src.orbits as orb
 
 ##
@@ -48,30 +49,37 @@ if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
     Mass_encl = np.zeros((len(snaps), len(Rcheck)))
-    Diss_encl = np.zeros((len(snaps), len(Rcheck)))
-    Mass_encl_cut = np.zeros((len(snaps), len(Rcheck)))
-    Diss_encl_cut = np.zeros((len(snaps), len(Rcheck)))
+    Diss_pos_encl = np.zeros((len(snaps), len(Rcheck)))
+    Diss_neg_encl = np.zeros((len(snaps), len(Rcheck)))
     for i,snap in enumerate(snaps):
         print(snap)
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         data = make_tree(path, snap, energy = True)
         mass, den, vol, diss = data.Mass, data.Den, data.Vol, data.Diss
-        diss = np.abs(diss)
         Rsph = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
         cut = den > 1e-19
-        mass_cut, Rsph_cut, diss_cut, vol_cut = \
-            mass[cut], Rsph[cut], diss[cut], vol[cut]
+        mass, Rsph, diss, vol = \
+            make_slices([mass, Rsph, diss, vol], cut)
+        diss_pos = diss >= 0
+        diss_neg = diss < 0
         for j,R in enumerate(Rcheck):
             Mass_encl[i,j] = np.sum(mass[Rsph < R])
-            Diss_encl[i,j] = np.sum(diss[Rsph < R] * vol[Rsph < R])
-            Mass_encl_cut[i,j] = np.sum(mass_cut[Rsph_cut < R])
-            Diss_encl_cut[i,j] = np.sum(diss_cut[Rsph_cut < R] * vol_cut[Rsph_cut < R])
-
-    np.savetxt(f'{abspath}/data/{folder}/{check}Mass_encl.txt', Mass_encl)
-    np.savetxt(f'{abspath}/data/{folder}/{check}Diss_encl.txt', Diss_encl)
-    np.savetxt(f'{abspath}/data/{folder}/{check}Mass_encl_cut.txt', Mass_encl_cut)
+            Diss_pos_encl[i,j] = np.sum(diss_pos[np.logical_and(diss_pos, Rsph < R)] * vol[np.logical_and(diss_pos, Rsph < R)])
+            Diss_neg_encl[i,j] = np.sum(diss_neg[np.logical_and(diss_neg, Rsph < R)] * vol[np.logical_and(diss_neg, Rsph < R)])
+    
     np.savetxt(f'{abspath}/data/{folder}/{check}Mass_encl_time.txt', tfb)
-    np.savetxt(f'{abspath}/data/{folder}/{check}Diss_encl_cut.txt', Diss_encl_cut)
+    with open(f'{abspath}/data/{folder}/{check}Mass_encl.txt','w') as file:
+        file.write('# just cells with den > 1e-19. Different lines are for quantities enclosed in R0, Rt, a_mb, apo\n')
+        file.write(' '.join(map(str, Mass_encl)) + '\n')
+        file.close()
+    with open(f'{abspath}/data/{folder}/{check}Diss_pos_encl.txt','w') as file:
+        file.write('# just cells with den > 1e-19. Different lines are for quantities enclosed in R0, Rt, a_mb, apo\n')
+        file.write(' '.join(map(str, Diss_pos_encl)) + '\n')
+        file.close()
+    with open(f'{abspath}/data/{folder}/{check}Diss_neg_encl.txt','w') as file:
+        file.write('# just cells with den > 1e-19. Different lines are for quantities enclosed in R0, Rt, a_mb, apo\n')
+        file.write(' '.join(map(str, Diss_neg_encl)) + '\n')
+        file.close()
 
 else:
     checks = ['LowRes', '', 'HiRes']

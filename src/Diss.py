@@ -13,7 +13,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Utilities.prelude as prel
 import src.orbits as orb
-from Utilities.operators import make_tree, make_slices
+from Utilities.operators import make_tree
+from Utilities.sections import make_slices
 from Utilities.selectors_for_snap import select_snap
 import Utilities.sections as sec
 
