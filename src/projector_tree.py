@@ -73,7 +73,10 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
                                     
                 # Store
                 gridded_indexes[i, j, k] = idx
-                gridded[i, j, k] = to_grid_cut[idx]
+                gridded_value = to_grid_cut[idx]
+                if gridded_value <= 0:
+                    gridded_value = 1e-20
+                gridded[i, j, k] = gridded_value
 
     return gridded_indexes, gridded, xs, ys, zs
 
