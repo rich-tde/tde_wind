@@ -51,6 +51,7 @@ def extractor(filename):
     DpDx = []
     DpDy = []
     DpDz = []
+    DivV = []
     
     print('tot ranks: ', len(keys))
     # Iterate over ranks
@@ -86,8 +87,9 @@ def extractor(filename):
             DpDx_data = f[key]['DpDx']
             DpDy_data = f[key]['DpDy']
             DpDz_data = f[key]['DpDz']
+            DivV_data = f[key]['divV']
 
-            for i in range(len(x_data)):
+            for i in range(len(DivV_data)):
                 X.append(x_data[i])
                 Y.append(y_data[i])
                 Z.append(z_data[i])
@@ -107,10 +109,11 @@ def extractor(filename):
                 DpDx.append(DpDx_data[i])
                 DpDy.append(DpDy_data[i])
                 DpDz.append(DpDz_data[i])
+                DivV.append(DivV_data[i])
 
     # Close the file
     f.close()
-    return box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz
+    return box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz, DivV
 
 ##
 # MAIN
@@ -130,6 +133,7 @@ else:
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 snaps, _ = select_snap(m, check, mstar, Rstar, beta, n, time = True)
+snaps = [164, 237, 348]
 
 for snap in snaps:
     prepath = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -138,8 +142,8 @@ for snap in snaps:
     else: 
         prepath = f'{prepath}/{snap}'
     file = f'{prepath}/snap_{snap}.h5'
-    box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz = extractor(file)
-    #%%
+    box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz, DivV = extractor(file)
+    
     # Save to another file.
     np.save(f'{prepath}/box_{snap}', box) 
     np.save(f'{prepath}/CMx_{snap}', X)   
@@ -161,5 +165,6 @@ for snap in snaps:
     np.save(f'{prepath}/DpDx_{snap}', DpDx)
     np.save(f'{prepath}/DpDy_{snap}', DpDy)
     np.save(f'{prepath}/DpDz_{snap}', DpDz)
+    np.save(f'{prepath}/DivV_{snap}', DivV)
     print('Done')
                 
