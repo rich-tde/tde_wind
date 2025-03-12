@@ -7,7 +7,7 @@ alice, plot = isalice()
 if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
 else:
-    abspath = '/Users/paolamartire/shocks/'
+    abspath = '/Users/paolamartire/shocks'
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
@@ -76,21 +76,24 @@ if alice:
 else:
     data = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}cutDen.txt', comments = '#')
     tfb, Rdiss_pos, Ldisstot_pos, Rdiss_neg, Ldisstot_neg = data[0], data[1], data[2], data[3], data[4]
-
-    datanocut = np.loadtxt(f'{abspath}data/{folder}/Rdiss_{check}.txt')
+    datanocut = np.loadtxt(f'{abspath}/data/{folder}/convergence/Rdiss_{check}.txt')
     timenocut, Rnocut, Eradtotnocut, LDissnocut = datanocut[0], datanocut[1], datanocut[2], datanocut[3] 
-    datacutCoord = np.loadtxt(f'{abspath}data/{folder}/Rdiss_{check}cutCoord.txt')
+    datacutCoord = np.loadtxt(f'{abspath}/data/{folder}/convergence/Rdiss_{check}cutCoord.txt')
     timecutCoord, RcutCoord, EradtotcutCoord, LDisscutCoord = datacutCoord[0], datacutCoord[1], datacutCoord[2], datacutCoord[3] 
-    datacutDenCoord = np.loadtxt(f'{abspath}data/{folder}/Rdiss_{check}cutDenCoord.txt')
+    datacutDenCoord = np.loadtxt(f'{abspath}/data/{folder}/convergence/Rdiss_{check}cutDenCoord.txt')
     timecutDenCoord, RcutDenCoord, EradtotcutDenCoord, LDisscutDenCoord = datacutDenCoord[0], datacutDenCoord[1], datacutDenCoord[2], datacutCoord[3] 
     
     plt.figure()
-    plt.plot(tfb, Ldisstot_pos, label = 'L cut den', color = 'blue')
+    plt.plot(tfb, Ldisstot_pos+np.abs(Ldisstot_neg), label = 'L + cut den', color = 'blue')
+    plt.plot(tfb, np.abs(Ldisstot_neg), label = r'$|$L - cut den$|$', color = 'purple')
     plt.plot(timenocut, LDissnocut, label = 'L no cut', color = 'red')
     plt.plot(timecutCoord, LDisscutCoord, label = 'L cutCoord ', color = 'green')
     plt.plot(timecutDenCoord, LDisscutDenCoord, label = 'L cutDenCoord', color = 'orange', ls = '--')
     plt.yscale('log')
+    plt.xlabel(r't [t$_{\rm fb}$]')
+    plt.ylabel('Dissipation rate [energy/time]')
     plt.legend()
+    plt.savefig(f'{abspath}/Figs/{folder}/TestCuts_LDiss.png')
 
 ### AS IT WAS BEFORE
 

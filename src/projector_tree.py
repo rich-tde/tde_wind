@@ -1,7 +1,7 @@
 
 """ 
 Column density.
-If alice: project density on XY plane and save data.
+If alice: project density/dissipation on XY plane and save data.
 Else: plot the projection.
 """
 import sys

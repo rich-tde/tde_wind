@@ -1,5 +1,5 @@
-""" If alice: Find the mass enclosed in a sphere of radius R0, Rt, a_mb, apo for all the snapshots.
-If local: check energy dissipation."""
+""" If alice: Compute and save the mass enclosed and the total diss rate in a sphere of radius R0, Rt, a_mb, apo for all the snapshots.
+If local: plots"""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 
@@ -48,6 +48,15 @@ tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
 if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
+    with open(f'{abspath}/data/{folder}/{check}Mass_encl.txt','w') as file:
+        file.write('# just cells with den > 1e-19. Different lines are for quantities enclosed in R0, Rt, a_mb, apo\n')
+        file.close()
+    with open(f'{abspath}/data/{folder}/{check}Diss_pos_encl.txt','w') as file:
+        file.write('# just cells with den > 1e-19. Different lines are for quantities enclosed in R0, Rt, a_mb, apo\n')
+        file.close()
+    with open(f'{abspath}/data/{folder}/{check}Diss_neg_encl.txt','w') as file:
+        file.write('# just cells with den > 1e-19. Different lines are for quantities enclosed in R0, Rt, a_mb, apo\n')
+        file.close()
     Mass_encl = np.zeros((len(snaps), len(Rcheck)))
     Diss_pos_encl = np.zeros((len(snaps), len(Rcheck)))
     Diss_neg_encl = np.zeros((len(snaps), len(Rcheck)))
@@ -64,22 +73,13 @@ if alice:
         diss_neg = diss < 0
         for j,R in enumerate(Rcheck):
             Mass_encl[i,j] = np.sum(mass[Rsph < R])
-            Diss_pos_encl[i,j] = np.sum(diss_pos[np.logical_and(diss_pos, Rsph < R)] * vol[np.logical_and(diss_pos, Rsph < R)])
-            Diss_neg_encl[i,j] = np.sum(diss_neg[np.logical_and(diss_neg, Rsph < R)] * vol[np.logical_and(diss_neg, Rsph < R)])
+            Diss_pos_encl[i,j] = np.sum(diss[np.logical_and(diss_pos, Rsph < R)] * vol[np.logical_and(diss_pos, Rsph < R)])
+            Diss_neg_encl[i,j] = np.sum(diss[np.logical_and(diss_neg, Rsph < R)] * vol[np.logical_and(diss_neg, Rsph < R)])
     
     np.savetxt(f'{abspath}/data/{folder}/{check}Mass_encl_time.txt', tfb)
-    with open(f'{abspath}/data/{folder}/{check}Mass_encl.txt','w') as file:
-        file.write('# just cells with den > 1e-19. Different lines are for quantities enclosed in R0, Rt, a_mb, apo\n')
-        file.write(' '.join(map(str, Mass_encl)) + '\n')
-        file.close()
-    with open(f'{abspath}/data/{folder}/{check}Diss_pos_encl.txt','w') as file:
-        file.write('# just cells with den > 1e-19. Different lines are for quantities enclosed in R0, Rt, a_mb, apo\n')
-        file.write(' '.join(map(str, Diss_pos_encl)) + '\n')
-        file.close()
-    with open(f'{abspath}/data/{folder}/{check}Diss_neg_encl.txt','w') as file:
-        file.write('# just cells with den > 1e-19. Different lines are for quantities enclosed in R0, Rt, a_mb, apo\n')
-        file.write(' '.join(map(str, Diss_neg_encl)) + '\n')
-        file.close()
+    np.savetxt(f'{abspath}/data/{folder}/{check}Mass_encl.txt', Mass_encl)
+    np.savetxt(f'{abspath}/data/{folder}/{check}Diss_pos_encl.txt', Diss_pos_encl)
+    np.savetxt(f'{abspath}/data/{folder}/{check}Diss_neg_encl.txt', Diss_neg_encl)
 
 else:
     checks = ['LowRes', '', 'HiRes']
@@ -91,7 +91,7 @@ else:
     for i, check in enumerate(checks):
         tfb = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl_time.txt')
         tfb_cgs = tfb * tfallback_cgs
-        Mass_encl = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl.txt')
+        Mass_encl = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl.txt', comments="#")
         Mass_encl = np.transpose(Mass_encl)
         # Mass_encl_cut = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl_cut.txt')
         # Mass_encl_cut = np.transpose(Mass_encl_cut)
@@ -117,7 +117,7 @@ else:
         Mass_encl = np.transpose(Mass_encl)
         Mdot0 = calc_deriv(tfb_cgs, Mass_encl[0]) * prel.Msol_cgs 
         Lacc0 = 0.05 * Mdot0 * prel.c_cgs**2
-        Diss_encl = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Diss_encl.txt')
+        Diss_encl = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Diss_pos_encl.txt')
         Diss_encl = (np.transpose(Diss_encl)) * prel.en_converter/prel.tsol_cgs
         Diss_encl0 = Diss_encl[0]
         nan = np.isnan(Diss_encl0)
@@ -208,3 +208,5 @@ else:
         ax[i].set_xticks(new_ticks)
         labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
         ax[i].set_xticklabels(labels)
+
+# %%
