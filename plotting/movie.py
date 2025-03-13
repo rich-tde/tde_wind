@@ -38,9 +38,12 @@ def get_image_size(image_path):
 # first_image_path = f'{abspath}/Figs/EddingtonEnvelope/vel/vel_{start}.png'
 
 # For outflow
-path = f'{abspath}/Figs/EddingtonEnvelope/unbound/unbound_ph%d.png' 
-output_path = f'{abspath}/Figs/EddingtonEnvelope/unbound/movie_unbound.mp4'
-first_image_path = f'{abspath}/Figs/EddingtonEnvelope/unbound/unbound_ph{start}.png'
+# path = f'{abspath}/Figs/EddingtonEnvelope/unbound/unbound_ph%d.png' 
+# output_path = f'{abspath}/Figs/EddingtonEnvelope/unbound/movie_unbound.mp4'
+# first_image_path = f'{abspath}/Figs/EddingtonEnvelope/unbound/unbound_ph{start}.png'
+path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/E_%d.png' 
+output_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/collectionE.mp4'
+first_image_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/E_{start}.png'
 
 width, height = get_image_size(first_image_path)
 

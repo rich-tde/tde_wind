@@ -147,7 +147,7 @@ else:
         ax[i].set_xlim(0, np.max(tfbL))
 
 
-    ax[0].set_ylabel(r'L [erg/s]')#, fontsize = 25)
+    ax[0].set_ylabel(r'Luminosity [erg/s]')#, fontsize = 25)
     ax[0].legend(fontsize = 18)
     plt.savefig(f'{abspath}/Figs/paper/Maccr_encl.pdf', bbox_inches='tight')
 
@@ -183,9 +183,10 @@ else:
     fig, ax = plt.subplots(1,3, figsize = (22, 5))
     for i, check in enumerate(checks):
         tfb_encl = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl_time.txt')
-        dataDiss_tot = np.loadtxt(f'{abspath}/data/{folder}/Ldiss_{check}.txt')
-        tdiss_tot, Ldiss_tot = dataDiss_tot[0], dataDiss_tot[1]
-        Diss_encl = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Diss_encl.txt')
+        dataDiss_tot = np.loadtxt(f'{abspath}/data/{folder}{check}/Rdiss_{check}cutDen.txt')
+        tdiss_tot, Ldiss_tot = dataDiss_tot[0], dataDiss_tot[2]
+        Ldiss_tot *= prel.en_converter/prel.tsol_cgs
+        Diss_encl = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Diss_pos_encl.txt')
         Diss_encl = (np.transpose(Diss_encl)) * prel.en_converter/prel.tsol_cgs
         Diss_encl0 = Diss_encl[0]
         nan = np.isnan(Diss_encl0)
@@ -195,12 +196,13 @@ else:
         if check == 'LowRes':
             Diss_encl0 = np.delete(Diss_encl0, 127)
             tfb_encl = np.delete(tfb_encl, 127)
-        ax[i].plot(tfbDis, Diss_encl0, c = 'cornflowerblue', label = r'L$_{\rm diss} (R<R0)$')
-        ax[i].plot(tdiss_tot, Ldiss_tot, c = 'chocolate', label = r'L$_{\rm diss, tot}$')
+            Ldiss_tot = np.delete(Ldiss_tot, 127)
+            tdiss_tot = np.delete(tdiss_tot, 127)
+        ax[i].plot(tfb_encl, Diss_encl0, c = 'cornflowerblue', label = r'L$_{\rm diss} (R<R_0)$')
+        ax[i].plot(tdiss_tot, Ldiss_tot, c = 'firebrick', label = r'total L$_{\rm diss}$')
         ax[i].set_xlabel(r'$\rm t [t_{fb}]$')
         ax[i].set_yscale('log')
         ax[i].set_ylim(1e37, 1e44)
-        ax[i].text(1.2, 2e37, f'{checklab[i]} res', fontsize = 25)
         ax[i].grid()
         original_ticks = ax[i].get_xticks()
         midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
@@ -208,5 +210,10 @@ else:
         ax[i].set_xticks(new_ticks)
         labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
         ax[i].set_xticklabels(labels)
+        ax[i].set_xlim(0,np.max(tdiss_tot))
+        ax[i].text(0.1, 1e43, f'{checklab[i]} res', fontsize = 25)
+    ax[0].set_ylabel(r'Luminosity [erg/s]')
+    ax[0].legend(fontsize = 16, loc = 'lower right')
+    plt.savefig(f'{abspath}/Figs/paper/Ldiss_totVSencl.pdf', bbox_inches='tight')
 
 # %%

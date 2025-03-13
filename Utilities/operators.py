@@ -49,7 +49,7 @@ def to_spherical_components(vec_x, vec_y, vec_z, lat, long):
     """ Transform the components of a vector from cartesian to spherical coordinates.
     NB: you need to pass the latitude and longitude (in radians) because 
     vec_x, vec_y, vec_z are not necessarily postions, thus you can't use them to derive the angless.
-    lat (tehta) has to be in [0,pi] and long (phi) in [0, 2pi]."""
+    lat (theta) has to be in [0,pi] and long (phi) in [0, 2pi]."""
     vec_r = np.sin(lat) * (vec_x * np.cos(long) + vec_y * np.sin(long)) + vec_z * np.cos(lat)
     vec_theta = np.cos(lat) * (vec_x * np.cos(long) + vec_y * np.sin(long)) - vec_z * np.sin(lat)
     vec_phi = - vec_x * np.sin(long) + vec_y * np.cos(long)
@@ -83,14 +83,21 @@ def find_step(theta_arr, i):
         step = theta_arr[1] - theta_arr[0]
     return step
 
+# def sort_list(list_passive, leading_list):
+#     """ Sort list_passive based on the order of leading_list. List_passive is a list of arrays."""
+#     new_list = []
+#     for arr_passive in list_passive:
+#         zipped_pairs = zip(leading_list, arr_passive)
+#         z = [x for _, x in sorted(zipped_pairs)]
+#         new_list.append(np.array(z))
+#     return new_list
+
 def sort_list(list_passive, leading_list):
-    """ Sort list_passive based on the order of leading_list. List_passive is a list of arrays."""
-    new_list = []
-    for arr_passive in list_passive:
-        zipped_pairs = zip(leading_list, arr_passive)
-        z = [x for _, x in sorted(zipped_pairs)]
-        new_list.append(np.array(z))
-    return new_list
+    """Sort list_passive based on the order of leading_list. 
+       list_passive is a list of numpy arrays.
+    """
+    sort_indices = np.argsort(leading_list)  # Get indices that would sort leading_list
+    return [arr[sort_indices] for arr in list_passive]  # Apply those indices to each sub-array
 
 def find_ratio(L1, L2):
     """ Find the ratio between the two lists."""

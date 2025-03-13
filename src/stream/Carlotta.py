@@ -181,7 +181,7 @@ if __name__ == '__main__':
         make_slices([X, Y, Z, dim_cell, Den, Mass], midplane)
 
     #%% Check radial COM or density max
-    cutting = np.logical_and(np.abs(Z) < 5*Rt, np.abs(Y) < apo)
+    cutting =  np.logical_and(np.abs(Z) < 5*Rt, np.abs(Y) < apo)
     x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut = \
         make_slices([X, Y, Z, dim_cell, Den, Mass], cutting)
     # Find the radial maximum points to have a first guess of the stream (necessary for the threshold and the tg)

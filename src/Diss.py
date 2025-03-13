@@ -84,11 +84,11 @@ else:
     timecutDenCoord, RcutDenCoord, EradtotcutDenCoord, LDisscutDenCoord = datacutDenCoord[0], datacutDenCoord[1], datacutDenCoord[2], datacutCoord[3] 
     
     plt.figure()
-    plt.plot(tfb, Ldisstot_pos+np.abs(Ldisstot_neg), label = 'L + cut den', color = 'blue')
-    plt.plot(tfb, np.abs(Ldisstot_neg), label = r'$|$L - cut den$|$', color = 'purple')
-    plt.plot(timenocut, LDissnocut, label = 'L no cut', color = 'red')
-    plt.plot(timecutCoord, LDisscutCoord, label = 'L cutCoord ', color = 'green')
-    plt.plot(timecutDenCoord, LDisscutDenCoord, label = 'L cutDenCoord', color = 'orange', ls = '--')
+    plt.plot(tfb, Ldisstot_pos, label = 'L positive, cut den', color = 'blue')
+    plt.plot(tfb, np.abs(Ldisstot_neg), label = r'$|$L negative, cut den$|$', color = 'purple')
+    plt.plot(timenocut, LDissnocut, label = 'L tot, no cut', color = 'red')
+    plt.plot(timecutCoord, LDisscutCoord, label = 'L tot, cutCoord ', color = 'green')
+    plt.plot(timecutDenCoord, LDisscutDenCoord, label = 'L tot, cutDenCoord', color = 'orange', ls = '--')
     plt.yscale('log')
     plt.xlabel(r't [t$_{\rm fb}$]')
     plt.ylabel('Dissipation rate [energy/time]')
