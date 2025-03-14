@@ -56,15 +56,19 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         to_grid = np.load(f'{path}/Diss_{snap}.npy')
     if what_to_grid == 'Den':
         to_grid = Den
+    if what_to_grid == 'both':
+        to_grid = np.load(f'{path}/Diss_{snap}.npy') 
     # make cut in density
     cutden = Den > 1e-19
-    x_cut, y_cut, z_cut, to_grid_cut = \
-        make_slices([X, Y, Z, to_grid], cutden)
+    x_cut, y_cut, z_cut, to_grid_cut, Den_cut = \
+        make_slices([X, Y, Z, to_grid, Den], cutden)
     points_tree = np.array([x_cut, y_cut, z_cut]).T
     sim_tree = KDTree(points_tree)
 
     gridded_indexes =  np.zeros(( len(xs), len(ys), len(zs) ))
     gridded =  np.zeros(( len(xs), len(ys), len(zs) ))
+    if what_to_grid == 'both':
+        gridded_den =  np.zeros(( len(xs), len(ys), len(zs) ))
     for i in range(len(xs)):
         for j in range(len(ys)):
             for k in range(len(zs)):
@@ -74,11 +78,15 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
                 # Store
                 gridded_indexes[i, j, k] = idx
                 gridded_value = to_grid_cut[idx]
-                if gridded_value <= 0:
+                if gridded_value <= 0: #anyway it just happens for Diss
                     gridded_value = 1e-20
                 gridded[i, j, k] = gridded_value
-
-    return gridded_indexes, gridded, xs, ys, zs
+                if what_to_grid == 'both':
+                    gridded_den[i, j, k] = Den_cut[idx]
+    if what_to_grid == 'both':
+        return gridded_indexes, gridded_den, gridded, xs, ys, zs
+    else:
+        return gridded_indexes, gridded, xs, ys, zs
 
 @numba.njit
 def projector(gridded_den, x_radii, y_radii, z_radii):
@@ -96,7 +104,7 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
 if __name__ == '__main__':
     from src import orbits as orb
     save = True
-    what_to_grid = 'Diss' # Den or Diss
+    what_to_grid = 'both' # Den or Diss or both
     
     m = 4
     Mbh = 10**m
@@ -107,7 +115,7 @@ if __name__ == '__main__':
     Rt = Rstar * (Mbh/mstar)**(1/3)
     xcrt, ycrt, crt = make_cfr(Rt)
     apocenter = orb.apocentre(Rstar, mstar, Mbh, beta)
-    check = ''
+    check = 'HiRes'
     compton = 'Compton'
     if m== 6:
         folder = f'R{Rstar}M{mstar}BH1e+0{m}beta{beta}S60n{n}{compton}{check}'
@@ -118,11 +126,10 @@ if __name__ == '__main__':
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
         t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
 
-        if save:
-            with open(f'{prepath}/data/{folder}/projection/bigtime_proj.txt', 'a') as f:
-                f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
-                f.write(f'# t/t_fb (t_fb = {t_fall})\n' + ' '.join(map(str, tfb)) + '\n')
-                f.close()
+        with open(f'{prepath}/data/{folder}/projection/bigtime_proj.txt', 'a') as f:
+            f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
+            f.write(f'# t/t_fb (t_fb = {t_fall})\n' + ' '.join(map(str, tfb)) + '\n')
+            f.close()
         for snap in snaps:
             print(snap)
             if alice:
@@ -130,11 +137,17 @@ if __name__ == '__main__':
             else:
                 path = f'{prepath}/TDE/{folder}/{snap}'
             
-            _, grid_den, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100)
-            flat_den = projector(grid_den, x_radii, y_radii, z_radii)
-
-            if save:
-                np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}proj{snap}.npy', flat_den) 
+            if what_to_grid == 'both':
+                _, grid_den, grid_diss, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100)
+                flat_diss = projector(grid_diss, x_radii, y_radii, z_radii)
+                flat_den = projector(grid_den, x_radii, y_radii, z_radii)
+                np.save(f'{prepath}/data/{folder}/projection/Denproj{snap}.npy', flat_den)
+                np.save(f'{prepath}/data/{folder}/projection/Dissproj{snap}.npy', flat_diss)    
+            else:
+                _, grid_den, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100)
+                flat_den = projector(grid_den, x_radii, y_radii, z_radii)
+                np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}proj{snap}.npy', flat_den)
+                
         np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}xarray.npy', x_radii)
         np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}yarray.npy', y_radii)
 

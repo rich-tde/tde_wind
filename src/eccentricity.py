@@ -48,8 +48,10 @@ save = True
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 Rs = 2*G*Mbh / c**2
+Rg = Rs/2
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
+print(Rp/Rg)
 R0 = 0.6 * Rt
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
@@ -114,10 +116,10 @@ else:
         
         # Plot
         plt.figure(figsize=(10,8))
-        img = plt.pcolormesh(radii/apo, tfb, ecc/ecc_crit, vmin = 0.75, vmax = 1, cmap = 'viridis', rasterized = True)#cmocean.cm.balance)
+        img = plt.pcolormesh(radii/apo, tfb, ecc, vmin = 0.75, vmax = 0.95, cmap = 'jet', rasterized = True)#cmocean.cm.balance)
         cb = plt.colorbar(img)
         cb.ax.tick_params(labelsize=25)
-        cb.set_label(r'Eccentricity $[e_{\rm mb}]$', fontsize = 25, labelpad = 1)
+        cb.set_label(r'Eccentricity', fontsize = 25, labelpad = 1)
         plt.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed')
         plt.xscale('log')
         plt.xlabel(r'$R [R_{a}]$')#, fontsize = 25)
