@@ -1,4 +1,4 @@
-""" Investigate the outflow. Look at the velocity of the photosphere"""
+""" Investigate the outflow. Look at the velocity and density of the photosphere"""
 abspath = '/Users/paolamartire/shocks'
 import sys
 sys.path.append(f'{abspath}')
@@ -24,7 +24,7 @@ Rstar = .47
 n = 1.5 
 compton = 'Compton'
 check = ''
-kind_of_plot = 'talk' # 'moll' or 'cart' or 'talk'
+kind_of_plot = 'convergence' # 'moll' or 'cart' or 'talk'
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 
 Rt = Rstar * (Mbh/mstar)**(1/3)
@@ -51,7 +51,7 @@ snaps, tfb = time[0], time[1]
 snaps = np.array([int(snap) for snap in snaps])
 
 #%% Look at single snap
-singlesnap = 300
+singlesnap = 348
 tfb_single = tfb[np.argmin(np.abs(snaps - singlesnap))]
 xph_s, yph_s, zph_s, volph_s, denph_s, Tempph_s, Rad_denph_s, Vxph_s, Vyph_s, Vzph_s = \
     np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/_photo{singlesnap}.txt')
@@ -61,10 +61,10 @@ long_ph_s = np.arctan2(yph_s, xph_s)          # Azimuthal angle in radians
 lat_ph_s = np.arccos(zph_s/ rph_s)            # Elevation angle in radians
 v_rad_ph_s, v_theta_ph_s, v_phi_s= to_spherical_components(Vxph_s, Vyph_s, Vzph_s, lat_ph_s, long_ph_s)
 v_rad_ph_s, v_theta_ph_s, v_phi_s, v_mag_s, denph_s, rph_s = sort_list([v_rad_ph_s, v_theta_ph_s, v_phi_s, v_mag_s, denph_s, rph_s], rph_s)
-r_esc = prel.G*Mbh/(5e3)**2 # R_esc for v= 5000 km/s
-v_esc_Rp = np.sqrt(2*prel.G*Mbh/Rt)
-print(f'Escape radius [R_a] for the furthest point: {r_esc[-1]/apo}')
-print(f'Escape velocity at Rp [km/s]: {v_esc_Rp*prel.Rsol_cgs*1e-5/prel.tsol_cgs}')
+# r_esc = prel.G*Mbh/(5e3)**2 # R_esc for v= 5000 km/s
+# v_esc_Rp = np.sqrt(2*prel.G*Mbh/Rt)
+# print(f'Escape radius [R_a] for the furthest point: {r_esc/apo}')
+# print(f'Escape velocity at Rp [km/s]: {v_esc_Rp*prel.Rsol_cgs*1e-5/prel.tsol_cgs}')
 # convert the velocty to km/s and the density to g/(scm2)
 v_rad_ph_s_kms = v_rad_ph_s * prel.Rsol_cgs*1e-5/prel.tsol_cgs
 v_theta_ph_s_kms = v_theta_ph_s * prel.Rsol_cgs*1e-5/prel.tsol_cgs
@@ -131,16 +131,49 @@ if kind_of_plot == 'moll' or kind_of_plot == 'talk':
         latitude_moll = np.pi / 2 - phi 
         indecesorbital = np.concatenate(np.where(latitude_moll==0))
 
-if kind_of_plot == 'cart':
+if kind_of_plot == 'cart' or kind_of_plot == 'convergence':
     ratio_unbound_ph = np.zeros(len(snaps))
     mean_vel = np.zeros(len(snaps))
     percentile16 = np.zeros(len(snaps))
     percentile84 = np.zeros(len(snaps))
 
+if kind_of_plot == 'convergence':
+    timeH = np.loadtxt(f'{abspath}/data/{folder}HiRes/slices/z/z0_time.txt')
+    snapH, tfbH = timeH[0], timeH[1]
+    snapH = np.array([int(snap) for snap in snapH])
+
+    ratio_unbound_ph = np.zeros(len(snaps))
+    mean_vel = np.zeros(len(snaps))
+    percentile16 = np.zeros(len(snaps))
+    percentile84 = np.zeros(len(snaps))
+    ratio_unbound_phH = np.zeros(len(tfbH))
+    mean_velH = np.zeros(len(tfbH))
+    percentile16H = np.zeros(len(tfbH))
+    percentile84H = np.zeros(len(tfbH))
+
+    for j, snap_sH in enumerate(snapH):
+        xphH, yphH, zphH, volphH, denphH, TempphH, Rad_denphH, VxphH, VyphH, VzphH = \
+            np.loadtxt(f'{abspath}/data/{folder}HiRes/photo/HiRes_photo{snap_sH}.txt')
+        rphH = np.sqrt(xphH**2 + yphH**2 + zphH**2)
+        velH = np.sqrt(VxphH**2 + VyphH**2 + VzphH**2)
+
+        mean_velH_sn = np.mean(velH)
+        percentile16H_sn = np.percentile(velH, 16)
+        percentile84H_sn = np.percentile(velH, 84)
+        PE_ph_specH = -prel.G * Mbh / (rphH-Rs)
+        KE_ph_specH = 0.5 * velH**2
+        energyH = KE_ph_specH + PE_ph_specH
+        ratio_unbound_phH_sn = len(energyH[energyH>0]) / len(energyH)
+
+        ratio_unbound_phH[j] = ratio_unbound_phH_sn
+        mean_velH[j] = mean_velH_sn
+        percentile16H[j] = percentile16H_sn
+        percentile84H[j] = percentile84H_sn
+
 for i, snap in enumerate(snaps):
     print(snap)
     xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph = \
-        np.loadtxt(f'{abspath}/data/{folder}/photo/_photo{snap}.txt')
+        np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
     rph = np.sqrt(xph**2 + yph**2 + zph**2)
     vel = np.sqrt(Vxph**2 + Vyph**2 + Vzph**2)
 
@@ -192,11 +225,9 @@ for i, snap in enumerate(snaps):
             plt.close()
 
         if kind_of_plot == 'talk': # slides of boundness/unboundness with velocity arrows, time evolution of velocity
-            if int(snap)<319:
-                continue
             data_mid = np.load(f'{abspath}/data/{folder}/slices/z/z0slice_{snap}.npy')
-            x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid, VX_mid, VY_mid, VZ_mid, Diss_den_mid =\
-                data_mid[0], data_mid[1], data_mid[2], data_mid[3], data_mid[4], data_mid[5], data_mid[6], data_mid[7], data_mid[8], data_mid[9], data_mid[10], data_mid[11], data_mid[12]
+            x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid, VX_mid, VY_mid, VZ_mid =\
+                data_mid[0], data_mid[1], data_mid[2], data_mid[3], data_mid[4], data_mid[5], data_mid[6], data_mid[7], data_mid[8], data_mid[9], data_mid[10], data_mid[11]
             ie_spec_mid = ie_den_mid / den_mid
             orb_en_spec_mid = orb_en_den_mid / den_mid
             mass_mid = den_mid * dim_mid**3
@@ -271,10 +302,10 @@ for i, snap in enumerate(snaps):
             ax3.set_ylim(0.1, 2.3)
             # ax3.text(1.25, 2.1, f't = {np.round(tfb[i], 2)}' + r' t$_{\rm fb}$', fontsize = 25)
             ax3.grid()          
-            plt.savefig(f'/Users/paolamartire/shocks/Figs/EddingtonEnvelope/ratioE/E_{snap}.png', bbox_inches='tight')
+            plt.savefig(f'/Users/paolamartire/shocks/Figs/EddingtonEnvelope/ratioE{check}/E_{snap}.png', bbox_inches='tight')
             plt.close()
 
-    if kind_of_plot == 'cart':
+    if kind_of_plot == 'cart' or kind_of_plot == 'convergence':
         ratio_unbound_ph[i] = ratio_unbound_ph_sn
         mean_vel[i] = mean_vel_sn
         percentile16[i] = percentile16_sn
@@ -283,7 +314,7 @@ for i, snap in enumerate(snaps):
 #%%
 if kind_of_plot == 'cart': # only evolution of velocity/boundness
     plt.figure(figsize=(10,6))
-    img = plt.scatter(tfb, mean_vel * conversion_sol_kms * 1e-4, c = ratio_unbound_ph, s = 7)
+    img = plt.scatter(tfb, mean_vel * conversion_sol_kms * 1e-4, c = ratio_unbound_ph, s = 7, vmin = 0, vmax = 0.8)
     cbar = plt.colorbar(img)
     cbar.set_label('unbound/tot')
     plt.plot(tfb, percentile16 * conversion_sol_kms * 1e-4, c = 'chocolate', alpha = 0.1, linestyle = '--')
@@ -292,13 +323,40 @@ if kind_of_plot == 'cart': # only evolution of velocity/boundness
     plt.grid()
     plt.xlabel(r'$t_{\rm fb}$')
     plt.ylabel(r'Mean velocity [$10^4$ km/s] ')
+    plt.text(0.08, 2.01, f'{check}', fontsize = 25)
     plt.ylim(-0.01, 2.3)
+    plt.xlim(-0.09, 1.8)
     plt.title(f'Photospheric cells', fontsize = 15)
     plt.tight_layout()
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/EddingtonEnvelope/unbound/all.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/EddingtonEnvelope/unbound/all{check}.png')
     plt.show()
 
-# Plot for the talk: last snap
+if kind_of_plot == 'convergence': # only evolution of velocity/boundness
+    plt.figure(figsize=(10,6))
+    img = plt.scatter(tfb, mean_vel * conversion_sol_kms * 1e-4, c = ratio_unbound_ph, s = 7, vmin = 0, vmax = 0.8)
+    plt.text(1.5, 0.6, f'Fid', fontsize = 25)
+    plt.scatter(tfbH, mean_velH * conversion_sol_kms * 1e-4, c = ratio_unbound_phH, s = 7, vmin = 0, vmax = 0.8)
+    plt.text(1, 0.45, f'High', fontsize = 25)
+    cbar = plt.colorbar(img)
+    cbar.set_label('unbound/tot')
+    plt.plot(tfb, percentile16 * conversion_sol_kms * 1e-4, c = 'yellowgreen', alpha = 0.1, linestyle = '--')
+    plt.plot(tfb, percentile84 * conversion_sol_kms * 1e-4, c = 'yellowgreen', alpha = 0.1, linestyle = '--')
+    plt.fill_between(tfb, percentile16 * conversion_sol_kms * 1e-4, percentile84 * conversion_sol_kms * 1e-4, color = 'yellowgreen', alpha = 0.1)
+    plt.plot(tfbH, percentile16H * conversion_sol_kms * 1e-4, c = 'darkviolet', alpha = 0.1, linestyle = '--')
+    plt.plot(tfbH, percentile84H * conversion_sol_kms * 1e-4, c = 'darkviolet', alpha = 0.1, linestyle = '--')
+    plt.fill_between(tfbH, percentile16H * conversion_sol_kms * 1e-4, percentile84H * conversion_sol_kms * 1e-4, color = 'darkviolet', alpha = 0.1)
+    plt.grid()
+    plt.xlabel(r'$t_{\rm fb}$')
+    plt.ylabel(r'Mean velocity [$10^4$ km/s] ')
+    plt.text(0.08, 2.01, f'{check}', fontsize = 25)
+    plt.ylim(-0.01, 2)
+    plt.xlim(-0.09, 1.8)
+    plt.title(f'Photospheric cells', fontsize = 20)
+    plt.tight_layout()
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/EddingtonEnvelope/unbound/all_conv.png')
+    plt.show()
+
+#%% Plot for the talk: last snap
     fig, ax = plt.subplots(1, 2, figsize=(15, 5))
     ax[0].axis('off') 
     ax1 = fig.add_subplot(121, projection='mollweide')
@@ -325,7 +383,7 @@ if kind_of_plot == 'cart': # only evolution of velocity/boundness
         ax.grid()
     plt.suptitle(f'Photospheric cells, t = {np.round(tfb[i], 2)}', fontsize = 15)
     plt.tight_layout()
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/talk/unbound_ph{snap}.png')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/talk/unbound_ph{snap}{check}.png')
     plt.show()
     # plt.close()
 # %%

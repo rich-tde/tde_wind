@@ -232,12 +232,13 @@ def single_branch(radii, R, tocast, weights, keep_track = False):
             width = radii[-1] - radii[-2]
         else:
             width = (radii[i+1] - radii[i-1])/2
-        width *= 2 # make it slightly bigger to smooth things
+        width *= 1.5 # make it slightly bigger to smooth things
         # indices = tree.query_ball_point(radius, width) #if KDTree from scipy
         indices = tree.query_radius(radius, width) #if KDTree from sklearn
         indices = np.concatenate(indices)
         if len(indices) < 2 :
-            gridded_tocast[i] = 0
+            print(f'No points for R {radii[i]}')
+            # gridded_tocast[i] = 0
             if keep_track:
                 cells_used.append([])
         else:    

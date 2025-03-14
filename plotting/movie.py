@@ -28,9 +28,9 @@ def get_image_size(image_path):
     return width, height
 
 # For Denproj
-# path = f'{abspath}/Figs/talk/denproj_diss%d.png' #{folder}/projection/denproj%d.png'
-# output_path = f'{abspath}/Figs/talk/denproj_diss{check}.mp4' #{folder}/movie_proj{check}.mp4'
-# first_image_path = f'{abspath}/Figs/talk/denproj_diss100.png' #{folder}/projection/denproj{start}.png'
+path = f'{abspath}/Figs/talk/denproj_diss%d.png' #{folder}/projection/denproj%d.png'
+output_path = f'{abspath}/Figs/talk/denproj_diss{check}.mp4' #{folder}/movie_proj{check}.mp4'
+first_image_path = f'{abspath}/Figs/talk/denproj_diss{start}.png' #{folder}/projection/denproj{start}.png'
 
 # For Slices 
 # path = f'{abspath}/Figs/EddingtonEnvelope/vel/vel_%d.png' 
@@ -41,9 +41,10 @@ def get_image_size(image_path):
 # path = f'{abspath}/Figs/EddingtonEnvelope/unbound/unbound_ph%d.png' 
 # output_path = f'{abspath}/Figs/EddingtonEnvelope/unbound/movie_unbound.mp4'
 # first_image_path = f'{abspath}/Figs/EddingtonEnvelope/unbound/unbound_ph{start}.png'
-path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/E_%d.png' 
-output_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/collectionE.mp4'
-first_image_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/E_{start}.png'
+###
+# path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/E_%d.png' 
+# output_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/collectionE.mp4'
+# first_image_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/E_{start}.png'
 
 width, height = get_image_size(first_image_path)
 

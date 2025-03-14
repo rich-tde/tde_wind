@@ -36,48 +36,6 @@ from Utilities.operators import to_spherical_components, sort_list
 ##
 #
 ##
-def generate_elliptical_observers(num_observers, amb=1, emb=0.5):
-    """
-    Generates `num_observers` points evenly spaced along the arc length of an ellipse.
-
-    Parameters:
-    - num_observers: Number of observer points to generate.
-    - amb: Semi-major axis length (a).
-    - emb: Eccentricity of the ellipse (e).
-
-    Returns:
-    - observers_xyz: (num_observers, 3) array of observer positions in 3D space (x, y, z).
-    """
-    a = amb  # Semi-major axis
-    b = a * np.sqrt(1 - emb**2)  # Compute semi-minor axis
-
-    # Arc length integrand
-    def arc_length_integrand(theta):
-        return np.sqrt((a * np.sin(theta))**2 + (b * np.cos(theta))**2)
-
-    # Compute total perimeter (arc length from 0 to 2π)
-    total_arc_length, _ = spi.quad(arc_length_integrand, 0, 2 * np.pi)
-
-    # Generate evenly spaced arc-length values
-    s_values = np.linspace(0, total_arc_length, num_observers, endpoint=False)
-
-    # Function to find theta for a given arc length
-    def arc_length_to_theta(target_s):
-        return spo.root_scalar(lambda theta: spi.quad(arc_length_integrand, 0, theta)[0] - target_s, 
-                               bracket=[0, 2 * np.pi]).root
-
-    # Compute theta values for evenly spaced arc lengths
-    theta_values = np.array([arc_length_to_theta(s) for s in s_values])
-
-    # Convert to Cartesian coordinates
-    x_values = a * np.cos(theta_values)
-    y_values = b * np.sin(theta_values)
-    z_values = np.zeros_like(x_values)  # Observers in the xy-plane
-
-    # Stack into (N, 3) format
-    observers_xyz = np.vstack((x_values, y_values, z_values)).T
-    return observers_xyz
-
 def CouBegel(r, theta, q, gamma=4/3):
     # I'm missing the normalization
     alpha = (1-q*(gamma-1))/(gamma-1)
@@ -100,14 +58,14 @@ theta_test = np.linspace(0, np.pi, 50) #latitude
 d_test = CouBegel(1, theta_test, 0.5)
 d_test2 = CouBegel(1, theta_test, 1)
 d_test3 = CouBegel(1, theta_test, 1.5)
-plt.figure()
-plt.plot(theta_test, d_test, label = r'R=1, q = 0.5')
-plt.plot(theta_test, d_test2, label = r'R=1, q = 1')
-plt.plot(theta_test, d_test3, label = r'R=1, q = 1.5')
-plt.ylabel(r'$\rho$')
-plt.xlabel(r'$\theta$')
-plt.legend()
-plt.title(r'$\rho \propto R^{-q} \sin^{2\alpha}(\theta)$, $\alpha = \frac{1-q(\gamma-1)}{\gamma-1}, \gamma = 4/3$')
+# plt.figure()
+# plt.plot(theta_test, d_test, label = r'R=1, q = 0.5')
+# plt.plot(theta_test, d_test2, label = r'R=1, q = 1')
+# plt.plot(theta_test, d_test3, label = r'R=1, q = 1.5')
+# plt.ylabel(r'$\rho$')
+# plt.xlabel(r'$\theta$')
+# plt.legend()
+# plt.title(r'$\rho \propto R^{-q} \sin^{2\alpha}(\theta)$, $\alpha = \frac{1-q(\gamma-1)}{\gamma-1}, \gamma = 4/3$')
 #%%
 ##
 # MAIN
@@ -187,19 +145,14 @@ del Rad
 R = np.sqrt(X**2 + Y**2 + Z**2)    
 
 #%% Observers -----------------------------------------------------------------
-if which_obs == 'elliptical':
-    observers_xyz = generate_elliptical_observers(num_observers = 50, amb = a_mb, emb = e_mb) # shape: (200, 3)
-    observers_xyz = np.array(observers_xyz)
-    x_obs, y_obs, z_obs = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
-if which_obs == 'healpix':
-    observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
-    obs_indices = np.arange(len(observers_xyz[0]))
-    # select only the observers in the orbital plane (will give you a N bool array--> apply to columns)
-    mid = np.abs(observers_xyz[2]) == 0 # you can do that beacuse healpix gives you the observers also in the orbital plane (Z==0)
-    observers_xyz_mid, indices_mid = observers_xyz[:,mid], obs_indices[mid]
-    # observers_xyz = observers_xyz[:,np.arange(0,192,5)]
-    x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
-    observers_xyz = np.transpose(observers_xyz) #shape: Nx3
+observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
+obs_indices = np.arange(len(observers_xyz[0]))
+# select only the observers in the orbital plane (will give you a N bool array--> apply to columns)
+mid = np.abs(observers_xyz[2]) == 0 # you can do that beacuse healpix gives you the observers also in the orbital plane (Z==0)
+observers_xyz_mid, indices_mid = observers_xyz[:,mid], obs_indices[mid]
+# observers_xyz = observers_xyz[:,np.arange(0,192,5)]
+x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
+observers_xyz = np.transpose(observers_xyz) #shape: Nx3
 
 r_obs = np.sqrt(x_obs**2 + y_obs**2 + z_obs**2)
 long_obs = np.arctan2(y_obs, x_obs)          # Azimuthal angle in radians
@@ -242,29 +195,6 @@ long_ph = np.arctan2(yph, xph)          # Azimuthal angle in radians
 lat_ph = np.arccos(zph/ rph)            # Elevation angle in radians
 v_rad_ph, v_theta_ph, v_phi_mid = to_spherical_components(Vxph, Vyph, Vzph, lat_ph, long_ph)
 v_rad_ph_sorted, rph_sorted = sort_list([v_rad_ph, rph], rph)
-plt.figure()
-plt.plot(rph_sorted/apo, v_rad_ph_sorted*prel.Rsol_cgs*1e-5*1e-4/prel.tsol_cgs, c = 'k')
-plt.xlabel(r'R [R$_a$]')
-plt.ylabel(r'$v_{\rm r_{\rm ph}} [10^4 $km/s]')
-# plt.yscale('log')
-plt.title(f'Snap: {snap}')
-plt.grid()
-
-#%%
-longitude_moll = long_obs              
-latitude_moll = np.pi / 2 - lat_obs
-indecesorbital = np.concatenate(np.where(latitude_moll==0))
-long_orb, lat_orb = longitude_moll[indecesorbital], latitude_moll[indecesorbital]
-fig, ax = plt.subplots(figsize=(10, 5), subplot_kw={'projection': 'mollweide'})
-img = ax.scatter(longitude_moll, latitude_moll, s=20, c=np.arange(len(longitude_moll)), cmap = 'gray')
-plt.colorbar(img, ax=ax, label='Observer Number')
-for idx in indices_chosen:
-    ax.scatter(longitude_moll[idx], latitude_moll[idx], s=80)
-ax.grid(True)
-ax.set_xticks(np.radians(np.linspace(-180, 180, 9)))
-ax.set_xticklabels(['-180°', '-135°', '-90°', '-45°', '0°', '45°', '90°', '135°', '180°'], fontsize=10)
-plt.tight_layout()
-plt.show()
 
 #%%
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 7))

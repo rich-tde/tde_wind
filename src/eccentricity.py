@@ -114,7 +114,7 @@ else:
         
         # Plot
         plt.figure(figsize=(10,8))
-        img = plt.pcolormesh(radii/apo, tfb, ecc/ecc_crit, vmin = 0.58, vmax = 1, cmap = 'viridis', rasterized = True)#cmocean.cm.balance)
+        img = plt.pcolormesh(radii/apo, tfb, ecc/ecc_crit, vmin = 0.75, vmax = 1, cmap = 'viridis', rasterized = True)#cmocean.cm.balance)
         cb = plt.colorbar(img)
         cb.ax.tick_params(labelsize=25)
         cb.set_label(r'Eccentricity $[e_{\rm mb}]$', fontsize = 25, labelpad = 1)
@@ -166,20 +166,24 @@ else:
         # relative difference L and middle
         rel_diffL = []
         medianL = np.zeros(len(eccL))
+        medianLoverF = np.zeros(len(eccL))
         for i in range(len(eccL)):
             time = tfbL[i]
             idx = np.argmin(np.abs(tfb - time))
-            rel_diff_time_i = find_ratio(eccL[i], ecc[idx]) # 2*np.abs(eccL[i] - ecc[idx]) / (eccL[i]+ecc[idx])
+            rel_diff_time_i = find_ratio(eccL[i], ecc[idx]) 
             rel_diffL.append(rel_diff_time_i)
             medianL[i] = np.median(rel_diff_time_i)
+            medianLoverF[i] = np.median(eccL[i]/ecc[idx])
         rel_diffH = []
         medianH = np.zeros(len(eccH))
+        medianFoverH = np.zeros(len(eccH))
         for i in range(len(eccH)):
             time = tfbH[i]
             idx = np.argmin(np.abs(tfb - time))
-            rel_diff_time_i = find_ratio(eccH[i], ecc[idx]) #2*np.abs(eccH[i] - ecc[idx]) / (eccH[i]+ecc[idx])
+            rel_diff_time_i =  find_ratio(ecc[idx], eccH[i]) #
             rel_diffH.append(rel_diff_time_i)
             medianH[i] = np.median(rel_diff_time_i)
+            medianFoverH[i] = np.median(ecc[idx]/eccH[i])
 
         #%% Plot
         fig = plt.figure(figsize=(25, 9))
@@ -188,38 +192,40 @@ else:
         ax2 = fig.add_subplot(gs[0, 1])  # Second plot
         ax3 = fig.add_subplot(gs[0, 2])  # Third plot
 
-        img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'inferno', vmin = 0.9, vmax = 1.1, rasterized = True)
+        img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'inferno', vmin = 0.95, vmax = 1.05, rasterized = True)
         ax1.set_xscale('log')
-        ax1.text(0.29, .88*np.max(tfbL), 'Fid-Low', fontsize = 28, color = 'k')
+        ax1.text(0.29, .88*np.max(tfbL), 'Low-Fid', fontsize = 28, color = 'k')
+        ax1.set_xlabel(r'$R [R_{\rm a}]$', fontsize = 25)
         ax1.set_ylabel(r'$t [t_{fb}]$')#, fontsize = 25)
 
-        img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'inferno', vmin = 0.9, vmax = 1.1, rasterized = True)
+        img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'inferno', vmin = 0.95, vmax = 1.05, rasterized = True)
         ax2.set_xscale('log')
         ax2.text(0.28, 0.88*np.max(tfbH), 'Fid-High', fontsize = 28, color = 'k')
+        ax2.set_xlabel(r'$R [R_{\rm a}]$', fontsize = 25)
 
         # Create a colorbar that spans the first two subplots
         cbar_ax = fig.add_subplot(gs[1, 0:2])  # Colorbar subplot below the first two
         cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
-        cb.set_label(r'$\Delta_{\rm rel}$ eccentricity', fontsize = 25)
+        cb.set_label(r'ratio eccentricity', fontsize = 25)
         cb.ax.tick_params(labelsize=25)
         # label with 3 decimals in the colorbar
-        cb.set_ticks([0.9, 0.95, 1, 1.05, 1.1])
-        cb.set_ticklabels(['0.9', '0.95', '1', '1.05', '1.1']) 
+        # cb.set_ticks([0.98, 1, 1.02])
+        # cb.set_ticklabels(['0.98', '1', '1.02']) 
         cb.ax.tick_params(width=1, length=11, color = 'k',)
 
         ax3.plot(tfbL, medianL, c = 'yellowgreen', linewidth = 4)
         ax3.plot(tfbL, medianL, c = 'darkorange', linewidth = 4, linestyle = (0, (5, 10)), label = 'Low and Middle')
-        ax3.text(0.4, 1.03, 'Fid-Low', fontsize = 27, color = 'k')
+        ax3.text(0.4, 1.03, 'Fid vs Low', fontsize = 27, color = 'k')
         ax3.plot(tfbH, medianH, c = 'yellowgreen', linewidth = 4)
         ax3.plot(tfbH, medianH, c = 'darkviolet', linewidth = 4, linestyle = (0, (5, 10)), label = 'Middle and High')
-        ax3.text(0.4, 1.002, 'Fid-High', fontsize = 27, color = 'k')
-        ax3.set_ylabel(r'$\Delta_{\rm rel}$ eccentricity')#, fontsize = 25)
+        ax3.text(0.4, 1, 'Fid vs High', fontsize = 27, color = 'k')
+        ax3.set_ylabel(r'median ratio eccentricity')#, fontsize = 25)
         ax3.set_xlim(0.2, tfbL[-1])
-        ax3.set_ylim(0.99, 1.05)
+        ax3.set_ylim(0.98, 1.05)
         ax3.grid()
+        ax3.set_xlabel(r'$t [t_{\rm fb}]$', fontsize = 25)
 
         for ax in [ax1, ax2, ax3]:
-            ax.set_xlabel(r'$\rm t [t_{fb}]$', fontsize = 25)
             # ax.tick_params(labelsize=26)
             if ax!=ax3:
                 ax.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed')
@@ -228,5 +234,23 @@ else:
                 ax.tick_params(axis='x', which='minor', width=1.2, length=7, color = 'k',)
         
         plt.savefig(f'{abspath}/Figs/paper/ecc_diff.pdf', bbox_inches='tight')
+
+        # Plot for Sesto
+        plt.figure(figsize=(10,8))
+        plt.plot(tfbL, medianLoverF, c = 'yellowgreen', linewidth = 4)
+        plt.plot(tfbL, medianLoverF, c = 'darkorange', linewidth = 4, linestyle = (0, (5, 10)), label = 'Low and Middle')
+        plt.text(0.4, 0.97, 'Low/Fid', fontsize = 27, color = 'k')
+        plt.plot(tfbH, medianFoverH, c = 'yellowgreen', linewidth = 4)
+        plt.plot(tfbH, medianFoverH, c = 'darkviolet', linewidth = 4, linestyle = (0, (5, 10)), label = 'Middle and High')
+        plt.text(0.4, 1, 'Fid/High', fontsize = 27, color = 'k')
+        plt.ylabel(r'median ratio eccentricity')
+        plt.xlim(0.2, tfbL[-1])
+        plt.ylim(0.95, 1.02)
+        plt.grid()
+        plt.xlabel(r'$t [t_{fb}]$', fontsize = 25)
+        plt.tick_params(axis='x', which='major', width=1.4, length=11, color = 'k',)
+        plt.tick_params(axis='y', which='major', width=1.4, length=9, color = 'k',)
+
+
 
 # %%
