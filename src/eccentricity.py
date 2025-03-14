@@ -93,12 +93,12 @@ if alice:
         col_ecc2.append(ecc_cast)
 
     if save:
-        np.save(f'{abspath}/data/{folder}/Ecc2_{check}.npy', col_ecc2)
+        np.save(f'{abspath}/data/{folder}/newEcc2_{check}.npy', col_ecc2)
         with open(f'{abspath}/data/{folder}/Ecc_{check}_days.txt', 'w') as file:
             file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
             file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
             file.close()
-        np.save(f'{abspath}/data/{folder}/radiiEcc_{check}.npy', radii)
+        np.save(f'{abspath}/data/{folder}/newradiiEcc_{check}.npy', radii)
 
 else:
     error = False
