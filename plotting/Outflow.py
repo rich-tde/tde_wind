@@ -24,7 +24,8 @@ Rstar = .47
 n = 1.5 
 compton = 'Compton'
 check = ''
-kind_of_plot = 'convergence' # 'moll' or 'cart' or 'talk'
+kind_of_plot = 'talk' # 'moll' or 'cart' or 'talk'
+how_many = 2
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 
 Rt = Rstar * (Mbh/mstar)**(1/3)
@@ -256,8 +257,26 @@ for i, snap in enumerate(snaps):
             xph_mid, yph_mid, zph_mid, rph_mid, energy_mid = xph[indecesorbital], yph[indecesorbital], zph[indecesorbital], rph[indecesorbital], energy[indecesorbital]
             ratio_bound_ph_mid = len(energy_mid[energy_mid<0]) / len(energy_mid[energy_mid>0])
 
-            fig = plt.figure(figsize=(30, 10))
-            gs = gridspec.GridSpec(2, 3, width_ratios=[1,1,1], height_ratios=[1, 0.05], hspace=0.25, wspace = 0.2)
+            if how_many == 3:
+                fig = plt.figure(figsize=(30, 10))
+                gs = gridspec.GridSpec(2, 3, width_ratios=[1,1,1], height_ratios=[1, 0.05], hspace=0.25, wspace = 0.2)
+                ax3 = fig.add_subplot(gs[0, 2])
+                img = ax3.scatter(tfb[:len(mean_vel)], np.array(mean_vel) * conversion_sol_kms * 1e-4, c = ratio_unbound_ph, s = 25, vmin = 0, vmax = 0.8)
+                cbar = plt.colorbar(img)
+                cbar.set_label('Unbound/tot')
+                ax3.plot(tfb[:len(mean_vel)], np.array(percentile16) * conversion_sol_kms * 1e-4, c = 'chocolate', alpha = 0.1, linestyle = '--')
+                ax3.plot(tfb[:len(mean_vel)], np.array(percentile84) * conversion_sol_kms * 1e-4, c = 'chocolate', alpha = 0.1, linestyle = '--')
+                ax3.fill_between(tfb[:len(mean_vel)], np.array(percentile16) * conversion_sol_kms * 1e-4, np.array(percentile84) * conversion_sol_kms * 1e-4, color = 'chocolate', alpha = 0.1)
+                ax3.set_xlabel(r'$t_{\rm fb}$')
+                ax3.set_ylabel(r'Mean velocity [$10^4$ km/s] ', fontsize = 25)
+                ax3.set_xlim(0, np.max(tfb))
+                ax3.set_ylim(0.1, 2.3)
+                # ax3.text(1.25, 2.1, f't = {np.round(tfb[i], 2)}' + r' t$_{\rm fb}$', fontsize = 25)
+                ax3.grid()          
+            if how_many == 2:
+                 fig = plt.figure(figsize=(20, 10))
+                 gs = gridspec.GridSpec(2, 2, width_ratios=[1,1], height_ratios=[1, 0.05], hspace=0.25, wspace = 0.2)
+        
             ax1 = fig.add_subplot(gs[0, 0])
             img = ax1.scatter(x_mid/apo, y_mid/apo, c = np.abs(ratioE_mid), s = 20, cmap = 'coolwarm', norm = colors.LogNorm(vmin = 9.5e-2, vmax = 10))
             ax1.scatter(xph_mid/apo, yph_mid/apo, facecolor = 'none', s = 60, edgecolors = 'k')
@@ -289,20 +308,7 @@ for i, snap in enumerate(snaps):
             for ax in [ax1, ax2]:
                 ax.scatter(0,0, c= 'k', marker = 'x', s=80)
 
-            ax3 = fig.add_subplot(gs[0, 2])
-            img = ax3.scatter(tfb[:len(mean_vel)], np.array(mean_vel) * conversion_sol_kms * 1e-4, c = ratio_unbound_ph, s = 25, vmin = 0, vmax = 0.8)
-            cbar = plt.colorbar(img)
-            cbar.set_label('Unbound/tot')
-            ax3.plot(tfb[:len(mean_vel)], np.array(percentile16) * conversion_sol_kms * 1e-4, c = 'chocolate', alpha = 0.1, linestyle = '--')
-            ax3.plot(tfb[:len(mean_vel)], np.array(percentile84) * conversion_sol_kms * 1e-4, c = 'chocolate', alpha = 0.1, linestyle = '--')
-            ax3.fill_between(tfb[:len(mean_vel)], np.array(percentile16) * conversion_sol_kms * 1e-4, np.array(percentile84) * conversion_sol_kms * 1e-4, color = 'chocolate', alpha = 0.1)
-            ax3.set_xlabel(r'$t_{\rm fb}$')
-            ax3.set_ylabel(r'Mean velocity [$10^4$ km/s] ', fontsize = 25)
-            ax3.set_xlim(0, np.max(tfb))
-            ax3.set_ylim(0.1, 2.3)
-            # ax3.text(1.25, 2.1, f't = {np.round(tfb[i], 2)}' + r' t$_{\rm fb}$', fontsize = 25)
-            ax3.grid()          
-            plt.savefig(f'/Users/paolamartire/shocks/Figs/EddingtonEnvelope/ratioE{check}/E_{snap}.png', bbox_inches='tight')
+            plt.savefig(f'/Users/paolamartire/shocks/Figs/EddingtonEnvelope/ratioE{check}/{how_many}/E_{snap}.png', bbox_inches='tight')
             plt.close()
 
     if kind_of_plot == 'cart' or kind_of_plot == 'convergence':

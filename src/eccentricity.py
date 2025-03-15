@@ -44,6 +44,7 @@ n = 1.5
 compton = 'Compton'
 check = '' # '' or 'LowRes' or 'HiRes' 
 save = True
+which_cut = 'high' #if 'high' cut density at 1e-12, if '' cut density at 1e-19
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
@@ -88,19 +89,22 @@ if alice:
         ecc2 = eccentricity_squared(R_vec, vel_vec, spec_orb_en, Mbh, G)
 
         # throw fluff and unbound material
-        cut = np.logical_and(data.Den > 1e-19, orb_en < 0)
+        if which_cut == 'high':
+            cut = np.logical_and(data.Den > 1e-12, orb_en < 0)
+        else:
+            cut = np.logical_and(data.Den > 1e-19, orb_en < 0)
         Rsph_cut, mass_cut, ecc_cut = sec.make_slices([Rsph, data.Mass, ecc2], cut)
         ecc_cast = single_branch(radii, Rsph_cut, ecc_cut, weights = mass_cut)
 
         col_ecc2.append(ecc_cast)
 
     if save:
-        np.save(f'{abspath}/data/{folder}/newEcc2_{check}.npy', col_ecc2)
-        with open(f'{abspath}/data/{folder}/Ecc_{check}_days.txt', 'w') as file:
+        np.save(f'{abspath}/data/{folder}/Ecc2_{which_cut}_{check}.npy', col_ecc2)
+        with open(f'{abspath}/data/{folder}/Ecc_{which_cut}_{check}_days.txt', 'w') as file:
             file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
             file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
             file.close()
-        np.save(f'{abspath}/data/{folder}/newradiiEcc_{check}.npy', radii)
+        np.save(f'{abspath}/data/{folder}/radiiEcc_{which_cut}_{check}.npy', radii)
 
 else:
     error = False
@@ -108,38 +112,29 @@ else:
 
     if not error:
         path = f'{abspath}/data/{folder}'
-        ecc2 = np.load(f'{path}/Ecc2_{check}.npy') 
+        ecc2 = np.load(f'{path}/Ecc2_{which_cut}_{check}.npy') 
         ecc = np.sqrt(ecc2)
-        tfb_data = np.loadtxt(f'{path}/Ecc_{check}_days.txt')
+        tfb_data = np.loadtxt(f'{path}/Ecc_{which_cut}_{check}_days.txt')
         snap_, tfb = tfb_data[0], tfb_data[1]
-        radii = np.load(f'{path}/radiiEcc_{check}.npy')
+        radii = np.load(f'{path}/radiiEcc_{which_cut}_{check}.npy')
         
         # Plot
         plt.figure(figsize=(10,8))
-        img = plt.pcolormesh(radii/apo, tfb, ecc, vmin = 0.75, vmax = 0.95, cmap = 'jet', rasterized = True)#cmocean.cm.balance)
+        img = plt.pcolormesh(radii/apo, tfb, ecc, vmin = 0.75, vmax = 0.93, cmap = 'jet', rasterized = True)#cmocean.cm.balance)
         cb = plt.colorbar(img)
         cb.ax.tick_params(labelsize=25)
-        cb.set_label(r'Eccentricity', fontsize = 25, labelpad = 1)
-        plt.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed')
+        cb.set_label(r'Eccentricity' , fontsize = 25, labelpad = 1)
+        # line thicks 2
+        plt.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed', linewidth = 2)
+        plt.text(1.05*Rt/apo, 0.9*np.max(tfb), r'$R_{\rm t}$', fontsize = 25, color = 'k')
         plt.xscale('log')
         plt.xlabel(r'$R [R_{a}]$')#, fontsize = 25)
         plt.ylabel(r'$t [t_{fb}]$')#, fontsize = 25)
-        # plt.text(0.5, 1.6, r'e$_{mb}$ = ' + f'{np.round(ecc_crit,2)}', fontsize = 20, color = 'k')
-        # Bigger ticks:
-        # Get the existing ticks on the x-axis
-        # original_ticks = plt.yticks()[0]
-        # Calculate midpoints between each pair of ticks
-        # midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-        # Combine the original ticks and midpoints
-        # new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-        # Set tick labels: empty labels for midpoints
-        # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]
-        # plt.yticks(new_ticks, labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks])
         plt.tick_params(axis='x', which='major', width=1.2, length=8, color = 'white', labelsize=25)
         plt.tick_params(axis='y', which='major', width=1, length=8, color = 'white', labelsize=25)
         plt.tick_params(axis='x', which='minor', width=1, length=5, color = 'white', labelsize=25)
         plt.ylim(np.min(tfb), np.max(tfb))
-        plt.savefig(f'{abspath}/Figs/paper/ecc_norm.pdf', bbox_inches='tight')
+        plt.savefig(f'{abspath}/Figs/paper/ecc.pdf', bbox_inches='tight')
     
     else:
         import matplotlib.gridspec as gridspec
