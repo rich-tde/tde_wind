@@ -25,7 +25,7 @@ n = 1.5
 compton = 'Compton'
 check = ''
 kind_of_plot = 'talk' # 'moll' or 'cart' or 'talk'
-how_many = 2
+how_many = 3
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 
 Rt = Rstar * (Mbh/mstar)**(1/3)
@@ -33,6 +33,8 @@ R0 = 0.6 * Rt
 Rs = 2*prel.G*Mbh/prel.csol_cgs**2
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
+t_fall_hour = t_fall * 24
 
 # observers
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
@@ -77,7 +79,7 @@ y2 = (rph_s/apo)**(-2)
 y3 = (rph_s/apo)**(-3)
 y4 = (rph_s/apo)**(-4)
 
-# Plot density
+#%% Plot density
 plt.figure()
 plt.scatter(rph_s/apo, denph_s*prel.den_converter, c = 'royalblue', label = 'photosphere')
 plt.plot(rph_s/apo, 1e-11*y2, c = 'k', linestyle = 'dotted', label = r'$\propto R^{-2}$')
@@ -226,6 +228,8 @@ for i, snap in enumerate(snaps):
             plt.close()
 
         if kind_of_plot == 'talk': # slides of boundness/unboundness with velocity arrows, time evolution of velocity
+            # if int(snap) < 2:
+            #     continue
             data_mid = np.load(f'{abspath}/data/{folder}/slices/z/z0slice_{snap}.npy')
             x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid, VX_mid, VY_mid, VZ_mid =\
                 data_mid[0], data_mid[1], data_mid[2], data_mid[3], data_mid[4], data_mid[5], data_mid[6], data_mid[7], data_mid[8], data_mid[9], data_mid[10], data_mid[11]
@@ -253,9 +257,11 @@ for i, snap in enumerate(snaps):
             orb_en_yz = orb_en_den_yz * dim_yz**3
 
             yz_ph = np.abs(xph-Rt) < volph**(1/3)
-            yph_yz, zph_yz, Vyph_yz, Vzph_yz = make_slices([yph, zph, Vyph, Vzph], yz_ph)
+            yph_yz, zph_yz, Vyph_yz, Vzph_yz, rph_yz = make_slices([yph, zph, Vyph, Vzph, rph], yz_ph)
             xph_mid, yph_mid, zph_mid, rph_mid, energy_mid = xph[indecesorbital], yph[indecesorbital], zph[indecesorbital], rph[indecesorbital], energy[indecesorbital]
-            ratio_bound_ph_mid = len(energy_mid[energy_mid<0]) / len(energy_mid[energy_mid>0])
+            # ratio_bound_ph_mid = len(energy_mid[energy_mid<0]) / len(energy_mid[energy_mid>0])
+            long_ph_mid = np.arctan2(yph_mid, xph_mid)          # Azimuthal angle in radians
+            falselong_ph_yz = np.arctan2(zph_yz, yph_yz)                # Elevation angle in radians
 
             if how_many == 3:
                 fig = plt.figure(figsize=(30, 10))
@@ -278,21 +284,36 @@ for i, snap in enumerate(snaps):
                  gs = gridspec.GridSpec(2, 2, width_ratios=[1,1], height_ratios=[1, 0.05], hspace=0.25, wspace = 0.2)
         
             ax1 = fig.add_subplot(gs[0, 0])
+            sorted_indices = np.argsort(long_ph_mid)  # Sorting by y-coordinate
+            xph_mid_sorted = xph_mid[sorted_indices]
+            yph_mid_sorted = yph_mid[sorted_indices]
             img = ax1.scatter(x_mid/apo, y_mid/apo, c = np.abs(ratioE_mid), s = 20, cmap = 'coolwarm', norm = colors.LogNorm(vmin = 9.5e-2, vmax = 10))
             ax1.scatter(xph_mid/apo, yph_mid/apo, facecolor = 'none', s = 60, edgecolors = 'k')
+            ax1.plot(xph_mid_sorted/apo, yph_mid_sorted/apo, c = 'k', alpha = 0.5)
+            # connect the last and first point
+            ax1.plot([xph_mid_sorted[-1]/apo, xph_mid_sorted[0]/apo], [yph_mid_sorted[-1]/apo, yph_mid_sorted[0]/apo], c = 'k', alpha = 0.5)
             ax1.quiver(xph_mid/apo, yph_mid/apo, Vxph[indecesorbital]/40, Vyph[indecesorbital]/40, angles='xy', scale_units='xy', scale=0.7, color="k", width=0.003, headwidth = 6)
-            ax1.text(-2.2, 1.65, r'z = 0', fontsize = 25)
+            ax1.text(-2.6, -2.8, r'z = 0', fontsize = 25)
+            ax1.text(-2.6, 1.65, f't = {np.round(tfb[i],2)}' + r' t$_{\rm fb}$', color = 'k', fontsize = 26)
             ax1.set_xlabel(r'X [$R_{\rm a}$]', fontsize = 25)
             ax1.set_ylabel(r'Y [$R_{\rm a}$]', fontsize = 25)
             ax1.set_xlim(-3, 3)
             ax1.set_ylim(-3, 2)
 
             ax2 = fig.add_subplot(gs[0, 1])
+            # Apply sorting
+            sorted_indices_yz = np.argsort(falselong_ph_yz)  # Sorting by y-coordinate
+            yph_yz_sorted = yph_yz[sorted_indices_yz]
+            zph_yz_sorted = zph_yz[sorted_indices_yz]
             img = ax2.scatter(y_yz/apo, z_yz/apo, c = np.abs(ratioE_yz), s = 20, cmap = 'coolwarm', norm = colors.LogNorm(vmin = 9.5e-2, vmax = 10))
-            # if int(snap)>164: # before otherwise you don't see nothing
             ax2.scatter(yph_yz/apo, zph_yz/apo, facecolor = 'none', s = 60, edgecolors = 'k')
+            ax2.plot(yph_yz_sorted/apo, zph_yz_sorted/apo, c = 'k', alpha = 0.5)
+            # if yph_yz_sorted is not empty, connect the last and first point
+            if len(yph_yz_sorted) > 0:
+                ax2.plot([yph_yz_sorted[-1]/apo, yph_yz_sorted[0]/apo], [zph_yz_sorted[-1]/apo, zph_yz_sorted[0]/apo], c = 'k', alpha = 0.5)
             ax2.quiver(yph_yz/apo, zph_yz/apo, Vyph_yz/40, Vzph_yz/40, angles='xy', scale_units='xy', scale=0.7, color="k", width=0.003, headwidth = 6)
-            ax2.text(-2.55, 3, r'x = R$_{\rm p}$', fontsize = 25)
+            ax2.text(-2.6, -3.2, r'x = R$_{\rm p}$', fontsize = 25)
+            ax2.text(-2.6, 3, f't = {np.round(tfb[i]*t_fall_hour,1)}' + r' hours', color = 'k', fontsize = 26)
             ax2.set_xlabel(r'Y [$R_{\rm a}$]', fontsize = 25)
             ax2.set_ylabel(r'Z [$R_{\rm a}$]', fontsize = 25)
             ax2.set_xlim(-3, 2)
@@ -317,7 +338,6 @@ for i, snap in enumerate(snaps):
         percentile16[i] = percentile16_sn
         percentile84[i] = percentile84_sn
 
-#%%
 if kind_of_plot == 'cart': # only evolution of velocity/boundness
     plt.figure(figsize=(10,6))
     img = plt.scatter(tfb, mean_vel * conversion_sol_kms * 1e-4, c = ratio_unbound_ph, s = 7, vmin = 0, vmax = 0.8)

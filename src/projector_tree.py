@@ -192,9 +192,9 @@ if __name__ == '__main__':
             # ax.set_xlim(-400, 140)
             ax.set_ylim(-142, 142) 
             plt.tight_layout()
-            if save:
-                plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/denproj{snap}.png')
-            # plt.show()
+            # if save:
+            #     plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/denproj{snap}.png')
+            plt.show()
             plt.close()
 
 

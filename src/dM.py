@@ -62,20 +62,20 @@ compare_times = True
 movie = False 
 
 if alice:
-    checks = ['LowRes', '','HiRes'] 
+    checks = [''] #['LowRes', '','HiRes'] 
     print('Normalization for energy:', norm)
 
     for check in checks:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         print(f'Check: {check}')
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
-        bins = np.arange(-2, 2, .1) #np.linspace(-5,5,1000) 
+        bins = np.arange(-6.5, 2, .1) #np.linspace(-5,5,1000) 
         # save snaps, tfb and energy bins
-        with open(f'{abspath}/data/{folder}/dMdEdistrib_{check}_days.txt','a') as filedays:
+        with open(f'{abspath}/data/{folder}/newdMdEdistrib_{check}_days.txt','a') as filedays:
             filedays.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
             filedays.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
             filedays.close()
-        with open(f'{abspath}/data/{folder}/dMdEdistrib_{check}_bins.txt','w') as file:
+        with open(f'{abspath}/data/{folder}/newdMdEdistrib_{check}_bins.txt','w') as file:
             file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
             file.write((' '.join(map(str, bins)) + '\n'))
             file.close()
@@ -101,7 +101,7 @@ if alice:
             mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
             dm_dE = mass_binned / (np.diff(bins_edges)*norm)
 
-            with open(f'{abspath}/data/{folder}/dMdEdistrib_{check}.txt','a') as file:
+            with open(f'{abspath}/data/{folder}/newdMdEdistrib_{check}.txt','a') as file:
                 file.write(f'# dM/dE snap {snap} \n')
                 file.write((' '.join(map(str, dm_dE)) + '\n'))
                 file.close()
