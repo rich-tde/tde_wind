@@ -41,11 +41,25 @@ def keplerian_orbit(theta, a, Rp, ecc=1):
     radius = p / (1 + ecc * np.cos(theta))
     return radius
 
+def R_grav(Mbh, c, G):
+    """ Gravitational radius of the black hole."""
+    Rg = G * Mbh /c**2
+    return Rg
+
+def tidal_radius(Rstar, mstar, Mbh):
+    Rt = Rstar * (Mbh/mstar)**(1/3)
+    return Rt
+
 def semimajor_axis(Rstar, mstar, Mbh, G):
     """ Semimajor axis of the most bound debris """
     E = energy_mb(Rstar, mstar, Mbh, G)
     a = G * Mbh / (2*E)
     return a
+
+def pericentre(Rstar, mstar, Mbh, beta):
+    Rt = tidal_radius(Mbh, mstar, Rstar)
+    Rp = Rt/beta
+    return Rp
 
 def apocentre(Rstar, mstar, Mbh, beta):
     # comes from Ra=a(1+e), a=Rt^2/2Rstar, e=1-2*Rstar/(beta*Rt)
@@ -439,7 +453,7 @@ if __name__ == '__main__':
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = 'Low'
+    check = ''
     compton = 'Compton'
 
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
@@ -460,10 +474,8 @@ if __name__ == '__main__':
     print('Tree done')
     dim_cell = data.Vol**(1/3)
 
-    make_stream = True
+    make_stream = False
     make_width = False
-    compare = False
-    TZslice = False
     test_s = False
     test_orbit = False
 

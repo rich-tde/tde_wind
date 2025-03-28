@@ -39,7 +39,7 @@ final_eq = 104 #observer eq. plane
 #%%
 ## DECISIONS
 ##
-save = True
+save = False
 res0 = 'LowRes'
 res1 = '' #'', 'HiRes', 'DoubleRad', 'LowRes'
 res2 = 'HiRes' 
@@ -83,7 +83,7 @@ Etot1 = col_ieres1 + col_orb_enres1 + col_Radres1
 #%% Res2 data
 datares2 = np.load(f'{path}{res2}/colormapE_Alice/coloredEall_{res2}_thresh.npy')
 Radres2_267 = np.load(f'{path}{res2}/colormapE_Alice/coloredERadRph_{res2}267.npy')
-tfb_datares2 = np.loadtxt(f'{path}{res2}/colormapE_Alice/coloredEall_{res2}_days.txt')
+tfb_datares2 = np.loadtxt(f'{path}{res2}/colormapE_Alice/coloredE_{res2}_days.txt')
 snap_res2 = tfb_datares2[0]
 tfb_res2 = tfb_datares2[1]
 radiires2 = np.load(f'{path}{res2}/colormapE_Alice/coloredEall_{res2}_radii.npy')

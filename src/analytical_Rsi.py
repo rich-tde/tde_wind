@@ -2,88 +2,46 @@
 import sys
 sys.path.append('/Users/paolamartire/shocks')
 import numpy as np
-import Utilities.prelude
+import Utilities.prelude as prel
 from Utilities.basic_units import radians
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-
-##
-# CONSTANTS
-## 
-G = 1
-G_SI = 6.6743e-11
-Msol = 2e30 #1.98847e30 # kg
-Rsol = 7e8 #6.957e8 # m
-t = np.sqrt(Rsol**3 / (Msol*G_SI ))
-c = 3e8 / (7e8/t)
+import src.orbits as orb
 
 ##
 # FUNCTIONS
 ##
 
-def tidal_radius(Mbh, mstar, Rstar):
-    Rt = Rstar * (Mbh/mstar)**(1/3)
-    return Rt
-
-def pericentre(Mbh, mstar, Rstar, beta):
-    Rt = tidal_radius(Mbh, mstar, Rstar)
-    Rp = Rt/beta
-    return Rp
-
-def semimajor_axis(Mbh, mstar, Rstar):
-    # a = GM/2E with E=GMR_star / Rt^2 (eq. 21 Rossi+20)
-    Rt = tidal_radius(Mbh, mstar, Rstar)
-    a = Rt**2 / (2*Rstar)
-    return a
-
-def apocentre(Mbh, mstar, Rstar, beta):
-    Rp = pericentre(Mbh, mstar, Rstar, beta)
-    a = semimajor_axis(Mbh, mstar, Rstar)
-    Ra = 2*a - Rp
-    return Ra
-
-def eccentricity(Mbh, mstar, Rstar, beta):
-    a = semimajor_axis(Mbh, mstar, Rstar)
-    Rp = pericentre(Mbh, mstar, Rstar, beta)
-    e = 1 - Rp/a
-    return e
-
-def Rg_analyt(Mbh):
-    """ Gravitational radius of the black hole."""
-    Rg = G * Mbh /c**2
-    return Rg
-
 def precession_analyt(Mbh, mstar, Rstar, beta):
     """ Precession angle and self intersection redius as derived in Dai15 Eqs. 1 and 7.
     Insputs are in solar units."""
-    Rp = pericentre(Mbh, mstar, Rstar, beta)
-    Rt = tidal_radius(Mbh, mstar, Rstar)
-    Rg = Rg_analyt(Mbh)
-    a = semimajor_axis(Mbh, mstar, Rstar)
-    e = eccentricity(Mbh, mstar, Rstar, beta)
-    phi = 6 * np.pi/(1+e) * beta * Rg / Rt 
+    Rp = orb.pericentre(Rstar, mstar, Mbh, beta)
+    Rt = orb.tidal_radius(Rstar, mstar, Mbh)
+    Rg = orb.R_grav(Mbh, prel.csol_cgs, prel.G)
+    a = orb.semimajor_axis(Rstar, mstar, Mbh, prel.G)
+    e = orb.eccentricity(Rstar, mstar, Mbh, beta)
+    phi = 6 * np.pi * beta * Rg / (Rt * (1+e))
     Rsi = a * (1-e**2) / (1 - e * np.cos(phi/2)) 
     return phi, Rsi
 
 def phi_Rsi(Mbh, mstar, Rstar, beta, Rsi):
-    Rp = pericentre(Mbh, mstar, Rstar, beta)
-    a = semimajor_axis(Mbh, mstar, Rstar)
+    Rp = orb.pericentre(Rstar, mstar, Mbh, beta)
+    a = orb.semimajor_axis(Rstar, mstar, Mbh, prel.G)
     phi = 2 * np.arccos( (a/(a-Rp) * (1 - Rp/Rsi * (2*a-Rp)/a)))    
     return phi
 
 if __name__ == '__main__':
+    save = True
 
-    save = False
-
-    mstar = 1
-    Rstar = 1
+    mstar = 0.5
+    Rstar = 0.47
     # Plot agains mass
     m = np.arange(4,8)
     Mbh = np.power(10, m)
-    colors = ['coral', 'purple', 'deepskyblue', 'green']
-    m_many = np.arange(5,7.1,.1)
+    colors_Mbh = ['coral', 'purple', 'deepskyblue', 'green']
+    m_many = np.arange(4,7.1,.1)
     Mbh_many = np.power(10, m_many)
-    beta_oneBH = np.array([1, 2, 4, 8, 16])
+    beta_oneBH = np.array([1, 2, 4, 8])
     colors_beta = ['k', 'b', 'yellowgreen', 'orange', 'magenta']
     beta_many = np.arange(1,10.1,.1)
 
@@ -112,19 +70,29 @@ if __name__ == '__main__':
     plt.show()
 
     #%% Reproduce Dai15 Fig 2
+    # print(precession_analyt(1e6, 1, 0.47,1))
+    print(orb.apocentre(0.47, 0.5, 1e4, 1)/2)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (15, 5))
     for i in range(len(beta_oneBH)):
-        Rg = Rg_analyt(Mbh_many)
-        _, Rsi = precession_analyt(Mbh_many, mstar, Rstar, beta_oneBH[i])
-        RsiRg = Rsi/Rg
-        plt.plot(Mbh_many, RsiRg, c = colors_beta[i], label = r'$\beta$ '+f'={beta_oneBH[i]}' )
-    plt.xlabel(r'$M_{BH}$', fontsize = 18)
-    plt.ylabel(r'$R_{SI}/R_g$', fontsize = 18)
-    plt.title(f'$M_\star = {mstar} M_\odot,  R_\star = {Rstar} R_\odot$', fontsize = 18)
-    plt.loglog()
-    plt.grid()
-    plt.legend(fontsize = 18)
+        Rg = orb.R_grav(Mbh_many, prel.csol_cgs, prel.G)
+        apo = orb.apocentre(Rstar, mstar, Mbh_many, beta_oneBH[i])
+        phi, Rsi = precession_analyt(Mbh_many, mstar, Rstar, beta_oneBH[i])
+        phi_deg = phi * 180/np.pi
+        ax1.plot(Mbh_many, Rsi/Rg, c = colors_beta[i], label = r'$\beta$ '+f'={beta_oneBH[i]}' )
+        ax2.plot(Mbh_many, phi_deg, c = colors_beta[i], label = r'$\beta$ '+f'={beta_oneBH[i]}' )
+    ax1.set_ylabel(r'$R_{SI}/R_g$', fontsize = 18)
+    ax2.set_ylabel(r'$\phi$ [deg]', fontsize = 18)
+    ax1.loglog()
+    ax2.set_xscale('log')  
+    ax2.set_ylim(0,40)
+    plt.suptitle(f'$M_\star = {mstar} M_\odot,  R_\star = {Rstar} R_\odot$', fontsize = 18)
+    ax1.legend(fontsize = 18)
+    for ax in [ax1, ax2]:
+        ax.set_xlabel(r'$M_{BH} [M_\odot]$', fontsize = 18)
+        ax.grid()
+    plt.tight_layout()
     if save:
-        plt.savefig('/Users/paolamartire/shocks/Figs/Rsi_on_Mbh.png')
+        plt.savefig('/Users/paolamartire/shocks/Figs/precession_toM.png')
     plt.show()
 
     #%% Nick's plot

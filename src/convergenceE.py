@@ -91,6 +91,8 @@ for i,snap in enumerate(snaps):
 np.save(f'{abspath}/data/{folder}/convE_{check}.npy', [col_ie, col_orb_en, col_Rad])
 np.save(f'{abspath}/data/{folder}/convE_{check}_thresh.npy', [col_ie_thres, col_orb_en_thres, col_Rad_thres])
 with open(f'{abspath}/data/{folder}/convE_{check}_days.txt', 'w') as file:
+        file.write(f'# In convE_{check}_thresh you find internal, orbital and radiation energy [NO denisty/specific] inside the biggest box enclosed in the three simulation volumes and cut in density.\n')
+        file.write(f'# In convE_{check} only cut in density.')
         file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
         file.close()

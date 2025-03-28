@@ -10,7 +10,6 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiRes'
-npanels = 6
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 start = 80
@@ -28,21 +27,17 @@ def get_image_size(image_path):
     return width, height
 
 # For Denproj
-how_many = 3
-path = f'{abspath}/Figs/talk/{how_many}{check}/denproj_diss%d.png' #{folder}/projection/denproj%d.png'
-output_path = f'{abspath}/Figs/talk/{how_many}{check}/denproj_diss{how_many}{check}.mp4' #{folder}/movie_proj{check}.mp4'
-first_image_path = f'{abspath}/Figs/talk/{how_many}{check}/denproj_diss{start}.png' #{folder}/projection/denproj{start}.png'
+# how_many = 3
+# path = f'{abspath}/Figs/{folder}/projection/denproj_diss%d.png' #{folder}/projection/denproj%d.png'
+# output_path = f'{abspath}/Figs/{folder}/projection/denproj_diss{how_many}{check}.mp4' #{folder}/movie_proj{check}.mp4'
+# first_image_path = f'{abspath}/Figs/{folder}/projection/denproj_diss{start}.png' #{folder}/projection/denproj{start}.png'
 
 # For Slices 
-# path = f'{abspath}/Figs/EddingtonEnvelope/vel/vel_%d.png' 
-# output_path = f'{abspath}/Figs/EddingtonEnvelope/vel/collection_vel.mp4'
-# first_image_path = f'{abspath}/Figs/EddingtonEnvelope/vel/vel_{start}.png'
+path = f'{abspath}/Figs/{folder}/slices/Panel6Slice%d.png' 
+output_path = f'{abspath}/Figs/{folder}/slices/movie6Panels_{check}.mp4'
+first_image_path = f'{abspath}/Figs/{folder}/slices/Panel6Slice%d{start}.png'
 
 # For outflow
-# path = f'{abspath}/Figs/EddingtonEnvelope/unbound/unbound_ph%d.png' 
-# output_path = f'{abspath}/Figs/EddingtonEnvelope/unbound/movie_unbound.mp4'
-# first_image_path = f'{abspath}/Figs/EddingtonEnvelope/unbound/unbound_ph{start}.png'
-###
 # path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/{how_many}/E_%d.png' 
 # output_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/{how_many}/collectionE{how_many}.mp4'
 # first_image_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/{how_many}/E_{start}.png'

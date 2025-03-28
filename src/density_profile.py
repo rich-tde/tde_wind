@@ -85,13 +85,13 @@ which_obs = 'healpix' # 'healpix' or 'elliptical'
 # print(Rg)
 #%%
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snap = 237
+snap = 348
 a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 e_mb = orb.eccentricity(Rstar, mstar, Mbh, beta)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp = Rt * beta
-x_test = np.arange(1, 3e2)
+x_test = np.arange(1e-1, 1e2)
 y_test2 = 1e-15 * x_test**(-2)
 y_test3 = 2e-9 * x_test**(-3)
 y_test4 = 1e-10 * x_test**(-4)
@@ -197,7 +197,8 @@ v_rad_ph, v_theta_ph, v_phi_mid = to_spherical_components(Vxph, Vyph, Vzph, lat_
 v_rad_ph_sorted, rph_sorted = sort_list([v_rad_ph, rph], rph)
 
 #%%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 7))
+fig, ax1 = plt.subplots(1, 1, figsize=(8, 7))
+fig1, ax2 = plt.subplots(1, 1, figsize=(8, 7))
 for i in indices_chosen:
     mu_x = observers_xyz[i][0]
     mu_y = observers_xyz[i][1]
@@ -289,36 +290,18 @@ ax1.axhspan(np.min(np.exp(Rho_cool)), np.max(np.exp(Rho_cool)), alpha=0.2, color
 ax1.set_ylim(2e-19, 2e-7)
 ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
 ax2.set_ylabel(r'$|v_r|$ [km/s]')
-ax2.legend(loc='lower right', fontsize = 12)
 for ax in [ax1, ax2]:
+    #put the legend outside
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    # ax.legend(loc='lower right', fontsize = 12)
     ax.grid()
     ax.set_xlabel(r'R [R$_t]$')
     ax.set_xlim(0.9, 3e2)
     ax.loglog()
 plt.tight_layout()
-#%%
-time = np.loadtxt(f'{abspath}/data/{folder}/slices/z/z0_time.txt')
-snaps = time[0]
-snaps = [int(snap) for snap in snaps]
-tfb = time[1]
-escape_vel_kms = np.sqrt(2*prel.G*Mbh/Rt)*prel.Rsol_cgs*1e-5/prel.tsol_cgs
-v_mean = np.zeros(len(snaps))
-for i, sn in enumerate(snaps):
-    dataph_i = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/_photo{sn}.txt')
-    xph_i, yph_i, zph_i, volph_i, denph_i, Tempph_i, Rad_denph_i, Vxph_i, Vyph_i, Vzph_i = \
-        dataph_i[0], dataph_i[1], dataph_i[2], dataph_i[3], dataph_i[4], dataph_i[5], dataph_i[6], dataph_i[7], dataph_i[8], dataph_i[9]
-    rph_i = np.sqrt(xph_i**2 + yph_i**2 + zph_i**2)
-    long_ph_i = np.arctan2(yph_i, xph_i)          # Azimuthal angle in radians
-    lat_ph_i = np.arccos(zph_i/ rph_i)            # Elevation angle in radians
-    v_rad_ph_i, v_theta_ph_i, v_ph_i_mid = to_spherical_components(Vxph_i, Vyph_i, Vzph_i, lat_ph_i, long_ph_i)
-    v_mean[i] = np.median(np.abs(v_rad_ph_i))
-plt.figure()
-plt.plot(tfb, v_mean*prel.Rsol_cgs*1e-5/prel.tsol_cgs, c = 'k')
-plt.axhline(y = escape_vel_kms, c = 'gray', ls = '--')
-plt.xlabel(r't [t$_{fb}]$')
-plt.ylabel(r'median $|v_{\rm r_{\rm ph}}|$ [km/s]')
-plt.yscale('log')
-plt.grid()
+
 
 # d_r_trans = np.transpose(d_r)
 # img, ax1 = plt.subplots(1,1,figsize = (7, 7)) # this is to check all observers from Healpix on the orbital plane
@@ -395,14 +378,7 @@ for i in range(len(observers_xyz)):
     vtheta_all.append(v_t)
     vp_all.append(v_p)
     v_all.append(v)
-#%%
-plt.figure()
-for j in range(0, len(r_all), 10):
-    v = vp_all[j]
-    r = r_all[j]
-    plt.scatter(r/apo, v, c = cm.jet(j / len(r_all)))
-plt.loglog()
-#%%
+
 
 #%%
 eng.exit()
