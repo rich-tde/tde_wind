@@ -80,27 +80,71 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = '' # '' or 'HiRes'
-which_obs = 'healpix' # 'healpix' or 'elliptical'
+which_obs = 'arch'
 # Rg = Mbh * prel.G / prel.csol_cgs**2
 # print(Rg)
 #%%
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snap = 348
+snap = 237
 a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 e_mb = orb.eccentricity(Rstar, mstar, Mbh, beta)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp = Rt * beta
-x_test = np.arange(1e-1, 1e2)
-y_test2 = 1e-15 * x_test**(-2)
-y_test3 = 2e-9 * x_test**(-3)
-y_test4 = 1e-10 * x_test**(-4)
-y_test7 = 1e-10 * x_test**(-7)
-r_const = np.array([Rt, 10*Rt, apo])
-r_const_label = [r'$R_t$', r'$10R_t$', r'$R_a$']
-r_const_colors = ['dodgerblue', 'darkviolet', 'forestgreen']
 
-# Opacity Input (they are ln)
+#%% Observers -----------------------------------------------------------------
+observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
+obs_indices = np.arange(len(observers_xyz[0]))
+x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
+r_obs = np.sqrt(x_obs**2 + y_obs**2 + z_obs**2)
+long_obs = np.arctan2(y_obs, x_obs)          # Azimuthal angle in radians
+lat_obs = np.arccos(z_obs / r_obs)
+# Convert to latitude and longitude
+longitude_moll = long_obs              
+latitude_moll = np.pi / 2 - lat_obs 
+mid = np.concatenate(np.where(latitude_moll==0))
+# select only the observers in the orbital plane (will give you a N bool array--> apply to columns)
+observers_xyz_mid, indices_mid = observers_xyz[:,mid], obs_indices[mid]
+
+if which_obs == 'arch':
+    wanted_obs = [(1,0,0), 
+                (1/np.sqrt(2), 0, 1/np.sqrt(2)),  
+                (0,0,1),
+                (-1/np.sqrt(2), 0 , 1/np.sqrt(2)),
+                (-1,0,0)]
+    dot_prod = np.dot(wanted_obs, observers_xyz)
+    indices_chosen = np.argmax(dot_prod, axis=1)
+    label_obs = ['x+', '45', 'z+', '135', 'x-']
+    colors_obs = ['k', 'green', 'orange', 'b', 'r']
+else:
+    indices_chosen_mid_slice = np.array([np.argmin(np.abs(observers_xyz_mid[0] + 1)),
+                                np.argmin(np.abs(observers_xyz_mid[0] - 1)),
+                                np.argmin(np.abs(observers_xyz_mid[1] + 1)), 
+                                np.argmin(np.abs(observers_xyz_mid[1] - 1))])
+    indices_chosen_mid = indices_mid[indices_chosen_mid_slice]     
+    indices_chosen_z = np.array([np.argmin(np.abs(z_obs + 1)),
+                                np.argmin(np.abs(z_obs - 1))])
+    indices_chosen = np.concatenate([indices_chosen_mid, indices_chosen_z])
+    label_obs = ['x-', 'x+', 'y-', 'y+', 'z-', 'z+']
+    colors_obs = plt.cm.tab10(np.linspace(0, 1, len(indices_chosen)))
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+ax1.scatter(x_obs, y_obs, c = 'gray')
+# scatter plot of x_obs[indices_chosen] with a different color for each different point
+ax1.scatter(x_obs[indices_chosen], y_obs[indices_chosen], edgecolors = 'k', s = 50, c = colors_obs )
+ax1.set_ylabel(r'$Y$')
+ax2.scatter(x_obs, z_obs, c = 'gray')
+ax2.scatter(x_obs[indices_chosen], z_obs[indices_chosen], edgecolors = 'k', s = 50, c = colors_obs )
+ax2.set_ylabel(r'$Z$')
+for ax in [ax1, ax2]:
+    ax.set_xlabel(r'$X$')
+    ax.set_xlim(-1.5, 1.5)
+    ax.set_ylim(-1.5, 1.5)
+plt.suptitle('Selected observers', fontsize=15)
+plt.tight_layout()
+
+observers_xyz = np.transpose(observers_xyz) #shape: Nx3
+#%% Opacity Input (they are ln)
 opac_path = f'{abspath}/src/Opacity'
 T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
@@ -112,7 +156,8 @@ eng = matlab.engine.start_matlab()
 
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 box = np.zeros(6)
-# Load data -----------------------------------------------------------------
+
+#%% Load data -----------------------------------------------------------------
 if alice:
     X = np.load(f'{pre}/snap_{snap}/CMx_{snap}.npy')
     Y = np.load(f'{pre}/snap_{snap}/CMy_{snap}.npy')
@@ -144,61 +189,9 @@ Rad_den = np.multiply(Rad,Den) # now you have energy density
 del Rad   
 R = np.sqrt(X**2 + Y**2 + Z**2)    
 
-#%% Observers -----------------------------------------------------------------
-observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
-obs_indices = np.arange(len(observers_xyz[0]))
-# select only the observers in the orbital plane (will give you a N bool array--> apply to columns)
-mid = np.abs(observers_xyz[2]) == 0 # you can do that beacuse healpix gives you the observers also in the orbital plane (Z==0)
-observers_xyz_mid, indices_mid = observers_xyz[:,mid], obs_indices[mid]
-# observers_xyz = observers_xyz[:,np.arange(0,192,5)]
-x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
-observers_xyz = np.transpose(observers_xyz) #shape: Nx3
-
-r_obs = np.sqrt(x_obs**2 + y_obs**2 + z_obs**2)
-long_obs = np.arctan2(y_obs, x_obs)          # Azimuthal angle in radians
-lat_obs = np.arccos(z_obs / r_obs)
-
-#%%
 xyz = np.array([X, Y, Z]).T
 N_ray = 20_000
-# d_r = []
-# vx_r = []
-# vy_r = []
-# vz_r = []
-print(f'Snap: {snap}')
-# with open(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}.txt','w') as file:
-#     file.write(f'# radii, density profile, Vx, Vy, Vz.\n')
-#     file.close()
-indices_chosen_mid_slice = np.array([np.argmin(np.abs(observers_xyz_mid[0] + 1)),
-                            np.argmin(np.abs(observers_xyz_mid[0] - 1)),
-                            np.argmin(np.abs(observers_xyz_mid[1] + 1)), 
-                            np.argmin(np.abs(observers_xyz_mid[1] - 1))])
-indices_chosen_mid = indices_mid[indices_chosen_mid_slice]     
-indices_chosen_z = np.array([np.argmin(np.abs(observers_xyz[:,2] + 1)),
-                            np.argmin(np.abs(observers_xyz[:,2] - 1))])
-indices_chosen = np.concatenate([indices_chosen_mid, indices_chosen_z])
-
-# indices_chosen = np.array([np.argmin(np.abs(observers_xyz[:,0] + 1)),
-#                             np.argmin(np.abs(observers_xyz[:,0] - 1)),
-#                             np.argmin(np.abs(observers_xyz[:,1] + 1)), 
-#                             np.argmin(np.abs(observers_xyz[:,1] - 1)),
-#                             np.argmin(np.abs(observers_xyz[:,2] + 1)),
-#                             np.argmin(np.abs(observers_xyz[:,2] - 1))])
-label_obs = ['x-', 'x+', 'y-', 'y+', 'z-', 'z+']
-
-#%% Load
-dataph = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/_photo{snap}.txt')
-xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph = \
-    dataph[0], dataph[1], dataph[2], dataph[3], dataph[4], dataph[5], dataph[6], dataph[7], dataph[8], dataph[9]
-rph = np.sqrt(xph**2 + yph**2 + zph**2)
-long_ph = np.arctan2(yph, xph)          # Azimuthal angle in radians
-lat_ph = np.arccos(zph/ rph)            # Elevation angle in radians
-v_rad_ph, v_theta_ph, v_phi_mid = to_spherical_components(Vxph, Vyph, Vzph, lat_ph, long_ph)
-v_rad_ph_sorted, rph_sorted = sort_list([v_rad_ph, rph], rph)
-
-#%%
-fig, ax1 = plt.subplots(1, 1, figsize=(8, 7))
-fig1, ax2 = plt.subplots(1, 1, figsize=(8, 7))
+# if (f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}.txt') exists, delete it
 for i in indices_chosen:
     mu_x = observers_xyz[i][0]
     mu_y = observers_xyz[i][1]
@@ -208,23 +201,16 @@ for i in indices_chosen:
     # box gives -x, -y, -z, +x, +y, +z
     if mu_x < 0:
         rmax = box[0] / mu_x
-        # print('x-', rmax)
     else:
         rmax = box[3] / mu_x
-        # print('x+', rmax)
     if mu_y < 0:
         rmax = min(rmax, box[1] / mu_y)
-        # print('y-', rmax)
     else:
         rmax = min(rmax, box[4] / mu_y)
-        # print('y+', rmax)
-
     if mu_z < 0:
         rmax = min(rmax, box[2] / mu_z)
-        # print('z-', rmax)
     else:
         rmax = min(rmax, box[5] / mu_z)
-        # print('z+', rmax)
 
     r = np.logspace(-0.25, np.log10(rmax), N_ray)
 
@@ -256,129 +242,60 @@ for i in indices_chosen:
     idx = np.array(idx)
     d, t, r, ray_x, ray_y, ray_z, ray_vx, ray_vy, ray_vz, idx = \
         make_slices([d, t, r, ray_x, ray_y, ray_z, ray_vx, ray_vy, ray_vz, idx], underflow_mask)
-        
     v_rad, v_theta, v_phi = to_spherical_components(ray_vx, ray_vy, ray_vz, lat_obs[i], long_obs[i])
-    v = np.sqrt(ray_vx**2 + ray_vy**2 + ray_vz**2)
-    # find density at a given R for each observer. Since observers are noramlized, you can directly use r to query.
-    # r_fortree = r.reshape(-1, 1)
-    # tree_r = KDTree(r_fortree, leaf_size=50)
-    # _, idx_r = tree_r.query(r_const.reshape(-1,1), k=1)
-    # idx_r = [ int(idx_r[i][0]) for i in range(len(idx_r))] # no -1 because we start from 0
-    # d_r.append(d * prel.den_converter)
-    # vx_r.append(ray_vx)
-    # vy_r.append(ray_vy)
-    # vz_r.append(ray_vz)
+    v_tot = np.sqrt(ray_vx**2 + ray_vy**2 + ray_vz**2)
+    with open(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}.txt','a') as file:
+        file.write(f'# Observer latitude: {lat_obs[i]}, longitude: {long_obs[i]}\n')
+        file.write(f' '.join(map(str, r)) + '\n')
+        file.write(f' '.join(map(str, d)) + '\n')
+        file.write(f' '.join(map(str, v_rad)) + '\n')
+        file.write(f' '.join(map(str, v_tot)) + '\n')
+        file.close()
 
-    # with open(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}.txt','a') as file:
-    #     file.write(f'# Observer latitude: {lat_obs[i]}, longitude: {long_obs[i]}\n')
-    #     file.write(f' '.join(map(str, r)) + '\n')
-    #     file.write(f' '.join(map(str, d)) + '\n')
-    #     file.write(f' '.join(map(str, ray_vx)) + '\n')
-    #     file.write(f' '.join(map(str, ray_vy)) + '\n')
-    #     file.write(f' '.join(map(str, ray_vz)) + '\n')
-    #     file.close()
-
-    ax1.plot(r/Rt, d, label = f'Observer {label_obs[np.where(indices_chosen == i)[0][0]]} ({i})')
-    # ax1.scatter(rph[i]/Rt, denph[i]*prel.den_converter, c = 'k', s = 20)
-    ax2.plot(r/Rt, np.abs(v_rad)*prel.Rsol_cgs*1e-5/prel.tsol_cgs, label = f'Observer {label_obs[np.where(indices_chosen == i)[0][0]]} ({i})')
+#%%
+x_test = np.arange(1e-1, 1e3)
+y_test2 = 1e-8 * x_test**(-2)
+y_test3 = 2e-9 * x_test**(-3)
+y_test4 = 1e-10 * x_test**(-4)
+y_test7 = 1e-10 * x_test**(-7)
+data_prof = np.loadtxt(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}.txt')
+r_arr, d_arr, ray_vr_arr, ray_v_arr = data_prof[0::4], data_prof[1::4], data_prof[2::4], data_prof[3::4]
+fig, ax1 = plt.subplots(1, 1, figsize=(8, 7))
+fig1, ax2 = plt.subplots(1, 1, figsize=(8, 7))
+fig2, ax3 = plt.subplots(1, 1, figsize=(8, 7))
+for i in range(0,1):#len(r_arr)):
+    r = r_arr[i]
+    d = d_arr[i]
+    ray_vr = ray_vr_arr[i]
+    ray_v = ray_v_arr[i]
+    ax1.plot(r/Rt, d, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
+    ax2.plot(r/Rt, np.abs(ray_v)*prel.Rsol_cgs*1e-5/prel.tsol_cgs, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = 'b', ls = '--')
+    ax2.plot(r/Rt, np.abs(ray_vr)*prel.Rsol_cgs*1e-5/prel.tsol_cgs, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
+    ax3.plot(r/Rt, d*np.abs(ray_v)*prel.Rsol_cgs/prel.tsol_cgs, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
     # ax1.axvline(x = rph[i]/Rt, c = 'gray', ls = '--')
-
 ax1.plot(x_test, y_test2, c = 'gray', ls = 'dashed', label = r'$\rho \propto R^{-2}$')
+ax3.plot(x_test, y_test2*1e6, c = 'k', ls = 'dashed', label = r'$\rho \propto R^{-2}$')
 ax1.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto R^{-3}$')
 ax1.plot(x_test, y_test4, c = 'gray', ls = '-.', label = r'$\rho \propto R^{-4}$')
 ax1.axhspan(np.min(np.exp(Rho_cool)), np.max(np.exp(Rho_cool)), alpha=0.2, color='gray')
 ax1.set_ylim(2e-19, 2e-7)
+ax2.set_ylim(500, 2e4)
 ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
 ax2.set_ylabel(r'$|v_r|$ [km/s]')
-for ax in [ax1, ax2]:
+ax3.set_ylabel(r'$|v_r| \rho$ [g/cm$^2$s]')
+for ax in [ax1, ax2, ax3]:
     #put the legend outside
-    box = ax.get_position()
-    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    boxleg = ax.get_position()
+    ax.set_position([boxleg.x0, boxleg.y0, boxleg.width * 0.8, boxleg.height])
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     # ax.legend(loc='lower right', fontsize = 12)
     ax.grid()
     ax.set_xlabel(r'R [R$_t]$')
-    ax.set_xlim(0.9, 3e2)
+    ax.set_xlim(0.9, 1.5)#6e2)
     ax.loglog()
+    ax.set_title(f'{snap}')
 plt.tight_layout()
-
-
-# d_r_trans = np.transpose(d_r)
-# img, ax1 = plt.subplots(1,1,figsize = (7, 7)) # this is to check all observers from Healpix on the orbital plane
-# for i, radius in enumerate(r_const):
-#     Cougel_den = np.zeros(len(lat_obs))
-#     for j, lat_single in enumerate(lat_obs):
-#         Cougel_den[j] = CouBegel(radius*prel.Rsol_cgs, lat_single, .7, 4/3)
-#     # ax1.scatter(lat_obs, d_r_trans[i], c= r_const_colors[i], label = f'R = {r_const_label[i]}')
-#     ax1.scatter(lat_obs, d[i], c= r_const_colors[i], label = f'R = {r_const_label[i]}')
-#     ax1.plot(lat_obs, Cougel_den, c = r_const_colors[i])
-# ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
-# ax1.set_xlabel(r'$\theta$ [rad]')
-# ax1.set_yscale('log')
-# ax1.legend(loc='upper right')
-# ax1.set_ylim(2e-15, 2e-5)#2e-9)
-
-# #%% Check density profile from Rin == Rp till Rout= Rph (but should be the colorsphere at tau=1)
-# data_loaded = np.loadtxt(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}.txt')
-# r_all, d_all, vx_all, vy_all, vz_all = data_loaded[0::5], data_loaded[1::5], data_loaded[2::5], data_loaded[3::5], data_loaded[4::5]
-
-# img, (ax1, ax2) = plt.subplots(1,2,figsize = (12, 5)) # this is to check all observers from Healpix on the orbital plane
-# for j, r in enumerate(r_all):
-#     d = d_all[j]
-#     den_Metzger3 = np.zeros(len(r))
-#     den_Metzger7 = np.zeros(len(r))
-#     for k in range(len(r)):
-#         den_Metzger3[k] = Metzger(r[k], 2.8, Mbh, mstar, Rstar, Me = 0.8*mstar) 
-#         den_Metzger7[k] = Metzger(r[k], 7, Mbh, mstar, Rstar, Me = 0.8*mstar)
-#     if np.abs(long_obs[j]) < np.pi/2:
-#         ax1.plot(r/Rt, d, c = cm.jet(j / len(r_all)))#, label = f'{j}')
-#     else:
-#         ax2.plot(r/Rt, d, c = cm.jet(j / len(r_all)))#, label = f'{j}')
-# ax1.set_title(r'Obs $\theta\leq\pi/2$')
-# ax2.set_title(r'Obs $\theta\geq\pi/2$')
-# ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
-# ax1.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto R^{-3}$')
-# ax1.plot(x_test, y_test4, c = 'gray', ls = '-.', label = r'$\rho \propto R^{-4}$')
-# ax1.plot(r/Rt, den_Metzger3*prel.den_converter, c = 'gray', ls = '--', label = r'Metzger $\xi = 2.8, M_e = 0.8m_\star$')
-# ax2.plot(r/Rt, den_Metzger7*prel.den_converter, c = 'gray', ls = '--', label = r'Metzger $\xi = 7, M_e = 0.8m_\star$')
-# ax2.plot(x_test, y_test7, c = 'gray', ls = 'dotted', label = r'$\rho \propto R^{-7}$')
-
-# for ax in [ax1, ax2]:
-#     ax.axhspan(np.min(np.exp(Rho_cool)), np.max(np.exp(Rho_cool)), alpha=0.2, color='gray')
-#     ax.set_xlabel(r'R [R$_a]$')
-#     ax.loglog()
-#     ax.grid()
-#     ax.legend(loc='upper right', fontsize = 12)
-#     ax.set_xlim(1, 3e2)
-# ax1.set_ylim(2e-19, 2e-7)
-# ax2.set_ylim(2e-19, 2e-5)
-# img.tight_layout()
-# img.savefig(f'{abspath}/Figs/Test/photosphere/{snap}/OrbPl/{snap}_denprof.png', bbox_inches='tight')
-
-#%%
-vr_all = []
-vtheta_all = []
-vp_all = []
-v_all = []
-
-for i in range(len(observers_xyz)):
-    vx_obs = vx_all[i]
-    vy_obs = vy_all[i]
-    vz_obs = vz_all[i]
-    v_r = np.zeros(len(vx_obs))
-    v_t = np.zeros(len(vx_obs))
-    v_p = np.zeros(len(vx_obs))
-    v = np.zeros(len(vx_obs))
-    for j in range(len(vx_obs)):
-        v_r[j] = radial_vel(vx_obs[j], vy_obs[j], vz_obs[j], lat_obs[i], long_obs[i])
-        v_t[j] = orb.v_theta(vx_obs[j], vy_obs[j], vz_obs[j], lat_obs[i], long_obs[i])
-        v_p[j] = orb.v_phi(vx_obs[j], vy_obs[j], long_obs[i])
-        v[j] = np.sqrt(vx_obs[j]**2 + vy_obs[j]**2 + vz_obs[j]**2)
-    vr_all.append(v_r)
-    vtheta_all.append(v_t)
-    vp_all.append(v_p)
-    v_all.append(v)
-
+plt.show()
 
 #%%
 eng.exit()

@@ -70,13 +70,13 @@ X_yz, Y_yz, Z_yz, dim_yz, Temp_yz, Rad_yz, Den_yz, mass_yz, orb_en_yz, ie_yz, ra
     sec.make_slices([data.X, data.Y, data.Z, dim_cell, data.Temp, data.Rad, data.Den, data.Mass, orb_en, ie, rad, ie_onmass, rad_den], yz_cut)
 #%% YZ plane plot
 fig, ax = plt.subplots(1,1, figsize = (12,10))
-img = ax.scatter(Y_yz, Z_yz, c = X_yz,  cmap = 'jet', s = 20, vmin = Rt-5, vmax = Rt+5)
+img = ax.scatter(Y_yz/Rt, Z_yz/Rt, c = X_yz/Rt,  cmap = 'jet', s = 20, vmin = 0.5, vmax = 1.5)
 cbar = plt.colorbar(img)
 ax.axvline(0, color = 'black')
-ax.set_xlim(-10,10)
-ax.set_ylim(0,50)
+ax.set_xlim(-1.2,1.2)
+ax.set_ylim(0,25)
 ax.set_xlabel(r'$y$')
 ax.set_ylabel(r'$z$')
-plt.suptitle(f'YZ plane at X={np.round(xchosen,2)}, t = {np.round(tfb, 2)}' + r'$t_{fb}$', fontsize = 25)
+plt.suptitle(f'YZ plane at X={np.round(xchosen,2)}, t = {np.round(tfb, 2)}' + r' $t_{fb}$', fontsize = 25)
 plt.tight_layout()
 # %%

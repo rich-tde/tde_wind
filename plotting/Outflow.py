@@ -31,6 +31,7 @@ Rt = Rstar * (Mbh/mstar)**(1/3)
 R0 = 0.6 * Rt
 Rs = 2*prel.G*Mbh/prel.csol_cgs**2
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
+#%%
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 imgsaving_folder = '/Users/paolamartire/shocks/Figs/EddingtonEnvelope'
 t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
@@ -81,7 +82,7 @@ plt.title(f'Photosphere, t: {np.round(tfb_single,2)}' + r' t$_{{\rm fb}}$', font
 plt.grid()
 plt.legend(fontsize = 12)
 plt.tight_layout()
-plt.savefig(f'{imgsaving_folder}/denph_{singlesnap}.png')
+# plt.savefig(f'{imgsaving_folder}/denph_{singlesnap}.png')
 
 # Plot velocity and radial velocity
 img, (ax1, ax2) = plt.subplots(1,2, figsize = (12, 5))
@@ -103,7 +104,7 @@ for ax in [ax1, ax2]:
     ax.set_xlabel(r'R [R$_a$]')
 plt.suptitle(r'Photosphere in spherical $(r,\theta,\phi)$ components,' + f' t: {np.round(tfb_single,2)}' + r' t$_{{\rm fb}}$', fontsize = 18)
 plt.tight_layout()
-plt.savefig(f'{imgsaving_folder}/velph_{singlesnap}.png')
+# plt.savefig(f'{imgsaving_folder}/velph_{singlesnap}.png')
 #%% Evolution in time (bound, unboud, velocity and dispersion)
 if kind_of_plot == 'ratioE':
     ratio_unbound_ph = []
