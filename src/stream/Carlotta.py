@@ -26,23 +26,23 @@ def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R
         
     return x_max, y_max, z_max    
 
-def find_radial_com(x_data, y_data, z_data, dim_data, mass_data, theta_arr, R0):
-    """ Find the maxima density points in the radial plane for all the thetas in theta_arr"""
-    x_com = np.zeros(len(theta_arr))
-    y_com = np.zeros(len(theta_arr))
-    z_com = np.zeros(len(theta_arr))
-    for i in range(len(theta_arr)):
-        # Exclude points inside the smoothing lenght and find radial plane
-        condition_distance = np.sqrt(x_data**2 + y_data**2 + z_data**2) > R0 
-        condition_Rplane = radial_plane(x_data, y_data, dim_data, theta_arr[i])
-        condition_Rplane = np.logical_and(condition_Rplane, condition_distance)
-        x_plane, y_plane, z_plane, mass_plane = make_slices([x_data, y_data, z_data, mass_data], condition_Rplane)
-        # Find and save the com
-        x_com[i] = np.sum(x_plane * mass_plane) / np.sum(mass_plane)
-        y_com[i] = np.sum(y_plane * mass_plane) / np.sum(mass_plane)
-        z_com[i] = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
+# def find_radial_com(x_data, y_data, z_data, dim_data, mass_data, theta_arr, R0):
+#     """ Find the maxima density points in the radial plane for all the thetas in theta_arr"""
+#     x_com = np.zeros(len(theta_arr))
+#     y_com = np.zeros(len(theta_arr))
+#     z_com = np.zeros(len(theta_arr))
+#     for i in range(len(theta_arr)):
+#         # Exclude points inside the smoothing lenght and find radial plane
+#         condition_distance = np.sqrt(x_data**2 + y_data**2 + z_data**2) > R0 
+#         condition_Rplane = radial_plane(x_data, y_data, dim_data, theta_arr[i])
+#         condition_Rplane = np.logical_and(condition_Rplane, condition_distance)
+#         x_plane, y_plane, z_plane, mass_plane = make_slices([x_data, y_data, z_data, mass_data], condition_Rplane)
+#         # Find and save the com
+#         x_com[i] = np.sum(x_plane * mass_plane) / np.sum(mass_plane)
+#         y_com[i] = np.sum(y_plane * mass_plane) / np.sum(mass_plane)
+#         z_com[i] = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
         
-    return x_com, y_com, z_com 
+#     return x_com, y_com, z_com 
 
 @numba.njit
 def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):

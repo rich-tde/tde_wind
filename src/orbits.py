@@ -185,7 +185,7 @@ def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R
         
     return x_max, y_max, z_max    
 
-def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, theta_arr, params):
+def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, theta_arr, params, test = False):
     """ Find the centres of mass in the transverse plane"""
     Mbh, Rstar, mstar, beta = params[0], params[1], params[2], params[3]
     Rt = Rstar * (Mbh/mstar)**(1/3)
@@ -209,8 +209,26 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         print(idx)
         # Find the transverse plane
         condition_T, x_T, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, coord = True)
-        x_plane, y_plane, z_plane, mass_plane, dim_plane = \
-            make_slices([x_cut, y_cut, z_cut, mass_cut, dim_cut], condition_T)
+        x_plane, y_plane, z_plane, mass_plane, den_plane, dim_plane = \
+            make_slices([x_cut, y_cut, z_cut, mass_cut, den_cut, dim_cut], condition_T)
+        if idx == np.argmin(np.abs(theta_arr)): # plot section at pericenter
+            print(theta_arr[idx])
+            from matplotlib import colors
+            fig, (ax1, ax2) = plt.subplots(1,2, figsize = (20,8))
+            img = ax1.scatter(x_T, z_plane, c = den_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 1e-6))
+            cbar = plt.colorbar(img)
+            cbar.set_label(r'Density $[M_\odot/R_\odot^3]$')
+            ax1.set_ylabel(r'Z [$R_\odot$]')
+            img = ax2.scatter(x_T, z_plane, c = mass_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-12, vmax = 1e-8))
+            cbar = plt.colorbar(img)
+            cbar.set_label(r'Cell mass $[R_\odot]$')
+            for ax in [ax1, ax2]:
+                ax.scatter(0,0, edgecolor= 'k', marker = 'o', facecolors='none', s=80)
+                ax.set_xlim(-50, 30)
+                ax.set_ylim(-10, 10)
+                ax.set_xlabel(r'T [$R_\odot$]')
+            plt.suptitle('(0,0) is the maximum density point of the radial plane', fontsize = 14)
+            plt.tight_layout()
         # Cut the TZ plane to not keep points too far away.
         r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
         thresh = get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) #8 * Rstar * (r_stream_rad[idx]/Rp)**(1/2)
@@ -235,8 +253,25 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         print(idx)
         # Find the transverse plane
         condition_T, x_T, _ = transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, coord = True)
-        x_plane, y_plane, z_plane, mass_plane, dim_plane = \
-            make_slices([x_cut, y_cut, z_cut, mass_cut, dim_cut], condition_T)
+        x_plane, y_plane, z_plane, mass_plane, den_plane, dim_plane = \
+            make_slices([x_cut, y_cut, z_cut, mass_cut, den_cut, dim_cut], condition_T)
+        if idx == np.argmin(np.abs(theta_arr)): # plot section at pericenter
+            from matplotlib import colors
+            fig, (ax1, ax2) = plt.subplots(1,2, figsize = (20,8))
+            img = ax1.scatter(x_T, z_plane, c = den_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 1e-6))
+            cbar = plt.colorbar(img)
+            cbar.set_label(r'Density $[M_\odot/R_\odot^3]$')
+            ax1.set_ylabel(r'Z [$R_\odot$]')
+            img = ax2.scatter(x_T, z_plane, c = mass_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-12, vmax = 1e-8))
+            cbar = plt.colorbar(img)
+            cbar.set_label(r'Cell mass $[R_\odot]$')
+            for ax in [ax1, ax2]:
+                ax.scatter(0,0, edgecolor= 'k', marker = 'o', facecolors='none', s=80)
+                ax.set_xlim(-50, 30)
+                ax.set_ylim(-10, 10)
+                ax.set_xlabel(r'T [$R_\odot$]')
+            plt.suptitle('(0,0) is the center of mass of the TZ plane of the max density point', fontsize = 14)
+            plt.tight_layout()
         # Restrict the points to not keep points too far away.
         r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
         thresh = get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) #8 * Rstar * (r_cmTR[idx]/Rp)**(1/2)
@@ -259,8 +294,10 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     #     _, idx_cm = tree.query([x_com, y_com, z_com])
     #     indeces_cm[idx]= indeces_plane[idx_cm]
     # indeces_cm = indeces_cm.astype(int)
-
-    return x_cm, y_cm, z_cm, thresh_cm
+    if test == True:
+        return x_cm, y_cm, z_cm, thresh_cm, x_cmTR, y_cmTR, z_cmTR, x_stream_rad, y_stream_rad, z_stream_rad
+    else:
+        return x_cm, y_cm, z_cm, thresh_cm
 
 def bound_mass(x, check_data, mass_data, m_thres):
     """ Function to use with root finding to find the coordinate threshold to respect the wanted mass enclosed in"""
@@ -457,7 +494,7 @@ if __name__ == '__main__':
     compton = 'Compton'
 
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    snap = '216'
+    snap = '164'
     path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
     Rt = Rstar * (Mbh/mstar)**(1/3)
     Rp = Rt / beta
@@ -470,11 +507,13 @@ if __name__ == '__main__':
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_arr = Ryan_sampler(theta_init)
     theta_arr = theta_arr[:250]
-    data = make_tree(path, snap, is_tde = True, energy = False)
-    print('Tree done')
+    data = make_tree(path, snap, energy = False)
     dim_cell = data.Vol**(1/3)
+    cut = data.Den>1e-19
+    X, Y, Z, dim_cell, Den, Mass = \
+        make_slices([data.X, data.Y, data.Z, dim_cell, data.Den, data.Mass], cut)
 
-    make_stream = False
+    make_stream = True
     make_width = False
     test_s = False
     test_orbit = False
@@ -516,17 +555,37 @@ if __name__ == '__main__':
         plt.show()
 
     if make_stream:
-        x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(data.X, data.Y, data.Z, dim_cell, data.Den, data.Mass, theta_arr, params)
+        x_stream, y_stream, z_stream, thresh_cm, x_cmTR, y_cmTR, z_cmTR, x_stream_rad, y_stream_rad, z_stream_rad = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, test = True)
+        np.save(f'/Users/paolamartire/shocks/data/{folder}/streamRad_{check}{snap}.npy', [theta_arr, x_stream_rad, y_stream_rad, z_stream_rad])
+        np.save(f'/Users/paolamartire/shocks/data/{folder}/streamcmTR_{check}{snap}.npy', [theta_arr, x_cmTR, y_cmTR, z_cmTR])
         np.save(f'/Users/paolamartire/shocks/data/{folder}/stream_{check}{snap}.npy', [theta_arr, x_stream, y_stream, z_stream, thresh_cm])
 
-        plt.plot(x_stream, y_stream, c = 'b', label = 'COM fix width TZ plane')
+        #%%
+        plt.figure(figsize = (10,6))
+        plt.plot(x_stream_rad, y_stream_rad, c = 'b', label = 'Max density stream')
+        plt.plot(x_cmTR, y_cmTR, c = 'r', label = 'COM TZ plane of max density points')
+        plt.plot(x_stream, y_stream, c = 'k', label = 'COM TZ plane of previous COM points')
         plt.xlim(-300,20)
         plt.ylim(-60,60)
+        plt.xlabel(r'X [$R_\odot$]', fontsize = 18)
+        plt.ylabel(r'Y [$R_\odot$]', fontsize = 18)
         plt.grid()
-        # plt.legend()
-        # plt.savefig(f'/Users/paolamartire/shocks/Figs/FixTZStream{snap}.png')
-        plt.show()  
+        plt.legend()
+        plt.savefig(f'/Users/paolamartire/shocks/Figs/WH/TZStream{snap}.png')
+        plt.show() 
 
+        plt.figure(figsize = (6,6))
+        plt.plot(x_stream_rad, y_stream_rad, c = 'b', label = 'Max density stream')
+        plt.plot(x_cmTR, y_cmTR, c = 'r', label = 'COM TZ plane of max density points')
+        plt.plot(x_stream, y_stream, c = 'k', label = 'COM TZ plane of previous COM points')
+        plt.xlim(-60,20)
+        plt.ylim(-50,50)
+        plt.xlabel(r'X [$R_\odot$]', fontsize = 18)
+        plt.ylabel(r'Y [$R_\odot$]', fontsize = 18)
+        plt.grid()
+        plt.legend()
+        plt.show() 
+    #%%
     if make_width:
         midplane = np.abs(data.Z) < dim_cell
         X_midplane, Y_midplane, Den_midplane, Mass_midplane = make_slices([data.X, data.Y, data.Den, data.Mass], midplane)

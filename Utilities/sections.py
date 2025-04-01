@@ -65,10 +65,10 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit
 
     # Slice as wide as the widest --> more cells in the center 
     # Consider just the cells nearby (both in 2D and 3D)
-    R_data_mod = np.sqrt(x_data**2 + y_data**2+ z_data**2)
-    R_chosen_mod = np.sqrt(x_chosen**2 + y_chosen**2 + z_chosen**2)
-    r_data_mod = np.sqrt(x_data**2 + y_data**2)
-    r_chosen_mod = np.sqrt(x_chosen**2 + y_chosen**2)
+    # R_data_mod = np.sqrt(x_data**2 + y_data**2+ z_data**2)
+    # R_chosen_mod = np.sqrt(x_chosen**2 + y_chosen**2 + z_chosen**2)
+    # r_data_mod = np.sqrt(x_data**2 + y_data**2)
+    # r_chosen_mod = np.sqrt(x_chosen**2 + y_chosen**2)
     s = 0.5 #[R_star] since in BonnerotLu22 the planes have thickness 1R_star. If you use step_ang: 2*step_ang * r_chosen_mod
     condition_x = np.abs(x_data - x_chosen) < s
     condition_y = np.abs(y_data - y_chosen) < s
@@ -89,8 +89,8 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit
     vers_norm = np.array([xRhat[0], xRhat[1]])
     # New x (T) coordinate
     x_onplaneall = np.dot(data_trasl, vers_norm)
-    condition_cut = np.abs(x_onplaneall) < 40
-    condition_tra = np.logical_and(condition_tra, condition_cut)
+    # condition_cut = np.abs(x_onplaneall) < 100
+    # condition_tra = np.logical_and(condition_tra, condition_cut)
     if coord:
         x_onplane = x_onplaneall[condition_tra]
         # y_onplane = np.dot(data_trasl[condition_coord], vers_tg)

@@ -1,4 +1,4 @@
-""" If alice: Compute and save the mass enclosed and the total diss rate in a sphere of radius R0, Rt, a_mb, apo for all the snapshots.
+""" If alice: Compute and save the unbound mass.
 If local: plots"""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
@@ -51,7 +51,7 @@ if alice:
     data = make_tree(f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snaps[0]}', snaps[0], energy = True)
     X, Y, Z, mass, den, vx, vy, vz = \
         data.X, data.Y, data.Z, data.Mass, data.Den, data.VX, data.VY, data.VZ
-    cut = den > 1e-19
+    cut = den > -1e-19
     X, Y, Z, mass, den, vx, vy, vz = \
         make_slices([X, Y, Z, mass, den, vx, vy, vz], cut)
     Rsph = np.sqrt(X**2 + Y**2 + Z**2)
@@ -66,7 +66,7 @@ if alice:
         data = make_tree(path, snap, energy = True)
         X, Y, Z, mass, den, vx, vy, vz = \
             data.X, data.Y, data.Z, data.Mass, data.Den, data.VX, data.VY, data.VZ
-        cut = den > 1e-19
+        cut = den > -1e-19
         X, Y, Z, mass, den, vx, vy, vz = \
             make_slices([X, Y, Z, mass, den, vx, vy, vz], cut)
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
@@ -77,6 +77,7 @@ if alice:
     with open(f'{abspath}/data/{folder}/Mass_unbound{check}.txt','w') as file:
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')  
         file.write('# unbound mass [M_odot] \n' + ' '.join(map(str, Mass_unbound)) + '\n')  
+        file.write('# unbound mass [M_odot] wihtout cut in density \n' + ' '.join(map(str, Mass_unbound)) + '\n')  
         file.close()
 
 #%%
@@ -85,13 +86,14 @@ if plot:
     tfbL, M_unL= np.loadtxt(f'{abspath}/data/{commonfold}LowRes/Mass_unboundLowRes.txt')
     tfb, M_un = np.loadtxt(f'{abspath}/data/{commonfold}/Mass_unbound.txt')
     tfbH, M_unH = np.loadtxt(f'{abspath}/data/{commonfold}HiRes/Mass_unboundHiRes.txt')
-    plt.plot(tfbL, M_unL/mstar,'o-', c = 'C1', label = 'Low')
-    plt.plot(tfb, M_un/mstar,'o-', c = 'yellowgreen', label = 'Fid')
-    plt.plot(tfbH, M_unH/mstar,'o-', c = 'darkviolet', label = 'High')
+    plt.plot(tfbL, M_unL/mstar, c = 'C1', label = 'Low')
+    plt.plot(tfb, M_un/mstar, c = 'yellowgreen', label = 'Fid')
+    plt.plot(tfbH, M_unH/mstar, c = 'darkviolet', label = 'High')
     plt.xlabel(r'$t [t_{\rm fb}]$')
     plt.ylabel(r'Mass unbound [$M_\star$]')
     plt.grid()
     plt.legend(fontsize = 15)
+    plt.savefig(f'{abspath}/Figs/multiple/Mass_unbound.png', dpi = 300, bbox_inches='tight')
     plt.show()
 
     
