@@ -36,7 +36,6 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = '' 
-snap = 348
 Rt = orb.tidal_radius(Rstar, mstar, Mbh)
 a_min = orb.semimajor_axis(Rstar, mstar, Mbh, prel.G)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
@@ -47,9 +46,6 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) #shape: (3, 192)
 observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 num_obs = prel.NPIX # you'll use it for the mean of the observers. It's 192, unless you don't find the photosphere for someone and so decrease of 1
-photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/_photo{snap}.txt')
-xph, yph, zph = photo[0], photo[1], photo[2]
-rph = np.sqrt(xph**2 + yph**2 + zph**2)
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 pre_saving = f'{abspath}/data/{folder}'
@@ -62,6 +58,9 @@ rossland = np.loadtxt(f'{opac_path}/ross.txt')
 T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
 
 for snap in snaps:
+    photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/_photo{snap}.txt')
+    xph, yph, zph = photo[0], photo[1], photo[2]
+    rph = np.sqrt(xph**2 + yph**2 + zph**2)
     data = make_tree(f'{pre}/{snap}', snap, energy = True)
     if alice:
         box = np.load(f'{pre}/snap_{snap}/box_{snap}.npy')
