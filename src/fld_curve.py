@@ -296,3 +296,5 @@ for idx_s, snap in enumerate(snaps):
             f.close()
         
 eng.exit()
+
+# %%

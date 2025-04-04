@@ -1,4 +1,4 @@
-""" Finddensity profile"""
+""" Find density profile"""
 #%%
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
@@ -20,7 +20,9 @@ import warnings
 warnings.filterwarnings('ignore')
 
 import numpy as np
+import k3match
 import scipy.integrate as sci
+from scipy.stats import gmean
 import matlab.engine
 from sklearn.neighbors import KDTree
 import healpy as hp
@@ -85,13 +87,15 @@ which_obs = 'arch'
 # print(Rg)
 #%%
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snap = 237
+snap = 348
 a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 e_mb = orb.eccentricity(Rstar, mstar, Mbh, beta)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp = Rt * beta
 
+#%% MATLAB GOES WHRRRR, thanks Cindy.
+eng = matlab.engine.start_matlab()
 #%% Observers -----------------------------------------------------------------
 observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
 obs_indices = np.arange(len(observers_xyz[0]))
@@ -112,8 +116,14 @@ if which_obs == 'arch':
                 (0,0,1),
                 (-1/np.sqrt(2), 0 , 1/np.sqrt(2)),
                 (-1,0,0)]
-    dot_prod = np.dot(wanted_obs, observers_xyz)
-    indices_chosen = np.argmax(dot_prod, axis=1)
+    # dot_prod = np.dot(wanted_obs, observers_xyz)
+    # indices_chosen = np.argmax(dot_prod, axis=1)
+    indices_chosen = []
+    for i, obs_sel in enumerate(wanted_obs):   
+        _, indices_dist, dist = k3match.cartesian(obs_sel[0], obs_sel[1], obs_sel[2], x_obs, y_obs, z_obs, 1)
+        indices_dist, dist = sort_list([indices_dist, dist], dist)
+        indices_chosen.append(indices_dist[0:4])
+    # indices_chosen = np.array(indices_chosen, dtype = int)
     label_obs = ['x+', '45', 'z+', '135', 'x-']
     colors_obs = ['k', 'green', 'orange', 'b', 'r']
 else:
@@ -130,11 +140,12 @@ else:
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
 ax1.scatter(x_obs, y_obs, c = 'gray')
-# scatter plot of x_obs[indices_chosen] with a different color for each different point
-ax1.scatter(x_obs[indices_chosen], y_obs[indices_chosen], edgecolors = 'k', s = 50, c = colors_obs )
-ax1.set_ylabel(r'$Y$')
 ax2.scatter(x_obs, z_obs, c = 'gray')
-ax2.scatter(x_obs[indices_chosen], z_obs[indices_chosen], edgecolors = 'k', s = 50, c = colors_obs )
+# scatter plot of x_obs[indices_chosen] with a different color for each different point
+for j, idx_list in enumerate(indices_chosen):
+    ax1.scatter(x_obs[idx_list], y_obs[idx_list], edgecolors = 'k', s = 50, c = colors_obs[j])
+    ax2.scatter(x_obs[idx_list], z_obs[idx_list], edgecolors = 'k', s = 50, c = colors_obs[j])
+ax1.set_ylabel(r'$Y$')
 ax2.set_ylabel(r'$Z$')
 for ax in [ax1, ax2]:
     ax.set_xlabel(r'$X$')
@@ -150,9 +161,6 @@ T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
-
-#%% MATLAB GOES WHRRRR, thanks Cindy.
-eng = matlab.engine.start_matlab()
 
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 box = np.zeros(6)
@@ -178,6 +186,7 @@ else:
     VY = np.load(f'{pre}/{snap}/Vy_{snap}.npy')
     VZ = np.load(f'{pre}/{snap}/Vz_{snap}.npy')
     T = np.load(f'{pre}/{snap}/T_{snap}.npy')
+    Mass = np.load(f'{pre}/{snap}/Mass_{snap}.npy')
     Den = np.load(f'{pre}/{snap}/Den_{snap}.npy')
     Rad = np.load(f'{pre}/{snap}/Rad_{snap}.npy')
     Vol = np.load(f'{pre}/{snap}/Vol_{snap}.npy')
@@ -190,66 +199,83 @@ del Rad
 R = np.sqrt(X**2 + Y**2 + Z**2)    
 
 xyz = np.array([X, Y, Z]).T
-N_ray = 20_000
-# if (f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}.txt') exists, delete it
-for i in indices_chosen:
-    mu_x = observers_xyz[i][0]
-    mu_y = observers_xyz[i][1]
-    mu_z = observers_xyz[i][2]
+N_ray = 5_000
+with open(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}.txt','w') as file:
+        file.close()
+for idx_list in indices_chosen:
+    r_mean = []
+    d_mean = []
+    v_rad_mean = []
+    v_tot_mean = []
+    for i in idx_list:
+        mu_x = observers_xyz[i][0]
+        mu_y = observers_xyz[i][1]
+        mu_z = observers_xyz[i][2]
 
-    # Box is for dynamic ray making
-    # box gives -x, -y, -z, +x, +y, +z
-    if mu_x < 0:
-        rmax = box[0] / mu_x
-    else:
-        rmax = box[3] / mu_x
-    if mu_y < 0:
-        rmax = min(rmax, box[1] / mu_y)
-    else:
-        rmax = min(rmax, box[4] / mu_y)
-    if mu_z < 0:
-        rmax = min(rmax, box[2] / mu_z)
-    else:
-        rmax = min(rmax, box[5] / mu_z)
+        # Box is for dynamic ray making
+        # box gives -x, -y, -z, +x, +y, +z
+        if mu_x < 0:
+            rmax = box[0] / mu_x
+        else:
+            rmax = box[3] / mu_x
+        if mu_y < 0:
+            rmax = min(rmax, box[1] / mu_y)
+        else:
+            rmax = min(rmax, box[4] / mu_y)
+        if mu_z < 0:
+            rmax = min(rmax, box[2] / mu_z)
+        else:
+            rmax = min(rmax, box[5] / mu_z)
 
-    r = np.logspace(-0.25, np.log10(rmax), N_ray)
+        r = np.logspace(-0.25, np.log10(rmax), N_ray)
 
-    x = r*mu_x
-    y = r*mu_y
-    z = r*mu_z
-    r = r*np.sqrt(mu_x**2 + mu_y**2 + mu_z**2)
-    xyz2 = np.array([x, y, z]).T
-    del x, y, z
-    # find the simulation cell corresponding to cells in the wanted ray
-    tree = KDTree(xyz, leaf_size = 50) 
-    _, idx = tree.query(xyz2, k=1)
-    idx = [ int(idx[i][0]) for i in range(len(idx))]
-    # Quantity corresponding to the ray
-    d = Den[idx] * prel.den_converter
-    t = T[idx]
-    ray_x = X[idx]
-    ray_y = Y[idx]
-    ray_z = Z[idx]
-    rad_den = Rad_den[idx]
-    volume = Vol[idx]
-    ray_vx = VX[idx]
-    ray_vy = VY[idx]
-    ray_vz = VZ[idx]
+        x = r*mu_x
+        y = r*mu_y
+        z = r*mu_z
+        r = r*np.sqrt(mu_x**2 + mu_y**2 + mu_z**2)
+        xyz2 = np.array([x, y, z]).T
+        del x, y, z
+        # find the simulation cell corresponding to cells in the wanted ray
+        tree = KDTree(xyz, leaf_size = 50) 
+        _, idx = tree.query(xyz2, k=1)
+        idx = [ int(idx[i][0]) for i in range(len(idx))]
+        # Quantity corresponding to the ray
+        d = Den[idx] * prel.den_converter
+        t = T[idx]
+        ray_x = X[idx]
+        ray_y = Y[idx]
+        ray_z = Z[idx]
+        ray_Mass = Mass[idx]
+        rad_den = Rad_den[idx]
+        volume = Vol[idx]
+        ray_vx = VX[idx]
+        ray_vy = VY[idx]
+        ray_vz = VZ[idx]
+        
+        sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
+        sigma_rossland = np.array(sigma_rossland)[0]
+        underflow_mask = sigma_rossland != 0.0
+        idx = np.array(idx)
+        d, t, r, ray_x, ray_y, ray_z, ray_vx, ray_vy, ray_vz, idx = \
+            make_slices([d, t, r, ray_x, ray_y, ray_z, ray_vx, ray_vy, ray_vz, idx], underflow_mask)
+        v_rad, v_theta, v_phi = to_spherical_components(ray_vx, ray_vy, ray_vz, lat_obs[i], long_obs[i])
+        v_tot = np.sqrt(ray_vx**2 + ray_vy**2 + ray_vz**2)
+        r_mean.append(r)
+        d_mean.append(d)
+        v_rad_mean.append(v_rad)
+        v_tot_mean.append(v_tot)
     
-    sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
-    sigma_rossland = np.array(sigma_rossland)[0]
-    underflow_mask = sigma_rossland != 0.0
-    idx = np.array(idx)
-    d, t, r, ray_x, ray_y, ray_z, ray_vx, ray_vy, ray_vz, idx = \
-        make_slices([d, t, r, ray_x, ray_y, ray_z, ray_vx, ray_vy, ray_vz, idx], underflow_mask)
-    v_rad, v_theta, v_phi = to_spherical_components(ray_vx, ray_vy, ray_vz, lat_obs[i], long_obs[i])
-    v_tot = np.sqrt(ray_vx**2 + ray_vy**2 + ray_vz**2)
+    r_mean = np.mean(r_mean, axis=0)
+    d_mean = np.mean(d_mean, axis=0)
+    v_rad_mean = np.mean(v_rad_mean, axis=0)
+    v_tot_mean = np.mean(v_tot_mean, axis=0)
+
     with open(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}.txt','a') as file:
         file.write(f'# Observer latitude: {lat_obs[i]}, longitude: {long_obs[i]}\n')
-        file.write(f' '.join(map(str, r)) + '\n')
-        file.write(f' '.join(map(str, d)) + '\n')
-        file.write(f' '.join(map(str, v_rad)) + '\n')
-        file.write(f' '.join(map(str, v_tot)) + '\n')
+        file.write(f' '.join(map(str, r_mean)) + '\n')
+        file.write(f' '.join(map(str, d_mean)) + '\n')
+        file.write(f' '.join(map(str, v_rad_mean)) + '\n')
+        file.write(f' '.join(map(str, v_tot_mean)) + '\n')
         file.close()
 
 #%%
@@ -269,20 +295,18 @@ for i in range(0,1):#len(r_arr)):
     ray_vr = ray_vr_arr[i]
     ray_v = ray_v_arr[i]
     ax1.plot(r/Rt, d, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
-    ax2.plot(r/Rt, np.abs(ray_v)*prel.Rsol_cgs*1e-5/prel.tsol_cgs, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = 'b', ls = '--')
     ax2.plot(r/Rt, np.abs(ray_vr)*prel.Rsol_cgs*1e-5/prel.tsol_cgs, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
-    ax3.plot(r/Rt, d*np.abs(ray_v)*prel.Rsol_cgs/prel.tsol_cgs, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
+    ax3.plot(r/Rt, r**2*d*np.abs(ray_vr)*prel.Rsol_cgs**3/prel.tsol_cgs, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
     # ax1.axvline(x = rph[i]/Rt, c = 'gray', ls = '--')
 ax1.plot(x_test, y_test2, c = 'gray', ls = 'dashed', label = r'$\rho \propto R^{-2}$')
-ax3.plot(x_test, y_test2*1e6, c = 'k', ls = 'dashed', label = r'$\rho \propto R^{-2}$')
 ax1.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto R^{-3}$')
 ax1.plot(x_test, y_test4, c = 'gray', ls = '-.', label = r'$\rho \propto R^{-4}$')
 ax1.axhspan(np.min(np.exp(Rho_cool)), np.max(np.exp(Rho_cool)), alpha=0.2, color='gray')
 ax1.set_ylim(2e-19, 2e-7)
-ax2.set_ylim(500, 2e4)
+# ax2.set_ylim(500, 2e4)
 ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
 ax2.set_ylabel(r'$|v_r|$ [km/s]')
-ax3.set_ylabel(r'$|v_r| \rho$ [g/cm$^2$s]')
+ax3.set_ylabel(r'$|v_r| \rho R^2$ [g/s]')
 for ax in [ax1, ax2, ax3]:
     #put the legend outside
     boxleg = ax.get_position()
@@ -291,7 +315,7 @@ for ax in [ax1, ax2, ax3]:
     # ax.legend(loc='lower right', fontsize = 12)
     ax.grid()
     ax.set_xlabel(r'R [R$_t]$')
-    ax.set_xlim(0.9, 1.5)#6e2)
+    ax.set_xlim(0.9, 3e2)
     ax.loglog()
     ax.set_title(f'{snap}')
 plt.tight_layout()
