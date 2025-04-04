@@ -57,20 +57,15 @@ Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
 
-if not alice:
-    snaps = snaps[-1]
-
-
 for snap in snaps:
     photo = np.loadtxt(f'{pre_saving}/photo/_photo{snap}.txt')
     xph, yph, zph = photo[0], photo[1], photo[2]
     rph = np.sqrt(xph**2 + yph**2 + zph**2)
-        data = make_tree(f'{pre}/snap_{snap}', snap, energy = True)        
-    else:
-        data = make_tree(f'{pre}/{snap}', snap, energy = True)
     if alice:
+        data = make_tree(f'{pre}/snap_{snap}', snap, energy = True)        
         box = np.load(f'{pre}/snap_{snap}/box_{snap}.npy')
     else:
+        data = make_tree(f'{pre}/{snap}', snap, energy = True)
         box = np.load(f'{pre}/{snap}/box_{snap}.npy')
     X, Y, Z, T, Den, Mass, Rad, Vol, VX, VY, VZ = \
         data.X, data.Y, data.Z, data.Temp, data.Den, data.Mass, data.Rad, data.Vol, data.VX, data.VY, data.VZ
