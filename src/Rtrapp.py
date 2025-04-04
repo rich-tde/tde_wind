@@ -65,7 +65,9 @@ for snap in snaps:
     photo = np.loadtxt(f'{pre_saving}/photo/_photo{snap}.txt')
     xph, yph, zph = photo[0], photo[1], photo[2]
     rph = np.sqrt(xph**2 + yph**2 + zph**2)
-    data = make_tree(f'{pre}/{snap}', snap, energy = True)
+        data = make_tree(f'{pre}/snap_{snap}', snap, energy = True)        
+    else:
+        data = make_tree(f'{pre}/{snap}', snap, energy = True)
     if alice:
         box = np.load(f'{pre}/snap_{snap}/box_{snap}.npy')
     else:
