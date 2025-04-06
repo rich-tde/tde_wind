@@ -29,7 +29,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiRes'
+check = ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 do = True
 
@@ -39,6 +39,7 @@ do = True
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 R0 = 0.6 * Rt
+Rs = 2*prel.G*Mbh/prel.csol_cgs**2
 a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 Rcheck = np.array([R0, Rt, a_mb, apo])
@@ -51,7 +52,7 @@ if alice:
     data = make_tree(f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snaps[0]}', snaps[0], energy = True)
     X, Y, Z, mass, den, vx, vy, vz = \
         data.X, data.Y, data.Z, data.Mass, data.Den, data.VX, data.VY, data.VZ
-    cut = den > 1e-19
+    cut = np.logical_and(den > 1e-19, np.sqrt(X**2 + Y**2 + Z**2)>Rs)
     X, Y, Z, mass, den, vx, vy, vz = \
         make_slices([X, Y, Z, mass, den, vx, vy, vz], cut)
     Rsph = np.sqrt(X**2 + Y**2 + Z**2)
