@@ -231,6 +231,7 @@ else:
     mean_vel = np.zeros(len(snaps))
     percentile16 = np.zeros(len(snaps))
     percentile84 = np.zeros(len(snaps))
+    count_zeros = np.zeros(len(snaps))
 
     for i, snap in enumerate(snaps):
         print(snap)
@@ -251,29 +252,29 @@ else:
         percentile84[i] = percentile84_sn
     
     # High res
-    ratio_unbound_trH = np.zeros(len(tfbH))
-    mean_velH = np.zeros(len(tfbH))
-    percentile16H = np.zeros(len(tfbH))
-    percentile84H = np.zeros(len(tfbH))
+    # ratio_unbound_trH = np.zeros(len(tfbH))
+    # mean_velH = np.zeros(len(tfbH))
+    # percentile16H = np.zeros(len(tfbH))
+    # percentile84H = np.zeros(len(tfbH))
 
-    for j, snap_sH in enumerate(snapH):
-        xtrH, ytrH, ztrH, voltrH, dentrH, TemptrH, Rad_dentrH, VxtrH, VytrH, VztrH = \
-            np.loadtxt(f'{abspath}/data/{folder}HiRes/trap/HiRes_Rtr{snap_sH}.txt')
-        rtrH = np.sqrt(xtrH**2 + ytrH**2 + ztrH**2)
-        velH = np.sqrt(VxtrH**2 + VytrH**2 + VztrH**2)
+    # for j, snap_sH in enumerate(snapH):
+    #     xtrH, ytrH, ztrH, voltrH, dentrH, TemptrH, Rad_dentrH, VxtrH, VytrH, VztrH = \
+    #         np.loadtxt(f'{abspath}/data/{folder}HiRes/trap/HiRes_Rtr{snap_sH}.txt')
+    #     rtrH = np.sqrt(xtrH**2 + ytrH**2 + ztrH**2)
+    #     velH = np.sqrt(VxtrH**2 + VytrH**2 + VztrH**2)
 
-        mean_velH_sn = np.mean(velH)
-        percentile16H_sn = np.percentile(velH, 16)
-        percentile84H_sn = np.percentile(velH, 84)
-        PE_tr_specH = -prel.G * Mbh / (rtrH-Rs)
-        KE_tr_specH = 0.5 * velH**2
-        energyH = KE_tr_specH + PE_tr_specH
-        ratio_unbound_trH_sn = len(energyH[energyH>0]) / len(energyH)
+    #     mean_velH_sn = np.mean(velH)
+    #     percentile16H_sn = np.percentile(velH, 16)
+    #     percentile84H_sn = np.percentile(velH, 84)
+    #     PE_tr_specH = -prel.G * Mbh / (rtrH-Rs)
+    #     KE_tr_specH = 0.5 * velH**2
+    #     energyH = KE_tr_specH + PE_tr_specH
+    #     ratio_unbound_trH_sn = len(energyH[energyH>0]) / len(energyH)
 
-        ratio_unbound_trH[j] = ratio_unbound_trH_sn
-        mean_velH[j] = mean_velH_sn
-        percentile16H[j] = percentile16H_sn
-        percentile84H[j] = percentile84H_sn
+    #     ratio_unbound_trH[j] = ratio_unbound_trH_sn
+    #     mean_velH[j] = mean_velH_sn
+    #     percentile16H[j] = percentile16H_sn
+    #     percentile84H[j] = percentile84H_sn
 
 
     plt.figure(figsize=(10,6))
