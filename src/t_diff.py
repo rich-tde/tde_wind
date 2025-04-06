@@ -37,7 +37,7 @@ n = 1.5
 compton = 'Compton'
 check = '' 
 snap = 348
-direction = 'r' # 'r' or 'z
+direction = 'z' # 'r' or 'z
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/_photo{snap}.txt')
 xph, yph, zph = photo[0], photo[1], photo[2]
@@ -72,163 +72,165 @@ X, Y, Z, dim_cell, T, Den, Vol, VX, VY, VZ = \
 xyz = np.array([X, Y, Z]).T
 N_ray = 500
 #%
-if direction == 'z':
-    # observers
-    Rt_obs = [Rt, 0, 0]
-    amin_obs = [a_min, 0, 0]
-    apo_obs = [apo, 0, 0]
-    observers_xyz = np.array([Rt_obs, amin_obs, apo_obs])
-    i = 0
-    mu_x = observers_xyz[i][0]
-    mu_y = observers_xyz[i][1]
-    mu_z = observers_xyz[i][2]
-    # x_tr = np.zeros(len(mu_z))
-    # y_tr = np.zeros(len(mu_z))
-    # z_tr = np.zeros(len(mu_z))
-    # dim_tr = np.zeros(len(mu_z))
-    # den_tr = np.zeros(len(mu_z))
-    # Temp_tr = np.zeros(len(mu_z))
-    # Vx_tr = np.zeros(len(mu_z))
-    # Vy_tr = np.zeros(len(mu_z))
-    # Vz_tr = np.zeros(len(mu_z))
+# observers
+Rt_obs = [Rt, 0, 0]
+amin_obs = [a_min, 0, 0]
+apo_obs = [apo, 0, 0]
+observers_xyz = np.array([Rt_obs, amin_obs, apo_obs])
+i = 0
+mu_x = observers_xyz[i][0]
+mu_y = observers_xyz[i][1]
+mu_z = observers_xyz[i][2]
+# x_tr = np.zeros(len(mu_z))
+# y_tr = np.zeros(len(mu_z))
+# z_tr = np.zeros(len(mu_z))
+# dim_tr = np.zeros(len(mu_z))
+# den_tr = np.zeros(len(mu_z))
+# Temp_tr = np.zeros(len(mu_z))
+# Vx_tr = np.zeros(len(mu_z))
+# Vy_tr = np.zeros(len(mu_z))
+# Vz_tr = np.zeros(len(mu_z))
 
-    # Box is for dynamic ray making
-    if mu_x < 0:
-        rmax = box[0] / mu_x
-    else:
-        rmax = box[3] / mu_x
-    if mu_y < 0:
-        rmax = min(rmax, box[1] / mu_y)
-    else:
-        rmax = min(rmax, box[4] / mu_y)
-    if mu_z < 0:
-        rmax = min(rmax, box[2] / mu_z)
-    else:
-        rmax = min(rmax, box[5] / mu_z)
+# Box is for dynamic ray making
+if mu_x < 0:
+    rmax = box[0] / mu_x
+else:
+    rmax = box[3] / mu_x
+if mu_y < 0:
+    rmax = min(rmax, box[1] / mu_y)
+else:
+    rmax = min(rmax, box[4] / mu_y)
+if mu_z < 0:
+    rmax = min(rmax, box[2] / mu_z)
+else:
+    rmax = min(rmax, box[5] / mu_z)
 
-    r_height = np.logspace(-0.25, np.log10(rmax), N_ray) # create the z array
-    #go vertically 
-    x = np.repeat(mu_x, len(r_height))
-    y = np.repeat(mu_y, len(r_height))
-    z = r_height
-    xyz2 = np.array([x, y, z]).T
-    del x, y, z
+r_height = np.logspace(-0.25, np.log10(rmax), N_ray) # create the z array
+#go vertically 
+x = np.repeat(mu_x, len(r_height))
+y = np.repeat(mu_y, len(r_height))
+z = r_height
+xyz2 = np.array([x, y, z]).T
+del x, y, z
 
-    tree = KDTree(xyz, leaf_size=50)
-    _, idx = tree.query(xyz2, k=1)
-    idx = [ int(idx[i][0]) for i in range(len(idx))] # no -1 because we start from 0
-    idx = np.unique(idx)
-    d = Den[idx] * prel.den_converter
-    t = T[idx]
-    ray_x = X[idx]
-    ray_y = Y[idx]
-    ray_z = Z[idx]
-    ray_dim = dim_cell[idx]
-    ray_vz = VZ[idx]
-    d, t, ray_x, ray_y, ray_vz, ray_dim, idx, ray_z = \
-        sort_list([d, t, ray_x, ray_y, ray_vz, ray_dim, idx, ray_z], ray_z)
+tree = KDTree(xyz, leaf_size=50)
+_, idx = tree.query(xyz2, k=1)
+idx = [ int(idx[i][0]) for i in range(len(idx))] # no -1 because we start from 0
+idx = np.unique(idx)
+d = Den[idx] * prel.den_converter
+t = T[idx]
+ray_x = X[idx]
+ray_y = Y[idx]
+ray_z = Z[idx]
+ray_dim = dim_cell[idx]
+ray_vx = VX[idx]
+ray_vy = VY[idx]
+ray_vz = VZ[idx]
+d, t, ray_x, ray_y, ray_vx, ray_vy, ray_vz, ray_dim, idx, ray_z = \
+    sort_list([d, t, ray_x, ray_y, ray_vx, ray_vy, ray_vz, ray_dim, idx, ray_z], ray_z)
 
-    # Interpolate ----------------------------------------------------------
-    sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
-    sigma_rossland = np.array(sigma_rossland)[0]
-    underflow_mask = sigma_rossland != 0.0
-    idx = np.array(idx)
-    d, t, ray_x, ray_y, ray_z, ray_dim, ray_vz, idx = \
-        make_slices([d, t, ray_x, ray_y, ray_z, ray_dim, ray_vz, idx], underflow_mask)
-    sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
-    del sigma_rossland
-    gc.collect()
+# Interpolate ----------------------------------------------------------
+sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
+sigma_rossland = np.array(sigma_rossland)[0]
+underflow_mask = sigma_rossland != 0.0
+idx = np.array(idx)
+d, t, ray_x, ray_y, ray_z, ray_dim, ray_vx, ray_vy, ray_vz, idx = \
+    make_slices([d, t, ray_x, ray_y, ray_z, ray_dim, ray_vx, ray_vy, ray_vz, idx], underflow_mask)
+sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
+del sigma_rossland
+gc.collect()
 
-    # Optical Depth
-    ray_fuT = np.flipud(ray_z) 
-    kappa_rossland = np.flipud(sigma_rossland_eval) #np.flipud(d)*0.34cm2/g
-    # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
-    los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, ray_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_z. YOu integrate in the z direction
+# Optical Depth
+ray_fuT = np.flipud(ray_z) 
+kappa_rossland = np.flipud(sigma_rossland_eval) #np.flipud(d)*0.34cm2/g
+# compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
+los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, ray_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_z. YOu integrate in the z direction
 
-    # los ofr each cell
-    # los = sigma_rossland_eval * 2 * ray_dim # this is the conversion for ray_z. YOu integrate in the z direction
+# los ofr each cell
+# los = sigma_rossland_eval * 2 * ray_dim # this is the conversion for ray_z. YOu integrate in the z direction
 
-    #
-    fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,10))
-    cutplot = np.logical_and(Den > 1e-19, np.abs(X-mu_x)<dim_cell)
-    img = ax1.scatter(Y[cutplot], Z[cutplot]/apo, c = X[cutplot]/Rt,  cmap = 'jet', alpha = 0.7, vmin = 0.5, vmax = 1.5)
-    img = ax1.scatter(xyz2[:,1], xyz2[:,2]/apo, c = xyz2[:,0]/Rt, cmap = 'jet', marker = 's', edgecolors= 'k', label = 'What we want', vmin = 0.5, vmax = 1.5)
-    img = ax1.scatter(ray_y, ray_z/apo, c = ray_x/Rt, cmap = 'jet', edgecolors= 'k', label = 'From simulation', vmin = 0.5, vmax = 1.5)
-    cbar = plt.colorbar(img, orientation = 'horizontal')
-    cbar.set_label(r'X [$R_{\rm t}$]')
-    ax1.legend(fontsize = 18)
-    img = ax2.scatter(ray_y, ray_z/apo, c = los, cmap = 'jet', norm = colors.LogNorm(vmin = 1e-1, vmax = 1e2))
-    ax2.plot(ray_y, ray_z/apo, c = 'k', alpha = 0.5)
-    cbar = plt.colorbar(img, orientation = 'horizontal')
-    cbar.set_label(r'$\tau$')
-    ax1.set_ylabel(r'Z [$R_{\rm a}$]')
-    for ax in [ax1, ax2]:
-        ax.set_xlabel(r'Y [$R_{\odot}$]')
-        ax.set_xlim(-50,50)
-        ax.set_ylim(-1/apo, 3.5)
-    ax1.set_title('Points wanted and selected', fontsize = 18)
-    ax2.set_title('Optical depth for each cell', fontsize = 18)
-    plt.tight_layout()
-    #
-    ctau = prel.csol_cgs/los #c/tau [code units]
-    try: 
-        ctauV = ctau/np.abs(ray_vz)
-        Rtr_idx_all = np.where(ctauV<1)[0]
-        x_tr_all = ray_x[Rtr_idx_all]
-        y_tr_all = ray_y[Rtr_idx_all]
-        z_tr_all = ray_z[Rtr_idx_all]
-        # Rtr_idx_all = Rtr_idx_all[ctauV[~np.isnan(ctauV)]]
-        Rtr_idx_all_inside = np.where(np.abs(z_tr_all)<np.mean(rph))[0] # you should find the nearest observer from healpix and compare with Rph in this direction
-        Rtr_idx_all = Rtr_idx_all[Rtr_idx_all_inside]
-        Rtr_idx = Rtr_idx_all[-1]
-        x_tr= ray_x[Rtr_idx]
-        y_tr= ray_y[Rtr_idx]
-        z_tr= ray_z[Rtr_idx]
-        dim_tr = ray_dim[Rtr_idx]
-        den_tr = d[Rtr_idx]
-        Temp_tr = t[Rtr_idx]
-        Vz_tr = ray_vz[Rtr_idx]
-        print(f'Rtr found', flush=False)
-    except IndexError: # if you don't find the photosphere, exlude the observer
-        print(f'No Rtr found', flush=False)
-        sys.stdout.flush()
-        # continue
+#
+fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,10))
+cutplot = np.logical_and(Den > 1e-19, np.abs(X-mu_x)<dim_cell)
+img = ax1.scatter(Y[cutplot], Z[cutplot]/apo, c = X[cutplot]/Rt,  cmap = 'jet', alpha = 0.7, vmin = 0.5, vmax = 1.5)
+img = ax1.scatter(xyz2[:,1], xyz2[:,2]/apo, c = xyz2[:,0]/Rt, cmap = 'jet', marker = 's', edgecolors= 'k', label = 'What we want', vmin = 0.5, vmax = 1.5)
+img = ax1.scatter(ray_y, ray_z/apo, c = ray_x/Rt, cmap = 'jet', edgecolors= 'k', label = 'From simulation', vmin = 0.5, vmax = 1.5)
+cbar = plt.colorbar(img, orientation = 'horizontal')
+cbar.set_label(r'X [$R_{\rm t}$]')
+ax1.legend(fontsize = 18)
+img = ax2.scatter(ray_y, ray_z/apo, c = los, cmap = 'jet', norm = colors.LogNorm(vmin = 1e-1, vmax = 1e2))
+ax2.plot(ray_y, ray_z/apo, c = 'k', alpha = 0.5)
+cbar = plt.colorbar(img, orientation = 'horizontal')
+cbar.set_label(r'$\tau$')
+ax1.set_ylabel(r'Z [$R_{\rm a}$]')
+for ax in [ax1, ax2]:
+    ax.set_xlabel(r'Y [$R_{\odot}$]')
+    ax.set_xlim(-50,50)
+    ax.set_ylim(-1/apo, 3.5)
+ax1.set_title('Points wanted and selected', fontsize = 18)
+ax2.set_title('Optical depth for each cell', fontsize = 18)
+plt.tight_layout()
+#
+ctau = prel.csol_cgs/los #c/tau [code units]
+try: 
+    ctauV = ctau/np.abs(ray_vz)
+    Rtr_idx_all = np.where(ctauV<1)[0]
+    x_tr_all = ray_x[Rtr_idx_all]
+    y_tr_all = ray_y[Rtr_idx_all]
+    z_tr_all = ray_z[Rtr_idx_all]
+    # Rtr_idx_all = Rtr_idx_all[ctauV[~np.isnan(ctauV)]]
+    Rtr_idx_all_inside = np.where(np.abs(z_tr_all)<np.mean(rph))[0] # you should find the nearest observer from healpix and compare with Rph in this direction
+    Rtr_idx_all = Rtr_idx_all[Rtr_idx_all_inside]
+    Rtr_idx = Rtr_idx_all[-1]
+    x_tr= ray_x[Rtr_idx]
+    y_tr= ray_y[Rtr_idx]
+    z_tr= ray_z[Rtr_idx]
+    dim_tr = ray_dim[Rtr_idx]
+    den_tr = d[Rtr_idx]
+    Temp_tr = t[Rtr_idx]
+    Vz_tr = ray_vz[Rtr_idx]
+    print(f'Rtr found', flush=False)
+except IndexError: # if you don't find the photosphere, exlude the observer
+    print(f'No Rtr found', flush=False)
+    sys.stdout.flush()
+    # continue
+t_dyn = ray_z/np.abs(ray_vz) * prel.tsol_cgs # [s]
 
-    tdiff = 2*ray_dim * los * prel.Rsol_cgs/ prel.c_cgs # [cgs] H=2*dim_cell
-    los_fuT = np.flipud(los)
-    tdiff_cumulative = - np.flipud(sci.cumulative_trapezoid(los_fuT, ray_fuT, initial = 0))*prel.Rsol_cgs/ prel.c_cgs # this is the conversion for ray_z. YOu integrate in the z direction
-    
-    #
-    plt.figure(figsize = (10,5))
-    img = plt.scatter(ray_z/apo, sigma_rossland_eval/d, c = t, cmap = 'jet', norm = colors.LogNorm(vmin = 3e3, vmax = 5e5))
-    cbar = plt.colorbar(img)
-    cbar.set_label(r'$\tau$')
-    plt.xlabel(r'$R [R_{\rm a}]$')
-    plt.ylabel(r'$\kappa$ [cm$^2$/g]')
-    plt.xlim(0,7)
-    plt.axhline(0.34, c = 'k', linestyle = '--', label = r'$\kappa_{\rm Th}$')
-    # plt.ylim(1, 1e4)
-    plt.yscale('log')
-    #
-    idx_trap = np.argmin(np.abs(ray_z-z_tr)) # index of the trapping point   
-    fig, (ax1, ax2) = plt.subplots(1, 2 , figsize = (12,5))
-    ax1.plot(ray_z/apo, tdiff_cumulative/t_fall_cgs, c = 'k')
-    ax1.set_ylabel(r'$t_{\rm diff} [t_{\rm fb}]$')
-    ax1.set_ylim(0, 5) # a bit further than the Rtrapp
-    # ax1.axvline(ray_z[np.argmin(np.abs(ctau[1:]/ray_vz[1:]-1))]/Rt)
-    img = ax2.scatter(ray_z/apo, los, c = ctau/np.abs(ray_vz), cmap = 'rainbow', vmin = 0, vmax = 2)
-    cbar = plt.colorbar(img)
-    cbar.set_label(r'c$\tau^{-1}/V_z$')
-    ax2.set_ylabel(r'$\tau$')
-    ax2.set_yscale('log')
-    # ax2.set_ylim(0.1, 1e2)
-    for ax in [ax1, ax2]:
-        ax.set_xlabel(r'$Z [R_{\rm a}]$')
-        ax.set_xlim(-0.1, 7)
-        ax.axvline(ray_z[idx_trap]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr} (c/\tau=V_r)$')
-        ax.axvline(np.mean(rph)/apo, c = 'k', linestyle = 'dotted', label =  r'$<R_{\rm ph}>$')
-        ax.legend(fontsize = 14)
-    plt.tight_layout()
+#tdiff = \tau*H/c 
+los_fuT = np.flipud(los)
+tdiff_cumulative = - np.flipud(sci.cumulative_trapezoid(los_fuT, ray_fuT, initial = 0))*prel.Rsol_cgs/ prel.c_cgs # this is the conversion for ray_z. YOu integrate in the z direction
+#%%
+plt.figure(figsize = (10,5))
+img = plt.scatter(ray_z/apo, sigma_rossland_eval/d, c = t, cmap = 'jet', norm = colors.LogNorm(vmin = 3e3, vmax = 5e5))
+cbar = plt.colorbar(img)
+cbar.set_label(r'$\tau$')
+plt.xlabel(r'$R [R_{\rm a}]$')
+plt.ylabel(r'$\kappa$ [cm$^2$/g]')
+plt.xlim(0,7)
+plt.axhline(0.34, c = 'k', linestyle = '--', label = r'$\kappa_{\rm Th}$')
+# plt.ylim(1, 1e4)
+plt.yscale('log')
+#
+idx_trap = np.argmin(np.abs(ray_z-z_tr)) # index of the trapping point   
+fig, (ax1, ax2) = plt.subplots(1, 2 , figsize = (12,5))
+ax1.plot(ray_z/apo, tdiff_cumulative/t_fall_cgs, c = 'k')
+ax1.set_ylabel(r'$t_{\rm diff} [t_{\rm fb}]$')
+ax1.axhline(t_dyn[idx_trap]/t_fall_cgs, c = 'k', linestyle = '--', label =  r'$t_{\rm dyn}=R_z/v_z$')
+# ax1.set_ylim(0, 5) # a bit further than the Rtrapp
+# ax1.axvline(ray_z[np.argmin(np.abs(ctau[1:]/ray_vz[1:]-1))]/Rt)
+img = ax2.scatter(ray_z/apo, los, c = ctau/np.abs(ray_vz), cmap = 'rainbow', vmin = 0, vmax = 2)
+cbar = plt.colorbar(img)
+cbar.set_label(r'c$\tau^{-1}/V_z$')
+ax2.set_ylabel(r'$\tau$')
+ax2.set_yscale('log')
+# ax2.set_ylim(0.1, 1e2)
+for ax in [ax1, ax2]:
+    ax.set_xlabel(r'$Z [R_{\rm a}]$')
+    ax.set_xlim(-0.1, 7)
+    ax.axvline(ray_z[idx_trap]/apo, c = 'b', linestyle = '--', label =  r'$R_{\rm tr} (c/\tau=V_r)$')
+    ax.axvline(np.mean(rph)/apo, c = 'k', linestyle = 'dotted', label =  r'$<R_{\rm ph}>$')
+    ax.legend(fontsize = 14)
+plt.tight_layout()
 
 #%%
 eng.exit()

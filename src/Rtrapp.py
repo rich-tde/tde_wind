@@ -35,7 +35,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = '' 
+check = 'HiRes' 
 Rt = orb.tidal_radius(Rstar, mstar, Mbh)
 a_min = orb.semimajor_axis(Rstar, mstar, Mbh, prel.G)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
@@ -180,21 +180,21 @@ for snap in snaps:
             print(f'No Rtr found in {i}', flush=False)
             sys.stdout.flush()
             continue
-        
-    with open(f'{pre_saving}/trap/{check}_Rtr{snap}.txt', 'a') as f:
-            f.write('# Data for the Rtr (all in CGS). Lines are: x_tr, y_tr, z_tr, vol_tr, den_tr, Temp_tr, Vx_tr, Vy_tr, Vz_tr, Vr_tr \n')
-            f.write(' '.join(map(str, x_tr)) + '\n')
-            f.write(' '.join(map(str, y_tr)) + '\n')
-            f.write(' '.join(map(str, z_tr)) + '\n')
-            f.write(' '.join(map(str, vol_tr)) + '\n')
-            f.write(' '.join(map(str, den_tr)) + '\n')
-            f.write(' '.join(map(str, Temp_tr)) + '\n')
-            f.write(' '.join(map(str, Vx_tr)) + '\n')
-            f.write(' '.join(map(str, Vy_tr)) + '\n')
-            f.write(' '.join(map(str, Vz_tr)) + '\n')
-            f.write(' '.join(map(str, Vr_tr)) + '\n')
-            f.close()
 
+    if alice:
+        with open(f'{pre_saving}/trap/{check}_Rtr{snap}.txt', 'a') as f:
+                f.write('# Data for the Rtr (all in CGS). Lines are: x_tr, y_tr, z_tr, vol_tr, den_tr, Temp_tr, Vx_tr, Vy_tr, Vz_tr, Vr_tr \n')
+                f.write(' '.join(map(str, x_tr)) + '\n')
+                f.write(' '.join(map(str, y_tr)) + '\n')
+                f.write(' '.join(map(str, z_tr)) + '\n')
+                f.write(' '.join(map(str, vol_tr)) + '\n')
+                f.write(' '.join(map(str, den_tr)) + '\n')
+                f.write(' '.join(map(str, Temp_tr)) + '\n')
+                f.write(' '.join(map(str, Vx_tr)) + '\n')
+                f.write(' '.join(map(str, Vy_tr)) + '\n')
+                f.write(' '.join(map(str, Vz_tr)) + '\n')
+                f.write(' '.join(map(str, Vr_tr)) + '\n')
+                f.close()
 
 if plot:
     trap = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/trap/{check}_Rtr{snap}.txt')
