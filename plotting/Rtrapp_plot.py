@@ -262,8 +262,8 @@ else: # Evolution in time (comparison with high res) and comparison with the pho
     ax1.set_ylabel(r'Fraction of missing $R_{\rm tr}$')
     ax1.set_ylim(-0.1, 1)
 
-    img = ax2.scatter(tfb, mean_vel_tr * conversion_sol_kms * 1e-4, c = ratio_unbound_tr, s = 60, vmin = 0, vmax = 0.8, marker = '*', label = r'$R_{\rm tr}$')
-    ax2.scatter(tfb, mean_vel_ph * conversion_sol_kms * 1e-4, c = ratio_unbound_ph, s = 60, vmin = 0, vmax = 0.8, label = r'$R_{\rm ph}$')
+    img = ax2.scatter(tfb, mean_vel_tr * conversion_sol_kms * 1e-4, c = ratio_unbound_tr, cmap = 'jet', s = 100, vmin = 0, vmax = 0.8, marker = '*',  label = r'$R_{\rm tr}$')
+    ax2.scatter(tfb, mean_vel_ph * conversion_sol_kms * 1e-4, c = ratio_unbound_ph, cmap = 'jet', s = 100, vmin = 0, vmax = 0.8,  label = r'$R_{\rm ph}$')
     cbar = plt.colorbar(img, orientation = 'horizontal')
     cbar.set_label('unbound/tot')
     ax2.set_ylabel(r'Mean velocity [$10^4$ km/s]')

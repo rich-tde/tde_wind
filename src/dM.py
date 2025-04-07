@@ -19,18 +19,9 @@ from Utilities.operators import make_tree
 import Utilities.sections as sec
 import src.orbits as orb
 from Utilities.selectors_for_snap import select_snap
+import Utilities.prelude as prel
 matplotlib.rcParams['figure.dpi'] = 150
 
-#
-## CONSTANTS
-#
-
-G = 1
-G_SI = 6.6743e-11
-Msol = 2e30 #1.98847e30 # kg
-Rsol = 7e8 #6.957e8 # m
-t = np.sqrt(Rsol**3 / (Msol*G_SI ))
-c = 3e8 / (7e8/t)
 
 #
 ## PARAMETERS STAR AND BH
@@ -44,12 +35,12 @@ n = 1.5
 compton = 'Compton'
 
 Mbh = 10**m
-Rs = 2*G*Mbh / c**2
-Rt = Rstar * (Mbh/mstar)**(1/3)
+Rs = 2*orb.R_grav(Mbh, prel.csol_cgs, prel.G)
+Rt = orb.tidal_radius(Rstar, mstar, Mbh)
 Rp =  Rt / beta
 R0 = 0.6 * Rt
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
-Ecirc = -G*Mbh/(4*Rp)
+Ecirc = -prel.G*Mbh/(4*Rp)
 norm = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call \Delta E). It's GM/Rt^2 * Rstar
 
 #
@@ -58,8 +49,20 @@ norm = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call
 
 # Choose what to do
 save = True
-compare_times = True
+compare_times = False
 movie = False 
+dMdecc = True
+
+def specific_j(r, vel):
+    """ (Magnitude of) specific angular momentum """
+    j = np.cross(r, vel)
+    magnitude_j = np.linalg.norm(j, axis = 1)
+    return magnitude_j
+
+def eccentricity_squared(r, vel, specOE, Mbh, G):
+    j = specific_j(r, vel)
+    ecc2 = 1 + 2 * specOE * j**2 / (G * Mbh)**2
+    return ecc2
 
 if alice:
     checks = [''] #['LowRes', '','HiRes'] 
@@ -200,6 +203,81 @@ if movie:
 
     subprocess.run(ffmpeg_command, shell=True)
         
+if dMdecc:
+    checks = ['']#['LowRes','', 'HiRes']
+    colors_check = ['yellowgreen']#['C1', 'yellowgreen', 'darkviolet']
+    labels = ['Low', 'Fid', 'High']
+    snap = 348
+    bins = np.arange(-6.5, 2, .1) 
+    bins_ecc = np.arange(0, 1, .01) #np.linspace(-5,5,1000) 
+    mid_points = (bins[:-1]+bins[1:])/2
+    mid_points_ecc = (bins_ecc[:-1]+bins_ecc[1:])/2
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 6))
+
+    for i, check in enumerate(checks):
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+        # save snaps, tfb and energy bins
+        with open(f'{abspath}/data/{folder}/dMdEdecc_{check}.txt','w') as file:
+            file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
+            file.write((' '.join(map(str, bins)) + '\n'))
+            file.close()
+        
+        # Load data
+        path = f'{abspath}/TDE/{folder}/{snap}'
+        data = make_tree(path, snap, energy = False)
+        # Compute the orbital energy
+        cut = data.Den > 1e-19
+        X, Y, Z, VX, VY, VZ, mass = \
+            sec.make_slices([data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Mass], cut)
+        R_vec = np.transpose(np.array([X, Y, Z]))
+        vel_vec = np.transpose(np.array([VX, VY, VZ]))
+        R = np.linalg.norm(R_vec, axis = 1)
+        V = np.linalg.norm(vel_vec, axis=1)
+        orbital_enegy = orb.orbital_energy(R, V, mass, prel.G, prel.csol_cgs, Mbh)
+        specific_orbital_energy = orbital_enegy / mass
+        bound = specific_orbital_energy<0
+        R_vec_bound, vel_vec_bound, specOE_bound, mass_bound  = \
+            R_vec[bound], vel_vec[bound], specific_orbital_energy[bound], mass[bound]
+        ecc2 = eccentricity_squared(R_vec_bound, vel_vec_bound, specOE_bound, Mbh, prel.G)
+        ecc_bound = np.sqrt(ecc2)
+        nans = np.isnan(ecc_bound)
+        mass_bound, ecc_bound = mass_bound[~nans], ecc_bound[~nans]
+
+        # (Specific) energy bins 
+        specOE_norm = specific_orbital_energy/norm 
+        mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
+        dm_dE = mass_binned / (np.diff(bins_edges)*norm)
+
+        # Eccentricity bins
+        mass_binned_ecc, bins_edges_ecc = np.histogram(ecc_bound, bins = bins_ecc, weights=mass_bound) # sum the mass in each bin (bins done on specOE_norm)
+        dm_dE_ecc = mass_binned_ecc / (np.diff(bins_edges_ecc))
+
+        with open(f'{abspath}/data/{folder}/dMdEdecc_{check}.txt','a') as file:
+            file.write(f'# dM/dE snap {snap} \n')
+            file.write((' '.join(map(str, dm_dE)) + '\n'))
+            file.write(f'# dM/de bound material snap {snap} \n')
+            file.write((' '.join(map(str, dm_dE_ecc)) + '\n'))
+            file.close()
+        
+        ax1.plot(mid_points, dm_dE, c = colors_check[i], label = labels[i], linewidth = 3-i)
+        ax2.plot(mid_points_ecc, dm_dE_ecc, c = colors_check[i], label = labels[i], linewidth = 3-i)
+        ax2.axvline(np.mean(ecc_bound), c = 'k', linestyle = '--')
+        ax2.text(np.mean(ecc_bound)+0.05, 2e-4, r'$<e>$ ' + f'= {np.round(np.mean(ecc_bound),2)}', fontsize = 14, rotation = 90)
+        
+    ax1.set_ylabel('dM/dE', fontsize = 16)
+    ax1.set_xlabel(r'$E/\Delta E$', fontsize = 16)
+    ax1.set_ylim(2e-6, 2e-2)
+    ax1.set_xlim(-2,2)
+    ax2.set_ylabel('dM/de bound material', fontsize = 16)
+    ax2.set_xlabel(r'$e$', fontsize = 16)
+    ax2.set_ylim(1e-4, 10)
+    for ax in (ax1, ax2):
+        ax.set_yscale('log')
+    plt.suptitle(f'dM/dE and dM/de for at snap {snap}', fontsize = 16)
+    plt.tight_layout()
+    # ax2.legend(loc='upper left', fontsize = 14)
+    plt.savefig(f'{abspath}Figs/multiple/dEdMdecc{snap}.png')
 
 #%%###########
 # if do_dMds:

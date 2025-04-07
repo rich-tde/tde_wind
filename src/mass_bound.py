@@ -31,7 +31,6 @@ n = 1.5
 compton = 'Compton'
 check = ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-do = True
 
 #%%
 # MAIN
@@ -50,38 +49,41 @@ if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
     # find the unboud mass in the first snapshot which is due to the disruption
     data = make_tree(f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snaps[0]}', snaps[0], energy = True)
-    X, Y, Z, mass, den, vx, vy, vz = \
-        data.X, data.Y, data.Z, data.Mass, data.Den, data.VX, data.VY, data.VZ
+    X, Y, Z, mass, den, vx, vy, vz, IE_den = \
+        data.X, data.Y, data.Z, data.Mass, data.Den, data.VX, data.VY, data.VZ, data.IE
+    IE_spec = IE_den/den
     cut = np.logical_and(den > 1e-19, np.sqrt(X**2 + Y**2 + Z**2)>Rs)
-    X, Y, Z, mass, den, vx, vy, vz = \
-        make_slices([X, Y, Z, mass, den, vx, vy, vz], cut)
+    X, Y, Z, mass, den, vx, vy, vz, IE_spec = \
+        make_slices([X, Y, Z, mass, den, vx, vy, vz, IE_spec], cut)
     Rsph = np.sqrt(X**2 + Y**2 + Z**2)
     vel = np.sqrt(vx**2 + vy**2 + vz**2)
-    orb_en_cut = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh)
-    Mass_dynunbound = np.sum(mass[orb_en_cut > 0])
+    orb_en_cut = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh) + IE_spec
+    Mass_dynunbound = np.sum(mass[orb_en_cut > 0]) 
     # compute the unbound mass for all the snapshots
     Mass_unbound = np.zeros(len(snaps))
     for i,snap in enumerate(snaps):
         print(snap)
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         data = make_tree(path, snap, energy = True)
-        X, Y, Z, mass, den, vx, vy, vz = \
-            data.X, data.Y, data.Z, data.Mass, data.Den, data.VX, data.VY, data.VZ
-        cut = den > 1e-19
-        X, Y, Z, mass, den, vx, vy, vz = \
-            make_slices([X, Y, Z, mass, den, vx, vy, vz], cut)
+        X, Y, Z, mass, den, vx, vy, vz, IE_den = \
+        data.X, data.Y, data.Z, data.Mass, data.Den, data.VX, data.VY, data.VZ, data.IE
+        IE_spec = IE_den/den
+        cut = np.logical_and(den > 1e-19, np.sqrt(X**2 + Y**2 + Z**2)>Rs)
+        X, Y, Z, mass, den, vx, vy, vz, IE_spec = \
+            make_slices([X, Y, Z, mass, den, vx, vy, vz, IE_spec], cut)
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
         vel = np.sqrt(vx**2 + vy**2 + vz**2)
-        orb_en_cut = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh)
+        orb_en_cut = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh) + IE_spec
         Mass_unbound[i] = np.sum(mass[orb_en_cut > 0])-Mass_dynunbound
 
     with open(f'{abspath}/data/{folder}/Mass_unbound{check}.txt','w') as file:
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')  
-        file.write('# unbound mass [M_odot] \n' + ' '.join(map(str, Mass_unbound)) + '\n')  
+        file.write('# unbound mass [M_odot] considering Eorb+Eint > 0 \n' + ' '.join(map(str, Mass_unbound)) + '\n')  
         file.close()
 
 #%%
 if plot:
+    print(Rt/apo)
     commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     tfbL, M_unL, _, M_unnocutL = np.loadtxt(f'{abspath}/data/{commonfold}LowRes/Mass_unboundLowRes.txt')
     tfb, M_un, _, M_unnocut = np.loadtxt(f'{abspath}/data/{commonfold}/Mass_unbound.txt')

@@ -279,11 +279,10 @@ for idx_list in indices_chosen:
         file.close()
 
 #%%
-x_test = np.arange(1e-1, 1e3)
-y_test2 = 1e-8 * x_test**(-2)
-y_test3 = 2e-9 * x_test**(-3)
-y_test4 = 1e-10 * x_test**(-4)
-y_test7 = 1e-10 * x_test**(-7)
+x_test = np.arange(1e-3, 1e2)
+y_test2 = 1e-17 * (x_test/apo)**(-2)
+y_test3 = 2e-21 * (x_test/apo)**(-3)
+y_test4 = 1e-24 * (x_test/apo)**(-4)
 data_prof = np.loadtxt(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}.txt')
 r_arr, d_arr, ray_vr_arr, ray_v_arr = data_prof[0::4], data_prof[1::4], data_prof[2::4], data_prof[3::4]
 fig, ax1 = plt.subplots(1, 1, figsize=(8, 7))
@@ -294,10 +293,10 @@ for i in range(0,1):#len(r_arr)):
     d = d_arr[i]
     ray_vr = ray_vr_arr[i]
     ray_v = ray_v_arr[i]
-    ax1.plot(r/Rt, d, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
-    ax2.plot(r/Rt, np.abs(ray_vr)*prel.Rsol_cgs*1e-5/prel.tsol_cgs, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
-    ax3.plot(r/Rt, r**2*d*np.abs(ray_vr)*prel.Rsol_cgs**3/prel.tsol_cgs, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
-    # ax1.axvline(x = rph[i]/Rt, c = 'gray', ls = '--')
+    ax1.plot(r/apo, d, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
+    ax2.plot(r/apo, np.abs(ray_vr)*prel.Rsol_cgs*1e-5/prel.tsol_cgs, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
+    ax3.plot(r/apo, r**2*d*np.abs(ray_vr)*prel.Rsol_cgs**3/prel.tsol_cgs, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
+    # ax1.axvline(x = rph[i]/apo, c = 'gray', ls = '--')
 ax1.plot(x_test, y_test2, c = 'gray', ls = 'dashed', label = r'$\rho \propto R^{-2}$')
 ax1.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto R^{-3}$')
 ax1.plot(x_test, y_test4, c = 'gray', ls = '-.', label = r'$\rho \propto R^{-4}$')
@@ -314,9 +313,18 @@ for ax in [ax1, ax2, ax3]:
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     # ax.legend(loc='lower right', fontsize = 12)
     ax.grid()
-    ax.set_xlabel(r'R [R$_t]$')
-    ax.set_xlim(0.9, 3e2)
+    ax.set_xlabel(r'R [R$_a]$')
+    ax.set_xlim(1e-2, 80)
     ax.loglog()
+    ax4 = ax.twinx()
+    # r_Rt_ticks = [1, 10, 100]
+    # ax.set_yticks(R_ticks)
+    # ax.set_yticklabels([f"$10^{{{int(np.log10(tick))}}}$" for tick in R_ticks])
+
+    # ax.set_xticks(r_Rt_ticks)
+    # ax.set_xlim(r[0]/Rt, r[-1]/Rt)
+    
+
     ax.set_title(f'{snap}')
 plt.tight_layout()
 plt.show()

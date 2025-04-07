@@ -149,7 +149,7 @@ los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, ray_fuT, initial = 0)
 # los ofr each cell
 # los = sigma_rossland_eval * 2 * ray_dim # this is the conversion for ray_z. YOu integrate in the z direction
 
-#
+#%%
 fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,10))
 cutplot = np.logical_and(Den > 1e-19, np.abs(X-mu_x)<dim_cell)
 img = ax1.scatter(Y[cutplot], Z[cutplot]/apo, c = X[cutplot]/Rt,  cmap = 'jet', alpha = 0.7, vmin = 0.5, vmax = 1.5)
@@ -158,7 +158,7 @@ img = ax1.scatter(ray_y, ray_z/apo, c = ray_x/Rt, cmap = 'jet', edgecolors= 'k',
 cbar = plt.colorbar(img, orientation = 'horizontal')
 cbar.set_label(r'X [$R_{\rm t}$]')
 ax1.legend(fontsize = 18)
-img = ax2.scatter(ray_y, ray_z/apo, c = los, cmap = 'jet', norm = colors.LogNorm(vmin = 1e-1, vmax = 1e2))
+img = ax2.scatter(ray_y, ray_z/apo, c = los, cmap = 'jet', norm = colors.LogNorm(vmin = 1e-1, vmax = 1e3))
 ax2.plot(ray_y, ray_z/apo, c = 'k', alpha = 0.5)
 cbar = plt.colorbar(img, orientation = 'horizontal')
 cbar.set_label(r'$\tau$')
@@ -169,8 +169,9 @@ for ax in [ax1, ax2]:
     ax.set_ylim(-1/apo, 3.5)
 ax1.set_title('Points wanted and selected', fontsize = 18)
 ax2.set_title('Optical depth for each cell', fontsize = 18)
+plt.suptitle(f'Observer at ({int(mu_x)}, {int(mu_y)}, {int(mu_z)}), snap {snap}', fontsize = 20)
 plt.tight_layout()
-#
+#%%
 ctau = prel.csol_cgs/los #c/tau [code units]
 try: 
     ctauV = ctau/np.abs(ray_vz)
