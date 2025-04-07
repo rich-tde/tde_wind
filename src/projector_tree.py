@@ -121,7 +121,7 @@ if __name__ == '__main__':
         import matlab.engine
         from src.Opacity.linextrapolator import nouveau_rich
         eng = matlab.engine.start_matlab()
-        opac_path = f'{abspath}/src/Opacity'
+        opac_path = f'{prepath}/src/Opacity'
         T_cool = np.loadtxt(f'{opac_path}/T.txt')
         Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
         rossland = np.loadtxt(f'{opac_path}/ross.txt')
@@ -147,6 +147,7 @@ if __name__ == '__main__':
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
         t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
 
+        snaps = np.array(snaps)
         idx_chosen = np.array([np.argmin(np.abs(snaps-100)),
                                np.argmin(np.abs(snaps-237)),
                                np.argmin(np.abs(snaps-348))])
