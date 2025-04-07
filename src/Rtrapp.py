@@ -45,7 +45,6 @@ t_fall_cgs = t_fall * 24 * 3600
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) #shape: (3, 192)
 observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
-num_obs = prel.NPIX # you'll use it for the mean of the observers. It's 192, unless you don't find the photosphere for someone and so decrease of 1
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 pre_saving = f'{abspath}/data/{folder}'

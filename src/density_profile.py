@@ -82,7 +82,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = '' # '' or 'HiRes'
-which_obs = 'arch'
+which_obs = ''
 # Rg = Mbh * prel.G / prel.csol_cgs**2
 # print(Rg)
 #%%
@@ -128,15 +128,17 @@ if which_obs == 'arch':
     label_obs = ['x+', '45', 'z+', '135', 'x-']
     colors_obs = ['k', 'green', 'orange', 'b', 'r']
 else:
-    indices_chosen_mid_slice = np.array([np.argmin(np.abs(observers_xyz_mid[0] + 1)),
-                                np.argmin(np.abs(observers_xyz_mid[0] - 1)),
-                                np.argmin(np.abs(observers_xyz_mid[1] + 1)), 
-                                np.argmin(np.abs(observers_xyz_mid[1] - 1))])
-    indices_chosen_mid = indices_mid[indices_chosen_mid_slice]     
-    indices_chosen_z = np.array([np.argmin(np.abs(z_obs + 1)),
-                                np.argmin(np.abs(z_obs - 1))])
-    indices_chosen = np.concatenate([indices_chosen_mid, indices_chosen_z])
-    label_obs = ['x-', 'x+', 'y-', 'y+', 'z-', 'z+']
+    indices1 = obs_indices[np.logical_and(z_obs>=0, np.logical_and(x_obs >= 0, y_obs >= 0))]
+    indices2 = obs_indices[np.logical_and(z_obs>=0, np.logical_and(x_obs < 0, y_obs >= 0))]
+    indices3 = obs_indices[np.logical_and(z_obs>=0, np.logical_and(x_obs < 0, y_obs < 0))]
+    indices4 = obs_indices[np.logical_and(z_obs>=0, np.logical_and(x_obs >= 0, y_obs < 0))]
+    indices5 = obs_indices[np.logical_and(z_obs<0, np.logical_and(x_obs >= 0, y_obs >= 0))]
+    indices6 = obs_indices[np.logical_and(z_obs<0, np.logical_and(x_obs < 0, y_obs >= 0))]
+    indices7 = obs_indices[np.logical_and(z_obs<0, np.logical_and(x_obs < 0, y_obs < 0))]
+    indices8 = obs_indices[np.logical_and(z_obs<0, np.logical_and(x_obs >= 0, y_obs < 0))]
+    indices_chosen = [indices1, indices2, indices3, indices4, indices5, indices6, indices7, indices8]
+    label_obs = ['+x+y+z', '-x+y+z', '-x-y+z', '+x-y+z',
+                 '+x+y-z', '-x+y-z', '-x-y-z', '+x-y-z',]
     colors_obs = plt.cm.tab10(np.linspace(0, 1, len(indices_chosen)))
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
@@ -351,7 +353,7 @@ for ax in [ax1, ax2, ax3]:
     #put the legend outside
     boxleg = ax.get_position()
     ax.set_position([boxleg.x0, boxleg.y0, boxleg.width * 0.8, boxleg.height])
-    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 12)
+    # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 12)
     # ax.legend(loc='lower right', fontsize = 12)
     ax.grid()
     ax.set_xlabel(r'R [R$_a]$')

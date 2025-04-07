@@ -59,7 +59,7 @@ if alice:
     Rsph = np.sqrt(X**2 + Y**2 + Z**2)
     vel = np.sqrt(vx**2 + vy**2 + vz**2)
     orb_en = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh) 
-    bern = orb_en/mass #+ IE_spec + Press/den
+    bern = orb_en/mass + IE_spec + Press/den
     Mass_dynunbound = np.sum(mass[bern > 0]) 
     Mass_dynunbound_frombound = mstar - np.sum(mass[bern < 0]) 
     # compute the unbound mass for all the snapshots
@@ -78,7 +78,7 @@ if alice:
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
         vel = np.sqrt(vx**2 + vy**2 + vz**2)
         orb_en = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh) 
-        bern = orb_en/mass #+ IE_spec + Press/den
+        bern = orb_en/mass + IE_spec + Press/den
         Mass_unbound[i] = np.sum(mass[bern > 0]) - Mass_dynunbound
         Mass_unbound_frombound[i] = mstar - np.sum(mass[bern < 0]) - Mass_dynunbound_frombound
 

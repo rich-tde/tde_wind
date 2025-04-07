@@ -25,6 +25,7 @@ from scipy.spatial import KDTree
 from Utilities.selectors_for_snap import select_snap
 from src.orbits import make_cfr
 from Utilities.sections import make_slices
+import Utilities.prelude as prel
 
 #
 ## FUNCTIONS
@@ -69,7 +70,7 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
         sigma_rossland_eval[sigma_rossland == 0.0] = 1e-20
         del sigma_rossland
-        to_grid = sigma_rossland_eval
+        to_grid = sigma_rossland_eval * prel.Rsol_cgs # should be /(sigma/Rsol_cgs) since sigma is in cgs
     # make cut in density
     cutden = Den > 1e-19
     x_cut, y_cut, z_cut, to_grid_cut, Den_cut = \
@@ -180,7 +181,6 @@ if __name__ == '__main__':
 
     else:
         import src.orbits as orb
-        import Utilities.prelude as prel
         faraway = False
 
         # t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
