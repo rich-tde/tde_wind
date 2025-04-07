@@ -87,7 +87,7 @@ which_obs = 'arch'
 # print(Rg)
 #%%
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snap = 348
+snap = 237
 a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 e_mb = orb.eccentricity(Rstar, mstar, Mbh, beta)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
@@ -123,8 +123,8 @@ if which_obs == 'arch':
     for i, obs_sel in enumerate(wanted_obs):   
         _, indices_dist, dist = k3match.cartesian(obs_sel[0], obs_sel[1], obs_sel[2], x_obs, y_obs, z_obs, 1)
         indices_dist, dist = sort_list([indices_dist, dist], dist)
-        indices_chosen.append(indices_dist[0:4])
-    # indices_chosen = np.array(indices_chosen, dtype = int)
+        indices_chosen.append(indices_dist[0:1])
+    indices_chosen = np.concatenate(indices_chosen, dtype = int)
     label_obs = ['x+', '45', 'z+', '135', 'x-']
     colors_obs = ['k', 'green', 'orange', 'b', 'r']
 else:
@@ -201,95 +201,98 @@ R = np.sqrt(X**2 + Y**2 + Z**2)
 
 xyz = np.array([X, Y, Z]).T
 N_ray = 5_000
-with open(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}.txt','w') as file:
+with open(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}avgTree.txt','w') as file:
         file.close()
-for j, idx_list in enumerate(indices_chosen):
-    if j!= 0:
+for i, idx_list in enumerate(indices_chosen):
+    if i!= 0:
         continue
-    r_mean = []
-    d_mean = []
-    v_rad_mean = []
-    v_tot_mean = []
-    if j==0:
+    if i==0:
         fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,10))
-    for idx_i, i in enumerate(idx_list):  
-        mu_x = observers_xyz[i][0]
-        mu_y = observers_xyz[i][1]
-        mu_z = observers_xyz[i][2]
 
-        # Box is for dynamic ray making
-        # box gives -x, -y, -z, +x, +y, +z
-        if mu_x < 0:
-            rmax = box[0] / mu_x
-        else:
-            rmax = box[3] / mu_x
-        if mu_y < 0:
-            rmax = min(rmax, box[1] / mu_y)
-        else:
-            rmax = min(rmax, box[4] / mu_y)
-        if mu_z < 0:
-            rmax = min(rmax, box[2] / mu_z)
-        else:
-            rmax = min(rmax, box[5] / mu_z)
+    mu_x = observers_xyz[idx_list][0]
+    mu_y = observers_xyz[idx_list][1]
+    mu_z = observers_xyz[idx_list][2]
 
-        r = np.logspace(-0.25, np.log10(rmax), N_ray)
+    # Box is for dynamic ray making
+    # box gives -x, -y, -z, +x, +y, +z
+    if mu_x < 0:
+        rmax = box[0] / mu_x
+    else:
+        rmax = box[3] / mu_x
+    if mu_y < 0:
+        rmax = min(rmax, box[1] / mu_y)
+    else:
+        rmax = min(rmax, box[4] / mu_y)
+    if mu_z < 0:
+        rmax = min(rmax, box[2] / mu_z)
+    else:
+        rmax = min(rmax, box[5] / mu_z)
 
-        x = r*mu_x
-        y = r*mu_y
-        z = r*mu_z
-        r = r*np.sqrt(mu_x**2 + mu_y**2 + mu_z**2)
-        xyz2 = np.array([x, y, z]).T
-        del x, y, z
-        # find the simulation cell corresponding to cells in the wanted ray
-        tree = KDTree(xyz, leaf_size = 50) 
-        _, idx = tree.query(xyz2, k=1)
-        idx = [ int(idx[i][0]) for i in range(len(idx))]
-        # Quantity corresponding to the ray
-        d = Den[idx] * prel.den_converter
-        t = T[idx]
-        ray_x = X[idx]
-        ray_y = Y[idx]
-        ray_z = Z[idx]
-        ray_Mass = Mass[idx]
-        rad_den = Rad_den[idx]
-        dim_cell = Vol[idx]**(1/3)
-        ray_vx = VX[idx]
-        ray_vy = VY[idx]
-        ray_vz = VZ[idx]
-        
-        sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
-        sigma_rossland = np.array(sigma_rossland)[0]
-        underflow_mask = sigma_rossland != 0.0
-        idx = np.array(idx)
-        d, t, r, ray_x, ray_y, ray_z, dim_cell, ray_vx, ray_vy, ray_vz, idx = \
-            make_slices([d, t, r, ray_x, ray_y, ray_z, dim_cell, ray_vx, ray_vy, ray_vz, idx], underflow_mask)
-        v_rad, v_theta, v_phi = to_spherical_components(ray_vx, ray_vy, ray_vz, lat_obs[i], long_obs[i])
-        v_tot = np.sqrt(ray_vx**2 + ray_vy**2 + ray_vz**2)
-        r_mean.append(r)
-        d_mean.append(d)
-        v_rad_mean.append(v_rad)
-        v_tot_mean.append(v_tot)
+    r = np.logspace(-0.25, np.log10(rmax), N_ray)
 
-        # fig1, axsingle = plt.subplots(1, 1, figsize=(8, 7))
-        # img = axsingle.scatter(ray_x[np.abs(v_rad*conversion_sol_kms)<1]/apo, v_rad[np.abs(v_rad*conversion_sol_kms)<1]*conversion_sol_kms, c = ray_y[np.abs(v_rad*conversion_sol_kms)<1]/apo)
-        # cbar = plt.colorbar(img)
-        # cbar.set_label(r'Y [$R_{\rm a}$]')
-        # axsingle.set_xlabel(r'R [$R_{\rm a}$]')
-        # axsingle.set_ylabel(r'$|V_r|$ [km/s]')
-        # axsingle.set_xlim(0.8, 4)
-        # fig1.suptitle(f'Observer {label_obs[j]}, number {i}, snap {snap}')
-        # fig1.tight_layout()
+    x = r*mu_x
+    y = r*mu_y
+    z = r*mu_z
+    r = r*np.sqrt(mu_x**2 + mu_y**2 + mu_z**2)
+    xyz2 = np.array([x, y, z]).T
+    del x, y, z
+    # find the simulation cell corresponding to cells in the wanted ray
+    tree = KDTree(xyz, leaf_size = 50) 
+    _, idx = tree.query(xyz2, k = 4) # so in the plot along one line of sight you'll have more points
+    # idx = [ int(idx[i][j]) for i in range(len(idx))]
+    # Quantity corresponding to the ray
+    d = Den[idx] * prel.den_converter
+    t = T[idx]
+    ray_x = X[idx]
+    ray_y = Y[idx]
+    ray_z = Z[idx]
+    ray_Mass = Mass[idx]
+    rad_den = Rad_den[idx]
+    dim_cell = Vol[idx]**(1/3)
+    ray_vx = VX[idx]
+    ray_vy = VY[idx]
+    ray_vz = VZ[idx]
+    # average
+    d = np.mean(d, axis=1)
+    t = np.mean(t, axis=1)
+    ray_x = np.mean(ray_x, axis=1)
+    ray_y = np.mean(ray_y, axis=1)
+    ray_z = np.mean(ray_z, axis=1)
+    ray_Mass = np.mean(ray_Mass, axis=1)
+    rad_den = np.mean(rad_den, axis=1)
+    dim_cell = np.mean(dim_cell, axis=1)
+    ray_vx = np.mean(ray_vx, axis=1)
+    ray_vy = np.mean(ray_vy, axis=1)
+    ray_vz = np.mean(ray_vz, axis=1)
+    
+    sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
+    sigma_rossland = np.array(sigma_rossland)[0]
+    underflow_mask = sigma_rossland != 0.0
+    idx = np.array(idx)
+    d, t, r, ray_x, ray_y, ray_z, dim_cell, ray_vx, ray_vy, ray_vz, idx = \
+        make_slices([d, t, r, ray_x, ray_y, ray_z, dim_cell, ray_vx, ray_vy, ray_vz, idx], underflow_mask)
+    v_rad, v_theta, v_phi = to_spherical_components(ray_vx, ray_vy, ray_vz, lat_obs[i], long_obs[i])
+    v_tot = np.sqrt(ray_vx**2 + ray_vy**2 + ray_vz**2)
+    
 
-        #
-        if np.logical_and(j == 0, idx_i==0):
-            print(idx_list)
-            ax1.plot(xyz2[:,0]/apo, xyz2[:,1]/apo, c = colors_obs[j], alpha = 0.5)
-            img1 = ax1.scatter(ray_x/apo, ray_y/apo, c = np.abs(ray_z)/apo, cmap = 'jet', label = 'From simulation', norm = colors.LogNorm(vmin = 8e-3, vmax = 0.7))
-            ax1.set_ylabel(r'Y [$R_{\rm a}$]')
-            # ax1.legend(fontsize = 18)
-            ax2.plot(ray_x/apo, ray_y/apo, c = 'k', alpha = 0.5)
-            img2 = ax2.scatter(ray_x/apo, ray_y/apo, c = np.abs(v_rad)*conversion_sol_kms, cmap = 'jet', norm = colors.LogNorm(vmin = 1e-1, vmax = 2e4))
-    if j == 0:
+    # fig1, axsingle = plt.subplots(1, 1, figsize=(8, 7))
+    # img = axsingle.scatter(ray_x[np.abs(v_rad*conversion_sol_kms)<1]/apo, v_rad[np.abs(v_rad*conversion_sol_kms)<1]*conversion_sol_kms, c = ray_y[np.abs(v_rad*conversion_sol_kms)<1]/apo)
+    # cbar = plt.colorbar(img)
+    # cbar.set_label(r'Y [$R_{\rm a}$]')
+    # axsingle.set_xlabel(r'R [$R_{\rm a}$]')
+    # axsingle.set_ylabel(r'$|V_r|$ [km/s]')
+    # axsingle.set_xlim(0.8, 4)
+    # fig1.suptitle(f'Observer {label_obs[j]}, number {i}, snap {snap}')
+    # fig1.tight_layout()
+
+    #
+    if i == 0:
+        ax1.plot(xyz2[:,0]/apo, xyz2[:,1]/apo, c = colors_obs[j], alpha = 0.5)
+        img1 = ax1.scatter(ray_x/apo, ray_y/apo, c = np.abs(ray_z)/apo, cmap = 'jet', label = 'From simulation', norm = colors.LogNorm(vmin = 8e-3, vmax = 0.7))
+        ax1.set_ylabel(r'Y [$R_{\rm a}$]')
+        # ax1.legend(fontsize = 18)
+        ax2.plot(ray_x/apo, ray_y/apo, c = 'k', alpha = 0.5)
+        img2 = ax2.scatter(ray_x/apo, ray_y/apo, c = np.abs(v_rad)*conversion_sol_kms, cmap = 'jet', norm = colors.LogNorm(vmin = 1e-1, vmax = 2e4))
         cbar = plt.colorbar(img1, orientation = 'horizontal')
         cbar.set_label(r'Z [R$_{\rm a}]$')
         cbar = plt.colorbar(img2, orientation = 'horizontal')
@@ -301,20 +304,15 @@ for j, idx_list in enumerate(indices_chosen):
             ax.set_ylim(-.5, .5)
         ax1.set_title('Points wanted and selected', fontsize = 18)
         ax2.set_title('Velocity', fontsize = 18)
-        plt.suptitle(f'Observer {label_obs[j]}, snap {snap}', fontsize = 20)
+        plt.suptitle(f'Observer {label_obs[i]}, snap {snap}', fontsize = 20)
         plt.tight_layout()
-    
-    r_mean = np.mean(r_mean, axis=0)
-    d_mean = np.mean(d_mean, axis=0)
-    v_rad_mean = np.mean(v_rad_mean, axis=0)
-    v_tot_mean = np.mean(v_tot_mean, axis=0)
 
-    with open(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}.txt','a') as file:
+    with open(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}avgTree.txt','a') as file:
         file.write(f'# Observer latitude: {lat_obs[i]}, longitude: {long_obs[i]}\n')
-        file.write(f' '.join(map(str, r_mean)) + '\n')
-        file.write(f' '.join(map(str, d_mean)) + '\n')
-        file.write(f' '.join(map(str, v_rad_mean)) + '\n')
-        file.write(f' '.join(map(str, v_tot_mean)) + '\n')
+        file.write(f' '.join(map(str, r)) + '\n')
+        file.write(f' '.join(map(str, d)) + '\n')
+        file.write(f' '.join(map(str, v_rad)) + '\n')
+        file.write(f' '.join(map(str, v_tot)) + '\n')
         file.close()
 
 #%%
@@ -322,7 +320,7 @@ x_test = np.arange(1e-3, 1e2)
 y_test2 = 1e-17 * (x_test/apo)**(-2)
 y_test3 = 2e-21 * (x_test/apo)**(-3)
 y_test4 = 1e-24 * (x_test/apo)**(-4)
-data_prof = np.loadtxt(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}.txt')
+data_prof = np.loadtxt(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}avgTree.txt')
 r_arr, d_arr, ray_vr_arr, ray_v_arr = data_prof[0::4], data_prof[1::4], data_prof[2::4], data_prof[3::4]
 fig, ax1 = plt.subplots(1, 1, figsize=(8, 7))
 fig1, ax2 = plt.subplots(1, 1, figsize=(8, 7))

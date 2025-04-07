@@ -81,6 +81,7 @@ i = 0
 mu_x = observers_xyz[i][0]
 mu_y = observers_xyz[i][1]
 mu_z = observers_xyz[i][2]
+mu_r = np.sqrt(mu_x**2 + mu_y**2 + mu_z**2)
 # x_tr = np.zeros(len(mu_z))
 # y_tr = np.zeros(len(mu_z))
 # z_tr = np.zeros(len(mu_z))
@@ -93,17 +94,17 @@ mu_z = observers_xyz[i][2]
 
 # Box is for dynamic ray making
 if mu_x < 0:
-    rmax = box[0] / mu_x
+    rmax = box[0] / (mu_x/mu_r)
 else:
-    rmax = box[3] / mu_x
+    rmax = box[3] / (mu_x/mu_r)
 if mu_y < 0:
-    rmax = min(rmax, box[1] / mu_y)
+    rmax = min(rmax, box[1] / (mu_y/mu_r))
 else:
-    rmax = min(rmax, box[4] / mu_y)
+    rmax = min(rmax, box[4] / (mu_y/mu_r))
 if mu_z < 0:
-    rmax = min(rmax, box[2] / mu_z)
+    rmax = min(rmax, box[2] / (mu_z/mu_r))
 else:
-    rmax = min(rmax, box[5] / mu_z)
+    rmax = min(rmax, box[5] / (mu_z/mu_r))
 
 r_height = np.logspace(-0.25, np.log10(rmax), N_ray) # create the z array
 #go vertically 
@@ -211,15 +212,15 @@ plt.xlim(0,7)
 plt.axhline(0.34, c = 'k', linestyle = '--', label = r'$\kappa_{\rm Th}$')
 # plt.ylim(1, 1e4)
 plt.yscale('log')
-#
+#%%
 idx_trap = np.argmin(np.abs(ray_z-z_tr)) # index of the trapping point   
 fig, (ax1, ax2) = plt.subplots(1, 2 , figsize = (12,5))
-ax1.plot(ray_z/apo, tdiff_cumulative/t_fall_cgs, c = 'k')
+ax1.plot(ray_z, tdiff_cumulative/t_fall_cgs, c = 'k')
 ax1.set_ylabel(r'$t_{\rm diff} [t_{\rm fb}]$')
 ax1.axhline(t_dyn[idx_trap]/t_fall_cgs, c = 'k', linestyle = '--', label =  r'$t_{\rm dyn}=R_z/v_z$')
 # ax1.set_ylim(0, 5) # a bit further than the Rtrapp
 # ax1.axvline(ray_z[np.argmin(np.abs(ctau[1:]/ray_vz[1:]-1))]/Rt)
-img = ax2.scatter(ray_z/apo, los, c = ctau/np.abs(ray_vz), cmap = 'rainbow', vmin = 0, vmax = 2)
+img = ax2.scatter(ray_z, los, c = ctau/np.abs(ray_vz), cmap = 'rainbow', vmin = 0, vmax = 2)
 cbar = plt.colorbar(img)
 cbar.set_label(r'c$\tau^{-1}/V_z$')
 ax2.set_ylabel(r'$\tau$')
@@ -227,9 +228,9 @@ ax2.set_yscale('log')
 # ax2.set_ylim(0.1, 1e2)
 for ax in [ax1, ax2]:
     ax.set_xlabel(r'$Z [R_{\rm a}]$')
-    ax.set_xlim(-0.1, 7)
-    ax.axvline(ray_z[idx_trap]/apo, c = 'b', linestyle = '--', label =  r'$R_{\rm tr} (c/\tau=V_z)$')
-    ax.axvline(np.mean(rph)/apo, c = 'k', linestyle = 'dotted', label =  r'$<R_{\rm ph}>$')
+    # ax.set_xlim(-0.1, 7)
+    ax.axvline(ray_z[idx_trap], c = 'b', linestyle = '--', label =  r'$R_{\rm tr} (c/\tau=V_z)$')
+    ax.axvline(np.mean(rph), c = 'k', linestyle = 'dotted', label =  r'$<R_{\rm ph}>$')
     ax.legend(fontsize = 14)
 plt.tight_layout()
 

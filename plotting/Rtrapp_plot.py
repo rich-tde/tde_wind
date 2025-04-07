@@ -240,7 +240,7 @@ else: # Evolution in time (comparison with high res) and comparison with the pho
         PE_tr_spec = -prel.G * Mbh / (r_tr-Rs)
         KE_tr_spec = 0.5 * vel_tr**2
         energy_tr = KE_tr_spec + PE_tr_spec
-        ratio_unbound_tr[i] = len(energy_tr[energy_tr>0]) / len(energy_tr)
+        ratio_unbound_tr[i] = len(energy_tr[np.logical_and(energy_tr>0, r_tr>1e-10)]) / len(energy_tr)
         mean_vel_tr[i] =np.mean(vel_tr)
         percentile16_tr[i] =  np.percentile(vel_tr, 16)
         percentile84_tr[i] = np.percentile(vel_tr, 84)
@@ -249,7 +249,7 @@ else: # Evolution in time (comparison with high res) and comparison with the pho
         PE_ph_spec = -prel.G * Mbh / (r_ph-Rs)
         KE_ph_spec = 0.5 * vel_ph**2
         energy_ph_spec = KE_ph_spec + PE_ph_spec
-        ratio_unbound_ph[i] = len(energy_ph_spec[energy_ph_spec>0]) / len(energy_ph_spec)
+        ratio_unbound_ph[i] = len(energy_ph_spec[energy_ph_spec>1e-15]) / len(energy_ph_spec)
         mean_vel_ph[i] =np.mean(vel_ph)
         percentile16_ph[i] =  np.percentile(vel_ph, 16)
         percentile84_ph[i] = np.percentile(vel_ph, 84)

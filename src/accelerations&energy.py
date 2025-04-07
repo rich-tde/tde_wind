@@ -34,8 +34,9 @@ n = 1.5
 compton = 'Compton'
 check = ''
 Rs = 2 * prel.G * Mbh / prel.csol_cgs**2
+conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snap = 348
+snap = 237
 
 Rt = Rstar * (Mbh/mstar)**(1/3)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta) 
@@ -76,75 +77,85 @@ den_cut = Den > 1e-19
 X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp, DpDx, DpDy, DpDz = make_slices([X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp, DpDx, DpDy, DpDz], den_cut)
 
 mid = np.abs(Z) < Vol**(1/3)
-X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp, DpDx, DpDy, DpDz = make_slices([X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp, DpDx, DpDy, DpDz], mid)
-R, lat_astro, long = coord.cartesian_to_spherical(X, Y, Z) # r, latitude, longitude 
-lat = lat_astro + (np.pi / 2) * u.rad # so is from 0 to pi
-dP_radial, _, _ = to_spherical_components(DpDx, DpDy, DpDz, lat, long)
-V_r, V_theta, V_phi = to_spherical_components(Vx, Vy, Vz, lat, long)
-V = np.sqrt(Vx**2 + Vy**2 + Vz**2)
+X_mid, Y_mid, Z_mid, Den_mid, Mass_mid, Vx_mid, Vy_mid, Vz_mid, Vol_mid, Temp_mid, DpDx_mid, DpDy_mid, DpDz_mid = \
+    make_slices([X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp, DpDx, DpDy, DpDz], mid)
+R_mid, lat_astro_mid, long_mid = coord.cartesian_to_spherical(X_mid, Y_mid, Z_mid) # r, latitude, longitude 
+lat_mid = lat_astro_mid + (np.pi / 2) * u.rad # so is from 0 to pi
+dP_radial_mid, _, _ = to_spherical_components(DpDx_mid, DpDy_mid, DpDz_mid, lat_mid, long_mid)
+V_r_mid, V_theta_mid, V_phi_mid = to_spherical_components(Vx_mid, Vy_mid, Vz_mid, lat_mid, long_mid)
+V_mid = np.sqrt(Vx_mid**2 + Vy_mid**2 + Vz_mid**2)
 # orb_en = orb.orbital_energy(R, V, data.Mass, 1, 3e8 / (7e8/t), Mbh)
 
 # compute accelerations
-a_P = np.abs(dP_radial) / Den
-a_centrifugal = V_phi**2 / R
-ratio = a_centrifugal / a_P
-a_grav = prel.G * Mbh / (R-Rs)**2
-ratio_env = (a_P + a_centrifugal)/a_grav
-alpha_plot = Den/np.max(Den)
+a_P_mid = np.abs(dP_radial_mid) / Den_mid
+a_centrifugal_mid = V_phi_mid**2 / R_mid
+ratio_mid = a_centrifugal_mid / a_P_mid
+a_grav_mid = prel.G * Mbh / (R_mid-Rs)**2
+ratio_env_mid = (a_P_mid + a_centrifugal_mid)/a_grav_mid
+alpha_plot_mid = Den_mid/np.max(Den_mid)
 
 #%%
 fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize=(22,5))
-img = ax1.scatter(X/apo, Y/apo, c = np.abs(V_r), cmap = 'coolwarm', s = 7, norm=colors.LogNorm(vmin=1e-1, vmax=5e1))
+img = ax1.scatter(X_mid/apo, Y_mid/apo, c = np.abs(V_r_mid)*conversion_sol_kms, cmap = 'coolwarm', s = 7, norm=colors.LogNorm(vmin=1e-1, vmax=2e4))
 cbar = plt.colorbar(img)
-cbar.set_label(r'$|V_r|$', fontsize = 20)
-# ax1.quiver(X[::1500]/apo, Y[::1500]/apo, Vx[::1500], Vy[::1500], color = 'k', scale = 100, scale_units = 'xy', angles = 'xy', width = 0.002)
+cbar.set_label(r'$|V_r|$ [km/s]', fontsize = 20)
+# ax1.quiver(X[::1500]_mid/apo, Y[::1500]_mid/apo, Vx[::1500], Vy[::1500], color = 'k', scale = 100, scale_units = 'xy', angles = 'xy', width = 0.002)
 ax1.set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
 
-img = ax2.scatter(X/apo, Y/apo, c = np.abs(V_phi), cmap = 'coolwarm', s = 7, norm=colors.LogNorm(vmin=7e-2, vmax=5e1))
+img = ax2.scatter(X_mid/apo, Y_mid/apo, c = np.abs(V_phi_mid)*conversion_sol_kms, cmap = 'coolwarm', s = 7, norm=colors.LogNorm(vmin=7e-2, vmax=2e4))
 cbar = plt.colorbar(img)
-cbar.set_label(r'$|V_\phi|$', fontsize = 20)
-# # ax2.quiver(X[::1500]/apo, Y[::1500]/apo, Vx[::1500], Vy[::1500], color = 'k', scale = 120, scale_units = 'xy', angles = 'xy', width = 0.002)
+cbar.set_label(r'$|V_\phi|$ [km/s]', fontsize = 20)
+# # ax2.quiver(X[::1500]_mid/apo, Y[::1500]_mid/apo, Vx[::1500], Vy[::1500], color = 'k', scale = 120, scale_units = 'xy', angles = 'xy', width = 0.002)
 
-img = ax3.scatter(X/apo, Y/apo, c = np.abs(V_theta), cmap = 'coolwarm', s = 7, norm=colors.LogNorm(vmin=1e-2, vmax=9))
+img = ax3.scatter(X_mid/apo, Y_mid/apo, c = np.abs(V_theta_mid)*conversion_sol_kms, cmap = 'coolwarm', s = 7, norm=colors.LogNorm(vmin=1e-2, vmax=9))
 cbar = plt.colorbar(img)
-cbar.set_label(r'$|V_\theta|$', fontsize = 20)
-# ax3.quiver(X[::1500]/apo, Y[::1500]/apo, Vx[::1500], Vy[::1500], color = 'k', scale = 120, scale_units = 'xy', angles = 'xy', width = 0.002)
+cbar.set_label(r'$|V_\theta|$ [km/s]', fontsize = 20)
+# ax3.quiver(X[::1500]_mid/apo, Y[::1500]_mid/apo, Vx[::1500], Vy[::1500], color = 'k', scale = 120, scale_units = 'xy', angles = 'xy', width = 0.002)
 
 for ax in [ax1, ax2, ax3]:
     ax.set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
     ax.scatter(0, 0, c='k', s = 40)
-    ax.set_xlim(-.5, 2)
-    ax.set_ylim(-.5,.5)#1, 1)
+    ax.set_xlim(5e-2, 2)
+    ax.set_ylim(-.4,.4)#1, 1)
+    ax.set_xscale('log')
 plt.suptitle(r'Z=0')
 plt.tight_layout()
 plt.savefig(f'{abspath}/Figs/EddingtonEnvelope/vel_{snap}.png', bbox_inches = 'tight')
 
-# if you slice for Z
-# fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize=(22,5))
-# img = ax1.scatter(Y/apo, Z/apo, c = V_r, cmap = 'coolwarm', s = 7, vmin = -2, vmax = 2)#norm=colors.LogNorm(vmin=1e-10, vmax=10))
-# cbar = plt.colorbar(img)
-# cbar.set_label(r'$V_r$', fontsize = 20)
-# ax1.quiver(Y[::1500]/apo, Z[::1500]/apo, Vy[::1500], Vz[::1500], color = 'k', scale = 120, scale_units = 'xy', angles = 'xy', width = 0.002)
-# ax1.set_ylabel(r'$Z [R_{\rm a}]$', fontsize = 20)
+#%% if you slice for Z
+xapo = np.abs(X-apo) < Vol**(1/3)
+X_xapo, Y_xapo, Z_xapo, Den_xapo, Mass_xapo, Vx_xapo, Vy_xapo, Vz_xapo, Vol_xapo, Temp_xapo, DpDx_xapo, DpDy_xapo, DpDz_xapo = \
+    make_slices([X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp, DpDx, DpDy, DpDz], xapo)
+R_xapo, lat_astro_xapo, long_xapo = coord.cartesian_to_spherical(X_xapo, Y_xapo, Z_xapo) # r, latitude, longitude 
+lat_xapo = lat_astro_xapo + (np.pi / 2) * u.rad # so is from 0 to pi
+dP_radial_xapo, _, _ = to_spherical_components(DpDx_xapo, DpDy_xapo, DpDz_xapo, lat_xapo, long_xapo)
+V_r_xapo, V_theta_xapo, V_phi_xapo = to_spherical_components(Vx_xapo, Vy_xapo, Vz_xapo, lat_xapo, long_xapo)
+V_xapo = np.sqrt(Vx_xapo**2 + Vy_xapo**2 + Vz_xapo**2)
 
-# img = ax2.scatter(Y/apo, Z/apo, c = V_phi, cmap = 'coolwarm', s = 7, vmin = -2, vmax = 2)#norm=colors.LogNorm(vmin=1e-10, vmax=1e-4))
-# cbar = plt.colorbar(img)
-# cbar.set_label(r'$V_\phi$', fontsize = 20)
-# ax2.quiver(Y[::1500]/apo, Z[::1500]/apo, Vy[::1500], Vz[::1500], color = 'k', scale = 120, scale_units = 'xy', angles = 'xy', width = 0.002)
+fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize=(22,5))
+img = ax1.scatter(Y_xapo/apo, Z_xapo/apo, c = np.abs(V_r_xapo)*conversion_sol_kms, cmap = 'coolwarm', s = 15, norm=colors.LogNorm(vmin=1e-1, vmax=2e4))
+cbar = plt.colorbar(img)
+cbar.set_label(r'$V_r$ [km/s]', fontsize = 20)
+# ax1.quiver(Y[::1500]_xapo/apo, Z[::1500]_xapo/apo, Vy[::1500], Vz[::1500], color = 'k', scale = 120, scale_units = 'xy', angles = 'xy', width = 0.002)
+ax1.set_ylabel(r'$Z [R_{\rm a}]$', fontsize = 20)
 
-# img = ax3.scatter(Y/apo, Z/apo, c = V_theta, cmap = 'coolwarm', s = 7, vmin = -2, vmax = 2)#norm=colors.LogNorm(vmin=1e-10, vmax=1e-4))
-# cbar = plt.colorbar(img)
-# cbar.set_label(r'$V_\theta$', fontsize = 20)
+img = ax2.scatter(Y_xapo/apo, Z_xapo/apo, c = np.abs(V_phi_xapo)*conversion_sol_kms, cmap = 'coolwarm', s = 15, norm=colors.LogNorm(vmin=1e-1, vmax=2e4))
+cbar = plt.colorbar(img)
+cbar.set_label(r'$V_\phi$ [km/s]', fontsize = 20)
+# ax2.quiver(Y[::1500]_xapo/apo, Z[::1500]_xapo/apo, Vy[::1500], Vz[::1500], color = 'k', scale = 120, scale_units = 'xy', angles = 'xy', width = 0.002)
+
+img = ax3.scatter(Y_xapo/apo, Z_xapo/apo, c = np.abs(V_theta_xapo)*conversion_sol_kms, cmap = 'coolwarm', s = 15, norm=colors.LogNorm(vmin=1e-1, vmax=2e4))
+cbar = plt.colorbar(img)
+cbar.set_label(r'$V_\theta$ [km/s]', fontsize = 20)
 # ax3.quiver(Y[::1500]/apo, Z[::1500]/apo, Vy[::1500], Vz[::1500], color = 'k', scale = 120, scale_units = 'xy', angles = 'xy', width = 0.002)
 
-# for ax in [ax1, ax2, ax3]:
-#     ax.set_xlabel(r'$Y [R_{\rm a}]$', fontsize = 20)
-#     ax.scatter(0, 0, c='k', s = 40)
-#     ax.set_xlim(-.5, .5)
-#     ax.set_ylim(-.5,.5)#1, 1)
-# plt.tight_layout()
-# plt.suptitle(r'X=$R_p$')
-# plt.savefig(f'{abspath}/Figs/EddingtonEnvelope/velyz_{snap}.png', bbox_inches = 'tight')
+for ax in [ax1, ax2, ax3]:
+    ax.set_xlabel(r'$Y [R_{\rm a}]$', fontsize = 20)
+    ax.set_xlim(-1, 1)
+    ax.set_ylim(-1,1)#1, 1)
+plt.tight_layout()
+plt.suptitle(r'X=$R_a$')
+plt.savefig(f'{abspath}/Figs/EddingtonEnvelope/velyz_{snap}.png', bbox_inches = 'tight')
 #%%
 fig, ((ax1,ax2), (ax3,ax4)) = plt.subplots(2,2, figsize=(20, 10))
 img = ax1.scatter(X/apo, Y/apo, c=Den, cmap = 'viridis', norm= colors.LogNorm(vmin = 1e-13, vmax = 1e-6), s = 7)
