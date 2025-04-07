@@ -122,7 +122,7 @@ if which_obs == 'arch':
     for i, obs_sel in enumerate(wanted_obs):   
         _, indices_dist, dist = k3match.cartesian(obs_sel[0], obs_sel[1], obs_sel[2], x_obs, y_obs, z_obs, 1)
         indices_dist, dist = sort_list([indices_dist, dist], dist)
-        indices_chosen.append(indices_dist[0:4])
+        indices_chosen.append(indices_dist[2:3])
     # indices_chosen = np.array(indices_chosen, dtype = int)
     label_obs = ['x+', '45', 'z+', '135', 'x-']
     colors_obs = ['k', 'green', 'orange', 'b', 'r']
@@ -306,26 +306,24 @@ ax1.set_ylim(2e-19, 2e-7)
 ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
 ax2.set_ylabel(r'$|v_r|$ [km/s]')
 ax3.set_ylabel(r'$|v_r| \rho R^2$ [g/s]')
+xmin = Rt/apo
+xmax = 400*Rt/apo
 for ax in [ax1, ax2, ax3]:
     #put the legend outside
     boxleg = ax.get_position()
     ax.set_position([boxleg.x0, boxleg.y0, boxleg.width * 0.8, boxleg.height])
-    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 12)
     # ax.legend(loc='lower right', fontsize = 12)
     ax.grid()
     ax.set_xlabel(r'R [R$_a]$')
-    ax.set_xlim(1e-2, 80)
+    ax.set_xlim(xmin, xmax)
     ax.loglog()
-    ax4 = ax.twinx()
-    # r_Rt_ticks = [1, 10, 100]
-    # ax.set_yticks(R_ticks)
-    # ax.set_yticklabels([f"$10^{{{int(np.log10(tick))}}}$" for tick in R_ticks])
+    # ax4 = ax.twiny()
+    # ax4.set_xlim(xmin*apo/Rt, xmax*apo/Rt)
+    # ax4.set_xscale('log')
+    # ax4.set_xlabel(r'R [R$_t]$')
+    # ax.set_title(f'{snap}')
 
-    # ax.set_xticks(r_Rt_ticks)
-    # ax.set_xlim(r[0]/Rt, r[-1]/Rt)
-    
-
-    ax.set_title(f'{snap}')
 plt.tight_layout()
 plt.show()
 

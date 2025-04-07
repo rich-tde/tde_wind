@@ -94,26 +94,26 @@ alpha_plot = Den/np.max(Den)
 
 #%%
 fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize=(22,5))
-img = ax1.scatter(X/apo, Y/apo, c = V_r, cmap = 'coolwarm', s = 7, vmin = -2, vmax = 2)#norm=colors.LogNorm(vmin=1e-10, vmax=1e-4))
+img = ax1.scatter(X/apo, Y/apo, c = np.abs(V_r), cmap = 'coolwarm', s = 7, norm=colors.LogNorm(vmin=1e-1, vmax=5e1))
 cbar = plt.colorbar(img)
-cbar.set_label(r'$V_r$', fontsize = 20)
-ax1.quiver(X[::1500]/apo, Y[::1500]/apo, Vx[::1500], Vy[::1500], color = 'k', scale = 100, scale_units = 'xy', angles = 'xy', width = 0.002)
+cbar.set_label(r'$|V_r|$', fontsize = 20)
+# ax1.quiver(X[::1500]/apo, Y[::1500]/apo, Vx[::1500], Vy[::1500], color = 'k', scale = 100, scale_units = 'xy', angles = 'xy', width = 0.002)
 ax1.set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
 
-img = ax2.scatter(X/apo, Y/apo, c = V_phi, cmap = 'coolwarm', s = 7, vmin = -2, vmax = 2)#norm=colors.LogNorm(vmin=1e-10, vmax=1e-4))
+img = ax2.scatter(X/apo, Y/apo, c = np.abs(V_phi), cmap = 'coolwarm', s = 7, norm=colors.LogNorm(vmin=7e-2, vmax=5e1))
 cbar = plt.colorbar(img)
-cbar.set_label(r'$V_\phi$', fontsize = 20)
-ax2.quiver(X[::1500]/apo, Y[::1500]/apo, Vx[::1500], Vy[::1500], color = 'k', scale = 120, scale_units = 'xy', angles = 'xy', width = 0.002)
+cbar.set_label(r'$|V_\phi|$', fontsize = 20)
+# # ax2.quiver(X[::1500]/apo, Y[::1500]/apo, Vx[::1500], Vy[::1500], color = 'k', scale = 120, scale_units = 'xy', angles = 'xy', width = 0.002)
 
-img = ax3.scatter(X/apo, Y/apo, c = V_theta, cmap = 'coolwarm', s = 7, vmin = -2, vmax = 2)#norm=colors.LogNorm(vmin=1e-10, vmax=1e-4))
+img = ax3.scatter(X/apo, Y/apo, c = np.abs(V_theta), cmap = 'coolwarm', s = 7, norm=colors.LogNorm(vmin=1e-2, vmax=9))
 cbar = plt.colorbar(img)
-cbar.set_label(r'$V_\theta$', fontsize = 20)
-ax3.quiver(X[::1500]/apo, Y[::1500]/apo, Vx[::1500], Vy[::1500], color = 'k', scale = 120, scale_units = 'xy', angles = 'xy', width = 0.002)
+cbar.set_label(r'$|V_\theta|$', fontsize = 20)
+# ax3.quiver(X[::1500]/apo, Y[::1500]/apo, Vx[::1500], Vy[::1500], color = 'k', scale = 120, scale_units = 'xy', angles = 'xy', width = 0.002)
 
 for ax in [ax1, ax2, ax3]:
     ax.set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
     ax.scatter(0, 0, c='k', s = 40)
-    ax.set_xlim(-.5, .5)
+    ax.set_xlim(-.5, 2)
     ax.set_ylim(-.5,.5)#1, 1)
 plt.suptitle(r'Z=0')
 plt.tight_layout()
@@ -121,7 +121,7 @@ plt.savefig(f'{abspath}/Figs/EddingtonEnvelope/vel_{snap}.png', bbox_inches = 't
 
 # if you slice for Z
 # fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize=(22,5))
-# img = ax1.scatter(Y/apo, Z/apo, c = V_r, cmap = 'coolwarm', s = 7, vmin = -2, vmax = 2)#norm=colors.LogNorm(vmin=1e-10, vmax=1e-4))
+# img = ax1.scatter(Y/apo, Z/apo, c = V_r, cmap = 'coolwarm', s = 7, vmin = -2, vmax = 2)#norm=colors.LogNorm(vmin=1e-10, vmax=10))
 # cbar = plt.colorbar(img)
 # cbar.set_label(r'$V_r$', fontsize = 20)
 # ax1.quiver(Y[::1500]/apo, Z[::1500]/apo, Vy[::1500], Vz[::1500], color = 'k', scale = 120, scale_units = 'xy', angles = 'xy', width = 0.002)

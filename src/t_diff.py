@@ -228,7 +228,7 @@ ax2.set_yscale('log')
 for ax in [ax1, ax2]:
     ax.set_xlabel(r'$Z [R_{\rm a}]$')
     ax.set_xlim(-0.1, 7)
-    ax.axvline(ray_z[idx_trap]/apo, c = 'b', linestyle = '--', label =  r'$R_{\rm tr} (c/\tau=V_r)$')
+    ax.axvline(ray_z[idx_trap]/apo, c = 'b', linestyle = '--', label =  r'$R_{\rm tr} (c/\tau=V_z)$')
     ax.axvline(np.mean(rph)/apo, c = 'k', linestyle = 'dotted', label =  r'$<R_{\rm ph}>$')
     ax.legend(fontsize = 14)
 plt.tight_layout()

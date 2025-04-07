@@ -57,7 +57,7 @@ if alice:
         make_slices([X, Y, Z, mass, den, vx, vy, vz, IE_spec], cut)
     Rsph = np.sqrt(X**2 + Y**2 + Z**2)
     vel = np.sqrt(vx**2 + vy**2 + vz**2)
-    orb_en_cut = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh) + IE_spec
+    orb_en_cut = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh) + IE_spec*mass
     Mass_dynunbound = np.sum(mass[orb_en_cut > 0]) 
     # compute the unbound mass for all the snapshots
     Mass_unbound = np.zeros(len(snaps))
@@ -73,7 +73,7 @@ if alice:
             make_slices([X, Y, Z, mass, den, vx, vy, vz, IE_spec], cut)
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
         vel = np.sqrt(vx**2 + vy**2 + vz**2)
-        orb_en_cut = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh) + IE_spec
+        orb_en_cut = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh) + IE_spec*mass
         Mass_unbound[i] = np.sum(mass[orb_en_cut > 0])-Mass_dynunbound
 
     with open(f'{abspath}/data/{folder}/Mass_unbound{check}.txt','w') as file:
