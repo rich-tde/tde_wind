@@ -6,6 +6,7 @@ Else: plot the projection.
 """
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
+abspath = '/Users/paolamartire/shocks'
 
 from Utilities.isalice import isalice
 alice, plot = isalice()
@@ -37,10 +38,10 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
     apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
     x_start = -1.2*apo #-7*apo
-    x_stop = 0.4 * apo #2.5*apo
+    x_stop = apo #2.5*apo
     xs = np.linspace(x_start, x_stop, num = x_num )
-    y_start = -0.5 * apo #-4*apo 
-    y_stop = 0.5 * apo  #3*apo
+    y_start = - apo #-4*apo 
+    y_stop = apo  #3*apo
     ys = np.linspace(y_start, y_stop, num = y_num)
     z_start = -2*Rt #-apo 
     z_stop = 2*Rt #apo 
@@ -58,6 +59,17 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         to_grid = Den
     if what_to_grid == 'both':
         to_grid = np.load(f'{path}/Diss_{snap}.npy') 
+    if what_to_grid == 'tau_scatt':
+        kappa_scatt = 0.34 / (prel.Rsol_cgs**2/prel.Msol_cgs) # it's 0.34cm^2/g, you want it in code units
+        to_grid = kappa_scatt * Den
+    if what_to_grid == 'tau_ross':
+        Temp = np.load(f'{path}/T_{snap}.npy')
+        sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(Temp), np.log(Den), 'linear', 0)
+        sigma_rossland = np.array(sigma_rossland)[0]
+        sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
+        sigma_rossland_eval[sigma_rossland == 0.0] = 1e-20
+        del sigma_rossland
+        to_grid = sigma_rossland_eval
     # make cut in density
     cutden = Den > 1e-19
     x_cut, y_cut, z_cut, to_grid_cut, Den_cut = \
@@ -104,7 +116,16 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
 if __name__ == '__main__':
     from src import orbits as orb
     save = True
-    what_to_grid = 'both' # Den or Diss or both
+    what_to_grid = 'tau_ross' # Den or Diss or both
+    if what_to_grid == 'tau_ross':
+        import matlab.engine
+        from src.Opacity.linextrapolator import nouveau_rich
+        eng = matlab.engine.start_matlab()
+        opac_path = f'{abspath}/src/Opacity'
+        T_cool = np.loadtxt(f'{opac_path}/T.txt')
+        Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
+        rossland = np.loadtxt(f'{opac_path}/ross.txt')
+        T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
     
     m = 4
     Mbh = 10**m
@@ -115,7 +136,7 @@ if __name__ == '__main__':
     Rt = Rstar * (Mbh/mstar)**(1/3)
     xcrt, ycrt, crt = make_cfr(Rt)
     apocenter = orb.apocentre(Rstar, mstar, Mbh, beta)
-    check = 'HiRes'
+    check = ''
     compton = 'Compton'
     if m== 6:
         folder = f'R{Rstar}M{mstar}BH1e+0{m}beta{beta}S60n{n}{compton}{check}'
@@ -126,7 +147,12 @@ if __name__ == '__main__':
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
         t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
 
-        with open(f'{prepath}/data/{folder}/projection/bigtime_proj.txt', 'a') as f:
+        idx_chosen = np.array([np.argmin(np.abs(snaps-100)),
+                               np.argmin(np.abs(snaps-237)),
+                               np.argmin(np.abs(snaps-348))])
+        snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
+        
+        with open(f'{prepath}/data/{folder}/projection/{what_to_grid}time_proj.txt', 'a') as f:
             f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
             f.write(f'# t/t_fb (t_fb = {t_fall})\n' + ' '.join(map(str, tfb)) + '\n')
             f.close()
@@ -144,9 +170,9 @@ if __name__ == '__main__':
                 np.save(f'{prepath}/data/{folder}/projection/Denproj{snap}.npy', flat_den)
                 np.save(f'{prepath}/data/{folder}/projection/Dissproj{snap}.npy', flat_diss)    
             else:
-                _, grid_den, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100)
-                flat_den = projector(grid_den, x_radii, y_radii, z_radii)
-                np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}proj{snap}.npy', flat_den)
+                _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100)
+                flat_q = projector(grid_q, x_radii, y_radii, z_radii)
+                np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}proj{snap}.npy', flat_q)
                 
         np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}xarray.npy', x_radii)
         np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}yarray.npy', y_radii)

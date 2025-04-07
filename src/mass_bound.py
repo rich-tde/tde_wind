@@ -46,10 +46,10 @@ Rcheck = np.array([R0, Rt, a_mb, apo])
 tfallback = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2) #[days]
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
 
-if not alice:
+if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
     # find the unboud mass in the first snapshot which is due to the disruption
-    data = make_tree(f'{path}/{folder}/{snaps[0]}', snaps[0], energy = True)
+    data = make_tree(f'{path}/{folder}/snap_{snaps[0]}', snaps[0], energy = True)
     X, Y, Z, mass, den, Press, vx, vy, vz, IE_den = \
         data.X, data.Y, data.Z, data.Mass, data.Den, data.Press, data.VX, data.VY, data.VZ, data.IE
     IE_spec = IE_den/den
@@ -59,7 +59,7 @@ if not alice:
     Rsph = np.sqrt(X**2 + Y**2 + Z**2)
     vel = np.sqrt(vx**2 + vy**2 + vz**2)
     orb_en = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh) 
-    bern = orb_en/mass + IE_spec + Press/den
+    bern = orb_en/mass #+ IE_spec + Press/den
     Mass_dynunbound = np.sum(mass[bern > 0]) 
     Mass_dynunbound_frombound = mstar - np.sum(mass[bern < 0]) 
     # compute the unbound mass for all the snapshots
@@ -67,7 +67,7 @@ if not alice:
     Mass_unbound_frombound = np.zeros(len(snaps))
     for i,snap in enumerate(snaps):
         print(snap)
-        pathfold = f'{path}/{folder}/{snap}'
+        pathfold = f'{path}/{folder}/snap_{snap}'
         data = make_tree(pathfold, snap, energy = True)
         X, Y, Z, mass, den, Press, vx, vy, vz, IE_den = \
         data.X, data.Y, data.Z, data.Mass, data.Den, data.Press, data.VX, data.VY, data.VZ, data.IE
@@ -78,14 +78,14 @@ if not alice:
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
         vel = np.sqrt(vx**2 + vy**2 + vz**2)
         orb_en = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh) 
-        bern = orb_en/mass + IE_spec + Press/den
+        bern = orb_en/mass #+ IE_spec + Press/den
         Mass_unbound[i] = np.sum(mass[bern > 0]) - Mass_dynunbound
         Mass_unbound_frombound[i] = mstar - np.sum(mass[bern < 0]) - Mass_dynunbound_frombound
 
     with open(f'{abspath}/data/{folder}/Mass_unbound{check}.txt','w') as file:
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')  
-        file.write('# unbound mass [M_odot] considering bern > 0 \n' + ' '.join(map(str, Mass_unbound)) + '\n')  
-        file.write('# unbound mass [M_odot] considering 0.5Mstar - [bern < 0] \n' + ' '.join(map(str, Mass_unbound_frombound)) + '\n')
+        file.write('# unbound mass [M_odot] considering orb_en > 0 \n' + ' '.join(map(str, Mass_unbound)) + '\n')  
+        file.write('# unbound mass [M_odot] considering 0.5Mstar - [orb_en < 0] \n' + ' '.join(map(str, Mass_unbound_frombound)) + '\n')
         file.close()
 
 #%%
