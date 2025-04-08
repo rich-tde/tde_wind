@@ -178,7 +178,6 @@ if alice:
     VZ = np.load(f'{pre}/snap_{snap}/Vz_{snap}.npy')
     T = np.load(f'{pre}/snap_{snap}/T_{snap}.npy')
     Den = np.load(f'{pre}/snap_{snap}/Den_{snap}.npy')
-    Rad = np.load(f'{pre}/snap_{snap}/Rad_{snap}.npy')
     Vol = np.load(f'{pre}/snap_{snap}/Vol_{snap}.npy')
     box = np.load(f'{pre}/snap_{snap}/box_{snap}.npy')
 else:
@@ -189,16 +188,13 @@ else:
     VY = np.load(f'{pre}/{snap}/Vy_{snap}.npy')
     VZ = np.load(f'{pre}/{snap}/Vz_{snap}.npy')
     T = np.load(f'{pre}/{snap}/T_{snap}.npy')
-    Mass = np.load(f'{pre}/{snap}/Mass_{snap}.npy')
     Den = np.load(f'{pre}/{snap}/Den_{snap}.npy')
-    Rad = np.load(f'{pre}/{snap}/Rad_{snap}.npy')
     Vol = np.load(f'{pre}/{snap}/Vol_{snap}.npy')
     box = np.load(f'{pre}/{snap}/box_{snap}.npy')
 
 denmask = Den > 1e-19
-X, Y, Z, T, Den, Rad, Vol = make_slices([X, Y, Z, T, Den, Rad, Vol], denmask)
-Rad_den = np.multiply(Rad,Den) # now you have energy density
-del Rad   
+X, Y, Z, VX, VY, VZ, T, Den, Vol = \
+    make_slices([X, Y, Z, VX, VY, VZ, T, Den, Vol], denmask)
 R = np.sqrt(X**2 + Y**2 + Z**2)    
 
 xyz = np.array([X, Y, Z]).T
@@ -206,15 +202,15 @@ N_ray = 5_000
 with open(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}.txt','w') as file:
         file.close()
 for j, idx_list in enumerate(indices_chosen):
-    if j!= 0:
-        continue
     r_mean = []
     d_mean = []
     v_rad_mean = []
     v_tot_mean = []
-    if j==0:
-        fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,10))
+    
     for idx_i, i in enumerate(idx_list):  
+        if i!= 104:
+            continue
+        
         mu_x = observers_xyz[i][0]
         mu_y = observers_xyz[i][1]
         mu_z = observers_xyz[i][2]
@@ -252,8 +248,6 @@ for j, idx_list in enumerate(indices_chosen):
         ray_x = X[idx]
         ray_y = Y[idx]
         ray_z = Z[idx]
-        ray_Mass = Mass[idx]
-        rad_den = Rad_den[idx]
         dim_cell = Vol[idx]**(1/3)
         ray_vx = VX[idx]
         ray_vy = VY[idx]
@@ -261,16 +255,16 @@ for j, idx_list in enumerate(indices_chosen):
         
         sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
         sigma_rossland = np.array(sigma_rossland)[0]
-        underflow_mask = sigma_rossland != 0.0
+        underflow_mask = sigma_rossland != 0.0#, ray_vx>0)
         idx = np.array(idx)
         d, t, r, ray_x, ray_y, ray_z, dim_cell, ray_vx, ray_vy, ray_vz, idx = \
             make_slices([d, t, r, ray_x, ray_y, ray_z, dim_cell, ray_vx, ray_vy, ray_vz, idx], underflow_mask)
         v_rad, v_theta, v_phi = to_spherical_components(ray_vx, ray_vy, ray_vz, lat_obs[i], long_obs[i])
         v_tot = np.sqrt(ray_vx**2 + ray_vy**2 + ray_vz**2)
-        r_mean.append(r)
-        d_mean.append(d)
-        v_rad_mean.append(v_rad)
-        v_tot_mean.append(v_tot)
+        # r_mean.append(r)
+        # d_mean.append(d)
+        # v_rad_mean.append(v_rad)
+        # v_tot_mean.append(v_tot)
 
         # fig1, axsingle = plt.subplots(1, 1, figsize=(8, 7))
         # img = axsingle.scatter(ray_x[np.abs(v_rad*conversion_sol_kms)<1]/apo, v_rad[np.abs(v_rad*conversion_sol_kms)<1]*conversion_sol_kms, c = ray_y[np.abs(v_rad*conversion_sol_kms)<1]/apo)
@@ -282,74 +276,73 @@ for j, idx_list in enumerate(indices_chosen):
         # fig1.suptitle(f'Observer {label_obs[j]}, number {i}, snap {snap}')
         # fig1.tight_layout()
 
-        #
-        if np.logical_and(j == 0, idx_i==0):
-            print(idx_list)
-            ax1.plot(xyz2[:,0]/apo, xyz2[:,1]/apo, c = colors_obs[j], alpha = 0.5)
-            img1 = ax1.scatter(ray_x/apo, ray_y/apo, c = np.abs(ray_z)/apo, cmap = 'jet', label = 'From simulation', norm = colors.LogNorm(vmin = 8e-3, vmax = 0.7))
-            ax1.set_ylabel(r'Y [$R_{\rm a}$]')
-            # ax1.legend(fontsize = 18)
-            ax2.plot(ray_x/apo, ray_y/apo, c = 'k', alpha = 0.5)
-            img2 = ax2.scatter(ray_x/apo, ray_y/apo, c = np.abs(v_rad)*conversion_sol_kms, cmap = 'jet', norm = colors.LogNorm(vmin = 1e-1, vmax = 2e4))
-    if j == 0:
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 10))
+        ax1.plot(xyz2[:,0]/apo, xyz2[:,1]/apo, c = colors_obs[j])
+        img1 = ax1.scatter(ray_x/apo, ray_y/apo, c = np.abs(ray_z)/apo, cmap = 'jet', label = 'From simulation', norm = colors.LogNorm(vmin = 8e-3, vmax = 3))
+        ax1.set_ylabel(r'Y [$R_{\rm a}$]')
+        # # ax1.legend(fontsize = 18)
+        ax2.plot(ray_x/apo, ray_y/apo, c = 'k', alpha = 0.5)
+        img2 = ax2.scatter(ray_x/apo, ray_y/apo, c = np.abs(v_rad)*conversion_sol_kms, cmap = 'jet', norm = colors.LogNorm(vmin = 1e-1, vmax = 2e4))
+    
         cbar = plt.colorbar(img1, orientation = 'horizontal')
         cbar.set_label(r'Z [R$_{\rm a}]$')
         cbar = plt.colorbar(img2, orientation = 'horizontal')
         cbar.set_label(r'$|V_r|$ [km/s]')
         for ax in [ax1, ax2]:
             ax.set_xlabel(r'X [$R_{\rm a}$]')
-            ax.set_xlim(5e-2,10)
-            ax.set_xscale('log')
-            ax.set_ylim(-.5, .5)
+            ax.set_xlim(np.min(ray_x)/apo, 0.5*np.max(ray_x)/apo)
+            # ax.set_xscale('log')
+            ax.set_ylim(-0.5, 0.5)
         ax1.set_title('Points wanted and selected', fontsize = 18)
         ax2.set_title('Velocity', fontsize = 18)
         plt.suptitle(f'Observer {label_obs[j]}, snap {snap}', fontsize = 20)
         plt.tight_layout()
     
-    r_mean = np.mean(r_mean, axis=0)
-    d_mean = np.mean(d_mean, axis=0)
-    v_rad_mean = np.mean(v_rad_mean, axis=0)
-    v_tot_mean = np.mean(v_tot_mean, axis=0)
+    # r_mean = np.mean(r_mean, axis=0)
+    # d_mean = np.mean(d_mean, axis=0)
+    # v_rad_mean = np.mean(v_rad_mean, axis=0)
+    # v_tot_mean = np.mean(v_tot_mean, axis=0)
 
-    with open(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}.txt','a') as file:
-        file.write(f'# Observer latitude: {lat_obs[i]}, longitude: {long_obs[i]}\n')
-        file.write(f' '.join(map(str, r_mean)) + '\n')
-        file.write(f' '.join(map(str, d_mean)) + '\n')
-        file.write(f' '.join(map(str, v_rad_mean)) + '\n')
-        file.write(f' '.join(map(str, v_tot_mean)) + '\n')
-        file.close()
+    # with open(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}.txt','a') as file:
+    #     file.write(f'# Observer latitude: {lat_obs[i]}, longitude: {long_obs[i]}\n')
+    #     file.write(f' '.join(map(str, r)) + '\n')
+    #     file.write(f' '.join(map(str, d)) + '\n')
+    #     file.write(f' '.join(map(str, v_rad)) + '\n')
+    #     file.write(f' '.join(map(str, v_tot)) + '\n')
+    #     file.write(f' '.join(map(str, ray_vx)) + '\n')
+    #     file.write(f' '.join(map(str, ray_vy)) + '\n')
+    #     file.write(f' '.join(map(str, ray_vz)) + '\n')
+    #     file.close()
 
 #%%
 x_test = np.arange(1e-3, 1e2)
 y_test2 = 1e-17 * (x_test/apo)**(-2)
 y_test3 = 2e-21 * (x_test/apo)**(-3)
 y_test4 = 1e-24 * (x_test/apo)**(-4)
-data_prof = np.loadtxt(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}.txt')
-r_arr, d_arr, ray_vr_arr, ray_v_arr = data_prof[0::4], data_prof[1::4], data_prof[2::4], data_prof[3::4]
 fig, ax1 = plt.subplots(1, 1, figsize=(8, 7))
 fig1, ax2 = plt.subplots(1, 1, figsize=(8, 7))
-fig2, ax3 = plt.subplots(1, 1, figsize=(8, 7))
-for i in range(0,1):#len(r_arr)):
-    r = r_arr[i]
-    d = d_arr[i]
-    ray_vr = ray_vr_arr[i]
-    ray_v = ray_v_arr[i]
-    ax1.plot(r/apo, d, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
-    ax2.plot(r/apo, np.abs(ray_vr)*prel.Rsol_cgs*1e-5/prel.tsol_cgs, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
-    ax3.plot(r/apo, r**2*d*np.abs(ray_vr)*prel.Rsol_cgs**3/prel.tsol_cgs, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
-    # ax1.axvline(x = rph[i]/apo, c = 'gray', ls = '--')
+# fig2, ax3 = plt.subplots(1, 1, figsize=(8, 7))
+    
+ax1.plot(r/apo, d)#, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
+ax2.plot(r/apo, np.abs(v_rad)*prel.Rsol_cgs*1e-5/prel.tsol_cgs, label = f'V_r', c ='k')#, color = colors_obs[i])
+# ax2.plot(r/apo, ray_vx*prel.Rsol_cgs*1e-5/prel.tsol_cgs, label = f'V_x')
+# ax2.plot(r/apo, ray_vy*prel.Rsol_cgs*1e-5/prel.tsol_cgs, label = f'V_y')
+# ax2.plot(r/apo, ray_vz*prel.Rsol_cgs*1e-5/prel.tsol_cgs, '--', c = 'gray', label = f'V_z')
+# ax3.plot(r/apo, r**2*d*np.abs(ray_vr)*prel.Rsol_cgs**3/prel.tsol_cgs, label = f'Observer {label_obs[i]} ({indices_chosen[i]})', color = colors_obs[i])
+# ax1.axvline(x = rph[i]/apo, c = 'gray', ls = '--')
+ax2.legend()
 ax1.plot(x_test, y_test2, c = 'gray', ls = 'dashed', label = r'$\rho \propto R^{-2}$')
 ax1.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto R^{-3}$')
 ax1.plot(x_test, y_test4, c = 'gray', ls = '-.', label = r'$\rho \propto R^{-4}$')
 ax1.axhspan(np.min(np.exp(Rho_cool)), np.max(np.exp(Rho_cool)), alpha=0.2, color='gray')
 ax1.set_ylim(2e-19, 2e-7)
-# ax2.set_ylim(500, 2e4)
+# ax2.set_ylim(-10, 10000)
 ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
 ax2.set_ylabel(r'$|v_r|$ [km/s]')
-ax3.set_ylabel(r'$|v_r| \rho R^2$ [g/s]')
+# ax3.set_ylabel(r'$|v_r| \rho R^2$ [g/s]')
 xmin = Rt/apo
 xmax = 400*Rt/apo
-for ax in [ax1, ax2, ax3]:
+for ax in [ax1, ax2]:
     #put the legend outside
     boxleg = ax.get_position()
     ax.set_position([boxleg.x0, boxleg.y0, boxleg.width * 0.8, boxleg.height])
@@ -357,13 +350,13 @@ for ax in [ax1, ax2, ax3]:
     # ax.legend(loc='lower right', fontsize = 12)
     ax.grid()
     ax.set_xlabel(r'R [R$_a]$')
-    ax.set_xlim(xmin, xmax)
+    # ax.set_xlim(xmin, xmax)
     ax.loglog()
     # ax4 = ax.twiny()
     # ax4.set_xlim(xmin*apo/Rt, xmax*apo/Rt)
     # ax4.set_xscale('log')
     # ax4.set_xlabel(r'R [R$_t]$')
-    # ax.set_title(f'{snap}')
+    ax.set_title(f'{snap}')
 
 plt.tight_layout()
 plt.show()
