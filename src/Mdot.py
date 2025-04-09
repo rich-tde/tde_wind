@@ -43,17 +43,20 @@ amin = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 #%% MAIN
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 tfb_cgs = tfb * tfallback_cgs #converted to seconds
-bins = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}_bins.txt')
+bins = np.loadtxt(f'{abspath}data/{folder}/dM/dMdE_{check}_bins.txt')
 mid_points = (bins[:-1]+bins[1:])* norm_dMdE/2  # get rid of the normalization
-# bins_cgs = bins * (prel.en_converter/prel.Msol_cgs) #  and convert to CGS (they are bins in SPECIFIC orbital energy)
-dMdE_distr = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}.txt')[0] # distribution just after the disruption
+dMdE_distr = np.loadtxt(f'{abspath}data/{folder}/dM/dMdE_{check}.txt')[0] # distribution just after the disruption
 bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
 
 mfall = np.zeros(len(tfb_cgs))
-radii = 0.2 * amin
+radii = [0.2 * amin, 0.5 * amin]
 mwind = np.zeros(len(tfb_cgs))
+mwindbigger = np.zeros(len(tfb_cgs))
 # compute dM/dt = dM/dE * dE/dt
 for i, snap in enumerate(snaps):
+    if i!=2:
+        continue
+    print(snap)
     if alice:
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
     else:
@@ -95,13 +98,21 @@ for i, snap in enumerate(snaps):
     v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
     Den_casted = single_branch(radii, Rsph, Den, weights = Mass)
     v_rad_casted = single_branch(radii, Rsph, v_rad, weights = Mass)
-    mwind[i] = 4 * np.pi * radii**2 * Den_casted * v_rad_casted
+    mwind[i] = 4 * np.pi * radii[0]**2 * Den_casted[0] * v_rad_casted[0]
+    mwindbigger[i] = 4 * np.pi * radii[1]**2 * Den_casted[1] * v_rad_casted[1]
 
 with open(f'{abspath}/data/{folder}/EddingtonEnvelope/Mdot.txt','a') as file:
     file.write(f'# t/tfb \n')
     file.write(f' '.join(map(str, tfb)) + '\n')
     file.write(f'# Mdot_f \n')
     file.write(f' '.join(map(str, mfall)) + '\n')
-    file.write(f'# Mdot_wind \n')
+    file.write(f'# Mdot_wind at 0.2amin\n')
     file.write(f' '.join(map(str, mwind)) + '\n')
+    file.write(f'# Mdot_wind at 0.5amin\n')
+    file.write(f' '.join(map(str, mwindbigger)) + '\n')
     file.close()
+# %%
+if not alice:
+    # plt.plot(tfb, mfall, label = 'Mdot_f')
+    plt.plot(tfb, np.abs(mwind), 'o-', label = 'Mdot_wind 0.2amin')
+    plt.yscale('log')
