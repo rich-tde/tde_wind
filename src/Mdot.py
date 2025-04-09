@@ -15,6 +15,7 @@ import matplotlib.colors as colors
 import Utilities.prelude as prel
 import src.orbits as orb
 from Utilities.operators import make_tree, single_branch, to_spherical_components
+from Utilities.selectors_for_snap import select_snap
 from Utilities.sections import make_slices
 
 ##
@@ -29,6 +30,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = ''
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 tfallback = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2) #[days]
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
@@ -39,9 +41,7 @@ apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 amin = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 
 #%% MAIN
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-datadays = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}_days.txt')
-snaps, tfb = datadays[0], datadays[1]
+snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 tfb_cgs = tfb * tfallback_cgs #converted to seconds
 bins = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}_bins.txt')
 mid_points = (bins[:-1]+bins[1:])* norm_dMdE/2  # get rid of the normalization
@@ -50,9 +50,16 @@ dMdE_distr = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}.txt')[0] # distrib
 bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
 
 mfall = np.zeros(len(tfb_cgs))
+radii = 0.2 * amin
+mwind = np.zeros(len(tfb_cgs))
 # compute dM/dt = dM/dE * dE/dt
-for i, t in enumerate(tfb_cgs):
+for i, snap in enumerate(snaps):
+    if alice:
+        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+    else:
+        path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
     # convert to code units
+    t = tfb_cgs[i] 
     tsol = t / prel.tsol_cgs
     # Find the energy of the element at time t
     energy = orb.keplerian_energy(Mbh, prel.G, tsol)
@@ -65,14 +72,6 @@ for i, t in enumerate(tfb_cgs):
     mfall[i] = mdot # code units
     mdot_cgs = mdot * prel.Msol_cgs / prel.tsol_cgs # [g/s]
 
-radii = 0.2 * amin
-mwind = np.zeros(len(tfb_cgs))
-for snap in snaps:
-    # compute Mdot wind
-    if alice:
-        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-    else:
-        path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
     data = make_tree(path, snap, energy = True)
     X, Y, Z, Mass, Den, VX, VY, VZ = \
         data.X, data.Y, data.Z, data.Mass, data.Den, data.VX, data.VY, data.VZ
