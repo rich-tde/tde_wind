@@ -93,6 +93,7 @@ ratio_mid = a_centrifugal_mid / a_P_mid
 a_grav_mid = prel.G * Mbh / (R_mid-Rs)**2
 ratio_env_mid = (a_P_mid + a_centrifugal_mid)/a_grav_mid
 alpha_plot_mid = Den_mid/np.max(Den_mid)
+OE_mid = orb.orbital_energy(R_mid, V_mid, Mass_mid, prel.G, prel.csol_cgs, Mbh)
 
 #%%
 arrows = np.logical_and(X_mid>-3*apo, np.logical_and(X_mid<-2*apo, np.abs(Y_mid)<.2*apo))
@@ -100,21 +101,20 @@ X_arrows, Y_arrows, Vx_arrows, Vy_arrows = \
     make_slices([X_mid, Y_mid, Vx_mid, Vy_mid], arrows)
 
 fig, (ax1, ax2) = plt.subplots(1,2, figsize=(20,5))
-img = ax1.scatter(X_mid/apo, Y_mid/apo, c = V_r_mid*conversion_sol_kms, cmap = 'cool', s = 7, vmin = -10, vmax = 10)
+img = ax1.scatter(X_mid/apo, Y_mid/apo, c = Den_mid, cmap = 'jet', s = 7, norm = colors.LogNorm(vmin = 1e-18, vmax = 5e-5))
 cbar = plt.colorbar(img)
-cbar.set_label(r'$V_r$ [km/s]', fontsize = 20)
-ax1.quiver(X_arrows[::20]/apo, Y_arrows[::20]/apo, Vx_arrows[::20], Vy_arrows[::20], color = 'k', scale = 20, scale_units = 'xy', angles = 'xy', width = 0.002, label = 'Velocity')
+cbar.set_label(r'$\rho [M_\odot/R_\odot^3$]', fontsize = 20)
 ax1.set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
 
-img = ax2.scatter(X_mid/apo, Y_mid/apo, c = Mass_mid/mstar, cmap = 'jet', s = 7, norm = colors.LogNorm(vmin = 1e-5, vmax = 5e-4))
+img = ax2.scatter(X_mid/apo, Y_mid/apo, c = OE_mid * prel.en_converter, cmap = 'jet', s = 7, vmin = -1, vmax = 1)
 cbar = plt.colorbar(img)
-cbar.set_label(r'$M [M_\star$]', fontsize = 20)
+cbar.set_label(r'OE [erg/s]', fontsize = 20)
 
 for ax in [ax1, ax2]:
     ax.set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
     ax.scatter(0, 0, c='k', s = 40)
-    ax.set_xlim(-3, 0.2)
-    ax.set_ylim(-.5,.5)#1, 1)
+    ax.set_xlim(-5, 0.2)
+    ax.set_ylim(-2,1)#1, 1)
 plt.tight_layout()
 
 #%%
@@ -136,8 +136,8 @@ cbar.set_label(r'$\rho [M_\odot/R_\odot^3$]', fontsize = 20)
 for ax in [ax1, ax2, ax3]:
     ax.set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
     ax.scatter(0, 0, c='k', s = 40)
-    ax.set_xlim(-3, 0.5)
-    ax.set_ylim(-.5,.5)#1, 1)
+    ax.set_xlim(-5, 0.5)
+    ax.set_ylim(-2,2)#1, 1)
 plt.tight_layout()
 plt.savefig(f'{abspath}/Figs/EddingtonEnvelope/insights/vel_{snap}.png', bbox_inches = 'tight')
 
