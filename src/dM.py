@@ -104,7 +104,7 @@ if alice:
             mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
             dm_dE = mass_binned / (np.diff(bins_edges)*norm)
 
-            with open(f'{abspath}/data/{folder}/dMdEdistrib_{check}.txt','a') as file:
+            with open(f'{abspath}/data/{folder}/dMdE_{check}.txt','a') as file:
                 file.write(f'# dM/dE [code units] snap {snap} \n')
                 file.write((' '.join(map(str, dm_dE)) + '\n'))
                 file.close()
