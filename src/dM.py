@@ -72,7 +72,7 @@ if alice:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         print(f'Check: {check}')
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
-        bins = np.arange(-6.5, 2, .1) #np.linspace(-5,5,1000) 
+        bins = np.arange(-6.5, 2, .01) #np.linspace(-5,5,1000) 
         # save snaps, tfb and energy bins
         with open(f'{abspath}/data/{folder}/dMdE_{check}_days.txt','w') as filedays:
             filedays.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')

@@ -8,7 +8,7 @@ if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
     compute = True
 else:
-    abspath = '/Users/paolamartire/shocks/'
+    abspath = '/Users/paolamartire/shocks'
     compute = False
 import csv
 import numpy as np
@@ -112,7 +112,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         Vwind[i] = v_rad_casted[0] 
         Vwindbigger[i] = v_rad_casted[1]
 
-    with open(f'{abspath}/data/{folder}/Mdot.txt','a') as file:
+    with open(f'{abspath}/data/{folder}/Mdot_{check}.txt','a') as file:
         file.write(f'# t/tfb \n')
         file.write(f' '.join(map(str, tfb)) + '\n')
         file.write(f'# Mdot_f \n')
@@ -128,7 +128,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         file.close()
 
 if plot:
-    tfb, mfall, mwind, mwindbigger = np.loadtxt(f'{abspath}/data/{folder}/outflow/Mdot.txt')
+    tfb, mfall, mwind, mwindbigger, Vwind, Vmwindbigger = np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}.txt')
     Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
     f_out_th = f_out_LodatoRossi(mfall, Medd_code)
 

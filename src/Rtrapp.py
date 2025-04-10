@@ -1,4 +1,4 @@
-"""Compute diffusion time"""
+"""Compute trapping radius i.e. R: tau(R) = c/v(R)"""
 import sys
 sys.path.append('/Users/paolamartire/shocks')
 from Utilities.isalice import isalice
@@ -35,7 +35,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiRes' 
+check = '' 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 pre_saving = f'{abspath}/data/{folder}'
@@ -43,14 +43,12 @@ pre_saving = f'{abspath}/data/{folder}'
 Rt = orb.tidal_radius(Rstar, mstar, Mbh)
 a_min = orb.semimajor_axis(Rstar, mstar, Mbh, prel.G)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
-t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2) #days
-t_fall_cgs = t_fall * 24 * 3600
 
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) #shape: (3, 192)
 observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 
-# Load data
+# Opacity
 opac_path = f'{abspath}/src/Opacity'
 T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
@@ -58,31 +56,31 @@ rossland = np.loadtxt(f'{opac_path}/ross.txt')
 T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
 
 for snap in snaps:
+    if int(snap) != 237:
+        continue
     photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
     xph, yph, zph = photo[0], photo[1], photo[2]
     rph = np.sqrt(xph**2 + yph**2 + zph**2)
     if alice:
-        data = make_tree(f'{pre}/snap_{snap}', snap, energy = True)        
-        box = np.load(f'{pre}/snap_{snap}/box_{snap}.npy')
+        loadpath = f'{pre}/snap_{snap}'
     else:
-        data = make_tree(f'{pre}/{snap}', snap, energy = True)
-        box = np.load(f'{pre}/{snap}/box_{snap}.npy')
-    X, Y, Z, T, Den, Mass, Rad, Vol, VX, VY, VZ = \
-        data.X, data.Y, data.Z, data.Temp, data.Den, data.Mass, data.Rad, data.Vol, data.VX, data.VY, data.VZ
-    # consider only cells in a slice
+        loadpath = f'{pre}/{snap}'
+    data = make_tree(loadpath, snap, energy = True)
+    box = np.load(f'{loadpath}/box_{snap}.npy')
+    X, Y, Z, T, Den, Vol, VX, VY, VZ = \
+        data.X, data.Y, data.Z, data.Temp, data.Den, data.Vol, data.VX, data.VY, data.VZ
     denmask = Den > 1e-19
-    X, Y, Z, Vol, T, Den, Vol, VX, VY, VZ = \
-        make_slices([X, Y, Z, Vol, T, Den, Vol, VX, VY, VZ], denmask)
+    X, Y, Z, T, Den, Vol, VX, VY, VZ = \
+        make_slices([X, Y, Z, T, Den, Vol, VX, VY, VZ], denmask)
     xyz = np.array([X, Y, Z]).T
     N_ray = 500
 
     x_tr = np.zeros(len(observers_xyz))
     y_tr = np.zeros(len(observers_xyz))
     z_tr = np.zeros(len(observers_xyz))
-    den_tr = np.zeros(len(observers_xyz))
-    dim_tr = np.zeros(len(observers_xyz))
-    vol_tr = np.zeros(len(observers_xyz))
     Temp_tr = np.zeros(len(observers_xyz))
+    den_tr = np.zeros(len(observers_xyz))
+    vol_tr = np.zeros(len(observers_xyz))
     Vx_tr = np.zeros(len(observers_xyz))
     Vy_tr = np.zeros(len(observers_xyz))
     Vz_tr = np.zeros(len(observers_xyz))
@@ -120,18 +118,18 @@ for snap in snaps:
         _, idx = tree.query(xyz2, k=1)
         idx = [ int(idx[i][0]) for i in range(len(idx))] # no -1 because we start from 0
         idx = np.unique(idx)
-        d = Den[idx] * prel.den_converter
-        t = T[idx]
         ray_x = X[idx]
         ray_y = Y[idx]
         ray_z = Z[idx]
+        ray_r = np.sqrt(ray_x**2 + ray_y**2 + ray_z**2)
+        t = T[idx]
+        d = Den[idx] * prel.den_converter
         ray_vol = Vol[idx]
         ray_vx = VX[idx]
         ray_vy = VY[idx]
         ray_vz = VZ[idx]
-        ray_r = np.sqrt(ray_x**2 + ray_y**2 + ray_z**2)
-        d, t, ray_x, ray_y, ray_z, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r = \
-            sort_list([d, t, ray_x, ray_y, ray_z, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r], ray_r)
+        ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r = \
+            sort_list([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r], ray_r)
         long_ph_s = np.arctan2(ray_y, ray_x)          # Azimuthal angle in radians
         lat_ph_s = np.arccos(ray_z/ ray_r) 
         v_rad, v_theta, v_phi= to_spherical_components(ray_vx, ray_vy, ray_vz, lat_ph_s, long_ph_s)
@@ -141,45 +139,61 @@ for snap in snaps:
         sigma_rossland = np.array(sigma_rossland)[0]
         underflow_mask = sigma_rossland != 0.0
         idx = np.array(idx)
-        d, t, ray_x, ray_y, ray_z, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r = \
-            make_slices([d, t, ray_x, ray_y, ray_z, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r], underflow_mask)
+        ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r, sigma_rossland = \
+            make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r, sigma_rossland], underflow_mask)
         sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
         del sigma_rossland
         gc.collect()
 
         # Optical Depth
-        ray_fuT = np.flipud(ray_r)#ray_z) 
+        ray_fuT = np.flipud(ray_r)
         kappa_rossland = np.flipud(sigma_rossland_eval) #np.flipud(d)*0.34cm2/g
         # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
         los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, ray_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_z. YOu integrate in the z direction
         los_zero = los != 0
-        d, t, ray_x, ray_y, ray_z, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r, v_rad, los = \
-            make_slices([d, t, ray_x, ray_y, ray_z, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r, v_rad, los], los_zero)
-        ctau = prel.csol_cgs/los #c/tau [code units]
+        ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r, v_rad, los = \
+            make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r, v_rad, los], los_zero)
+        c_tau = prel.csol_cgs/los #c/tau [code units]
 
-        try: 
-            Rtr_idx_all = np.where(ctau/np.abs(v_rad)<1)[0]
-            x_tr_all = ray_x[Rtr_idx_all]
-            y_tr_all = ray_y[Rtr_idx_all]
-            z_tr_all = ray_z[Rtr_idx_all]
-            R_tr_all = np.sqrt(x_tr_all**2 + y_tr_all**2 + z_tr_all**2)
-            Rtr_idx_all_inside = np.where(R_tr_all<rph[i])[0]
-            Rtr_idx_all = Rtr_idx_all[Rtr_idx_all_inside]
-            Rtr_idx = Rtr_idx_all[-1]
-            x_tr[i] = ray_x[Rtr_idx]
-            y_tr[i] = ray_y[Rtr_idx]
-            z_tr[i] = ray_z[Rtr_idx]
-            vol_tr[i] = ray_vol[Rtr_idx]
-            den_tr[i] = d[Rtr_idx]/prel.den_converter
-            Temp_tr[i] = t[Rtr_idx]
-            Vx_tr[i] = ray_vx[Rtr_idx]
-            Vy_tr[i] = ray_vy[Rtr_idx]
-            Vz_tr[i] = ray_vz[Rtr_idx]
-            Vr_tr[i] = v_rad[Rtr_idx]
-        except IndexError: # if you don't find the photosphere, exlude the observer
+        # inner part: tau big --> c/tau < v
+        Rtr_idx_all = np.where(c_tau/np.abs(v_rad)<1)[0]
+        if len(Rtr_idx_all) == 0:
             print(f'No Rtr found in {i}', flush=False)
             sys.stdout.flush()
+            plt.figure()
+            plt.plot(ray_r/apo, c_tau/np.abs(v_rad), c = 'k', label = r'$c\tau^{-1}/v_r$')
+            plt.plot(ray_r/apo, los, label = r'$\tau$', c = 'r')
+            plt.axhline(1, c = 'k', linestyle = 'dotted')
+            plt.text(0.1, 0.1, r'$\tau$ big: c$\tau\leq$v', fontsize = 14)
+            plt.xlabel(r'$R [R_{\rm a}]$')
+            plt.ylabel(r'')
+            plt.yscale('log')
+            plt.legend(fontsize = 14)
+            plt.show()
             continue
+        x_tr_all = ray_x[Rtr_idx_all]
+        y_tr_all = ray_y[Rtr_idx_all]
+        z_tr_all = ray_z[Rtr_idx_all]
+        R_tr_all = ray_r[Rtr_idx_all]
+        # Rtr < Rph
+        Rtr_idx_all_inside = np.where(R_tr_all<rph[i])[0]
+        if len(Rtr_idx_all_inside) == 0:
+            print(f'No Rtr inside Rph in {i}', flush=False)
+            sys.stdout.flush()
+            continue
+        Rtr_idx_all = Rtr_idx_all[Rtr_idx_all_inside]
+        # take the one more outside
+        Rtr_idx = Rtr_idx_all[-1]
+        x_tr[i] = ray_x[Rtr_idx]
+        y_tr[i] = ray_y[Rtr_idx]
+        z_tr[i] = ray_z[Rtr_idx]
+        den_tr[i] = d[Rtr_idx]/prel.den_converter
+        vol_tr[i] = ray_vol[Rtr_idx]
+        Temp_tr[i] = t[Rtr_idx]
+        Vx_tr[i] = ray_vx[Rtr_idx]
+        Vy_tr[i] = ray_vy[Rtr_idx]
+        Vz_tr[i] = ray_vz[Rtr_idx]
+        Vr_tr[i] = v_rad[Rtr_idx]
 
     if alice:
         with open(f'{pre_saving}/trap/{check}_Rtr{snap}.txt', 'a') as f:
