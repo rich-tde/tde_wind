@@ -55,10 +55,10 @@ def f_out_LodatoRossi(M_fb, M_edd):
 if compute: # compute dM/dt = dM/dE * dE/dt
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
     tfb_cgs = tfb * tfallback_cgs #converted to seconds
-    bins = np.loadtxt(f'{abspath}/data/{folder}/dM/dMdE_{check}_bins.txt')
+    bins = np.loadtxt(f'{abspath}/data/{folder}/dMdE_{check}_bins.txt')
     max_bin_negative = np.abs(np.min(bins))
     mid_points = (bins[:-1]+bins[1:])* norm_dMdE/2  # get rid of the normalization
-    dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/dM/dMdE_{check}.txt')[0] # distribution just after the disruption
+    dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/dMdE_{check}.txt')[0] # distribution just after the disruption
     bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
     mfall = np.zeros(len(tfb_cgs))
     mwind = np.zeros(len(tfb_cgs))
