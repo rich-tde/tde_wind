@@ -1,4 +1,4 @@
-""" Find density profile"""
+""" Find density and (radial velocity) profiles"""
 #%%
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
@@ -20,16 +20,11 @@ import warnings
 warnings.filterwarnings('ignore')
 
 import numpy as np
-import k3match
-import scipy.integrate as sci
-from scipy.stats import gmean
 import matlab.engine
+import k3match
 from sklearn.neighbors import KDTree
 import healpy as hp
 import Utilities.prelude as prel
-import scipy.integrate as spi
-import scipy.optimize as spo
-from src.Opacity.linextrapolator import nouveau_rich
 from Utilities.selectors_for_snap import select_prefix
 from Utilities.sections import make_slices
 import src.orbits as orb
@@ -97,19 +92,13 @@ conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 
 #%% MATLAB GOES WHRRRR, thanks Cindy.
 eng = matlab.engine.start_matlab()
-#%% Observers -----------------------------------------------------------------
+#%% Observers
 observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
 obs_indices = np.arange(len(observers_xyz[0]))
 x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
 r_obs = np.sqrt(x_obs**2 + y_obs**2 + z_obs**2)
 long_obs = np.arctan2(y_obs, x_obs)          # Azimuthal angle in radians
 lat_obs = np.arccos(z_obs / r_obs)
-# Convert to latitude and longitude
-longitude_moll = long_obs              
-latitude_moll = np.pi / 2 - lat_obs 
-mid = np.concatenate(np.where(latitude_moll==0))
-# select only the observers in the orbital plane (will give you a N bool array--> apply to columns)
-observers_xyz_mid, indices_mid = observers_xyz[:,mid], obs_indices[mid]
 
 if which_obs == 'arch':
     wanted_obs = [(1,0,0), 
@@ -142,19 +131,6 @@ if which_obs == 'all_cartesian':
                  '+x+y-z', '-x+y-z', '-x-y-z', '+x-y-z',]
     colors_obs = plt.cm.rainbow(np.linspace(0, 1, len(indices_chosen)))
 if which_obs == 'all_rotate':
-    # Cartesian view
-    # rotate of 90 degrees keeping y as axis
-    # x_obs_rot = np.sqrt(2)/2 * x_obs - np.sqrt(2)/2 * z_obs
-    # z_obs_rot = np.sqrt(2)/2 * x_obs + np.sqrt(2)/2 * z_obs
-    # indices1 = obs_indices[np.logical_and(z_obs>=0, np.logical_and(x_obs >= 0, np.abs(y_obs) < x_obs))]
-    # indices2 = obs_indices[np.logical_and(z_obs>=0, np.logical_and(y_obs >= 0, y_obs > np.abs(x_obs)))]
-    # indices3 = obs_indices[np.logical_and(z_obs>=0, np.logical_and(x_obs < 0, np.abs(y_obs) < np.abs(x_obs)))]
-    # indices4 = obs_indices[np.logical_and(z_obs>=0, np.logical_and(y_obs < 0, np.abs(y_obs) > np.abs(x_obs)))]
-    # indices5 = obs_indices[np.logical_and(z_obs<0, np.logical_and(x_obs >= 0, np.abs(y_obs) < x_obs))]
-    # indices6 = obs_indices[np.logical_and(z_obs<0, np.logical_and(y_obs >= 0, y_obs > np.abs(x_obs)))]
-    # indices7 = obs_indices[np.logical_and(z_obs<0, np.logical_and(x_obs < 0, np.abs(y_obs) < np.abs(x_obs)))]
-    # indices8 = obs_indices[np.logical_and(z_obs<0, np.logical_and(y_obs < 0, np.abs(y_obs) > np.abs(x_obs)))]
-
     indices1 = obs_indices[np.logical_and(x_obs >= 0, np.abs(y_obs) < x_obs)]
     indices2 = obs_indices[np.logical_and(y_obs >= 0, y_obs > np.abs(x_obs))]
     indices3 = obs_indices[np.logical_and(x_obs < 0, np.abs(y_obs) < np.abs(x_obs))]
@@ -165,70 +141,51 @@ if which_obs == 'all_rotate':
 
     indices_chosen = [indices1, indices2, indices3, indices4, indices5, indices6]#, indices7, indices8]
     colors_obs = plt.cm.rainbow(np.linspace(0, 1, len(indices_chosen)))
-    label_obs = label_obs = ['+x', '+y', '-x', '-y', '+z', '-z']
+    label_obs = ['+x', '+y', '-x', '-y', '+z', '-z']
+observers_xyz = np.transpose(observers_xyz) #shape: Nx3
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
-# ax1.scatter(x_obs, y_obs, c = 'gray')
-# ax2.scatter(x_obs, z_obs, c = 'gray')
-# ax1.scatter(x_obs[z_obs==0], y_obs[z_obs==0], c = 'gray', edgecolors = 'k')
-# ax2.scatter(x_obs[z_obs==0], z_obs[z_obs==0], c = 'gray', edgecolors = 'k')
-# scatter plot of x_obs[indices_chosen] with a different color for each different point
+for ax in [ax1, ax2]:
+    # ax1.scatter(x_obs, y_obs, c = 'gray')
+    # ax2.scatter(x_obs, z_obs, c = 'gray')
+    # ax1.scatter(x_obs[z_obs==0], y_obs[z_obs==0], c = 'gray', edgecolors = 'k')
+    # ax2.scatter(x_obs[z_obs==0], z_obs[z_obs==0], c = 'gray', edgecolors = 'k')
+    ax.set_xlabel(r'$X$')
+    ax.set_xlim(-1.5, 1.5)
+    ax.set_ylim(-1.5, 1.5)
 for j, idx_list in enumerate(indices_chosen):
     ax1.scatter(x_obs[idx_list], y_obs[idx_list], s = 50, edgecolors = 'k', c = colors_obs[j])
     ax2.scatter(x_obs[idx_list], z_obs[idx_list], s = 50, edgecolors = 'k', c = colors_obs[j])
 ax1.set_ylabel(r'$Y$')
 ax2.set_ylabel(r'$Z$')
-for ax in [ax1, ax2]:
-    ax.set_xlabel(r'$X$')
-    ax.set_xlim(-1.5, 1.5)
-    ax.set_ylim(-1.5, 1.5)
 plt.suptitle(f'Selected observers {which_obs}', fontsize=15)
 plt.tight_layout()
-plt.savefig(f'{abspath}/Figs/EddingtonEnvelope/observers_{which_obs}.png', bbox_inches = 'tight')
-
-observers_xyz = np.transpose(observers_xyz) #shape: Nx3
-#%% Opacity Input (they are ln)
-opac_path = f'{abspath}/src/Opacity'
-T_cool = np.loadtxt(f'{opac_path}/T.txt')
-Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
-rossland = np.loadtxt(f'{opac_path}/ross.txt')
-T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
-
-pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
-box = np.zeros(6)
+plt.savefig(f'{abspath}/Figs/outflow/observers_{which_obs}.png', bbox_inches = 'tight')
 
 #%% Load data -----------------------------------------------------------------
+pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
+box = np.zeros(6)
 if alice:
-    X = np.load(f'{pre}/snap_{snap}/CMx_{snap}.npy')
-    Y = np.load(f'{pre}/snap_{snap}/CMy_{snap}.npy')
-    Z = np.load(f'{pre}/snap_{snap}/CMz_{snap}.npy')
-    VX = np.load(f'{pre}/snap_{snap}/Vx_{snap}.npy')
-    VY = np.load(f'{pre}/snap_{snap}/Vy_{snap}.npy')
-    VZ = np.load(f'{pre}/snap_{snap}/Vz_{snap}.npy')
-    T = np.load(f'{pre}/snap_{snap}/T_{snap}.npy')
-    Den = np.load(f'{pre}/snap_{snap}/Den_{snap}.npy')
-    Vol = np.load(f'{pre}/snap_{snap}/Vol_{snap}.npy')
-    box = np.load(f'{pre}/snap_{snap}/box_{snap}.npy')
+    loadpath = f'{pre}/snap_{snap}'
 else:
-    X = np.load(f'{pre}/{snap}/CMx_{snap}.npy')
-    Y = np.load(f'{pre}/{snap}/CMy_{snap}.npy')
-    Z = np.load(f'{pre}/{snap}/CMz_{snap}.npy')
-    VX = np.load(f'{pre}/{snap}/Vx_{snap}.npy')
-    VY = np.load(f'{pre}/{snap}/Vy_{snap}.npy')
-    VZ = np.load(f'{pre}/{snap}/Vz_{snap}.npy')
-    T = np.load(f'{pre}/{snap}/T_{snap}.npy')
-    Den = np.load(f'{pre}/{snap}/Den_{snap}.npy')
-    Vol = np.load(f'{pre}/{snap}/Vol_{snap}.npy')
-    box = np.load(f'{pre}/{snap}/box_{snap}.npy')
-
+    loadpath = f'{pre}/{snap}'
+X = np.load(f'{loadpath}/CMx_{snap}.npy')
+Y = np.load(f'{loadpath}/CMy_{snap}.npy')
+Z = np.load(f'{loadpath}/CMz_{snap}.npy')
+VX = np.load(f'{loadpath}/Vx_{snap}.npy')
+VY = np.load(f'{loadpath}/Vy_{snap}.npy')
+VZ = np.load(f'{loadpath}/Vz_{snap}.npy')
+T = np.load(f'{loadpath}/T_{snap}.npy')
+Den = np.load(f'{loadpath}/Den_{snap}.npy')
+Vol = np.load(f'{loadpath}/Vol_{snap}.npy')
+box = np.load(f'{loadpath}/box_{snap}.npy')
 denmask = Den > 1e-19
 X, Y, Z, VX, VY, VZ, T, Den, Vol = \
     make_slices([X, Y, Z, VX, VY, VZ, T, Den, Vol], denmask)
 R = np.sqrt(X**2 + Y**2 + Z**2)    
-
 xyz = np.array([X, Y, Z]).T
 N_ray = 5_000
-with open(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}.txt','w') as file:
+with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}.txt','w') as file:
         file.close()
 for j, idx_list in enumerate(indices_chosen):
     r_mean = []
@@ -242,8 +199,7 @@ for j, idx_list in enumerate(indices_chosen):
         mu_y = observers_xyz[i][1]
         mu_z = observers_xyz[i][2]
 
-        # Box is for dynamic ray making
-        # box gives -x, -y, -z, +x, +y, +z
+        # Box 
         if mu_x < 0:
             rmax = box[0] / mu_x
         else:
@@ -262,13 +218,14 @@ for j, idx_list in enumerate(indices_chosen):
         x = r*mu_x
         y = r*mu_y
         z = r*mu_z
-        r = r*np.sqrt(mu_x**2 + mu_y**2 + mu_z**2)
+        r = r * np.sqrt(mu_x**2 + mu_y**2 + mu_z**2) # r is the distance from the BH
         xyz2 = np.array([x, y, z]).T
         del x, y, z
         # find the simulation cell corresponding to cells in the wanted ray
         tree = KDTree(xyz, leaf_size = 50) 
-        _, idx = tree.query(xyz2, k=1)
+        _, idx = tree.query(xyz2, k=1) #you can do k=4, comment the line afterwards and then do d = np.mean(d, axis=1) and the same for all the quantity. But you doesn't really change since you are averaging already on line of sights
         idx = [ int(idx[i][0]) for i in range(len(idx))]
+        idx = np.array(idx)
         # Quantity corresponding to the ray
         d = Den[idx] * prel.den_converter
         t = T[idx]
@@ -280,12 +237,6 @@ for j, idx_list in enumerate(indices_chosen):
         ray_vy = VY[idx]
         ray_vz = VZ[idx]
         
-        sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
-        sigma_rossland = np.array(sigma_rossland)[0]
-        underflow_mask = sigma_rossland != 0.0#, ray_vx>0)
-        idx = np.array(idx)
-        d, t, r, ray_x, ray_y, ray_z, dim_cell, ray_vx, ray_vy, ray_vz, idx = \
-            make_slices([d, t, r, ray_x, ray_y, ray_z, dim_cell, ray_vx, ray_vy, ray_vz, idx], underflow_mask)
         v_rad, v_theta, v_phi = to_spherical_components(ray_vx, ray_vy, ray_vz, lat_obs[i], long_obs[i])
         v_tot = np.sqrt(ray_vx**2 + ray_vy**2 + ray_vz**2)
         r_mean.append(r)
@@ -293,23 +244,13 @@ for j, idx_list in enumerate(indices_chosen):
         v_rad_mean.append(v_rad)
         v_tot_mean.append(v_tot)
 
-        # fig1, axsingle = plt.subplots(1, 1, figsize=(8, 7))
-        # img = axsingle.scatter(ray_x[np.abs(v_rad*conversion_sol_kms)<1]/apo, v_rad[np.abs(v_rad*conversion_sol_kms)<1]*conversion_sol_kms, c = ray_y[np.abs(v_rad*conversion_sol_kms)<1]/apo)
-        # cbar = plt.colorbar(img)
-        # cbar.set_label(r'Y [$R_{\rm a}$]')
-        # axsingle.set_xlabel(r'R [$R_{\rm a}$]')
-        # axsingle.set_ylabel(r'$|V_r|$ [km/s]')
-        # axsingle.set_xlim(0.8, 4)
-        # fig1.suptitle(f'Observer {label_obs[j]}, number {i}, snap {snap}')
-        # fig1.tight_layout()
-
         ax1.plot(xyz2[:,0]/apo, xyz2[:,1]/apo, c = colors_obs[j])
         img1 = ax1.scatter(ray_x/apo, ray_y/apo, c = np.abs(ray_z)/apo, cmap = 'jet', label = 'From simulation', norm = colors.LogNorm(vmin = 8e-3, vmax = 3))
-        ax1.set_ylabel(r'Y [$R_{\rm a}$]')
         # # ax1.legend(fontsize = 18)
         ax2.plot(ray_x/apo, ray_y/apo, c = 'k', alpha = 0.5)
         img2 = ax2.scatter(ray_x/apo, ray_y/apo, c = np.abs(v_rad)*conversion_sol_kms, cmap = 'jet', norm = colors.LogNorm(vmin = 1e-1, vmax = 2e4))
     
+    ax1.set_ylabel(r'Y [$R_{\rm a}$]')
     cbar = plt.colorbar(img1, orientation = 'horizontal')
     cbar.set_label(r'Z [R$_{\rm a}]$')
     cbar = plt.colorbar(img2, orientation = 'horizontal')
@@ -318,22 +259,18 @@ for j, idx_list in enumerate(indices_chosen):
         ax.set_xlabel(r'X [$R_{\rm a}$]')
         ax.set_xlim(np.min(ray_x)/apo, 0.5*np.max(ray_x)/apo)
         ax.set_ylim(np.min(ray_y)/apo, 0.5*np.max(ray_y)/apo)
-        # ax.set_xscale('log')
     ax1.set_title('Points wanted and selected', fontsize = 18)
     ax2.set_title('Velocity', fontsize = 18)
-    if which_obs == 'all_rotate':
-        plt.suptitle(f'Snap {snap}', fontsize = 20)
-    else:
-        plt.suptitle(f'Observer {label_obs[j]}, snap {snap}', fontsize = 20)
+    plt.suptitle(f'Observer {label_obs[j]}, snap {snap}', fontsize = 20)
     plt.tight_layout()
-    fig.savefig(f'{abspath}/Figs/EddingtonEnvelope/insights/selectedCells{snap}{which_obs}{j}.png', bbox_inches = 'tight')
+    fig.savefig(f'{abspath}/Figs/outflow/insights/selectedCells{snap}{which_obs}{j}.png', bbox_inches = 'tight')
     
     r_mean = np.mean(r_mean, axis=0)
     d_mean = np.mean(d_mean, axis=0)
     v_rad_mean = np.mean(v_rad_mean, axis=0)
     v_tot_mean = np.mean(v_tot_mean, axis=0)
 
-    with open(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}.txt','a') as file:
+    with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}.txt','a') as file:
         file.write(f'# Observer latitude: {lat_obs[i]}, longitude: {long_obs[i]}\n')
         file.write(f' '.join(map(str, r_mean)) + '\n')
         file.write(f' '.join(map(str, d_mean)) + '\n')
@@ -350,7 +287,7 @@ fig, ax1 = plt.subplots(1, 1, figsize=(8, 7))
 fig1, ax2 = plt.subplots(1, 1, figsize=(8, 7))
 fig2, ax3 = plt.subplots(1, 1, figsize=(8, 7))
 
-profiles = np.loadtxt(f'{abspath}/data/{folder}/EddingtonEnvelope/den_prof{snap}{which_obs}.txt')
+profiles = np.loadtxt(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}.txt')
 r_arr, d_arr, v_rad_arr, v_tot_arr = profiles[0::4], profiles[1::4], profiles[2::4], profiles[3::4]
 
 for i in range(len(indices_chosen)):
@@ -379,16 +316,10 @@ for ax in [ax1, ax2, ax3]:
     ax.set_xlabel(r'R [R$_a]$')
     ax.set_xlim(xmin, xmax)
     ax.loglog()
-    # ax.axvline(a_mb/apo, c = 'k', ls = '--')
-    # ax4 = ax.twiny()
-    # ax4.set_xlim(xmin*apo/Rt, xmax*apo/Rt)
-    # ax4.set_xscale('log')
-    # ax4.set_xlabel(r'R [R$_t]$')
-    # ax.set_title(f'{snap}')
 plt.tight_layout()
-fig.savefig(f'{abspath}/Figs/EddingtonEnvelope/den_prof{snap}{which_obs}.png', bbox_inches = 'tight')
-fig1.savefig(f'{abspath}/Figs/EddingtonEnvelope/vel_prof{snap}{which_obs}.png', bbox_inches = 'tight')
-fig2.savefig(f'{abspath}/Figs/EddingtonEnvelope/vel_prof_rhoR2v{snap}{which_obs}.png', bbox_inches = 'tight')
+fig.savefig(f'{abspath}/Figs/outflow/den_prof{snap}{which_obs}.png', bbox_inches = 'tight')
+fig1.savefig(f'{abspath}/Figs/outflow/vel_prof{snap}{which_obs}.png', bbox_inches = 'tight')
+fig2.savefig(f'{abspath}/Figs/outflow/vel_prof_rhoR2v{snap}{which_obs}.png', bbox_inches = 'tight')
 plt.show()
 
 #%%

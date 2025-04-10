@@ -36,18 +36,19 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiRes' 
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
+pre_saving = f'{abspath}/data/{folder}'
+
 Rt = orb.tidal_radius(Rstar, mstar, Mbh)
 a_min = orb.semimajor_axis(Rstar, mstar, Mbh, prel.G)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2) #days
 t_fall_cgs = t_fall * 24 * 3600
 
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) #shape: (3, 192)
 observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
-pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
-pre_saving = f'{abspath}/data/{folder}'
 
 # Load data
 opac_path = f'{abspath}/src/Opacity'

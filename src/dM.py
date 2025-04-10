@@ -51,7 +51,7 @@ norm = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call
 save = True
 compare_times = False
 movie = False 
-dMdecc = True
+dMdecc = False
 
 def specific_j(r, vel):
     """ (Magnitude of) specific angular momentum """
@@ -65,7 +65,7 @@ def eccentricity_squared(r, vel, specOE, Mbh, G):
     return ecc2
 
 if alice:
-    checks = [''] #['LowRes', '','HiRes'] 
+    checks = ['']#['LowRes', '','HiRes'] 
     print('Normalization for energy:', norm)
 
     for check in checks:
@@ -74,11 +74,11 @@ if alice:
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
         bins = np.arange(-6.5, 2, .1) #np.linspace(-5,5,1000) 
         # save snaps, tfb and energy bins
-        with open(f'{abspath}/data/{folder}/newdMdEdistrib_{check}_days.txt','a') as filedays:
+        with open(f'{abspath}/data/{folder}/dMdE_{check}_days.txt','w') as filedays:
             filedays.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
             filedays.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
             filedays.close()
-        with open(f'{abspath}/data/{folder}/newdMdEdistrib_{check}_bins.txt','w') as file:
+        with open(f'{abspath}/data/{folder}/dMdE_{check}_bins.txt','w') as file:
             file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
             file.write((' '.join(map(str, bins)) + '\n'))
             file.close()
@@ -92,7 +92,7 @@ if alice:
             mass = data.Mass
             R = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
             V = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
-            orbital_enegy = orb.orbital_energy(R, V, mass, G, c, Mbh)
+            orbital_enegy = orb.orbital_energy(R, V, mass, prel.G, prel.csol_cgs, Mbh)
             specific_orbital_energy = orbital_enegy / mass
 
             # Cutoff for low density
@@ -104,8 +104,8 @@ if alice:
             mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
             dm_dE = mass_binned / (np.diff(bins_edges)*norm)
 
-            with open(f'{abspath}/data/{folder}/newdMdEdistrib_{check}.txt','a') as file:
-                file.write(f'# dM/dE snap {snap} \n')
+            with open(f'{abspath}/data/{folder}/dMdEdistrib_{check}.txt','a') as file:
+                file.write(f'# dM/dE [code units] snap {snap} \n')
                 file.write((' '.join(map(str, dm_dE)) + '\n'))
                 file.close()
     

@@ -6,8 +6,10 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
+    compute = True
 else:
     abspath = '/Users/paolamartire/shocks/'
+    compute = False
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
@@ -39,80 +41,106 @@ Rp = Rt/beta
 norm_dMdE = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call \Delta E). It's GM/Rt^2 * Rstar
 apo = orb.apocentre(Rstar, mstar, Mbh, beta) 
 amin = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
-
-#%% MAIN
-snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
-tfb_cgs = tfb * tfallback_cgs #converted to seconds
-bins = np.loadtxt(f'{abspath}data/{folder}/dM/dMdE_{check}_bins.txt')
-mid_points = (bins[:-1]+bins[1:])* norm_dMdE/2  # get rid of the normalization
-dMdE_distr = np.loadtxt(f'{abspath}data/{folder}/dM/dMdE_{check}.txt')[0] # distribution just after the disruption
-bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
-
-mfall = np.zeros(len(tfb_cgs))
 radii = [0.2 * amin, 0.5 * amin]
-mwind = np.zeros(len(tfb_cgs))
-mwindbigger = np.zeros(len(tfb_cgs))
-# compute dM/dt = dM/dE * dE/dt
-for i, snap in enumerate(snaps):
-    if i!=2:
-        continue
-    print(snap)
-    if alice:
-        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-    else:
-        path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
-    # convert to code units
-    t = tfb_cgs[i] 
-    tsol = t / prel.tsol_cgs
-    # Find the energy of the element at time t
-    energy = orb.keplerian_energy(Mbh, prel.G, tsol)
-    # Find the bin that corresponds to the energy of the element and its dMdE (in CGS)
-    i_bin = np.argmin(np.abs(energy-np.abs(bins_tokeep))) # just to be sure that you match the data
-    if energy/bins_tokeep[i_bin] > 2:
-        print('You do not match the data in your time range')
-    dMdE_t = dMdE_distr_tokeep[i_bin]
-    mdot = orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t)
-    mfall[i] = mdot # code units
-    mdot_cgs = mdot * prel.Msol_cgs / prel.tsol_cgs # [g/s]
+Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
+Medd = Ledd/(0.1*prel.c_cgs**2)
 
-    data = make_tree(path, snap, energy = True)
-    X, Y, Z, Mass, Den, VX, VY, VZ = \
-        data.X, data.Y, data.Z, data.Mass, data.Den, data.VX, data.VY, data.VZ
-    cut = Den > 1e-19
-    X, Y, Z, Mass, Den, VX, VY, VZ = \
-        make_slices([X, Y, Z, Mass, Den, VX, VY, VZ], cut)
-    Rsph = np.sqrt(X**2 + Y**2 + Z**2)
-    # xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph = \
-    #     np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
-    # xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph = \
-    #     np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
-    # rph = np.sqrt(xph**2 + yph**2 + zph**2)
-    # idx_r_wind = np.argmin(np.abs(rph - radii))
-    # x_w, y_w, z_w, r_w, vx_w, vy_w, vz_w = \
-    #     xph[idx_r_wind], yph[idx_r_wind], zph[idx_r_wind], rph[idx_r_wind], Vxph[idx_r_wind], Vyph[idx_r_wind], Vzph[idx_r_wind]
-    # long_w = np.arctan2(y_w, x_w)          # Azimuthal angle in radians
-    # lat_w = np.arccos(z_w / r_w)
-    # v_rad_w, _, _ = to_spherical_components(vx_w, vy_w, vz_w, lat_w, long_w)
-    long = np.arctan2(Y, X)          # Azimuthal angle in radians
-    lat = np.arccos(Z / Rsph)
-    v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
-    Den_casted = single_branch(radii, Rsph, Den, weights = Mass)
-    v_rad_casted = single_branch(radii, Rsph, v_rad, weights = Mass)
-    mwind[i] = 4 * np.pi * radii[0]**2 * Den_casted[0] * v_rad_casted[0]
-    mwindbigger[i] = 4 * np.pi * radii[1]**2 * Den_casted[1] * v_rad_casted[1]
+#
+## FUNCTIONS
+#
+def f_out_LodatoRossi(M_fb, M_edd):
+    f = 2/np.pi * np.arctan(1/7.5 * (M_fb/M_edd-1))
+    return f
+#%% MAIN
+if compute: # compute dM/dt = dM/dE * dE/dt
+    snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
+    tfb_cgs = tfb * tfallback_cgs #converted to seconds
+    bins = np.loadtxt(f'{abspath}/data/{folder}/dM/dMdE_{check}_bins.txt')
+    max_bin_negative = np.abs(np.min(bins))
+    mid_points = (bins[:-1]+bins[1:])* norm_dMdE/2  # get rid of the normalization
+    dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/dM/dMdE_{check}.txt')[0] # distribution just after the disruption
+    bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
+    mfall = np.zeros(len(tfb_cgs))
+    mwind = np.zeros(len(tfb_cgs))
+    mwindbigger = np.zeros(len(tfb_cgs))
+    for i, snap in enumerate(snaps):
+        print(snap, flush=True)
+        sys.stdout.flush()
+        if alice:
+            path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+        else:
+            path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
+        t = tfb_cgs[i] 
+        # convert to code units
+        tsol = t / prel.tsol_cgs
+        # Find the energy of the element at time t
+        energy = orb.keplerian_energy(Mbh, prel.G, tsol) # it'll give it positive
+        i_bin = np.argmin(np.abs(energy-np.abs(bins_tokeep))) # just to be sure that you match the data
+        if energy/bins_tokeep[i_bin] > max_bin_negative:
+            print('You overcome the maximum negative bin')
+        dMdE_t = dMdE_distr_tokeep[i_bin]
+        mdot = orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t)
+        mfall[i] = mdot # code units
 
-with open(f'{abspath}/data/{folder}/EddingtonEnvelope/Mdot.txt','a') as file:
-    file.write(f'# t/tfb \n')
-    file.write(f' '.join(map(str, tfb)) + '\n')
-    file.write(f'# Mdot_f \n')
-    file.write(f' '.join(map(str, mfall)) + '\n')
-    file.write(f'# Mdot_wind at 0.2amin\n')
-    file.write(f' '.join(map(str, mwind)) + '\n')
-    file.write(f'# Mdot_wind at 0.5amin\n')
-    file.write(f' '.join(map(str, mwindbigger)) + '\n')
-    file.close()
-# %%
-if not alice:
-    # plt.plot(tfb, mfall, label = 'Mdot_f')
-    plt.plot(tfb, np.abs(mwind), 'o-', label = 'Mdot_wind 0.2amin')
+        data = make_tree(path, snap, energy = True)
+        X, Y, Z, Mass, Den, VX, VY, VZ = \
+            data.X, data.Y, data.Z, data.Mass, data.Den, data.VX, data.VY, data.VZ
+        cut = Den > 1e-19
+        X, Y, Z, Mass, Den, VX, VY, VZ = \
+            make_slices([X, Y, Z, Mass, Den, VX, VY, VZ], cut)
+        Rsph = np.sqrt(X**2 + Y**2 + Z**2)
+        # xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph = \
+        #     np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
+        # xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph = \
+        #     np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
+        # rph = np.sqrt(xph**2 + yph**2 + zph**2)
+        # idx_r_wind = np.argmin(np.abs(rph - radii))
+        # x_w, y_w, z_w, r_w, vx_w, vy_w, vz_w = \
+        #     xph[idx_r_wind], yph[idx_r_wind], zph[idx_r_wind], rph[idx_r_wind], Vxph[idx_r_wind], Vyph[idx_r_wind], Vzph[idx_r_wind]
+        # long_w = np.arctan2(y_w, x_w)          # Azimuthal angle in radians
+        # lat_w = np.arccos(z_w / r_w)
+        # v_rad_w, _, _ = to_spherical_components(vx_w, vy_w, vz_w, lat_w, long_w)
+        long = np.arctan2(Y, X)          # Azimuthal angle in radians
+        lat = np.arccos(Z / Rsph)
+        v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
+        Den_casted = single_branch(radii, Rsph, Den, weights = Mass)
+        v_rad_casted = single_branch(radii, Rsph, v_rad, weights = Mass)
+        mwind[i] = 4 * np.pi * radii[0]**2 * Den_casted[0] * v_rad_casted[0]
+        mwindbigger[i] = 4 * np.pi * radii[1]**2 * Den_casted[1] * v_rad_casted[1]
+
+    with open(f'{abspath}/data/{folder}/Mdot.txt','a') as file:
+        file.write(f'# t/tfb \n')
+        file.write(f' '.join(map(str, tfb)) + '\n')
+        file.write(f'# Mdot_f \n')
+        file.write(f' '.join(map(str, mfall)) + '\n')
+        file.write(f'# Mdot_wind at 0.2amin\n')
+        file.write(f' '.join(map(str, mwind)) + '\n')
+        file.write(f'# Mdot_wind at 0.5amin\n')
+        file.write(f' '.join(map(str, mwindbigger)) + '\n')
+        file.close()
+
+if plot:
+    tfb, mfall, mwind, mwindbigger = np.loadtxt(f'{abspath}/data/{folder}/outflow/Mdot.txt')
+    Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
+    f_out = f_out_LodatoRossi(mfall, Medd_code)
+
+    plt.figure(figsize = (8,6))
+    plt.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm f}$', c = 'k')
+    plt.plot(tfb, np.abs(mwind)/Medd_code,  label = r'$\dot{M}_{\rm w}$ 0.2$a_{\rm min}$', c = 'dodgerblue')
+    plt.plot(tfb, np.abs(mwindbigger)/Medd_code,  label = r'$\dot{M}_{\rm w}$ 0.5$a_{\rm min}$', c = 'orange')
     plt.yscale('log')
+    # plt.ylim(1e-7, 3)
+    plt.legend(fontsize = 14)
+    plt.xlabel(r'$t/t_{\rm fb}$')
+    plt.ylabel(r'$\dot{M} [\dot{M}_{\rm Edd}]$')
+    plt.savefig(f'{abspath}/Figs/outflow/Mdot.png')
+    
+    plt.figure(figsize = (8,6))
+    plt.plot(np.abs(mfall/Medd_code), np.abs(f_out), c = 'k')
+    plt.xlim(0, 100)
+    plt.legend(fontsize = 14)
+    plt.xlabel(r'$\dot{M}_{\rm f} [\dot{M}_{\rm Edd}]$')
+    plt.ylabel(r'$f_{\rm out} \equiv \dot{M}_{\rm w}/\dot{M}_{\rm f}$')
+    # plt.savefig(f'{abspath}/Figs/outflow/Mdot.png')
+
+# %%
