@@ -63,6 +63,8 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     mfall = np.zeros(len(tfb_cgs))
     mwind = np.zeros(len(tfb_cgs))
     mwindbigger = np.zeros(len(tfb_cgs))
+    Vwind = np.zeros(len(tfb_cgs))
+    Vwindbigger = np.zeros(len(tfb_cgs))
     for i, snap in enumerate(snaps):
         print(snap, flush=True)
         sys.stdout.flush()
@@ -105,8 +107,10 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
         Den_casted = single_branch(radii, Rsph, Den, weights = Mass)
         v_rad_casted = single_branch(radii, Rsph, v_rad, weights = Mass)
-        mwind[i] = 4 * np.pi * radii[0]**2 * Den_casted[0] * v_rad_casted[0]
+        mwind[i] = 4 * np.pi * radii[0]**2 * Den_casted[0] * v_rad_casted[0] # v_wind = 4pi*r^2 * rho(r) * v(r) with r far enough so that velocity ~const, but not too far or it overcome tfb
         mwindbigger[i] = 4 * np.pi * radii[1]**2 * Den_casted[1] * v_rad_casted[1]
+        Vwind[i] = v_rad_casted[0] 
+        Vwindbigger[i] = v_rad_casted[1]
 
     with open(f'{abspath}/data/{folder}/Mdot.txt','a') as file:
         file.write(f'# t/tfb \n')
@@ -117,30 +121,46 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         file.write(f' '.join(map(str, mwind)) + '\n')
         file.write(f'# Mdot_wind at 0.5amin\n')
         file.write(f' '.join(map(str, mwindbigger)) + '\n')
+        file.write(f'# v_wind at 0.2amin\n')
+        file.write(f' '.join(map(str, Vwind)) + '\n')
+        file.write(f'# v_wind at 0.5amin\n')
+        file.write(f' '.join(map(str, Vwindbigger)) + '\n')
         file.close()
 
 if plot:
     tfb, mfall, mwind, mwindbigger = np.loadtxt(f'{abspath}/data/{folder}/outflow/Mdot.txt')
     Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
-    f_out = f_out_LodatoRossi(mfall, Medd_code)
+    f_out_th = f_out_LodatoRossi(mfall, Medd_code)
 
     plt.figure(figsize = (8,6))
     plt.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm f}$', c = 'k')
     plt.plot(tfb, np.abs(mwind)/Medd_code,  label = r'$\dot{M}_{\rm w}$ 0.2$a_{\rm min}$', c = 'dodgerblue')
     plt.plot(tfb, np.abs(mwindbigger)/Medd_code,  label = r'$\dot{M}_{\rm w}$ 0.5$a_{\rm min}$', c = 'orange')
+    plt.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
+    plt.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
     plt.yscale('log')
     # plt.ylim(1e-7, 3)
     plt.legend(fontsize = 14)
     plt.xlabel(r'$t/t_{\rm fb}$')
-    plt.ylabel(r'$\dot{M} [\dot{M}_{\rm Edd}]$')
+    plt.ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')
     plt.savefig(f'{abspath}/Figs/outflow/Mdot.png')
     
+    # reproduce LodatoRossi11 Fig.6
     plt.figure(figsize = (8,6))
-    plt.plot(np.abs(mfall/Medd_code), np.abs(f_out), c = 'k')
+    plt.plot(np.abs(mfall/Medd_code), np.abs(f_out_th), c = 'k')
     plt.xlim(0, 100)
     plt.legend(fontsize = 14)
     plt.xlabel(r'$\dot{M}_{\rm f} [\dot{M}_{\rm Edd}]$')
-    plt.ylabel(r'$f_{\rm out} \equiv \dot{M}_{\rm w}/\dot{M}_{\rm f}$')
+    plt.ylabel(r'$f_{\rm out}$')
+
+    plt.figure(figsize = (8,6))
+    plt.plot(tfb, np.abs(mwind/mfall), c = 'deepskyblue', label = 'simulation')
+    plt.plot(tfb, np.abs(f_out_th), c = 'k', label = 'LodatoRossi11')
+    plt.legend(fontsize = 14)
+    plt.xlabel(r't $[t_{\rm fb}]$')
+    plt.ylabel(r'$f_{\rm out}$')
+    plt.yscale('log')
+    plt.ylim(0,1e3)
     # plt.savefig(f'{abspath}/Figs/outflow/Mdot.png')
 
 # %%
