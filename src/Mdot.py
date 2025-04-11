@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import Utilities.prelude as prel
 import src.orbits as orb
-from Utilities.operators import make_tree, single_branch, to_spherical_components
+from Utilities.operators import make_tree, multiple_branch, to_spherical_components
 from Utilities.selectors_for_snap import select_snap
 from Utilities.sections import make_slices
 
@@ -41,7 +41,7 @@ Rp = Rt/beta
 norm_dMdE = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call \Delta E). It's GM/Rt^2 * Rstar
 apo = orb.apocentre(Rstar, mstar, Mbh, beta) 
 amin = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
-radii = [0.7 * amin, amin] #0.2, 0.5
+radii = [0.2*amin, 0.5*amin, 0.7 * amin, amin] 
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
 Medd = Ledd/(0.1*prel.c_cgs**2)
 v_esc = np.sqrt(2*prel.G*Mbh/Rt)
@@ -63,9 +63,17 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
     mfall = np.zeros(len(tfb_cgs))
     mwind = np.zeros(len(tfb_cgs))
-    mwindbigger = np.zeros(len(tfb_cgs))
+    mwind1 = np.zeros(len(tfb_cgs))
+    mwind2 = np.zeros(len(tfb_cgs))
+    mwind3 = np.zeros(len(tfb_cgs))
     Vwind = np.zeros(len(tfb_cgs))
-    Vwindbigger = np.zeros(len(tfb_cgs))
+    Vwind1 = np.zeros(len(tfb_cgs))
+    Vwind2 = np.zeros(len(tfb_cgs))
+    Vwind3 = np.zeros(len(tfb_cgs))
+    unbound_ratio = np.zeros(len(tfb_cgs))
+    unbound_ratio1 = np.zeros(len(tfb_cgs))
+    unbound_ratio2 = np.zeros(len(tfb_cgs))
+    unbound_ratio3 = np.zeros(len(tfb_cgs))
     for i, snap in enumerate(snaps):
         print(snap, flush=True)
         sys.stdout.flush()
@@ -86,12 +94,14 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         mfall[i] = mdot # code units
 
         data = make_tree(path, snap, energy = True)
-        X, Y, Z, Mass, Den, VX, VY, VZ = \
-            data.X, data.Y, data.Z, data.Mass, data.Den, data.VX, data.VY, data.VZ
+        X, Y, Z, Mass, Den, Press, IE, VX, VY, VZ = \
+            data.X, data.Y, data.Z, data.Mass, data.Den, data.Press, data.IE, data.VX, data.VY, data.VZ
         cut = Den > 1e-19
-        X, Y, Z, Mass, Den, VX, VY, VZ = \
-            make_slices([X, Y, Z, Mass, Den, VX, VY, VZ], cut)
+        X, Y, Z, Mass, Den, Press, IE, VX, VY, VZ = \
+            make_slices([X, Y, Z, Mass, Den, Press, IE, VX, VY, VZ], cut)
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
+        V = np.sqrt(VX**2 + VY**2 + VZ**2)
+        cells_len = np.arange(len(X))
         # xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph = \
         #     np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
         # xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph = \
@@ -106,37 +116,59 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         long = np.arctan2(Y, X)          # Azimuthal angle in radians
         lat = np.arccos(Z / Rsph)
         v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
-        Den_casted = single_branch(radii, Rsph, Den, weights = Mass)
-        v_rad_casted = single_branch(radii, Rsph, v_rad, weights = Mass)
-        mwind[i] = 4 * np.pi * radii[0]**2 * Den_casted[0] * v_rad_casted[0] # v_wind = 4pi*r^2 * rho(r) * v(r) with r far enough so that velocity ~const, but not too far or it overcome tfb
-        mwindbigger[i] = 4 * np.pi * radii[1]**2 * Den_casted[1] * v_rad_casted[1]
-        Vwind[i] = v_rad_casted[0] 
-        Vwindbigger[i] = v_rad_casted[1]
+        Den_casted, v_rad_casted, indices = \
+            multiple_branch(radii, Rsph, [Den, v_rad], weights = [Mass, Mass], keep_track = True)
+        
+        for j, Mw, Vw, UnW in zip(np.arange(4), [mwind, mwind1, mwind2, mwind3], [Vwind, Vwind1, Vwind2, Vwind3], [unbound_ratio, unbound_ratio1, unbound_ratio2, unbound_ratio3]):
+            Mw[i] = 4 * np.pi * radii[j]**2 * Den_casted[j] * v_rad_casted[j] # v_wind = 4pi*r^2 * rho(r) * v(r) with r far enough so that velocity ~const, but not too far or it overcome tfb
+            Vw[i] = v_rad_casted[j] 
+            cell_indices = cells_len[indices[j]]
+            Rsph_cell, Mass_cell, V_cell, Press_cell, Den_cell, IE_cell = \
+                make_slices([Rsph, Mass, V, Press, Den, IE], cell_indices)
+            OE_cell = orb.orbital_energy(Rsph_cell, V_cell, Mass_cell, prel.G, prel.csol_cgs, Mbh)
+            B = OE_cell / Mass_cell + IE_cell + Press_cell/Den_cell
+            UnW[i] = len(B[B>0])/len(B)
 
     with open(f'{abspath}/data/{folder}/Mdot_{check}.txt','a') as file:
         file.write(f'# t/tfb \n')
         file.write(f' '.join(map(str, tfb)) + '\n')
         file.write(f'# Mdot_f \n')
         file.write(f' '.join(map(str, mfall)) + '\n')
-        file.write(f'# Mdot_wind at 0.7amin\n')
+        file.write(f'# Mdot_wind at 0.2 amin\n')
         file.write(f' '.join(map(str, mwind)) + '\n')
+        file.write(f'# Mdot_wind at 0.5 amin\n')
+        file.write(f' '.join(map(str, mwind1)) + '\n')
+        file.write(f'# Mdot_wind at 0.7 amin\n')
+        file.write(f' '.join(map(str, mwind2)) + '\n')
         file.write(f'# Mdot_wind at amin\n')
-        file.write(f' '.join(map(str, mwindbigger)) + '\n')
-        file.write(f'# v_wind at 0.7amin\n')
+        file.write(f' '.join(map(str, mwind3)) + '\n')
+        file.write(f'# v_wind at 0.2 amin\n')
         file.write(f' '.join(map(str, Vwind)) + '\n')
+        file.write(f'# v_wind at 0.5 amin\n')
+        file.write(f' '.join(map(str, Vwind1)) + '\n')
+        file.write(f'# v_wind at 0.7 amin\n')
+        file.write(f' '.join(map(str, Vwind2)) + '\n')
         file.write(f'# v_wind at amin\n')
-        file.write(f' '.join(map(str, Vwindbigger)) + '\n')
+        file.write(f' '.join(map(str, Vwind3)) + '\n')
+        file.write(f'# unbound ratio at 0.2 amin\n')
+        file.write(f' '.join(map(str, unbound_ratio)) + '\n')
+        file.write(f'# unbound ratio at 0.5 amin\n')
+        file.write(f' '.join(map(str, unbound_ratio1)) + '\n')
+        file.write(f'# unbound ratio at 0.7 amin\n')
+        file.write(f' '.join(map(str, unbound_ratio2)) + '\n')
+        file.write(f'# unbound ratio at amin\n')
+        file.write(f' '.join(map(str, unbound_ratio3)) + '\n')
         file.close()
 
 if plot:
-    tfb, mfall, mwind, mwindbigger, Vwind, Vwindbigger = np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}.txt')
+    tfb, mfall, mwind, mwind1, mwind2, mwind3, Vwind, Vwind1, Vwind2, Vwind3 = np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}.txt')
     Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
     f_out_th = f_out_LodatoRossi(mfall, Medd_code)
 
     plt.figure(figsize = (8,6))
     plt.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm f}$', c = 'k')
     plt.plot(tfb, np.abs(mwind)/Medd_code,  label = r'$\dot{M}_{\rm w}$ 0.2$a_{\rm min}$', c = 'dodgerblue')
-    plt.plot(tfb, np.abs(mwindbigger)/Medd_code,  label = r'$\dot{M}_{\rm w}$ 0.5$a_{\rm min}$', c = 'orange')
+    plt.plot(tfb, np.abs(mwind1)/Medd_code,  label = r'$\dot{M}_{\rm w}$ 0.5$a_{\rm min}$', c = 'orange')
     plt.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
     plt.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
     plt.yscale('log')
@@ -156,7 +188,9 @@ if plot:
 
     plt.figure(figsize = (8,6))
     plt.plot(tfb, np.abs(mwind/mfall), c = 'dodgerblue', label = r'f$_{\rm out}$ (0.2$a_{\rm min})$') 
-    plt.plot(tfb, np.abs(mwindbigger/mfall), '--', c = 'orange', label = r'f$_{\rm out}$ (0.5$a_{\rm min})$')
+    plt.plot(tfb, np.abs(mwind1/mfall), '--', c = 'orange', label = r'f$_{\rm out}$ (0.5$a_{\rm min})$')
+    plt.plot(tfb, np.abs(mwind2/mfall), '--', c = 'purple', label = r'f$_{\rm out}$ (0.7$a_{\rm min})$')
+    plt.plot(tfb, np.abs(mwind3/mfall), '--', c = 'green', label = r'f$_{\rm out}$ (1$a_{\rm min})$')
     plt.plot(tfb, np.abs(f_out_th), c = 'k', label = 'LodatoRossi11')
     plt.legend(fontsize = 14)
     plt.xlabel(r't $[t_{\rm fb}]$')
@@ -165,11 +199,13 @@ if plot:
     # plt.savefig(f'{abspath}/Figs/outflow/Mdot.png')
 
     plt.figure(figsize = (8,6))
-    plt.plot(tfb, np.abs(Vwind/v_esc), c = 'dodgerblue', label = r'$v_{\rm wind}(0.2 a_{\rm min})$')
-    plt.plot(tfb, np.abs(Vwindbigger/v_esc), '--', c = 'orange', label = r'$v_{\rm wind}(0.5 a_{\rm min})$')
+    plt.plot(tfb, Vwind/v_esc, c = 'dodgerblue', label = r'$v_{\rm wind}(0.2 a_{\rm min})$')
+    # plt.plot(tfb, Vwind1/v_esc), '--', c = 'orange', label = r'$v_{\rm wind}(0.5 a_{\rm min})$')
+    # plt.plot(tfb, Vwind2/v_esc), '--', c = 'purple', label = r'$v_{\rm wind}(0.7 a_{\rm min})$')
+    plt.plot(tfb, Vwind3/v_esc, '--', c = 'green', label = r'$v_{\rm wind}(a_{\rm min})$')
     plt.xlabel(r't $[t_{\rm fb}]$')
     plt.ylabel(r'$v_{\rm wind}/v_{\rm esc}(R_{\rm t})$')
-    plt.yscale('log')
+    plt.yscale('symlog')
     plt.legend(fontsize = 14)
     # plt.savefig(f'{abspath}/Figs/outflow/Mdot.png')
 

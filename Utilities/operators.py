@@ -216,7 +216,7 @@ def single_branch(radii, R, tocast, weights, keep_track = False):
         Casted down version of tocast
     """
     if keep_track:
-        indices = np.arange(len(tocast))
+        number_idx = np.arange(len(tocast))
         cells_used = []
     gridded_tocast = np.zeros((len(radii)))
     # check if weights is an integer
@@ -249,7 +249,7 @@ def single_branch(radii, R, tocast, weights, keep_track = False):
             else:
                 gridded_tocast[i] = np.sum(tocast[indices])
             if keep_track:
-                cells_used.append(indices)
+                cells_used.append(number_idx[indices])
     if type(weights) != int:
         gridded_weights += 1e-20 # avoid division by zero
         final_casted = np.divide(gridded_tocast, gridded_weights)
@@ -260,7 +260,7 @@ def single_branch(radii, R, tocast, weights, keep_track = False):
     else:
         return final_casted
 
-def multiple_branch(radii, R, tocast_matrix, weights_matrix):
+def multiple_branch(radii, R, tocast_matrix, weights_matrix, keep_track = False):
     """ Casts quantities down to a smaller size vector.
     Parameters
     ----------
@@ -278,30 +278,41 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix):
         Casted down version of tocast
     """
     casted_array = []
+    indices_foradii = []
+    R = R.reshape(-1, 1) # Reshaping to 2D array with one column
+    tree = KDTree(R) 
+    if keep_track:
+        number_idx = np.arange(len(tocast))
+        cells_used = []
+    for i in range(len(radii)):
+        radius = np.array([radii[i]]).reshape(1, -1) # reshape to match the tree
+        if i == 0:
+            width = radii[1] - radii[0]
+        elif i == len(radii)-1:
+            width = radii[-1] - radii[-2]
+        else:
+            width = (radii[i+1] - radii[i-1])/2
+        width *= 2 # make it slightly bigger to smooth things
+        # indices = tree.query_ball_point(radius, width) #if KDTree from scipy
+        indices = tree.query_radius(radius, width) #if KDTree from sklearn
+        indices_foradii.append(np.concatenate(indices))
+
     for i, tocast in enumerate(tocast_matrix):
         gridded_tocast = np.zeros((len(radii)))
         weights = weights_matrix[i]
         # check if weights is an integer
         if type(weights) != int:
             gridded_weights = np.zeros((len(radii)))
-        R = R.reshape(-1, 1) # Reshaping to 2D array with one column
-        tree = KDTree(R) 
-        for i in range(len(radii)):
-            radius = np.array([radii[i]]).reshape(1, -1) # reshape to match the tree
-            if i == 0:
-                width = radii[1] - radii[0]
-            elif i == len(radii)-1:
-                width = radii[-1] - radii[-2]
-            else:
-                width = (radii[i+1] - radii[i-1])/2
-            width *= 2 # make it slightly bigger to smooth things
-            # indices = tree.query_ball_point(radius, width) #if KDTree from scipy
-            indices = tree.query_radius(radius, width) #if KDTree from sklearn
-            indices = np.concatenate(indices)
+        for j in range(len(radii)):
+            indices = indices_foradii[j]
             if len(indices) < 2 :
                 gridded_tocast[i] = 0
+                if keep_track:
+                    cells_used.append([])
             else:    
                 indices = [int(idx) for idx in indices]
+                if keep_track:
+                    cells_used.append(number_idx[indices])
                 if type(weights) != int:
                     gridded_tocast[i] = np.sum(tocast[indices] * weights[indices])
                     gridded_weights[i] = np.sum(weights[indices])
@@ -314,6 +325,9 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix):
             final_casted = gridded_tocast
         casted_array.append(final_casted)
 
+    if keep_track:
+        return casted_array, cells_used
+    
     return casted_array
 
 def calc_deriv(x, y):

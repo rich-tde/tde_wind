@@ -56,7 +56,7 @@ rossland = np.loadtxt(f'{opac_path}/ross.txt')
 T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
 
 for snap in snaps:
-    if int(snap) != 348:
+    if int(snap) != 164:
         continue
     photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
     xph, yph, zph = photo[0], photo[1], photo[2]
@@ -157,22 +157,22 @@ for snap in snaps:
             make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r, v_rad, los], los_zero)
         c_tau = prel.csol_cgs/los #c/tau [code units]
 
+        plt.figure()
+        plt.plot(ray_r/apo, c_tau/np.abs(v_rad), c = 'k', label = r'$c\tau^{-1}/v_r$')
+        plt.plot(ray_r/apo, los, label = r'$\tau$', c = 'r')
+        plt.axhline(1, c = 'k', linestyle = 'dotted')
+        plt.text(0.1, 0.01, r'$\tau$ big: c$\tau\leq$v', fontsize = 14, rotation = 90)
+        plt.xlabel(r'$R [R_{\rm a}]$')
+        plt.ylabel(r'')
+        plt.yscale('log')
+        plt.legend(fontsize = 14)
         # inner part: tau big --> c/tau < v
         Rtr_idx_all = np.where(c_tau/np.abs(v_rad)<1)[0]
         if len(Rtr_idx_all) == 0:
             print(f'No Rtr found in {i}', flush=False)
             sys.stdout.flush()
-            plt.figure()
-            plt.plot(ray_r/apo, c_tau/np.abs(v_rad), c = 'r', label = r'$c\tau^{-1}/v_r$')
-            plt.plot(ray_r/apo, los, label = r'$\tau$', c = 'r')
-            plt.axhline(1, c = 'k', linestyle = 'dotted')
-            plt.text(0.1, 0.1, r'$\tau$ big: c$\tau\leq$v', fontsize = 14)
-            plt.xlabel(r'$R [R_{\rm a}]$')
-            plt.ylabel(r'')
-            plt.yscale('log')
-            plt.legend(fontsize = 14)
-            plt.show()
             continue
+        plt.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = 'dotted', label = r'$R_{\rm tr}$')
         x_tr_all = ray_x[Rtr_idx_all]
         y_tr_all = ray_y[Rtr_idx_all]
         z_tr_all = ray_z[Rtr_idx_all]
@@ -196,17 +196,6 @@ for snap in snaps:
         Vy_tr[i] = ray_vy[Rtr_idx]
         Vz_tr[i] = ray_vz[Rtr_idx]
         Vr_tr[i] = v_rad[Rtr_idx]
-        plt.figure()
-        plt.plot(ray_r/apo, c_tau/np.abs(v_rad), c = 'k', label = r'$c\tau^{-1}/v_r$')
-        plt.plot(ray_r/apo, los, label = r'$\tau$', c = 'r')
-        plt.axhline(1, c = 'k', linestyle = 'dotted')
-        plt.text(0.1, 0.1, r'$\tau$ big: c$\tau\leq$v', fontsize = 14)
-        plt.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = 'dotted', label = r'$R_{\rm tr}$')
-        plt.xlabel(r'$R [R_{\rm a}]$')
-        plt.ylabel(r'')
-        plt.yscale('log')
-        plt.legend(fontsize = 14)
-        plt.show()
 
     if alice:
         with open(f'{pre_saving}/trap/{check}_Rtr{snap}.txt', 'a') as f:
