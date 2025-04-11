@@ -281,9 +281,6 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix, keep_track = False)
     indices_foradii = []
     R = R.reshape(-1, 1) # Reshaping to 2D array with one column
     tree = KDTree(R) 
-    if keep_track:
-        number_idx = np.arange(len(tocast))
-        cells_used = []
     for i in range(len(radii)):
         radius = np.array([radii[i]]).reshape(1, -1) # reshape to match the tree
         if i == 0:
@@ -298,6 +295,9 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix, keep_track = False)
         indices_foradii.append(np.concatenate(indices))
 
     for i, tocast in enumerate(tocast_matrix):
+        if keep_track:
+            number_idx = np.arange(len(tocast))
+            cells_used = []
         gridded_tocast = np.zeros((len(radii)))
         weights = weights_matrix[i]
         # check if weights is an integer
@@ -306,6 +306,8 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix, keep_track = False)
         for j in range(len(radii)):
             indices = indices_foradii[j]
             if len(indices) < 2 :
+                print('small', flush=True)
+                sys.stdout.flush()
                 gridded_tocast[i] = 0
                 if keep_track:
                     cells_used.append([])
@@ -314,10 +316,10 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix, keep_track = False)
                 if keep_track:
                     cells_used.append(number_idx[indices])
                 if type(weights) != int:
-                    gridded_tocast[i] = np.sum(tocast[indices] * weights[indices])
-                    gridded_weights[i] = np.sum(weights[indices])
+                    gridded_tocast[j] = np.sum(tocast[indices] * weights[indices])
+                    gridded_weights[j] = np.sum(weights[indices])
                 else:
-                    gridded_tocast[i] = np.sum(tocast[indices])
+                    gridded_tocast[j] = np.sum(tocast[indices])
         if type(weights) != int:
             gridded_weights += 1e-20 # avoid division by zero
             final_casted = np.divide(gridded_tocast, gridded_weights)

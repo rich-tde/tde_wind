@@ -116,8 +116,9 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         long = np.arctan2(Y, X)          # Azimuthal angle in radians
         lat = np.arccos(Z / Rsph)
         v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
-        Den_casted, v_rad_casted, indices = \
-            multiple_branch(radii, Rsph, [Den, v_rad], weights = [Mass, Mass], keep_track = True)
+        casted, indices = \
+            multiple_branch(radii, Rsph, [Den, v_rad], weights_matrix = [Mass, Mass], keep_track = True)
+        Den_casted, v_rad_casted = casted[0], casted[1]
         
         for j, Mw, Vw, UnW in zip(np.arange(4), [mwind, mwind1, mwind2, mwind3], [Vwind, Vwind1, Vwind2, Vwind3], [unbound_ratio, unbound_ratio1, unbound_ratio2, unbound_ratio3]):
             Mw[i] = 4 * np.pi * radii[j]**2 * Den_casted[j] * v_rad_casted[j] # v_wind = 4pi*r^2 * rho(r) * v(r) with r far enough so that velocity ~const, but not too far or it overcome tfb
