@@ -41,9 +41,10 @@ Rp = Rt/beta
 norm_dMdE = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call \Delta E). It's GM/Rt^2 * Rstar
 apo = orb.apocentre(Rstar, mstar, Mbh, beta) 
 amin = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
-radii = [0.2 * amin, 0.5 * amin]
+radii = [0.7 * amin, amin] #0.2, 0.5
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
 Medd = Ledd/(0.1*prel.c_cgs**2)
+v_esc = np.sqrt(2*prel.G*Mbh/Rt)
 
 #
 ## FUNCTIONS
@@ -117,18 +118,18 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         file.write(f' '.join(map(str, tfb)) + '\n')
         file.write(f'# Mdot_f \n')
         file.write(f' '.join(map(str, mfall)) + '\n')
-        file.write(f'# Mdot_wind at 0.2amin\n')
+        file.write(f'# Mdot_wind at 0.7amin\n')
         file.write(f' '.join(map(str, mwind)) + '\n')
-        file.write(f'# Mdot_wind at 0.5amin\n')
+        file.write(f'# Mdot_wind at amin\n')
         file.write(f' '.join(map(str, mwindbigger)) + '\n')
-        file.write(f'# v_wind at 0.2amin\n')
+        file.write(f'# v_wind at 0.7amin\n')
         file.write(f' '.join(map(str, Vwind)) + '\n')
-        file.write(f'# v_wind at 0.5amin\n')
+        file.write(f'# v_wind at amin\n')
         file.write(f' '.join(map(str, Vwindbigger)) + '\n')
         file.close()
 
 if plot:
-    tfb, mfall, mwind, mwindbigger, Vwind, Vmwindbigger = np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}.txt')
+    tfb, mfall, mwind, mwindbigger, Vwind, Vwindbigger = np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}.txt')
     Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
     f_out_th = f_out_LodatoRossi(mfall, Medd_code)
 
@@ -154,13 +155,22 @@ if plot:
     plt.ylabel(r'$f_{\rm out}$')
 
     plt.figure(figsize = (8,6))
-    plt.plot(tfb, np.abs(mwind/mfall), c = 'deepskyblue', label = 'simulation')
+    plt.plot(tfb, np.abs(mwind/mfall), c = 'dodgerblue', label = r'f$_{\rm out}$ (0.2$a_{\rm min})$') 
+    plt.plot(tfb, np.abs(mwindbigger/mfall), '--', c = 'orange', label = r'f$_{\rm out}$ (0.5$a_{\rm min})$')
     plt.plot(tfb, np.abs(f_out_th), c = 'k', label = 'LodatoRossi11')
     plt.legend(fontsize = 14)
     plt.xlabel(r't $[t_{\rm fb}]$')
-    plt.ylabel(r'$f_{\rm out}$')
+    plt.ylabel(r'$f_{\rm out}\equiv \dot{M}_{\rm wind}/\dot{M}_{\rm fb}$')
     plt.yscale('log')
-    plt.ylim(0,1e3)
+    # plt.savefig(f'{abspath}/Figs/outflow/Mdot.png')
+
+    plt.figure(figsize = (8,6))
+    plt.plot(tfb, np.abs(Vwind/v_esc), c = 'dodgerblue', label = r'$v_{\rm wind}(0.2 a_{\rm min})$')
+    plt.plot(tfb, np.abs(Vwindbigger/v_esc), '--', c = 'orange', label = r'$v_{\rm wind}(0.5 a_{\rm min})$')
+    plt.xlabel(r't $[t_{\rm fb}]$')
+    plt.ylabel(r'$v_{\rm wind}/v_{\rm esc}(R_{\rm t})$')
+    plt.yscale('log')
+    plt.legend(fontsize = 14)
     # plt.savefig(f'{abspath}/Figs/outflow/Mdot.png')
 
 # %%

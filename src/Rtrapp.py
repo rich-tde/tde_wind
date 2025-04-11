@@ -56,7 +56,7 @@ rossland = np.loadtxt(f'{opac_path}/ross.txt')
 T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
 
 for snap in snaps:
-    if int(snap) != 237:
+    if int(snap) != 348:
         continue
     photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
     xph, yph, zph = photo[0], photo[1], photo[2]
@@ -87,6 +87,8 @@ for snap in snaps:
     Vr_tr = np.zeros(len(observers_xyz))
 
     for i in range(len(observers_xyz)):
+        if i !=0:
+            break
         print(f'{i}', flush=True)
         sys.stdout.flush()
         mu_x = observers_xyz[i][0]
@@ -161,7 +163,7 @@ for snap in snaps:
             print(f'No Rtr found in {i}', flush=False)
             sys.stdout.flush()
             plt.figure()
-            plt.plot(ray_r/apo, c_tau/np.abs(v_rad), c = 'k', label = r'$c\tau^{-1}/v_r$')
+            plt.plot(ray_r/apo, c_tau/np.abs(v_rad), c = 'r', label = r'$c\tau^{-1}/v_r$')
             plt.plot(ray_r/apo, los, label = r'$\tau$', c = 'r')
             plt.axhline(1, c = 'k', linestyle = 'dotted')
             plt.text(0.1, 0.1, r'$\tau$ big: c$\tau\leq$v', fontsize = 14)
@@ -194,6 +196,17 @@ for snap in snaps:
         Vy_tr[i] = ray_vy[Rtr_idx]
         Vz_tr[i] = ray_vz[Rtr_idx]
         Vr_tr[i] = v_rad[Rtr_idx]
+        plt.figure()
+        plt.plot(ray_r/apo, c_tau/np.abs(v_rad), c = 'k', label = r'$c\tau^{-1}/v_r$')
+        plt.plot(ray_r/apo, los, label = r'$\tau$', c = 'r')
+        plt.axhline(1, c = 'k', linestyle = 'dotted')
+        plt.text(0.1, 0.1, r'$\tau$ big: c$\tau\leq$v', fontsize = 14)
+        plt.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = 'dotted', label = r'$R_{\rm tr}$')
+        plt.xlabel(r'$R [R_{\rm a}]$')
+        plt.ylabel(r'')
+        plt.yscale('log')
+        plt.legend(fontsize = 14)
+        plt.show()
 
     if alice:
         with open(f'{pre_saving}/trap/{check}_Rtr{snap}.txt', 'a') as f:
@@ -210,6 +223,7 @@ for snap in snaps:
                 f.write(' '.join(map(str, Vr_tr)) + '\n')
                 f.close()
 
+#%%
 if plot:
     trap = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/trap/{check}_Rtr{snap}.txt')
     x_tr_i, y_tr_i, z_tr_i, Vx_tr, Vy_tr, Vz_tr, Vr_tr = trap[0], trap[1], trap[2], trap[-4], trap[-3], trap[-2], trap[-1]
