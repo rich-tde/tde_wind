@@ -282,7 +282,7 @@ for idx_s, snap in enumerate(snaps):
             fileph.close()
         
         with open(f'{pre_saving}/photo/{check}_photo{snap}.txt', 'a') as f:
-            f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph \n')
+            f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph \n # NB d is in CGS \n')
             f.write(' '.join(map(str, xph)) + '\n')
             f.write(' '.join(map(str, yph)) + '\n')
             f.write(' '.join(map(str, zph)) + '\n')

@@ -35,7 +35,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = '' 
+check = 'HiRes' 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 pre_saving = f'{abspath}/data/{folder}'
@@ -56,8 +56,6 @@ rossland = np.loadtxt(f'{opac_path}/ross.txt')
 T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
 
 for snap in snaps:
-    if int(snap) != 164:
-        continue
     photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
     xph, yph, zph = photo[0], photo[1], photo[2]
     rph = np.sqrt(xph**2 + yph**2 + zph**2)
@@ -87,8 +85,6 @@ for snap in snaps:
     Vr_tr = np.zeros(len(observers_xyz))
 
     for i in range(len(observers_xyz)):
-        if i !=0:
-            break
         print(f'{i}', flush=True)
         sys.stdout.flush()
         mu_x = observers_xyz[i][0]
@@ -118,7 +114,7 @@ for snap in snaps:
 
         tree = KDTree(xyz, leaf_size=50)
         _, idx = tree.query(xyz2, k=1)
-        idx = [ int(idx[i][0]) for i in range(len(idx))] # no -1 because we start from 0
+        idx = [ int(idx[i][0]) for i in range(len(idx))] 
         idx = np.unique(idx)
         ray_x = X[idx]
         ray_y = Y[idx]
@@ -155,37 +151,38 @@ for snap in snaps:
         los_zero = los != 0
         ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r, v_rad, los = \
             make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r, v_rad, los], los_zero)
+        # you integrate for tau as BonnerotLu20, eq.16 for trapping radius
         c_tau = prel.csol_cgs/los #c/tau [code units]
 
-        plt.figure()
-        plt.plot(ray_r/apo, c_tau/np.abs(v_rad), c = 'k', label = r'$c\tau^{-1}/v_r$')
-        plt.plot(ray_r/apo, los, label = r'$\tau$', c = 'r')
-        plt.axhline(1, c = 'k', linestyle = 'dotted')
-        plt.text(0.1, 0.01, r'$\tau$ big: c$\tau\leq$v', fontsize = 14, rotation = 90)
-        plt.xlabel(r'$R [R_{\rm a}]$')
-        plt.ylabel(r'')
-        plt.yscale('log')
-        plt.legend(fontsize = 14)
-        # inner part: tau big --> c/tau < v
+        # plot to check if you're taking the right thing
+        # plt.figure()
+        # plt.plot(ray_r/apo, c_tau/np.abs(v_rad), c = 'k', label = r'$c\tau^{-1}/v_r$')
+        # plt.plot(ray_r/apo, los, label = r'$\tau$', c = 'r')
+        # plt.plot(ray_r/apo, np.abs(v_rad)*prel.Rsol_cgs/prel.tsol_cgs, label = r'$|v_r|$ [cm/s]', c = 'b')
+        # plt.axhline(1, c = 'k', linestyle = 'dotted')
+        # plt.xlabel(r'$R [R_{\rm a}]$')
+        # plt.ylabel(r'')
+        # plt.yscale('log')
+        # plt.ylim(1e-6, 1e10)
+        # plt.title(f'Snap {snap} observer {i}')
+        # select the inner part, where tau big --> c/tau < v
         Rtr_idx_all = np.where(c_tau/np.abs(v_rad)<1)[0]
         if len(Rtr_idx_all) == 0:
-            print(f'No Rtr found in {i}', flush=False)
+            print(f'No Rtr found anywhere for obs {i}', flush=False)
             sys.stdout.flush()
             continue
-        plt.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = 'dotted', label = r'$R_{\rm tr}$')
-        x_tr_all = ray_x[Rtr_idx_all]
-        y_tr_all = ray_y[Rtr_idx_all]
-        z_tr_all = ray_z[Rtr_idx_all]
         R_tr_all = ray_r[Rtr_idx_all]
         # Rtr < Rph
         Rtr_idx_all_inside = np.where(R_tr_all<rph[i])[0]
         if len(Rtr_idx_all_inside) == 0:
-            print(f'No Rtr inside Rph in {i}', flush=False)
+            print(f'No Rtr inside Rph for obs {i}', flush=False)
             sys.stdout.flush()
             continue
         Rtr_idx_all = Rtr_idx_all[Rtr_idx_all_inside]
-        # take the one more outside
+        # take the one most outside
         Rtr_idx = Rtr_idx_all[-1]
+        # plt.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = 'dotted', label = r'$R_{\rm tr}$')
+        # plt.legend(fontsize = 14)
         x_tr[i] = ray_x[Rtr_idx]
         y_tr[i] = ray_y[Rtr_idx]
         z_tr[i] = ray_z[Rtr_idx]
@@ -214,10 +211,15 @@ for snap in snaps:
 
 #%%
 if plot:
+    photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
+    xph, yph, zph = photo[0], photo[1], photo[2]
+    rph = np.sqrt(xph**2 + yph**2 + zph**2)
+    
     trap = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/trap/{check}_Rtr{snap}.txt')
     x_tr_i, y_tr_i, z_tr_i, Vx_tr, Vy_tr, Vz_tr, Vr_tr = trap[0], trap[1], trap[2], trap[-4], trap[-3], trap[-2], trap[-1]
     v_tr_i = np.sqrt(Vx_tr**2 + Vy_tr**2 + Vz_tr**2) * prel.Rsol_cgs * 1e-5/ prel.tsol_cgs
     R_tr_i = np.sqrt(x_tr_i**2 + y_tr_i**2 + z_tr_i**2)
+    idx_chosen = 97
 
     fig, ax2 = plt.subplots(1, 1 , figsize = (6,5))
     img = ax2.scatter(R_tr_i/apo, v_tr_i*1e-4)
@@ -225,7 +227,9 @@ if plot:
     ax2.set_xlabel(r'$R [R_{\rm a}]$')
     ax2.set_ylim(.1, 2)
     ax2.axvline(np.mean(rph)/apo, c = 'k', linestyle = 'dotted', label =  r'$<R_{\rm ph}>$')
+    # ax2.axvline(rph[idx_chosen]/apo, c = 'k', linestyle = 'dotted', label =  r'$<R_{\rm ph}>$')
     ax2.legend(fontsize = 14)
+    plt.xlim(0,10)
     plt.tight_layout()
 
 #%%

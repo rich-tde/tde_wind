@@ -237,7 +237,8 @@ def single_branch(radii, R, tocast, weights, keep_track = False):
         indices = tree.query_radius(radius, width) #if KDTree from sklearn
         indices = np.concatenate(indices)
         if len(indices) < 2 :
-            print(f'No points for R {radii[i]}')
+            print('small sample of indices in single_branch', flush=True)
+            sys.stdout.flush()
             # gridded_tocast[i] = 0
             if keep_track:
                 cells_used.append([])
@@ -306,7 +307,7 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix, keep_track = False)
         for j in range(len(radii)):
             indices = indices_foradii[j]
             if len(indices) < 2 :
-                print('small', flush=True)
+                print('small sample of indices in multiple_branch', flush=True)
                 sys.stdout.flush()
                 gridded_tocast[i] = 0
                 if keep_track:

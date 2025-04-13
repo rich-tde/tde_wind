@@ -45,6 +45,7 @@ radii = [0.2*amin, 0.5*amin, 0.7 * amin, amin]
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
 Medd = Ledd/(0.1*prel.c_cgs**2)
 v_esc = np.sqrt(2*prel.G*Mbh/Rt)
+convers_kms = prel.Rsol_cgs * 1e-5/prel.tsol_cgs # it's aorund 400
 
 #
 ## FUNCTIONS
@@ -192,7 +193,7 @@ if plot:
     plt.plot(tfb, np.abs(mwind1/mfall), '--', c = 'orange', label = r'f$_{\rm out}$ (0.5$a_{\rm min})$')
     plt.plot(tfb, np.abs(mwind2/mfall), '--', c = 'purple', label = r'f$_{\rm out}$ (0.7$a_{\rm min})$')
     plt.plot(tfb, np.abs(mwind3/mfall), '--', c = 'green', label = r'f$_{\rm out}$ (1$a_{\rm min})$')
-    plt.plot(tfb, np.abs(f_out_th), c = 'k', label = 'LodatoRossi11')
+    plt.plot(tfb, f_out_th, c = 'k', label = 'LodatoRossi11')
     plt.legend(fontsize = 14)
     plt.xlabel(r't $[t_{\rm fb}]$')
     plt.ylabel(r'$f_{\rm out}\equiv \dot{M}_{\rm wind}/\dot{M}_{\rm fb}$')
@@ -201,13 +202,14 @@ if plot:
 
     plt.figure(figsize = (8,6))
     plt.plot(tfb, Vwind/v_esc, c = 'dodgerblue', label = r'$v_{\rm wind}(0.2 a_{\rm min})$')
-    # plt.plot(tfb, Vwind1/v_esc), '--', c = 'orange', label = r'$v_{\rm wind}(0.5 a_{\rm min})$')
-    # plt.plot(tfb, Vwind2/v_esc), '--', c = 'purple', label = r'$v_{\rm wind}(0.7 a_{\rm min})$')
+    plt.plot(tfb, Vwind1/v_esc, '--', c = 'orange', label = r'$v_{\rm wind}(0.5 a_{\rm min})$')
+    plt.plot(tfb, Vwind2/v_esc, '--', c = 'purple', label = r'$v_{\rm wind}(0.7 a_{\rm min})$')
     plt.plot(tfb, Vwind3/v_esc, '--', c = 'green', label = r'$v_{\rm wind}(a_{\rm min})$')
     plt.xlabel(r't $[t_{\rm fb}]$')
     plt.ylabel(r'$v_{\rm wind}/v_{\rm esc}(R_{\rm t})$')
-    plt.yscale('symlog')
+    # plt.yscale('log')
     plt.legend(fontsize = 14)
     # plt.savefig(f'{abspath}/Figs/outflow/Mdot.png')
 
 # %%
+print(convers_kms)

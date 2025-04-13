@@ -178,20 +178,22 @@ VZ = np.load(f'{loadpath}/Vz_{snap}.npy')
 T = np.load(f'{loadpath}/T_{snap}.npy')
 Den = np.load(f'{loadpath}/Den_{snap}.npy')
 Vol = np.load(f'{loadpath}/Vol_{snap}.npy')
+Mass = np.load(f'{loadpath}/Mass_{snap}.npy')
 box = np.load(f'{loadpath}/box_{snap}.npy')
 denmask = Den > 1e-19
-X, Y, Z, VX, VY, VZ, T, Den, Vol = \
-    make_slices([X, Y, Z, VX, VY, VZ, T, Den, Vol], denmask)
+X, Y, Z, VX, VY, VZ, T, Den, Vol, Mass = \
+    make_slices([X, Y, Z, VX, VY, VZ, T, Den, Vol, Mass], denmask)
 R = np.sqrt(X**2 + Y**2 + Z**2)    
 xyz = np.array([X, Y, Z]).T
 N_ray = 5_000
-with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}.txt','w') as file:
+with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}weight.txt','w') as file:
         file.close()
 for j, idx_list in enumerate(indices_chosen):
     r_mean = []
     d_mean = []
     v_rad_mean = []
     v_tot_mean = []
+    m_mean = []
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 10))
     for idx_i, i in enumerate(idx_list):  
@@ -233,6 +235,7 @@ for j, idx_list in enumerate(indices_chosen):
         ray_y = Y[idx]
         ray_z = Z[idx]
         dim_cell = Vol[idx]**(1/3)
+        ray_Mass = Mass[idx]
         ray_vx = VX[idx]
         ray_vy = VY[idx]
         ray_vz = VZ[idx]
@@ -243,6 +246,7 @@ for j, idx_list in enumerate(indices_chosen):
         d_mean.append(d)
         v_rad_mean.append(v_rad)
         v_tot_mean.append(v_tot)
+        m_mean.append(Mass)
 
         ax1.plot(xyz2[:,0]/apo, xyz2[:,1]/apo, c = colors_obs[j])
         img1 = ax1.scatter(ray_x/apo, ray_y/apo, c = np.abs(ray_z)/apo, cmap = 'jet', label = 'From simulation', norm = colors.LogNorm(vmin = 8e-3, vmax = 3))
@@ -267,15 +271,16 @@ for j, idx_list in enumerate(indices_chosen):
     
     r_mean = np.mean(r_mean, axis=0)
     d_mean = np.mean(d_mean, axis=0)
-    v_rad_mean = np.mean(v_rad_mean, axis=0)
+    # v_rad_mean = np.mean(v_rad_mean, axis=0)
+    v_rad_mean = np.sum(v_rad_mean * m_mean, axis=0) / np.sum(m_mean, axis=0)
     v_tot_mean = np.mean(v_tot_mean, axis=0)
 
-    with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}.txt','a') as file:
+    with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}weight.txt','a') as file:
         file.write(f'# Observer latitude: {lat_obs[i]}, longitude: {long_obs[i]}\n')
         file.write(f' '.join(map(str, r_mean)) + '\n')
         file.write(f' '.join(map(str, d_mean)) + '\n')
         file.write(f' '.join(map(str, v_rad_mean)) + '\n')
-        file.write(f' '.join(map(str, v_tot_mean)) + '\n')
+        # file.write(f' '.join(map(str, v_tot_mean)) + '\n')
         file.close()
 
 #%%
@@ -287,8 +292,9 @@ fig, ax1 = plt.subplots(1, 1, figsize=(8, 7))
 fig1, ax2 = plt.subplots(1, 1, figsize=(8, 7))
 fig2, ax3 = plt.subplots(1, 1, figsize=(8, 7))
 
-profiles = np.loadtxt(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}.txt')
-r_arr, d_arr, v_rad_arr, v_tot_arr = profiles[0::4], profiles[1::4], profiles[2::4], profiles[3::4]
+profiles = np.loadtxt(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}weight.txt')
+r_arr, d_arr, v_rad_arr = profiles[0:3], profiles[1:3], profiles[2:3]
+# r_arr, d_arr, v_rad_arr, v_tot_arr = profiles[0::4], profiles[1::4], profiles[2::4], profiles[3::4]
 
 for i in range(len(indices_chosen)):
     r = r_arr[i]
