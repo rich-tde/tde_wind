@@ -223,16 +223,30 @@ if plot:
     mid_points = (bins[:-1]+bins[1:])* norm_dMdE/2  # get rid of the normalization
     dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/dMdE_{check}.txt')[0] # distribution just after the disruption
     bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
-    mfall_test = np.zeros(len(tfb))
-    for i, t in enumerate(tfb):    
-        t *= tfallback_cgs # cgs
+    dataOE = np.loadtxt(f'{abspath}/data/{folder}/OE_tot.txt')
+    OEpos = dataOE[1]
+    dEdt_all = np.diff(OEpos)/(np.diff(tfb)*tfallback_cgs/prel.tsol_cgs) # code units
+    mfall_test = np.zeros(len(tfb)-1)
+    for i in range(len(tfb)-1):  
+        print(i)  
+        t = tfb[i] * tfallback_cgs # cgs
         # convert to code units
         tsol = t / prel.tsol_cgs
         # Find the energy of the element at time t
         energy = orb.keplerian_energy(Mbh, prel.G, tsol) # it'll give it positive
         i_bin = np.argmin(np.abs(energy-np.abs(bins_tokeep))) # just to be sure that you match the data
-        dMdE_t = dMdE_distr_tokeep[i_bin]
-        # dE/dt
-        dEdt = 
-        mdot = dMdE_t * dEdt
-        mfall_test[i] = mdot # code units
+        dMdE = dMdE_distr_tokeep[i_bin]
+        mfall_test[i] = dMdE * dEdt_all[i] # code units
+    
+    plt.figure(figsize = (8,6))
+    plt.plot(tfb, np.abs(mfall)/Medd_code, label = r'Keplerian', c = 'k')
+    plt.plot(tfb[:-1], np.abs(mfall_test)/Medd_code, label = r'Numerical', c = 'orange')
+    # plt.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
+    # plt.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
+    plt.yscale('log')
+    # plt.ylim(1e-7, 3)
+    plt.legend(fontsize = 14)
+    plt.xlabel(r'$t/t_{\rm fb}$')
+    plt.ylabel(r'$|\dot{M}_{\rm fb}| [\dot{M}_{\rm Edd}]$')
+    
+# %%

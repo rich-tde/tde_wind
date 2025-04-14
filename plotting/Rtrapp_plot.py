@@ -187,31 +187,9 @@ if do: # compute just one line of sight and show c/(tau*Vr)
     eng.exit()
 
 else: # Evolution in time (comparison with high res) and comparison with the photosphere
-    snap = 237
     time = np.loadtxt(f'{abspath}/data/{folder}/slices/z/z0_time.txt')
     snaps, tfb = time[0], time[1]
     snaps = np.array([int(snap) for snap in snaps])
-
-    # check Rtr and Rph for one snapshot
-    # Load data
-    photo = np.loadtxt(f'{pre_saving}/photo/_photo{snap}.txt')
-    xph, yph, zph, vx_ph, vy_ph, vz_ph = photo[0], photo[1], photo[2], photo[-3], photo[-2], photo[-1]
-    rph = np.sqrt(xph**2 + yph**2 + zph**2)
-    v_ph = np.sqrt(vx_ph**2 + vy_ph**2 + vz_ph**2) * conversion_sol_kms
-    trap = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/trap/{check}_Rtr{snap}.txt')
-    x_tr_i, y_tr_i, z_tr_i, Vx_tr, Vy_tr, Vz_tr, Vr_tr = trap[0], trap[1], trap[2], trap[-4], trap[-3], trap[-2], trap[-1]
-    v_tr_i = np.sqrt(Vx_tr**2 + Vy_tr**2 + Vz_tr**2) * conversion_sol_kms
-    R_tr_i = np.sqrt(x_tr_i**2 + y_tr_i**2 + z_tr_i**2)
-    # Plot
-    fig, ax2 = plt.subplots(1, 1 , figsize = (6,5))
-    ax2.scatter(R_tr_i/apo, v_tr_i*1e-4, c = 'k', label = r'$R_{\rm trap}$')
-    ax2.scatter(rph/apo, v_ph*1e-4, c = 'dodgerblue', label = r'$R_{\rm ph}$')
-    ax2.set_ylabel(r'$|V| [10^4$ km/s]')
-    ax2.set_xlabel(r'$R [R_{\rm a}]$')
-    ax2.set_ylim(.1, 2)
-    ax2.legend(fontsize = 14)
-    ax2.set_title(f'Snap {snap}', fontsize = 16)
-    plt.tight_layout()
 
     # Rtr and Rph velocities in time, comparing High and Fod Res
     ratio_unbound_tr = np.zeros(len(snaps))
@@ -229,32 +207,32 @@ else: # Evolution in time (comparison with high res) and comparison with the pho
         print(snap)
         x_tr, y_tr, z_tr, vol_tr, den_tr, Temp_tr, Vx_tr, Vy_tr, Vz_tr, Vr_tr = \
             np.loadtxt(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.txt')
-        xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph = \
-            np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
         r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-        r_ph = np.sqrt(xph**2 + yph**2 + zph**2)
-        for j in range(len(r_tr)):
-            if r_tr[j] < 1e-10:
-                count_zeros_tr[i] += 1
         vel_tr = np.sqrt(Vx_tr**2 + Vy_tr**2 + Vz_tr**2)
+        vel_tr = vel_tr[r_tr>1e-10]
+        r_tr = r_tr[r_tr>1e-10]
+        count_zeros_tr[i] = len(r_ph) - len(r_tr)
         PE_tr_spec = -prel.G * Mbh / (r_tr-Rs)
         KE_tr_spec = 0.5 * vel_tr**2
         energy_tr = KE_tr_spec + PE_tr_spec
-        ratio_unbound_tr[i] = len(energy_tr[np.logical_and(energy_tr>0, r_tr>1e-10)]) / len(energy_tr)
-        mean_vel_tr[i] =np.mean(vel_tr)
+        ratio_unbound_tr[i] = len(energy_tr[energy_tr>0]) / len(energy_tr)
+        mean_vel_tr[i] = np.mean(vel_tr)
         percentile16_tr[i] =  np.percentile(vel_tr, 16)
         percentile84_tr[i] = np.percentile(vel_tr, 84)
 
+        xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph = \
+            np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
+        r_ph = np.sqrt(xph**2 + yph**2 + zph**2)
         vel_ph = np.sqrt(Vxph**2 + Vyph**2 + Vzph**2)
         PE_ph_spec = -prel.G * Mbh / (r_ph-Rs)
         KE_ph_spec = 0.5 * vel_ph**2
         energy_ph_spec = KE_ph_spec + PE_ph_spec
-        ratio_unbound_ph[i] = len(energy_ph_spec[energy_ph_spec>1e-15]) / len(energy_ph_spec)
-        mean_vel_ph[i] =np.mean(vel_ph)
+        ratio_unbound_ph[i] = len(energy_ph_spec[energy_ph_spec>0]) / len(energy_ph_spec)
+        mean_vel_ph[i] = np.mean(vel_ph)
         percentile16_ph[i] =  np.percentile(vel_ph, 16)
         percentile84_ph[i] = np.percentile(vel_ph, 84)
 
-    count_zeros_tr = count_zeros_tr / len(r_tr)
+    count_zeros_tr = count_zeros_tr / len(r_ph) #use r_ph beacuse the lenght if for sure 192
 
     # Compare with Rph
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10,14))

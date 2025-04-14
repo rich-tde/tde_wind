@@ -30,7 +30,7 @@ G = 1
 solarR_to_au = 215
 
 # Converters
-tsol_cgs = np.sqrt(Rsol_cgs**3 / (Msol_cgs*G_cgs )) # ~1593. Follows from G = 1
+tsol_cgs = np.sqrt(Rsol_cgs**3 / (Msol_cgs*G_cgs )) # ~1593. Follows from G = 1. To pass from code units to cgs, you multiply by tsol_cgs
 csol_cgs = c_cgs / (Rsol_cgs/tsol_cgs) # c in code units
 den_converter = Msol_cgs / Rsol_cgs**3
 en_den_converter = Msol_cgs / (Rsol_cgs  * tsol_cgs**2 ) # Energy Density converter

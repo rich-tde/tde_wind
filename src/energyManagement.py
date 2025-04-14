@@ -32,8 +32,10 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 # plt.figure(figsize = (8, 6))
 OE_pos_tot = np.zeros(len(snaps))
 OE_neg_tot = np.zeros(len(snaps))
+OE_spec_pos_tot = np.zeros(len(snaps))
+OE_spec_neg_tot = np.zeros(len(snaps))
 for i, snap in enumerate(snaps):
-    path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
+    path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
     data = make_tree(path, snap, energy = True)
     X, Y, Z, P, Mass, Den, VX, VY, VZ, IE = \
         data.X, data.Y, data.Z, data.Press, data.Mass, data.Den, data.VX, data.VY, data.VZ, data.IE
@@ -43,15 +45,22 @@ for i, snap in enumerate(snaps):
     R = np.sqrt(X**2 + Y**2 + Z**2)
     V = np.sqrt(VX**2 + VY**2 + VZ**2)
     orbital_enegy = orb.orbital_energy(R, V, Mass, prel.G, prel.csol_cgs, Mbh)
+    OE_pos_tot[i] = np.sum(orbital_enegy[orbital_enegy>0])
+    OE_neg_tot[i] = np.sum(orbital_enegy[orbital_enegy<0])
     OE_spec = orbital_enegy/Mass
-    OE_pos_tot[i] = np.sum(OE_spec[OE_spec>0])
-    OE_neg_tot[i] = np.sum(OE_spec[OE_spec<0])
-with open(f'{abspath}/data/{folder}/OE_pos_tot_{folder}.txt', 'w') as file:
+    OE_spec_pos_tot[i] = np.sum(OE_spec[OE_spec>0])
+    OE_spec_neg_tot[i] = np.sum(OE_spec[OE_spec<0])
+
+with open(f'{abspath}/data/{folder}/OE_tot.txt', 'a') as file:
     file.write(f'# t/tfb \n')
     file.write(f' '.join(map(str, tfb)) + '\n')
     file.write(f'# total specific POSITIVE orbital energy [code units] \n')
-    file.write(f' '.join(map(str, OE_pos_tot)) + '\n')
+    file.write(f' '.join(map(str, OE_spec_pos_tot)) + '\n')
     file.write(f'# total specific NEGATIVE orbital energy [code units] \n')
+    file.write(f' '.join(map(str, OE_spec_neg_tot)) + '\n')
+    file.write(f'# total POSITIVE orbital energy [code units] \n')
+    file.write(f' '.join(map(str, OE_pos_tot)) + '\n')
+    file.write(f'# total NEGATIVE orbital energy [code units] \n')
     file.write(f' '.join(map(str, OE_neg_tot)) + '\n')
     file.close()
 

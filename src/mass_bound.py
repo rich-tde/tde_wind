@@ -98,13 +98,12 @@ if alice:
 
 #%%
 if plot:
+    # among resolutions
     commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     tfbL, M_unL, _, M_unnocutL = np.loadtxt(f'{abspath}/data/{commonfold}LowRes/Mass_unboundLowRes.txt')
     tfb, M_bern, M_bern_frombound, M_orben, M_orben_frombound = np.loadtxt(f'{abspath}/data/{commonfold}/Mass_unbound.txt')
-    tfbRt, M_bernRt, M_orbenRt = np.loadtxt(f'{abspath}/data/{commonfold}/Mass_unbound10Rt.txt')
     tfbH, M_unH, _, M_unnocutH = np.loadtxt(f'{abspath}/data/{commonfold}HiRes/Mass_unboundHiRes.txt')
     # plt.plot(tfbL, (M_unL)/mstar, c = 'C1', label = 'Low')
-    plt.plot(tfbRt[10:], (M_bernRt[10:]-M_orben[0])/mstar,  c = 'r', label = r'$B>0$ beyond $10R_t$')
     plt.plot(tfb, (M_bern-M_orben[0])/mstar,  c = 'yellowgreen', label = r'$B>0$')
     plt.plot(tfb, (M_bern_frombound-M_orben_frombound[0])/mstar, c = 'forestgreen', ls = '--', label = r'$M_\star - (B<0)$')
     plt.plot(tfb, (M_orben-M_orben[0])/mstar, c = 'dodgerblue', label = r'$OE>0$')
@@ -113,6 +112,20 @@ if plot:
     plt.xlabel(r'$t [t_{\rm fb}]$')
     plt.ylabel(r'Mass unbound [$M_\star$]')
     plt.ylim(0.0001, 0.006)
+    plt.grid()
+    plt.legend(fontsize = 15)
+    # plt.savefig(f'{abspath}/Figs/multiple/Mass_unbound.png', dpi = 300, bbox_inches='tight')
+    plt.show()
+
+    # below and above Rt in Fid
+    _, M_bernoverRt, M_orbenoverRt = np.loadtxt(f'{abspath}/data/{commonfold}/Mass_unbound10Rt.txt')
+    _, M_bernbelowRt, M_orbenbelowRt = np.loadtxt(f'{abspath}/data/{commonfold}/Mass_unboundbelow10Rt.txt')
+    plt.plot(tfb, M_bernbelowRt/mstar,  c = 'b', label = r'$B>0$ below $10R_t$')
+    plt.plot(tfb[5:], M_bernoverRt[5:]/mstar,  c = 'r', label = r'$B>0$ beyond $10R_t$')
+    plt.plot(tfb, M_bern/mstar,  c = 'yellowgreen', ls = '--', label = r'$B>0$')
+    plt.xlabel(r'$t [t_{\rm fb}]$')
+    plt.ylabel(r'Mass unbound [$M_\star$]')
+    plt.yscale('log')
     plt.grid()
     plt.legend(fontsize = 15)
     # plt.savefig(f'{abspath}/Figs/multiple/Mass_unbound.png', dpi = 300, bbox_inches='tight')
