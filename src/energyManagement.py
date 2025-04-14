@@ -51,7 +51,7 @@ for i, snap in enumerate(snaps):
     OE_spec_pos_tot[i] = np.sum(OE_spec[OE_spec>0])
     OE_spec_neg_tot[i] = np.sum(OE_spec[OE_spec<0])
 
-with open(f'{abspath}/data/{folder}/OE_tot.txt', 'a') as file:
+with open(f'{abspath}/data/{folder}/OE_tot.txt', 'w') as file:
     file.write(f'# t/tfb \n')
     file.write(f' '.join(map(str, tfb)) + '\n')
     file.write(f'# total specific POSITIVE orbital energy [code units] \n')

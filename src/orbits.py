@@ -22,6 +22,7 @@ def make_cfr(R, x0=0, y0=0):
     return xcfr, ycfr, cfr
 
 def keplerian_energy(Mbh, G, t):
+    # specific orbital energy of a Keplerian orbit
     energy = (np.pi * G * Mbh / (2 * t))**(2/3)
     return energy
 

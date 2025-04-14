@@ -194,7 +194,7 @@ if plot:
     plt.plot(tfb, np.abs(mwind1/mfall), c = 'orange', label = r'f$_{\rm out}$ (0.5$a_{\rm min})$')
     plt.plot(tfb, np.abs(mwind2/mfall), c = 'purple', label = r'f$_{\rm out}$ (0.7$a_{\rm min})$')
     plt.plot(tfb, np.abs(mwind3/mfall), c = 'green', label = r'f$_{\rm out}$ (1$a_{\rm min})$')
-    plt.plot(tfb, f_out_th, c = 'k', label = 'LodatoRossi11')
+    plt.plot(tfb, np.abs(f_out_th), c = 'k', label = 'LodatoRossi11')
     plt.legend(fontsize = 14)
     plt.xlabel(r't $[t_{\rm fb}]$')
     plt.ylabel(r'$f_{\rm out}\equiv \dot{M}_{\rm wind}/\dot{M}_{\rm fb}$')
@@ -224,11 +224,10 @@ if plot:
     dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/dMdE_{check}.txt')[0] # distribution just after the disruption
     bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
     dataOE = np.loadtxt(f'{abspath}/data/{folder}/OE_tot.txt')
-    OEpos = dataOE[1]
-    dEdt_all = np.diff(OEpos)/(np.diff(tfb)*tfallback_cgs/prel.tsol_cgs) # code units
+    OEneg = dataOE[2]
+    dEdt_all = np.diff(OEneg)/(np.diff(tfb)*tfallback_cgs*prel.tsol_cgs) # code units
     mfall_test = np.zeros(len(tfb)-1)
     for i in range(len(tfb)-1):  
-        print(i)  
         t = tfb[i] * tfallback_cgs # cgs
         # convert to code units
         tsol = t / prel.tsol_cgs

@@ -196,7 +196,7 @@ else: # Evolution in time (comparison with high res) and comparison with the pho
     mean_vel_tr = np.zeros(len(snaps))
     percentile16_tr = np.zeros(len(snaps))
     percentile84_tr = np.zeros(len(snaps))
-    count_zeros_tr = np.zeros(len(snaps))
+    count_nozeros_tr = np.zeros(len(snaps))
     ratio_unbound_ph = np.zeros(len(snaps))
     mean_vel_ph = np.zeros(len(snaps))
     percentile16_ph = np.zeros(len(snaps))
@@ -205,21 +205,6 @@ else: # Evolution in time (comparison with high res) and comparison with the pho
 
     for i, snap in enumerate(snaps):
         print(snap)
-        x_tr, y_tr, z_tr, vol_tr, den_tr, Temp_tr, Vx_tr, Vy_tr, Vz_tr, Vr_tr = \
-            np.loadtxt(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.txt')
-        r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-        vel_tr = np.sqrt(Vx_tr**2 + Vy_tr**2 + Vz_tr**2)
-        vel_tr = vel_tr[r_tr>1e-10]
-        r_tr = r_tr[r_tr>1e-10]
-        count_zeros_tr[i] = len(r_ph) - len(r_tr)
-        PE_tr_spec = -prel.G * Mbh / (r_tr-Rs)
-        KE_tr_spec = 0.5 * vel_tr**2
-        energy_tr = KE_tr_spec + PE_tr_spec
-        ratio_unbound_tr[i] = len(energy_tr[energy_tr>0]) / len(energy_tr)
-        mean_vel_tr[i] = np.mean(vel_tr)
-        percentile16_tr[i] =  np.percentile(vel_tr, 16)
-        percentile84_tr[i] = np.percentile(vel_tr, 84)
-
         xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph = \
             np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
         r_ph = np.sqrt(xph**2 + yph**2 + zph**2)
@@ -232,13 +217,29 @@ else: # Evolution in time (comparison with high res) and comparison with the pho
         percentile16_ph[i] =  np.percentile(vel_ph, 16)
         percentile84_ph[i] = np.percentile(vel_ph, 84)
 
-    count_zeros_tr = count_zeros_tr / len(r_ph) #use r_ph beacuse the lenght if for sure 192
+        x_tr, y_tr, z_tr, vol_tr, den_tr, Temp_tr, Vx_tr, Vy_tr, Vz_tr, Vr_tr = \
+            np.loadtxt(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.txt')
+        r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+        vel_tr = np.sqrt(Vx_tr**2 + Vy_tr**2 + Vz_tr**2)
+        vel_tr = vel_tr[r_tr>1e-10]
+        r_tr = r_tr[r_tr>1e-10]
+        count_nozeros_tr[i] = len(r_tr)
+        PE_tr_spec = -prel.G * Mbh / (r_tr-Rs)
+        KE_tr_spec = 0.5 * vel_tr**2
+        energy_tr = KE_tr_spec + PE_tr_spec
+        ratio_unbound_tr[i] = len(energy_tr[energy_tr>0]) / len(energy_tr)
+        mean_vel_tr[i] = np.mean(vel_tr)
+        percentile16_tr[i] =  np.percentile(vel_tr, 16)
+        percentile84_tr[i] = np.percentile(vel_tr, 84)
+
+
+    count_nozeros_tr = count_nozeros_tr / len(r_ph) #use r_ph beacuse the lenght if for sure 192
 
     # Compare with Rph
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10,14))
-    ax1.plot(tfb, count_zeros_tr, c = 'k')
-    ax1.set_ylabel(r'Fraction of missing $R_{\rm tr}$')
-    ax1.set_ylim(-0.1, 1)
+    ax1.plot(tfb, count_nozeros_tr, c = 'k')
+    ax1.set_ylabel(r'Fraction of found $R_{\rm tr}$')
+    ax1.set_ylim(-0.1, 1.1)
 
     img = ax2.scatter(tfb, mean_vel_tr * conversion_sol_kms * 1e-4, c = ratio_unbound_tr, cmap = 'jet', s = 100, vmin = 0, vmax = 0.8, marker = '*',  label = r'$R_{\rm tr}$')
     ax2.scatter(tfb, mean_vel_ph * conversion_sol_kms * 1e-4, c = ratio_unbound_ph, cmap = 'jet', s = 100, vmin = 0, vmax = 0.8,  label = r'$R_{\rm ph}$')
@@ -271,7 +272,7 @@ else: # Evolution in time (comparison with high res) and comparison with the pho
     plt.grid()
     plt.xlabel(r'$t_{\rm fb}$')
     plt.ylabel(r'Mean velocity [$10^4$ km/s] ')
-    plt.text(0.08, 2.01, f'{check}', fontsize = 25)
+    # plt.text(0.08, 2.01, f'{check}', fontsize = 25)
     plt.ylim(-0.01, 2)
     plt.xlim(-0.09, 1.8)
     plt.title(f'Trapping radius', fontsize = 20)
