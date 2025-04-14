@@ -169,13 +169,13 @@ def nouveau_rich(x, y, K, what = 'scattering', slope_length = 5, extrarowsx = 10
     
     should be linear in log for absorption, everywhere,
     for scattering/density should be linear, irregardless of temperature,
-    +opacity should never be below thompson'''
+    +opacity should never be below thomson'''
     
     # Idea. What if we extrapolated in cm2/g space and then converted back?
     # K = np.log(np.divide(np.exp(K),np.exp(y)))
     
     X = 0.9082339738214822 # From table prescription
-    thompson = 0.2 * (1 + X)
+    thomson = 0.2 * (1 + X)
     
     # Extend x and y, adding data equally space (this suppose x,y as array equally spaced)
     # Low extrapolation
@@ -236,10 +236,10 @@ def nouveau_rich(x, y, K, what = 'scattering', slope_length = 5, extrarowsx = 10
                     Kn[ix][iy] = K[-1, iy_inK] + Kxslope * (xsel - x[-1])
                 
                 if what == 'scattering':
-                    thompson_this_den = np.log(thompson * np.exp(ysel)) # 1/cm
-                    if Kn[ix][iy] < thompson_this_den:
-                        # print(Kn[ix][iy], thompson_this_den)
-                        Kn[ix][iy] = thompson_this_den
+                    thomson_this_den = np.log(thomson * np.exp(ysel)) # 1/cm
+                    if Kn[ix][iy] < thomson_this_den:
+                        # print(Kn[ix][iy], thomson_this_den)
+                        Kn[ix][iy] = thomson_this_den
                 #continue
             else: 
                 ix_inK = np.argmin(np.abs(x - xsel))

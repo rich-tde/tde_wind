@@ -163,7 +163,8 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         file.close()
 
 if plot:
-    tfb, mfall, mwind, mwind1, mwind2, mwind3, Vwind, Vwind1, Vwind2, Vwind3 = np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}.txt')
+    tfb, mfall, mwind, mwind1, mwind2, mwind3, Vwind, Vwind1, Vwind2, Vwind3, Un, Un1, Un2, Un3 = \
+        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}.txt')
     Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
     f_out_th = f_out_LodatoRossi(mfall, Medd_code)
 
@@ -190,9 +191,9 @@ if plot:
 
     plt.figure(figsize = (8,6))
     plt.plot(tfb, np.abs(mwind/mfall), c = 'dodgerblue', label = r'f$_{\rm out}$ (0.2$a_{\rm min})$') 
-    plt.plot(tfb, np.abs(mwind1/mfall), '--', c = 'orange', label = r'f$_{\rm out}$ (0.5$a_{\rm min})$')
-    plt.plot(tfb, np.abs(mwind2/mfall), '--', c = 'purple', label = r'f$_{\rm out}$ (0.7$a_{\rm min})$')
-    plt.plot(tfb, np.abs(mwind3/mfall), '--', c = 'green', label = r'f$_{\rm out}$ (1$a_{\rm min})$')
+    plt.plot(tfb, np.abs(mwind1/mfall), c = 'orange', label = r'f$_{\rm out}$ (0.5$a_{\rm min})$')
+    plt.plot(tfb, np.abs(mwind2/mfall), c = 'purple', label = r'f$_{\rm out}$ (0.7$a_{\rm min})$')
+    plt.plot(tfb, np.abs(mwind3/mfall), c = 'green', label = r'f$_{\rm out}$ (1$a_{\rm min})$')
     plt.plot(tfb, f_out_th, c = 'k', label = 'LodatoRossi11')
     plt.legend(fontsize = 14)
     plt.xlabel(r't $[t_{\rm fb}]$')
@@ -200,16 +201,38 @@ if plot:
     plt.yscale('log')
     # plt.savefig(f'{abspath}/Figs/outflow/Mdot.png')
 
-    plt.figure(figsize = (8,6))
-    plt.plot(tfb, Vwind/v_esc, c = 'dodgerblue', label = r'$v_{\rm wind}(0.2 a_{\rm min})$')
-    plt.plot(tfb, Vwind1/v_esc, '--', c = 'orange', label = r'$v_{\rm wind}(0.5 a_{\rm min})$')
-    plt.plot(tfb, Vwind2/v_esc, '--', c = 'purple', label = r'$v_{\rm wind}(0.7 a_{\rm min})$')
-    plt.plot(tfb, Vwind3/v_esc, '--', c = 'green', label = r'$v_{\rm wind}(a_{\rm min})$')
-    plt.xlabel(r't $[t_{\rm fb}]$')
-    plt.ylabel(r'$v_{\rm wind}/v_{\rm esc}(R_{\rm t})$')
-    # plt.yscale('log')
-    plt.legend(fontsize = 14)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (14,6))
+    img = ax1.plot(tfb, Vwind/v_esc, c = 'dodgerblue', label = r'$v_{\rm wind}(0.2 a_{\rm min})$')
+    ax1.plot(tfb, Vwind1/v_esc, c = 'orange', label = r'$v_{\rm wind}(0.5 a_{\rm min})$')
+    ax1.plot(tfb, Vwind2/v_esc, c = 'purple', label = r'$v_{\rm wind}(0.7 a_{\rm min})$')
+    ax1.plot(tfb, Vwind3/v_esc, c = 'green', label = r'$v_{\rm wind}(a_{\rm min})$')
+    ax1.set_ylabel(r'$v_{\rm wind}/v_{\rm esc}(R_{\rm t})$')
+    ax1.legend(fontsize = 14)
+
+    img = ax2.scatter(tfb, Vwind/v_esc, c = Un, label = r'$v_{\rm wind}(0.2 a_{\rm min})$', cmap = 'jet', vmin = 0, vmax = 0.4)
+    pcbar = plt.colorbar(img)
+    pcbar.set_label(r'$N_{\rm unbound}/N_{\rm tot}$')
+    for ax in (ax1, ax2):
+        ax.set_xlabel(r't $[t_{\rm fb}]$')
+    plt.tight_layout()
     # plt.savefig(f'{abspath}/Figs/outflow/Mdot.png')
 
-# %%
-print(convers_kms)
+    ##
+    bins = np.loadtxt(f'{abspath}/data/{folder}/dMdE_{check}_bins.txt')
+    max_bin_negative = np.abs(np.min(bins))
+    mid_points = (bins[:-1]+bins[1:])* norm_dMdE/2  # get rid of the normalization
+    dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/dMdE_{check}.txt')[0] # distribution just after the disruption
+    bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
+    mfall_test = np.zeros(len(tfb))
+    for i, t in enumerate(tfb):    
+        t *= tfallback_cgs # cgs
+        # convert to code units
+        tsol = t / prel.tsol_cgs
+        # Find the energy of the element at time t
+        energy = orb.keplerian_energy(Mbh, prel.G, tsol) # it'll give it positive
+        i_bin = np.argmin(np.abs(energy-np.abs(bins_tokeep))) # just to be sure that you match the data
+        dMdE_t = dMdE_distr_tokeep[i_bin]
+        # dE/dt
+        dEdt = 
+        mdot = dMdE_t * dEdt
+        mfall_test[i] = mdot # code units

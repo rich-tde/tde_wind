@@ -35,7 +35,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiRes' 
+check = '' 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 pre_saving = f'{abspath}/data/{folder}'
@@ -43,6 +43,8 @@ pre_saving = f'{abspath}/data/{folder}'
 Rt = orb.tidal_radius(Rstar, mstar, Mbh)
 a_min = orb.semimajor_axis(Rstar, mstar, Mbh, prel.G)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
+tfallback = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2) #[days]
+tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
 
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) #shape: (3, 192)
 observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
@@ -56,6 +58,8 @@ rossland = np.loadtxt(f'{opac_path}/ross.txt')
 T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
 
 for snap in snaps:
+    if snap != 348:
+        continue
     photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
     xph, yph, zph = photo[0], photo[1], photo[2]
     rph = np.sqrt(xph**2 + yph**2 + zph**2)
@@ -85,6 +89,8 @@ for snap in snaps:
     Vr_tr = np.zeros(len(observers_xyz))
 
     for i in range(len(observers_xyz)):
+        if i != 95:
+            continue
         print(f'{i}', flush=True)
         sys.stdout.flush()
         mu_x = observers_xyz[i][0]
@@ -149,22 +155,24 @@ for snap in snaps:
         # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
         los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, ray_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_z. YOu integrate in the z direction
         los_zero = los != 0
-        ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r, v_rad, los = \
-            make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r, v_rad, los], los_zero)
+        ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r, v_rad, los, sigma_rossland_eval = \
+            make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r, v_rad, los, sigma_rossland_eval], los_zero)
         # you integrate for tau as BonnerotLu20, eq.16 for trapping radius
+        los_scatt = - np.flipud(sci.cumulative_trapezoid(np.flipud(d)*0.34, np.flipud(ray_r), initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_z. YOu integrate in the z direction
         c_tau = prel.csol_cgs/los #c/tau [code units]
 
         # plot to check if you're taking the right thing
         # plt.figure()
         # plt.plot(ray_r/apo, c_tau/np.abs(v_rad), c = 'k', label = r'$c\tau^{-1}/v_r$')
-        # plt.plot(ray_r/apo, los, label = r'$\tau$', c = 'r')
-        # plt.plot(ray_r/apo, np.abs(v_rad)*prel.Rsol_cgs/prel.tsol_cgs, label = r'$|v_r|$ [cm/s]', c = 'b')
+        # plt.plot(ray_r/apo, los, label = r'$\tau_R$', c = 'r')
+        # plt.plot(ray_r/apo, los_scatt, '--', label = r'$\tau_s$', c = 'r')
+        # # plt.plot(ray_r/apo, np.abs(v_rad)*prel.Rsol_cgs/prel.tsol_cgs, label = r'$|v_r|$ [cm/s]', c = 'b')
         # plt.axhline(1, c = 'k', linestyle = 'dotted')
         # plt.xlabel(r'$R [R_{\rm a}]$')
-        # plt.ylabel(r'')
-        # plt.yscale('log')
-        # plt.ylim(1e-6, 1e10)
-        # plt.title(f'Snap {snap} observer {i}')
+        # plt.loglog()
+        # plt.xlim(1e-1, 6)
+        # # plt.ylabel(r'$c\tau^{-1}/|v_r|$')
+        # plt.title(f'Snap {snap}, observer {i}')
         # select the inner part, where tau big --> c/tau < v
         Rtr_idx_all = np.where(c_tau/np.abs(v_rad)<1)[0]
         if len(Rtr_idx_all) == 0:
@@ -193,6 +201,31 @@ for snap in snaps:
         Vy_tr[i] = ray_vy[Rtr_idx]
         Vz_tr[i] = ray_vz[Rtr_idx]
         Vr_tr[i] = v_rad[Rtr_idx]
+
+        t_dyn = ray_r/np.abs(v_rad) * prel.tsol_cgs # [s]
+
+        #tdiff = \tau*H/c 
+        los_fuT = np.flipud(sigma_rossland_eval*ray_r) * prel.Rsol_cgs #np.flipud(los)
+        tdiff_cumulative = - np.flipud(sci.cumulative_trapezoid(los_fuT, np.flipud(ray_r), initial = 0))*prel.Rsol_cgs/ prel.c_cgs # this is the conversion for ray_z. YOu integrate in the z direction
+        fig, (ax1, ax2) = plt.subplots(1, 2 , figsize = (12,8))
+        ax1.plot(ray_r/apo, tdiff_cumulative/tfallback_cgs, c = 'k')
+        ax1.set_ylabel(r'$t_{\rm diff} [t_{\rm fb}]$')
+        ax1.axhline(t_dyn[Rtr_idx]/tfallback_cgs, c = 'k', linestyle = '--', label =  r'$t_{\rm dyn}=R/v_r$')
+        # ax1.set_ylim(0, 5) # a bit further than the Rtrapp
+        # ax1.axvline(ray_z[np.argmin(np.abs(ctau[1:]/ray_vz[1:]-1))]/Rt)
+        img = ax2.scatter(ray_r/apo, los, c = c_tau/np.abs(v_rad), cmap = 'rainbow', vmin = 0, vmax = 2)
+        cbar = plt.colorbar(img, orientation = 'horizontal')
+        cbar.set_label(r'c$\tau^{-1}/V_r$')
+        ax2.set_ylabel(r'$\tau$')
+        ax2.set_yscale('log')
+        ax1.set_ylim(0.1, 50)
+        for ax in [ax1, ax2]:
+            ax.set_xlabel(r'$R [R_{\rm a}]$')
+            ax.set_xlim(0, 7)
+            ax.axvline(ray_r[Rtr_idx]/apo, c = 'b', linestyle = '--', label =  r'$R_{\rm tr} (c/\tau=V_z)$')
+            ax.axvline(np.mean(rph)/apo, c = 'k', linestyle = 'dotted', label =  r'$<R_{\rm ph}>$')
+            ax.legend(fontsize = 14)
+        plt.tight_layout()
 
     if alice:
         with open(f'{pre_saving}/trap/{check}_Rtr{snap}.txt', 'a') as f:

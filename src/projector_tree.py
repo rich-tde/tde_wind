@@ -219,7 +219,7 @@ if __name__ == '__main__':
             #         vmax = 7e6
             # if what_to_grid == 'tau_ross' or what_to_grid == 'tau_scatt':
             vmin = 1
-            vmax = 1e11
+            vmax = 1e10
                 
             img = ax[0].pcolormesh(x_radii/apo, y_radii/apo, flat_scatt.T, cmap = 'rainbow',
                                 norm = colors.LogNorm(vmin = vmin, vmax = vmax))
