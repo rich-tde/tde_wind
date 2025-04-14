@@ -248,7 +248,7 @@ def single_branch(radii, R, tocast, weights, keep_track = False):
                 gridded_tocast[i] = np.sum(tocast[indices] * weights[indices])
                 gridded_weights[i] = np.sum(weights[indices])
             else:
-                gridded_tocast[i] = np.sum(tocast[indices])
+                gridded_tocast[i] = np.mean(tocast[indices])
             if keep_track:
                 cells_used.append(number_idx[indices])
     if type(weights) != int:
@@ -320,7 +320,7 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix, keep_track = False)
                     gridded_tocast[j] = np.sum(tocast[indices] * weights[indices])
                     gridded_weights[j] = np.sum(weights[indices])
                 else:
-                    gridded_tocast[j] = np.sum(tocast[indices])
+                    gridded_tocast[j] = np.mean(tocast[indices])
         if type(weights) != int:
             gridded_weights += 1e-20 # avoid division by zero
             final_casted = np.divide(gridded_tocast, gridded_weights)

@@ -62,19 +62,12 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     mid_points = (bins[:-1]+bins[1:])* norm_dMdE/2  # get rid of the normalization
     dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/dMdE_{check}.txt')[0] # distribution just after the disruption
     bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
+   
     mfall = np.zeros(len(tfb_cgs))
-    mwind = np.zeros(len(tfb_cgs))
-    mwind1 = np.zeros(len(tfb_cgs))
-    mwind2 = np.zeros(len(tfb_cgs))
-    mwind3 = np.zeros(len(tfb_cgs))
-    Vwind = np.zeros(len(tfb_cgs))
-    Vwind1 = np.zeros(len(tfb_cgs))
-    Vwind2 = np.zeros(len(tfb_cgs))
-    Vwind3 = np.zeros(len(tfb_cgs))
-    unbound_ratio = np.zeros(len(tfb_cgs))
-    unbound_ratio1 = np.zeros(len(tfb_cgs))
-    unbound_ratio2 = np.zeros(len(tfb_cgs))
-    unbound_ratio3 = np.zeros(len(tfb_cgs))
+    mwind_pos = []
+    Vwind_pos = []
+    mwind_neg = []
+    Vwind_neg = []
     for i, snap in enumerate(snaps):
         print(snap, flush=True)
         sys.stdout.flush()
@@ -95,71 +88,83 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         mfall[i] = mdot # code units
 
         data = make_tree(path, snap, energy = True)
-        X, Y, Z, Mass, Den, Press, IE, VX, VY, VZ = \
-            data.X, data.Y, data.Z, data.Mass, data.Den, data.Press, data.IE, data.VX, data.VY, data.VZ
+        X, Y, Z, Vol, Den, VX, VY, VZ = \
+            data.X, data.Y, data.Z, data.Vol, data.Den, data.VX, data.VY, data.VZ
+        dim_cell = Vol**(1/3)
         cut = Den > 1e-19
-        X, Y, Z, Mass, Den, Press, IE, VX, VY, VZ = \
-            make_slices([X, Y, Z, Mass, Den, Press, IE, VX, VY, VZ], cut)
+        X, Y, Z, dim_cell, Den, VX, VY, VZ = \
+            make_slices([X, Y, Z, dim_cell, Den, VX, VY, VZ], cut)
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
         V = np.sqrt(VX**2 + VY**2 + VZ**2)
-        cells_len = np.arange(len(X))
-        # xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph = \
-        #     np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
-        # xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph = \
-        #     np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
-        # rph = np.sqrt(xph**2 + yph**2 + zph**2)
-        # idx_r_wind = np.argmin(np.abs(rph - radii))
-        # x_w, y_w, z_w, r_w, vx_w, vy_w, vz_w = \
-        #     xph[idx_r_wind], yph[idx_r_wind], zph[idx_r_wind], rph[idx_r_wind], Vxph[idx_r_wind], Vyph[idx_r_wind], Vzph[idx_r_wind]
-        # long_w = np.arctan2(y_w, x_w)          # Azimuthal angle in radians
-        # lat_w = np.arccos(z_w / r_w)
-        # v_rad_w, _, _ = to_spherical_components(vx_w, vy_w, vz_w, lat_w, long_w)
         long = np.arctan2(Y, X)          # Azimuthal angle in radians
         lat = np.arccos(Z / Rsph)
         v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
-        casted, indices = \
-            multiple_branch(radii, Rsph, [Den, v_rad], weights_matrix = [Mass, Mass], keep_track = True)
-        Den_casted, v_rad_casted = casted[0], casted[1]
-        
-        for j, Mw, Vw, UnW in zip(np.arange(4), [mwind, mwind1, mwind2, mwind3], [Vwind, Vwind1, Vwind2, Vwind3], [unbound_ratio, unbound_ratio1, unbound_ratio2, unbound_ratio3]):
-            Mw[i] = 4 * np.pi * radii[j]**2 * Den_casted[j] * v_rad_casted[j] # v_wind = 4pi*r^2 * rho(r) * v(r) with r far enough so that velocity ~const, but not too far or it overcome tfb
-            Vw[i] = v_rad_casted[j] 
-            cell_indices = cells_len[indices[j]]
-            Rsph_cell, Mass_cell, V_cell, Press_cell, Den_cell, IE_cell = \
-                make_slices([Rsph, Mass, V, Press, Den, IE], cell_indices)
-            OE_cell = orb.orbital_energy(Rsph_cell, V_cell, Mass_cell, prel.G, prel.csol_cgs, Mbh)
-            B = OE_cell / Mass_cell + IE_cell + Press_cell/Den_cell
-            UnW[i] = len(B[B>0])/len(B)
+        # Postive velocity
+        v_rad_pos_cond = v_rad >= 0
+        Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
+            make_slices([Den, Rsph, v_rad, dim_cell], v_rad_pos_cond)
+        Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos # there should be a pi factor here, but you put it later
+        casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = [1, 1])
+        Mdot_pos_casted, v_rad_pos_casted = casted[0], casted[1]
+        mwind_pos.append(Mdot_pos_casted * np.pi)
+        Vwind_pos.append(v_rad_pos_casted)
+        # Negative velocity 
+        v_rad_neg_cond = v_rad < 0
+        Den_neg, Rsph_neg, v_rad_neg, dim_cell_neg = \
+            make_slices([Den, Rsph, v_rad, dim_cell], v_rad_neg_cond)
+        Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg        
+        casted = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = [1, 1])
+        Mdot_neg_casted, v_rad_neg_casted = casted[0], casted[1]
+        mwind_neg.append(Mdot_neg_casted * np.pi)
+        Vwind_neg.append(v_rad_neg_casted)
 
-    with open(f'{abspath}/data/{folder}/Mdot_{check}.txt','a') as file:
+    mwind_pos = np.transpose(np.array(mwind_pos)) # shape pass from len(snap) x len(radii) to len(radii) x len(snap)
+    mwind_neg = np.transpose(np.array(mwind_neg))
+    Vwind_pos = np.transpose(np.array(Vwind_pos))
+    Vwind_neg = np.transpose(np.array(Vwind_neg))
+
+    with open(f'{abspath}/data/{folder}/Mdot_{check}_pos.txt','w') as file:
         file.write(f'# t/tfb \n')
         file.write(f' '.join(map(str, tfb)) + '\n')
         file.write(f'# Mdot_f \n')
         file.write(f' '.join(map(str, mfall)) + '\n')
         file.write(f'# Mdot_wind at 0.2 amin\n')
-        file.write(f' '.join(map(str, mwind)) + '\n')
+        file.write(f' '.join(map(str, mwind_pos[0])) + '\n')
         file.write(f'# Mdot_wind at 0.5 amin\n')
-        file.write(f' '.join(map(str, mwind1)) + '\n')
+        file.write(f' '.join(map(str, mwind_pos[1])) + '\n')
         file.write(f'# Mdot_wind at 0.7 amin\n')
-        file.write(f' '.join(map(str, mwind2)) + '\n')
+        file.write(f' '.join(map(str, mwind_pos[2])) + '\n')
         file.write(f'# Mdot_wind at amin\n')
-        file.write(f' '.join(map(str, mwind3)) + '\n')
+        file.write(f' '.join(map(str, mwind_pos[3])) + '\n')
         file.write(f'# v_wind at 0.2 amin\n')
-        file.write(f' '.join(map(str, Vwind)) + '\n')
+        file.write(f' '.join(map(str, Vwind_pos[0])) + '\n')
         file.write(f'# v_wind at 0.5 amin\n')
-        file.write(f' '.join(map(str, Vwind1)) + '\n')
+        file.write(f' '.join(map(str, Vwind_pos[1])) + '\n')
         file.write(f'# v_wind at 0.7 amin\n')
-        file.write(f' '.join(map(str, Vwind2)) + '\n')
+        file.write(f' '.join(map(str, Vwind_pos[2])) + '\n')
         file.write(f'# v_wind at amin\n')
-        file.write(f' '.join(map(str, Vwind3)) + '\n')
-        file.write(f'# unbound ratio at 0.2 amin\n')
-        file.write(f' '.join(map(str, unbound_ratio)) + '\n')
-        file.write(f'# unbound ratio at 0.5 amin\n')
-        file.write(f' '.join(map(str, unbound_ratio1)) + '\n')
-        file.write(f'# unbound ratio at 0.7 amin\n')
-        file.write(f' '.join(map(str, unbound_ratio2)) + '\n')
-        file.write(f'# unbound ratio at amin\n')
-        file.write(f' '.join(map(str, unbound_ratio3)) + '\n')
+        file.write(f' '.join(map(str, Vwind_pos[3])) + '\n')
+        file.close()
+    
+    with open(f'{abspath}/data/{folder}/Mdot_{check}_neg.txt','w') as file:
+        file.write(f'# t/tfb \n')
+        file.write(f' '.join(map(str, tfb)) + '\n')
+        file.write(f'# Mdot_wind at 0.2 amin\n')
+        file.write(f' '.join(map(str, mwind_neg[0])) + '\n')
+        file.write(f'# Mdot_wind at 0.5 amin\n')
+        file.write(f' '.join(map(str, mwind_neg[1])) + '\n')
+        file.write(f'# Mdot_wind at 0.7 amin\n')
+        file.write(f' '.join(map(str, mwind_neg[2])) + '\n')
+        file.write(f'# Mdot_wind at amin\n')
+        file.write(f' '.join(map(str, mwind_neg[3])) + '\n')
+        file.write(f'# v_wind at 0.2 amin\n')
+        file.write(f' '.join(map(str, Vwind_neg[0])) + '\n')
+        file.write(f'# v_wind at 0.5 amin\n')
+        file.write(f' '.join(map(str, Vwind_neg[1])) + '\n')
+        file.write(f'# v_wind at 0.7 amin\n')
+        file.write(f' '.join(map(str, Vwind_neg[2])) + '\n')
+        file.write(f'# v_wind at amin\n')
+        file.write(f' '.join(map(str, Vwind_neg[3])) + '\n')
         file.close()
 
 if plot:
