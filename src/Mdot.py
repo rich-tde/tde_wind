@@ -103,19 +103,23 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         v_rad_pos_cond = v_rad >= 0
         Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
             make_slices([Den, Rsph, v_rad, dim_cell], v_rad_pos_cond)
-        Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos # there should be a pi factor here, but you put it later
-        casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = [1, 1])
+        # Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos # there should be a pi factor here, but you put it later
+        # casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = [1, 1])
+        Mdot_pos = Den_pos * v_rad_pos # there should be a 4piR^2 factor here, but you put it later
+        casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = [dim_cell_pos, dim_cell_pos])
         Mdot_pos_casted, v_rad_pos_casted = casted[0], casted[1]
-        mwind_pos.append(Mdot_pos_casted * np.pi)
+        mwind_pos.append(Mdot_pos_casted * 4 * np.pi * radii**2)#Mdot_pos_casted * np.pi)
         Vwind_pos.append(v_rad_pos_casted)
         # Negative velocity 
         v_rad_neg_cond = v_rad < 0
         Den_neg, Rsph_neg, v_rad_neg, dim_cell_neg = \
             make_slices([Den, Rsph, v_rad, dim_cell], v_rad_neg_cond)
-        Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg        
-        casted = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = [1, 1])
+        Mdot_neg = Den_neg * v_rad_neg # there should be a 4piR^2 factor here, but you put it later
+        casted = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = [dim_cell_neg, dim_cell_neg])
+        # Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg        
+        # casted = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = [1, 1])
         Mdot_neg_casted, v_rad_neg_casted = casted[0], casted[1]
-        mwind_neg.append(Mdot_neg_casted * np.pi)
+        mwind_neg.append(Mdot_neg_casted * 4 * np.pi * radii**2)#Mdot_neg_casted * np.pi)
         Vwind_neg.append(v_rad_neg_casted)
 
     mwind_pos = np.transpose(np.array(mwind_pos)) # shape pass from len(snap) x len(radii) to len(radii) x len(snap)
@@ -123,7 +127,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     Vwind_pos = np.transpose(np.array(Vwind_pos))
     Vwind_neg = np.transpose(np.array(Vwind_neg))
 
-    with open(f'{abspath}/data/{folder}/Mdot_{check}_pos.txt','w') as file:
+    with open(f'{abspath}/data/{folder}/Mdot_{check}_pos_weighV.txt','w') as file:
         file.write(f'# t/tfb \n')
         file.write(f' '.join(map(str, tfb)) + '\n')
         file.write(f'# Mdot_f \n')
@@ -146,7 +150,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         file.write(f' '.join(map(str, Vwind_pos[3])) + '\n')
         file.close()
     
-    with open(f'{abspath}/data/{folder}/Mdot_{check}_neg.txt','w') as file:
+    with open(f'{abspath}/data/{folder}/Mdot_{check}_neg_weighV.txt','w') as file:
         file.write(f'# t/tfb \n')
         file.write(f' '.join(map(str, tfb)) + '\n')
         file.write(f'# Mdot_wind at 0.2 amin\n')
@@ -168,24 +172,35 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         file.close()
 
 if plot:
-    tfb, mfall, mwind, mwind1, mwind2, mwind3, Vwind, Vwind1, Vwind2, Vwind3, Un, Un1, Un2, Un3 = \
-        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}.txt')
     Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
+    tfb, mfall, mwind_pos, mwind_pos1, mwind_pos2, mwind_pos3, Vwind_pos, Vwind_pos1, Vwind_pos2, Vwind_pos3 = \
+        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_pos.txt')
+    _, mwind_neg, mwind_neg1, mwind_neg2, mwind_neg3, Vwind_neg, Vwind_neg1, Vwind_neg2, Vwind_neg3 = \
+        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_neg.txt')
     f_out_th = f_out_LodatoRossi(mfall, Medd_code)
 
-    plt.figure(figsize = (8,6))
-    plt.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm f}$', c = 'k')
-    plt.plot(tfb, np.abs(mwind)/Medd_code,  label = r'$\dot{M}_{\rm w}$ 0.2$a_{\rm min}$', c = 'dodgerblue')
-    plt.plot(tfb, np.abs(mwind1)/Medd_code,  label = r'$\dot{M}_{\rm w}$ 0.5$a_{\rm min}$', c = 'orange')
-    plt.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
-    plt.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
-    plt.yscale('log')
-    # plt.ylim(1e-7, 3)
-    plt.legend(fontsize = 14)
-    plt.xlabel(r'$t/t_{\rm fb}$')
-    plt.ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')
-    plt.savefig(f'{abspath}/Figs/outflow/Mdot.png')
-    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16,6))
+    ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm f}$', c = 'k')
+    ax1.plot(tfb, np.abs(mwind_pos)/Medd_code,  label = r'$\dot{M}_{\rm out}$ 0.2$a_{\rm min}$', c = 'dodgerblue')
+    ax1.plot(tfb, np.abs(mwind_neg)/Medd_code,  label = r'$\dot{M}_{\rm in}$ 0.2$a_{\rm min}$', c = 'dodgerblue', ls = '--')
+    ax1.plot(tfb, np.abs(mwind_pos1)/Medd_code, label = r'$\dot{M}_{\rm out}$ 0.5$a_{\rm min}$', c = 'orange')
+    ax1.plot(tfb, np.abs(mwind_neg1)/Medd_code, label = r'$\dot{M}_{\rm in}$ 0.5$a_{\rm min}$', c = 'orange', ls = '--')
+    ax1.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
+    ax1.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
+    ax1.set_yscale('log')
+    # ax1.ylim(1e-7, 3)
+    ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')    
+    img = ax2.plot(tfb, Vwind_pos/v_esc, c = 'dodgerblue', label = r'$v_{\rm out}(0.2 a_{\rm min})$')
+    ax2.plot(tfb, Vwind_pos1/v_esc, c = 'orange', label = r'$v_{\rm out}(0.5 a_{\rm min})$')
+    ax2.plot(tfb, Vwind_pos2/v_esc, c = 'purple', label = r'$v_{\rm out}(0.7 a_{\rm min})$')
+    ax2.plot(tfb, Vwind_pos3/v_esc, c = 'green', label = r'$v_{\rm out}(a_{\rm min})$')
+    ax2.set_ylabel(r'$v_{\rm out}/v_{\rm esc}(R_{\rm t})$')
+    for ax in (ax1, ax2):
+        ax.legend(fontsize = 14)
+        ax.set_xlabel(r'$t/t_{\rm fb}$')
+    plt.title(r'Using $\pi$ dim_cell**2')
+    plt.tight_layout()
+
     # reproduce LodatoRossi11 Fig.6
     plt.figure(figsize = (8,6))
     plt.plot(np.abs(mfall/Medd_code), np.abs(f_out_th), c = 'k')
@@ -195,10 +210,10 @@ if plot:
     plt.ylabel(r'$f_{\rm out}$')
 
     plt.figure(figsize = (8,6))
-    plt.plot(tfb, np.abs(mwind/mfall), c = 'dodgerblue', label = r'f$_{\rm out}$ (0.2$a_{\rm min})$') 
-    plt.plot(tfb, np.abs(mwind1/mfall), c = 'orange', label = r'f$_{\rm out}$ (0.5$a_{\rm min})$')
-    plt.plot(tfb, np.abs(mwind2/mfall), c = 'purple', label = r'f$_{\rm out}$ (0.7$a_{\rm min})$')
-    plt.plot(tfb, np.abs(mwind3/mfall), c = 'green', label = r'f$_{\rm out}$ (1$a_{\rm min})$')
+    plt.plot(tfb, np.abs(mwind_pos/mfall), c = 'dodgerblue', label = r'f$_{\rm out}$ (0.2$a_{\rm min})$') 
+    plt.plot(tfb, np.abs(mwind_pos1/mfall), c = 'orange', label = r'f$_{\rm out}$ (0.5$a_{\rm min})$')
+    plt.plot(tfb, np.abs(mwind_pos2/mfall), c = 'purple', label = r'f$_{\rm out}$ (0.7$a_{\rm min})$')
+    plt.plot(tfb, np.abs(mwind_pos3/mfall), c = 'green', label = r'f$_{\rm out}$ (1$a_{\rm min})$')
     plt.plot(tfb, np.abs(f_out_th), c = 'k', label = 'LodatoRossi11')
     plt.legend(fontsize = 14)
     plt.xlabel(r't $[t_{\rm fb}]$')
@@ -206,51 +221,6 @@ if plot:
     plt.yscale('log')
     # plt.savefig(f'{abspath}/Figs/outflow/Mdot.png')
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (14,6))
-    img = ax1.plot(tfb, Vwind/v_esc, c = 'dodgerblue', label = r'$v_{\rm wind}(0.2 a_{\rm min})$')
-    ax1.plot(tfb, Vwind1/v_esc, c = 'orange', label = r'$v_{\rm wind}(0.5 a_{\rm min})$')
-    ax1.plot(tfb, Vwind2/v_esc, c = 'purple', label = r'$v_{\rm wind}(0.7 a_{\rm min})$')
-    ax1.plot(tfb, Vwind3/v_esc, c = 'green', label = r'$v_{\rm wind}(a_{\rm min})$')
-    ax1.set_ylabel(r'$v_{\rm wind}/v_{\rm esc}(R_{\rm t})$')
-    ax1.legend(fontsize = 14)
 
-    img = ax2.scatter(tfb, Vwind/v_esc, c = Un, label = r'$v_{\rm wind}(0.2 a_{\rm min})$', cmap = 'jet', vmin = 0, vmax = 0.4)
-    pcbar = plt.colorbar(img)
-    pcbar.set_label(r'$N_{\rm unbound}/N_{\rm tot}$')
-    for ax in (ax1, ax2):
-        ax.set_xlabel(r't $[t_{\rm fb}]$')
-    plt.tight_layout()
-    # plt.savefig(f'{abspath}/Figs/outflow/Mdot.png')
-
-    ##
-    bins = np.loadtxt(f'{abspath}/data/{folder}/dMdE_{check}_bins.txt')
-    max_bin_negative = np.abs(np.min(bins))
-    mid_points = (bins[:-1]+bins[1:])* norm_dMdE/2  # get rid of the normalization
-    dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/dMdE_{check}.txt')[0] # distribution just after the disruption
-    bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
-    dataOE = np.loadtxt(f'{abspath}/data/{folder}/OE_tot.txt')
-    OEneg = dataOE[2]
-    dEdt_all = np.diff(OEneg)/(np.diff(tfb)*tfallback_cgs*prel.tsol_cgs) # code units
-    mfall_test = np.zeros(len(tfb)-1)
-    for i in range(len(tfb)-1):  
-        t = tfb[i] * tfallback_cgs # cgs
-        # convert to code units
-        tsol = t / prel.tsol_cgs
-        # Find the energy of the element at time t
-        energy = orb.keplerian_energy(Mbh, prel.G, tsol) # it'll give it positive
-        i_bin = np.argmin(np.abs(energy-np.abs(bins_tokeep))) # just to be sure that you match the data
-        dMdE = dMdE_distr_tokeep[i_bin]
-        mfall_test[i] = dMdE * dEdt_all[i] # code units
-    
-    plt.figure(figsize = (8,6))
-    plt.plot(tfb, np.abs(mfall)/Medd_code, label = r'Keplerian', c = 'k')
-    plt.plot(tfb[:-1], np.abs(mfall_test)/Medd_code, label = r'Numerical', c = 'orange')
-    # plt.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
-    # plt.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
-    plt.yscale('log')
-    # plt.ylim(1e-7, 3)
-    plt.legend(fontsize = 14)
-    plt.xlabel(r'$t/t_{\rm fb}$')
-    plt.ylabel(r'$|\dot{M}_{\rm fb}| [\dot{M}_{\rm Edd}]$')
     
 # %%
