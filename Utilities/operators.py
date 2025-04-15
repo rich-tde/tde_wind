@@ -303,6 +303,8 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix, keep_track = False)
         weights = weights_matrix[i]
         # check if weights is an integer
         if type(weights) != int:
+            print('Weighting', flush=True) 
+            sys.stdout.flush()
             gridded_weights = np.zeros((len(radii)))
         for j in range(len(radii)):
             indices = indices_foradii[j]

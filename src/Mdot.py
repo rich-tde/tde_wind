@@ -41,7 +41,7 @@ Rp = Rt/beta
 norm_dMdE = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call \Delta E). It's GM/Rt^2 * Rstar
 apo = orb.apocentre(Rstar, mstar, Mbh, beta) 
 amin = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
-radii = [0.2*amin, 0.5*amin, 0.7 * amin, amin] 
+radii = np.array([0.2*amin, 0.5*amin, 0.7 * amin, amin])
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
 Medd = Ledd/(0.1*prel.c_cgs**2)
 v_esc = np.sqrt(2*prel.G*Mbh/Rt)
@@ -106,7 +106,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         # Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos # there should be a pi factor here, but you put it later
         # casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = [1, 1])
         Mdot_pos = Den_pos * v_rad_pos # there should be a 4piR^2 factor here, but you put it later
-        casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = [dim_cell_pos, dim_cell_pos])
+        casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = [dim_cell_pos, 1])
         Mdot_pos_casted, v_rad_pos_casted = casted[0], casted[1]
         mwind_pos.append(Mdot_pos_casted * 4 * np.pi * radii**2)#Mdot_pos_casted * np.pi)
         Vwind_pos.append(v_rad_pos_casted)
@@ -115,7 +115,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         Den_neg, Rsph_neg, v_rad_neg, dim_cell_neg = \
             make_slices([Den, Rsph, v_rad, dim_cell], v_rad_neg_cond)
         Mdot_neg = Den_neg * v_rad_neg # there should be a 4piR^2 factor here, but you put it later
-        casted = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = [dim_cell_neg, dim_cell_neg])
+        casted = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = [dim_cell_neg, 1])
         # Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg        
         # casted = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = [1, 1])
         Mdot_neg_casted, v_rad_neg_casted = casted[0], casted[1]
@@ -174,9 +174,9 @@ if compute: # compute dM/dt = dM/dE * dE/dt
 if plot:
     Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
     tfb, mfall, mwind_pos, mwind_pos1, mwind_pos2, mwind_pos3, Vwind_pos, Vwind_pos1, Vwind_pos2, Vwind_pos3 = \
-        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_pos.txt')
+        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_pos_weighV.txt')
     _, mwind_neg, mwind_neg1, mwind_neg2, mwind_neg3, Vwind_neg, Vwind_neg1, Vwind_neg2, Vwind_neg3 = \
-        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_neg.txt')
+        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_neg_weighV.txt')
     f_out_th = f_out_LodatoRossi(mfall, Medd_code)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16,6))
@@ -198,7 +198,8 @@ if plot:
     for ax in (ax1, ax2):
         ax.legend(fontsize = 14)
         ax.set_xlabel(r'$t/t_{\rm fb}$')
-    plt.title(r'Using $\pi$ dim_cell**2')
+    # plt.suptitle(r'$\dot{M}_{\rm out, in} = \pi\sum_i v_{\rm{rad},i}\rho_i V_i^{2/3}$ distinguishing for $v_{\rm{rad}}><0$', fontsize = 20)
+    plt.suptitle(r'$\dot{M}_{\rm out, in} = 4\pi R^2\sum_i (v_{\rm{rad},i}\rho_i V_i^3) /\sum_i V_i^3$ distinguishing for $v_{\rm{rad}}><0$, where $R$ is the distance from the BH', fontsize = 20)
     plt.tight_layout()
 
     # reproduce LodatoRossi11 Fig.6

@@ -186,9 +186,10 @@ X, Y, Z, VX, VY, VZ, T, Den, Vol, Mass = \
 R = np.sqrt(X**2 + Y**2 + Z**2)    
 xyz = np.array([X, Y, Z]).T
 N_ray = 5_000
-with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}weight.txt','w') as file:
-        file.close()
+# with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}cutT.txt','w') as file:
+#         file.close()
 for j, idx_list in enumerate(indices_chosen):
+    print(j)
     r_mean = []
     d_mean = []
     v_rad_mean = []
@@ -246,7 +247,7 @@ for j, idx_list in enumerate(indices_chosen):
         d_mean.append(d)
         v_rad_mean.append(v_rad)
         v_tot_mean.append(v_tot)
-        m_mean.append(Mass)
+        m_mean.append(t)
 
         ax1.plot(xyz2[:,0]/apo, xyz2[:,1]/apo, c = colors_obs[j])
         img1 = ax1.scatter(ray_x/apo, ray_y/apo, c = np.abs(ray_z)/apo, cmap = 'jet', label = 'From simulation', norm = colors.LogNorm(vmin = 8e-3, vmax = 3))
@@ -267,21 +268,24 @@ for j, idx_list in enumerate(indices_chosen):
     ax2.set_title('Velocity', fontsize = 18)
     plt.suptitle(f'Observer {label_obs[j]}, snap {snap}', fontsize = 20)
     plt.tight_layout()
-    fig.savefig(f'{abspath}/Figs/outflow/insights/selectedCells{snap}{which_obs}{j}.png', bbox_inches = 'tight')
+    # fig.savefig(f'{abspath}/Figs/outflow/insights/selectedCells{snap}{which_obs}{j}.png', bbox_inches = 'tight')
+    r_mean = np.array(r_mean)
+    d_mean = np.array(d_mean)
+    v_rad_mean = np.array(v_rad_mean)
+    m_mean = np.array(m_mean)
     
     r_mean = np.mean(r_mean, axis=0)
     d_mean = np.mean(d_mean, axis=0)
     # v_rad_mean = np.mean(v_rad_mean, axis=0)
     v_rad_mean = np.sum(v_rad_mean * m_mean, axis=0) / np.sum(m_mean, axis=0)
-    v_tot_mean = np.mean(v_tot_mean, axis=0)
 
-    with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}weight.txt','a') as file:
-        file.write(f'# Observer latitude: {lat_obs[i]}, longitude: {long_obs[i]}\n')
-        file.write(f' '.join(map(str, r_mean)) + '\n')
-        file.write(f' '.join(map(str, d_mean)) + '\n')
-        file.write(f' '.join(map(str, v_rad_mean)) + '\n')
+    # with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}cutT.txt','a') as file:
+    #     file.write(f'# Observer latitude: {lat_obs[i]}, longitude: {long_obs[i]}. Cut in density and in T>1e4\n')
+    #     file.write(f' '.join(map(str, r_mean)) + '\n')
+    #     file.write(f' '.join(map(str, d_mean)) + '\n')
+    #     file.write(f' '.join(map(str, v_rad_mean)) + '\n')
         # file.write(f' '.join(map(str, v_tot_mean)) + '\n')
-        file.close()
+        # filse.close()
 
 #%%
 x_test = np.arange(1e-3, 1e2)
@@ -292,14 +296,14 @@ fig, ax1 = plt.subplots(1, 1, figsize=(8, 7))
 fig1, ax2 = plt.subplots(1, 1, figsize=(8, 7))
 fig2, ax3 = plt.subplots(1, 1, figsize=(8, 7))
 
-profiles = np.loadtxt(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}weight.txt')
-r_arr, d_arr, v_rad_arr = profiles[0:3], profiles[1:3], profiles[2:3]
-# r_arr, d_arr, v_rad_arr, v_tot_arr = profiles[0::4], profiles[1::4], profiles[2::4], profiles[3::4]
+profiles = np.loadtxt(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}cutT.txt')
+r_mean, d_mean, v_rad_mean = profiles[0::3], profiles[1::3], profiles[2::3]
+# r_mean, d_mean, v_rad_mean, v_tot_arr = profiles[0::4], profiles[1::4], profiles[2::4], profiles[3::4]
 
 for i in range(len(indices_chosen)):
-    r = r_arr[i]
-    d = d_arr[i]
-    v_rad = v_rad_arr[i]
+    r = r_mean[i]
+    d = d_mean[i]
+    v_rad = v_rad_mean[i]
     ax1.plot(r/apo, d, color = colors_obs[i], label = f'{label_obs[i]}')#Observer {label_obs[i]} ({indices_chosen[i]})')
     ax2.plot(r/apo, np.abs(v_rad)*prel.Rsol_cgs*1e-5/prel.tsol_cgs, color = colors_obs[i], label = f'{label_obs[i]}')#Observer {label_obs[i]} ({indices_chosen[i]})')
     ax3.plot(r/apo, r**2*d*np.abs(v_rad)*prel.Rsol_cgs**3/prel.tsol_cgs, color = colors_obs[i], label = f'{label_obs[i]}')#Observer {label_obs[i]} ({indices_chosen[i]})')
@@ -323,9 +327,9 @@ for ax in [ax1, ax2, ax3]:
     ax.set_xlim(xmin, xmax)
     ax.loglog()
 plt.tight_layout()
-fig.savefig(f'{abspath}/Figs/outflow/den_prof{snap}{which_obs}.png', bbox_inches = 'tight')
-fig1.savefig(f'{abspath}/Figs/outflow/vel_prof{snap}{which_obs}.png', bbox_inches = 'tight')
-fig2.savefig(f'{abspath}/Figs/outflow/vel_prof_rhoR2v{snap}{which_obs}.png', bbox_inches = 'tight')
+# fig.savefig(f'{abspath}/Figs/outflow/den_prof{snap}{which_obs}.png', bbox_inches = 'tight')
+# fig1.savefig(f'{abspath}/Figs/outflow/vel_prof{snap}{which_obs}.png', bbox_inches = 'tight')
+# fig2.savefig(f'{abspath}/Figs/outflow/vel_prof_rhoR2v{snap}{which_obs}.png', bbox_inches = 'tight')
 plt.show()
 
 #%%
