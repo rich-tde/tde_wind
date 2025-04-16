@@ -103,9 +103,13 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         lat = np.arccos(Z / Rsph)
         v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
         # Postive velocity
-        v_rad_pos_cond = bern >= 0
+        v_rad_pos_cond = bern >= 0  
         Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
             make_slices([Den, Rsph, v_rad, dim_cell], v_rad_pos_cond)
+        if Den_pos.size == 0:
+            mwind_pos.append(0)
+            Vwind_pos.append(0)
+            continue
         Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos # there should be a pi factor here, but you put it later
         casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = ['sum', 'mean'])
         # Mdot_pos = Den_pos * v_rad_pos # there should be a 4piR^2 factor here, but you put it later
