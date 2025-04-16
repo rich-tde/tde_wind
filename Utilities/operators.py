@@ -321,7 +321,6 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix, sumORmean_matrix = 
                     gridded_tocast[j] = np.mean(tocast[indices])
                 if sumORmean == 'sum':
                     gridded_tocast[j] = np.sum(tocast[indices])
-            print(gridded_tocast[j])
         if type(weights) != int:
             gridded_weights += 1e-20 # avoid division by zero
             final_casted = np.divide(gridded_tocast, gridded_weights)

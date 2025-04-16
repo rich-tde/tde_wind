@@ -89,7 +89,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
 
         data = make_tree(path, snap, energy = True)
         X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den = \
-            data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Vol, data.VX, data.VY, data.VZ, data.IE
+            data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Press, data.VX, data.VY, data.VZ, data.IE
         dim_cell = Vol**(1/3)
         cut = Den > 1e-19
         X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den= \
@@ -107,7 +107,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
             make_slices([Den, Rsph, v_rad, dim_cell], v_rad_pos_cond)
         if Den_pos.size == 0:
-            print(bern, flush=True)
+            print(f'no bern positive: {bern}', flush=True)
             sys.stdout.flush()
             mwind_pos.append(0)
             Vwind_pos.append(0)
@@ -124,7 +124,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         Den_neg, Rsph_neg, v_rad_neg, dim_cell_neg = \
             make_slices([Den, Rsph, v_rad, dim_cell], v_rad_neg_cond)
         if Den_neg.size == 0:
-            print(bern, flush=True)
+            print(f'no bern negative: {bern}', flush=True)
             sys.stdout.flush()
             mwind_pos.append(0)
             Vwind_pos.append(0)
