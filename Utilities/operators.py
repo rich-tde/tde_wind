@@ -279,24 +279,24 @@ def multiple_branch(radii, R, dim_leaf, tocast_matrix, weights_matrix, sumORmean
     """
     casted_array = []
     indices_foradii = []
-    # R = R.reshape(-1, 1) # Reshaping to 2D array with one column
-    # tree = KDTree(R) 
+    R = R.reshape(-1, 1) # Reshaping to 2D array with one column
+    tree = KDTree(R) 
     for i in range(len(radii)):
-        R_len_1 = np.ones(len(R))
-        # radius = np.array([radii[i]]).reshape(1, -1) # reshape to match the tree
-        # if i == 0:
-        #     width = radii[1] - radii[0]
-        # elif i == len(radii)-1:
-        #     width = radii[-1] - radii[-2]
-        # else:
-        #     width = (radii[i+1] - radii[i-1])/2
-        # width *= 2 # make it slightly bigger to smooth things
+        # R_len_1 = np.ones(len(R))
+        radius = np.array([radii[i]]).reshape(1, -1) # reshape to match the tree
+        if i == 0:
+            width = radii[1] - radii[0]
+        elif i == len(radii)-1:
+            width = radii[-1] - radii[-2]
+        else:
+            width = (radii[i+1] - radii[i-1])/2
+        width *= 2 # make it slightly bigger to smooth things
         # indices = tree.query_ball_point(radius, width) #if KDTree from scipy
-        # indices = tree.query_radius(radius, dim_leaf[i]) #if KDTree from sklearn
-        _, indices, dist = k3match.cartesian(radii[i], 1, 1, R, R_len_1, R_len_1, 1e7)
-        indices = indices[dist < dim_leaf]
-        indices_foradii.append(indices)
-        # indices_foradii.append(np.concatenate(indices))
+        indices = tree.query_radius(radius, dim_leaf[i]) #if KDTree from sklearn
+        # _, indices, dist = k3match.cartesian(radii[i], 1, 1, R, R_len_1, R_len_1, 1e7)
+        # indices = indices[dist < dim_leaf]
+        # indices_foradii.append(indices)
+        indices_foradii.append(np.concatenate(indices))
 
     for i, tocast in enumerate(tocast_matrix):
         gridded_tocast = np.zeros((len(radii)))

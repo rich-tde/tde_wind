@@ -10,7 +10,7 @@ if alice:
 else:
     abspath = '/Users/paolamartire/shocks'
     compute = True
-
+import csv
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -111,15 +111,13 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             sys.stdout.flush()
             mwind_pos.append(0)
             Vwind_pos.append(0)
-        else:
-            Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos # there should be a pi factor here, but you put it later
-            Mdot_pos_casted = np.zeros(len(radii))
-            v_rad_pos_casted = np.zeros(len(radii))
-            for j, r in enumerate(radii):
-                selected_pos = np.abs(Rsph_pos - r) < dim_cell_pos
-                Mdot_pos_casted[j] = np.sum(Mdot_pos[selected_pos]) * np.pi #4 *  * radii**2
-                v_rad_pos_casted[j] = np.mean(v_rad_pos[selected_pos])
-        mwind_pos.append(Mdot_pos_casted)
+            continue
+        Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos # there should be a pi factor here, but you put it later
+        casted = multiple_branch(radii, Rsph_pos, dim_cell_pos, [Mdot_pos, v_rad_pos], weights_matrix = [1,1], sumORmean_matrix= ['sum', 'mean'])
+        # Mdot_pos = Den_pos * v_rad_pos # there should be a 4piR^2 factor here, but you put it later
+        # casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = [dim_cell_pos, 1])
+        Mdot_pos_casted, v_rad_pos_casted = casted[0], casted[1]
+        mwind_pos.append(Mdot_pos_casted * np.pi)#) 4 *  * radii**2)
         Vwind_pos.append(v_rad_pos_casted)
         # Negative velocity 
         v_rad_neg_cond = v_rad < 0
@@ -131,16 +129,15 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             mwind_pos.append(0)
             Vwind_pos.append(0)
             continue
-        else:
-            Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg # there should be a pi factor here, but you put it later
-            Mdot_neg_casted = np.zeros(len(radii))
-            v_rad_neg_casted = np.zeros(len(radii))
-            for j, r in enumerate(radii):
-                selected_neg = np.abs(Rsph_neg - r) < dim_cell_neg
-                Mdot_neg_casted[j] = np.sum(Mdot_neg[selected_neg]) * np.pi #4 *  * radii**2
-                v_rad_neg_casted[j] = np.mean(v_rad_neg[selected_neg])
-        mwind_neg.append(Mdot_neg_casted)
+        # Mdot_neg = Den_neg * v_rad_neg # there should be a 4piR^2 factor here, but you put it later
+        # casted = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = [dim_cell_neg, 1])
+        Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg        
+        casted = multiple_branch(radii, Rsph_neg, dim_cell_neg, [Mdot_neg, v_rad_neg, dim_cell_neg**2], weights_matrix = [1,1,1], sumORmean_matrix= ['sum', 'mean', 'sum'])
+        print('in:', np.pi*(casted[2][1])/(4*np.pi*radii[1]**2))
+        Mdot_neg_casted, v_rad_neg_casted = casted[0], casted[1]
+        mwind_neg.append(Mdot_neg_casted * np.pi) #4 * radii**2
         Vwind_neg.append(v_rad_neg_casted)
+    # print('theory:', 4*np.pi*radii**2)
 
     mwind_pos = np.transpose(np.array(mwind_pos)) # shape pass from len(snap) x len(radii) to len(radii) x len(snap)
     mwind_neg = np.transpose(np.array(mwind_neg))
