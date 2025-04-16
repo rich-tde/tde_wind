@@ -107,6 +107,8 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
             make_slices([Den, Rsph, v_rad, dim_cell], v_rad_pos_cond)
         if Den_pos.size == 0:
+            print(bern, flush=True)
+            sys.stdout.flush()
             mwind_pos.append(0)
             Vwind_pos.append(0)
             continue
@@ -121,6 +123,12 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         v_rad_neg_cond = bern < 0
         Den_neg, Rsph_neg, v_rad_neg, dim_cell_neg = \
             make_slices([Den, Rsph, v_rad, dim_cell], v_rad_neg_cond)
+        if Den_neg.size == 0:
+            print(bern, flush=True)
+            sys.stdout.flush()
+            mwind_pos.append(0)
+            Vwind_pos.append(0)
+            continue
         # Mdot_neg = Den_neg * v_rad_neg # there should be a 4piR^2 factor here, but you put it later
         # casted = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = [dim_cell_neg, 1])
         Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg        
@@ -184,26 +192,26 @@ if compute: # compute dM/dt = dM/dE * dE/dt
 if plot:
     Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
     tfb, mfall, mwind_pos, mwind_pos1, mwind_pos2, mwind_pos3, Vwind_pos, Vwind_pos1, Vwind_pos2, Vwind_pos3 = \
-        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_pos_weighV.txt')
+        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_pos.txt')
     _, mwind_neg, mwind_neg1, mwind_neg2, mwind_neg3, Vwind_neg, Vwind_neg1, Vwind_neg2, Vwind_neg3 = \
-        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_neg_weighV.txt')
+        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_neg.txt')
+    tfbB, mfallB, mwind_posB, mwind_posB1, mwind_posB2, mwind_posB3, Vwind_posB, Vwind_posB1, Vwind_posB2, Vwind_posB3 = \
+        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_Bpos.txt')
+    _, mwind_negB, mwind_negB1, mwind_negB2, mwind_negB3, Vwind_negB, Vwind_negB1, Vwind_negB2, Vwind_negB3 = \
+        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_Bneg.txt')
     f_out_th = f_out_LodatoRossi(mfall, Medd_code)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16,6))
     ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm f}$', c = 'k')
-    ax1.plot(tfb, np.abs(mwind_pos)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm out}$ 0.2$a_{\rm min}$')
-    ax1.plot(tfb, np.abs(mwind_pos2)/Medd_code, c = 'purple', label = r'$\dot{M}_{\rm out}$ 0.7$a_{\rm min}$')
-    ax1.plot(tfb, np.abs(mwind_neg)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm in}$ 0.2$a_{\rm min}$', ls = '--')
-    ax1.plot(tfb, np.abs(mwind_neg2)/Medd_code, c = 'purple', label = r'$\dot{M}_{\rm in}$ 0.7$a_{\rm min}$', ls = '--')
+    ax1.plot(tfb, np.abs(mwind_pos1)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm out}$ 0.5$a_{\rm min}$')
+    ax1.plot(tfb, np.abs(mwind_neg1)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm in}$ 0.5$a_{\rm min}$', ls = '--')
     ax1.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
     ax1.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
     ax1.set_yscale('log')
     # ax1.ylim(1e-7, 3)
     ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')    
-    ax2.plot(tfb, Vwind_pos/v_esc, c = 'dodgerblue', label = r'$v_{\rm out}(0.2 a_{\rm min})$')
-    ax2.plot(tfb, Vwind_pos2/v_esc, c = 'purple', label = r'$v_{\rm out}(0.7 a_{\rm min})$')
-    ax2.plot(tfb, Vwind_neg/v_esc, '--', c = 'dodgerblue', label = r'$v_{\rm in}(0.2 a_{\rm min})$')
-    ax2.plot(tfb, Vwind_neg2/v_esc, '--', c = 'purple', label = r'$v_{\rm in}(0.7 a_{\rm min})$')
+    ax2.plot(tfb, Vwind_pos1/v_esc, c = 'dodgerblue', label = r'$v_{\rm out}(0.5 a_{\rm min})$')
+    ax2.plot(tfb, Vwind_neg1/v_esc, '--', c = 'dodgerblue', label = r'$v_{\rm in}(0.5 a_{\rm min})$')
     ax2.set_ylabel(r'$v_{\rm out}/v_{\rm esc}(R_{\rm t})$')
     for ax in (ax1, ax2):
         ax.legend(fontsize = 14)
