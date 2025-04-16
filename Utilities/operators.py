@@ -18,6 +18,7 @@ import numpy as np
 import astropy.coordinates as coord
 # from scipy.spatial import KDTree
 from sklearn.neighbors import KDTree
+import k3match
 import math
 import numba
 import Utilities.prelude
@@ -278,10 +279,11 @@ def multiple_branch(radii, R, dim_leaf, tocast_matrix, weights_matrix, sumORmean
     """
     casted_array = []
     indices_foradii = []
-    R = R.reshape(-1, 1) # Reshaping to 2D array with one column
-    tree = KDTree(R) 
+    # R = R.reshape(-1, 1) # Reshaping to 2D array with one column
+    # tree = KDTree(R) 
     for i in range(len(radii)):
-        radius = np.array([radii[i]]).reshape(1, -1) # reshape to match the tree
+        R_len_1 = np.ones(len(R))
+        # radius = np.array([radii[i]]).reshape(1, -1) # reshape to match the tree
         # if i == 0:
         #     width = radii[1] - radii[0]
         # elif i == len(radii)-1:
@@ -290,8 +292,11 @@ def multiple_branch(radii, R, dim_leaf, tocast_matrix, weights_matrix, sumORmean
         #     width = (radii[i+1] - radii[i-1])/2
         # width *= 2 # make it slightly bigger to smooth things
         # indices = tree.query_ball_point(radius, width) #if KDTree from scipy
-        indices = tree.query_radius(radius, dim_leaf[i]) #if KDTree from sklearn
-        indices_foradii.append(np.concatenate(indices))
+        # indices = tree.query_radius(radius, dim_leaf[i]) #if KDTree from sklearn
+        _, indices, dist = k3match.cartesian(radii[i], 1, 1, R, R_len_1, R_len_1, 1e7)
+        indices = indices[dist < dim_leaf]
+        indices_foradii.append(indices)
+        # indices_foradii.append(np.concatenate(indices))
 
     for i, tocast in enumerate(tocast_matrix):
         gridded_tocast = np.zeros((len(radii)))
@@ -307,6 +312,11 @@ def multiple_branch(radii, R, dim_leaf, tocast_matrix, weights_matrix, sumORmean
             # sys.stdout.flush()
         for j in range(len(radii)):
             indices = indices_foradii[j]
+            if indices.size == 0:   
+                gridded_tocast[j] = 0
+                if keep_track:
+                    indices_foradii[j] = []
+                continue
             # if len(indices) < 2 :
             #     print('small sample of indices in multiple_branch', flush=True)
             #     sys.stdout.flush()

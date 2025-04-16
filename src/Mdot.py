@@ -41,7 +41,7 @@ Rp = Rt/beta
 norm_dMdE = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call \Delta E). It's GM/Rt^2 * Rstar
 apo = orb.apocentre(Rstar, mstar, Mbh, beta) 
 amin = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
-radii = np.array([0.2*amin, 0.5*amin, 0.7 * amin, amin])
+radii = np.array([0.2*amin, 0.5*amin])#, 0.7 * amin, amin])
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
 Medd = Ledd/(0.1*prel.c_cgs**2)
 v_esc = np.sqrt(2*prel.G*Mbh/Rt)
@@ -203,8 +203,8 @@ if plot:
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16,6))
     ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm f}$', c = 'k')
-    ax1.plot(tfb, np.abs(mwind_pos1)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm out}$ 0.5$a_{\rm min}$')
-    ax1.plot(tfb, np.abs(mwind_neg1)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm in}$ 0.5$a_{\rm min}$', ls = '--')
+    ax1.scatter(tfb, np.abs(mwind_pos1)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm out}$ 0.5$a_{\rm min}$')
+    ax1.scatter(tfb, np.abs(mwind_neg1)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm in}$ 0.5$a_{\rm min}$', ls = '--')
     ax1.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
     ax1.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
     ax1.set_yscale('log')
@@ -216,6 +216,7 @@ if plot:
     for ax in (ax1, ax2):
         ax.legend(fontsize = 14)
         ax.set_xlabel(r'$t/t_{\rm fb}$')
+        ax.set_xlim(0, 1.8)
     # plt.suptitle(r'$\dot{M}_{\rm out, in} = \pi\sum_i v_{\rm{rad},i}\rho_i V_i^{2/3}$ distinguishing for $v_{\rm{rad}}><0$', fontsize = 20)
     plt.suptitle(r'$\dot{M}_{\rm out, in} = 4\pi R^2\sum_i (v_{\rm{rad},i}\rho_i V_i^3) /\sum_i V_i^3$ distinguishing for $v_{\rm{rad}}><0$, where $R$ is the distance from the BH', fontsize = 20)
     plt.tight_layout()
