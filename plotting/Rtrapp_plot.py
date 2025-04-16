@@ -49,7 +49,7 @@ if do: # compute just one line of sight and show c/(tau*Vr)
     eng = matlab.engine.start_matlab()
     observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) #shape: (3, 192)
     observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
-    num_obs = prel.NPIX # you'll use it for the mean of the observers. It's 192, unless you don't find the photosphere for someone and so decrease of 1
+    num_obs = prel.NPIX # you'll use it for the median of the observers. It's 192, unless you don't find the photosphere for someone and so decrease of 1
     i = 95
     mu_x = observers_xyz[i][0]
     mu_y = observers_xyz[i][1]
@@ -187,38 +187,38 @@ if do: # compute just one line of sight and show c/(tau*Vr)
     eng.exit()
 
 else: # Evolution in time (comparison with high res) and comparison with the photosphere
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     time = np.loadtxt(f'{abspath}/data/{folder}/slices/z/z0_time.txt')
     snaps, tfb = time[0], time[1]
     snaps = np.array([int(snap) for snap in snaps])
 
     # Rtr and Rph velocities in time, comparing High and Fod Res
     ratio_unbound_tr = np.zeros(len(snaps))
-    mean_vel_tr = np.zeros(len(snaps))
+    median_vel_tr = np.zeros(len(snaps))
     percentile16_tr = np.zeros(len(snaps))
     percentile84_tr = np.zeros(len(snaps))
     count_nozeros_tr = np.zeros(len(snaps))
     ratio_unbound_ph = np.zeros(len(snaps))
-    mean_vel_ph = np.zeros(len(snaps))
+    median_vel_ph = np.zeros(len(snaps))
     percentile16_ph = np.zeros(len(snaps))
     percentile84_ph = np.zeros(len(snaps))
     count_zeros_ph = np.zeros(len(snaps))
 
     for i, snap in enumerate(snaps):
-        print(snap)
         xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph = \
-            np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
+            np.loadtxt(f'{abspath}/data/{folder}/photo/_photo{snap}.txt')
         r_ph = np.sqrt(xph**2 + yph**2 + zph**2)
         vel_ph = np.sqrt(Vxph**2 + Vyph**2 + Vzph**2)
         PE_ph_spec = -prel.G * Mbh / (r_ph-Rs)
         KE_ph_spec = 0.5 * vel_ph**2
         energy_ph_spec = KE_ph_spec + PE_ph_spec
         ratio_unbound_ph[i] = len(energy_ph_spec[energy_ph_spec>0]) / len(energy_ph_spec)
-        mean_vel_ph[i] = np.mean(vel_ph)
+        median_vel_ph[i] = np.median(vel_ph)
         percentile16_ph[i] =  np.percentile(vel_ph, 16)
         percentile84_ph[i] = np.percentile(vel_ph, 84)
 
         x_tr, y_tr, z_tr, vol_tr, den_tr, Temp_tr, Vx_tr, Vy_tr, Vz_tr, Vr_tr = \
-            np.loadtxt(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.txt')
+            np.loadtxt(f'{abspath}/data/{folder}/trap/_Rtr{snap}.txt')
         r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
         vel_tr = np.sqrt(Vx_tr**2 + Vy_tr**2 + Vz_tr**2)
         vel_tr = vel_tr[r_tr>1e-10]
@@ -228,10 +228,9 @@ else: # Evolution in time (comparison with high res) and comparison with the pho
         KE_tr_spec = 0.5 * vel_tr**2
         energy_tr = KE_tr_spec + PE_tr_spec
         ratio_unbound_tr[i] = len(energy_tr[energy_tr>0]) / len(energy_tr)
-        mean_vel_tr[i] = np.mean(vel_tr)
+        median_vel_tr[i] = np.median(vel_tr)
         percentile16_tr[i] =  np.percentile(vel_tr, 16)
         percentile84_tr[i] = np.percentile(vel_tr, 84)
-
 
     count_nozeros_tr = count_nozeros_tr / len(r_ph) #use r_ph beacuse the lenght if for sure 192
 
@@ -241,11 +240,11 @@ else: # Evolution in time (comparison with high res) and comparison with the pho
     ax1.set_ylabel(r'Fraction of found $R_{\rm tr}$')
     ax1.set_ylim(-0.1, 1.1)
 
-    img = ax2.scatter(tfb, mean_vel_tr * conversion_sol_kms * 1e-4, c = ratio_unbound_tr, cmap = 'jet', s = 100, vmin = 0, vmax = 0.8, marker = '*',  label = r'$R_{\rm tr}$')
-    ax2.scatter(tfb, mean_vel_ph * conversion_sol_kms * 1e-4, c = ratio_unbound_ph, cmap = 'jet', s = 100, vmin = 0, vmax = 0.8,  label = r'$R_{\rm ph}$')
+    img = ax2.scatter(tfb, median_vel_tr * conversion_sol_kms * 1e-4, c = ratio_unbound_tr, cmap = 'jet', s = 100, vmin = 0, vmax = 0.8, marker = '*',  label = r'$R_{\rm tr}$')
+    ax2.scatter(tfb, median_vel_ph * conversion_sol_kms * 1e-4, c = ratio_unbound_ph, cmap = 'jet', s = 100, vmin = 0, vmax = 0.8,  label = r'$R_{\rm ph}$')
     cbar = plt.colorbar(img, orientation = 'horizontal')
     cbar.set_label('unbound/tot')
-    ax2.set_ylabel(r'Mean velocity [$10^4$ km/s]')
+    ax2.set_ylabel(r'median velocity [$10^4$ km/s]')
 
     for ax in (ax1, ax2):
         ax.grid()
@@ -255,27 +254,69 @@ else: # Evolution in time (comparison with high res) and comparison with the pho
     plt.tight_layout()
     plt.show()
 
-    # Compare with High res
+    # Plot for the paper
     plt.figure(figsize=(10,6))
-    img = plt.scatter(tfb, mean_vel_tr * conversion_sol_kms * 1e-4, c = ratio_unbound_tr, s = 7, vmin = 0, vmax = 0.8)
-    plt.text(1.5, 0.6, f'Fid', fontsize = 25)
-    # plt.scatter(tfbH, mean_velH_tr * conversion_sol_kms * 1e-4, c = ratio_unbound_phH, s = 7, vmin = 0, vmax = 0.8)
-    plt.text(1, 0.45, f'High', fontsize = 25)
+    img = plt.scatter(tfb[20:], median_vel_tr[20:] * conversion_sol_kms * 1e-4, c = ratio_unbound_tr[20:], s = 7, vmin = 0, vmax = 0.6, label = 'Fid Res')
+    cbar = plt.colorbar(img)
+    cbar.set_label(r'$N_{\rm unbound}/N_{\rm obs}$')
+    plt.plot(tfb[20:], percentile16_tr[20:] * conversion_sol_kms * 1e-4, c = 'yellowgreen', alpha = 0.1, linestyle = '--')
+    plt.plot(tfb[20:], percentile84_tr[20:] * conversion_sol_kms * 1e-4, c = 'yellowgreen', alpha = 0.1, linestyle = '--')
+    plt.fill_between(tfb[20:], percentile16_tr[20:] * conversion_sol_kms * 1e-4, percentile84_tr[20:] * conversion_sol_kms * 1e-4, color = 'yellowgreen', alpha = 0.1)
+    plt.grid()
+    plt.xlabel(r'$t_{\rm fb}$')
+    plt.ylabel(r'median velocity [$10^4$ km/s] ')
+    # plt.text(0.08, 2.01, f'{check}', fontsize = 25)
+    plt.ylim(-0.01, 2)
+    plt.xlim(-0.09, 1.8)
+    plt.tight_layout()
+    plt.savefig(f'{abspath}/Figs/outflow/Rtr_velocity.pdf', bbox_inches='tight')
+    plt.show()
+
+    # Compare with High res
+    timeH = np.loadtxt(f'{abspath}/data/{folder}HiRes/slices/z/z0_time.txt')
+    snapsH, tfbH = timeH[0], timeH[1]
+    snapsH = np.array([int(snapH) for snapH in snapsH])
+    ratio_unbound_trH = np.zeros(len(snapsH))
+    median_vel_trH = np.zeros(len(snapsH))
+    percentile16_trH = np.zeros(len(snapsH))
+    percentile84_trH = np.zeros(len(snapsH))
+    for i, snap in enumerate(snapsH):
+        x_trH, y_trH, z_trH, vol_trH, den_trH, Temp_trH, Vx_trH, Vy_trH, Vz_trH, Vr_trH = \
+            np.loadtxt(f'{abspath}/data/{folder}HiRes/trap/HiRes_Rtr{snap}.txt')
+        r_trH = np.sqrt(x_trH**2 + y_trH**2 + z_trH**2)
+        vel_trH = np.sqrt(Vx_trH**2 + Vy_trH**2 + Vz_trH**2)
+        vel_trH = vel_trH[r_trH>1e-10]
+        r_trH = r_trH[r_trH>1e-10]
+        PE_trH_spec = -prel.G * Mbh / (r_trH-Rs)
+        KE_trH_spec = 0.5 * vel_trH**2
+        energy_trH = KE_trH_spec + PE_trH_spec
+        ratio_unbound_trH[i] = len(energy_trH[energy_trH>0]) / len(energy_trH)
+        median_vel_trH[i] = np.median(vel_trH)
+        percentile16_trH[i] =  np.percentile(vel_trH, 16)
+        percentile84_trH[i] = np.percentile(vel_trH, 84)
+
+    plt.figure(figsize=(10,6))
+    img = plt.scatter(tfb, median_vel_tr * conversion_sol_kms * 1e-4, c = ratio_unbound_tr, s = 7, vmin = 0, vmax = 0.6, label = 'Fid Res')
+    # plt.text(1.5, 0.6, f'Fid', fontsize = 25)
+    plt.scatter(tfbH, median_vel_trH * conversion_sol_kms * 1e-4, c = ratio_unbound_trH, s = 7, vmin = 0, vmax = 0.6, marker = 's', label = 'High Res')
+    # plt.text(1, 0.45, f'High', fontsize = 25)
     cbar = plt.colorbar(img)
     cbar.set_label('unbound/tot')
     plt.plot(tfb, percentile16_tr * conversion_sol_kms * 1e-4, c = 'yellowgreen', alpha = 0.1, linestyle = '--')
     plt.plot(tfb, percentile84_tr * conversion_sol_kms * 1e-4, c = 'yellowgreen', alpha = 0.1, linestyle = '--')
     plt.fill_between(tfb, percentile16_tr * conversion_sol_kms * 1e-4, percentile84_tr * conversion_sol_kms * 1e-4, color = 'yellowgreen', alpha = 0.1)
-    # plt.plot(tfbH, percentile16H_tr * conversion_sol_kms * 1e-4, c = 'darkviolet', alpha = 0.1, linestyle = '--')
-    # plt.plot(tfbH, percentile84H_tr * conversion_sol_kms * 1e-4, c = 'darkviolet', alpha = 0.1, linestyle = '--')
-    # plt.fill_between(tfbH, percentile16H_tr * conversion_sol_kms * 1e-4, percentile84H_tr * conversion_sol_kms * 1e-4, color = 'darkviolet', alpha = 0.1)
+    plt.plot(tfbH, percentile16_trH * conversion_sol_kms * 1e-4, c = 'darkviolet', alpha = 0.1, linestyle = '--')
+    plt.plot(tfbH, percentile84_trH * conversion_sol_kms * 1e-4, c = 'darkviolet', alpha = 0.1, linestyle = '--')
+    plt.fill_between(tfbH, percentile16_trH * conversion_sol_kms * 1e-4, percentile84_trH * conversion_sol_kms * 1e-4, color = 'darkviolet', alpha = 0.1)
     plt.grid()
     plt.xlabel(r'$t_{\rm fb}$')
-    plt.ylabel(r'Mean velocity [$10^4$ km/s] ')
+    plt.ylabel(r'median velocity [$10^4$ km/s] ')
     # plt.text(0.08, 2.01, f'{check}', fontsize = 25)
     plt.ylim(-0.01, 2)
     plt.xlim(-0.09, 1.8)
-    plt.title(f'Trapping radius', fontsize = 20)
+    plt.title(f'Velocity evolution at trapping radius', fontsize = 20)
+    plt.legend(fontsize = 16)
     plt.tight_layout()
+    plt.savefig(f'{abspath}/Figs/outflow/Rtr_velocity_conv')
     plt.show()
 # %%

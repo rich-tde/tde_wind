@@ -215,12 +215,9 @@ def single_branch(radii, R, tocast, weights, keep_track = False):
     final_casted: arr
         Casted down version of tocast
     """
-    if keep_track:
-        number_idx = np.arange(len(tocast))
-        cells_used = []
     gridded_tocast = np.zeros((len(radii)))
     # check if weights is an integer
-    if type(weights) != int:
+    if type(weights) != str:
         gridded_weights = np.zeros((len(radii)))
     R = R.reshape(-1, 1) # Reshaping to 2D array with one column
     tree = KDTree(R) 
@@ -236,28 +233,27 @@ def single_branch(radii, R, tocast, weights, keep_track = False):
         # indices = tree.query_ball_point(radius, width) #if KDTree from scipy
         indices = tree.query_radius(radius, width) #if KDTree from sklearn
         indices = np.concatenate(indices)
-        if len(indices) < 2 :
-            print('small sample of indices in single_branch', flush=True)
-            sys.stdout.flush()
-            # gridded_tocast[i] = 0
-            if keep_track:
-                cells_used.append([])
-        else:    
-            indices = [int(idx) for idx in indices]
-            if type(weights) != int:
-                gridded_tocast[i] = np.sum(tocast[indices] * weights[indices])
-                gridded_weights[i] = np.sum(weights[indices])
-            else:
+        # if len(indices) < 2 :
+        #     print('small sample of indices in single_branch', flush=True)
+        #     sys.stdout.flush()
+        #     # gridded_tocast[i] = 0
+        # else:    
+        indices = [int(idx) for idx in indices]
+        if type(weights) != str:
+            gridded_tocast[i] = np.sum(tocast[indices] * weights[indices])
+            gridded_weights[i] = np.sum(weights[indices])
+        else:
+            if type(weights) == 'mean':
                 gridded_tocast[i] = np.mean(tocast[indices])
-            if keep_track:
-                cells_used.append(number_idx[indices])
-    if type(weights) != int:
+            if type(weights) == 'sum':
+                gridded_tocast[i] = np.sum(tocast[indices])
+    if type(weights) != str:
         gridded_weights += 1e-20 # avoid division by zero
         final_casted = np.divide(gridded_tocast, gridded_weights)
     else:
         final_casted = gridded_tocast
     if keep_track:
-        return final_casted, cells_used
+        return final_casted, indices
     else:
         return final_casted
 
@@ -296,34 +292,32 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix, keep_track = False)
         indices_foradii.append(np.concatenate(indices))
 
     for i, tocast in enumerate(tocast_matrix):
-        if keep_track:
-            number_idx = np.arange(len(tocast))
-            cells_used = []
         gridded_tocast = np.zeros((len(radii)))
         weights = weights_matrix[i]
         # check if weights is an integer
-        if type(weights) != int:
+        if type(weights) != str:
             print('Weighting', flush=True) 
             sys.stdout.flush()
             gridded_weights = np.zeros((len(radii)))
         for j in range(len(radii)):
             indices = indices_foradii[j]
-            if len(indices) < 2 :
-                print('small sample of indices in multiple_branch', flush=True)
-                sys.stdout.flush()
-                gridded_tocast[i] = 0
-                if keep_track:
-                    cells_used.append([])
-            else:    
-                indices = [int(idx) for idx in indices]
-                if keep_track:
-                    cells_used.append(number_idx[indices])
-                if type(weights) != int:
-                    gridded_tocast[j] = np.sum(tocast[indices] * weights[indices])
-                    gridded_weights[j] = np.sum(weights[indices])
-                else:
+            # if len(indices) < 2 :
+            #     print('small sample of indices in multiple_branch', flush=True)
+            #     sys.stdout.flush()
+            #     gridded_tocast[i] = 0
+            #     if keep_track:
+            #         cells_used.append([])
+            # else:    
+            indices = [int(idx) for idx in indices]
+            if type(weights) != str:
+                gridded_tocast[j] = np.sum(tocast[indices] * weights[indices])
+                gridded_weights[j] = np.sum(weights[indices])
+            else:
+                if type(weights) == 'mean':
                     gridded_tocast[j] = np.mean(tocast[indices])
-        if type(weights) != int:
+                if type(weights) == 'sum':
+                    gridded_tocast[j] = np.sum(tocast[indices])
+        if type(weights) != str:
             gridded_weights += 1e-20 # avoid division by zero
             final_casted = np.divide(gridded_tocast, gridded_weights)
         else:
@@ -331,7 +325,7 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix, keep_track = False)
         casted_array.append(final_casted)
 
     if keep_track:
-        return casted_array, cells_used
+        return casted_array, indices_foradii
     
     return casted_array
 

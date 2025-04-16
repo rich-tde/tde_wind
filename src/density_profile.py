@@ -131,10 +131,10 @@ if which_obs == 'all_cartesian':
                  '+x+y-z', '-x+y-z', '-x-y-z', '+x-y-z',]
     colors_obs = plt.cm.rainbow(np.linspace(0, 1, len(indices_chosen)))
 if which_obs == 'all_rotate':
-    indices1 = obs_indices[np.logical_and(x_obs >= 0, np.abs(y_obs) < x_obs)]
-    indices2 = obs_indices[np.logical_and(y_obs >= 0, y_obs > np.abs(x_obs))]
-    indices3 = obs_indices[np.logical_and(x_obs < 0, np.abs(y_obs) < np.abs(x_obs))]
-    indices4 = obs_indices[np.logical_and(y_obs < 0, np.abs(y_obs) > np.abs(x_obs))]
+    indices1 = obs_indices[np.logical_and(np.abs(z_obs) < np.abs(x_obs), np.logical_and(x_obs >= 0, np.abs(y_obs) < x_obs))]
+    indices2 = obs_indices[np.logical_and(np.abs(z_obs) < np.abs(y_obs), np.logical_and(y_obs >= 0, y_obs > np.abs(x_obs)))]
+    indices3 = obs_indices[np.logical_and(np.abs(z_obs) < np.abs(x_obs), np.logical_and(x_obs < 0, np.abs(y_obs) < np.abs(x_obs)))]
+    indices4 = obs_indices[np.logical_and(np.abs(z_obs) < np.abs(y_obs), np.logical_and(y_obs < 0, np.abs(y_obs) > np.abs(x_obs)))]
     
     indices5 = obs_indices[np.logical_and(z_obs>=0, np.logical_and(z_obs > np.abs(y_obs), z_obs > np.abs(x_obs)))]
     indices6 = obs_indices[np.logical_and(z_obs<0, np.logical_and(np.abs(z_obs) > np.abs(y_obs), np.abs(z_obs) > np.abs(x_obs)))]
@@ -148,14 +148,16 @@ fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
 for ax in [ax1, ax2]:
     # ax1.scatter(x_obs, y_obs, c = 'gray')
     # ax2.scatter(x_obs, z_obs, c = 'gray')
-    # ax1.scatter(x_obs[z_obs==0], y_obs[z_obs==0], c = 'gray', edgecolors = 'k')
-    # ax2.scatter(x_obs[z_obs==0], z_obs[z_obs==0], c = 'gray', edgecolors = 'k')
+    ax1.scatter(x_obs[z_obs==0], y_obs[z_obs==0], s = 52, c = 'k', edgecolors = 'k')
+    ax2.scatter(x_obs[z_obs==0], z_obs[z_obs==0], s = 52, c = 'k', edgecolors = 'k')
     ax.set_xlabel(r'$X$')
     ax.set_xlim(-1.5, 1.5)
     ax.set_ylim(-1.5, 1.5)
 for j, idx_list in enumerate(indices_chosen):
-    ax1.scatter(x_obs[idx_list], y_obs[idx_list], s = 50, edgecolors = 'k', c = colors_obs[j])
-    ax2.scatter(x_obs[idx_list], z_obs[idx_list], s = 50, edgecolors = 'k', c = colors_obs[j])
+    print(f'Observer {j}, len: {len(idx_list)}')
+    ax1.scatter(x_obs[idx_list], y_obs[idx_list], s = 50, c = colors_obs[j])
+    ax2.scatter(x_obs[idx_list], z_obs[idx_list], s = 50, c = colors_obs[j])
+    ax1.scatter(x_obs[90:94], y_obs[90:94], s = 70,  c = 'k')
 ax1.set_ylabel(r'$Y$')
 ax2.set_ylabel(r'$Z$')
 plt.suptitle(f'Selected observers {which_obs}', fontsize=15)
@@ -186,17 +188,17 @@ X, Y, Z, VX, VY, VZ, T, Den, Vol, Mass = \
 R = np.sqrt(X**2 + Y**2 + Z**2)    
 xyz = np.array([X, Y, Z]).T
 N_ray = 5_000
-# with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}cutT.txt','w') as file:
-#         file.close()
+with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}.txt','w') as file:
+        file.close()
 for j, idx_list in enumerate(indices_chosen):
-    print(j)
+    print(label_obs[j])
     r_mean = []
     d_mean = []
     v_rad_mean = []
-    v_tot_mean = []
-    m_mean = []
+    w_mean = []
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 10))
+    # fig2, ax3 = plt.subplots(1, 1, figsize=(8, 8))
     for idx_i, i in enumerate(idx_list):  
         mu_x = observers_xyz[i][0]
         mu_y = observers_xyz[i][1]
@@ -246,16 +248,24 @@ for j, idx_list in enumerate(indices_chosen):
         r_mean.append(r)
         d_mean.append(d)
         v_rad_mean.append(v_rad)
-        v_tot_mean.append(v_tot)
-        m_mean.append(t)
+        w_mean.append(t)
 
         ax1.plot(xyz2[:,0]/apo, xyz2[:,1]/apo, c = colors_obs[j])
         img1 = ax1.scatter(ray_x/apo, ray_y/apo, c = np.abs(ray_z)/apo, cmap = 'jet', label = 'From simulation', norm = colors.LogNorm(vmin = 8e-3, vmax = 3))
         # # ax1.legend(fontsize = 18)
         ax2.plot(ray_x/apo, ray_y/apo, c = 'k', alpha = 0.5)
         img2 = ax2.scatter(ray_x/apo, ray_y/apo, c = np.abs(v_rad)*conversion_sol_kms, cmap = 'jet', norm = colors.LogNorm(vmin = 1e-1, vmax = 2e4))
-    
+        # img3 = ax3.scatter(r/apo, d, c = t, s =2, label = f'Obs {i}', cmap = 'jet', norm = colors.LogNorm(vmin = 1e4, vmax = 1e6))
+
     ax1.set_ylabel(r'Y [$R_{\rm a}$]')
+    # ax3.set_xlabel(r'R [$R_{\rm a}$]')
+    # ax3.set_ylabel(r'$\rho$ [g/cm$^3]$')
+    # ax3.set_xlim(1e-2,1)
+    # ax3.set_ylim(1e-11, 1e-5)
+    # ax3.loglog()
+    # ax3.legend(fontsize = 18)
+    # cbar3 = plt.colorbar(img3)
+    # cbar3.set_label(r'$T$ [K]')
     cbar = plt.colorbar(img1, orientation = 'horizontal')
     cbar.set_label(r'Z [R$_{\rm a}]$')
     cbar = plt.colorbar(img2, orientation = 'horizontal')
@@ -268,24 +278,23 @@ for j, idx_list in enumerate(indices_chosen):
     ax2.set_title('Velocity', fontsize = 18)
     plt.suptitle(f'Observer {label_obs[j]}, snap {snap}', fontsize = 20)
     plt.tight_layout()
-    # fig.savefig(f'{abspath}/Figs/outflow/insights/selectedCells{snap}{which_obs}{j}.png', bbox_inches = 'tight')
+    fig.savefig(f'{abspath}/Figs/outflow/insights/selectedCells{snap}{which_obs}{j}.png', bbox_inches = 'tight')
     r_mean = np.array(r_mean)
     d_mean = np.array(d_mean)
     v_rad_mean = np.array(v_rad_mean)
-    m_mean = np.array(m_mean)
-    
+    w_mean = np.array(w_mean)
+
     r_mean = np.mean(r_mean, axis=0)
     d_mean = np.mean(d_mean, axis=0)
-    # v_rad_mean = np.mean(v_rad_mean, axis=0)
-    v_rad_mean = np.sum(v_rad_mean * m_mean, axis=0) / np.sum(m_mean, axis=0)
+    v_rad_mean = np.mean(v_rad_mean, axis=0)
+    # v_rad_mean = np.sum(v_rad_mean * w_mean, axis=0) / np.sum(w_mean, axis=0)
 
-    # with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}cutT.txt','a') as file:
-    #     file.write(f'# Observer latitude: {lat_obs[i]}, longitude: {long_obs[i]}. Cut in density and in T>1e4\n')
-    #     file.write(f' '.join(map(str, r_mean)) + '\n')
-    #     file.write(f' '.join(map(str, d_mean)) + '\n')
-    #     file.write(f' '.join(map(str, v_rad_mean)) + '\n')
-        # file.write(f' '.join(map(str, v_tot_mean)) + '\n')
-        # filse.close()
+    with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}.txt','a') as file:
+        file.write(f'# Observer latitude: {lat_obs[i]}, longitude: {long_obs[i]}. Cut in density and in T>1e4\n')
+        file.write(f' '.join(map(str, r_mean)) + '\n')
+        file.write(f' '.join(map(str, d_mean)) + '\n')
+        file.write(f' '.join(map(str, v_rad_mean)) + '\n')
+        file.close()
 
 #%%
 x_test = np.arange(1e-3, 1e2)
@@ -296,9 +305,8 @@ fig, ax1 = plt.subplots(1, 1, figsize=(8, 7))
 fig1, ax2 = plt.subplots(1, 1, figsize=(8, 7))
 fig2, ax3 = plt.subplots(1, 1, figsize=(8, 7))
 
-profiles = np.loadtxt(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}cutT.txt')
+profiles = np.loadtxt(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}.txt')
 r_mean, d_mean, v_rad_mean = profiles[0::3], profiles[1::3], profiles[2::3]
-# r_mean, d_mean, v_rad_mean, v_tot_arr = profiles[0::4], profiles[1::4], profiles[2::4], profiles[3::4]
 
 for i in range(len(indices_chosen)):
     r = r_mean[i]
@@ -327,9 +335,10 @@ for ax in [ax1, ax2, ax3]:
     ax.set_xlim(xmin, xmax)
     ax.loglog()
 plt.tight_layout()
-# fig.savefig(f'{abspath}/Figs/outflow/den_prof{snap}{which_obs}.png', bbox_inches = 'tight')
-# fig1.savefig(f'{abspath}/Figs/outflow/vel_prof{snap}{which_obs}.png', bbox_inches = 'tight')
-# fig2.savefig(f'{abspath}/Figs/outflow/vel_prof_rhoR2v{snap}{which_obs}.png', bbox_inches = 'tight')
+fig.suptitle(f'Snap {snap}, cut T$>$2e4', fontsize = 20)
+fig.savefig(f'{abspath}/Figs/outflow/den_prof{snap}{which_obs}.png', bbox_inches = 'tight')
+fig1.savefig(f'{abspath}/Figs/outflow/vel_prof{snap}{which_obs}.png', bbox_inches = 'tight')
+fig2.savefig(f'{abspath}/Figs/outflow/vel_prof_rhoR2v{snap}{which_obs}.png', bbox_inches = 'tight')
 plt.show()
 
 #%%

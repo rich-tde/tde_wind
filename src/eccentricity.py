@@ -107,7 +107,7 @@ if alice:
         np.save(f'{abspath}/data/{folder}/radiiEcc_{which_cut}_{check}.npy', radii)
 
 else:
-    error = False
+    error = True
     ecc_crit = orb.eccentricity(Rstar, mstar, Mbh, beta)
 
     if not error:
@@ -218,7 +218,7 @@ else:
         ax3.plot(tfbH, medianH, c = 'yellowgreen', linewidth = 4)
         ax3.plot(tfbH, medianH, c = 'darkviolet', linewidth = 4, linestyle = (0, (5, 10)), label = 'Middle and High')
         ax3.text(0.4, 1, 'Fid vs High', fontsize = 27, color = 'k')
-        ax3.set_ylabel(r'median ratio eccentricity')#, fontsize = 25)
+        ax3.set_ylabel(r'Median eccentricities ratio')#, fontsize = 25)
         ax3.set_xlim(0.2, tfbL[-1])
         ax3.set_ylim(0.98, 1.05)
         ax3.grid()

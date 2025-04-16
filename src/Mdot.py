@@ -9,7 +9,7 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = False
+    compute = True
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
@@ -41,7 +41,7 @@ Rp = Rt/beta
 norm_dMdE = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call \Delta E). It's GM/Rt^2 * Rstar
 apo = orb.apocentre(Rstar, mstar, Mbh, beta) 
 amin = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
-radii = np.array([0.2*amin, 0.5*amin, 0.7 * amin, amin])
+radii = np.array([0.2*amin, 0.5*amin])#, 0.7 * amin, amin])
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
 Medd = Ledd/(0.1*prel.c_cgs**2)
 v_esc = np.sqrt(2*prel.G*Mbh/Rt)
@@ -103,73 +103,76 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         v_rad_pos_cond = v_rad >= 0
         Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
             make_slices([Den, Rsph, v_rad, dim_cell], v_rad_pos_cond)
-        # Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos # there should be a pi factor here, but you put it later
-        # casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = [1, 1])
-        Mdot_pos = Den_pos * v_rad_pos # there should be a 4piR^2 factor here, but you put it later
-        casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = [dim_cell_pos, 1])
+        Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos # there should be a pi factor here, but you put it later
+        casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = ['sum', 'mean'])
+        # Mdot_pos = Den_pos * v_rad_pos # there should be a 4piR^2 factor here, but you put it later
+        # casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = [dim_cell_pos, 1])
         Mdot_pos_casted, v_rad_pos_casted = casted[0], casted[1]
-        mwind_pos.append(Mdot_pos_casted * 4 * np.pi * radii**2)#Mdot_pos_casted * np.pi)
+        mwind_pos.append(Mdot_pos_casted * np.pi)#) 4 *  * radii**2)
         Vwind_pos.append(v_rad_pos_casted)
         # Negative velocity 
         v_rad_neg_cond = v_rad < 0
         Den_neg, Rsph_neg, v_rad_neg, dim_cell_neg = \
             make_slices([Den, Rsph, v_rad, dim_cell], v_rad_neg_cond)
-        Mdot_neg = Den_neg * v_rad_neg # there should be a 4piR^2 factor here, but you put it later
-        casted = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = [dim_cell_neg, 1])
-        # Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg        
-        # casted = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = [1, 1])
+        # Mdot_neg = Den_neg * v_rad_neg # there should be a 4piR^2 factor here, but you put it later
+        # casted = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = [dim_cell_neg, 1])
+        Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg        
+        casted, indices_in = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = ['sum', 'mean'], keep_track=True)
+        # print('in:', np.pi*np.sum(dim_cell_neg[indices_in[0]]**2))
         Mdot_neg_casted, v_rad_neg_casted = casted[0], casted[1]
-        mwind_neg.append(Mdot_neg_casted * 4 * np.pi * radii**2)#Mdot_neg_casted * np.pi)
+        mwind_neg.append(Mdot_neg_casted * np.pi) #4 * radii**2
         Vwind_neg.append(v_rad_neg_casted)
+    # print('theory:', 4*np.pi*radii**2)
 
     mwind_pos = np.transpose(np.array(mwind_pos)) # shape pass from len(snap) x len(radii) to len(radii) x len(snap)
     mwind_neg = np.transpose(np.array(mwind_neg))
     Vwind_pos = np.transpose(np.array(Vwind_pos))
     Vwind_neg = np.transpose(np.array(Vwind_neg))
 
-    with open(f'{abspath}/data/{folder}/Mdot_{check}_pos_weighV.txt','w') as file:
-        file.write(f'# t/tfb \n')
-        file.write(f' '.join(map(str, tfb)) + '\n')
-        file.write(f'# Mdot_f \n')
-        file.write(f' '.join(map(str, mfall)) + '\n')
-        file.write(f'# Mdot_wind at 0.2 amin\n')
-        file.write(f' '.join(map(str, mwind_pos[0])) + '\n')
-        file.write(f'# Mdot_wind at 0.5 amin\n')
-        file.write(f' '.join(map(str, mwind_pos[1])) + '\n')
-        file.write(f'# Mdot_wind at 0.7 amin\n')
-        file.write(f' '.join(map(str, mwind_pos[2])) + '\n')
-        file.write(f'# Mdot_wind at amin\n')
-        file.write(f' '.join(map(str, mwind_pos[3])) + '\n')
-        file.write(f'# v_wind at 0.2 amin\n')
-        file.write(f' '.join(map(str, Vwind_pos[0])) + '\n')
-        file.write(f'# v_wind at 0.5 amin\n')
-        file.write(f' '.join(map(str, Vwind_pos[1])) + '\n')
-        file.write(f'# v_wind at 0.7 amin\n')
-        file.write(f' '.join(map(str, Vwind_pos[2])) + '\n')
-        file.write(f'# v_wind at amin\n')
-        file.write(f' '.join(map(str, Vwind_pos[3])) + '\n')
-        file.close()
-    
-    with open(f'{abspath}/data/{folder}/Mdot_{check}_neg_weighV.txt','w') as file:
-        file.write(f'# t/tfb \n')
-        file.write(f' '.join(map(str, tfb)) + '\n')
-        file.write(f'# Mdot_wind at 0.2 amin\n')
-        file.write(f' '.join(map(str, mwind_neg[0])) + '\n')
-        file.write(f'# Mdot_wind at 0.5 amin\n')
-        file.write(f' '.join(map(str, mwind_neg[1])) + '\n')
-        file.write(f'# Mdot_wind at 0.7 amin\n')
-        file.write(f' '.join(map(str, mwind_neg[2])) + '\n')
-        file.write(f'# Mdot_wind at amin\n')
-        file.write(f' '.join(map(str, mwind_neg[3])) + '\n')
-        file.write(f'# v_wind at 0.2 amin\n')
-        file.write(f' '.join(map(str, Vwind_neg[0])) + '\n')
-        file.write(f'# v_wind at 0.5 amin\n')
-        file.write(f' '.join(map(str, Vwind_neg[1])) + '\n')
-        file.write(f'# v_wind at 0.7 amin\n')
-        file.write(f' '.join(map(str, Vwind_neg[2])) + '\n')
-        file.write(f'# v_wind at amin\n')
-        file.write(f' '.join(map(str, Vwind_neg[3])) + '\n')
-        file.close()
+    if alice:
+        with open(f'{abspath}/data/{folder}/Mdot_{check}_pos.txt','w') as file:
+            file.write(f'# t/tfb \n')
+            file.write(f' '.join(map(str, tfb)) + '\n')
+            file.write(f'# Mdot_f \n')
+            file.write(f' '.join(map(str, mfall)) + '\n')
+            file.write(f'# Mdot_wind at 0.2 amin\n')
+            file.write(f' '.join(map(str, mwind_pos[0])) + '\n')
+            file.write(f'# Mdot_wind at 0.5 amin\n')
+            file.write(f' '.join(map(str, mwind_pos[1])) + '\n')
+            file.write(f'# Mdot_wind at 0.7 amin\n')
+            file.write(f' '.join(map(str, mwind_pos[2])) + '\n')
+            file.write(f'# Mdot_wind at amin\n')
+            file.write(f' '.join(map(str, mwind_pos[3])) + '\n')
+            file.write(f'# v_wind at 0.2 amin\n')
+            file.write(f' '.join(map(str, Vwind_pos[0])) + '\n')
+            file.write(f'# v_wind at 0.5 amin\n')
+            file.write(f' '.join(map(str, Vwind_pos[1])) + '\n')
+            file.write(f'# v_wind at 0.7 amin\n')
+            file.write(f' '.join(map(str, Vwind_pos[2])) + '\n')
+            file.write(f'# v_wind at amin\n')
+            file.write(f' '.join(map(str, Vwind_pos[3])) + '\n')
+            file.close()
+        
+        with open(f'{abspath}/data/{folder}/Mdot_{check}_neg.txt','w') as file:
+            file.write(f'# t/tfb \n')
+            file.write(f' '.join(map(str, tfb)) + '\n')
+            file.write(f'# Mdot_wind at 0.2 amin\n')
+            file.write(f' '.join(map(str, mwind_neg[0])) + '\n')
+            file.write(f'# Mdot_wind at 0.5 amin\n')
+            file.write(f' '.join(map(str, mwind_neg[1])) + '\n')
+            file.write(f'# Mdot_wind at 0.7 amin\n')
+            file.write(f' '.join(map(str, mwind_neg[2])) + '\n')
+            file.write(f'# Mdot_wind at amin\n')
+            file.write(f' '.join(map(str, mwind_neg[3])) + '\n')
+            file.write(f'# v_wind at 0.2 amin\n')
+            file.write(f' '.join(map(str, Vwind_neg[0])) + '\n')
+            file.write(f'# v_wind at 0.5 amin\n')
+            file.write(f' '.join(map(str, Vwind_neg[1])) + '\n')
+            file.write(f'# v_wind at 0.7 amin\n')
+            file.write(f' '.join(map(str, Vwind_neg[2])) + '\n')
+            file.write(f'# v_wind at amin\n')
+            file.write(f' '.join(map(str, Vwind_neg[3])) + '\n')
+            file.close()
 
 if plot:
     Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
@@ -181,19 +184,19 @@ if plot:
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16,6))
     ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm f}$', c = 'k')
-    ax1.plot(tfb, np.abs(mwind_pos)/Medd_code,  label = r'$\dot{M}_{\rm out}$ 0.2$a_{\rm min}$', c = 'dodgerblue')
-    ax1.plot(tfb, np.abs(mwind_neg)/Medd_code,  label = r'$\dot{M}_{\rm in}$ 0.2$a_{\rm min}$', c = 'dodgerblue', ls = '--')
-    ax1.plot(tfb, np.abs(mwind_pos1)/Medd_code, label = r'$\dot{M}_{\rm out}$ 0.5$a_{\rm min}$', c = 'orange')
-    ax1.plot(tfb, np.abs(mwind_neg1)/Medd_code, label = r'$\dot{M}_{\rm in}$ 0.5$a_{\rm min}$', c = 'orange', ls = '--')
+    ax1.plot(tfb, np.abs(mwind_pos)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm out}$ 0.2$a_{\rm min}$')
+    ax1.plot(tfb, np.abs(mwind_pos2)/Medd_code, c = 'purple', label = r'$\dot{M}_{\rm out}$ 0.7$a_{\rm min}$')
+    ax1.plot(tfb, np.abs(mwind_neg)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm in}$ 0.2$a_{\rm min}$', ls = '--')
+    ax1.plot(tfb, np.abs(mwind_neg2)/Medd_code, c = 'purple', label = r'$\dot{M}_{\rm in}$ 0.7$a_{\rm min}$', ls = '--')
     ax1.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
     ax1.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
     ax1.set_yscale('log')
     # ax1.ylim(1e-7, 3)
     ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')    
-    img = ax2.plot(tfb, Vwind_pos/v_esc, c = 'dodgerblue', label = r'$v_{\rm out}(0.2 a_{\rm min})$')
-    ax2.plot(tfb, Vwind_pos1/v_esc, c = 'orange', label = r'$v_{\rm out}(0.5 a_{\rm min})$')
+    ax2.plot(tfb, Vwind_pos/v_esc, c = 'dodgerblue', label = r'$v_{\rm out}(0.2 a_{\rm min})$')
     ax2.plot(tfb, Vwind_pos2/v_esc, c = 'purple', label = r'$v_{\rm out}(0.7 a_{\rm min})$')
-    ax2.plot(tfb, Vwind_pos3/v_esc, c = 'green', label = r'$v_{\rm out}(a_{\rm min})$')
+    ax2.plot(tfb, Vwind_neg/v_esc, '--', c = 'dodgerblue', label = r'$v_{\rm in}(0.2 a_{\rm min})$')
+    ax2.plot(tfb, Vwind_neg2/v_esc, '--', c = 'purple', label = r'$v_{\rm in}(0.7 a_{\rm min})$')
     ax2.set_ylabel(r'$v_{\rm out}/v_{\rm esc}(R_{\rm t})$')
     for ax in (ax1, ax2):
         ax.legend(fontsize = 14)
