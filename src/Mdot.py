@@ -130,7 +130,6 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             sys.stdout.flush()
             mwind_pos.append(0)
             Vwind_pos.append(0)
-            continue
         else:
             Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg # there should be a pi factor here, but you put it later
             Mdot_neg_casted = np.zeros(len(radii))
