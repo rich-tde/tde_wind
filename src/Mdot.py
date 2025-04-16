@@ -9,14 +9,14 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = True
+    compute = False
 
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import Utilities.prelude as prel
 import src.orbits as orb
-from Utilities.operators import make_tree, multiple_branch, to_spherical_components
+from Utilities.operators import make_tree, to_spherical_components
 from Utilities.selectors_for_snap import select_snap
 from Utilities.sections import make_slices
 
@@ -117,8 +117,12 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             v_rad_pos_casted = np.zeros(len(radii))
             for j, r in enumerate(radii):
                 selected_pos = np.abs(Rsph_pos - r) < dim_cell_pos
-                Mdot_pos_casted[j] = np.sum(Mdot_pos[selected_pos]) * np.pi #4 *  * radii**2
-                v_rad_pos_casted[j] = np.mean(v_rad_pos[selected_pos])
+                if selected_pos.size == 0:
+                    Mdot_pos_casted[j] = 0
+                    v_rad_pos_casted[j] = 0
+                else:
+                    Mdot_pos_casted[j] = np.sum(Mdot_pos[selected_pos]) * np.pi #4 *  * radii**2
+                    v_rad_pos_casted[j] = np.mean(v_rad_pos[selected_pos])
         mwind_pos.append(Mdot_pos_casted)
         Vwind_pos.append(v_rad_pos_casted)
         # Negative velocity 
@@ -136,8 +140,12 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             v_rad_neg_casted = np.zeros(len(radii))
             for j, r in enumerate(radii):
                 selected_neg = np.abs(Rsph_neg - r) < dim_cell_neg
-                Mdot_neg_casted[j] = np.sum(Mdot_neg[selected_neg]) * np.pi #4 *  * radii**2
-                v_rad_neg_casted[j] = np.mean(v_rad_neg[selected_neg])
+                if selected_neg.size == 0:
+                    Mdot_neg_casted[j] = 0
+                    v_rad_neg_casted[j] = 0
+                else:
+                    Mdot_neg_casted[j] = np.sum(Mdot_neg[selected_neg]) * np.pi #4 *  * radii**2
+                    v_rad_neg_casted[j] = np.mean(v_rad_neg[selected_neg])
         mwind_neg.append(Mdot_neg_casted)
         Vwind_neg.append(v_rad_neg_casted)
 
@@ -146,51 +154,50 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     Vwind_pos = np.transpose(np.array(Vwind_pos))
     Vwind_neg = np.transpose(np.array(Vwind_neg))
 
-    if alice:
-        with open(f'{abspath}/data/{folder}/Mdot_{check}_pos.txt','w') as file:
-            # file.write(f'# Distinguish using Bernouilli criterion \n#t/tfb \n')
-            file.write(f'# t/tfb \n')
-            file.write(f' '.join(map(str, tfb)) + '\n')
-            file.write(f'# Mdot_f \n')
-            file.write(f' '.join(map(str, mfall)) + '\n')
-            file.write(f'# Mdot_wind at 0.2 amin\n')
-            file.write(f' '.join(map(str, mwind_pos[0])) + '\n')
-            file.write(f'# Mdot_wind at 0.5 amin\n')
-            file.write(f' '.join(map(str, mwind_pos[1])) + '\n')
-            file.write(f'# Mdot_wind at 0.7 amin\n')
-            file.write(f' '.join(map(str, mwind_pos[2])) + '\n')
-            file.write(f'# Mdot_wind at amin\n')
-            file.write(f' '.join(map(str, mwind_pos[3])) + '\n')
-            file.write(f'# v_wind at 0.2 amin\n')
-            file.write(f' '.join(map(str, Vwind_pos[0])) + '\n')
-            file.write(f'# v_wind at 0.5 amin\n')
-            file.write(f' '.join(map(str, Vwind_pos[1])) + '\n')
-            file.write(f'# v_wind at 0.7 amin\n')
-            file.write(f' '.join(map(str, Vwind_pos[2])) + '\n')
-            file.write(f'# v_wind at amin\n')
-            file.write(f' '.join(map(str, Vwind_pos[3])) + '\n')
-            file.close()
-        
-        with open(f'{abspath}/data/{folder}/Mdot_{check}_neg.txt','w') as file:
-            file.write(f'#t/tfb \n')
-            file.write(f' '.join(map(str, tfb)) + '\n')
-            file.write(f'# Mdot_wind at 0.2 amin\n')
-            file.write(f' '.join(map(str, mwind_neg[0])) + '\n')
-            file.write(f'# Mdot_wind at 0.5 amin\n')
-            file.write(f' '.join(map(str, mwind_neg[1])) + '\n')
-            file.write(f'# Mdot_wind at 0.7 amin\n')
-            file.write(f' '.join(map(str, mwind_neg[2])) + '\n')
-            file.write(f'# Mdot_wind at amin\n')
-            file.write(f' '.join(map(str, mwind_neg[3])) + '\n')
-            file.write(f'# v_wind at 0.2 amin\n')
-            file.write(f' '.join(map(str, Vwind_neg[0])) + '\n')
-            file.write(f'# v_wind at 0.5 amin\n')
-            file.write(f' '.join(map(str, Vwind_neg[1])) + '\n')
-            file.write(f'# v_wind at 0.7 amin\n')
-            file.write(f' '.join(map(str, Vwind_neg[2])) + '\n')
-            file.write(f'# v_wind at amin\n')
-            file.write(f' '.join(map(str, Vwind_neg[3])) + '\n')
-            file.close()
+    with open(f'{abspath}/data/{folder}/Mdot_{check}_pos.txt','w') as file:
+        # file.write(f'# Distinguish using Bernouilli criterion \n#t/tfb \n')
+        file.write(f'# t/tfb \n')
+        file.write(f' '.join(map(str, tfb)) + '\n')
+        file.write(f'# Mdot_f \n')
+        file.write(f' '.join(map(str, mfall)) + '\n')
+        file.write(f'# Mdot_wind at 0.2 amin\n')
+        file.write(f' '.join(map(str, mwind_pos[0])) + '\n')
+        file.write(f'# Mdot_wind at 0.5 amin\n')
+        file.write(f' '.join(map(str, mwind_pos[1])) + '\n')
+        file.write(f'# Mdot_wind at 0.7 amin\n')
+        file.write(f' '.join(map(str, mwind_pos[2])) + '\n')
+        file.write(f'# Mdot_wind at amin\n')
+        file.write(f' '.join(map(str, mwind_pos[3])) + '\n')
+        file.write(f'# v_wind at 0.2 amin\n')
+        file.write(f' '.join(map(str, Vwind_pos[0])) + '\n')
+        file.write(f'# v_wind at 0.5 amin\n')
+        file.write(f' '.join(map(str, Vwind_pos[1])) + '\n')
+        file.write(f'# v_wind at 0.7 amin\n')
+        file.write(f' '.join(map(str, Vwind_pos[2])) + '\n')
+        file.write(f'# v_wind at amin\n')
+        file.write(f' '.join(map(str, Vwind_pos[3])) + '\n')
+        file.close()
+    
+    with open(f'{abspath}/data/{folder}/Mdot_{check}_neg.txt','w') as file:
+        file.write(f'#t/tfb \n')
+        file.write(f' '.join(map(str, tfb)) + '\n')
+        file.write(f'# Mdot_wind at 0.2 amin\n')
+        file.write(f' '.join(map(str, mwind_neg[0])) + '\n')
+        file.write(f'# Mdot_wind at 0.5 amin\n')
+        file.write(f' '.join(map(str, mwind_neg[1])) + '\n')
+        file.write(f'# Mdot_wind at 0.7 amin\n')
+        file.write(f' '.join(map(str, mwind_neg[2])) + '\n')
+        file.write(f'# Mdot_wind at amin\n')
+        file.write(f' '.join(map(str, mwind_neg[3])) + '\n')
+        file.write(f'# v_wind at 0.2 amin\n')
+        file.write(f' '.join(map(str, Vwind_neg[0])) + '\n')
+        file.write(f'# v_wind at 0.5 amin\n')
+        file.write(f' '.join(map(str, Vwind_neg[1])) + '\n')
+        file.write(f'# v_wind at 0.7 amin\n')
+        file.write(f' '.join(map(str, Vwind_neg[2])) + '\n')
+        file.write(f'# v_wind at amin\n')
+        file.write(f' '.join(map(str, Vwind_neg[3])) + '\n')
+        file.close()
 
 if plot:
     Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
@@ -206,8 +213,8 @@ if plot:
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16,6))
     ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm f}$', c = 'k')
-    ax1.scatter(tfb, np.abs(mwind_pos1)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm out}$ 0.5$a_{\rm min}$')
-    ax1.scatter(tfb, np.abs(mwind_neg1)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm in}$ 0.5$a_{\rm min}$', ls = '--')
+    ax1.plot(tfb, np.abs(mwind_pos1)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm out}$ 0.5$a_{\rm min}$')
+    ax1.plot(tfb, np.abs(mwind_neg1)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm in}$ 0.5$a_{\rm min}$', ls = '--')
     ax1.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
     # ax1.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
     ax1.set_yscale('log')
@@ -246,3 +253,5 @@ if plot:
 
 
     
+
+# %%
