@@ -257,7 +257,7 @@ def single_branch(radii, R, tocast, weights, keep_track = False):
     else:
         return final_casted
 
-def multiple_branch(radii, R, tocast_matrix, weights_matrix, keep_track = False):
+def multiple_branch(radii, R, tocast_matrix, weights_matrix, sumORmean_matrix = [], keep_track = False):
     """ Casts quantities down to a smaller size vector.
     Parameters
     ----------
@@ -295,10 +295,14 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix, keep_track = False)
         gridded_tocast = np.zeros((len(radii)))
         weights = weights_matrix[i]
         # check if weights is an integer
-        if type(weights) != str:
+        if type(weights) != int:
             print('Weighting', flush=True) 
             sys.stdout.flush()
             gridded_weights = np.zeros((len(radii)))
+        else:
+            sumORmean = sumORmean_matrix[i]
+            print(sumORmean, flush=True) 
+            sys.stdout.flush()
         for j in range(len(radii)):
             indices = indices_foradii[j]
             # if len(indices) < 2 :
@@ -309,15 +313,16 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix, keep_track = False)
             #         cells_used.append([])
             # else:    
             indices = [int(idx) for idx in indices]
-            if type(weights) != str:
+            if type(weights) != int:
                 gridded_tocast[j] = np.sum(tocast[indices] * weights[indices])
                 gridded_weights[j] = np.sum(weights[indices])
             else:
-                if type(weights) == 'mean':
+                if sumORmean == 'mean':
                     gridded_tocast[j] = np.mean(tocast[indices])
-                if type(weights) == 'sum':
+                if sumORmean == 'sum':
                     gridded_tocast[j] = np.sum(tocast[indices])
-        if type(weights) != str:
+            print(gridded_tocast[j])
+        if type(weights) != int:
             gridded_weights += 1e-20 # avoid division by zero
             final_casted = np.divide(gridded_tocast, gridded_weights)
         else:

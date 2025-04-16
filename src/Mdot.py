@@ -9,7 +9,7 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = False
+    compute = True
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
@@ -103,7 +103,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         lat = np.arccos(Z / Rsph)
         v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
         # Postive velocity
-        v_rad_pos_cond = bern >= 0  
+        v_rad_pos_cond = v_rad >= 0  
         Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
             make_slices([Den, Rsph, v_rad, dim_cell], v_rad_pos_cond)
         if Den_pos.size == 0:
@@ -113,14 +113,14 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             Vwind_pos.append(0)
             continue
         Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos # there should be a pi factor here, but you put it later
-        casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = ['sum', 'mean'])
+        casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = [1,1], sumORmean_matrix= ['sum', 'mean'])
         # Mdot_pos = Den_pos * v_rad_pos # there should be a 4piR^2 factor here, but you put it later
         # casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = [dim_cell_pos, 1])
         Mdot_pos_casted, v_rad_pos_casted = casted[0], casted[1]
         mwind_pos.append(Mdot_pos_casted * np.pi)#) 4 *  * radii**2)
         Vwind_pos.append(v_rad_pos_casted)
         # Negative velocity 
-        v_rad_neg_cond = bern < 0
+        v_rad_neg_cond = v_rad < 0
         Den_neg, Rsph_neg, v_rad_neg, dim_cell_neg = \
             make_slices([Den, Rsph, v_rad, dim_cell], v_rad_neg_cond)
         if Den_neg.size == 0:
@@ -132,7 +132,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         # Mdot_neg = Den_neg * v_rad_neg # there should be a 4piR^2 factor here, but you put it later
         # casted = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = [dim_cell_neg, 1])
         Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg        
-        casted, indices_in = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = ['sum', 'mean'], keep_track=True)
+        casted, indices_in = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = [1,1], sumORmean_matrix= ['sum', 'mean'], keep_track=True)
         # print('in:', np.pi*np.sum((dim_cell_neg[indices_in[0]])**2))
         Mdot_neg_casted, v_rad_neg_casted = casted[0], casted[1]
         mwind_neg.append(Mdot_neg_casted * np.pi) #4 * radii**2
@@ -145,7 +145,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     Vwind_neg = np.transpose(np.array(Vwind_neg))
 
     if alice:
-        with open(f'{abspath}/data/{folder}/Mdot_{check}_Bpos.txt','w') as file:
+        with open(f'{abspath}/data/{folder}/Mdot_{check}_pos.txt','w') as file:
             file.write(f'# Distinguish using Bernouilli criterion \n#t/tfb \n')
             file.write(f' '.join(map(str, tfb)) + '\n')
             file.write(f'# Mdot_f \n')
@@ -168,7 +168,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             file.write(f' '.join(map(str, Vwind_pos[3])) + '\n')
             file.close()
         
-        with open(f'{abspath}/data/{folder}/Mdot_{check}_Bneg.txt','w') as file:
+        with open(f'{abspath}/data/{folder}/Mdot_{check}_neg.txt','w') as file:
             file.write(f'# Distinguish using Bernouilli criterion \n#t/tfb \n')
             file.write(f' '.join(map(str, tfb)) + '\n')
             file.write(f'# Mdot_wind at 0.2 amin\n')
