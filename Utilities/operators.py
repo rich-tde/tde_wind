@@ -257,7 +257,7 @@ def single_branch(radii, R, tocast, weights, keep_track = False):
     else:
         return final_casted
 
-def multiple_branch(radii, R, tocast_matrix, weights_matrix, sumORmean_matrix = [], keep_track = False):
+def multiple_branch(radii, R, dim_leaf, tocast_matrix, weights_matrix, sumORmean_matrix = [], keep_track = False):
     """ Casts quantities down to a smaller size vector.
     Parameters
     ----------
@@ -265,6 +265,8 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix, sumORmean_matrix = 
         Array of radii we want to cast to.
     R : arr,
         Coordinates' data from simulation to be casted according to radii.
+    dim_leaf arr,
+        max distance to search in for query_radius.
     tocast_matrix: Narr,
         Simulation data (more than one) corresponing to R.
     weights: Narr,
@@ -280,15 +282,15 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix, sumORmean_matrix = 
     tree = KDTree(R) 
     for i in range(len(radii)):
         radius = np.array([radii[i]]).reshape(1, -1) # reshape to match the tree
-        if i == 0:
-            width = radii[1] - radii[0]
-        elif i == len(radii)-1:
-            width = radii[-1] - radii[-2]
-        else:
-            width = (radii[i+1] - radii[i-1])/2
-        width *= 2 # make it slightly bigger to smooth things
+        # if i == 0:
+        #     width = radii[1] - radii[0]
+        # elif i == len(radii)-1:
+        #     width = radii[-1] - radii[-2]
+        # else:
+        #     width = (radii[i+1] - radii[i-1])/2
+        # width *= 2 # make it slightly bigger to smooth things
         # indices = tree.query_ball_point(radius, width) #if KDTree from scipy
-        indices = tree.query_radius(radius, width) #if KDTree from sklearn
+        indices = tree.query_radius(radius, dim_leaf[i]) #if KDTree from sklearn
         indices_foradii.append(np.concatenate(indices))
 
     for i, tocast in enumerate(tocast_matrix):
@@ -301,8 +303,8 @@ def multiple_branch(radii, R, tocast_matrix, weights_matrix, sumORmean_matrix = 
             gridded_weights = np.zeros((len(radii)))
         else:
             sumORmean = sumORmean_matrix[i]
-            print(sumORmean, flush=True) 
-            sys.stdout.flush()
+            # print(sumORmean, flush=True) 
+            # sys.stdout.flush()
         for j in range(len(radii)):
             indices = indices_foradii[j]
             # if len(indices) < 2 :

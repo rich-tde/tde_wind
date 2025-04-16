@@ -113,7 +113,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             Vwind_pos.append(0)
             continue
         Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos # there should be a pi factor here, but you put it later
-        casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = [1,1], sumORmean_matrix= ['sum', 'mean'])
+        casted = multiple_branch(radii, Rsph_pos, dim_cell_pos, [Mdot_pos, v_rad_pos], weights_matrix = [1,1], sumORmean_matrix= ['sum', 'mean'])
         # Mdot_pos = Den_pos * v_rad_pos # there should be a 4piR^2 factor here, but you put it later
         # casted = multiple_branch(radii, Rsph_pos, [Mdot_pos, v_rad_pos], weights_matrix = [dim_cell_pos, 1])
         Mdot_pos_casted, v_rad_pos_casted = casted[0], casted[1]
@@ -132,8 +132,8 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         # Mdot_neg = Den_neg * v_rad_neg # there should be a 4piR^2 factor here, but you put it later
         # casted = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = [dim_cell_neg, 1])
         Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg        
-        casted, indices_in = multiple_branch(radii, Rsph_neg, [Mdot_neg, v_rad_neg], weights_matrix = [1,1], sumORmean_matrix= ['sum', 'mean'], keep_track=True)
-        # print('in:', np.pi*np.sum((dim_cell_neg[indices_in[0]])**2))
+        casted = multiple_branch(radii, Rsph_neg, dim_cell_neg, [Mdot_neg, v_rad_neg], weights_matrix = [1,1], sumORmean_matrix= ['sum', 'mean'])
+        # print('in:', np.pi*(casted[2][1])/(4*np.pi*radii[1]**2))
         Mdot_neg_casted, v_rad_neg_casted = casted[0], casted[1]
         mwind_neg.append(Mdot_neg_casted * np.pi) #4 * radii**2
         Vwind_neg.append(v_rad_neg_casted)
@@ -195,10 +195,10 @@ if plot:
         np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_pos.txt')
     _, mwind_neg, mwind_neg1, mwind_neg2, mwind_neg3, Vwind_neg, Vwind_neg1, Vwind_neg2, Vwind_neg3 = \
         np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_neg.txt')
-    tfbB, mfallB, mwind_posB, mwind_posB1, mwind_posB2, mwind_posB3, Vwind_posB, Vwind_posB1, Vwind_posB2, Vwind_posB3 = \
-        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_Bpos.txt')
-    _, mwind_negB, mwind_negB1, mwind_negB2, mwind_negB3, Vwind_negB, Vwind_negB1, Vwind_negB2, Vwind_negB3 = \
-        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_Bneg.txt')
+    # tfbB, mfallB, mwind_posB, mwind_posB1, mwind_posB2, mwind_posB3, Vwind_posB, Vwind_posB1, Vwind_posB2, Vwind_posB3 = \
+    #     np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_Bpos.txt')
+    # _, mwind_negB, mwind_negB1, mwind_negB2, mwind_negB3, Vwind_negB, Vwind_negB1, Vwind_negB2, Vwind_negB3 = \
+    #     np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_Bneg.txt')
     f_out_th = f_out_LodatoRossi(mfall, Medd_code)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16,6))
@@ -242,16 +242,3 @@ if plot:
 
 
     
-# %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16,6))
-ax1.plot(tfb, np.abs(mfall)*prel.Msol_cgs/prel.tsol_cgs, label = r'$\dot{M}_{\rm f}$', c = 'k')
-ax1.plot(tfb, np.abs(mwind_pos)*prel.Msol_cgs/prel.tsol_cgs, c = 'dodgerblue', label = r'$\dot{M}_{\rm out}$ 0.2$a_{\rm min}$')
-ax1.plot(tfb, np.abs(mwind_pos2)*prel.Msol_cgs/prel.tsol_cgs, c = 'purple', label = r'$\dot{M}_{\rm out}$ 0.7$a_{\rm min}$')
-ax1.plot(tfb, np.abs(mwind_neg)*prel.Msol_cgs/prel.tsol_cgs, c = 'dodgerblue', label = r'$\dot{M}_{\rm in}$ 0.2$a_{\rm min}$', ls = '--')
-ax1.plot(tfb, np.abs(mwind_neg2)*prel.Msol_cgs/prel.tsol_cgs, c = 'purple', label = r'$\dot{M}_{\rm in}$ 0.7$a_{\rm min}$', ls = '--')
-ax1.axvline(tfb[np.argmax(np.abs(mfall)*prel.Msol_cgs/prel.tsol_cgs)], c = 'k', linestyle = 'dotted')
-ax1.text(tfb[np.argmax(np.abs(mfall)*prel.Msol_cgs/prel.tsol_cgs)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
-ax1.set_yscale('log')
-# ax1.ylim(1e-7, 3)
-ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')   
-# %%
