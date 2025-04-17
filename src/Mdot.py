@@ -33,7 +33,7 @@ n = 1.5
 compton = 'Compton'
 check = ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-cond_selection = 'B' #
+cond_selection = 'B' # if 'B' you put the extra condition on the Bernouilli coeff to select cells
 
 tfallback = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2) #[days]
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
@@ -103,7 +103,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         long = np.arctan2(Y, X)          # Azimuthal angle in radians
         lat = np.arccos(Z / Rsph)
         v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
-        # Postive velocity
+        # Positive velocity (and unbound)
         if cond_selection == 'B':
             cond = np.logical_and(v_rad >= 0, bern > 0)
         elif cond_selection == '':
@@ -122,7 +122,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             # print('Mdot_pos: ')
             for j, r in enumerate(radii):
                 selected_pos = np.abs(Rsph_pos - r) < dim_cell_pos
-                if selected_pos.size == 0:
+                if Mdot_pos[selected_pos].size == 0:
                     Mdot_pos_casted[j] = 0
                     v_rad_pos_casted[j] = 0
                 else:
@@ -131,7 +131,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
                     # print('sum of circles/sphere you want: ', np.pi*np.sum(dim_cell_pos[selected_pos]**2)/(4*np.pi*r**2))
         mwind_pos.append(Mdot_pos_casted)
         Vwind_pos.append(v_rad_pos_casted)
-        # Negative velocity 
+        # Negative velocity (and bound)
         if cond_selection == 'B':
             cond = np.logical_and(v_rad < 0, bern <= 0)
         elif cond_selection == '':
@@ -150,7 +150,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             # print('Mdot_neg: ')
             for j, r in enumerate(radii):
                 selected_neg = np.abs(Rsph_neg - r) < dim_cell_neg
-                if selected_neg.size == 0:
+                if Mdot_neg[selected_neg].size == 0:
                     Mdot_neg_casted[j] = 0
                     v_rad_neg_casted[j] = 0
                 else:
