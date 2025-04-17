@@ -36,7 +36,7 @@ check = ''
 Rs = 2 * prel.G * Mbh / prel.csol_cgs**2
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snap = 348
+snap = 115
 
 Rt = Rstar * (Mbh/mstar)**(1/3)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta) 
@@ -65,28 +65,29 @@ indecesorbital = np.concatenate(np.where(latitude_moll==0))
 #%% Load the data
 path = f'{abspath}/TDE/{folder}/{snap}' #f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
 tfb = days_since_distruption(f'{abspath}/TDE/{folder}/{snap}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
-DpDx = np.load(f'{path}/DpDx_{snap}.npy')
-DpDy = np.load(f'{path}/DpDy_{snap}.npy')
-DpDz = np.load(f'{path}/DpDz_{snap}.npy')
-# dataph = np.loadtxt(f'{abspath}/data/{folder}/photo/_photo{snap}.txt')
 # xph, yph, zph, volph= dataph[0], dataph[1], dataph[2], dataph[3]
 
 data = make_tree(path, snap, energy = False)
 X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp = data.X, data.Y, data.Z, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Vol, data.Temp
 den_cut = Den > 1e-19
-X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp, DpDx, DpDy, DpDz = make_slices([X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp, DpDx, DpDy, DpDz], den_cut)
+X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp = make_slices([X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp], den_cut)
 
 mid = np.abs(Z) < Vol**(1/3)
-X_mid, Y_mid, Z_mid, Den_mid, Mass_mid, Vx_mid, Vy_mid, Vz_mid, Vol_mid, Temp_mid, DpDx_mid, DpDy_mid, DpDz_mid = \
-    make_slices([X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp, DpDx, DpDy, DpDz], mid)
+X_mid, Y_mid, Z_mid, Den_mid, Mass_mid, Vx_mid, Vy_mid, Vz_mid, Vol_mid, Temp_mid = \
+    make_slices([X, Y, Z, Den, Mass, Vx, Vy, Vz, Vol, Temp], mid)
 R_mid, lat_astro_mid, long_mid = coord.cartesian_to_spherical(X_mid, Y_mid, Z_mid) # r, latitude, longitude 
 lat_mid = lat_astro_mid + (np.pi / 2) * u.rad # so is from 0 to pi
-dP_radial_mid, _, _ = to_spherical_components(DpDx_mid, DpDy_mid, DpDz_mid, lat_mid, long_mid)
 V_r_mid, V_theta_mid, V_phi_mid = to_spherical_components(Vx_mid, Vy_mid, Vz_mid, lat_mid, long_mid)
 V_mid = np.sqrt(Vx_mid**2 + Vy_mid**2 + Vz_mid**2)
 # orb_en = orb.orbital_energy(R, V, data.Mass, 1, 3e8 / (7e8/t), Mbh)
 
+#%%
+# DpDx = np.load(f'{path}/DpDx_{snap}.npy')
+# DpDy = np.load(f'{path}/DpDy_{snap}.npy')
+# DpDz = np.load(f'{path}/DpDz_{snap}.npy')
+# dataph = np.loadtxt(f'{abspath}/data/{folder}/photo/_photo{snap}.txt')
 # compute accelerations
+dP_radial_mid, _, _ = to_spherical_components( lat_mid, long_mid)
 a_P_mid = np.abs(dP_radial_mid) / Den_mid
 a_centrifugal_mid = V_phi_mid**2 / R_mid
 ratio_mid = a_centrifugal_mid / a_P_mid
@@ -118,10 +119,13 @@ for ax in [ax1, ax2]:
 plt.tight_layout()
 
 #%%
-fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize=(30,5))
-img = ax1.scatter(X_mid/apo, Y_mid/apo, c = np.abs(V_r_mid)*conversion_sol_kms, cmap = 'jet', s = 7, norm = colors.LogNorm(vmin = 1e2, vmax = 1e4))
-cbar = plt.colorbar(img)
-cbar.set_label(r'$|V_r|$ [km/s]', fontsize = 20)
+fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize=(30,8))
+# img = ax1.scatter(X_mid/apo, Y_mid/apo, c = np.abs(V_r_mid)*conversion_sol_kms, cmap = 'jet', s = 7, norm = colors.LogNorm(vmin = 1e2, vmax = 1e4))
+# cbar = plt.colorbar(img)
+# cbar.set_label(r'$|V_r|$ [km/s]', fontsize = 20)
+img = ax1.scatter(X_mid[V_r_mid>0]/apo, Y_mid[V_r_mid>0]/apo, c = 'r', s = 7, label = r'$V_r > 0$')
+img = ax1.scatter(X_mid[V_r_mid<=0]/apo, Y_mid[V_r_mid<=0]/apo, c = 'b', s = 7, label = r'$V_r <\leq0$')
+ax1.legend(fonsize = 20)
 # ax1.quiver(X[::1500]_mid/apo, Y[::1500]_mid/apo, Vx[::1500], Vy[::1500], color = 'k', scale = 100, scale_units = 'xy', angles = 'xy', width = 0.002)
 ax1.set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
 
@@ -136,8 +140,8 @@ cbar.set_label(r'$\rho [M_\odot/R_\odot^3$]', fontsize = 20)
 for ax in [ax1, ax2, ax3]:
     ax.set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
     ax.scatter(0, 0, c='k', s = 40)
-    ax.set_xlim(-15, 1)
-    ax.set_ylim(-5,5)#1, 1)
+    ax.set_xlim(-amin/apo, amin/apo)
+    ax.set_ylim(-amin/apo,amin/apo)#1, 1)
 plt.tight_layout()
 plt.savefig(f'{abspath}/Figs/outflow/insights/vel_{snap}.png', bbox_inches = 'tight')
 
