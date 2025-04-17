@@ -33,6 +33,7 @@ n = 1.5
 compton = 'Compton'
 check = ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+cond_selection = 'B' #
 
 tfallback = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2) #[days]
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
@@ -103,9 +104,12 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         lat = np.arccos(Z / Rsph)
         v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
         # Postive velocity
-        v_rad_pos_cond = v_rad >= 0  
+        if cond_selection == 'B':
+            cond = np.logical_and(v_rad >= 0, bern > 0)
+        elif cond_selection == '':
+            cond = v_rad >= 0  
         Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
-            make_slices([Den, Rsph, v_rad, dim_cell], v_rad_pos_cond)
+            make_slices([Den, Rsph, v_rad, dim_cell], cond)
         if Den_pos.size == 0:
             print(f'no bern positive: {bern}', flush=True)
             sys.stdout.flush()
@@ -115,20 +119,25 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos # there should be a pi factor here, but you put it later
             Mdot_pos_casted = np.zeros(len(radii))
             v_rad_pos_casted = np.zeros(len(radii))
+            # print('Mdot_pos: ')
             for j, r in enumerate(radii):
                 selected_pos = np.abs(Rsph_pos - r) < dim_cell_pos
                 if selected_pos.size == 0:
                     Mdot_pos_casted[j] = 0
                     v_rad_pos_casted[j] = 0
                 else:
-                    Mdot_pos_casted[j] = np.sum(Mdot_pos[selected_pos]) * np.pi #4 *  * radii**2
+                    Mdot_pos_casted[j] = np.sum(Mdot_pos[selected_pos]) * np.pi 
                     v_rad_pos_casted[j] = np.mean(v_rad_pos[selected_pos])
+                    # print('sum of circles/sphere you want: ', np.pi*np.sum(dim_cell_pos[selected_pos]**2)/(4*np.pi*r**2))
         mwind_pos.append(Mdot_pos_casted)
         Vwind_pos.append(v_rad_pos_casted)
         # Negative velocity 
-        v_rad_neg_cond = v_rad < 0
+        if cond_selection == 'B':
+            cond = np.logical_and(v_rad < 0, bern <= 0)
+        elif cond_selection == '':
+            cond = v_rad < 0
         Den_neg, Rsph_neg, v_rad_neg, dim_cell_neg = \
-            make_slices([Den, Rsph, v_rad, dim_cell], v_rad_neg_cond)
+            make_slices([Den, Rsph, v_rad, dim_cell], cond)
         if Den_neg.size == 0:
             print(f'no bern negative: {bern}', flush=True)
             sys.stdout.flush()
@@ -138,6 +147,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg # there should be a pi factor here, but you put it later
             Mdot_neg_casted = np.zeros(len(radii))
             v_rad_neg_casted = np.zeros(len(radii))
+            # print('Mdot_neg: ')
             for j, r in enumerate(radii):
                 selected_neg = np.abs(Rsph_neg - r) < dim_cell_neg
                 if selected_neg.size == 0:
@@ -146,6 +156,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
                 else:
                     Mdot_neg_casted[j] = np.sum(Mdot_neg[selected_neg]) * np.pi #4 *  * radii**2
                     v_rad_neg_casted[j] = np.mean(v_rad_neg[selected_neg])
+                    # print('sum of circles/sphere you want: ', np.pi*np.sum(dim_cell_neg[selected_neg]**2)/(4*np.pi*r**2))
         mwind_neg.append(Mdot_neg_casted)
         Vwind_neg.append(v_rad_neg_casted)
 
@@ -154,7 +165,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     Vwind_pos = np.transpose(np.array(Vwind_pos))
     Vwind_neg = np.transpose(np.array(Vwind_neg))
 
-    with open(f'{abspath}/data/{folder}/Mdot_{check}_pos.txt','w') as file:
+    with open(f'{abspath}/data/{folder}/Mdot_{check}_{cond_selection}pos.txt','w') as file:
         # file.write(f'# Distinguish using Bernouilli criterion \n#t/tfb \n')
         file.write(f'# t/tfb \n')
         file.write(f' '.join(map(str, tfb)) + '\n')
@@ -178,7 +189,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         file.write(f' '.join(map(str, Vwind_pos[3])) + '\n')
         file.close()
     
-    with open(f'{abspath}/data/{folder}/Mdot_{check}_neg.txt','w') as file:
+    with open(f'{abspath}/data/{folder}/Mdot_{check}_{cond_selection}neg.txt','w') as file:
         file.write(f'#t/tfb \n')
         file.write(f' '.join(map(str, tfb)) + '\n')
         file.write(f'# Mdot_wind at 0.2 amin\n')
@@ -201,34 +212,38 @@ if compute: # compute dM/dt = dM/dE * dE/dt
 
 if plot:
     Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
-    tfb, mfall, mwind_pos, mwind_pos1, mwind_pos2, mwind_pos3, Vwind_pos, Vwind_pos1, Vwind_pos2, Vwind_pos3 = \
+    tfb, mfall, _, mwind_pos1, mwind_pos2, mwind_pos3, Vwind_pos, Vwind_pos1, Vwind_pos2, Vwind_pos3 = \
         np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_pos.txt')
-    _, mwind_neg, mwind_neg1, mwind_neg2, mwind_neg3, Vwind_neg, Vwind_neg1, Vwind_neg2, Vwind_neg3 = \
+    _, _, mwind_neg1, mwind_neg2, mwind_neg3, Vwind_neg, Vwind_neg1, Vwind_neg2, Vwind_neg3 = \
         np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_neg.txt')
-    # tfbB, mfallB, mwind_posB, mwind_posB1, mwind_posB2, mwind_posB3, Vwind_posB, Vwind_posB1, Vwind_posB2, Vwind_posB3 = \
-    #     np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_Bpos.txt')
-    # _, mwind_negB, mwind_negB1, mwind_negB2, mwind_negB3, Vwind_negB, Vwind_negB1, Vwind_negB2, Vwind_negB3 = \
-    #     np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_Bneg.txt')
+    tfbB, mfallB, _, mwind_posB1, mwind_posB2, mwind_posB3, Vwind_posB, Vwind_posB1, Vwind_posB2, Vwind_posB3 = \
+        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_Bpos.txt')
+    _, _, mwind_negB1, mwind_negB2, mwind_negB3, Vwind_negB, Vwind_negB1, Vwind_negB2, Vwind_negB3 = \
+        np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_Bneg.txt')
     f_out_th = f_out_LodatoRossi(mfall, Medd_code)
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16,6))
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize = (8,10))
     ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm f}$', c = 'k')
-    ax1.plot(tfb, np.abs(mwind_pos1)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm out}$ 0.5$a_{\rm min}$')
-    ax1.plot(tfb, np.abs(mwind_neg1)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm in}$ 0.5$a_{\rm min}$', ls = '--')
+    ax1.plot(tfb, np.abs(mwind_pos1)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm out}$')
+    ax1.plot(tfb, np.abs(mwind_neg1)/Medd_code, c = 'forestgreen', label = r'$\dot{M}_{\rm in}$')
+    ax1.plot(tfb, np.abs(mwind_posB1)/Medd_code, ls = '--', c = 'dodgerblue')#, label = r'$\dot{M}_{\rm out} [B>0]$')
+    ax1.plot(tfb, np.abs(mwind_negB1)/Medd_code, ls = '--', c = 'forestgreen')#, label = r'$\dot{M}_{\rm in} [B>0]$')
     ax1.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
     # ax1.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
     ax1.set_yscale('log')
     # ax1.ylim(1e-7, 3)
     ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')    
-    ax2.plot(tfb, Vwind_pos1/v_esc, c = 'dodgerblue', label = r'$v_{\rm out}(0.5 a_{\rm min})$')
-    ax2.plot(tfb, Vwind_neg1/v_esc, '--', c = 'dodgerblue', label = r'$v_{\rm in}(0.5 a_{\rm min})$')
+    ax2.plot(tfb, Vwind_pos1/v_esc, c = 'dodgerblue', label = r'$v_{\rm out}$')
+    ax2.plot(tfb, Vwind_neg1/v_esc, c = 'forestgreen', label = r'$v_{\rm in}$')
+    ax2.plot(tfb, Vwind_posB1/v_esc, '--', c = 'dodgerblue')#, label = r'$v_{\rm out} [B>0]$')
+    ax2.plot(tfb, Vwind_negB1/v_esc, '--', c = 'forestgreen')#, label = r'$v_{\rm in} [B>0]$')
     ax2.set_ylabel(r'$v_{\rm out}/v_{\rm esc}(R_{\rm t})$')
+    ax2.set_xlabel(r'$t/t_{\rm fb}$')
     for ax in (ax1, ax2):
         ax.legend(fontsize = 14)
-        ax.set_xlabel(r'$t/t_{\rm fb}$')
         ax.set_xlim(0, 1.8)
     # plt.suptitle(r'$\dot{M}_{\rm out, in} = \pi\sum_i v_{\rm{rad},i}\rho_i V_i^{2/3}$ distinguishing for $v_{\rm{rad}}><0$', fontsize = 20)
-    plt.suptitle(r'$\dot{M}_{\rm out, in} = 4\pi R^2\sum_i (v_{\rm{rad},i}\rho_i V_i^3) /\sum_i V_i^3$ distinguishing for $v_{\rm{rad}}><0$, where $R$ is the distance from the BH', fontsize = 20)
+    # plt.suptitle(r'$\dot{M}_{\rm out, in} = 4\pi R^2\sum_i (v_{\rm{rad},i}\rho_i V_i^3) /\sum_i V_i^3$ distinguishing for $v_{\rm{rad}}><0$, where $R$ is the distance from the BH', fontsize = 20)
     plt.tight_layout()
 
     # reproduce LodatoRossi11 Fig.6
@@ -240,7 +255,6 @@ if plot:
     plt.ylabel(r'$f_{\rm out}$')
 
     plt.figure(figsize = (8,6))
-    plt.plot(tfb, np.abs(mwind_pos/mfall), c = 'dodgerblue', label = r'f$_{\rm out}$ (0.2$a_{\rm min})$') 
     plt.plot(tfb, np.abs(mwind_pos1/mfall), c = 'orange', label = r'f$_{\rm out}$ (0.5$a_{\rm min})$')
     plt.plot(tfb, np.abs(mwind_pos2/mfall), c = 'purple', label = r'f$_{\rm out}$ (0.7$a_{\rm min})$')
     plt.plot(tfb, np.abs(mwind_pos3/mfall), c = 'green', label = r'f$_{\rm out}$ (1$a_{\rm min})$')

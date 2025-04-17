@@ -136,10 +136,10 @@ cbar.set_label(r'$\rho [M_\odot/R_\odot^3$]', fontsize = 20)
 for ax in [ax1, ax2, ax3]:
     ax.set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
     ax.scatter(0, 0, c='k', s = 40)
-    ax.set_xlim(-5, 0.5)
-    ax.set_ylim(-2,2)#1, 1)
+    ax.set_xlim(-15, 1)
+    ax.set_ylim(-5,5)#1, 1)
 plt.tight_layout()
-plt.savefig(f'{abspath}/Figs/EddingtonEnvelope/insights/vel_{snap}.png', bbox_inches = 'tight')
+plt.savefig(f'{abspath}/Figs/outflow/insights/vel_{snap}.png', bbox_inches = 'tight')
 
 #%% if you slice for Z
 xapo = np.abs(X-apo) < Vol**(1/3)

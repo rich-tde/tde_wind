@@ -1,4 +1,4 @@
-""" Find density and (radial velocity) profiles"""
+""" Find density and (radial velocity) profiles for different lines of sight. NB: observers have to be noramlized to 1. """
 #%%
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
@@ -78,6 +78,7 @@ n = 1.5
 compton = 'Compton'
 check = '' # '' or 'HiRes'
 which_obs = 'all_rotate' # 'arch', 'all_cartesian', 'all_rotate'
+which_part = ''
 # Rg = Mbh * prel.G / prel.csol_cgs**2
 # print(Rg)
 #%%
@@ -188,14 +189,15 @@ X, Y, Z, VX, VY, VZ, T, Den, Vol, Mass = \
 R = np.sqrt(X**2 + Y**2 + Z**2)    
 xyz = np.array([X, Y, Z]).T
 N_ray = 5_000
-with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}.txt','w') as file:
+rmax = 10*apo
+r = np.logspace(-0.25, np.log10(rmax), N_ray)
+
+with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}{which_part}.txt','w') as file:
         file.close()
 for j, idx_list in enumerate(indices_chosen):
     print(label_obs[j])
-    r_mean = []
-    d_mean = []
-    v_rad_mean = []
-    w_mean = []
+    d_all = []
+    v_rad_all = []
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 10))
     # fig2, ax3 = plt.subplots(1, 1, figsize=(8, 8))
@@ -204,28 +206,12 @@ for j, idx_list in enumerate(indices_chosen):
         mu_y = observers_xyz[i][1]
         mu_z = observers_xyz[i][2]
 
-        # Box 
-        if mu_x < 0:
-            rmax = box[0] / mu_x
-        else:
-            rmax = box[3] / mu_x
-        if mu_y < 0:
-            rmax = min(rmax, box[1] / mu_y)
-        else:
-            rmax = min(rmax, box[4] / mu_y)
-        if mu_z < 0:
-            rmax = min(rmax, box[2] / mu_z)
-        else:
-            rmax = min(rmax, box[5] / mu_z)
-
-        r = np.logspace(-0.25, np.log10(rmax), N_ray)
-
         x = r*mu_x
         y = r*mu_y
         z = r*mu_z
-        r = r * np.sqrt(mu_x**2 + mu_y**2 + mu_z**2) # r is the distance from the BH
         xyz2 = np.array([x, y, z]).T
         del x, y, z
+
         # find the simulation cell corresponding to cells in the wanted ray
         tree = KDTree(xyz, leaf_size = 50) 
         _, idx = tree.query(xyz2, k=1) #you can do k=4, comment the line afterwards and then do d = np.mean(d, axis=1) and the same for all the quantity. But you doesn't really change since you are averaging already on line of sights
@@ -243,12 +229,15 @@ for j, idx_list in enumerate(indices_chosen):
         ray_vy = VY[idx]
         ray_vz = VZ[idx]
         
-        v_rad, v_theta, v_phi = to_spherical_components(ray_vx, ray_vy, ray_vz, lat_obs[i], long_obs[i])
-        v_tot = np.sqrt(ray_vx**2 + ray_vy**2 + ray_vz**2)
-        r_mean.append(r)
-        d_mean.append(d)
-        v_rad_mean.append(v_rad)
-        w_mean.append(t)
+        v_rad, _, _ = to_spherical_components(ray_vx, ray_vy, ray_vz, lat_obs[i], long_obs[i])
+        if which_part == 'outflow':
+            d[v_rad<0] = 0
+            v_rad[v_rad<0] = 0
+        if which_part == 'inflow':
+            d[v_rad>0] = 0
+            v_rad[v_rad>0] = 0
+        d_all.append(d)
+        v_rad_all.append(v_rad)
 
         ax1.plot(xyz2[:,0]/apo, xyz2[:,1]/apo, c = colors_obs[j])
         img1 = ax1.scatter(ray_x/apo, ray_y/apo, c = np.abs(ray_z)/apo, cmap = 'jet', label = 'From simulation', norm = colors.LogNorm(vmin = 8e-3, vmax = 3))
@@ -278,70 +267,80 @@ for j, idx_list in enumerate(indices_chosen):
     ax2.set_title('Velocity', fontsize = 18)
     plt.suptitle(f'Observer {label_obs[j]}, snap {snap}', fontsize = 20)
     plt.tight_layout()
-    fig.savefig(f'{abspath}/Figs/outflow/insights/selectedCells{snap}{which_obs}{j}.png', bbox_inches = 'tight')
-    r_mean = np.array(r_mean)
-    d_mean = np.array(d_mean)
-    v_rad_mean = np.array(v_rad_mean)
-    w_mean = np.array(w_mean)
+    fig.savefig(f'{abspath}/Figs/outflow/insights/selectedCells{snap}{which_obs}{which_part}{j}.png', bbox_inches = 'tight')
 
-    r_mean = np.mean(r_mean, axis=0)
-    d_mean = np.mean(d_mean, axis=0)
-    v_rad_mean = np.mean(v_rad_mean, axis=0)
-    # v_rad_mean = np.sum(v_rad_mean * w_mean, axis=0) / np.sum(w_mean, axis=0)
+    if which_part == 'outflow' or which_part == 'inflow':
+        d_all = np.transpose(d_all) # shape: N_ray, N_obs
+        v_rad_all = np.transpose(v_rad_all)
+        d_mean = np.zeros(len(d_all))
+        v_rad_mean = np.zeros(len(v_rad_all))
+        for i_ray in range(len(d_all)):
+            n_nonzero = np.count_nonzero(d_all[i_ray])
+            d_mean[i_ray] = np.sum(d_all[i_ray])/n_nonzero
+            v_rad_mean[i_ray] = np.sum(v_rad_all[i_ray])/n_nonzero
+    else:
+        d_mean = np.mean(d_all, axis=0)
+        v_rad_mean = np.mean(v_rad_all, axis=0)
 
-    with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}.txt','a') as file:
+    with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}{which_part}.txt','a') as file:
         file.write(f'# Observer latitude: {lat_obs[i]}, longitude: {long_obs[i]}. Cut in density and in T>1e4\n')
-        file.write(f' '.join(map(str, r_mean)) + '\n')
+        file.write(f' '.join(map(str, r)) + '\n')
         file.write(f' '.join(map(str, d_mean)) + '\n')
         file.write(f' '.join(map(str, v_rad_mean)) + '\n')
         file.close()
 
 #%%
 x_test = np.arange(1e-3, 1e2)
-y_test2 = 1e-17 * (x_test/apo)**(-2)
-y_test3 = 2e-21 * (x_test/apo)**(-3)
-y_test4 = 1e-24 * (x_test/apo)**(-4)
+y_test2 = 4e-17 * (x_test/apo)**(-2)
+y_test3 = 2e-20 * (x_test/apo)**(-3)
+y_test4 = 3.5e-22 * (x_test/apo)**(-4)
 fig, ax1 = plt.subplots(1, 1, figsize=(8, 7))
 fig1, ax2 = plt.subplots(1, 1, figsize=(8, 7))
 fig2, ax3 = plt.subplots(1, 1, figsize=(8, 7))
+which_part = 'outflow'
 
-profiles = np.loadtxt(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}.txt')
+profiles = np.loadtxt(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}{which_part}.txt')
 r_mean, d_mean, v_rad_mean = profiles[0::3], profiles[1::3], profiles[2::3]
 
-for i in range(len(indices_chosen)):
+for i in [0,1,4,2,3,5]: #because I'm stupid and I haven't put the observer in a reasonable order
     r = r_mean[i]
     d = d_mean[i]
     v_rad = v_rad_mean[i]
-    ax1.plot(r/apo, d, color = colors_obs[i], label = f'{label_obs[i]}')#Observer {label_obs[i]} ({indices_chosen[i]})')
+    if np.logical_and(label_obs[i] == '+y', which_part == 'outflow'): # you don't have points there
+        d=d[r>1e-1*apo]
+        v_rad=v_rad[r>1e-1*apo]
+        r=r[r>1e-1*apo]
+    ax1.plot(r/apo, d, color = colors_obs[i], label = f'{label_obs[i]}')# Observer {label_obs[i]} ({indices_chosen[i]})')
     ax2.plot(r/apo, np.abs(v_rad)*prel.Rsol_cgs*1e-5/prel.tsol_cgs, color = colors_obs[i], label = f'{label_obs[i]}')#Observer {label_obs[i]} ({indices_chosen[i]})')
     ax3.plot(r/apo, r**2*d*np.abs(v_rad)*prel.Rsol_cgs**3/prel.tsol_cgs, color = colors_obs[i], label = f'{label_obs[i]}')#Observer {label_obs[i]} ({indices_chosen[i]})')
-ax1.plot(x_test, y_test2, c = 'gray', ls = 'dashed', label = r'$\rho \propto R^{-2}$')
-ax1.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto R^{-3}$')
-ax1.plot(x_test, y_test4, c = 'gray', ls = '-.', label = r'$\rho \propto R^{-4}$')
+ax1.plot(x_test, y_test2, c = 'gray', ls = 'dashed')#, label = r'$\rho \propto R^{-2}$')
+ax1.plot(x_test, y_test3, c = 'gray', ls = 'dotted')#, label = r'$\rho \propto R^{-3}$')
+ax1.plot(x_test, y_test4, c = 'gray', ls = '-.')#, label = r'$\rho \propto R^{-4}$')
 # ax1.axhspan(np.min(np.exp(Rho_cool)), np.max(np.exp(Rho_cool)), alpha=0.2, color='gray')
-ax1.set_ylim(2e-19, 5e-6)
+ax1.axvline(Rp/apo, c = 'k', ls = '--')
+ax1.set_ylim(2e-15, 1e-5)
 ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
 ax2.set_ylabel(r'$|v_r|$ [km/s]')
 ax3.set_ylabel(r'$|v_r| \rho R^2$ [g/s]')
-xmin = Rt/apo
-xmax = 400*Rt/apo
+xmin = 0.5*Rt/apo
+xmax = 10
 for ax in [ax1, ax2, ax3]:
     #put the legend if which_obs != 'all_rotate'. Lt it be outside
-    boxleg = ax.get_position()
-    ax.set_position([boxleg.x0, boxleg.y0, boxleg.width * 0.8, boxleg.height])
-    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 12)
-    ax.grid()
+    # boxleg = ax.get_position()
+    # ax.set_position([boxleg.x0, boxleg.y0, boxleg.width * 0.8, boxleg.height])
+    # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 12)
+    ax.legend(loc='lower left', fontsize = 14)
     ax.set_xlabel(r'R [R$_a]$')
     ax.set_xlim(xmin, xmax)
     ax.loglog()
+    ax.tick_params(axis='both', which='minor', size=4)
+    ax.tick_params(axis='both', which='major', size=6)
+    ax.grid()
 plt.tight_layout()
-fig.suptitle(f'Snap {snap}, cut T$>$2e4', fontsize = 20)
-fig.savefig(f'{abspath}/Figs/outflow/den_prof{snap}{which_obs}.png', bbox_inches = 'tight')
-fig1.savefig(f'{abspath}/Figs/outflow/vel_prof{snap}{which_obs}.png', bbox_inches = 'tight')
-fig2.savefig(f'{abspath}/Figs/outflow/vel_prof_rhoR2v{snap}{which_obs}.png', bbox_inches = 'tight')
+fig.savefig(f'{abspath}/Figs/outflow/den_prof{snap}{which_obs}{which_part}.pdf', bbox_inches = 'tight')
+fig1.savefig(f'{abspath}/Figs/outflow/vel_prof{snap}{which_obs}{which_part}.png', bbox_inches = 'tight')
+fig2.savefig(f'{abspath}/Figs/outflow/vel_prof_rhoR2v{snap}{which_obs}{which_part}.png', bbox_inches = 'tight')
 plt.show()
 
 #%%
 eng.exit()
-
-#%%
