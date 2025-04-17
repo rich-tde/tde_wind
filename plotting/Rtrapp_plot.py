@@ -255,7 +255,7 @@ else: # Evolution in time (comparison with high res) and comparison with the pho
     plt.show()
 
     # Plot for the paper
-    plt.figure(figsize=(10,6))
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
     img = plt.scatter(tfb[20:], median_vel_tr[20:] * conversion_sol_kms * 1e-4, c = ratio_unbound_tr[20:], s = 7, vmin = 0, vmax = 0.6, label = 'Fid Res')
     cbar = plt.colorbar(img)
     cbar.set_label(r'$N_{\rm unbound}/N_{\rm obs}$')
@@ -263,11 +263,19 @@ else: # Evolution in time (comparison with high res) and comparison with the pho
     plt.plot(tfb[20:], percentile84_tr[20:] * conversion_sol_kms * 1e-4, c = 'yellowgreen', alpha = 0.1, linestyle = '--')
     plt.fill_between(tfb[20:], percentile16_tr[20:] * conversion_sol_kms * 1e-4, percentile84_tr[20:] * conversion_sol_kms * 1e-4, color = 'yellowgreen', alpha = 0.1)
     plt.grid()
-    plt.xlabel(r'$t_{\rm fb}$')
+    plt.xlabel(r'$t [t_{\rm fb}]$')
     plt.ylabel(r'median velocity [$10^4$ km/s] ')
     # plt.text(0.08, 2.01, f'{check}', fontsize = 25)
+    original_ticks = ax.get_xticks()
+    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+    ax.set_xticks(new_ticks)
+    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+    ax.set_xticklabels(labels)
+    ax.tick_params(axis='x', which='major', width=0.7, length=7)
+    ax.tick_params(axis='x', which='minor', width=0.5, length=5)
+    plt.xlim(0.1, 1.8)
     plt.ylim(-0.01, 2)
-    plt.xlim(-0.09, 1.8)
     plt.tight_layout()
     plt.savefig(f'{abspath}/Figs/outflow/Rtr_velocity.pdf', bbox_inches='tight')
     plt.show()

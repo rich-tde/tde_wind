@@ -239,9 +239,18 @@ if plot:
     ax2.plot(tfb, Vwind_negB1/v_esc, '--', c = 'forestgreen')#, label = r'$v_{\rm in} [B>0]$')
     ax2.set_ylabel(r'$v_{\rm out}/v_{\rm esc}(R_{\rm t})$')
     ax2.set_xlabel(r'$t/t_{\rm fb}$')
+    original_ticks = ax2.get_xticks()
+    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
     for ax in (ax1, ax2):
         ax.legend(fontsize = 14)
+        ax.set_xticks(new_ticks)
+        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+        ax.set_xticklabels(labels)
+        ax.tick_params(axis='x', which='major', width=0.7, length=7)
+        ax.tick_params(axis='x', which='minor', width=0.5, length=5)
         ax.set_xlim(0, 1.8)
+        ax.grid()
     # plt.suptitle(r'$\dot{M}_{\rm out, in} = \pi\sum_i v_{\rm{rad},i}\rho_i V_i^{2/3}$ distinguishing for $v_{\rm{rad}}><0$', fontsize = 20)
     # plt.suptitle(r'$\dot{M}_{\rm out, in} = 4\pi R^2\sum_i (v_{\rm{rad},i}\rho_i V_i^3) /\sum_i V_i^3$ distinguishing for $v_{\rm{rad}}><0$, where $R$ is the distance from the BH', fontsize = 20)
     plt.tight_layout()

@@ -69,8 +69,8 @@ for snap in snaps:
         loadpath = f'{pre}/{snap}'
     data = make_tree(loadpath, snap, energy = True)
     box = np.load(f'{loadpath}/box_{snap}.npy')
-    X, Y, Z, T, Den, Vol, VX, VY, VZ = \
-        data.X, data.Y, data.Z, data.Temp, data.Den, data.Vol, data.VX, data.VY, data.VZ
+    X, Y, Z, T, Den, Vol, VX, VY, VZ, Press, IE = \
+        data.X, data.Y, data.Z, data.Temp, data.Den, data.Vol, data.VX, data.VY, data.VZ, data.Press, data.IE
     denmask = Den > 1e-19
     X, Y, Z, T, Den, Vol, VX, VY, VZ = \
         make_slices([X, Y, Z, T, Den, Vol, VX, VY, VZ], denmask)
@@ -87,6 +87,8 @@ for snap in snaps:
     Vy_tr = np.zeros(len(observers_xyz))
     Vz_tr = np.zeros(len(observers_xyz))
     Vr_tr = np.zeros(len(observers_xyz))
+    IE_tr = np.zeros(len(observers_xyz))
+    Press_tr = np.zeros(len(observers_xyz))
 
     for i in range(len(observers_xyz)):
         if i != 95:
@@ -132,8 +134,10 @@ for snap in snaps:
         ray_vx = VX[idx]
         ray_vy = VY[idx]
         ray_vz = VZ[idx]
-        ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r = \
-            sort_list([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r], ray_r)
+        ray_Press = Press[idx]
+        ray_IE = IE[idx]
+        ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, ray_Press, ray_IE, idx, ray_r = \
+            sort_list([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, ray_Press, ray_IE, idx, ray_r], ray_r)
         long_ph_s = np.arctan2(ray_y, ray_x)          # Azimuthal angle in radians
         lat_ph_s = np.arccos(ray_z/ ray_r) 
         v_rad, v_theta, v_phi= to_spherical_components(ray_vx, ray_vy, ray_vz, lat_ph_s, long_ph_s)
@@ -143,8 +147,8 @@ for snap in snaps:
         sigma_rossland = np.array(sigma_rossland)[0]
         underflow_mask = sigma_rossland != 0.0
         idx = np.array(idx)
-        ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r, sigma_rossland = \
-            make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r, sigma_rossland], underflow_mask)
+        ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, ray_Press, ray_IE, idx, ray_r, sigma_rossland = \
+            make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, ray_Press, ray_IE, idx, ray_r, sigma_rossland], underflow_mask)
         sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
         del sigma_rossland
         gc.collect()
@@ -155,8 +159,8 @@ for snap in snaps:
         # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
         los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, ray_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_z. YOu integrate in the z direction
         los_zero = los != 0
-        ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r, v_rad, los, sigma_rossland_eval = \
-            make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_r, v_rad, los, sigma_rossland_eval], los_zero)
+        ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, ray_Press, ray_IE, idx, ray_r, v_rad, los, sigma_rossland_eval = \
+            make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, ray_Press, ray_IE, idx, ray_r, v_rad, los, sigma_rossland_eval], los_zero)
         # you integrate for tau as BonnerotLu20, eq.16 for trapping radius
         los_scatt = - np.flipud(sci.cumulative_trapezoid(np.flipud(d)*0.34, np.flipud(ray_r), initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_z. YOu integrate in the z direction
         c_tau = prel.csol_cgs/los #c/tau [code units]
@@ -201,6 +205,8 @@ for snap in snaps:
         Vy_tr[i] = ray_vy[Rtr_idx]
         Vz_tr[i] = ray_vz[Rtr_idx]
         Vr_tr[i] = v_rad[Rtr_idx]
+        IE_tr[i] = ray_IE[Rtr_idx]
+        Press_tr[i] = ray_Press[Rtr_idx]
 
         t_dyn = ray_r/np.abs(v_rad) * prel.tsol_cgs # [s]
 
@@ -229,7 +235,7 @@ for snap in snaps:
 
     if alice:
         with open(f'{pre_saving}/trap/{check}_Rtr{snap}.txt', 'a') as f:
-                f.write('# Data for the Rtr (all in CGS). Lines are: x_tr, y_tr, z_tr, vol_tr, den_tr, Temp_tr, Vx_tr, Vy_tr, Vz_tr, Vr_tr \n')
+                f.write('# Data for the Rtr (all in CGS). Lines are: x_tr, y_tr, z_tr, vol_tr, den_tr, Temp_tr, Vx_tr, Vy_tr, Vz_tr, Vr_tr, IE_tr, Press_tr with IE being internal energy density \n')
                 f.write(' '.join(map(str, x_tr)) + '\n')
                 f.write(' '.join(map(str, y_tr)) + '\n')
                 f.write(' '.join(map(str, z_tr)) + '\n')
@@ -240,6 +246,8 @@ for snap in snaps:
                 f.write(' '.join(map(str, Vy_tr)) + '\n')
                 f.write(' '.join(map(str, Vz_tr)) + '\n')
                 f.write(' '.join(map(str, Vr_tr)) + '\n')
+                f.write(' '.join(map(str, IE_tr)) + '\n')
+                f.write(' '.join(map(str, Press_tr)) + '\n')
                 f.close()
 
 #%%
