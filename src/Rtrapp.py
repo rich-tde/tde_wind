@@ -58,8 +58,6 @@ rossland = np.loadtxt(f'{opac_path}/ross.txt')
 T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
 
 for snap in snaps:
-    if snap != 348:
-        continue
     photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
     xph, yph, zph = photo[0], photo[1], photo[2]
     rph = np.sqrt(xph**2 + yph**2 + zph**2)
@@ -91,8 +89,6 @@ for snap in snaps:
     Press_tr = np.zeros(len(observers_xyz))
 
     for i in range(len(observers_xyz)):
-        if i != 95:
-            continue
         print(f'{i}', flush=True)
         sys.stdout.flush()
         mu_x = observers_xyz[i][0]
