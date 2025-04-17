@@ -167,8 +167,10 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     Vwind_neg = np.transpose(np.array(Vwind_neg))
 
     with open(f'{abspath}/data/{folder}/Mdot_{check}_{cond_selection}pos_splitX.txt','w') as file:
-        # file.write(f'# Distinguish using Bernouilli criterion \n#t/tfb \n')
-        file.write(f'# t/tfb splitting between positive and negative X \n')
+        if cond_selection == 'B':
+            file.write(f'# Distinguish using Bernouilli criterion \n#t/tfb \n')
+        else:
+            file.write(f'# t/tfb splitting between positive and negative X \n')
         file.write(f' '.join(map(str, tfb)) + '\n')
         file.write(f'# Mdot_f \n')
         file.write(f' '.join(map(str, mfall)) + '\n')
@@ -191,7 +193,10 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         file.close()
     
     with open(f'{abspath}/data/{folder}/Mdot_{check}_{cond_selection}neg_splitX.txt','w') as file:
-        file.write(f'#t/tfb splitting between positive and negative X\n')
+        if cond_selection == 'B':
+            file.write(f'# Distinguish using Bernouilli criterion \n#t/tfb \n')
+        else:
+            file.write(f'# t/tfb splitting between positive and negative X \n')
         file.write(f' '.join(map(str, tfb)) + '\n')
         file.write(f'# Mdot_wind at 0.2 amin\n')
         file.write(f' '.join(map(str, mwind_neg[0])) + '\n')
