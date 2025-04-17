@@ -234,7 +234,7 @@ for snap in snaps:
         plt.tight_layout()
 
     if alice:
-        with open(f'{pre_saving}/trap/{check}_Rtr{snap}.txt', 'a') as f:
+        with open(f'{pre_saving}/trap/{check}_Rtr{snap}.txt', 'w') as f:
                 f.write('# Data for the Rtr (all in CGS). Lines are: x_tr, y_tr, z_tr, vol_tr, den_tr, Temp_tr, Vx_tr, Vy_tr, Vz_tr, Vr_tr, IE_tr, Press_tr with IE being internal energy density \n')
                 f.write(' '.join(map(str, x_tr)) + '\n')
                 f.write(' '.join(map(str, y_tr)) + '\n')
