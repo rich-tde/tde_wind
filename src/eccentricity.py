@@ -107,7 +107,7 @@ if alice:
         np.save(f'{abspath}/data/{folder}/radiiEcc_{which_cut}_{check}.npy', radii)
 
 else:
-    error = True
+    error = False
     ecc_crit = orb.eccentricity(Rstar, mstar, Mbh, beta)
 
     if not error:
@@ -122,7 +122,7 @@ else:
         plt.figure(figsize=(10,8))
         # set to white the 0 values so they are white in the plot
         ecc[ecc == 0] = np.nan
-        img = plt.pcolormesh(radii/apo, tfb, ecc, vmin = 0.75, vmax = 0.93, cmap = 'jet', rasterized = True)#cmocean.cm.balance)
+        img = plt.pcolormesh(radii/apo, tfb, ecc, vmin = 0.5, vmax = .95, cmap = 'viridis', rasterized = True)#cmocean.cm.balance)
         cb = plt.colorbar(img)
         cb.ax.tick_params(labelsize=25)
         cb.set_label(r'Eccentricity' , fontsize = 25, labelpad = 1)
@@ -132,9 +132,9 @@ else:
         plt.xscale('log')
         plt.xlabel(r'$R [R_{a}]$')#, fontsize = 25)
         plt.ylabel(r'$t [t_{fb}]$')#, fontsize = 25)
-        plt.tick_params(axis='x', which='major', width=1.2, length=8, color = 'white', labelsize=25)
+        plt.tick_params(axis='x', which='major', width=1.2, length=8, color = 'k', labelsize=25)
         plt.tick_params(axis='y', which='major', width=1, length=8, color = 'white', labelsize=25)
-        plt.tick_params(axis='x', which='minor', width=1, length=5, color = 'white', labelsize=25)
+        plt.tick_params(axis='x', which='minor', width=1, length=6, color = 'k', labelsize=25)
         plt.ylim(np.min(tfb), np.max(tfb))
         plt.savefig(f'{abspath}/Figs/paper/ecc{which_cut}.pdf', bbox_inches='tight')
     

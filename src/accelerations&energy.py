@@ -36,7 +36,7 @@ check = ''
 Rs = 2 * prel.G * Mbh / prel.csol_cgs**2
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snap = 115
+snap = 348
 
 Rt = Rstar * (Mbh/mstar)**(1/3)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta) 
@@ -125,7 +125,7 @@ fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize=(30,8))
 # cbar.set_label(r'$|V_r|$ [km/s]', fontsize = 20)
 img = ax1.scatter(X_mid[V_r_mid>0]/apo, Y_mid[V_r_mid>0]/apo, c = 'r', s = 7, label = r'$V_r > 0$')
 img = ax1.scatter(X_mid[V_r_mid<=0]/apo, Y_mid[V_r_mid<=0]/apo, c = 'b', s = 7, label = r'$V_r <\leq0$')
-ax1.legend(fonsize = 20)
+ax1.legend(fontsize = 20)
 # ax1.quiver(X[::1500]_mid/apo, Y[::1500]_mid/apo, Vx[::1500], Vy[::1500], color = 'k', scale = 100, scale_units = 'xy', angles = 'xy', width = 0.002)
 ax1.set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
 

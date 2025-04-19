@@ -31,7 +31,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = ''
+check = 'LowRes'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 cond_selection = '' # if 'B' you put the extra condition on the Bernouilli coeff to select cells
 
@@ -85,6 +85,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         i_bin = np.argmin(np.abs(energy-np.abs(bins_tokeep))) # just to be sure that you match the data
         if energy/bins_tokeep[i_bin] > max_bin_negative:
             print('You overcome the maximum negative bin')
+        
         dMdE_t = dMdE_distr_tokeep[i_bin]
         mdot = orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t)
         mfall[i] = mdot # code units
@@ -122,7 +123,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             v_rad_pos_casted = np.zeros(len(radii))
             # print('Mdot_pos: ')
             for j, r in enumerate(radii):
-                selected_pos = np.logical_and(np.abs(Rsph_pos - r) < dim_cell_pos, X_pos >= 0)
+                selected_pos = np.abs(Rsph_pos - r) < dim_cell_pos
                 if Mdot_pos[selected_pos].size == 0:
                     Mdot_pos_casted[j] = 0
                     v_rad_pos_casted[j] = 0
@@ -150,7 +151,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             v_rad_neg_casted = np.zeros(len(radii))
             # print('Mdot_neg: ')
             for j, r in enumerate(radii):
-                selected_neg = np.logical_and(np.abs(Rsph_neg - r) < dim_cell_neg, X_neg >= 0)
+                selected_neg = np.abs(Rsph_neg - r) < dim_cell_neg
                 if Mdot_neg[selected_neg].size == 0:
                     Mdot_neg_casted[j] = 0
                     v_rad_neg_casted[j] = 0
@@ -166,11 +167,11 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     Vwind_pos = np.transpose(np.array(Vwind_pos))
     Vwind_neg = np.transpose(np.array(Vwind_neg))
 
-    with open(f'{abspath}/data/{folder}/Mdot_{check}_{cond_selection}pos_splitX.txt','w') as file:
+    with open(f'{abspath}/data/{folder}/Mdot_{check}_{cond_selection}pos.txt','w') as file:
         if cond_selection == 'B':
             file.write(f'# Distinguish using Bernouilli criterion \n#t/tfb \n')
         else:
-            file.write(f'# t/tfb splitting between positive and negative X \n')
+            file.write(f'# t/tfb \n')
         file.write(f' '.join(map(str, tfb)) + '\n')
         file.write(f'# Mdot_f \n')
         file.write(f' '.join(map(str, mfall)) + '\n')
@@ -192,11 +193,11 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         file.write(f' '.join(map(str, Vwind_pos[3])) + '\n')
         file.close()
     
-    with open(f'{abspath}/data/{folder}/Mdot_{check}_{cond_selection}neg_splitX.txt','w') as file:
+    with open(f'{abspath}/data/{folder}/Mdot_{check}_{cond_selection}neg.txt','w') as file:
         if cond_selection == 'B':
             file.write(f'# Distinguish using Bernouilli criterion \n#t/tfb \n')
         else:
-            file.write(f'# t/tfb splitting between positive and negative X \n')
+            file.write(f'# t/tfb \n')
         file.write(f' '.join(map(str, tfb)) + '\n')
         file.write(f'# Mdot_wind at 0.2 amin\n')
         file.write(f' '.join(map(str, mwind_neg[0])) + '\n')
@@ -227,10 +228,15 @@ if plot:
     _, _, mwind_negB1, mwind_negB2, mwind_negB3, Vwind_negB, Vwind_negB1, Vwind_negB2, Vwind_negB3 = \
         np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_Bneg.txt')
     f_out_th = f_out_LodatoRossi(mfall, Medd_code)
+    # load the data splitted in x>0 or <x0
+    splitpos = np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_pos_splitX.txt')
+    pos_xpos1, pos_xneg1 = splitpos[3], splitpos[13]
+    splitneg = np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_neg_splitX.txt')
+    neg_xpos1, neg_xneg1 = splitneg[3], splitneg[13]
 
     fig, ax1 = plt.subplots(1, 1, figsize = (8,6))
     fig2, ax2 = plt.subplots(1, 1, figsize = (8,6))
-    ax1.plot(tfb, np.abs(mwind_pos1)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm out}$')
+    ax1.plot(tfb[10:], np.abs(mwind_pos1[10:])/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm out}$')
     ax1.plot(tfb, np.abs(mwind_neg1)/Medd_code, c = 'forestgreen', label = r'$\dot{M}_{\rm in}$')
     ax1.plot(tfb, np.abs(mwind_posB1)/Medd_code, ls = '--', c = 'dodgerblue')#, label = r'$\dot{M}_{\rm out} [B>0]$')
     ax1.plot(tfb, np.abs(mwind_negB1)/Medd_code, ls = '--', c = 'forestgreen')#, label = r'$\dot{M}_{\rm in} [B>0]$')
@@ -238,7 +244,7 @@ if plot:
     # ax1.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
     # ax1.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
     ax1.set_yscale('log')
-    ax1.set_ylim(1e-3, 6e5)
+    ax1.set_ylim(1e-1, 6e5)
     ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')    
     ax2.plot(tfb, Vwind_pos1/v_esc, c = 'dodgerblue', label = r'$v_{\rm out}$')
     ax2.plot(tfb, Vwind_neg1/v_esc, c = 'forestgreen', label = r'$v_{\rm in}$')
@@ -258,10 +264,31 @@ if plot:
         ax.tick_params(axis='x', which='minor', width=0.5, length=5)
         ax.set_xlim(0, 1.8)
         ax.grid()
-    # plt.suptitle(r'$\dot{M}_{\rm out, in} = \pi\sum_i v_{\rm{rad},i}\rho_i V_i^{2/3}$ distinguishing for $v_{\rm{rad}}><0$', fontsize = 20)
-    # plt.suptitle(r'$\dot{M}_{\rm out, in} = 4\pi R^2\sum_i (v_{\rm{rad},i}\rho_i V_i^3) /\sum_i V_i^3$ distinguishing for $v_{\rm{rad}}><0$, where $R$ is the distance from the BH', fontsize = 20)
     plt.tight_layout()
     fig.savefig(f'{abspath}/Figs/outflow/Mdot_{check}.pdf', bbox_inches = 'tight')
+
+    fig, ax1 = plt.subplots(1, 1, figsize = (8,6))
+    ax1.plot(tfb[10:], np.abs(mwind_pos1[10:])/Medd_code, c = 'dodgerblue')
+    ax1.plot(tfb, np.abs(pos_xpos1)/Medd_code, '--', c = 'b', label = r'$x>0$')
+    ax1.plot(tfb, np.abs(pos_xneg1)/Medd_code, ls = '--', c = 'r', label = r'$x<0$')
+    ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm fb}$', c = 'k')
+    ax1.set_yscale('log')
+    ax1.set_ylim(1e-1, 6e5)
+    ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')    
+    original_ticks = ax2.get_xticks()
+    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+    ax1.set_xlabel(r'$t [t_{\rm fb}]$')
+    ax1.legend(fontsize = 18)
+    ax1.set_xticks(new_ticks)
+    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+    ax1.set_xticklabels(labels)
+    ax1.tick_params(axis='x', which='major', width=0.7, length=7)
+    ax1.tick_params(axis='x', which='minor', width=0.5, length=5)
+    ax1.set_xlim(0, 1.8)
+    ax1.grid()
+    plt.title(r'$\dot{M}_{\rm out}$')
+    plt.tight_layout()
 
     # reproduce LodatoRossi11 Fig.6
     plt.figure(figsize = (8,6))
@@ -282,7 +309,6 @@ if plot:
     plt.ylabel(r'$f_{\rm out}\equiv \dot{M}_{\rm wind}/\dot{M}_{\rm fb}$')
     plt.yscale('log')
     plt.ylim(5e-3, 80)
-    # plt.savefig(f'{abspath}/Figs/outflow/Mdot.png')
 
 
     
