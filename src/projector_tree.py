@@ -46,14 +46,14 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
     # R0 = 0.6 * Rt
     apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
-    x_start = -1.2*apo #-7*apo
-    x_stop = apo #2.5*apo
+    x_start = -7*apo
+    x_stop = 2.5*apo
     xs = np.linspace(x_start, x_stop, num = x_num )
-    y_start = - apo #-4*apo 
-    y_stop = apo  #3*apo
+    y_start = -4*apo 
+    y_stop = 3*apo
     ys = np.linspace(y_start, y_stop, num = y_num)
-    z_start = -2*Rt #-apo 
-    z_stop = 2*Rt #apo 
+    z_start = -2*apo 
+    z_stop = 2*apo 
     zs = np.linspace(z_start, z_stop, z_num) #simulator units
 
     # data = make_tree(path, snap, energy = True)
@@ -123,7 +123,7 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
     return flat_den
  
 if __name__ == '__main__':    
-    if what_to_grid == 'tau_ross':
+    if what_to_grid == 'Den':
         import matlab.engine
         from src.Opacity.linextrapolator import nouveau_rich
         eng = matlab.engine.start_matlab()
@@ -160,7 +160,7 @@ if __name__ == '__main__':
                                np.argmin(np.abs(snaps-348))])
         snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
         
-        with open(f'{prepath}/data/{folder}/projection/{what_to_grid}time_proj.txt', 'a') as f:
+        with open(f'{prepath}/data/{folder}/projection/{what_to_grid}time_proj_big.txt', 'a') as f:
             f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
             f.write(f'# t/t_fb (t_fb = {t_fall})\n' + ' '.join(map(str, tfb)) + '\n')
             f.close()
@@ -180,10 +180,10 @@ if __name__ == '__main__':
             else:
                 _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100)
                 flat_q = projector(grid_q, x_radii, y_radii, z_radii)
-                np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}proj{snap}.npy', flat_q)
+                np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}proj{snap}_big.npy', flat_q)
                 
-        np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}xarray.npy', x_radii)
-        np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}yarray.npy', y_radii)
+        np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}xarray_big.npy', x_radii)
+        np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}yarray_big.npy', y_radii)
 
     else:
         import src.orbits as orb
