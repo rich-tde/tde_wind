@@ -49,9 +49,11 @@ norm = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call
 
 # Choose what to do
 save = True
-compare_times = True
+test_bins = True
+compare_times = False
 movie = False 
 dMdecc = False
+
 
 def specific_j(r, vel):
     """ (Magnitude of) specific angular momentum """
@@ -72,13 +74,16 @@ if alice:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         print(f'Check: {check}')
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
-        bins = np.arange(-6.5, 2, .1) #np.linspace(-5,5,1000) 
+        bins1 = np.arange(-6.5, -1.5, .1) 
+        bins2 = np.arange(-1.5, 0, .01)
+        bins3 = np.arange(0, 2, .1)
+        bins = np.concatenate((bins1, bins2, bins3))
         # save snaps, tfb and energy bins
         with open(f'{abspath}/data/{folder}/dMdE_{check}_days.txt','w') as filedays:
             filedays.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
             filedays.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
             filedays.close()
-        with open(f'{abspath}/data/{folder}/dMdE_{check}_lessbins.txt','w') as file:
+        with open(f'{abspath}/data/{folder}/dMdE_{check}_bins.txt','w') as file:
             file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
             file.write((' '.join(map(str, bins)) + '\n'))
             file.close()
@@ -88,7 +93,7 @@ if alice:
             path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
             data = make_tree(path, snap, energy = False)
             # Compute the orbital energy
-            dim_cell = data.Vol**(1/3) 
+            dim_cell = 0.5*data.Vol**(1/3) 
             mass = data.Mass
             R = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
             V = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
@@ -104,19 +109,54 @@ if alice:
             mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
             dm_dE = mass_binned / (np.diff(bins_edges)*norm)
 
-            with open(f'{abspath}/data/{folder}/dMdE_{check}_less.txt','a') as file:
+            with open(f'{abspath}/data/{folder}/dMdE_{check}.txt','a') as file:
                 file.write(f'# dM/dE [code units] snap {snap} \n')
                 file.write((' '.join(map(str, dm_dE)) + '\n'))
                 file.close()
-    
+
+if test_bins:
+    snap = 348
+    check = ''
+    spacebins = 0.01
+    bins = np.arange(-6.5, 2, spacebins) #np.linspace(-5,5,1000)
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    path = f'{abspath}/TDE/{folder}/{snap}'
+    data = make_tree(path, snap, energy = False)
+    # Compute the orbital energy
+    dim_cell = 0.5*data.Vol**(1/3) 
+    mass = data.Mass
+    R = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
+    V = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
+    orbital_enegy = orb.orbital_energy(R, V, mass, prel.G, prel.csol_cgs, Mbh)
+    specific_orbital_energy = orbital_enegy / mass
+    specOE_norm = specific_orbital_energy/norm
+    # Cutoff for low density
+    cut = data.Den > 1e-19
+    mass, specOE_norm = mass[cut], specOE_norm[cut]
+    # count how many particles in each bins
+    counts = np.zeros(len(bins)-1)
+    for i, bin in enumerate(bins[:-1]):
+        counts[i] = len(mass[np.logical_and(specOE_norm>bin, specOE_norm<bins[i+1])])
+    fig, (ax1, ax2) = plt.subplots(1,2, figsize=(12, 6))
+    ax1.scatter(bins[:-1], counts, c = 'k', s = 2, label = 'Counts')
+    ax2.plot(bins[:-1], counts, c = 'k', label = 'Counts')
+    for ax in (ax1, ax2):
+        ax.set_yscale('log')
+        ax.set_xlabel(r'$E/\Delta E$', fontsize = 16)
+        ax.legend(fontsize = 16)
+    ax1.set_yscale('log')
+    plt.suptitle(f'Spacing between bins: {spacebins}', fontsize = 16)
+    plt.savefig(f'{abspath}Figs/Test/spacing{spacebins}dMdE.png')
+
+
 if compare_times:
     from Utilities.operators import find_ratio
     commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     datadays = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE__days.txt')
     snaps, tfb= datadays[0], datadays[1]
-    bins = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE__bins.txt')
+    bins = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE__lessbins.txt')
     mid_points = (bins[:-1]+bins[1:])/2
-    data = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE_.txt')
+    data = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE__less.txt')
     
     datadaysH = np.loadtxt(f'{abspath}data/{commonfolder}HiRes/dMdE_HiRes_days.txt')
     snapsH, tfbH = datadaysH[0], datadaysH[1]
@@ -136,20 +176,20 @@ if compare_times:
         data[idx_snap], dataH[idx_snapH], dataL[idx_snapL]
     ratio_L = np.zeros_like(data_fin) 
     ratio_H = np.zeros_like(data_fin)
-    for j in range(len(data_fin)):
-        ratio_L[j] = find_ratio(data_fin[j], dataL_fin[j])
-        ratio_H[j] = find_ratio(data_fin[j], dataH_fin[j])
+    # for j in range(len(data_fin)):
+    #     ratio_L[j] = find_ratio(data_fin[j], dataL_fin[j])
+    #     ratio_H[j] = find_ratio(data_fin[j], dataH_fin[j])
     
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
     ax1.plot(mid_points, data[0], c = 'k', alpha = 0.5)#, label = r't = 0')
-    ax1.plot(mid_points, dataL_fin, c = 'C1', label = f'Low')            
-    ax1.plot(mid_points, data_fin, c = 'yellowgreen', label = f'Middle')
-    ax1.plot(mid_points, dataH_fin, c = 'darkviolet', label = f'High')
+    # ax1.plot(mid_points, dataL_fin, c = 'C1', label = f'Low')            
+    ax1.scatter(mid_points, data_fin, c = 'yellowgreen', label = f'Middle')
+    # ax1.plot(mid_points, dataH_fin, c = 'darkviolet', label = f'High')
 
-    ax2.plot(mid_points, ratio_L, c = 'C1')
-    ax2.plot(mid_points, ratio_L, c = 'yellowgreen', linestyle = (0, (5, 10)))
-    ax2.plot(mid_points, ratio_H, c = 'darkviolet')
-    ax2.plot(mid_points, ratio_H, c = 'yellowgreen', linestyle = (0, (5, 10)))
+    # ax2.plot(mid_points, ratio_L, c = 'C1')
+    # ax2.plot(mid_points, ratio_L, c = 'yellowgreen', linestyle = (0, (5, 10)))
+    # ax2.plot(mid_points, ratio_H, c = 'darkviolet')
+    # ax2.plot(mid_points, ratio_H, c = 'yellowgreen', linestyle = (0, (5, 10)))
 
     ax1.legend(fontsize = 16)
     ax1.set_yscale('log')
