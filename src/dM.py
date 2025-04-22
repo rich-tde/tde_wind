@@ -148,7 +148,6 @@ if test_bins:
     plt.suptitle(f'Spacing between bins: {spacebins}', fontsize = 16)
     plt.savefig(f'{abspath}Figs/Test/spacing{spacebins}dMdE.png')
 
-
 if compare_times:
     from Utilities.operators import find_ratio
     commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
