@@ -31,7 +31,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'LowRes'
+check = ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 cond_selection = '' # if 'B' you put the extra condition on the Bernouilli coeff to select cells
 
@@ -218,6 +218,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         file.close()
 
 if plot:
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
     tfb, mfall, _, mwind_pos1, mwind_pos2, mwind_pos3, Vwind_pos, Vwind_pos1, Vwind_pos2, Vwind_pos3 = \
         np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_pos.txt')
@@ -309,6 +310,42 @@ if plot:
     plt.ylabel(r'$f_{\rm out}\equiv \dot{M}_{\rm wind}/\dot{M}_{\rm fb}$')
     plt.yscale('log')
     plt.ylim(5e-3, 80)
+
+    ## Check convergence
+    dataposLow = np.loadtxt(f'{abspath}/data/{folder}LowRes/Mdot_LowRes_pos.txt')
+    tfbL,  mwind_pos1L = dataposLow[0], dataposLow[3]
+    datanegLow = np.loadtxt(f'{abspath}/data/{folder}LowRes/Mdot_LowRes_neg.txt')
+    mwind_neg1L =  datanegLow[2]
+    dataposHi = np.loadtxt(f'{abspath}/data/{folder}HiRes/Mdot_HiRes_pos.txt')
+    tfbH,  mwind_pos1H = dataposHi[0], dataposHi[3]
+    datanegHi = np.loadtxt(f'{abspath}/data/{folder}HiRes/Mdot_HiRes_neg.txt')
+    mwind_neg1H = datanegHi[2]
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16,6))
+    ax1.plot(tfbL[10:], np.abs(mwind_pos1L[10:])/Medd_code, c = 'C1', label = r'Low')
+    ax1.plot(tfb[10:], np.abs(mwind_pos1[10:])/Medd_code, c = 'yellowgreen', label = r'Fid')
+    ax1.plot(tfbH[10:], np.abs(mwind_pos1H[10:])/Medd_code, c = 'darkviolet', label = r'High')
+    ax1.set_ylabel(r'$|\dot{M}_{\rm out}| [\dot{M}_{\rm Edd}]$')  
+    ax2.plot(tfbL, np.abs(mwind_neg1L)/Medd_code, c = 'C1')
+    ax2.plot(tfb, np.abs(mwind_neg1)/Medd_code, c = 'yellowgreen')
+    ax2.plot(tfbH, np.abs(mwind_neg1H)/Medd_code, c = 'darkviolet')
+    ax2.set_ylabel(r'$|\dot{M}_{\rm in}| [\dot{M}_{\rm Edd}]$')  
+    for ax in (ax1, ax2):
+        ax.set_xlabel(r'$t [t_{\rm fb}]$')
+        ax.legend(fontsize = 18)
+        ax.set_xlim(0, 1.8)
+        # ax.set_xticks(new_ticks)
+        # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+        # ax.set_xticklabels(labels)
+        # ax.tick_params(axis='x', which='major', width=0.7, length=7)
+        # ax.tick_params(axis='x', which='minor', width=0.5, length=5)
+        ax.set_yscale('log')
+        ax.set_ylim(1e-1, 6e5)
+        ax.grid()
+    ax1.legend(fontsize = 18)
+    plt.tight_layout()
+    fig.savefig(f'{abspath}/Figs/outflow/Mdot_convergence.pdf', bbox_inches = 'tight')
+    
 
 
     

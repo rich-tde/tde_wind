@@ -304,9 +304,9 @@ else: # Evolution in time (comparison with high res) and comparison with the pho
         percentile84_trH[i] = np.percentile(vel_trH, 84)
 
     plt.figure(figsize=(10,6))
-    img = plt.scatter(tfb, median_vel_tr * conversion_sol_kms * 1e-4, c = ratio_unbound_tr, s = 7, vmin = 0, vmax = 0.6, label = 'Fid Res')
+    img = plt.scatter(tfb[20:], median_vel_tr[20:] * conversion_sol_kms * 1e-4, c = ratio_unbound_tr[20:], s = 10, vmin = 0, vmax = 0.6, label = 'Fid Res')
     # plt.text(1.5, 0.6, f'Fid', fontsize = 25)
-    plt.scatter(tfbH, median_vel_trH * conversion_sol_kms * 1e-4, c = ratio_unbound_trH, s = 7, vmin = 0, vmax = 0.6, marker = 's', label = 'High Res')
+    plt.scatter(tfbH[20:], median_vel_trH[20:] * conversion_sol_kms * 1e-4, c = ratio_unbound_trH[20:], s = 10, vmin = 0, vmax = 0.6, marker = 'x', label = 'High Res')
     # plt.text(1, 0.45, f'High', fontsize = 25)
     cbar = plt.colorbar(img)
     cbar.set_label('unbound/tot')

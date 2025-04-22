@@ -49,7 +49,7 @@ norm = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call
 
 # Choose what to do
 save = True
-compare_times = False
+compare_times = True
 movie = False 
 dMdecc = False
 
@@ -72,7 +72,7 @@ if alice:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         print(f'Check: {check}')
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
-        bins = np.arange(-6.5, 2, .01) #np.linspace(-5,5,1000) 
+        bins = np.arange(-6.5, 2, .1) #np.linspace(-5,5,1000) 
         # save snaps, tfb and energy bins
         with open(f'{abspath}/data/{folder}/dMdE_{check}_days.txt','w') as filedays:
             filedays.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
@@ -110,57 +110,59 @@ if alice:
                 file.close()
     
 if compare_times:
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    datadays = np.loadtxt(f'{abspath}data/{folder}/dMdEdistrib__days.txt')
+    from Utilities.operators import find_ratio
+    commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+    datadays = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE__days.txt')
     snaps, tfb= datadays[0], datadays[1]
-    bins = np.loadtxt(f'{abspath}data/{folder}/dMdEdistrib__bins.txt')
+    bins = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE__bins.txt')
     mid_points = (bins[:-1]+bins[1:])/2
-    data = np.loadtxt(f'{abspath}data/{folder}/dMdEdistrib_.txt')
+    data = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE_.txt')
     
-    datadaysH = np.loadtxt(f'{abspath}data/{folder}HiRes/dMdEdistrib_HiRes_days.txt')
+    datadaysH = np.loadtxt(f'{abspath}data/{commonfolder}HiRes/dMdE_HiRes_days.txt')
     snapsH, tfbH = datadaysH[0], datadaysH[1]
-    dataH = np.loadtxt(f'{abspath}data/{folder}HiRes/dMdEdistrib_HiRes.txt')
+    dataH = np.loadtxt(f'{abspath}data/{commonfolder}HiRes/dMdE_HiRes.txt')
     
-    datadaysL = np.loadtxt(f'{abspath}data/{folder}LowRes/dMdEdistrib_LowRes_days.txt')
+    datadaysL = np.loadtxt(f'{abspath}data/{commonfolder}LowRes/dMdE_LowRes_days.txt')
     snapsL, tfbL = datadaysL[0], datadaysL[1]
-    dataL = np.loadtxt(f'{abspath}data/{folder}LowRes/dMdEdistrib_LowRes.txt')
+    dataL = np.loadtxt(f'{abspath}data/{commonfolder}LowRes/dMdE_LowRes.txt')
 
-    selected_times = [0.05, 1., tfbH[-1]]
-    colors = ['forestgreen', 'seagreen', 'darkgreen']
-    colorsH = ['maroon', 'coral', 'orange']
-    colorsL = ['dodgerblue', 'slateblue', 'skyblue']
-    markers = ['o', 's', 'v', 'd', 'p']
+    final_time = 1#tfbH[-1]
+    idx_snap = np.argmin(np.abs(tfb - final_time))
+    idx_snapH = np.argmin(np.abs(tfbH - final_time))
+    idx_snapL = np.argmin(np.abs(tfbL - final_time))
+    time, timeH, timeL = \
+        tfb[idx_snap], tfbH[idx_snapH], tfbL[idx_snapL]
+    data_fin, dataH_fin, dataL_fin = \
+        data[idx_snap], dataH[idx_snapH], dataL[idx_snapL]
+    ratio_L = np.zeros_like(data_fin) 
+    ratio_H = np.zeros_like(data_fin)
+    for j in range(len(data_fin)):
+        ratio_L[j] = find_ratio(data_fin[j], dataL_fin[j])
+        ratio_H[j] = find_ratio(data_fin[j], dataH_fin[j])
     
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
-    for i,selected_time in enumerate(selected_times):
-        idx_snap = np.argmin(np.abs(tfb - selected_time))
-        idx_snapH = np.argmin(np.abs(tfbH - selected_time))
-        idx_snapL = np.argmin(np.abs(tfbL - selected_time))
-        time = tfb[idx_snap]
-        timeH = tfbH[idx_snapH]
-        timeL = tfbL[idx_snapL]
-        print(f't = {time}, tH = {timeH}, tL = {timeL}')
-        if i == 0:
-            ax1.plot(mid_points, data[idx_snap], c = 'k', alpha = 0.5, label = r't = 0')
-        else:
-            ax1.scatter(mid_points, dataL[idx_snapL], c = colorsL[i], marker=markers[i], s = 25, label = f'Low, t = {np.round(time,2)} ' + r't$_{fb}$')            
-            ax1.scatter(mid_points, data[idx_snap], c = colors[i], marker=markers[i], s = 50, label = f'Middle, t = {np.round(time,2)} ' + r't$_{fb}$')
-            ax1.scatter(mid_points, dataH[idx_snapH], c = colorsH[i], marker=markers[i], s = 25, label = f'High, t = {np.round(time,2)} ' + r't$_{fb}$')
-            ax2.plot(mid_points, np.abs(1-data[idx_snap]/dataL[idx_snapL]), c = colorsL[i], label = f't = {np.round(time,2)} ' + r't$_{fb}$, L-M')
-            ax2.plot(mid_points, np.abs(1-data[idx_snap]/dataH[idx_snapH]), c = colorsH[i], label = f't = {np.round(time,2)} ' + r't$_{fb}$, M-H')
+    ax1.plot(mid_points, data[0], c = 'k', alpha = 0.5)#, label = r't = 0')
+    ax1.plot(mid_points, dataL_fin, c = 'C1', label = f'Low')            
+    ax1.plot(mid_points, data_fin, c = 'yellowgreen', label = f'Middle')
+    ax1.plot(mid_points, dataH_fin, c = 'darkviolet', label = f'High')
 
-    ax2.set_xlabel(r'$E/\Delta E$', fontsize = 16)
-    ax1.set_ylabel('dM/dE', fontsize = 16)
-    ax2.set_ylabel(r'$\Delta_{rel}$', fontsize = 16)
+    ax2.plot(mid_points, ratio_L, c = 'C1')
+    ax2.plot(mid_points, ratio_L, c = 'yellowgreen', linestyle = (0, (5, 10)))
+    ax2.plot(mid_points, ratio_H, c = 'darkviolet')
+    ax2.plot(mid_points, ratio_H, c = 'yellowgreen', linestyle = (0, (5, 10)))
+
+    ax1.legend(fontsize = 16)
     ax1.set_yscale('log')
-    ax2.set_yscale('log')
-    # ax1.set_xlim(-2.5,2.5)
-    # ax2.set_xlim(-2.5,2.5)
+    ax1.set_ylabel('dM/dE')
     ax1.set_ylim(2e-6, 2e-2)
-    ax2.set_ylim(1e-3, 2e-1)
+    ax2.set_ylim(1, 2)
+    ax2.set_xlabel(r'$E/\Delta E$')
+    ax2.set_ylabel(r'$\kappa$')
+    for ax in (ax1, ax2):
+        ax.set_xlim(-2.5,2.5)
     # put the legend outside the plot
-    ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
-    ax2.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
+    # ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
+    # ax2.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
     if save:
         plt.savefig(f'{abspath}Figs/multiple/dMdE_times.png')
     plt.show()
