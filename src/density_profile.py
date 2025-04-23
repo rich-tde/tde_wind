@@ -330,7 +330,7 @@ for ax in [ax1, ax2, ax3]:
     # ax.set_position([boxleg.x0, boxleg.y0, boxleg.width * 0.8, boxleg.height])
     # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 12)
     ax.legend(loc='lower left', fontsize = 14)
-    ax.set_xlabel(r'R [R$_a]$')
+    ax.set_xlabel(r'$R [R_{\rm a}]$')
     ax.set_xlim(xmin, xmax)
     ax.loglog()
     ax.tick_params(axis='both', which='minor', size=4)

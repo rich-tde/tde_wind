@@ -119,7 +119,7 @@ else:
         radii = np.load(f'{path}/radiiEcc_{which_cut}_{check}.npy')
         
         # Plot
-        plt.figure(figsize=(10,8))
+        plt.figure(figsize=(8,7))
         # set to white the 0 values so they are white in the plot
         ecc[ecc == 0] = np.nan
         img = plt.pcolormesh(radii/apo, tfb, ecc, vmin = 0.5, vmax = .95, cmap = 'viridis', rasterized = True)#cmocean.cm.balance)
@@ -130,7 +130,7 @@ else:
         plt.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed', linewidth = 2)
         plt.text(1.05*Rt/apo, 0.9*np.max(tfb), r'$R_{\rm t}$', fontsize = 25, color = 'k')
         plt.xscale('log')
-        plt.xlabel(r'$R [R_{a}]$')#, fontsize = 25)
+        plt.xlabel(r'$R [R_{\rm a}]$')#, fontsize = 25)
         plt.ylabel(r'$t [t_{fb}]$')#, fontsize = 25)
         plt.tick_params(axis='x', which='major', width=1.2, length=8, color = 'k', labelsize=25)
         plt.tick_params(axis='y', which='major', width=1, length=8, color = 'white', labelsize=25)

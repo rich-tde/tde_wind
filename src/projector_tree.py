@@ -21,7 +21,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import numba
-from scipy.spatial import KDTree
+# from scipy.spatial import KDTree
+from sklearn.neighbors import KDTree
 from Utilities.selectors_for_snap import select_snap
 from src.orbits import make_cfr
 from Utilities.sections import make_slices
@@ -46,14 +47,14 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
     # R0 = 0.6 * Rt
     apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
-    x_start = -7*apo
-    x_stop = 2.5*apo
+    x_start = -1.2*apo #-7*apo
+    x_stop = apo #2.5*apo
     xs = np.linspace(x_start, x_stop, num = x_num )
-    y_start = -4*apo 
-    y_stop = 3*apo
+    y_start = - apo #-4*apo 
+    y_stop = apo  #3*apo
     ys = np.linspace(y_start, y_stop, num = y_num)
-    z_start = -2*apo 
-    z_stop = 2*apo 
+    z_start = -2*Rt #-2*apo 
+    z_stop = 2*Rt #2*apo 
     zs = np.linspace(z_start, z_stop, z_num) #simulator units
 
     # data = make_tree(path, snap, energy = True)

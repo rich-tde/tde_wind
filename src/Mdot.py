@@ -59,10 +59,10 @@ def f_out_LodatoRossi(M_fb, M_edd):
 if compute: # compute dM/dt = dM/dE * dE/dt
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
     tfb_cgs = tfb * tfallback_cgs #converted to seconds
-    bins = np.loadtxt(f'{abspath}/data/{folder}/dMdE_{check}_bins.txt')
+    bins = np.loadtxt(f'{abspath}/data/{folder}/dMdE_{check}_equalbins.txt')
     max_bin_negative = np.abs(np.min(bins))
     mid_points = (bins[:-1]+bins[1:])* norm_dMdE/2  # get rid of the normalization
-    dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/dMdE_{check}.txt')[0] # distribution just after the disruption
+    dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/dMdE_{check}_equal.txt')[0] # distribution just after the disruption
     bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
    
     mfall = np.zeros(len(tfb_cgs))
@@ -167,7 +167,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     Vwind_pos = np.transpose(np.array(Vwind_pos))
     Vwind_neg = np.transpose(np.array(Vwind_neg))
 
-    with open(f'{abspath}/data/{folder}/Mdot_{check}_{cond_selection}pos.txt','w') as file:
+    with open(f'{abspath}/data/{folder}/Mdot_{check}_{cond_selection}pos_equal.txt','w') as file:
         if cond_selection == 'B':
             file.write(f'# Distinguish using Bernouilli criterion \n#t/tfb \n')
         else:
@@ -193,7 +193,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         file.write(f' '.join(map(str, Vwind_pos[3])) + '\n')
         file.close()
     
-    with open(f'{abspath}/data/{folder}/Mdot_{check}_{cond_selection}neg.txt','w') as file:
+    with open(f'{abspath}/data/{folder}/Mdot_{check}_{cond_selection}neg_equal.txt','w') as file:
         if cond_selection == 'B':
             file.write(f'# Distinguish using Bernouilli criterion \n#t/tfb \n')
         else:
@@ -235,8 +235,8 @@ if plot:
     splitneg = np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_neg_splitX.txt')
     neg_xpos1, neg_xneg1 = splitneg[3], splitneg[13]
 
-    fig, ax1 = plt.subplots(1, 1, figsize = (8,6))
-    fig2, ax2 = plt.subplots(1, 1, figsize = (8,6))
+    fig, ax1 = plt.subplots(1, 1, figsize = (8,7))
+    fig2, ax2 = plt.subplots(1, 1, figsize = (8,7))
     ax1.plot(tfb[10:], np.abs(mwind_pos1[10:])/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm out}$')
     ax1.plot(tfb, np.abs(mwind_neg1)/Medd_code, c = 'forestgreen', label = r'$\dot{M}_{\rm in}$')
     ax1.plot(tfb, np.abs(mwind_posB1)/Medd_code, ls = '--', c = 'dodgerblue')#, label = r'$\dot{M}_{\rm out} [B>0]$')

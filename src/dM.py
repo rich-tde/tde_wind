@@ -49,8 +49,8 @@ norm = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call
 
 # Choose what to do
 save = True
-test_bins = True
-compare_times = False
+test_bins = False
+compare_times = True
 movie = False 
 dMdecc = False
 
@@ -153,17 +153,17 @@ if compare_times:
     commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     datadays = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE__days.txt')
     snaps, tfb= datadays[0], datadays[1]
-    bins = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE__lessbins.txt')
+    bins = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE__equalbins.txt')
     mid_points = (bins[:-1]+bins[1:])/2
-    data = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE__less.txt')
+    data = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE__equal.txt')
     
     datadaysH = np.loadtxt(f'{abspath}data/{commonfolder}HiRes/dMdE_HiRes_days.txt')
     snapsH, tfbH = datadaysH[0], datadaysH[1]
-    dataH = np.loadtxt(f'{abspath}data/{commonfolder}HiRes/dMdE_HiRes.txt')
+    dataH = np.loadtxt(f'{abspath}data/{commonfolder}HiRes/dMdE_HiRes_equal.txt')
     
     datadaysL = np.loadtxt(f'{abspath}data/{commonfolder}LowRes/dMdE_LowRes_days.txt')
     snapsL, tfbL = datadaysL[0], datadaysL[1]
-    dataL = np.loadtxt(f'{abspath}data/{commonfolder}LowRes/dMdE_LowRes.txt')
+    dataL = np.loadtxt(f'{abspath}data/{commonfolder}LowRes/dMdE_LowRes_equal.txt')
 
     final_time = 1#tfbH[-1]
     idx_snap = np.argmin(np.abs(tfb - final_time))
@@ -175,35 +175,39 @@ if compare_times:
         data[idx_snap], dataH[idx_snapH], dataL[idx_snapL]
     ratio_L = np.zeros_like(data_fin) 
     ratio_H = np.zeros_like(data_fin)
-    # for j in range(len(data_fin)):
-    #     ratio_L[j] = find_ratio(data_fin[j], dataL_fin[j])
-    #     ratio_H[j] = find_ratio(data_fin[j], dataH_fin[j])
+    for j in range(len(data_fin)):
+        ratio_L[j] = find_ratio(data_fin[j], dataL_fin[j])
+        ratio_H[j] = find_ratio(data_fin[j], dataH_fin[j])
     
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
     ax1.plot(mid_points, data[0], c = 'k', alpha = 0.5)#, label = r't = 0')
-    # ax1.plot(mid_points, dataL_fin, c = 'C1', label = f'Low')            
-    ax1.scatter(mid_points, data_fin, c = 'yellowgreen', label = f'Middle')
-    # ax1.plot(mid_points, dataH_fin, c = 'darkviolet', label = f'High')
+    ax1.plot(mid_points, dataL_fin, c = 'C1', label = f'Low')            
+    ax1.plot(mid_points, data_fin, c = 'yellowgreen', label = f'Middle')
+    ax1.plot(mid_points, dataH_fin, c = 'darkviolet', label = f'High')
 
-    # ax2.plot(mid_points, ratio_L, c = 'C1')
-    # ax2.plot(mid_points, ratio_L, c = 'yellowgreen', linestyle = (0, (5, 10)))
-    # ax2.plot(mid_points, ratio_H, c = 'darkviolet')
-    # ax2.plot(mid_points, ratio_H, c = 'yellowgreen', linestyle = (0, (5, 10)))
+    ax2.plot(mid_points, ratio_L, c = 'C1')
+    ax2.plot(mid_points, ratio_L, c = 'yellowgreen', linestyle = (0, (5, 10)))
+    ax2.plot(mid_points, ratio_H, c = 'darkviolet')
+    ax2.plot(mid_points, ratio_H, c = 'yellowgreen', linestyle = (0, (5, 10)))
 
     ax1.legend(fontsize = 16)
     ax1.set_yscale('log')
     ax1.set_ylabel('dM/dE')
     ax1.set_ylim(2e-6, 2e-2)
-    ax2.set_ylim(1, 2)
     ax2.set_xlabel(r'$E/\Delta E$')
     ax2.set_ylabel(r'$\kappa$')
+    original_ticksy = ax2.get_yticks()
+    midpointsy = (original_ticksy[:-1] + original_ticksy[1:]) / 2
+    new_ticksy = np.sort(np.concatenate((original_ticksy, midpointsy)))
+    ax2.set_yticks(new_ticksy)
+    ax2.set_ylim(0.9, 2)
     for ax in (ax1, ax2):
-        ax.set_xlim(-2.5,2.5)
+        ax.set_xlim(-2.5,2)
     # put the legend outside the plot
     # ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
     # ax2.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
     if save:
-        plt.savefig(f'{abspath}Figs/multiple/dMdE_times.png')
+        plt.savefig(f'{abspath}Figs/multiple/dMdE_times_equalbins.pdf', bbox_inches='tight')
     plt.show()
 
 if movie:
