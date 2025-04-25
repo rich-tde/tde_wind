@@ -40,6 +40,7 @@ col_Rad = np.zeros(len(snaps))
 col_ie_thres = np.zeros(len(snaps))
 col_orb_en_thres = np.zeros(len(snaps))
 col_Rad_thres = np.zeros(len(snaps))
+missingMass = np.zeros(len(snaps))
 
 for i,snap in enumerate(snaps):
     if tfb[i] > 0.25:
@@ -92,13 +93,13 @@ for i,snap in enumerate(snaps):
     col_orb_en_thres[i] = np.sum(orb_en_thresh)
     col_Rad_thres[i] = np.sum(Rad_thresh)
 
-    missingMass = np.sum(mass_thresh)/np.sum(mass_cut)
+    missingMass[i] = np.sum(mass_thresh)/np.sum(mass_cut)
 
-    with open(f'{abspath}/data/{folder}/convE_{check}_massBox.txt', 'w') as file:
-        file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
-        file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-        file.write('# ratio mass_box/mass_all \n' +' '.join(map(str, missingMass)) + '\n')
-        file.close()
+with open(f'{abspath}/data/{folder}/convE_{check}_massBox.txt', 'w') as file:
+    file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
+    file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+    file.write('# ratio mass_box/mass_all \n' +' '.join(map(str, missingMass)) + '\n')
+    file.close()
 
 # np.save(f'{abspath}/data/{folder}/convE_{check}.npy', [col_ie, col_orb_en, col_Rad])
 # np.save(f'{abspath}/data/{folder}/convE_{check}_thresh.npy', [col_ie_thres, col_orb_en_thres, col_Rad_thres])
