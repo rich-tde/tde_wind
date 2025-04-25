@@ -192,74 +192,115 @@ if __name__ == '__main__':
     else:
         import src.orbits as orb
         faraway = False
-        whats = ['tau_scatt', 'tau_ross']
-        labels_what = ['scattering', 'Rosseland']
-        # t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
-        time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/{what_to_grid}time_proj.txt')
-        snaps = [int(i) for i in time[0]]
-        tfb = time[1]
-        xcrt, ycrt, crt = orb.make_cfr(Rt)
+        # whats = ['tau_scatt', 'tau_ross']
+        # labels_what = ['scattering', 'Rosseland']
+        # # t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
+        # time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/{what_to_grid}time_proj.txt')
+        # snaps = [int(i) for i in time[0]]
+        # tfb = time[1]
+        # xcrt, ycrt, crt = orb.make_cfr(Rt)
 
-        for j, snap in enumerate(snaps):
-            # if int(snap)!= 237:
-            #     continue
+        # for j, snap in enumerate(snaps):
+        #     # if int(snap)!= 237:
+        #     #     continue
             
-            tfb_single = tfb[j]
-            fig, ax = plt.subplots(2, 1, figsize = (14,14))
+        #     tfb_single = tfb[j]
+        #     fig, ax = plt.subplots(2, 1, figsize = (14,14))
 
-            flat_scatt = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/tau_scattproj{snap}.npy')
-            flat_ross = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/tau_rossproj{snap}.npy')
-            ratio = flat_scatt/flat_ross
-            x_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/tau_scattxarray.npy')
-            y_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/tau_scattyarray.npy')
+        #     flat_scatt = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/tau_scattproj{snap}.npy')
+        #     flat_ross = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/tau_rossproj{snap}.npy')
+        #     ratio = flat_scatt/flat_ross
+        #     x_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/tau_scattxarray.npy')
+        #     y_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/tau_scattyarray.npy')
                 
-            # if what_to_grid == 'den':
-            #     flat_q *= prel.Msol_cgs/prel.Rsol_cgs**2
-            #     if faraway:
-            #         vmin = 5e-2
-            #         vmax = 2e7
-            #     else:
-            #         vmin = 1e3
-            #         vmax = 7e6
-            # if what_to_grid == 'tau_ross' or what_to_grid == 'tau_scatt':
-            vmin = 1
-            vmax = 1e10
+        #     # if what_to_grid == 'den':
+        #     #     flat_q *= prel.Msol_cgs/prel.Rsol_cgs**2
+        #     #     if faraway:
+        #     #         vmin = 5e-2
+        #     #         vmax = 2e7
+        #     #     else:
+        #     #         vmin = 1e3
+        #     #         vmax = 7e6
+        #     # if what_to_grid == 'tau_ross' or what_to_grid == 'tau_scatt':
+        #     vmin = 1
+        #     vmax = 1e10
                 
-            img = ax[0].pcolormesh(x_radii/apo, y_radii/apo, flat_scatt.T, cmap = 'rainbow',
-                                norm = colors.LogNorm(vmin = vmin, vmax = vmax))
-            cb = plt.colorbar(img)
-            cb.set_label(f'Optical depth ({labels_what[0]})')
-            img = ax[1].pcolormesh(x_radii/apo, y_radii/apo, flat_ross.T, cmap = 'rainbow',
-                                norm = colors.LogNorm(vmin = vmin, vmax = vmax))
-            cb = plt.colorbar(img)
-            cb.set_label(f'Optical depth ({labels_what[1]})')
-            for i in range(2):
-                ax[i].set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
-                ax[i].contour(xcrt/apo, ycrt/apo, crt/apo, [0], linestyles = 'dashed', colors = 'w', alpha = 1)
-                ax[i].scatter(0, 0, color = 'k', edgecolors = 'orange', s = 40)
-                # ax[i].set_xlim(-0.3, 0.1)
-                # ax[i].set_ylim(-0.3, 0.3)
+        #     img = ax[0].pcolormesh(x_radii/apo, y_radii/apo, flat_scatt.T, cmap = 'rainbow',
+        #                         norm = colors.LogNorm(vmin = vmin, vmax = vmax))
+        #     cb = plt.colorbar(img)
+        #     cb.set_label(f'Optical depth ({labels_what[0]})')
+        #     img = ax[1].pcolormesh(x_radii/apo, y_radii/apo, flat_ross.T, cmap = 'rainbow',
+        #                         norm = colors.LogNorm(vmin = vmin, vmax = vmax))
+        #     cb = plt.colorbar(img)
+        #     cb.set_label(f'Optical depth ({labels_what[1]})')
+        #     for i in range(2):
+        #         ax[i].set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
+        #         ax[i].contour(xcrt/apo, ycrt/apo, crt/apo, [0], linestyles = 'dashed', colors = 'w', alpha = 1)
+        #         ax[i].scatter(0, 0, color = 'k', edgecolors = 'orange', s = 40)
+        #         # ax[i].set_xlim(-0.3, 0.1)
+        #         # ax[i].set_ylim(-0.3, 0.3)
                 
-            ax[1].set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
-            plt.tight_layout()
-            ax[0].text(-370/apo, 270/apo, f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$', color = 'k', fontsize = 20)
-            # ax[0].text(-0.25, 0.25, f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$', color = 'k', fontsize = 20)
-            if save:
-                plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/{what_to_grid}proj{snap}.png')
-            plt.show()
+        #     ax[1].set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
+        #     plt.tight_layout()
+        #     ax[0].text(-370/apo, 270/apo, f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$', color = 'k', fontsize = 20)
+        #     # ax[0].text(-0.25, 0.25, f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$', color = 'k', fontsize = 20)
+        #     if save:
+        #         plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/{what_to_grid}proj{snap}.png')
+        #     plt.show()
 
-            plt.figure(figsize = (14,7))
-            img = plt.pcolormesh(x_radii/apo, y_radii/apo, ratio.T, cmap = 'jet',
-                            norm = colors.LogNorm(vmin = 1e-3, vmax = 1e2))
-            cb = plt.colorbar()
-            cb.set_label(r'$\tau_{\rm scatt}/\tau_{\rm Ross}$')
-            plt.contour(xcrt/apo, ycrt/apo, crt/apo, [0], linestyles = 'dashed', colors = 'w', alpha = 1)
-            plt.scatter(0, 0, color = 'k', edgecolors = 'orange', s = 40)
-            plt.xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
-            plt.ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
-            plt.text(-370/apo, 270/apo, f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$', color = 'k', fontsize = 20)
-            plt.tight_layout()
-            if save:
-                plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/tauproj_diff_{snap}.png')
+        #     plt.figure(figsize = (14,7))
+        #     img = plt.pcolormesh(x_radii/apo, y_radii/apo, ratio.T, cmap = 'jet',
+        #                     norm = colors.LogNorm(vmin = 1e-3, vmax = 1e2))
+        #     cb = plt.colorbar()
+        #     cb.set_label(r'$\tau_{\rm scatt}/\tau_{\rm Ross}$')
+        #     plt.contour(xcrt/apo, ycrt/apo, crt/apo, [0], linestyles = 'dashed', colors = 'w', alpha = 1)
+        #     plt.scatter(0, 0, color = 'k', edgecolors = 'orange', s = 40)
+        #     plt.xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
+        #     plt.ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
+        #     plt.text(-370/apo, 270/apo, f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$', color = 'k', fontsize = 20)
+        #     plt.tight_layout()
+        #     if save:
+        #         plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/tauproj_diff_{snap}.png')
 
+
+        snap = 267
+        tfb_single = 1.2
+        fig, ax = plt.subplots(3, 1, figsize = (14,20))
+
+        flat_L = np.load(f'/Users/paolamartire/shocks/data/{folder}LowRes/bigDenproj{snap}.npy')
+        flat_L = flat_L * prel.den_converter * prel.Rsol_cgs
+        flat = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/bigDenproj{snap}.npy')
+        flat = flat * prel.den_converter * prel.Rsol_cgs
+        flat_H = np.load(f'/Users/paolamartire/shocks/data/{folder}HiRes/bigDenproj{snap}.npy')
+        flat_H = flat_H * prel.den_converter * prel.Rsol_cgs
+        x_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/bigDenxarray.npy')
+        y_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/bigDenyarray.npy')
+
+        vmin = 1e-1
+        vmax = 1e7
+        ax[0].pcolormesh(x_radii/apo, y_radii/apo, flat_L.T, cmap = 'rainbow',
+                            norm = colors.LogNorm(vmin = vmin, vmax = vmax))
+        ax[0].text(-5.9, -0.4, 'Low res', color = 'white', fontsize = 35)
+        ax[1].pcolormesh(x_radii/apo, y_radii/apo, flat.T, cmap = 'rainbow',
+                            norm = colors.LogNorm(vmin = vmin, vmax = vmax))
+        ax[1].text(-5.9, -0.4, 'Fid res', color = 'white', fontsize = 35)
+        img = ax[2].pcolormesh(x_radii/apo, y_radii/apo, flat_H.T, cmap = 'rainbow',
+                            norm = colors.LogNorm(vmin = vmin, vmax = vmax))
+        cb = plt.colorbar(img, orientation = 'horizontal')
+        cb.set_label(r'$\rho$ [g/cm$^3$]')
+        ax[2].text(-5.9, -0.4, 'High res', color = 'white', fontsize = 35)
+        for i in range(3):
+            ax[i].set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
+            ax[i].set_xlim(-6, -2)
+            ax[i].set_ylim(-2, 0)
+            # ax[i].set_xlim(-1, .2)
+            # ax[i].set_ylim(-.3, .3)
+            
+        ax[2].set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
+        plt.suptitle(f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$', fontsize = 20)
+        plt.tight_layout()
+        
+
+        
+        
 

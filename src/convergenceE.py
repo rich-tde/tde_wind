@@ -42,6 +42,8 @@ col_orb_en_thres = np.zeros(len(snaps))
 col_Rad_thres = np.zeros(len(snaps))
 
 for i,snap in enumerate(snaps):
+    if tfb[i] > 0.25:
+        continue
     print(snap, flush=False)
     sys.stdout.flush()
 
@@ -80,19 +82,27 @@ for i,snap in enumerate(snaps):
     cut_coord = (X > xmin) & (X < xmax) & (Y > ymin) & (Y < ymax) & (Z > zmin) & (Z < zmax) 
     Rad_thresh = Rad[cut_coord]
     cut_den_coord = (X_cut > xmin) & (X_cut < xmax) & (Y_cut > ymin) & (Y_cut < ymax) & (Z_cut > zmin) & (Z_cut < zmax)
-    den_thresh, orb_en_thresh, ie_thresh = \
-        sec.make_slices([den_cut, orb_en_cut, ie_cut], cut_den_coord)
+    den_thresh, orb_en_thresh, ie_thresh, mass_thresh = \
+        sec.make_slices([den_cut, orb_en_cut, ie_cut, mass_cut], cut_den_coord)
 
     # total energies with the cut in density (not in radiation) and coordinates
     col_ie_thres[i] = np.sum(ie_thresh)
     col_orb_en_thres[i] = np.sum(orb_en_thresh)
     col_Rad_thres[i] = np.sum(Rad_thresh)
 
-np.save(f'{abspath}/data/{folder}/convE_{check}.npy', [col_ie, col_orb_en, col_Rad])
-np.save(f'{abspath}/data/{folder}/convE_{check}_thresh.npy', [col_ie_thres, col_orb_en_thres, col_Rad_thres])
-with open(f'{abspath}/data/{folder}/convE_{check}_days.txt', 'w') as file:
-        file.write(f'# In convE_{check}_thresh you find internal, orbital and radiation energy [NO denisty/specific] inside the biggest box enclosed in the three simulation volumes and cut in density.\n')
-        file.write(f'# In convE_{check} only cut in density.')
+    missingMass = np.sum(mass_thresh)/np.sum(mass_cut)
+
+    with open(f'{abspath}/data/{folder}/convE_{check}_massBox.txt', 'w') as file:
         file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+        file.write('# ratio mass_box/mass_all \n' +' '.join(map(str, missingMass)) + '\n')
         file.close()
+
+# np.save(f'{abspath}/data/{folder}/convE_{check}.npy', [col_ie, col_orb_en, col_Rad])
+# np.save(f'{abspath}/data/{folder}/convE_{check}_thresh.npy', [col_ie_thres, col_orb_en_thres, col_Rad_thres])
+# with open(f'{abspath}/data/{folder}/convE_{check}_days.txt', 'w') as file:
+#         file.write(f'# In convE_{check}_thresh you find internal, orbital and radiation energy [NO denisty/specific] inside the biggest box enclosed in the three simulation volumes and cut in density.\n')
+#         file.write(f'# In convE_{check} only cut in density.')
+#         file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
+#         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+#         file.close()
