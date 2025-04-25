@@ -78,6 +78,8 @@ for i,snap in enumerate(snaps):
         boxH = box
         boxL = box
     xmin, ymin, zmin = np.max([box[0], boxL[0], boxH[0], -0.75*apo]), np.max([box[1], boxL[1], boxH[1]]), np.max([box[2], boxL[2], boxH[2]])
+    print(-xmin/0.75*apo, flush=False)
+    sys.stdout.flush()
     xmax, ymax, zmax = np.min([box[3], boxL[3], boxH[3]]), np.min([box[4], boxL[4], boxH[4]]), np.min([box[5], boxL[5], boxH[5]])
     cut_coord = (X > xmin) & (X < xmax) & (Y > ymin) & (Y < ymax) & (Z > zmin) & (Z < zmax) 
     Rad_thresh = Rad[cut_coord]
