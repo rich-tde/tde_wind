@@ -94,8 +94,10 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
     for i in range(len(xs)):
         for j in range(len(ys)):
             for k in range(len(zs)):
-                queried_value = [xs[i], ys[j], zs[k]]
+                # queried_value = [xs[i], ys[j], zs[k]] # if u use scipy.spatial
+                queried_value = np.array([xs[i], ys[j], zs[k]]).reshape(1, -1) # if u use sklearn, so it has shape (1,3)
                 _, idx = sim_tree.query(queried_value)
+                idx = int(idx[0][0]) # only ifyou use sklearn
                                     
                 # Store
                 gridded_indexes[i, j, k] = idx
@@ -166,7 +168,8 @@ if __name__ == '__main__':
             f.write(f'# t/t_fb (t_fb = {t_fall})\n' + ' '.join(map(str, tfb)) + '\n')
             f.close()
         for snap in snaps:
-            print(snap)
+            print(snap, flush=False)
+            sys.stdout.flush()
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
             else:

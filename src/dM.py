@@ -154,6 +154,7 @@ if compare_times:
     datadays = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE__days.txt')
     snaps, tfb= datadays[0], datadays[1]
     bins = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE__equalbins.txt')
+    print('Bins len', len(bins))
     mid_points = (bins[:-1]+bins[1:])/2
     data = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE__equal.txt')
     
@@ -192,9 +193,9 @@ if compare_times:
 
     ax1.legend(fontsize = 16)
     ax1.set_yscale('log')
-    ax1.set_ylabel('dM/dE')
+    ax1.set_ylabel(r'dM/d$\varepsilon$')
     ax1.set_ylim(2e-6, 2e-2)
-    ax2.set_xlabel(r'$E/\Delta E$')
+    ax2.set_xlabel(r'$\varepsilon/\Delta\varepsilon$')
     ax2.set_ylabel(r'$\kappa$')
     original_ticksy = ax2.get_yticks()
     midpointsy = (original_ticksy[:-1] + original_ticksy[1:]) / 2

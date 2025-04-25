@@ -107,7 +107,7 @@ if alice:
         np.save(f'{abspath}/data/{folder}/radiiEcc_{which_cut}_{check}.npy', radii)
 
 else:
-    error = False
+    error = True
     ecc_crit = orb.eccentricity(Rstar, mstar, Mbh, beta)
 
     if not error:
@@ -193,19 +193,19 @@ else:
 
         img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'inferno', vmin = 0.95, vmax = 1.05, rasterized = True)
         ax1.set_xscale('log')
-        ax1.text(0.29, .88*np.max(tfbL), 'Low-Fid', fontsize = 28, color = 'k')
-        ax1.set_xlabel(r'$R [R_{\rm a}]$', fontsize = 25)
-        ax1.set_ylabel(r'$t [t_{fb}]$')#, fontsize = 25)
+        ax1.text(0.22, .88*np.max(tfbL), 'Low vs Fid', fontsize = 28, color = 'k')
+        ax1.set_xlabel(r'$R [R_{\rm a}]$')#, fontsize = 25)
+        ax1.set_ylabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
 
         img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'inferno', vmin = 0.95, vmax = 1.05, rasterized = True)
         ax2.set_xscale('log')
-        ax2.text(0.28, 0.88*np.max(tfbH), 'Fid-High', fontsize = 28, color = 'k')
-        ax2.set_xlabel(r'$R [R_{\rm a}]$', fontsize = 25)
+        ax2.text(0.21, 0.88*np.max(tfbH), 'Fid vs High', fontsize = 28, color = 'k')
+        ax2.set_xlabel(r'$R [R_{\rm a}]$')#, fontsize = 25)
 
         # Create a colorbar that spans the first two subplots
         cbar_ax = fig.add_subplot(gs[1, 0:2])  # Colorbar subplot below the first two
         cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
-        cb.set_label(r'ratio eccentricity', fontsize = 25)
+        cb.set_label(r'$\mathcal{R}$ eccentricity')#, fontsize = 25)
         cb.ax.tick_params(labelsize=25)
         # label with 3 decimals in the colorbar
         # cb.set_ticks([0.98, 1, 1.02])
@@ -214,15 +214,15 @@ else:
 
         ax3.plot(tfbL, medianL, c = 'yellowgreen', linewidth = 4)
         ax3.plot(tfbL, medianL, c = 'darkorange', linewidth = 4, linestyle = (0, (5, 10)), label = 'Low and Middle')
-        ax3.text(0.4, 1.03, 'Fid vs Low', fontsize = 27, color = 'k')
+        # ax3.text(0.4, 1.03, 'Fid vs Low', fontsize = 27, color = 'k')
         ax3.plot(tfbH, medianH, c = 'yellowgreen', linewidth = 4)
         ax3.plot(tfbH, medianH, c = 'darkviolet', linewidth = 4, linestyle = (0, (5, 10)), label = 'Middle and High')
-        ax3.text(0.4, 1, 'Fid vs High', fontsize = 27, color = 'k')
-        ax3.set_ylabel(r'Median eccentricities ratio')#, fontsize = 25)
+        # ax3.text(0.4, 1, 'Fid vs High', fontsize = 27, color = 'k')
+        ax3.set_ylabel(r'$\mathcal{R}$ median eccentricity')# fontsize = 25)
         ax3.set_xlim(0.2, tfbL[-1])
         ax3.set_ylim(0.98, 1.05)
         ax3.grid()
-        ax3.set_xlabel(r'$t [t_{\rm fb}]$', fontsize = 25)
+        ax3.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
 
         for ax in [ax1, ax2, ax3]:
             # ax.tick_params(labelsize=26)

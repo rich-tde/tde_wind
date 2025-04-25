@@ -54,7 +54,7 @@ apo_obs = [-apo, 0, 0]
 observers_xyz = np.array([Rt_obs, amin_obs, apo_obs])
 labels_obs = [r'R$_t$', r'a$_{min}$', r'R$_a$']
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
-i = 0
+i = 1
 mu_x = observers_xyz[i][0]
 mu_y = observers_xyz[i][1]
 mu_z = observers_xyz[i][2]
@@ -94,19 +94,21 @@ Vy_tr = np.zeros(len(observers_xyz))
 Vz_tr = np.zeros(len(observers_xyz))
 
 # Box is for dynamic ray making
-if mu_x < 0:
-    rmax = box[0] / mu_x
-else:
-    rmax = box[3] / mu_x
-if mu_y < 0:
-    rmax = min(rmax, box[1] / mu_y)
-else:
-    rmax = min(rmax, box[4] / mu_y)
-if mu_z < 0:
-    rmax = min(rmax, box[2] / mu_z)
-else:
-    rmax = min(rmax, box[5] / mu_z)
-r_height = np.logspace(-0.25, np.log10(rmax), N_ray) # create the z array
+# if mu_x < 0:
+#     rmax = box[0] / mu_x
+# else:
+#     rmax = box[3] / mu_x
+# if mu_y < 0:
+#     rmax = min(rmax, box[1] / mu_y)
+# else:
+#     rmax = min(rmax, box[4] / mu_y)
+# if mu_z < 0:
+#     rmax = min(rmax, box[2] / mu_z)
+# else:
+#     rmax = min(rmax, box[5] / mu_z)
+rmin = 0.01
+rmax = 5 * apo
+r_height = np.logspace(np.log10(rmin), np.log10(rmax), N_ray) # create the z array
 # Go vertically 
 x = np.repeat(mu_x, len(r_height))
 y = np.repeat(mu_y, len(r_height))
@@ -157,7 +159,7 @@ c_tau = prel.csol_cgs/los #c/tau [code units]
 #%%
 # plot to check if you're taking the right thing
 plt.figure()
-plt.plot(ray_z/apo, c_tau/np.abs(ray_vz), c = 'k', label = r'$c\tau^{-1}/v_r$')
+plt.plot(ray_z/apo, c_tau/np.abs(ray_vz), c = 'k', label = r'$c\tau^{-1}/v_z$')
 plt.plot(ray_z/apo, los, label = r'$\tau_R$', c = 'r')
 plt.plot(ray_z/apo, los_scatt, '--', label = r'$\tau_s$', c = 'r')
 # plt.plot(ray_r/apo, np.abs(v_rad)*prel.Rsol_cgs/prel.tsol_cgs, label = r'$|v_r|$ [cm/s]', c = 'b')
@@ -166,7 +168,7 @@ plt.xlabel(r'$Z [R_{\rm a}]$')
 plt.loglog()
 # plt.xlim(1e-1, 6)
 # plt.ylabel(r'$c\tau^{-1}/|v_r|$')
-plt.title(f'Snap {snap}, observer {labels_obs[i]}')
+plt.title(f'Snap {snap}, observer at x={labels_obs[i]}')
 plt.legend()
         
 #%% plot to check if you're taking the right thing
@@ -207,8 +209,16 @@ Rtr_idx = Rtr_idx_all[-1]
 t_dyn = ray_z/np.abs(ray_vz) * prel.tsol_cgs # [s]
 
 # tdiff = \tau*H/c 
-los_fuT = np.flipud(sigma_rossland_eval*ray_z) * prel.Rsol_cgs #np.flipud(los)
-tdiff_cumulative = - np.flipud(sci.cumulative_trapezoid(los_fuT, np.flipud(ray_z), initial = 0))*prel.Rsol_cgs/ prel.c_cgs # this is the conversion for ray_z. YOu integrate in the z direction
+#### FOR CUMULATIVE SCATTER OR ROSS
+los_fuT = np.flipud(sigma_rossland_eval*ray_z) * prel.Rsol_cgs 
+los_scatt_fuT = np.flipud(d*0.34*ray_z) * prel.Rsol_cgs
+tdiff_cumulative = - np.flipud(sci.cumulative_trapezoid(los_fuT, np.flipud(ray_z), initial = 0))*prel.Rsol_cgs/ prel.c_cgs # this is the conversion for ray_z. You integrate in the z direction
+#### FOR SINGLE
+# los_fuT = sigma_rossland_eval * ray_z * prel.Rsol_cgs 
+# tdiff = np.zeros(len(ray_z))
+# for i in range(len(ray_z)):
+#     tdiff[i] = sci.trapezoid(los_fuT[i:], ray_z[i:])* prel.Rsol_cgs/ prel.c_cgs
+
 #%%
 plt.figure(figsize = (10,5))
 img = plt.scatter(ray_z/apo, sigma_rossland_eval/d, c = t, cmap = 'jet', norm = colors.LogNorm(vmin = 3e3, vmax = 5e5))
@@ -226,19 +236,20 @@ fig, (ax1, ax2) = plt.subplots(1, 2 , figsize = (12,5))
 ax1.plot(ray_z/apo, tdiff_cumulative/tfallback_cgs, c = 'k')
 ax1.set_ylabel(r'$t_{\rm diff} [t_{\rm fb}]$')
 ax1.axhline(t_dyn[Rtr_idx]/tfallback_cgs, c = 'k', linestyle = '--', label =  r'$t_{\rm dyn}=R_z/v_z$')
-ax1.set_ylim(0, 2) # a bit further than the Rtrapp
+# ax1.set_ylim(0, 2) # a bit further than the Rtrapp
 img = ax2.scatter(ray_z/apo, los, c = c_tau/np.abs(ray_vz), cmap = 'rainbow', vmin = 0, vmax = 2)
 cbar = plt.colorbar(img)
 cbar.set_label(r'c$\tau^{-1}/V_z$')
 ax2.set_ylabel(r'$\tau$')
 ax2.set_yscale('log')
+ax2.axvline(np.mean(rph)/apo, c = 'k', linestyle = 'dotted', label =  r'$<R_{\rm ph}>$')
 # ax2.set_ylim(0.1, 1e2)
 for ax in [ax1, ax2]:
     ax.set_xlabel(r'$Z [R_{\rm a}]$')
-    ax.set_xlim(0, 7)
+    ax.set_xlim(-0.1, 7)
     ax.axvline(ray_z[Rtr_idx]/apo, c = 'b', linestyle = '--', label =  r'$R_{\rm tr} (c/\tau=V_z)$')
-    ax.axvline(np.mean(rph)/apo, c = 'k', linestyle = 'dotted', label =  r'$<R_{\rm ph}>$')
     ax.legend(fontsize = 14)
+plt.suptitle('Form outside in', fontsize = 20)
 plt.tight_layout()
 
 #%%
