@@ -34,78 +34,108 @@ Mbh = 10**m
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 
-col_ie = np.zeros(len(snaps))
-col_orb_en = np.zeros(len(snaps))
-col_Rad = np.zeros(len(snaps))
-col_ie_thres = np.zeros(len(snaps))
-col_orb_en_thres = np.zeros(len(snaps))
-col_Rad_thres = np.zeros(len(snaps))
-missingMass = np.zeros(len(snaps))
+if alice:
+    col_ie = np.zeros(len(snaps))
+    col_orb_en = np.zeros(len(snaps))
+    col_Rad = np.zeros(len(snaps))
+    col_ie_thres = np.zeros(len(snaps))
+    col_orb_en_thres = np.zeros(len(snaps))
+    col_Rad_thres = np.zeros(len(snaps))
+    missingMass = np.zeros(len(snaps))
 
-for i,snap in enumerate(snaps):
-    if tfb[i] > 0.25:
-        continue
-    print(snap, flush=False)
-    sys.stdout.flush()
+    for i,snap in enumerate(snaps):
+        print(snap, flush=False)
+        sys.stdout.flush()
 
-    path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-    data = make_tree(path, snap, energy = True)
-    X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den = \
-        data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Mass, data.Vol, data.Den, data.IE, data.Rad
-    Rad = Rad_den * vol
-    # cut in density NOT in radiation
-    cut = den > 1e-19 
-    X_cut, Y_cut, Z_cut, VX_cut, VY_cut, VZ_cut, mass_cut, vol_cut, den_cut, ie_den_cut = \
-        sec.make_slices([X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den], cut)
-    Rsph_cut = np.sqrt(np.power(X_cut, 2) + np.power(Y_cut, 2) + np.power(Z_cut, 2))
-    vel_cut = np.sqrt(np.power(VX_cut, 2) + np.power(VY_cut, 2) + np.power(VZ_cut, 2))
-    orb_en_cut = orb.orbital_energy(Rsph_cut, vel_cut, mass_cut, prel.G, prel.csol_cgs, Mbh)
-    ie_cut = ie_den_cut * vol_cut
+        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+        data = make_tree(path, snap, energy = True)
+        X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den = \
+            data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Mass, data.Vol, data.Den, data.IE, data.Rad
+        Rad = Rad_den * vol
+        # cut in density NOT in radiation
+        cut = den > 1e-19 
+        X_cut, Y_cut, Z_cut, VX_cut, VY_cut, VZ_cut, mass_cut, vol_cut, den_cut, ie_den_cut = \
+            sec.make_slices([X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den], cut)
+        Rsph_cut = np.sqrt(np.power(X_cut, 2) + np.power(Y_cut, 2) + np.power(Z_cut, 2))
+        vel_cut = np.sqrt(np.power(VX_cut, 2) + np.power(VY_cut, 2) + np.power(VZ_cut, 2))
+        orb_en_cut = orb.orbital_energy(Rsph_cut, vel_cut, mass_cut, prel.G, prel.csol_cgs, Mbh)
+        ie_cut = ie_den_cut * vol_cut
 
-    # total energies with only the cut in density (not in radiation)
-    col_ie[i] = np.sum(ie_cut)
-    col_orb_en[i] = np.sum(orb_en_cut)
-    col_Rad[i] = np.sum(Rad)
+        # total energies with only the cut in density (not in radiation)
+        col_ie[i] = np.sum(ie_cut)
+        col_orb_en[i] = np.sum(orb_en_cut)
+        col_Rad[i] = np.sum(Rad)
+        print('min dimension: ', np.min(X_cut), np.min(Y_cut), np.min(Z_cut), flush=False)
+        sys.stdout.flush()
+        print('max dimension: ', np.max(X_cut), np.max(Y_cut), np.max(Z_cut), flush=False)
+        sys.stdout.flush()
 
-    # consider the small box for the cut in coordinates
-    box = np.load(f'{path}/box_{snap}.npy')
-    if int(snap) <= 317:
-        boxL = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes/snap_{snap}/box_{snap}.npy')
-        if int(snap) <= 267:
-            boxH = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes/snap_{snap}/box_{snap}.npy')
-        else:
+        # consider the small box for the cut in coordinates
+        box = np.load(f'{path}/box_{snap}.npy')
+        if np.logical_and(int(snap) >= 81, int(snap) <= 317):
+            boxL = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes/snap_{snap}/box_{snap}.npy')
+            if int(snap) <= 267:
+                boxH = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes/snap_{snap}/box_{snap}.npy')
+            else:
+                boxH = box
+        else: 
             boxH = box
-    else: 
-        boxH = box
-        boxL = box
-    xmin, ymin, zmin = np.max([box[0], boxL[0], boxH[0], -0.75*apo]), np.max([box[1], boxL[1], boxH[1]]), np.max([box[2], boxL[2], boxH[2]])
-    print(-xmin/0.75*apo, flush=False)
+            boxL = box
+        # xmin, ymin, zmin = np.max([box[0], boxL[0], boxH[0], -0.75*apo]), np.max([box[1], boxL[1], boxH[1]]), np.max([box[2], boxL[2], boxH[2]])
+        # print("ratio xmin/0.75apo: ", -xmin/(0.75*apo), flush=False)
+        # sys.stdout.flush()
+        xmin, ymin, zmin = np.max([box[0], boxL[0], boxH[0]], -10*apo), np.max([box[1], boxL[1], boxH[1]]), np.max([box[2], boxL[2], boxH[2]])
+        xmax, ymax, zmax = np.min([box[3], boxL[3], boxH[3]]), np.min([box[4], boxL[4], boxH[4]]), np.min([box[5], boxL[5], boxH[5]])
+        cut_coord = (X > xmin) & (X < xmax) & (Y > ymin) & (Y < ymax) & (Z > zmin) & (Z < zmax) 
+        Rad_thresh = Rad[cut_coord]
+        cut_den_coord = (X_cut > xmin) & (X_cut < xmax) & (Y_cut > ymin) & (Y_cut < ymax) & (Z_cut > zmin) & (Z_cut < zmax)
+        den_thresh, orb_en_thresh, ie_thresh, mass_thresh = \
+            sec.make_slices([den_cut, orb_en_cut, ie_cut, mass_cut], cut_den_coord)
+        print('CUT \nmin dimension: ', np.min(X_cut[cut_den_coord]), np.min(Y_cut[cut_den_coord]), np.min(Z_cut[cut_den_coord]), flush=False)
+        sys.stdout.flush()
+        print('max dimension: ', np.max(X_cut[cut_den_coord]), np.max(Y_cut[cut_den_coord]), np.max(Z_cut[cut_den_coord]), flush=False)
+        sys.stdout.flush()
+
+        # total energies with the cut in density (not in radiation) and coordinates
+        col_ie_thres[i] = np.sum(ie_thresh)
+        col_orb_en_thres[i] = np.sum(orb_en_thresh)
+        col_Rad_thres[i] = np.sum(Rad_thresh)
+
+        missingMass[i] = np.sum(mass_thresh)/np.sum(mass_cut)
+    print("ratio mass_box/mass_all: ", missingMass, flush=False)
     sys.stdout.flush()
-    xmax, ymax, zmax = np.min([box[3], boxL[3], boxH[3]]), np.min([box[4], boxL[4], boxH[4]]), np.min([box[5], boxL[5], boxH[5]])
-    cut_coord = (X > xmin) & (X < xmax) & (Y > ymin) & (Y < ymax) & (Z > zmin) & (Z < zmax) 
-    Rad_thresh = Rad[cut_coord]
-    cut_den_coord = (X_cut > xmin) & (X_cut < xmax) & (Y_cut > ymin) & (Y_cut < ymax) & (Z_cut > zmin) & (Z_cut < zmax)
-    den_thresh, orb_en_thresh, ie_thresh, mass_thresh = \
-        sec.make_slices([den_cut, orb_en_cut, ie_cut, mass_cut], cut_den_coord)
 
-    # total energies with the cut in density (not in radiation) and coordinates
-    col_ie_thres[i] = np.sum(ie_thresh)
-    col_orb_en_thres[i] = np.sum(orb_en_thresh)
-    col_Rad_thres[i] = np.sum(Rad_thresh)
+    # with open(f'{abspath}/data/{folder}/convE_{check}_massnewbox.txt', 'w') as file:
+    #     file.write(f'# no cut for xmin at 0.75apo {folder} \n' + ' '.join(map(str, snaps)) + '\n')
+    #     file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+    #     file.write('# ratio mass_box/mass_all \n' +' '.join(map(str, missingMass)) + '\n')
+    #     file.close()
 
-    missingMass[i] = np.sum(mass_thresh)/np.sum(mass_cut)
+    np.save(f'{abspath}/data/{folder}/convE_{check}10apo.npy', [col_ie, col_orb_en, col_Rad])
+    np.save(f'{abspath}/data/{folder}/convE_{check}_10apo.npy', [col_ie_thres, col_orb_en_thres, col_Rad_thres])
+    with open(f'{abspath}/data/{folder}/convE_{check}_days.txt', 'w') as file:
+            file.write(f'# In convE_{check}_thresh you find internal, orbital and radiation energy [NO density or specific, but energy in code units] inside the biggest box enclosed in the three simulation volumes and cut in density.\n')
+            file.write(f'# In convE_{check} only cut in density.')
+            file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
+            file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+            file.close()
 
-with open(f'{abspath}/data/{folder}/convE_{check}_massBox.txt', 'w') as file:
-    file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
-    file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-    file.write('# ratio mass_box/mass_all \n' +' '.join(map(str, missingMass)) + '\n')
-    file.close()
+else:
+    import matplotlib.pyplot as plt
+    commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+    _, tfb = np.loadtxt(f'{abspath}/data/{commonfolder}/convE__days.txt')
+    _, tfbL = np.loadtxt(f'{abspath}/data/{commonfolder}LowRes/convE_LowRes_days.txt')
+    _, OE_nocut, _ = np.load(f'{abspath}/data/{commonfolder}/convE_.npy')
+    _, OEL_nocut, _ = np.load(f'{abspath}/data/{commonfolder}LowRes/convE_LowRes.npy')
+    _, OE, _ = np.load(f'{abspath}/data/{commonfolder}/convE__newbox.npy')
+    _, OEL, _ = np.load(f'{abspath}/data/{commonfolder}LowRes/convE_LowRes_newbox.npy')
 
-# np.save(f'{abspath}/data/{folder}/convE_{check}.npy', [col_ie, col_orb_en, col_Rad])
-# np.save(f'{abspath}/data/{folder}/convE_{check}_thresh.npy', [col_ie_thres, col_orb_en_thres, col_Rad_thres])
-# with open(f'{abspath}/data/{folder}/convE_{check}_days.txt', 'w') as file:
-#         file.write(f'# In convE_{check}_thresh you find internal, orbital and radiation energy [NO denisty/specific] inside the biggest box enclosed in the three simulation volumes and cut in density.\n')
-#         file.write(f'# In convE_{check} only cut in density.')
-#         file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
-#         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-#         file.close()
+    plt.plot(tfbL, 1e-48*prel.en_converter * np.abs(OEL), c = 'C1', label = 'Low')
+    plt.plot(tfb, 1e-48*prel.en_converter * np.abs(OE), c = 'yellowgreen', label = 'Fid')
+    plt.plot(tfbL, 1e-48*prel.en_converter * np.abs(OEL_nocut), '--', c = 'maroon')
+    plt.plot(tfb, 1e-48*prel.en_converter * np.abs(OE_nocut), '--', c = 'forestgreen')
+    plt.xlabel(r'$t [t_{\rm fb}]$')
+    plt.ylabel(r'$|$Orbital energy$| [10^{48}$ erg/s]')
+    # plt.yscale('log')
+    plt.legend(fontsize = 15)
+    plt.title('Solid lines = cut in coordinates and density, dashed lines = cut in density only')

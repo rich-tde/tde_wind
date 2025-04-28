@@ -1,4 +1,4 @@
-"""Compute trapping radius i.e. R: tau(R) = c/v(R)"""
+"""Compute diffusion time: tdiff = \tau*H/c"""
 import sys
 sys.path.append('/Users/paolamartire/shocks')
 from Utilities.isalice import isalice
@@ -36,7 +36,8 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = '' 
-snap = 348
+snap = 267
+computation = ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 pre_saving = f'{abspath}/data/{folder}'
@@ -52,12 +53,9 @@ Rt_obs = [Rt, 0, 0]
 amin_obs = [-a_min, 0, 0]
 apo_obs = [-apo, 0, 0]
 observers_xyz = np.array([Rt_obs, amin_obs, apo_obs])
-labels_obs = [r'R$_t$', r'a$_{min}$', r'R$_a$']
+labels_obs = [r'R$_t$', r'-a$_{min}$', r'-R$_a$']
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
-i = 1
-mu_x = observers_xyz[i][0]
-mu_y = observers_xyz[i][1]
-mu_z = observers_xyz[i][2]
+
 
 # Opacity
 opac_path = f'{abspath}/src/Opacity'
@@ -66,191 +64,162 @@ Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
 
-photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
-xph, yph, zph = photo[0], photo[1], photo[2]
-rph = np.sqrt(xph**2 + yph**2 + zph**2)
 if alice:
     loadpath = f'{pre}/snap_{snap}'
 else:
     loadpath = f'{pre}/{snap}'
 data = make_tree(loadpath, snap, energy = True)
 box = np.load(f'{loadpath}/box_{snap}.npy')
-X, Y, Z, T, Den, Vol, VX, VY, VZ = \
-    data.X, data.Y, data.Z, data.Temp, data.Den, data.Vol, data.VX, data.VY, data.VZ
-denmask = Den > 1e-19
-X, Y, Z, T, Den, Vol, VX, VY, VZ = \
-    make_slices([X, Y, Z, T, Den, Vol, VX, VY, VZ], denmask)
+X, Y, Z, T, Den, Vol, IE_den = \
+    data.X, data.Y, data.Z, data.Temp, data.Den, data.Vol, data.IE
+mask = np.logical_and(Den > 1e-19, Z >= 0) # just plane above
+X, Y, Z, T, Den, Vol, IE_den = \
+    make_slices([X, Y, Z, T, Den, Vol, IE_den], mask)
 xyz = np.array([X, Y, Z]).T
+tree = KDTree(xyz, leaf_size = 50)
 N_ray = 500
 
-x_tr = np.zeros(len(observers_xyz))
-y_tr = np.zeros(len(observers_xyz))
-z_tr = np.zeros(len(observers_xyz))
-Temp_tr = np.zeros(len(observers_xyz))
-den_tr = np.zeros(len(observers_xyz))
-vol_tr = np.zeros(len(observers_xyz))
-Vx_tr = np.zeros(len(observers_xyz))
-Vy_tr = np.zeros(len(observers_xyz))
-Vz_tr = np.zeros(len(observers_xyz))
-
-# Box is for dynamic ray making
-# if mu_x < 0:
-#     rmax = box[0] / mu_x
-# else:
-#     rmax = box[3] / mu_x
-# if mu_y < 0:
-#     rmax = min(rmax, box[1] / mu_y)
-# else:
-#     rmax = min(rmax, box[4] / mu_y)
-# if mu_z < 0:
-#     rmax = min(rmax, box[2] / mu_z)
-# else:
-#     rmax = min(rmax, box[5] / mu_z)
+# query the nearest cell to the observer you want to have its z
 rmin = 0.01
-rmax = 5 * apo
+rmax = 7 * apo
 r_height = np.logspace(np.log10(rmin), np.log10(rmax), N_ray) # create the z array
-# Go vertically 
-x = np.repeat(mu_x, len(r_height))
-y = np.repeat(mu_y, len(r_height))
-z = r_height
 
-xyz2 = np.array([x, y, z]).T
-del x, y, z
+with open(f'{pre_saving}/{check}_tdiff{snap}{computation}.txt', 'w') as f:
+    f.write(f'# Z array [R_\odot] \n' + ''.join(map(str, r_height)) + '\n')
+    f.close()
 
-tree = KDTree(xyz, leaf_size = 50)
-_, idx = tree.query(xyz2, k=1)
-idx = [ int(idx[i][0]) for i in range(len(idx))] 
-idx = np.unique(idx)
-ray_x = X[idx]
-ray_y = Y[idx]
-ray_z = Z[idx]
-t = T[idx]
-d = Den[idx] * prel.den_converter
-ray_vol = Vol[idx]
-ray_vx = VX[idx]
-ray_vy = VY[idx]
-ray_vz = VZ[idx]
-ray_x, ray_y, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_z = \
-    sort_list([ray_x, ray_y, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_z], ray_z)
+fig, axtau = plt.subplots(1,1, figsize = (7,5))
+axtau.set_yscale('log')
+axtau.set_xlabel(r'$Z [R_\odot]$')
+axtau.set_ylabel(r'$\tau$')
+axtau.set_xlim(1e-3, 20)
+for i in range(len(observers_xyz)):
+    mu_x = observers_xyz[i][0]
+    mu_y = observers_xyz[i][1]
+    mu_z = observers_xyz[i][2]
+    # Go vertically 
+    x = np.repeat(mu_x, len(r_height))
+    y = np.repeat(mu_y, len(r_height))
+    z = r_height
 
-# Interpolate ----------------------------------------------------------
-sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
-sigma_rossland = np.array(sigma_rossland)[0]
-underflow_mask = sigma_rossland != 0.0
-idx = np.array(idx)
-ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, sigma_rossland = \
-    make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, sigma_rossland], underflow_mask)
-sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
-del sigma_rossland
-gc.collect()
+    xyz2 = np.array([x, y, z]).T
+    del x, y, z
 
-# Optical Depth
-ray_fuT = np.flipud(ray_z) 
-kappa_rossland = np.flipud(sigma_rossland_eval) #np.flipud(d)*0.34cm2/g
-# compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
-los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, ray_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_z. You integrate in the z direction
-los_zero = los != 0
-ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, los, sigma_rossland_eval = \
-    make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, los, sigma_rossland_eval], los_zero)
-# you integrate for tau as BonnerotLu20, eq.16 for trapping radius
-los_scatt = - np.flipud(sci.cumulative_trapezoid(np.flipud(d)*0.34, np.flipud(ray_z), initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_z. YOu integrate in the z direction
-c_tau = prel.csol_cgs/los #c/tau [code units]
+    _, idx = tree.query(xyz2, k=1)
+    idx = [ int(idx[j][0]) for j in range(len(idx))] 
+    idx = np.unique(idx)
+    ray_x = X[idx]
+    ray_y = Y[idx]
+    ray_z = Z[idx]
+    t = T[idx]
+    d = Den[idx] * prel.den_converter
+    ray_vol = Vol[idx]
+    ray_ie = IE_den[idx]
+    ray_x, ray_y, t, d, ray_vol, ray_ie, idx, ray_z = \
+        sort_list([ray_x, ray_y, t, d, ray_vol, ray_ie, idx, ray_z], ray_z)
 
-#%%
-# plot to check if you're taking the right thing
-plt.figure()
-plt.plot(ray_z/apo, c_tau/np.abs(ray_vz), c = 'k', label = r'$c\tau^{-1}/v_z$')
-plt.plot(ray_z/apo, los, label = r'$\tau_R$', c = 'r')
-plt.plot(ray_z/apo, los_scatt, '--', label = r'$\tau_s$', c = 'r')
-# plt.plot(ray_r/apo, np.abs(v_rad)*prel.Rsol_cgs/prel.tsol_cgs, label = r'$|v_r|$ [cm/s]', c = 'b')
-plt.axhline(1, c = 'k', linestyle = 'dotted')
-plt.xlabel(r'$Z [R_{\rm a}]$')
-plt.loglog()
-# plt.xlim(1e-1, 6)
-# plt.ylabel(r'$c\tau^{-1}/|v_r|$')
-plt.title(f'Snap {snap}, observer at x={labels_obs[i]}')
-plt.legend()
-        
-#%% plot to check if you're taking the right thing
-fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,10))
-cutplot = np.logical_and(Den > 1e-19, np.abs(X-mu_x)<Vol**(1/3))
-img = ax1.scatter(Y[cutplot], Z[cutplot]/apo, c = X[cutplot]/mu_x,  cmap = 'jet', alpha = 0.7, vmin = 0.5, vmax = 1.5)
-img = ax1.scatter(xyz2[:,1], xyz2[:,2]/apo, c = xyz2[:,0]/Rt, cmap = 'jet', marker = 's', edgecolors= 'k', label = 'What we want', vmin = 0.5, vmax = 1.5)
-img = ax1.scatter(ray_y, ray_z/apo, c = ray_x/mu_x, cmap = 'jet', edgecolors= 'k', label = 'From simulation', vmin = 0.5, vmax = 1.5)
-cbar = plt.colorbar(img, orientation = 'horizontal')
-cbar.set_label(r'X [$x_{\rm chosen}$]')
-ax1.legend(fontsize = 18)
-img = ax2.scatter(ray_y, ray_z/apo, c = los, cmap = 'jet', norm = colors.LogNorm(vmin = 1e-1, vmax = 1e3))
-ax2.plot(ray_y, ray_z/apo, c = 'k', alpha = 0.5)
-cbar = plt.colorbar(img, orientation = 'horizontal')
-cbar.set_label(r'$\tau$')
-ax1.set_ylabel(r'Z [$R_{\rm a}$]')
-for ax in [ax1, ax2]:
-    ax.set_xlabel(r'Y [$R_{\odot}$]')
-    ax.set_xlim(-50,50)
-    ax.set_ylim(-1/apo, 3.5)
-ax1.set_title('Points wanted and selected', fontsize = 18)
-ax2.set_title('Optical depth for each cell', fontsize = 18)
-plt.suptitle(f'Observer at ({int(mu_x)}, {int(mu_y)}, {int(mu_z)}), snap {snap}', fontsize = 20)
-plt.tight_layout()
-#%%
-Rtr_idx_all = np.where(c_tau/np.abs(ray_vz)<1)[0]
-if len(Rtr_idx_all) == 0:
-    print(f'No Rtr found anywhere for obs {i}', flush=False)
-R_tr_all = ray_z[Rtr_idx_all]
-# Rtr < Rph
-Rtr_idx_all_inside = np.where(np.abs(R_tr_all)<np.mean(rph))[0]
-if len(Rtr_idx_all_inside) == 0:
-    print(f'No Rtr inside Rph for obs {i}', flush=False)
-Rtr_idx_all = Rtr_idx_all[Rtr_idx_all_inside]
-# take the one most outside
-Rtr_idx = Rtr_idx_all[-1]
+    # Interpolate ----------------------------------------------------------
+    sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
+    sigma_rossland = np.array(sigma_rossland)[0]
+    underflow_mask = sigma_rossland != 0.0
+    idx = np.array(idx)
+    ray_x, ray_y, ray_z, t, d, ray_vol, ray_ie, idx, sigma_rossland = \
+        make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_ie, idx, sigma_rossland], underflow_mask)
+    sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
+    del sigma_rossland
+    gc.collect()
 
-t_dyn = ray_z/np.abs(ray_vz) * prel.tsol_cgs # [s]
+    # Optical Depth
+    ray_fuT = np.flipud(ray_z) 
+    kappa_rossland = np.flipud(sigma_rossland_eval) #np.flipud(d)*0.34cm2/g
+    # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
+    los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, ray_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_z. You integrate in the z direction
+    los_zero = los != 0
+    ray_x, ray_y, ray_z, t, d, ray_vol, ray_ie, idx, los, sigma_rossland_eval = \
+        make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_ie, idx, los, sigma_rossland_eval], los_zero)
+    # you integrate for tau as BonnerotLu20, eq.16 for trapping radius
+    los_scatt = - np.flipud(sci.cumulative_trapezoid(np.flipud(d)*0.34, np.flipud(ray_z), initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_z. YOu integrate in the z direction
+    c_tau = prel.csol_cgs/los #c/tau [code units]
+    
+    # plot to check if you're taking the right thing
+    # fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,10))
+    # cutplot = np.logical_and(Den > 1e-19, np.abs(X-mu_x)<Vol**(1/3))
+    # img = ax1.scatter(Y[cutplot], Z[cutplot]/apo, c = X[cutplot]/mu_x,  cmap = 'jet', alpha = 0.7, vmin = 0.5, vmax = 1.5)
+    # img = ax1.scatter(xyz2[:,1], xyz2[:,2]/apo, c = xyz2[:,0]/Rt, cmap = 'jet', marker = 's', edgecolors= 'k', label = 'What we want', vmin = 0.5, vmax = 1.5)
+    # img = ax1.scatter(ray_y, ray_z/apo, c = ray_x/mu_x, cmap = 'jet', edgecolors= 'k', label = 'From simulation', vmin = 0.5, vmax = 1.5)
+    # cbar = plt.colorbar(img, orientation = 'horizontal')
+    # cbar.set_label(r'X [$x_{\rm chosen}$]')
+    # ax1.legend(fontsize = 18)
+    # img = ax2.scatter(ray_y, ray_z/apo, c = los, cmap = 'jet', norm = colors.LogNorm(vmin = 1e-1, vmax = 1e3))
+    # ax2.plot(ray_y, ray_z/apo, c = 'k', alpha = 0.5)
+    # cbar = plt.colorbar(img, orientation = 'horizontal')
+    # cbar.set_label(r'$\tau$')
+    # ax1.set_ylabel(r'Z [$R_{\rm a}$]')
+    # for ax in [ax1, ax2]:
+    #     ax.set_xlabel(r'Y [$R_{\odot}$]')
+    #     ax.set_xlim(-50,50)
+    #     ax.set_ylim(-1/apo, 3.5)
+    # ax1.set_title('Points wanted and selected', fontsize = 18)
+    # ax2.set_title('Optical depth for each cell', fontsize = 18)
+    # plt.suptitle(f'Observer at ({int(mu_x)}, {int(mu_y)}, {int(mu_z)}), snap {snap}', fontsize = 20)
+    # plt.tight_layout()
+    # Find trapping height
+    # Rtr_idx_all = np.where(c_tau/np.abs(ray_vz)<1)[0]
+    # if len(Rtr_idx_all) == 0:
+    #     print(f'No Rtr found anywhere for obs {i}', flush=False)
+    # R_tr_all = ray_z[Rtr_idx_all]
+    # # Rtr < Rph
+    # Rtr_idx_all_inside = np.where(np.abs(R_tr_all)<np.mean(rph))[0]
+    # if len(Rtr_idx_all_inside) == 0:
+    #     print(f'No Rtr inside Rph for obs {i}', flush=False)
+    # Rtr_idx_all = Rtr_idx_all[Rtr_idx_all_inside]
+    # # take the one most outside
+    # Rtr_idx = Rtr_idx_all[-1]
 
-# tdiff = \tau*H/c 
-#### FOR CUMULATIVE SCATTER OR ROSS
-los_fuT = np.flipud(sigma_rossland_eval*ray_z) * prel.Rsol_cgs 
-los_scatt_fuT = np.flipud(d*0.34*ray_z) * prel.Rsol_cgs
-tdiff_cumulative = - np.flipud(sci.cumulative_trapezoid(los_fuT, np.flipud(ray_z), initial = 0))*prel.Rsol_cgs/ prel.c_cgs # this is the conversion for ray_z. You integrate in the z direction
-#### FOR SINGLE
-# los_fuT = sigma_rossland_eval * ray_z * prel.Rsol_cgs 
-# tdiff = np.zeros(len(ray_z))
-# for i in range(len(ray_z)):
-#     tdiff[i] = sci.trapezoid(los_fuT[i:], ray_z[i:])* prel.Rsol_cgs/ prel.c_cgs
+    # t_dyn = ray_z/np.abs(ray_vz) * prel.tsol_cgs # [s]
 
-#%%
-plt.figure(figsize = (10,5))
-img = plt.scatter(ray_z/apo, sigma_rossland_eval/d, c = t, cmap = 'jet', norm = colors.LogNorm(vmin = 3e3, vmax = 5e5))
-cbar = plt.colorbar(img)
-cbar.set_label(r'$\tau$')
-plt.xlabel(r'$R [R_{\rm a}]$')
-plt.ylabel(r'$\kappa$ [cm$^2$/g]')
-plt.xlim(0,7)
-plt.axhline(0.34, c = 'k', linestyle = '--', label = r'$\kappa_{\rm Th}$')
-# plt.ylim(1, 1e4)
-plt.yscale('log')
+    # FOR CUMULATIVE SCATTER OR ROSS
+    los_scatt_fuT = np.flipud(d * 0.34 * ray_z)
+    z_fuT = np.flipud(ray_z)
+    tau_fuT = np.flipud(sigma_rossland_eval * ray_z)  # tau = sigma_rossland_eval * ray_z (you said earlier)
+    #### FOR SINGLE
+    if computation == 'avg': # average by internal energy density (don't convert because then you divide)
+        ray_ie_fuT = np.flipud(ray_ie)
+        los_fuT = tau_fuT * prel.Rsol_cgs * ray_ie_fuT 
+        tdiff_cumulative = sci.cumulative_trapezoid(los_fuT, z_fuT, initial = 0) * prel.Rsol_cgs # convert z
+        tdiff_cumulative /= sci.cumulative_trapezoid(np.ones_like(ray_ie), ray_ie_fuT, initial = ray_ie_fuT[0])
+        #####
+        # tdiff_cumulative = np.zeros(len(tdiff_ie_cumulative))
+        # for k in range(len(ray_z)):
+        #     ie_integ = sci.trapezoid(np.ones_like(ray_ie[k:]), ray_ie[k:])
+        #     tdiff_cumulative[k] = tdiff_ie_cumulative[k]/ie_integ
+        #####
+    else:
+        los_fuT = tau_fuT * prel.Rsol_cgs 
+        # check ho optical depth goes
+        if i == 2:
+            axtau.plot(z_fuT, los_fuT, '--', label = f'x={labels_obs[i]}')
+        else:
+            axtau.plot(z_fuT, los_fuT, label = f'x={labels_obs[i]}')
+        tdiff_cumulative = sci.cumulative_trapezoid(los_fuT, z_fuT, initial = 0) * prel.Rsol_cgs # this is the conversion for ray_z. You integrate in the z direction
 
-#%%
-fig, (ax1, ax2) = plt.subplots(1, 2 , figsize = (12,5))
-ax1.plot(ray_z/apo, tdiff_cumulative/tfallback_cgs, c = 'k')
-ax1.set_ylabel(r'$t_{\rm diff} [t_{\rm fb}]$')
-ax1.axhline(t_dyn[Rtr_idx]/tfallback_cgs, c = 'k', linestyle = '--', label =  r'$t_{\rm dyn}=R_z/v_z$')
-# ax1.set_ylim(0, 2) # a bit further than the Rtrapp
-img = ax2.scatter(ray_z/apo, los, c = c_tau/np.abs(ray_vz), cmap = 'rainbow', vmin = 0, vmax = 2)
-cbar = plt.colorbar(img)
-cbar.set_label(r'c$\tau^{-1}/V_z$')
-ax2.set_ylabel(r'$\tau$')
-ax2.set_yscale('log')
-ax2.axvline(np.mean(rph)/apo, c = 'k', linestyle = 'dotted', label =  r'$<R_{\rm ph}>$')
-# ax2.set_ylim(0.1, 1e2)
-for ax in [ax1, ax2]:
-    ax.set_xlabel(r'$Z [R_{\rm a}]$')
-    ax.set_xlim(-0.1, 7)
-    ax.axvline(ray_z[Rtr_idx]/apo, c = 'b', linestyle = '--', label =  r'$R_{\rm tr} (c/\tau=V_z)$')
-    ax.legend(fontsize = 14)
-plt.suptitle('Form outside in', fontsize = 20)
-plt.tight_layout()
+    tdiff_cumulative = - np.flipud(tdiff_cumulative)/ prel.c_cgs
 
+    # save
+    with open(f'{pre_saving}/{check}_tdiff{snap}{computation}.txt', 'a') as f:
+        f.write(f'# tdiff for obs at x={labels_obs[i]} [s] \n' + ''.join(map(str, tdiff_cumulative)) + '\n')
+        f.close()
+    
+    # fig, ax1  = plt.subplots(1, 1 , figsize = (7,5))
+    # ax1.plot(ray_z/apo, tdiff_cumulative/tfallback_cgs, c = 'k')
+    # ax1.set_ylabel(r'$t_{\rm diff} [t_{\rm fb}]$')
+    # if i == 0:
+    #     ax1.set_yscale('log')
+    # # ax1.set_ylim(0, 2) # a bit further than the Rtrapp
+    # ax1.set_xlabel(r'$Z [R_{\rm a}]$')
+    # ax1.set_xlim(-0.1, 3)
+    # plt.suptitle(f'{check}, x = {labels_obs[i]}, snap {snap}, {computation}', fontsize = 20)
+    # plt.tight_layout()
+axtau.legend(fontsize = 18)
 #%%
 eng.exit()
