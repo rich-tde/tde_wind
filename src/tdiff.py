@@ -37,7 +37,7 @@ n = 1.5
 compton = 'Compton'
 check = '' 
 snap = 267
-computation = ''
+computation = 'avg'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 pre_saving = f'{abspath}/data/{folder}'
@@ -210,16 +210,16 @@ for i in range(len(observers_xyz)):
         f.write(f'# tdiff for obs at x={labels_obs[i]} [s] \n' + ''.join(map(str, tdiff_cumulative)) + '\n')
         f.close()
     
-    # fig, ax1  = plt.subplots(1, 1 , figsize = (7,5))
-    # ax1.plot(ray_z/apo, tdiff_cumulative/tfallback_cgs, c = 'k')
-    # ax1.set_ylabel(r'$t_{\rm diff} [t_{\rm fb}]$')
-    # if i == 0:
-    #     ax1.set_yscale('log')
-    # # ax1.set_ylim(0, 2) # a bit further than the Rtrapp
-    # ax1.set_xlabel(r'$Z [R_{\rm a}]$')
-    # ax1.set_xlim(-0.1, 3)
-    # plt.suptitle(f'{check}, x = {labels_obs[i]}, snap {snap}, {computation}', fontsize = 20)
-    # plt.tight_layout()
+    fig, ax1  = plt.subplots(1, 1 , figsize = (7,5))
+    ax1.plot(ray_z/apo, tdiff_cumulative/tfallback_cgs, c = 'k')
+    ax1.set_ylabel(r'$t_{\rm diff} [t_{\rm fb}]$')
+    if i == 0:
+        ax1.set_yscale('log')
+    # ax1.set_ylim(0, 2) # a bit further than the Rtrapp
+    ax1.set_xlabel(r'$Z [R_{\rm a}]$')
+    ax1.set_xlim(-0.1, 3)
+    plt.suptitle(f'{check}, x = {labels_obs[i]}, snap {snap}, {computation}', fontsize = 20)
+    plt.tight_layout()
 axtau.legend(fontsize = 18)
 #%%
 eng.exit()
