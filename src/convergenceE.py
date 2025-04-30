@@ -65,7 +65,7 @@ if alice:
             sec.make_slices([X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den], cut)
         Rsph_cut = np.sqrt(np.power(X_cut, 2) + np.power(Y_cut, 2) + np.power(Z_cut, 2))
         vel_cut = np.sqrt(np.power(VX_cut, 2) + np.power(VY_cut, 2) + np.power(VZ_cut, 2))
-        orb_en_cut = orb.orbital_energy(Rsph_cut, vel_cut, mass_cut, prel.G, prel.csol_cgs, Mbh R0)
+        orb_en_cut = orb.orbital_energy(Rsph_cut, vel_cut, mass_cut, prel.G, prel.csol_cgs, Mbh, R0)
         ie_cut = ie_den_cut * vol_cut
 
         # total energies with only the cut in density (not in radiation)
