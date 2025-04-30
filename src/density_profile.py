@@ -78,12 +78,12 @@ n = 1.5
 compton = 'Compton'
 check = '' # '' or 'HiRes'
 which_obs = 'all_rotate' # 'arch', 'all_cartesian', 'all_rotate'
-which_part = ''
+which_part = 'outflow'
 # Rg = Mbh * prel.G / prel.csol_cgs**2
 # print(Rg)
 #%%
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snap = 348
+snap = 164
 a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 e_mb = orb.eccentricity(Rstar, mstar, Mbh, beta)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
@@ -314,14 +314,18 @@ for i in [0,1,4,2,3,5]: #because I'm stupid and I haven't put the observer in a 
     ax2.plot(r/apo, np.abs(v_rad)*prel.Rsol_cgs*1e-5/prel.tsol_cgs, color = colors_obs[i], label = f'{label_obs[i]}')#Observer {label_obs[i]} ({indices_chosen[i]})')
     ax3.plot(r/apo, r**2*d*np.abs(v_rad)*prel.Rsol_cgs**3/prel.tsol_cgs, color = colors_obs[i], label = f'{label_obs[i]}')#Observer {label_obs[i]} ({indices_chosen[i]})')
 ax1.plot(x_test, y_test2, c = 'gray', ls = 'dashed')#, label = r'$\rho \propto R^{-2}$')
+ax1.text(4, 1e-13, r'$\propto R^{-2}$', fontsize = 20, color = 'k', rotation = -20)
 ax1.plot(x_test, y_test3, c = 'gray', ls = 'dotted')#, label = r'$\rho \propto R^{-3}$')
+ax1.text(.04, 3e-9, r'$\propto R^{-3}$', fontsize = 20, color = 'k', rotation = -32)
 ax1.plot(x_test, y_test4, c = 'gray', ls = '-.')#, label = r'$\rho \propto R^{-4}$')
+ax1.text(.1, 9e-9, r'$\propto R^{-4}$', fontsize = 20, color = 'k', rotation = -45)
 # ax1.axhspan(np.min(np.exp(Rho_cool)), np.max(np.exp(Rho_cool)), alpha=0.2, color='gray')
 ax1.axvline(Rp/apo, c = 'k', ls = '--')
 ax1.set_ylim(2e-15, 1e-5)
 ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
 ax2.set_ylabel(r'$|v_r|$ [km/s]')
 ax3.set_ylabel(r'$|v_r| \rho R^2$ [g/s]')
+ax3.set_ylim(1e18, 5e27)
 xmin = 0.5*Rt/apo
 xmax = 10
 for ax in [ax1, ax2, ax3]:

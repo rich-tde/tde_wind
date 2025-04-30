@@ -59,7 +59,6 @@ def semimajor_axis(Rstar, mstar, Mbh, G):
 
 def pericentre(Rstar, mstar, Mbh, beta):
     Rt = tidal_radius(Rstar, mstar, Mbh)
-    print(Rt)
     Rp = Rt/beta
     return Rp
 
