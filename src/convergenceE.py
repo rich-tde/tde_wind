@@ -19,7 +19,7 @@ import Utilities.prelude as prel
 
 #
 ## PARAMETERS STAR AND BH
-#
+#%%
 m = 4
 Mbh = 10**m
 beta = 1
@@ -31,6 +31,7 @@ R0 = 0.6*Rp
 compton = 'Compton'
 check = 'HiRes' 
 
+#%%
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 Mbh = 10**m
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
@@ -131,25 +132,27 @@ else:
                 '_thresh2', 
                 '_thresh20Dencut', 
                 '_thresh18Dencut',
-                'Pot',
-                '_threshPot',]
+                'noR0',
+                '_threshnoR0',]
     titles = [r'$\rho>10^{19} [M_\odot/R_\odot^3]$ ', 
                 r'cut $x>-0.75R_{a}, \rho>10^{19} [M_\odot/R_\odot^3]$', 
                 r'cut $x>-5R_{a}, \rho>10^{19} [M_\odot/R_\odot^3]$', 
                 r'cut $x>-2R_{a}, \rho>10^{19} [M_\odot/R_\odot^3]$',  
                 r'$\rho>10^{20} [M_\odot/R_\odot^3]$, box', 
                 r'$\rho>10^{18} [M_\odot/R_\odot^3]$, box',
-                r'$\rho>10^{19} [M_\odot/R_\odot^3]$, box, correct potential',
-                r'$\rho>10^{19} [M_\odot/R_\odot^3]$, box, correct potential, cut in density']
+                r'$\rho>10^{19} [M_\odot/R_\odot^3]$, outside R0',
+                r'$\rho>10^{19} [M_\odot/R_\odot^3]$, box, outside R0']
+    # IE, OEpos, OEneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE_.npy')
+    # print(OEpos)
     for i, thresh in enumerate(threshes):
-        IEL, OELpos, OELneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}LowRes/convE_LowRes{thresh}.npy')
+        # IEL, OELpos, OELneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}LowRes/convE_LowRes{thresh}.npy')
         IE, OEpos, OEneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE_{thresh}.npy')
-        IEH, OEHpos, OEHneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}HiRes/convE_HiRes{thresh}.npy')
+        # IEH, OEHpos, OEHneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}HiRes/convE_HiRes{thresh}.npy')
         
         fig, (ax1, ax2) = plt.subplots(1,2, figsize = (14,5))
-        ax1.plot(tfbL, prel.en_converter * OELpos, c = 'C1', label = 'Low')
+        # ax1.plot(tfbL, prel.en_converter * OELpos, c = 'C1', label = 'Low')
         ax1.plot(tfb, prel.en_converter * OEpos, c = 'yellowgreen', label = 'Fid')
-        ax1.plot(tfbH, prel.en_converter * OEHpos, c = 'darkviolet', label = 'High')
+        # ax1.plot(tfbH, prel.en_converter * OEHpos, c = 'darkviolet', label = 'High')
         # ax1.plot(tfbL, prel.en_converter * OEL_posnocut, '--', c = 'maroon')
         ax1.set_ylabel(r'$|$OE$|$ [$10^{48}$ erg/s]')
         ax1.set_title(r'Unbound gas')
@@ -157,9 +160,9 @@ else:
         ax1.legend(fontsize = 15)
         ax1.set_yscale('log')
 
-        ax2.plot(tfbL, prel.en_converter * np.abs(OELneg), c = 'C1', label = 'Low')
+        # ax2.plot(tfbL, prel.en_converter * np.abs(OELneg), c = 'C1', label = 'Low')
         ax2.plot(tfb, prel.en_converter * np.abs(OEneg), c = 'yellowgreen', label = 'Fid')
-        ax2.plot(tfbH, prel.en_converter * np.abs(OEHneg), c = 'darkviolet', label = 'High')
+        # ax2.plot(tfbH, prel.en_converter * np.abs(OEHneg), c = 'darkviolet', label = 'High')
         ax2.set_title(r'Bound gas')
         for ax in (ax1, ax2):
             ax.set_xlabel(r'$t [t_{\rm fb}]$')
@@ -168,42 +171,42 @@ else:
         plt.suptitle(f'{titles[i]}', fontsize = 15)
         plt.tight_layout()
 
-        if i == 0:
-            fig, (ax1, ax2) = plt.subplots(1,2, figsize = (12,5))
-            ax1.plot(tfbL,find_ratio(OELpos, OEpos[1:len(OELpos)+1]), c = 'C1')
-            ax1.plot(tfbL, find_ratio(OELpos, OEpos[1:len(OELpos)+1]), '--', c = 'yellowgreen')
-            ax1.plot(tfbH, find_ratio(OEHpos, OEpos[:len(OEHpos)+1]), c = 'darkviolet')
-            ax1.plot(tfbH, find_ratio(OEHpos, OEpos[:len(OEHpos)+1]), '--', c = 'yellowgreen')
-            ax1.set_title(r'Unbound gas')
-            ax1.legend(fontsize = 15)
-            ax1.set_ylabel(r'ratio OE')
-            ax2.plot(tfbL,find_ratio(OELneg, OEneg[1:len(OELneg)+1]), c = 'C1')
-            ax2.plot(tfbL, find_ratio(OELneg, OEneg[1:len(OELneg)+1]), '--', c = 'yellowgreen')
-            ax2.plot(tfbH, find_ratio(OEHneg, OEneg[:len(OEHneg)+1]), c = 'darkviolet')
-            ax2.plot(tfbH, find_ratio(OEHneg, OEneg[:len(OEHneg)+1]), '--', c = 'yellowgreen')
-            ax2.set_title(r'Bound gas')
-            plt.suptitle(f'{titles[i]}', fontsize = 15)
+        # if i == 0:
+        #     fig, (ax1, ax2) = plt.subplots(1,2, figsize = (12,5))
+        #     ax1.plot(tfbL,find_ratio(OELpos, OEpos[1:len(OELpos)+1]), c = 'C1')
+        #     ax1.plot(tfbL, find_ratio(OELpos, OEpos[1:len(OELpos)+1]), '--', c = 'yellowgreen')
+        #     ax1.plot(tfbH, find_ratio(OEHpos, OEpos[:len(OEHpos)+1]), c = 'darkviolet')
+        #     ax1.plot(tfbH, find_ratio(OEHpos, OEpos[:len(OEHpos)+1]), '--', c = 'yellowgreen')
+        #     ax1.set_title(r'Unbound gas')
+        #     ax1.legend(fontsize = 15)
+        #     ax1.set_ylabel(r'ratio OE')
+        #     ax2.plot(tfbL,find_ratio(OELneg, OEneg[1:len(OELneg)+1]), c = 'C1')
+        #     ax2.plot(tfbL, find_ratio(OELneg, OEneg[1:len(OELneg)+1]), '--', c = 'yellowgreen')
+        #     ax2.plot(tfbH, find_ratio(OEHneg, OEneg[:len(OEHneg)+1]), c = 'darkviolet')
+        #     ax2.plot(tfbH, find_ratio(OEHneg, OEneg[:len(OEHneg)+1]), '--', c = 'yellowgreen')
+        #     ax2.set_title(r'Bound gas')
+        #     plt.suptitle(f'{titles[i]}', fontsize = 15)
 
-            fig, ax1 = plt.subplots(1,1, figsize = (7,5))
-            ax1.plot(tfbL,find_ratio(IEL, IE[1:len(OELpos)+1]), c = 'C1')
-            ax1.plot(tfbL, find_ratio(IEL, IE[1:len(IEL)+1]), '--', c = 'yellowgreen')
-            ax1.plot(tfbH, find_ratio(IEH, IE[:len(IEH)+1]), c = 'darkviolet')
-            ax1.plot(tfbH, find_ratio(IEH, IE[:len(IEH)+1]), '--', c = 'yellowgreen')
-            ax1.legend(fontsize = 15)
-            ax1.set_ylabel(r'ratio IE')
-            plt.suptitle(f'{titles[i]}', fontsize = 15)
+        #     fig, ax1 = plt.subplots(1,1, figsize = (7,5))
+        #     ax1.plot(tfbL,find_ratio(IEL, IE[1:len(OELpos)+1]), c = 'C1')
+        #     ax1.plot(tfbL, find_ratio(IEL, IE[1:len(IEL)+1]), '--', c = 'yellowgreen')
+        #     ax1.plot(tfbH, find_ratio(IEH, IE[:len(IEH)+1]), c = 'darkviolet')
+        #     ax1.plot(tfbH, find_ratio(IEH, IE[:len(IEH)+1]), '--', c = 'yellowgreen')
+        #     ax1.legend(fontsize = 15)
+        #     ax1.set_ylabel(r'ratio IE')
+        #     plt.suptitle(f'{titles[i]}', fontsize = 15)
 
         fig, (ax1) = plt.subplots(1,1, figsize = (7,5))
-        ax1.plot(tfbL, 1e-46*prel.en_converter * IEL, c = 'C1', label = 'Low')
+        # ax1.plot(tfbL, 1e-46*prel.en_converter * IEL, c = 'C1', label = 'Low')
         ax1.plot(tfb, 1e-46*prel.en_converter * IE, c = 'yellowgreen', label = 'Fid')
-        ax1.plot(tfbH, 1e-46*prel.en_converter * IEH, c = 'darkviolet', label = 'High')
+        # ax1.plot(tfbH, 1e-46*prel.en_converter * IEH, c = 'darkviolet', label = 'High')
         ax1.set_ylabel(r'IE [$10^{46}$ erg/s]')
         plt.suptitle(f'{titles[i]}', fontsize = 15)
         ax1.legend(fontsize = 15)
         ax1.set_xlabel(r'$t [t_{\rm fb}]$')
         ax1.set_yscale('log')
 
-    _, OEpos19, OEneg19, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE_.npy')
-    _, OEpos20, OEneg20, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE__thresh18Dencut.npy')
-    print(OEpos19-OEpos20)
-    print(OEneg19-OEneg20)
+    # _, OEpos19, OEneg19, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE_.npy')
+    # _, OEpos20, OEneg20, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE__thresh18Dencut.npy')
+    # print(OEpos19-OEpos20)
+    # print(OEneg19-OEneg20)
