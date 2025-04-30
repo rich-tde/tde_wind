@@ -51,10 +51,10 @@ tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
 # observers
 x_start = -apo #-7*apo
 x_stop = 30 #2.5*apo
-xs = np.arange(x_start, x_stop, num = .5)
+xs = np.arange(x_start, x_stop, .5)
 y_start = -.4*apo #-4*apo 
 y_stop = .4*apo  #3*apo
-ys = np.arange(y_start, y_stop, num = .5)
+ys = np.arange(y_start, y_stop, .5)
 # make all combinations of x and y
 xs, ys = np.meshgrid(xs, ys)
 xs = xs.flatten()
@@ -209,6 +209,9 @@ for i in range(len(observers_xyz)):
 
 #save
 np.save(f'{pre_saving}/{check}_tdiff{snap}mesh.npy',tdiff_mid)
+np.save(f'{pre_saving}/{check}_tdiff{snap}xs.npy',xs)
+np.save(f'{pre_saving}/{check}_tdiff{snap}ys.npy',ys)
+
 
 eng.exit()
 
