@@ -130,13 +130,17 @@ else:
                 '_thresh5',  
                 '_thresh2', 
                 '_thresh20Dencut', 
-                '_thresh18Dencut']
+                '_thresh18Dencut',
+                'Pot',
+                '_threshPot',]
     titles = [r'$\rho>10^{19} [M_\odot/R_\odot^3]$ ', 
                 r'cut $x>-0.75R_{a}, \rho>10^{19} [M_\odot/R_\odot^3]$', 
                 r'cut $x>-5R_{a}, \rho>10^{19} [M_\odot/R_\odot^3]$', 
                 r'cut $x>-2R_{a}, \rho>10^{19} [M_\odot/R_\odot^3]$',  
-                r'$\rho>10^{20} [M_\odot/R_\odot^3]$', 
-                r'$\rho>10^{18} [M_\odot/R_\odot^3]$']
+                r'$\rho>10^{20} [M_\odot/R_\odot^3]$, box', 
+                r'$\rho>10^{18} [M_\odot/R_\odot^3]$, box',
+                r'$\rho>10^{19} [M_\odot/R_\odot^3]$, box, correct potential',
+                r'$\rho>10^{19} [M_\odot/R_\odot^3]$, box, correct potential, cut in density']
     for i, thresh in enumerate(threshes):
         IEL, OELpos, OELneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}LowRes/convE_LowRes{thresh}.npy')
         IE, OEpos, OEneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE_{thresh}.npy')

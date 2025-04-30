@@ -115,7 +115,7 @@ def R_selfinter(Rstar, mstar, Mbh, beta, c, G):
 def orbital_energy(r, vel, mass, G, c, M, R0):
     # no angular momentum??
     Rs = 2*G*M/c**2
-    potential = np.where( r <= R0, -G * M * r**2 / (2 * R0 * (R0 - Rs)**2), -G * M / (r - Rs))
+    potential = np.where( r <= R0, [-G * M * r**2 / (2 * R0 * (R0 - Rs)**2), -G * M / (r - Rs)])
     energy = mass * (0.5 * vel**2 + potential)
     return energy
 
@@ -522,7 +522,7 @@ if __name__ == '__main__':
         make_slices([data.X, data.Y, data.Z, dim_cell, data.Den, data.Mass], cut)
 
     make_stream = True
-    make_width = False
+    make_width = True
     test_s = False
     test_orbit = False
 
@@ -595,25 +595,26 @@ if __name__ == '__main__':
         plt.show() 
     #%%
     if make_width:
-        midplane = np.abs(data.Z) < dim_cell
-        X_midplane, Y_midplane, Den_midplane, Mass_midplane = make_slices([data.X, data.Y, data.Den, data.Mass], midplane)
         file = f'/Users/paolamartire/shocks/data/{folder}/stream_{check}{snap}.npy' 
-        stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr  = follow_the_stream(data.X, data.Y, data.Z, dim_cell, data.Mass, path = file, params = params)
+        stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr  = follow_the_stream(X, Y, Z, dim_cell, Mass, path = file, params = params)
         cm_x, cm_y, cm_z = stream[0], stream[1], stream[2]
-        low_x, low_y = data.X[indeces_boundary[:,0]] , data.Y[indeces_boundary[:,0]]
-        up_x, up_y = data.X[indeces_boundary[:,1]] , data.Y[indeces_boundary[:,1]]
+        low_x, low_y = X[indeces_boundary[:,0]] , Y[indeces_boundary[:,0]]
+        up_x, up_y = X[indeces_boundary[:,1]] , Y[indeces_boundary[:,1]]
 
         #%%
-        plt.figure(figsize = (12,4))
-        img = plt.scatter(X_midplane, Y_midplane, c = Den_midplane, s = 1, cmap = 'viridis', alpha = 0.2, vmin = 2e-8, vmax = 6e-8)
-        cbar = plt.colorbar(img)
-        cbar.set_label(r'Density', fontsize = 16)
-        plt.plot(cm_x, cm_y,  c = 'k')
-        plt.plot(low_x, low_y, '--', c = 'k')
-        plt.plot(up_x, up_y, '-.', c = 'k', label = 'Upper tube')
+        # midplane = Z < dim_cell
+        # X_midplane, Y_midplane, Den_midplane, Mass_midplane = make_slices([X, Y, Den, Mass], midplane)
+        plt.figure(figsize = (12,8))
+        # img = plt.scatter(X_midplane, Y_midplane, c = Den_midplane, s = 1, cmap = 'viridis', alpha = 0.2, vmin = 2e-8, vmax = 6e-8)
+        # cbar = plt.colorbar(img)
+        # cbar.set_label(r'Density', fontsize = 16)
+        # plt.plot(cm_x, cm_y,  c = 'k')
+        plt.plot(low_x[:-10], low_y[:-10], '--', c = 'k')
+        plt.plot(up_x[:-10], up_y[:-10], '-.', c = 'k', label = 'Upper tube')
         plt.xlabel(r'X [$R_\odot$]', fontsize = 18)
         plt.ylabel(r'Y [$R_\odot$]', fontsize = 18)
-        plt.xlim(-200,30)
-        plt.ylim(-40,60)
+        plt.xlim(-300,30)
+        plt.ylim(-75,75)
         plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{check}/stream{snap}.png', dpi=300)
         plt.show()
+# %%
