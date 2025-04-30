@@ -58,6 +58,8 @@ rossland = np.loadtxt(f'{opac_path}/ross.txt')
 T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
 
 for snap in snaps:
+    if snap != 164:
+        continue 
     photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
     xph, yph, zph = photo[0], photo[1], photo[2]
     rph = np.sqrt(xph**2 + yph**2 + zph**2)
@@ -187,8 +189,9 @@ for snap in snaps:
             sys.stdout.flush()
             continue
         Rtr_idx_all = Rtr_idx_all[Rtr_idx_all_inside]
-        # take the one most outside
+        # take the one most outside 
         Rtr_idx = Rtr_idx_all[-1]
+        print(Rtr_idx_all[0])
         # plt.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = 'dotted', label = r'$R_{\rm tr}$')
         # plt.legend(fontsize = 14)
         x_tr[i] = ray_x[Rtr_idx]

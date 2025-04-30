@@ -242,6 +242,8 @@ if plot:
     ax1.plot(tfb, np.abs(mwind_posB1)/Medd_code, ls = '--', c = 'dodgerblue')#, label = r'$\dot{M}_{\rm out} [B>0]$')
     ax1.plot(tfb, np.abs(mwind_negB1)/Medd_code, ls = '--', c = 'forestgreen')#, label = r'$\dot{M}_{\rm in} [B>0]$')
     ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm fb}$', c = 'k')
+    ax1.plot(tfb[-40:], 6e4*np.array(tfb[-40:])**(-5/3), ls = 'dotted', c = 'k')
+    ax1.text(1.28, 1.5e4, r'$\propto t^{-5/3}$', fontsize = 18)
     # ax1.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
     # ax1.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
     ax1.set_yscale('log')

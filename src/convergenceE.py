@@ -58,7 +58,7 @@ if alice:
             data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Mass, data.Vol, data.Den, data.IE, data.Rad
         Rad = Rad_den * vol
         # cut in density NOT in radiation
-        cut = den > 1e19 
+        cut = den > 1e-19 
         X_cut, Y_cut, Z_cut, VX_cut, VY_cut, VZ_cut, mass_cut, vol_cut, den_cut, ie_den_cut = \
             sec.make_slices([X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den], cut)
         Rsph_cut = np.sqrt(np.power(X_cut, 2) + np.power(Y_cut, 2) + np.power(Z_cut, 2))
@@ -87,7 +87,7 @@ if alice:
         # xmin, ymin, zmin = np.max([box[0], boxL[0], boxH[0], -0.75*apo]), np.max([box[1], boxL[1], boxH[1]]), np.max([box[2], boxL[2], boxH[2]])
         # print("ratio xmin/0.75apo: ", -xmin/(0.75*apo), flush=False)
         # sys.stdout.flush()
-        xmin, ymin, zmin = np.max([box[0], boxL[0], boxH[0], -0.75*apo]), np.max([box[1], boxL[1], boxH[1]]), np.max([box[2], boxL[2], boxH[2]])
+        xmin, ymin, zmin = np.max([box[0], boxL[0], boxH[0]]), np.max([box[1], boxL[1], boxH[1]]), np.max([box[2], boxL[2], boxH[2]])
         xmax, ymax, zmax = np.min([box[3], boxL[3], boxH[3]]), np.min([box[4], boxL[4], boxH[4]]), np.min([box[5], boxL[5], boxH[5]])
         cut_coord = (X > xmin) & (X < xmax) & (Y > ymin) & (Y < ymax) & (Z > zmin) & (Z < zmax) 
         Rad_thresh = Rad[cut_coord]
@@ -106,8 +106,8 @@ if alice:
     print("ratio mass_box/mass_all: ", missingMass, flush=False)
     sys.stdout.flush()
 
-    np.save(f'{abspath}/data/{folder}/convE_{check}.npy', [col_ie, col_orb_en_pos, col_orb_en_neg, col_orb_en, col_Rad])
-    np.save(f'{abspath}/data/{folder}/convE_{check}_thresh75.npy', [col_ie_thres, col_orb_en_thres_pos, col_orb_en_thres_neg, col_orb_en_thres, col_Rad_thres])
+    np.save(f'{abspath}/data/{folder}/convE_{check}Pot.npy', [col_ie, col_orb_en_pos, col_orb_en_neg, col_orb_en, col_Rad])
+    np.save(f'{abspath}/data/{folder}/convE_{check}_threshPot.npy', [col_ie_thres, col_orb_en_thres_pos, col_orb_en_thres_neg, col_orb_en_thres, col_Rad_thres])
     with open(f'{abspath}/data/{folder}/convE_{check}_days.txt', 'w') as file:
             file.write(f'# In convE_{check}_thresh you find internal, orbital (pos and neg) and radiation energy [NO denisty/specific] inside the biggest box enclosed in the three simulation volumes and cut in density.\n')
             file.write(f'# In convE_{check} only cut in density.')
@@ -115,37 +115,89 @@ if alice:
             file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
             file.close()
 
-
-
 else:
     import matplotlib.pyplot as plt
+    from Utilities.operators import find_ratio
     commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     _, tfb = np.loadtxt(f'{abspath}/data/{commonfolder}/convE__days.txt')
     _, tfbL = np.loadtxt(f'{abspath}/data/{commonfolder}LowRes/convE_LowRes_days.txt')
     _, tfbH = np.loadtxt(f'{abspath}/data/{commonfolder}HiRes/convE_HiRes_days.txt')
    
-    threshes = ['', '_thresh5', '_thresh2', '_thresh18Dencut']
-    titles = [r'$\rho>10^{19} [M_\odot/R_\odot^3]$ ', r'cut $x>-5R_{a}$', r'cut $-x>2R_{a}$', r'$\rho>10^{18} [M_\odot/R_\odot^3]$']
+    threshes = ['', 
+                '_thresh75',
+                '_thresh5',  
+                '_thresh2', 
+                '_thresh20Dencut', 
+                '_thresh18Dencut']
+    titles = [r'$\rho>10^{19} [M_\odot/R_\odot^3]$ ', 
+                r'cut $x>-0.75R_{a}, \rho>10^{19} [M_\odot/R_\odot^3]$', 
+                r'cut $x>-5R_{a}, \rho>10^{19} [M_\odot/R_\odot^3]$', 
+                r'cut $x>-2R_{a}, \rho>10^{19} [M_\odot/R_\odot^3]$',  
+                r'$\rho>10^{20} [M_\odot/R_\odot^3]$', 
+                r'$\rho>10^{18} [M_\odot/R_\odot^3]$']
     for i, thresh in enumerate(threshes):
-        # _, OEL_posnocut, OEL_negnocut, _, _ = np.load(f'{abspath}/data/{commonfolder}LowRes/convE_LowRes.npy')
-        _, OELpos, OELneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}LowRes/convE_LowRes{thresh}.npy')
-        # _, OEpos, OEneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE_{thresh}.npy')
-        _, OEHpos, OEHneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}HiRes/convE_HiRes{thresh}.npy')
+        IEL, OELpos, OELneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}LowRes/convE_LowRes{thresh}.npy')
+        IE, OEpos, OEneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE_{thresh}.npy')
+        IEH, OEHpos, OEHneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}HiRes/convE_HiRes{thresh}.npy')
         
-        fig, (ax1, ax2) = plt.subplots(1,2, figsize = (12,5))
-        ax1.plot(tfbL, 1e-48*prel.en_converter * OELpos, c = 'C1', label = 'Low')
-        # ax1.plot(tfb, 1e-48*prel.en_converter * OEpos[1:], c = 'yellowgreen', label = 'Fid')
-        ax1.plot(tfbH, 1e-48*prel.en_converter * OEHpos[1:], c = 'darkviolet', label = 'High')
-        # ax1.plot(tfbL, 1e-48*prel.en_converter * OEL_posnocut, '--', c = 'maroon')
+        fig, (ax1, ax2) = plt.subplots(1,2, figsize = (14,5))
+        ax1.plot(tfbL, prel.en_converter * OELpos, c = 'C1', label = 'Low')
+        ax1.plot(tfb, prel.en_converter * OEpos, c = 'yellowgreen', label = 'Fid')
+        ax1.plot(tfbH, prel.en_converter * OEHpos, c = 'darkviolet', label = 'High')
+        # ax1.plot(tfbL, prel.en_converter * OEL_posnocut, '--', c = 'maroon')
         ax1.set_ylabel(r'$|$OE$|$ [$10^{48}$ erg/s]')
         ax1.set_title(r'Unbound gas')
+        # ax1.set_ylim(11.5,12)
         ax1.legend(fontsize = 15)
+        ax1.set_yscale('log')
 
-        ax2.plot(tfbL, 1e-48*prel.en_converter * np.abs(OELneg), c = 'C1', label = 'Low')
-        # ax2.plot(tfb, 1e-48*prel.en_converter * np.abs(OEneg[1:]), c = 'yellowgreen', label = 'Fid')
-        ax2.plot(tfbH, 1e-48*prel.en_converter * np.abs(OEHneg[1:]), c = 'darkviolet', label = 'High')
+        ax2.plot(tfbL, prel.en_converter * np.abs(OELneg), c = 'C1', label = 'Low')
+        ax2.plot(tfb, prel.en_converter * np.abs(OEneg), c = 'yellowgreen', label = 'Fid')
+        ax2.plot(tfbH, prel.en_converter * np.abs(OEHneg), c = 'darkviolet', label = 'High')
         ax2.set_title(r'Bound gas')
         for ax in (ax1, ax2):
             ax.set_xlabel(r'$t [t_{\rm fb}]$')
+        # ax2.set_ylim(12.2, 13)
+        ax2.set_yscale('log')
         plt.suptitle(f'{titles[i]}', fontsize = 15)
         plt.tight_layout()
+
+        if i == 0:
+            fig, (ax1, ax2) = plt.subplots(1,2, figsize = (12,5))
+            ax1.plot(tfbL,find_ratio(OELpos, OEpos[1:len(OELpos)+1]), c = 'C1')
+            ax1.plot(tfbL, find_ratio(OELpos, OEpos[1:len(OELpos)+1]), '--', c = 'yellowgreen')
+            ax1.plot(tfbH, find_ratio(OEHpos, OEpos[:len(OEHpos)+1]), c = 'darkviolet')
+            ax1.plot(tfbH, find_ratio(OEHpos, OEpos[:len(OEHpos)+1]), '--', c = 'yellowgreen')
+            ax1.set_title(r'Unbound gas')
+            ax1.legend(fontsize = 15)
+            ax1.set_ylabel(r'ratio OE')
+            ax2.plot(tfbL,find_ratio(OELneg, OEneg[1:len(OELneg)+1]), c = 'C1')
+            ax2.plot(tfbL, find_ratio(OELneg, OEneg[1:len(OELneg)+1]), '--', c = 'yellowgreen')
+            ax2.plot(tfbH, find_ratio(OEHneg, OEneg[:len(OEHneg)+1]), c = 'darkviolet')
+            ax2.plot(tfbH, find_ratio(OEHneg, OEneg[:len(OEHneg)+1]), '--', c = 'yellowgreen')
+            ax2.set_title(r'Bound gas')
+            plt.suptitle(f'{titles[i]}', fontsize = 15)
+
+            fig, ax1 = plt.subplots(1,1, figsize = (7,5))
+            ax1.plot(tfbL,find_ratio(IEL, IE[1:len(OELpos)+1]), c = 'C1')
+            ax1.plot(tfbL, find_ratio(IEL, IE[1:len(IEL)+1]), '--', c = 'yellowgreen')
+            ax1.plot(tfbH, find_ratio(IEH, IE[:len(IEH)+1]), c = 'darkviolet')
+            ax1.plot(tfbH, find_ratio(IEH, IE[:len(IEH)+1]), '--', c = 'yellowgreen')
+            ax1.legend(fontsize = 15)
+            ax1.set_ylabel(r'ratio IE')
+            plt.suptitle(f'{titles[i]}', fontsize = 15)
+
+        fig, (ax1) = plt.subplots(1,1, figsize = (7,5))
+        ax1.plot(tfbL, 1e-46*prel.en_converter * IEL, c = 'C1', label = 'Low')
+        ax1.plot(tfb, 1e-46*prel.en_converter * IE, c = 'yellowgreen', label = 'Fid')
+        ax1.plot(tfbH, 1e-46*prel.en_converter * IEH, c = 'darkviolet', label = 'High')
+        ax1.set_ylabel(r'IE [$10^{46}$ erg/s]')
+        plt.suptitle(f'{titles[i]}', fontsize = 15)
+        ax1.legend(fontsize = 15)
+        ax1.set_xlabel(r'$t [t_{\rm fb}]$')
+        ax1.set_yscale('log')
+
+    _, OEpos19, OEneg19, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE_.npy')
+    _, OEpos20, OEneg20, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE__thresh18Dencut.npy')
+    print(OEpos19-OEpos20)
+    print(OEneg19-OEneg20)

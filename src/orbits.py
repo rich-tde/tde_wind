@@ -112,10 +112,13 @@ def R_selfinter(Rstar, mstar, Mbh, beta, c, G):
     R = (1+e_mb) * Rt / (beta * (1-e_mb * np.cos(theta/2)))
     return R
 
-def orbital_energy(r, vel, mass, G, c, M):
+def orbital_energy(r, vel, mass, G, c, M, R0):
     # no angular momentum??
     Rs = 2*G*M/c**2
-    potential = -G * M / (r-Rs)
+    if r <= R0:
+        potential = -G * M * r**2 / (2 * R0 * (R0-Rs)**2)
+    else:
+        potential = -G * M / (r-Rs)
     energy = mass * (0.5 * vel**2 + potential)
     return energy
 
