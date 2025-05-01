@@ -147,13 +147,12 @@ else:
     for i, thresh in enumerate(threshes):
         IEL, OELpos, OELneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}LowRes/convE_LowRes{thresh}.npy')
         IE, OEpos, OEneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE_{thresh}.npy')
-        # IEH, OEHpos, OEHneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}HiRes/convE_HiRes{thresh}.npy')
+        IEH, OEHpos, OEHneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}HiRes/convE_HiRes{thresh}.npy')
         
         fig, (ax1, ax2) = plt.subplots(1,2, figsize = (14,5))
         ax1.plot(tfbL, prel.en_converter * OELpos, c = 'C1', label = 'Low')
         ax1.plot(tfb, prel.en_converter * OEpos, c = 'yellowgreen', label = 'Fid')
-        # ax1.plot(tfbH, prel.en_converter * OEHpos, c = 'darkviolet', label = 'High')
-        # ax1.plot(tfbL, prel.en_converter * OEL_posnocut, '--', c = 'maroon')
+        ax1.plot(tfbH, prel.en_converter * OEHpos, c = 'darkviolet', label = 'High')
         ax1.set_ylabel(r'$|$OE$|$ [$10^{48}$ erg/s]')
         ax1.set_title(r'Unbound gas')
         # ax1.set_ylim(11.5,12)
@@ -162,7 +161,7 @@ else:
 
         ax2.plot(tfbL, prel.en_converter * np.abs(OELneg), c = 'C1', label = 'Low')
         ax2.plot(tfb, prel.en_converter * np.abs(OEneg), c = 'yellowgreen', label = 'Fid')
-        # ax2.plot(tfbH, prel.en_converter * np.abs(OEHneg), c = 'darkviolet', label = 'High')
+        ax2.plot(tfbH, prel.en_converter * np.abs(OEHneg), c = 'darkviolet', label = 'High')
         ax2.set_title(r'Bound gas')
         for ax in (ax1, ax2):
             ax.set_xlabel(r'$t [t_{\rm fb}]$')
@@ -199,7 +198,7 @@ else:
         fig, (ax1) = plt.subplots(1,1, figsize = (7,5))
         ax1.plot(tfbL, 1e-46*prel.en_converter * IEL, c = 'C1', label = 'Low')
         ax1.plot(tfb, 1e-46*prel.en_converter * IE, c = 'yellowgreen', label = 'Fid')
-        # ax1.plot(tfbH, 1e-46*prel.en_converter * IEH, c = 'darkviolet', label = 'High')
+        ax1.plot(tfbH, 1e-46*prel.en_converter * IEH, c = 'darkviolet', label = 'High')
         ax1.set_ylabel(r'IE [$10^{46}$ erg/s]')
         plt.suptitle(f'{titles[i]}', fontsize = 15)
         ax1.legend(fontsize = 15)
