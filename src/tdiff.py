@@ -70,11 +70,11 @@ else:
     loadpath = f'{pre}/{snap}'
 data = make_tree(loadpath, snap, energy = True)
 box = np.load(f'{loadpath}/box_{snap}.npy')
-X, Y, Z, T, Den, Vol, IE_den = \
-    data.X, data.Y, data.Z, data.Temp, data.Den, data.Vol, data.IE
+X, Y, Z, T, Den, Vol, Rad_den = \
+    data.X, data.Y, data.Z, data.Temp, data.Den, data.Vol, data.Rad
 mask = np.logical_and(Den > 1e-19, Z >= 0) # just plane above
-X, Y, Z, T, Den, Vol, IE_den = \
-    make_slices([X, Y, Z, T, Den, Vol, IE_den], mask)
+X, Y, Z, T, Den, Vol, Rad_den = \
+    make_slices([X, Y, Z, T, Den, Vol, Rad_den], mask)
 xyz = np.array([X, Y, Z]).T
 tree = KDTree(xyz, leaf_size = 50)
 N_ray = 500
@@ -88,7 +88,8 @@ with open(f'{pre_saving}/{check}_tdiff{snap}{computation}.txt', 'w') as f:
     f.write(f'# Z array [R_\odot] \n' + ''.join(map(str, r_height)) + '\n')
     f.close()
 
-fig, axtau = plt.subplots(1,1, figsize = (7,5))
+if computation == 'avg':
+    fig, axtau = plt.subplots(1,1, figsize = (7,5))
 axtau.set_yscale('log')
 axtau.set_xlabel(r'$Z [R_\odot]$')
 axtau.set_ylabel(r'$\tau$')
@@ -114,20 +115,21 @@ for i in range(len(observers_xyz)):
     t = T[idx]
     d = Den[idx] * prel.den_converter
     ray_vol = Vol[idx]
-    ray_ie = IE_den[idx]
-    ray_x, ray_y, t, d, ray_vol, ray_ie, idx, ray_z = \
-        sort_list([ray_x, ray_y, t, d, ray_vol, ray_ie, idx, ray_z], ray_z)
+    ray_weigh = Rad_den[idx] #prel.alpha_cgs/prel.en_den_converter * t**4 #Rad_den[idx]
+    ray_x, ray_y, t, d, ray_vol, ray_weigh, idx, ray_z = \
+        sort_list([ray_x, ray_y, t, d, ray_vol, ray_weigh, idx, ray_z], ray_z)
 
     # Interpolate ----------------------------------------------------------
     sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
     sigma_rossland = np.array(sigma_rossland)[0]
     underflow_mask = sigma_rossland != 0.0
     idx = np.array(idx)
-    ray_x, ray_y, ray_z, t, d, ray_vol, ray_ie, idx, sigma_rossland = \
-        make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_ie, idx, sigma_rossland], underflow_mask)
+    ray_x, ray_y, ray_z, t, d, ray_vol, ray_weigh, idx, sigma_rossland = \
+        make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_weigh, idx, sigma_rossland], underflow_mask)
     sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
     del sigma_rossland
     gc.collect()
+
 
     # Optical Depth
     ray_fuT = np.flipud(ray_z) 
@@ -135,12 +137,16 @@ for i in range(len(observers_xyz)):
     # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
     los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, ray_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_z. You integrate in the z direction
     los_zero = los != 0
-    ray_x, ray_y, ray_z, t, d, ray_vol, ray_ie, idx, los, sigma_rossland_eval = \
-        make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_ie, idx, los, sigma_rossland_eval], los_zero)
+    ray_x, ray_y, ray_z, t, d, ray_vol, ray_weigh, idx, los, sigma_rossland_eval = \
+        make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_weigh, idx, los, sigma_rossland_eval], los_zero)
     # you integrate for tau as BonnerotLu20, eq.16 for trapping radius
     los_scatt = - np.flipud(sci.cumulative_trapezoid(np.flipud(d)*0.34, np.flipud(ray_z), initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_z. YOu integrate in the z direction
     c_tau = prel.csol_cgs/los #c/tau [code units]
     
+    # rough estimate of tdiff
+    tenth_denmiind = np.argmin(np.abs(d-0.5*d[0])) #1/10 of orb.plane density
+    tdiff_est = los[0] * ray_z[tenth_denmiind] * prel.Rsol_cgs / prel.c_cgs # [s] 
+
     # plot to check if you're taking the right thing
     # fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,10))
     # cutplot = np.logical_and(Den > 1e-19, np.abs(X-mu_x)<Vol**(1/3))
@@ -184,14 +190,14 @@ for i in range(len(observers_xyz)):
     tau_fuT = np.flipud(sigma_rossland_eval * ray_z)  # tau = sigma_rossland_eval * ray_z (you said earlier)
     #### FOR SINGLE
     if computation == 'avg': # average by internal energy density (don't convert because then you divide)
-        ray_ie_fuT = np.flipud(ray_ie)
-        los_fuT = tau_fuT * prel.Rsol_cgs * ray_ie_fuT 
+        ray_weigh_fuT = np.flipud(ray_weigh)
+        los_fuT = tau_fuT * prel.Rsol_cgs * ray_weigh_fuT 
         tdiff_cumulative = sci.cumulative_trapezoid(los_fuT, z_fuT, initial = 0) * prel.Rsol_cgs # convert z
-        tdiff_cumulative /= sci.cumulative_trapezoid(np.ones_like(ray_ie), ray_ie_fuT, initial = ray_ie_fuT[0])
+        tdiff_cumulative /= sci.cumulative_trapezoid(np.ones_like(ray_weigh), ray_weigh_fuT, initial = ray_weigh_fuT[0])
         #####
         # tdiff_cumulative = np.zeros(len(tdiff_ie_cumulative))
         # for k in range(len(ray_z)):
-        #     ie_integ = sci.trapezoid(np.ones_like(ray_ie[k:]), ray_ie[k:])
+        #     ie_integ = sci.trapezoid(np.ones_like(ray_weigh[k:]), ray_weigh[k:])
         #     tdiff_cumulative[k] = tdiff_ie_cumulative[k]/ie_integ
         #####
     else:
@@ -212,12 +218,14 @@ for i in range(len(observers_xyz)):
     
     fig, ax1  = plt.subplots(1, 1 , figsize = (7,5))
     ax1.plot(ray_z/apo, tdiff_cumulative/tfallback_cgs, c = 'k')
+    ax1.axhline(tdiff_est/tfallback_cgs, color = 'deepskyblue', linestyle = '--', label = r't$_{\rm diff}\approx \tau_{\rm op} z[\rho=0.5\rho_{\rm op}/c]$')
     ax1.set_ylabel(r'$t_{\rm diff} [t_{\rm fb}]$')
     if i == 0:
         ax1.set_yscale('log')
     # ax1.set_ylim(0, 2) # a bit further than the Rtrapp
     ax1.set_xlabel(r'$Z [R_{\rm a}]$')
     ax1.set_xlim(-0.1, 3)
+    ax1.legend(fontsize = 18)
     plt.suptitle(f'{check}, x = {labels_obs[i]}, snap {snap}, {computation}', fontsize = 20)
     plt.tight_layout()
 axtau.legend(fontsize = 18)

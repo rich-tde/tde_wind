@@ -133,7 +133,9 @@ else:
                 '_thresh20Dencut', 
                 '_thresh18Dencut',
                 'Pot',
-                '_threshPot',]
+                '_threshPot',
+                'noR0',
+                '_treshnoR0']
     titles = [r'$\rho>10^{19} [M_\odot/R_\odot^3]$ ', 
                 r'cut $x>-0.75R_{a}, \rho>10^{19} [M_\odot/R_\odot^3]$', 
                 r'cut $x>-5R_{a}, \rho>10^{19} [M_\odot/R_\odot^3]$', 
@@ -141,7 +143,9 @@ else:
                 r'$\rho>10^{20} [M_\odot/R_\odot^3]$, box', 
                 r'$\rho>10^{18} [M_\odot/R_\odot^3]$, box',
                 r'$\rho>10^{19} [M_\odot/R_\odot^3]$, correct potential',
-                r'$\rho>10^{19} [M_\odot/R_\odot^3]$, box, correct potential']
+                r'$\rho>10^{19} [M_\odot/R_\odot^3]$, box, correct potential',
+                r'$\rho>10^{19} [M_\odot/R_\odot^3], R>R_0$,'
+                r'$\rho>10^{19} [M_\odot/R_\odot^3], R>R_0$, box']
     # IE, OEpos, OEneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE_.npy')
     # print(OEpos)
     for i, thresh in enumerate(threshes):

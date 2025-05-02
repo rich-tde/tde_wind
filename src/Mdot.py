@@ -247,7 +247,7 @@ if plot:
     # ax1.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
     # ax1.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
     ax1.set_yscale('log')
-    ax1.set_ylim(1e5, 6e5)
+    ax1.set_ylim(1e-1, 6e5)
     ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')    
     ax2.plot(tfb, Vwind_pos1/v_esc, c = 'dodgerblue', label = r'$v_{\rm out}$')
     ax2.plot(tfb, Vwind_neg1/v_esc, c = 'forestgreen', label = r'$v_{\rm in}$')
