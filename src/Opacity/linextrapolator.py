@@ -163,16 +163,15 @@ def rich_extrapolator(x, y, K, slope_length = 5, extrarowsx= 99, extrarowsy= 100
 
 
 def nouveau_rich(x, y, K, what = 'scattering', slope_length = 5, extrarowsx = 101, 
-                 extrarowsy = 100, highT_slope = -3.5, correction = -2):
+                 extrarowsy = 100, highT_slope = -3.5, treat_den = 'linear'):
     ''' 
-    what, str: either scattering or absorption
+    x: array of log10(T)
+    y: array of log10(rho)
+    K: array of log10(kappa) [1/cm]
+    what, str: either scattering or ''.
+               if scattering, brings to opacity always above thomson
     
-    should be linear in log for absorption, everywhere,
-    for scattering/density should be linear, irregardless of temperature,
-    +opacity should never be below thomson'''
-    
-    # Idea. What if we extrapolated in cm2/g space and then converted back?
-    # K = np.log(np.divide(np.exp(K),np.exp(y)))
+    '''
     
     X = 0.9082339738214822 # From table prescription
     thomson = 0.2 * (1 + X)
@@ -197,26 +196,24 @@ def nouveau_rich(x, y, K, what = 'scattering', slope_length = 5, extrarowsx = 10
     Kn = np.zeros((len(xn), len(yn)))
     for ix, xsel in enumerate(xn):
         for iy, ysel in enumerate(yn):
-            
-            # Too cold
-            if xsel < x[0]:
+            if xsel < x[0]: # Too cold
                 deltax = x[slope_length - 1] - x[0]
                 if ysel < y[0]: # Too rarefied
-                    # slope_length = 2
                     deltay = y[slope_length - 1] - y[0]
                     Kxslope = (K[slope_length - 1, 0] - K[0, 0]) / deltax
                     Kyslope = (K[0, slope_length - 1] - K[0, 0]) / deltay
-                    Kn[ix][iy] = K[0, 0] + Kxslope * (xsel - x[0])  + Kyslope * (ysel - y[0])
+                    if treat_den == 'quadratic':
+                        Kyslope *= 2
+                    Kn[ix][iy] = K[0, 0] + Kxslope * (xsel - x[0]) + Kyslope * (ysel - y[0])
                 elif ysel > y[-1]: # Too dense
                     deltay = y[-1] - y[-slope_length] 
                     Kxslope = (K[slope_length - 1, -1] - K[0, -1]) / deltax
                     Kyslope = (K[0, -1] - K[0, -slope_length]) / deltay
-                    Kn[ix][iy] = K[0, -1] + Kxslope * (xsel - x[0]) + Kyslope * (ysel - y[-1]) 
+                    Kn[ix][iy] = K[0, -1] + Kxslope * (xsel - x[0]) + Kyslope * (ysel - y[-1])
                 else: # Density is inside the table
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kxslope = (K[slope_length - 1, iy_inK] - K[0, iy_inK]) / deltax
                     Kn[ix][iy] = K[0, iy_inK] + Kxslope * (xsel - x[0])
-                #continue
             
             # Too hot
             elif xsel > x[-1]: 
@@ -224,12 +221,14 @@ def nouveau_rich(x, y, K, what = 'scattering', slope_length = 5, extrarowsx = 10
                     deltay = y[slope_length - 1] - y[0]
                     Kxslope = highT_slope #(K[-1, 0] - K[-slope_length, 0]) / deltax
                     Kyslope = (K[-1, slope_length - 1] - K[-1, 0]) / deltay
-                    Kn[ix][iy] = K[-1, 0] + Kxslope * (xsel - x[-1]) + Kyslope * (ysel - y[0])        
+                    if treat_den == 'quadratic':
+                        Kyslope *= 2
+                    Kn[ix][iy] = K[-1, 0] + Kxslope * (xsel - x[-1]) + Kyslope * (ysel - y[0])
                 elif ysel > y[-1]: # Too dense
                     deltay = y[-1] - y[-slope_length] 
                     Kxslope = highT_slope #(K[-1, -1] - K[-slope_length, -1]) / deltax
                     Kyslope = (K[-1, -1] - K[-1, -slope_length]) / deltay
-                    Kn[ix][iy] = K[-1, -1] + Kxslope * (xsel - x[-1])  + Kyslope * (ysel - y[-1])
+                    Kn[ix][iy] = K[-1, -1] + Kxslope * (xsel - x[-1]) + Kyslope * (ysel - y[-1])
                 else: # Density is inside the table
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kxslope = highT_slope #(K[-1, iy_inK] - K[-slope_length, iy_inK]) / deltax
@@ -238,56 +237,35 @@ def nouveau_rich(x, y, K, what = 'scattering', slope_length = 5, extrarowsx = 10
                 if what == 'scattering':
                     thomson_this_den = np.log(thomson * np.exp(ysel)) # 1/cm
                     if Kn[ix][iy] < thomson_this_den:
-                        # print(Kn[ix][iy], thomson_this_den)
                         Kn[ix][iy] = thomson_this_den
-                #continue
+
             else: 
                 ix_inK = np.argmin(np.abs(x - xsel))
                 if ysel < y[0]: # Too rarefied, Temperature is inside table
-                    # Something fucky is going on here
                     deltay = y[slope_length - 1] - y[0]
                     Kyslope = (K[ix_inK, slope_length - 1] - K[ix_inK, 0]) / deltay
+                    if treat_den == 'quadratic':
+                        Kyslope *= 2
                     Kn[ix][iy] = K[ix_inK, 0] + Kyslope * (ysel - y[0])
                     
-                    # Idea
-                    # if Kn[ix][iy] > K[0][ix_inK]:
-                    #     print(Kn[ix][iy], K[ix_inK,0])
-                    #     print(np.exp(xsel), np.exp(ysel))
-                    #     Kn[ix][iy] = K[ix_inK][0] - 0.5 * (y[0] - ysel)
-
-                    #continue
                 elif ysel > y[-1]:  # Too dense, Temperature is inside table
                     deltay = y[-1] - y[-slope_length]
                     Kyslope = (K[ix_inK, -1] - K[ix_inK, -slope_length]) / deltay
                     Kn[ix][iy] = K[ix_inK, -1] + Kyslope * (ysel - y[-1])
-                    #continue
+
                 else:
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kn[ix][iy] = K[ix_inK, iy_inK]
-                    # continue
     
     # Idea, correction loop
-    density_edge = np.argmin( np.abs(y[slope_length] - yn))
-    for ix, xsel in enumerate(xn):
-        pivot = Kn[ix][density_edge]
-        for iy, ysel in enumerate(yn):
-            if xsel <= x[0]: # too cold
-                if Kn[ix][iy] > pivot:
-                    Kn[ix][iy] = pivot + correction * (y[0] - ysel)
-    # wallmask = Kn > np.min([K[0,slope_length], K[0,0]])
-    # lowdenmask =  yn < y[1]
-    # depth_of_fuckery = np.argmax(K[:,0] > K[:slope_length])
-    # lowTmask = xn <= x[slope_length]
-    # lowdenmask_2d = (lowdenmask + np.zeros((len(xn), len(yn)))).T
-    # lowT_2d = (lowTmask + np.zeros((len(xn), len(yn))))
-    # mask = wallmask * lowdenmask_2d * lowT_2d
-    
-    # mask = np.array( mask, dtype = bool)
-    # plt.pcolormesh(xn, yn, wallmask.T)
-    # plt.axvline(x[0], c='r', alpha = 0.1)
-    # plt.axhline(y[0], c='r', alpha = 0.1)
-    # Kn[mask] = np.log(1e-19)
-    # Kn = np.log(np.multiply(np.exp(Kn), np.exp(yn)))
+    # density_edge = np.argmin( np.abs(y[slope_length] - yn))
+    # for ix, xsel in enumerate(xn):
+    #     pivot = Kn[ix][density_edge]
+    #     for iy, ysel in enumerate(yn):
+    #         if xsel <= x[0]: # too cold
+    #             if Kn[ix][iy] > pivot:
+    #                 Kn[ix][iy] = pivot + correction * (y[0] - ysel)
+
     return xn, yn, Kn
 
 
@@ -303,6 +281,7 @@ if __name__ == '__main__':
     import Utilities.prelude as prel
 
     save = False
+    treat_den = 'linear'
     #%% Load data (they are the ln of the values)
     T_tab = np.loadtxt(f'{opac_path}/T.txt') 
     Rho_tab = np.loadtxt(f'{opac_path}/rho.txt') 
@@ -319,7 +298,8 @@ if __name__ == '__main__':
     ross_rho_tab = np.array(ross_rho_tab)
 
     # Extrapolate
-    T_RICH, Rho_RICH, rosslandRICH = rich_extrapolator(T_tab, Rho_tab, rossland_tab)
+    T_RICH, Rho_RICH, rosslandRICH = \
+        nouveau_rich(T_tab, Rho_tab, rossland_tab, what = 'scattering', slope_length = 5, treat_den = 'linear')
     T_plotRICH = np.exp(T_RICH)
     Rho_plotRICH = np.exp(Rho_RICH)
     ross_plotRICH = np.exp(rosslandRICH)
@@ -344,6 +324,7 @@ if __name__ == '__main__':
         ax[i].set_title(f'T = {chosenT} K')
         ax[i].legend()
     ax[0].set_ylabel(r'$\kappa [cm^2g^{-1}]$')
+    plt.suptitle(f'{treat_den} treatment for low density')
     plt.tight_layout()
 
     #%% fixed rho
@@ -361,6 +342,7 @@ if __name__ == '__main__':
     plt.loglog()
     plt.legend()
     plt.grid()
+    plt.title(f'{treat_den} treatment for low density')
     plt.tight_layout()
 
     #%%
@@ -414,7 +396,7 @@ if __name__ == '__main__':
         else:
             ax.set_xlim(0.8,11)
             ax.set_ylim(-19,11)
-
+    plt.suptitle(f'{treat_den} treatment for low density')
     plt.tight_layout()
     #%% check with OPAL opacities 
 #     import pandas as pd

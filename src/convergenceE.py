@@ -135,7 +135,7 @@ else:
                 'Pot',
                 '_threshPot',
                 'noR0',
-                '_treshnoR0']
+                '_threshnoR0']
     titles = [r'$\rho>10^{19} [M_\odot/R_\odot^3]$ ', 
                 r'cut $x>-0.75R_{a}, \rho>10^{19} [M_\odot/R_\odot^3]$', 
                 r'cut $x>-5R_{a}, \rho>10^{19} [M_\odot/R_\odot^3]$', 
@@ -144,7 +144,7 @@ else:
                 r'$\rho>10^{18} [M_\odot/R_\odot^3]$, box',
                 r'$\rho>10^{19} [M_\odot/R_\odot^3]$, correct potential',
                 r'$\rho>10^{19} [M_\odot/R_\odot^3]$, box, correct potential',
-                r'$\rho>10^{19} [M_\odot/R_\odot^3], R>R_0$,'
+                r'$\rho>10^{19} [M_\odot/R_\odot^3], R>R_0$',
                 r'$\rho>10^{19} [M_\odot/R_\odot^3], R>R_0$, box']
     # IE, OEpos, OEneg, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE_.npy')
     # print(OEpos)
@@ -199,19 +199,19 @@ else:
         #     ax1.set_ylabel(r'ratio IE')
         #     plt.suptitle(f'{titles[i]}', fontsize = 15)
 
-        fig, (ax1) = plt.subplots(1,1, figsize = (7,5))
-        ax1.plot(tfbL, 1e-46*prel.en_converter * IEL, c = 'C1', label = 'Low')
-        ax1.plot(tfb, 1e-46*prel.en_converter * IE, c = 'yellowgreen', label = 'Fid')
-        ax1.plot(tfbH, 1e-46*prel.en_converter * IEH, c = 'darkviolet', label = 'High')
-        ax1.set_ylabel(r'IE [$10^{46}$ erg/s]')
-        plt.suptitle(f'{titles[i]}', fontsize = 15)
-        ax1.legend(fontsize = 15)
-        ax1.set_xlabel(r'$t [t_{\rm fb}]$')
-        ax1.set_yscale('log')
+        # fig, (ax1) = plt.subplots(1,1, figsize = (7,5))
+        # ax1.plot(tfbL, 1e-46*prel.en_converter * IEL, c = 'C1', label = 'Low')
+        # ax1.plot(tfb, 1e-46*prel.en_converter * IE, c = 'yellowgreen', label = 'Fid')
+        # ax1.plot(tfbH, 1e-46*prel.en_converter * IEH, c = 'darkviolet', label = 'High')
+        # ax1.set_ylabel(r'IE [$10^{46}$ erg/s]')
+        # plt.suptitle(f'{titles[i]}', fontsize = 15)
+        # ax1.legend(fontsize = 15)
+        # ax1.set_xlabel(r'$t [t_{\rm fb}]$')
+        # ax1.set_yscale('log')
 
-    # _, OEpos19, OEneg19, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE_.npy')
-    # _, OEpos20, OEneg20, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE__thresh18Dencut.npy')
-    # print(OEpos19-OEpos20)
-    # print(OEneg19-OEneg20)
+    _, OEpos19, OEneg19, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE_Pot.npy')
+    _, OEpos20, OEneg20, _,  _ = np.load(f'{abspath}/data/{commonfolder}/convE_noR0.npy')
+    print(OEpos19-OEpos20)
+    print(OEneg19-OEneg20)
 
 # %%

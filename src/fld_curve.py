@@ -36,7 +36,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'LowRes' # '' or 'HiRes'
+check = '' # '' or 'HiRes'
 
 ## Snapshots stuff
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -49,7 +49,7 @@ opac_path = f'{abspath}/src/Opacity'
 T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
-T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
+T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5, treat_den = 'quadratic')
 N_ray = 5_000
 
 # MATLAB GOES WHRRRR, thanks Cindy.
@@ -265,23 +265,23 @@ for idx_s, snap in enumerate(snaps):
     if save:
         # Save red of the single snap
         pre_saving = f'{abspath}/data/{folder}'
-        # data = [snap, tfb[idx_s], Lphoto_snap]
-        # with open(f'{pre_saving}/{check}_red.csv', 'a', newline='') as file:
-        #     writer = csv.writer(file)
-        #     writer.writerow(data)
-        # file.close()
+        data = [snap, tfb[idx_s], Lphoto_snap]
+        with open(f'{pre_saving}/{check}_red_quadratic.csv', 'a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(data)
+        file.close()
 
         # save Rph index and fluxes for each observer in the snapshot
         time_rph = np.concatenate([[snap,tfb[idx_s]], ph_idx])
         time_fluxes = np.concatenate([[snap,tfb[idx_s]], fluxes])
-        with open(f'{pre_saving}/{check}_phidx_fluxes.txt', 'a') as fileph:
-            fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
-            fileph.write(' '.join(map(str, time_rph)) + '\n')
-            fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes [cgs] for each obs \n')
-            fileph.write(' '.join(map(str, time_fluxes)) + '\n')
-            fileph.close()
+        # with open(f'{pre_saving}/{check}_phidx_fluxes.txt', 'a') as fileph:
+        #     fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
+        #     fileph.write(' '.join(map(str, time_rph)) + '\n')
+        #     fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes [cgs] for each obs \n')
+        #     fileph.write(' '.join(map(str, time_fluxes)) + '\n')
+        #     fileph.close()
         
-        with open(f'{pre_saving}/photo/{check}_photo{snap}.txt', 'a') as f:
+        with open(f'{pre_saving}/photo/test/{check}_photo{snap}_quadratic.txt', 'a') as f:
             f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph \n # NB d is in CGS \n')
             f.write(' '.join(map(str, xph)) + '\n')
             f.write(' '.join(map(str, yph)) + '\n')
