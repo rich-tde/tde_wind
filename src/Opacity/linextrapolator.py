@@ -336,25 +336,25 @@ if __name__ == '__main__':
         irho_4 = np.argmin(np.abs(Rho_plotRICH - chosenRho))
         plt.plot(T_plotRICH, ross_rhoRICH[:, irho_4], linestyle = lines[i], c = colors_plot[i], label = r'$\rho$ = '+f'{chosenRho} g/cm3')
     plt.xlabel(r'T')
-    plt.ylabel(r'$\kappa [cm^2/g]$')
+    plt.ylabel(r'$\kappa$ [cm$^2$/g]')
     plt.ylim(7e-3, 2e2) #the axis from 7e-4 to 2e1 m2/g
     plt.xlim(1e1,1e7)
     plt.loglog()
     plt.legend()
     plt.grid()
-    plt.title(f'{treat_den} treatment for low density')
+    plt.title(f'{treat_den} treatment for low density, scattering for high T')
     plt.tight_layout()
 
     #%%
     fig, (ax1,ax2) = plt.subplots(1,2, figsize = (12,5))
     img = ax1.pcolormesh(np.log10(T_plot_tab), np.log10(Rho_plot_tab), ross_rho_tab.T, norm = LogNorm(vmin=1e-5, vmax=1e5), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
     cbar = plt.colorbar(img)
-    ax1.set_ylabel(r'$\log_{10} \rho$')
+    ax1.set_ylabel(r'$\log_{10} \rho$ [g/cm$^3$]')
     ax1.set_title('Table')
 
     img = ax2.pcolormesh(np.log10(T_plotRICH), np.log10(Rho_plotRICH), ross_rhoRICH.T,  norm = LogNorm(vmin = 1e-5, vmax=1e5), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
     cbar = plt.colorbar(img)
-    cbar.set_label(r'$\kappa [cm^2/g]$')
+    cbar.set_label(r'$\kappa$ [cm$^2$/g]')
     ax2.axvline(np.log10(np.min(T_plot_tab)), color = 'k', linestyle = '--')
     ax2.axvline(np.log10(np.max(T_plot_tab)), color = 'k', linestyle = '--')
     ax2.axhline(np.log10(np.min(Rho_plot_tab)), color = 'k', linestyle = '--')
@@ -389,14 +389,14 @@ if __name__ == '__main__':
 
         ax.tick_params(axis='x', which='major', width=1.6, length=7, color = 'k')
         ax.tick_params(axis='y', which='major', width=1.6, length=7, color = 'k')
-        ax.set_xlabel(r'$\log_{10} T$')
+        ax.set_xlabel(r'$\log_{10} T$ [K]')
         if ax == ax1:
             ax.set_xlim(np.min(np.log10(T_plot_tab)), np.max(np.log10(T_plot_tab)))
             ax.set_ylim(np.min(np.log10(Rho_plot_tab)), np.max(np.log10(Rho_plot_tab)))
         else:
             ax.set_xlim(0.8,11)
             ax.set_ylim(-19,11)
-    plt.suptitle(f'{treat_den} treatment for low density')
+    plt.suptitle(f'{treat_den} treatment for low density, scattering for high T')
     plt.tight_layout()
     #%% check with OPAL opacities 
 #     import pandas as pd

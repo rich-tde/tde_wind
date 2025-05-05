@@ -281,7 +281,7 @@ for idx_s, snap in enumerate(snaps):
         #     fileph.write(' '.join(map(str, time_fluxes)) + '\n')
         #     fileph.close()
         
-        with open(f'{pre_saving}/photo/test/{check}_photo{snap}_quadratic.txt', 'a') as f:
+        with open(f'{pre_saving}/photo/test/{check}_photo{snap}_quadratic.txt', 'w') as f:
             f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph \n # NB d is in CGS \n')
             f.write(' '.join(map(str, xph)) + '\n')
             f.write(' '.join(map(str, yph)) + '\n')
