@@ -39,13 +39,14 @@ tfallback = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp = Rt/beta
+R0 = 0.6 * Rp
 norm_dMdE = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call \Delta E). It's GM/Rt^2 * Rstar
 apo = orb.apocentre(Rstar, mstar, Mbh, beta) 
 amin = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 radii = np.array([0.2*amin, 0.5*amin, 0.7 * amin, amin])
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
 Medd = Ledd/(0.1*prel.c_cgs**2)
-v_esc = np.sqrt(2*prel.G*Mbh/Rt)
+v_esc = np.sqrt(2*prel.G*Mbh/(0.5*amin))
 convers_kms = prel.Rsol_cgs * 1e-5/prel.tsol_cgs # it's aorund 400
 print(f'escape velocity: {v_esc*convers_kms} km/s')
 
@@ -100,7 +101,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         IE_spec = IE_den/Den
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
         V = np.sqrt(VX**2 + VY**2 + VZ**2)
-        orb_en = orb.orbital_energy(Rsph, V, Mass, prel.G, prel.csol_cgs, Mbh) 
+        orb_en = orb.orbital_energy(Rsph, V, Mass, prel.G, prel.csol_cgs, Mbh, R0) 
         bern = orb_en/Mass + IE_spec + Press/Den
         long = np.arctan2(Y, X)          # Azimuthal angle in radians
         lat = np.arccos(Z / Rsph)
@@ -113,7 +114,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         X_pos, Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
             make_slices([X, Den, Rsph, v_rad, dim_cell], cond)
         if Den_pos.size == 0:
-            print(f'no bern positive: {bern}', flush=True)
+            print(f'no positive', flush=True)
             sys.stdout.flush()
             mwind_pos.append(0)
             Vwind_pos.append(0)
@@ -220,13 +221,13 @@ if compute: # compute dM/dt = dM/dE * dE/dt
 if plot:
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
-    tfb, mfall, _, mwind_pos1, mwind_pos2, mwind_pos3, Vwind_pos, Vwind_pos1, Vwind_pos2, Vwind_pos3 = \
+    tfb, mfall, mwind_pos, mwind_pos1, mwind_pos2, mwind_pos3, Vwind_pos, Vwind_pos1, Vwind_pos2, Vwind_pos3 = \
         np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_pos.txt')
-    _, _, mwind_neg1, mwind_neg2, mwind_neg3, Vwind_neg, Vwind_neg1, Vwind_neg2, Vwind_neg3 = \
+    _, mwind_neg, mwind_neg1, mwind_neg2, mwind_neg3, Vwind_neg, Vwind_neg1, Vwind_neg2, Vwind_neg3 = \
         np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_neg.txt')
-    tfbB, mfallB, _, mwind_posB1, mwind_posB2, mwind_posB3, Vwind_posB, Vwind_posB1, Vwind_posB2, Vwind_posB3 = \
+    tfbB, mfallB, mwind_posB, mwind_posB1, mwind_posB2, mwind_posB3, Vwind_posB, Vwind_posB1, Vwind_posB2, Vwind_posB3 = \
         np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_Bpos.txt')
-    _, _, mwind_negB1, mwind_negB2, mwind_negB3, Vwind_negB, Vwind_negB1, Vwind_negB2, Vwind_negB3 = \
+    _, mwind_negB, mwind_negB1, mwind_negB2, mwind_negB3, Vwind_negB, Vwind_negB1, Vwind_negB2, Vwind_negB3 = \
         np.loadtxt(f'{abspath}/data/{folder}/Mdot_{check}_Bneg.txt')
     f_out_th = f_out_LodatoRossi(mfall, Medd_code)
     # load the data splitted in x>0 or <x0
@@ -237,7 +238,7 @@ if plot:
 
     fig, ax1 = plt.subplots(1, 1, figsize = (8,7))
     fig2, ax2 = plt.subplots(1, 1, figsize = (8,7))
-    ax1.plot(tfb[10:], np.abs(mwind_pos1[10:])/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm out}$')
+    ax1.plot(tfb[10:], np.abs(mwind_pos3[10:])/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm out}$')
     ax1.plot(tfb, np.abs(mwind_neg1)/Medd_code, c = 'forestgreen', label = r'$\dot{M}_{\rm in}$')
     ax1.plot(tfb, np.abs(mwind_posB1)/Medd_code, ls = '--', c = 'dodgerblue')#, label = r'$\dot{M}_{\rm out} [B>0]$')
     ax1.plot(tfb, np.abs(mwind_negB1)/Medd_code, ls = '--', c = 'forestgreen')#, label = r'$\dot{M}_{\rm in} [B>0]$')
@@ -253,7 +254,7 @@ if plot:
     ax2.plot(tfb, Vwind_neg1/v_esc, c = 'forestgreen', label = r'$v_{\rm in}$')
     ax2.plot(tfb, Vwind_posB1/v_esc, '--', c = 'dodgerblue')#, label = r'$v_{\rm out} [B>0]$')
     ax2.plot(tfb, Vwind_negB1/v_esc, '--', c = 'forestgreen')#, label = r'$v_{\rm in} [B>0]$')
-    ax2.set_ylabel(r'$v_{\rm out}/v_{\rm esc}(R_{\rm t})$')
+    ax2.set_ylabel(r'$v_{\rm out}/v_{\rm esc}(0.5 a_{\rm mb})$')
     original_ticks = ax2.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
     new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))

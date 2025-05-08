@@ -54,7 +54,6 @@ compare_times = True
 movie = False 
 dMdecc = False
 
-
 def specific_j(r, vel):
     """ (Magnitude of) specific angular momentum """
     j = np.cross(r, vel)

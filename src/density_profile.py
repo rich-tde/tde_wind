@@ -83,9 +83,9 @@ which_part = 'outflow'
 # print(Rg)
 #%%
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snap = 164
+snap = 348
 a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
-e_mb = orb.eccentricity(Rstar, mstar, Mbh, beta)
+e_mb = orb.e_mb(Rstar, mstar, Mbh, beta)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp = Rt * beta
@@ -283,7 +283,7 @@ for j, idx_list in enumerate(indices_chosen):
         v_rad_mean = np.mean(v_rad_all, axis=0)
 
     with open(f'{abspath}/data/{folder}/outflow/den_prof{snap}{which_obs}{which_part}.txt','a') as file:
-        file.write(f'# Observer latitude: {lat_obs[i]}, longitude: {long_obs[i]}. Cut in density and in T>1e4\n')
+        file.write(f'# Observer latitude: {lat_obs[i]}, longitude: {long_obs[i]}\n')
         file.write(f' '.join(map(str, r)) + '\n')
         file.write(f' '.join(map(str, d_mean)) + '\n')
         file.write(f' '.join(map(str, v_rad_mean)) + '\n')
@@ -294,8 +294,8 @@ x_test = np.arange(1e-3, 1e2)
 y_test2 = 4e-17 * (x_test/apo)**(-2)
 y_test3 = 2e-20 * (x_test/apo)**(-3)
 y_test4 = 3.5e-22 * (x_test/apo)**(-4)
-fig, ax1 = plt.subplots(1, 1, figsize=(8, 7))
-fig1, ax2 = plt.subplots(1, 1, figsize=(8, 7))
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 12))
+# fig1, ax2 = plt.subplots(1, 1, figsize=(8, 7))
 fig2, ax3 = plt.subplots(1, 1, figsize=(8, 7))
 which_part = 'outflow'
 
@@ -320,7 +320,6 @@ ax1.text(.04, 3e-9, r'$\propto R^{-3}$', fontsize = 20, color = 'k', rotation = 
 ax1.plot(x_test, y_test4, c = 'gray', ls = '-.')#, label = r'$\rho \propto R^{-4}$')
 ax1.text(.1, 9e-9, r'$\propto R^{-4}$', fontsize = 20, color = 'k', rotation = -45)
 # ax1.axhspan(np.min(np.exp(Rho_cool)), np.max(np.exp(Rho_cool)), alpha=0.2, color='gray')
-ax1.axvline(Rp/apo, c = 'k', ls = '--')
 ax1.set_ylim(2e-15, 1e-5)
 ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
 ax2.set_ylabel(r'$|v_r|$ [km/s]')
@@ -333,8 +332,10 @@ for ax in [ax1, ax2, ax3]:
     # boxleg = ax.get_position()
     # ax.set_position([boxleg.x0, boxleg.y0, boxleg.width * 0.8, boxleg.height])
     # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 12)
-    ax.legend(loc='lower left', fontsize = 14)
-    ax.set_xlabel(r'$R [R_{\rm a}]$')
+    ax1.axvline(Rp/apo, c = 'k', ls = '--')
+    if ax != ax1:
+        ax.legend(loc='lower left', fontsize = 14)
+        ax.set_xlabel(r'$R [R_{\rm a}]$')
     ax.set_xlim(xmin, xmax)
     ax.loglog()
     ax.tick_params(axis='both', which='minor', size=4)
@@ -342,7 +343,7 @@ for ax in [ax1, ax2, ax3]:
     ax.grid()
 plt.tight_layout()
 fig.savefig(f'{abspath}/Figs/outflow/den_prof{snap}{which_obs}{which_part}.pdf', bbox_inches = 'tight')
-fig1.savefig(f'{abspath}/Figs/outflow/vel_prof{snap}{which_obs}{which_part}.png', bbox_inches = 'tight')
+# fig1.savefig(f'{abspath}/Figs/outflow/vel_prof{snap}{which_obs}{which_part}.png', bbox_inches = 'tight')
 fig2.savefig(f'{abspath}/Figs/outflow/vel_prof_rhoR2v{snap}{which_obs}{which_part}.png', bbox_inches = 'tight')
 plt.show()
 

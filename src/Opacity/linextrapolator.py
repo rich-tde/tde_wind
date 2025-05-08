@@ -396,7 +396,7 @@ if __name__ == '__main__':
         else:
             ax.set_xlim(0.8,11)
             ax.set_ylim(-19,11)
-    plt.suptitle(f'{treat_den} treatment for low density, scattering for high T')
+    plt.suptitle(f'{treat_den} treatment for low density, scattering=lower limit for high T')
     plt.tight_layout()
     #%% check with OPAL opacities 
 #     import pandas as pd

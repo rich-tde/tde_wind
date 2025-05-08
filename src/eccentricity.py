@@ -52,20 +52,8 @@ Rs = 2*G*Mbh / c**2
 Rg = Rs/2
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
-print(Rp/Rg)
 R0 = 0.6 * Rt
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
-
-def specific_j(r, vel):
-    """ (Magnitude of) specific angular momentum """
-    j = np.cross(r, vel)
-    magnitude_j = np.linalg.norm(j, axis = 1)
-    return magnitude_j
-
-def eccentricity_squared(r, vel, specOE, Mbh, G):
-    j = specific_j(r, vel)
-    ecc2 = 1 + 2 * specOE * j**2 / (G * Mbh)**2
-    return ecc2
 
 if alice: 
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
@@ -75,18 +63,15 @@ if alice:
                     num=200) 
     for i,snap in enumerate(snaps):
         print(snap)
-        if alice:
-            path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-        else:
-            path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
+        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         data = make_tree(path, snap, energy = True)
         R_vec = np.transpose(np.array([data.X, data.Y, data.Z]))
         vel_vec = np.transpose(np.array([data.VX, data.VY, data.VZ]))
         Rsph = np.linalg.norm(R_vec, axis = 1)
         vel = np.linalg.norm(vel_vec, axis=1)
-        orb_en = orb.orbital_energy(Rsph, vel, data.Mass, G, c, Mbh)
+        orb_en = orb.orbital_energy(Rsph, vel, data.Mass, G, c, Mbh, R0)
         spec_orb_en = orb_en / data.Mass
-        ecc2 = eccentricity_squared(R_vec, vel_vec, spec_orb_en, Mbh, G)
+        ecc2 = orb.eccentricity_squared(R_vec, vel_vec, spec_orb_en, Mbh, G)
 
         # throw fluff and unbound material
         if which_cut == 'high':
@@ -107,10 +92,55 @@ if alice:
         np.save(f'{abspath}/data/{folder}/radiiEcc_{which_cut}_{check}.npy', radii)
 
 else:
-    error = True
-    ecc_crit = orb.eccentricity(Rstar, mstar, Mbh, beta)
+    ecc_slice = True
+    space_time = False
+    error = False
+    ecc_crit = orb.e_mb(Rstar, mstar, Mbh, beta)
 
-    if not error:
+    if ecc_slice:
+        radii_grid = [R0, Rt] 
+        styles = ['dotted', 'dashed']
+        xcfr_grid, ycfr_grid, cfr_grid = [], [], []
+        for i, radius_grid in enumerate(radii_grid):
+            xcr, ycr, cr = orb.make_cfr(radius_grid)
+            xcfr_grid.append(xcr)
+            ycfr_grid.append(ycr)
+            cfr_grid.append(cr)
+        snap = 348
+        path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
+        data = make_tree(path, snap, energy = True)
+        X, Y, Z, VX, VY, VZ, Den, Mass, Vol = \
+            data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Den, data.Mass, data.Vol
+        mid = np.abs(Z) < Vol**(1/3)
+        X, Y, Z, VX, VY, VZ, Den, Mass = \
+            sec.make_slices([X, Y, Z, VX, VY, VZ, Den, Mass], mid)
+        R_vec = np.transpose(np.array([X, Y, Z]))
+        vel_vec = np.transpose(np.array([VX, VY, VZ]))
+        Rsph = np.linalg.norm(R_vec, axis = 1)
+        vel = np.linalg.norm(vel_vec, axis=1)
+        orb_en = orb.orbital_energy(Rsph, vel, Mass, G, c, Mbh, R0)
+        spec_orb_en = orb_en / Mass
+        ecc2 = orb.eccentricity_squared(R_vec, vel_vec, spec_orb_en, Mbh, G)
+        cut = np.logical_and(Den > 1e-19, orb_en < 0)
+        X, Y, ecc2 = sec.make_slices([X, Y, ecc2], cut)
+        ecc = np.sqrt(ecc2)
+
+        # Plot
+        fig, ax = plt.subplots(1, 1, figsize=(7, 5))
+        img = ax.scatter(X/Rt, Y/Rt, c = ecc, s = 4, vmin = 0.2, vmax = .95, cmap = 'viridis', rasterized = True)
+        cb = plt.colorbar(img)
+        for i in range(len(radii_grid)):
+            ax.contour(xcfr_grid[i]/Rt, ycfr_grid[i]/Rt, cfr_grid[i]/Rt, levels = [0], color = 'k', linestyle = styles[i], linewidth = 2)
+        cb.set_label(r'Eccentricity')
+        ax.set_xlabel(r'$X [R_{\rm t}]$')
+        ax.set_ylabel(r'$Y [R_{\rm t}]$')
+        ax.set_xlim(-3, 3)
+        ax.set_ylim(-3, 3)
+        plt.tight_layout()
+        plt.savefig(f'{abspath}/Figs/{folder}/ecc_slice{snap}.png', bbox_inches='tight')
+        
+
+    if space_time:
         path = f'{abspath}/data/{folder}'
         ecc2 = np.load(f'{path}/Ecc2_{which_cut}_{check}.npy') 
         ecc = np.sqrt(ecc2)
@@ -138,7 +168,7 @@ else:
         plt.ylim(np.min(tfb), np.max(tfb))
         plt.savefig(f'{abspath}/Figs/paper/ecc{which_cut}.pdf', bbox_inches='tight')
     
-    else:
+    if error:
         import matplotlib.gridspec as gridspec
         folderL = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes'
         pathL = f'{abspath}/data/{folderL}'
@@ -233,23 +263,5 @@ else:
                 ax.tick_params(axis='x', which='minor', width=1.2, length=7, color = 'k',)
         
         plt.savefig(f'{abspath}/Figs/paper/ecc_diff.pdf', bbox_inches='tight')
-
-        # Plot for Sesto
-        plt.figure(figsize=(10,8))
-        plt.plot(tfbL, medianLoverF, c = 'yellowgreen', linewidth = 4)
-        plt.plot(tfbL, medianLoverF, c = 'darkorange', linewidth = 4, linestyle = (0, (5, 10)), label = 'Low and Middle')
-        plt.text(0.4, 0.97, 'Low/Fid', fontsize = 27, color = 'k')
-        plt.plot(tfbH, medianFoverH, c = 'yellowgreen', linewidth = 4)
-        plt.plot(tfbH, medianFoverH, c = 'darkviolet', linewidth = 4, linestyle = (0, (5, 10)), label = 'Middle and High')
-        plt.text(0.4, 1, 'Fid/High', fontsize = 27, color = 'k')
-        plt.ylabel(r'median ratio eccentricity')
-        plt.xlim(0.2, tfbL[-1])
-        plt.ylim(0.95, 1.02)
-        plt.grid()
-        plt.xlabel(r'$t [t_{fb}]$', fontsize = 25)
-        plt.tick_params(axis='x', which='major', width=1.4, length=11, color = 'k',)
-        plt.tick_params(axis='y', which='major', width=1.4, length=9, color = 'k',)
-
-
 
 # %%

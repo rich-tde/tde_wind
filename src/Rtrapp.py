@@ -9,9 +9,10 @@ if alice:
     save = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = False
+    compute = True
     save = False
 
+#%%
 import gc
 import numpy as np
 import matplotlib.pyplot as plt
@@ -61,9 +62,8 @@ T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 
 
 if compute:
     for snap in snaps:
-        # photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
-        # xph, yph, zph = photo[0], photo[1], photo[2]
-        # rph = np.sqrt(xph**2 + yph**2 + zph**2)
+        if snap != 348:
+            continue
         if alice:
             loadpath = f'{pre}/snap_{snap}'
         else:
@@ -92,6 +92,8 @@ if compute:
         Press_tr = np.zeros(len(observers_xyz))
 
         for i in range(len(observers_xyz)):
+            if i != 0:
+                continue
             print(f'{i}', flush=True)
             sys.stdout.flush()
             mu_x = observers_xyz[i][0]
@@ -169,12 +171,12 @@ if compute:
             # plt.plot(ray_r/apo, c_tau/np.abs(v_rad), c = 'k', label = r'$c\tau^{-1}/v_r$')
             # plt.plot(ray_r/apo, los, label = r'$\tau_R$', c = 'r')
             # plt.plot(ray_r/apo, los_scatt, '--', label = r'$\tau_s$', c = 'r')
-            # # plt.plot(ray_r/apo, np.abs(v_rad)*prel.Rsol_cgs/prel.tsol_cgs, label = r'$|v_r|$ [cm/s]', c = 'b')
+            # plt.plot(ray_r/apo, np.abs(v_rad)*prel.Rsol_cgs/prel.tsol_cgs, label = r'$|v_r|$ [cm/s]', c = 'b')
             # plt.axhline(1, c = 'k', linestyle = 'dotted')
             # plt.xlabel(r'$R [R_{\rm a}]$')
             # plt.loglog()
             # plt.xlim(1e-1, 6)
-            # # plt.ylabel(r'$c\tau^{-1}/|v_r|$')
+            # plt.ylabel(r'$c\tau^{-1}/|v_r|$')
             # plt.title(f'Snap {snap}, observer {i}')
             # select the inner part, where tau big --> c/tau < v
             Rtr_idx_all = np.where(c_tau/np.abs(v_rad)<1)[0]
@@ -182,15 +184,6 @@ if compute:
                 print(f'No Rtr found anywhere for obs {i}', flush=False)
                 sys.stdout.flush()
                 continue
-
-            # Rtr < Rph (NOT NEEDED)
-            # R_tr_all = ray_r[Rtr_idx_all]
-            # Rtr_idx_all_inside = np.where(R_tr_all<rph[i])[0]
-            # if len(Rtr_idx_all_inside) == 0:
-            #     print(f'No Rtr inside Rph for obs {i}', flush=False)
-            #     sys.stdout.flush()
-            #     continue
-            # Rtr_idx_all = Rtr_idx_all[Rtr_idx_all_inside]
 
             # take the one most outside 
             Rtr_idx = Rtr_idx_all[-1]
@@ -209,17 +202,26 @@ if compute:
             IE_tr[i] = ray_IE[Rtr_idx]
             Press_tr[i] = ray_Press[Rtr_idx]
 
-            t_dyn = ray_r/np.abs(v_rad) * prel.tsol_cgs # [s]
+            # tdiff = \tau*H/c 
+            r_fuT = np.flipud(ray_r)
+            tau_fuT = np.flipud(sigma_rossland_eval * ray_r) 
+            los_fuT = tau_fuT * prel.Rsol_cgs 
+            tdiff_cumulative = sci.cumulative_trapezoid(los_fuT, r_fuT, initial = 0) * prel.Rsol_cgs # this is the conversion for ray_z. You integrate in the z direction
+            tdiff_cumulative = - np.flipud(tdiff_cumulative)/ prel.c_cgs
 
-            #tdiff = \tau*H/c 
-            # los_fuT = np.flipud(sigma_rossland_eval*ray_r) * prel.Rsol_cgs #np.flipud(los)
-            # tdiff_cumulative = - np.flipud(sci.cumulative_trapezoid(los_fuT, np.flipud(ray_r), initial = 0))*prel.Rsol_cgs/ prel.c_cgs # this is the conversion for ray_z. YOu integrate in the z direction
-            # fig, (ax1, ax2) = plt.subplots(1, 2 , figsize = (12,8))
-            # ax1.plot(ray_r/apo, tdiff_cumulative/tfallback_cgs, c = 'k')
-            # ax1.set_ylabel(r'$t_{\rm diff} [t_{\rm fb}]$')
+            Vr_fuT = np.flipud(np.abs(v_rad))
+            tdyn_cumulative = sci.cumulative_trapezoid(1/Vr_fuT, r_fuT, initial = 0) 
+            tdyn_cumulative = -np.flipud(tdyn_cumulative) * prel.tsol_cgs
+            tdyn_single = ray_r/np.abs(v_rad) * prel.tsol_cgs # [s]
+
+            fig, (ax1) = plt.subplots(1, 1 , figsize = (8,8))
+            ax1.plot(ray_r/apo, tdyn_cumulative/tfallback_cgs, c = 'b', label = r'$t_{\rm dyn, cum}$')
+            ax1.plot(ray_r/apo, tdyn_single/tfallback_cgs, c = 'b', linestyle = '--', label = r'$t_{\rm dyn, single}$')
+            ax1.plot(ray_r/apo, tdiff_cumulative/tfallback_cgs, c = 'k', label = r'$t_{\rm diff}$')
+            ax1.set_ylabel(r'$t_{\rm diff} [t_{\rm fb}]$')
             # ax1.axhline(t_dyn[Rtr_idx]/tfallback_cgs, c = 'k', linestyle = '--', label =  r'$t_{\rm dyn}=R/v_r$')
             # # ax1.set_ylim(0, 5) # a bit further than the Rtrapp
-            # # ax1.axvline(ray_z[np.argmin(np.abs(ctau[1:]/ray_vz[1:]-1))]/Rt)
+            ax1.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
             # img = ax2.scatter(ray_r/apo, los, c = c_tau/np.abs(v_rad), cmap = 'rainbow', vmin = 0, vmax = 2)
             # cbar = plt.colorbar(img, orientation = 'horizontal')
             # cbar.set_label(r'c$\tau^{-1}/V_r$')
@@ -227,12 +229,10 @@ if compute:
             # ax2.set_yscale('log')
             # ax1.set_ylim(0.1, 50)
             # for ax in [ax1, ax2]:
-            #     ax.set_xlabel(r'$R [R_{\rm a}]$')
-            #     ax.set_xlim(0, 7)
-            #     ax.axvline(ray_r[Rtr_idx]/apo, c = 'b', linestyle = '--', label =  r'$R_{\rm tr} (c/\tau=V_z)$')
-            #     ax.axvline(np.mean(rph)/apo, c = 'k', linestyle = 'dotted', label =  r'$<R_{\rm ph}>$')
-            #     ax.legend(fontsize = 14)
-            # plt.tight_layout()
+            ax1.set_xlabel(r'$R [R_{\rm a}]$')
+            ax1.set_xlim(-0.1, 4)
+            ax1.legend(fontsize = 14)
+            plt.tight_layout()
 
         if alice:
             with open(f'{pre_saving}/trap/{check}_Rtr{snap}.txt', 'w') as f:
@@ -253,7 +253,7 @@ if compute:
 
 #%%
 if plot:
-    snap = 267
+    snap = 348
     photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
     xph, yph, zph = photo[0], photo[1], photo[2]
     rph = np.sqrt(xph**2 + yph**2 + zph**2)

@@ -16,17 +16,12 @@ warnings.filterwarnings('ignore')
 import csv
 
 import numpy as np
-import healpy as hp
-import scipy.integrate as sci
-from scipy.interpolate import griddata
-import matlab.engine
-from sklearn.neighbors import KDTree
 from src.Opacity.linextrapolator import nouveau_rich
-from scipy.ndimage import uniform_filter1d
 
 import Utilities.prelude as prel
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
+import src.orbits as orb
 
 #%% Choose parameters -----------------------------------------------------------------
 m = 4
@@ -37,69 +32,125 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = '' # '' or 'HiRes'
+Rt = orb.tidal_radius(Rstar, mstar, Mbh)
+apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
 ## Snapshots stuff
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 print('we are in: ', pre)
 
-#%% Opacities: load and interpolate ----------------------------------------------------------------
-opac_path = f'{abspath}/src/Opacity'
-T_cool = np.loadtxt(f'{opac_path}/T.txt')
-min_T = np.exp(T_cool[0]) 
-max_T = np.exp(T_cool[-1])
-Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
-min_rho = np.exp(Rho_cool[0]) /prel.den_converter #from log-cgs to code units
-rossland = np.loadtxt(f'{opac_path}/ross.txt')
-T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5, treat_den = 'linear')
-R_bin = np.logspace(-2, 3.5, 5_000) 
+if alice:
+    snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
+    opac_path = f'{abspath}/src/Opacity'
+    T_cool = np.loadtxt(f'{opac_path}/T.txt')
+    min_T = np.exp(T_cool[0]) 
+    max_T = np.exp(T_cool[-1])
+    Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
+    min_rho = np.exp(Rho_cool[0]) /prel.den_converter #from log-cgs to code units
+    rossland = np.loadtxt(f'{opac_path}/ross.txt')
+    T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5, treat_den = 'linear')
+    R_bin = np.logspace(-1, 3.5, 5_000) 
+    np.savetxt(f'{abspath}/data/{folder}/testOpac/{check}_TestOpacRbin.txt', R_bin)
+    for idx_s, snap in enumerate(snaps):
+        print('\n Snapshot: ', snap, '\n', flush=True)
+        sys.stdout.flush()
+        # Load data -----------------------------------------------------------------
+        if alice:
+            X = np.load(f'{pre}/snap_{snap}/CMx_{snap}.npy')
+            Y = np.load(f'{pre}/snap_{snap}/CMy_{snap}.npy')
+            Z = np.load(f'{pre}/snap_{snap}/CMz_{snap}.npy')
+            T = np.load(f'{pre}/snap_{snap}/T_{snap}.npy')
+            Den = np.load(f'{pre}/snap_{snap}/Den_{snap}.npy')
+        else:
+            X = np.load(f'{pre}/{snap}/CMx_{snap}.npy')
+            Y = np.load(f'{pre}/{snap}/CMy_{snap}.npy')
+            Z = np.load(f'{pre}/{snap}/CMz_{snap}.npy')
+            T = np.load(f'{pre}/{snap}/T_{snap}.npy')
+            Den = np.load(f'{pre}/{snap}/Den_{snap}.npy')
+        
+        R = np.sqrt(X**2 + Y**2 + Z**2)
+        denmask = Den > 1e-19
+        R, T, Den = make_slices([R, T, Den], denmask) 
+        f_Rall, bins_edges = np.histogram(R, bins = R_bin)
 
-for idx_s, snap in enumerate(snaps):
-    print('\n Snapshot: ', snap, '\n')
-    # Load data -----------------------------------------------------------------
-    if alice:
-        X = np.load(f'{pre}/snap_{snap}/CMx_{snap}.npy')
-        Y = np.load(f'{pre}/snap_{snap}/CMy_{snap}.npy')
-        Z = np.load(f'{pre}/snap_{snap}/CMz_{snap}.npy')
-        T = np.load(f'{pre}/snap_{snap}/T_{snap}.npy')
-        Den = np.load(f'{pre}/snap_{snap}/Den_{snap}.npy')
-    else:
-        X = np.load(f'{pre}/{snap}/CMx_{snap}.npy')
-        Y = np.load(f'{pre}/{snap}/CMy_{snap}.npy')
-        Z = np.load(f'{pre}/{snap}/CMz_{snap}.npy')
-        T = np.load(f'{pre}/{snap}/T_{snap}.npy')
-        Den = np.load(f'{pre}/{snap}/Den_{snap}.npy')
-    
-    R = np.sqrt(X**2 + Y**2 + Z**2)
-    denmask = Den > 1e-19
-    R, T, Den = make_slices([R, T, Den], denmask) 
-    f_Rall, bins_edges = np.histogram(R, bins = R_bin)
+        lowden = Den < min_rho
+        R, T = make_slices([R, T], lowden)
+        f_R, bins_edges = np.histogram(R, bins = R_bin)
+        f_R = f_R/f_Rall
 
-    lowden = Den < min_rho
-    R, T = make_slices([R, T], lowden)
-    f_R, bins_edges = np.histogram(R, bins = R_bin)
-    f_R = f_R/f_Rall
+        inside_tab = np.logical_and(T > min_T, T < max_T)
+        R = R[inside_tab]
+        f_RnoT, bins_edges = np.histogram(R, bins = R_bin)
+        f_RnoT = f_RnoT/f_Rall
 
-    inside_tab = np.logical_and(T > min_T, T < max_T)
-    R = R[inside_tab]
-    f_RnoT, bins_edges = np.histogram(R, bins = R_bin)
-    f_RnoT = f_RnoT/f_Rall
-
-    if save:
-        # Save red of the single snap
-        snap_Rbin = np.concatenate([snap, R_bin])
-        time_fR = np.concatenate([tfb[idx_s], f_R])
-        time_fRnoT = np.concatenate([tfb[idx_s], f_RnoT])
-
-        with open(f'{abspath}/data/{folder}/{check}_TestOpac{snap}.txt', 'a') as file:
-            file.write('# first number: snap, then: Rbin' + f' '.join(map(str, snap_Rbin)) + '\n')      
-            file.write('# first number: tfb, then: f_R (i.e. fraction of cells in each Rbin with Density lower than Table lower limit)\n')
-            file.write(f' '.join(map(str, time_fR)) + '\n')  
-            file.write('# first number: tfb, then: f_RnoT (i.e. fraction of cells in each Rbin with Density lower than Table lower limit but T in table)\n')
-            file.write(f' '.join(map(str, time_fRnoT)) + '\n')
+        with open(f'{abspath}/data/{folder}/testOpac/{check}_TestOpac{snap}.txt', 'w') as file:
+            file.write('# f_R (i.e. fraction of cells in each Rbin with Density lower than Table lower limit)\n')
+            file.write(f' '.join(map(str, f_R)) + '\n')  
+            file.write('# f_RnoT (i.e. fraction of cells in each Rbin with Density lower than Table lower limit but T in table)\n')
+            file.write(f' '.join(map(str, f_RnoT)) + '\n')
             file.close()
+
+if plot:
+    import matplotlib.pyplot as plt
+    extrapolation_ratio = False
+    compare_opacity = True
+
+    if extrapolation_ratio:
+        time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/slices/z/z0_time.txt')
+        snaps = [int(snap) for snap in time[0]]
+        tfb = time[1]
+        R_bin = np.loadtxt(f'{abspath}/data/{folder}/testOpac/{check}_TestOpacRbin.txt')
+        mid_Rbin = (R_bin[:-1] + R_bin[1:]) / 2
+        for i, snap in enumerate(snaps):
+            data = np.loadtxt(f'{abspath}/data/{folder}/testOpac/{check}_TestOpac{snap}.txt')
+            f_R = data[0]
+            f_RnoT = data[1]
+            where_nan = np.isnan(f_R)
+            f_R = f_R[~where_nan] 
+            f_RnoT = f_RnoT[~where_nan]
+            mid_Rbin_plot = mid_Rbin[~where_nan]
+
+            fig, ax = plt.subplots(1, 1, figsize=(7, 5))
+            ax.scatter(mid_Rbin_plot/Rt, f_R, s = 1, c = 'k')#, label=f'all low density')
+            ax.scatter(mid_Rbin_plot/Rt, f_RnoT, s = 1, c = 'dodgerblue')#, label=f'low density inside table')
+            ax.axvline(0.6, color = 'k', linestyle = '--', alpha = 0.5)
+            ax.axvline(apo/Rt, color = 'k', linestyle = '--', alpha = 0.5)
+            ax.set_ylim(1e-2, 1.1)
+            ax.set_xlim(np.min(mid_Rbin/Rt), 1.2*np.max(mid_Rbin/Rt))
+            ax.set_xlabel(r'$R [R_{\rm t}]$')
+            ax.set_ylabel(r'$f_R$')
+            ax.loglog()
+            ax.text(0.015, 0.02, f't = {tfb[i]:.2f} ' + r'$t_{\rm fb}$', fontsize=18)
+            # ax.legend()
+            plt.savefig(f'{abspath}/Figs/{folder}/testOpac/{check}_TestOpac{snap}.png', bbox_inches='tight')
+            plt.close()
+
+    if compare_opacity:
+        from Utilities.operators import make_tree
+        import matlab.engine
+        from src.Opacity.linextrapolator import nouveau_rich
+        
+        snap = 145
+        loadpath = f'{abspath}/TDE/{folder}/{snap}'
+        data = make_tree(loadpath, snap, energy = False)
+        new_folder = 'R0.47M0.5BH10000beta1S60ComptonQuadraticOpacity'
+        loadpath_new = f'{abspath}/TDE/{new_folder}/{snap}'
+        data_new = make_tree(loadpath_new, snap, energy = False)
+
+        eng = matlab.engine.start_matlab()
+        opac_path = f'{abspath}/src/Opacity'
+        T_cool = np.loadtxt(f'{opac_path}/T.txt')
+        Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
+        rossland = np.loadtxt(f'{opac_path}/ross.txt')
+        T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5, treat_den=treat_den)
+        sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(Temp_midplane), np.log(Den_midplane), 'linear', 0)
+        sigma_rossland = np.array(sigma_rossland)[0]
+        sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
+        sigma_rossland_eval[sigma_rossland == 0.0] = 1e-20
+        tau_mid = sigma_rossland_eval * dim_midplane * prel.Rsol_cgs 
         
 
 
 
+# %%

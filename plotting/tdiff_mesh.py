@@ -187,7 +187,7 @@ if plot:
     ax.set_xlim(-1.5, 30/apo)
     ax.set_ylim(-0.5, .5)
     ax.set_title(f'Snap {snap}, {computation}', fontsize = 20)
-    plt.savefig(f'{pre_saving}/{check}_tdiff{computation}{snap}mesh.png', bbox_inches='tight')
+    plt.savefig(f'{abspath}/Figs/{folder}/{check}_tdiff{computation}{snap}mesh.png', bbox_inches='tight')
 
 
     

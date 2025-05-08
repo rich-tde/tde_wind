@@ -20,7 +20,7 @@ import matlab.engine
 from sklearn.neighbors import KDTree
 from src.Opacity.linextrapolator import nouveau_rich
 import Utilities.prelude as prel
-from Utilities.operators import make_tree, sort_list, to_spherical_components
+from Utilities.operators import make_tree, sort_list
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
 import src.orbits as orb
@@ -36,10 +36,14 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = '' 
-snap = 267
-computation = 'avg'
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
+snap = 145
+computation = ''
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' f'R0.47M0.5BH10000beta1S60ComptonQuadraticOpacity' #
+if folder == f'R0.47M0.5BH10000beta1S60ComptonQuadraticOpacity':
+    treat_den = 'quadratic'
+else:
+    treat_den = 'linear'
+# pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 pre_saving = f'{abspath}/data/{folder}'
 
 Rt = orb.tidal_radius(Rstar, mstar, Mbh)
@@ -56,18 +60,17 @@ observers_xyz = np.array([Rt_obs, amin_obs, apo_obs])
 labels_obs = [r'R$_t$', r'-a$_{min}$', r'-R$_a$']
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 
-
 # Opacity
 opac_path = f'{abspath}/src/Opacity'
 T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
-T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
+T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5, treat_den = treat_den)
 
 if alice:
     loadpath = f'{pre}/snap_{snap}'
 else:
-    loadpath = f'{pre}/{snap}'
+    loadpath = f'{abspath}/TDE/{folder}/{snap}' #f'{pre}/{snap}'
 data = make_tree(loadpath, snap, energy = True)
 box = np.load(f'{loadpath}/box_{snap}.npy')
 X, Y, Z, T, Den, Vol, Rad_den = \
@@ -88,8 +91,7 @@ with open(f'{pre_saving}/{check}_tdiff{snap}{computation}.txt', 'w') as f:
     f.write(f'# Z array [R_\odot] \n' + ''.join(map(str, r_height)) + '\n')
     f.close()
 
-if computation == 'avg':
-    fig, axtau = plt.subplots(1,1, figsize = (7,5))
+fig, axtau = plt.subplots(1,1, figsize = (7,5))
 axtau.set_yscale('log')
 axtau.set_xlabel(r'$Z [R_\odot]$')
 axtau.set_ylabel(r'$\tau$')
@@ -129,7 +131,6 @@ for i in range(len(observers_xyz)):
     sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
     del sigma_rossland
     gc.collect()
-
 
     # Optical Depth
     ray_fuT = np.flipud(ray_z) 
@@ -218,16 +219,17 @@ for i in range(len(observers_xyz)):
     
     fig, ax1  = plt.subplots(1, 1 , figsize = (7,5))
     ax1.plot(ray_z/apo, tdiff_cumulative/tfallback_cgs, c = 'k')
-    ax1.axhline(tdiff_est/tfallback_cgs, color = 'deepskyblue', linestyle = '--', label = r't$_{\rm diff}\approx \tau_{\rm op} z[\rho=0.5\rho_{\rm op}/c]$')
+    # ax1.axhline(tdiff_est/tfallback_cgs, color = 'deepskyblue', linestyle = '--', label = r't$_{\rm diff}\approx \tau_{\rm op} z[\rho=0.5\rho_{\rm op}/c]$')
     ax1.set_ylabel(r'$t_{\rm diff} [t_{\rm fb}]$')
     if i == 0:
         ax1.set_yscale('log')
     # ax1.set_ylim(0, 2) # a bit further than the Rtrapp
     ax1.set_xlabel(r'$Z [R_{\rm a}]$')
-    ax1.set_xlim(-0.1, 3)
+    ax1.set_xlim(-0.1, 1)
     ax1.legend(fontsize = 18)
-    plt.suptitle(f'{check}, x = {labels_obs[i]}, snap {snap}, {computation}', fontsize = 20)
+    plt.suptitle(f'{folder}, x = {labels_obs[i]}, snap {snap}, {computation}', fontsize = 20)
     plt.tight_layout()
+    plt.savefig(f'{abspath}/Figs/{folder}/{check}_tdiff{computation}{snap}{i}.png', bbox_inches='tight')
 axtau.legend(fontsize = 18)
 #%%
 eng.exit()

@@ -9,7 +9,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiRes'
+check = ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 start = 80
@@ -36,6 +36,11 @@ def get_image_size(image_path):
 path = f'{abspath}/Figs/{folder}/slices/Panel6Slice%d.png' 
 output_path = f'{abspath}/Figs/{folder}/slices/movie6Panels_{check}.mp4'
 first_image_path = f'{abspath}/Figs/{folder}/slices/Panel6Slice%d{start}.png'
+
+# For Opacity
+path = f'{abspath}/Figs/{folder}/testOpac/{check}_TestOpac%d.png' 
+output_path = f'{abspath}/Figs/{folder}/testOpac/TestOpac_movie.mp4'
+first_image_path = f'{abspath}/Figs/{folder}/testOpac/{check}_TestOpac{start}.png'
 
 # For outflow
 # path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/{how_many}/E_%d.png' 
