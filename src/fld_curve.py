@@ -34,12 +34,12 @@ Mbh = 10**m
 beta = 1
 mstar = .5
 Rstar = .47
-n = 1.5
+n = '' # 'n1.5'
 compton = 'Compton'
-check = '' # '' or 'HiRes'
+check = 'QuadraticOpacity' # 
 
 ## Snapshots stuff
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60{n}{compton}{check}'
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 print('we are in: ', pre)
