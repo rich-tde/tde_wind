@@ -42,11 +42,11 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = '' # '' or 'LowRes' or 'HiRes' 
+check = 'QuadraticOpacity' # '' or 'LowRes' or 'HiRes' 
 save = True
 which_cut = 'high' #if 'high' cut density at 1e-12, if '' cut density at 1e-19
 
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60{n}{compton}{check}'
 
 Rs = 2*G*Mbh / c**2
 Rg = Rs/2
