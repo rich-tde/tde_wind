@@ -63,9 +63,10 @@ if alice:
             Z = np.load(f'{pre}/snap_{snap}/CMz_{snap}.npy')
             T = np.load(f'{pre}/snap_{snap}/T_{snap}.npy')
             Den = np.load(f'{pre}/snap_{snap}/Den_{snap}.npy')
-            Rad_den = np.load(f'{pre}/snap_{snap}/Rad_{snap}.npy')
+            Rad_spec = np.load(f'{pre}/snap_{snap}/Rad_{snap}.npy')
             Vol = np.load(f'{pre}/snap_{snap}/Vol_{snap}.npy')
         
+        Rad_den = Rad_spec * Den
         R = np.sqrt(X**2 + Y**2 + Z**2)
         denmask = Den > 1e-19
         R, T, Den, Rad_den, Vol = make_slices([R, T, Den, Rad_den, Vol], denmask) 
@@ -79,6 +80,8 @@ if alice:
         T_rad = (Rad_den*prel.en_den_converter/ prel.alpha_cgs)**(1/4)
         Tvol = np.zeros(len(T))
         Tvol = np.where(T >= 1.1*T_rad, T**4 * Vol, 0)
+        print(T, flush=True)
+        sys.stdout.flush()
         Tvol_all[idx_s] = np.sum(Tvol)
 
         inside_tab = np.logical_and(T > min_T, T < max_T)
@@ -108,6 +111,7 @@ if plot:
     tfb = time[1]
     R_bin = np.loadtxt(f'{abspath}/data/{folder}/testOpac/{check}_TestOpacRbin.txt')
     mid_Rbin = (R_bin[:-1] + R_bin[1:]) / 2
+    Tvol_all = np.loadtxt(f'{abspath}/data/{folder}/testOpac/{check}_Tvol.txt')
     for i, snap in enumerate(snaps):
         data = np.loadtxt(f'{abspath}/data/{folder}/testOpac/{check}_TestOpac{snap}.txt')
         f_R = data[0]
@@ -131,6 +135,10 @@ if plot:
         # ax.legend()
         plt.savefig(f'{abspath}/Figs/{folder}/testOpac/{check}_TestOpac{snap}.png', bbox_inches='tight')
         plt.close()
+    
+    plt.figure(figsize=(7, 5))
+    Rad_extr = prel.alpha_cgs * Tvol_all * prel.Rsol_cgs**3
+    plt.scatter(tfb, Tvol_all, s = 1, c = 'k')
 
 
         
