@@ -40,7 +40,7 @@ Mbh = 10**m
 beta = 1
 mstar = .5
 Rstar = .47
-n = 1.5
+n = '' # 'n1.5'
 compton = 'Compton'
 check = 'QuadraticOpacity' # '' or 'LowRes' or 'HiRes' 
 save = True
@@ -92,8 +92,8 @@ if alice:
         np.save(f'{abspath}/data/{folder}/radiiEcc_{which_cut}_{check}.npy', radii)
 
 else:
-    ecc_slice = True
-    space_time = False
+    ecc_slice = False
+    space_time = True
     error = False
     ecc_crit = orb.e_mb(Rstar, mstar, Mbh, beta)
 
@@ -138,14 +138,15 @@ else:
         ax.set_ylim(-3, 3)
         plt.tight_layout()
         plt.savefig(f'{abspath}/Figs/{folder}/ecc_slice{snap}.png', bbox_inches='tight')
-        
 
     if space_time:
         path = f'{abspath}/data/{folder}'
         ecc2 = np.load(f'{path}/Ecc2_{which_cut}_{check}.npy') 
         ecc = np.sqrt(ecc2)
-        tfb_data = np.loadtxt(f'{path}/Ecc_{which_cut}_{check}_days.txt')
+        tfb_data= np.loadtxt(f'{path}/Ecc_{which_cut}_{check}_days.txt')
         snap_, tfb = tfb_data[0], tfb_data[1]
+        tfb_dataFid = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n1.5{compton}/Ecc_{which_cut}__days.txt')
+        tfbFid = tfb_dataFid[1]
         radii = np.load(f'{path}/radiiEcc_{which_cut}_{check}.npy')
         
         # Plot
@@ -165,9 +166,44 @@ else:
         plt.tick_params(axis='x', which='major', width=1.2, length=8, color = 'k', labelsize=25)
         plt.tick_params(axis='y', which='major', width=1, length=8, color = 'white', labelsize=25)
         plt.tick_params(axis='x', which='minor', width=1, length=6, color = 'k', labelsize=25)
-        plt.ylim(np.min(tfb), np.max(tfb))
-        plt.savefig(f'{abspath}/Figs/paper/ecc{which_cut}.pdf', bbox_inches='tight')
-    
+        plt.ylim(np.min(tfbFid), np.max(tfbFid))
+        plt.savefig(f'{abspath}/Figs/paper/ecc{which_cut}{check}.pdf', bbox_inches='tight')
+
+        folderFid = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n1.5{compton}'
+        pathFid = f'{abspath}/data/{folderFid}'
+        ecc2Fid = np.load(f'{pathFid}/Ecc2_.npy') 
+        eccFid = np.sqrt(ecc2Fid)
+
+        rel_diff = []
+        median = np.zeros(len(ecc))
+        for i in range(len(ecc)):
+            time = tfbFid[i]
+            idx = np.argmin(np.abs(tfbFid - time))
+            rel_diff_time_i =  find_ratio(eccFid[idx], ecc[i]) #
+            rel_diff.append(rel_diff_time_i)
+            median[i] = np.median(rel_diff_time_i)
+
+    where_are_nans = np.isnan(rel_diff)
+    where_infs = np.isinf(rel_diff)
+    rel_diff = np.array(rel_diff)
+    print('max error', np.max(rel_diff[np.logical_and(~where_are_nans, ~where_infs)]))
+    fig, (ax1, ax2) = plt.subplots(1,2, figsize = (20,10))    
+    img = ax1.pcolormesh(radii/apo, tfb, rel_diff, cmap = 'inferno', vmin = 0.9, vmax = 1.1, rasterized = True)
+    ax1.set_xscale('log')
+    ax1.set_xlabel(r'$R [R_{\rm a}]$')#, fontsize = 25)
+    ax1.set_ylabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
+    ax1.set_ylim(np.min(tfb), np.max(tfbFid))
+    cb = plt.colorbar(img,  orientation='horizontal')
+    cb.set_label(r'$\mathcal{R}$ eccentricity')#, fontsize = 25)
+    cb.ax.tick_params(labelsize=25)
+    cb.ax.tick_params(width=1, length=11, color = 'k',)
+
+    ax2.plot(tfb, median, c = 'yellowgreen', linewidth = 4)
+    ax2.set_ylabel(r'$\mathcal{R}$ median eccentricity')# fontsize = 25)
+    # ax2.set_ylim(0.98, 1.08)
+    ax2.grid()
+    ax2.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
+
     if error:
         import matplotlib.gridspec as gridspec
         folderL = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes'
