@@ -17,7 +17,7 @@ import csv
 
 import numpy as np
 from src.Opacity.linextrapolator import nouveau_rich
-
+from Utilities.operators import make_tree
 import Utilities.prelude as prel
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
@@ -57,16 +57,11 @@ if alice:
         print('\n Snapshot: ', snap, '\n', flush=True)
         sys.stdout.flush()
         # Load data -----------------------------------------------------------------
-        if alice:
-            X = np.load(f'{pre}/snap_{snap}/CMx_{snap}.npy')
-            Y = np.load(f'{pre}/snap_{snap}/CMy_{snap}.npy')
-            Z = np.load(f'{pre}/snap_{snap}/CMz_{snap}.npy')
-            T = np.load(f'{pre}/snap_{snap}/T_{snap}.npy')
-            Den = np.load(f'{pre}/snap_{snap}/Den_{snap}.npy')
-            Rad_spec = np.load(f'{pre}/snap_{snap}/Rad_{snap}.npy')
-            Vol = np.load(f'{pre}/snap_{snap}/Vol_{snap}.npy')
-        
-        Rad_den = Rad_spec * Den
+        path = f'{pre}/snap_{snap}'
+        data = make_tree(path, snap, energy = True)
+        X, Y, Z, T, Den, Rad_den, Vol = \
+                data.X, data.Y, data.Z, data.T, data.Den, data.Rad, data.Vol
+
         R = np.sqrt(X**2 + Y**2 + Z**2)
         denmask = Den > 1e-19
         R, T, Den, Rad_den, Vol = make_slices([R, T, Den, Rad_den, Vol], denmask) 
