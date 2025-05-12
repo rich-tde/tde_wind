@@ -76,9 +76,9 @@ if alice:
         f_R, bins_edges = np.histogram(R, bins = R_bin)
         f_R = f_R/f_Rall
 
-        T_rad = (Rad_den*prel.en_converter/ prel.alpha_cgs)**(1/4)
+        T_rad = (Rad_den*prel.en_den_converter/ prel.alpha_cgs)**(1/4)
         Tvol = np.zeros(len(T))
-        Tvol = np.where(T >= 1.1*T_rad, T**4 * Vol)
+        Tvol = np.where(T >= 1.1*T_rad, T**4 * Vol, 0)
         Tvol_all[idx_s] = np.sum(Tvol)
 
         inside_tab = np.logical_and(T > min_T, T < max_T)
