@@ -1,4 +1,4 @@
-"""Compute trapping radius i.e. R: tau(R) = c/v(R) and diffusion time in the radial direction"""
+"""Compute trapping radius i.e. R: tau(R) = c/v(R) and diffusion and dynamical time in the radial direction"""
 import sys
 sys.path.append('/Users/paolamartire/shocks')
 from Utilities.isalice import isalice
@@ -62,8 +62,6 @@ T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 
 
 if compute:
     for snap in snaps:
-        if snap != 348:
-            continue
         if alice:
             loadpath = f'{pre}/snap_{snap}'
         else:
@@ -75,30 +73,23 @@ if compute:
         box = np.load(f'{loadpath}/box_{snap}.npy')
         X, Y, Z, T, Den, Vol, VX, VY, VZ, Press, IE = \
             data.X, data.Y, data.Z, data.Temp, data.Den, data.Vol, data.VX, data.VY, data.VZ, data.Press, data.IE
+        idx_sim = np.arange(len(X))
         denmask = Den > 1e-19
-        X, Y, Z, T, Den, Vol, VX, VY, VZ = \
-            make_slices([X, Y, Z, T, Den, Vol, VX, VY, VZ], denmask)
+        X, Y, Z, T, Den, Vol, VX, VY, VZ, idx_sim = \
+            make_slices([X, Y, Z, T, Den, Vol, VX, VY, VZ, idx_sim], denmask)
         xyz = np.array([X, Y, Z]).T
         N_ray = 5000
 
         x_tr = np.zeros(len(observers_xyz))
         y_tr = np.zeros(len(observers_xyz))
         z_tr = np.zeros(len(observers_xyz))
-        Temp_tr = np.zeros(len(observers_xyz))
-        den_tr = np.zeros(len(observers_xyz))
         vol_tr = np.zeros(len(observers_xyz))
-        Vx_tr = np.zeros(len(observers_xyz))
-        Vy_tr = np.zeros(len(observers_xyz))
-        Vz_tr = np.zeros(len(observers_xyz))
+        den_tr = np.zeros(len(observers_xyz))
+        Temp_tr = np.zeros(len(observers_xyz))
         Vr_tr = np.zeros(len(observers_xyz))
-        IE_tr = np.zeros(len(observers_xyz))
-        Press_tr = np.zeros(len(observers_xyz))
+        idx_tr = np.zeros(len(observers_xyz))
 
         for i in range(len(observers_xyz)):
-            if i not in [10, 40, 120, 160, 180]:
-                continue
-            print(f'{i}', flush=True)
-            sys.stdout.flush()
             mu_x = observers_xyz[i][0]
             mu_y = observers_xyz[i][1]
             mu_z = observers_xyz[i][2]
@@ -131,174 +122,112 @@ if compute:
             ray_x = X[idx]
             ray_y = Y[idx]
             ray_z = Z[idx]
-            ray_r = np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) #r
+            ray_r = np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) 
             t = T[idx]
             d = Den[idx] * prel.den_converter
             ray_vol = Vol[idx]
             ray_vx = VX[idx]
             ray_vy = VY[idx]
             ray_vz = VZ[idx]
-            ray_Press = Press[idx]
-            ray_IE = IE[idx]
-            ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, ray_Press, ray_IE, idx, ray_r = \
-                sort_list([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, ray_Press, ray_IE, idx, ray_r], ray_r)
+            ray_idx_sim = idx_sim[idx]
+            ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r = \
+                sort_list([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r], ray_r)
+            idx = np.array(idx)
             long_ph_s = np.arctan2(ray_y, ray_x)          # Azimuthal angle in radians
             lat_ph_s = np.arccos(ray_z/ ray_r) 
-            v_rad, v_theta, v_phi= to_spherical_components(ray_vx, ray_vy, ray_vz, lat_ph_s, long_ph_s)
+            v_rad, _, _= to_spherical_components(ray_vx, ray_vy, ray_vz, lat_ph_s, long_ph_s)
 
             # Interpolate ----------------------------------------------------------
             sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
             sigma_rossland = np.array(sigma_rossland)[0]
             underflow_mask = sigma_rossland != 0.0
-            idx = np.array(idx)
-            ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, ray_Press, ray_IE, idx, ray_r, sigma_rossland = \
-                make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, ray_Press, ray_IE, idx, ray_r, sigma_rossland], underflow_mask)
+            ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, ray_idx_sim, sigma_rossland, idx = \
+                make_slices([ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, ray_idx_sim, sigma_rossland, idx], underflow_mask)
             sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
             del sigma_rossland
             gc.collect()
 
             # Optical Depth
             ray_fuT = np.flipud(ray_r)
-            kappa_rossland_fuT = np.flipud(sigma_rossland_eval) #np.flipud(d)*0.34cm2/g
+            kappa_rossland_fuT = np.flipud(sigma_rossland_eval) 
             # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
             los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland_fuT, ray_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_z. YOu integrate in the z direction
-            # plt.figure(figsize = (8,8))
-            # plt.plot(ray_r/apo, los, c = 'k', label = r'$\tau$ out-in')#, s=5)
-            # plt.plot(ray_r/apo, prel.csol_cgs/np.abs(v_rad), label = r'c/$|v_r|$', c = 'b')
-            # plt.axhline(2/3, c = 'k', linestyle = 'dotted')
-            # plt.axvline(rph[i]/apo, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
-            # plt.xlabel(r'$R [R_{\rm a}]$')
-            # plt.ylabel(r'$\tau_R$ (out-in)')
-            # plt.yscale('log')
-            # plt.xlim(-.1, 6)
-            # plt.ylim(1e-2, 1e4)
-            # plt.legend(fontsize = 14)
-            # plt.title(f'Snap {snap}, observer {i}')
-
             los_zero = los != 0
-            ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, ray_Press, ray_IE, idx, ray_r, v_rad, los, sigma_rossland_eval = \
-                make_slices([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, ray_Press, ray_IE, idx, ray_r, v_rad, los, sigma_rossland_eval], los_zero)
-            # you integrate for tau as BonnerotLu20, eq.16 for trapping radius
-            # los_scatt = - np.flipud(sci.cumulative_trapezoid(np.flipud(d)*0.34, np.flipud(ray_r), initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_z. YOu integrate in the z direction
+            ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, ray_idx_sim, sigma_rossland_eval, los, idx = \
+                make_slices([ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, ray_idx_sim, sigma_rossland_eval, los, idx], los_zero)
             c_tau = prel.csol_cgs/los # c/tau [code units]
 
-            # plot to check if you're taking the right thing
             # select the inner part, where tau big --> c/tau < v
             Rtr_idx_all = np.where(c_tau/np.abs(v_rad)<1)[0]
             if len(Rtr_idx_all) == 0:
                 print(f'No Rtr found anywhere for obs {i}', flush=False)
                 sys.stdout.flush()
                 continue
-
             # take the one most outside 
             Rtr_idx = Rtr_idx_all[-1]
             x_tr[i] = ray_x[Rtr_idx]
             y_tr[i] = ray_y[Rtr_idx]
             z_tr[i] = ray_z[Rtr_idx]
-            den_tr[i] = d[Rtr_idx]/prel.den_converter
             vol_tr[i] = ray_vol[Rtr_idx]
+            den_tr[i] = d[Rtr_idx]/prel.den_converter
             Temp_tr[i] = t[Rtr_idx]
-            Vx_tr[i] = ray_vx[Rtr_idx]
-            Vy_tr[i] = ray_vy[Rtr_idx]
-            Vz_tr[i] = ray_vz[Rtr_idx]
             Vr_tr[i] = v_rad[Rtr_idx]
-            IE_tr[i] = ray_IE[Rtr_idx]
-            Press_tr[i] = ray_Press[Rtr_idx]
-            # out-in
-            # r_fuT = np.flipud(ray_r)
-            # tau_fuT = np.flipud(sigma_rossland_eval * 2*ray_vol**(1/3)) * prel.Rsol_cgs 
-            # tau_fuT = np.flipud(sigma_rossland_eval * ray_r) * prel.Rsol_cgs 
-            # tau_fuT = np.flipud(los)
-            # Vr_fuT = np.flipud(np.abs(v_rad))
-            # tdiff_cumulative = sci.cumulative_trapezoid(tau_fuT, r_fuT, initial = 0) * prel.Rsol_cgs # this is the conversion for ray_z. You integrate in the z direction
-            # tdiff_cumulative = -np.flipud(tdiff_cumulative)/ prel.c_cgs
-            # tdyn_cumulative = sci.cumulative_trapezoid(1/Vr_fuT, r_fuT, initial = 0) 
-            # tdyn_cumulative = -np.flipud(tdyn_cumulative) * prel.tsol_cgs
+            idx_tr[i] = ray_idx_sim[Rtr_idx]
 
-            # ax1d.plot(ray_r/apo, tdyn_cumulative/tfallback_cgs, c = 'b', label = r'$t_{\rm dyn, cum}$')
-            # ax1d.plot(ray_r/apo, tdiff_cumulative/tfallback_cgs, c = 'k', label = r'$t_{\rm diff}$')
-            # ax1d.set_ylabel(r'$t_{\rm diff} [t_{\rm fb}]$')
-            # ax1d.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
-            # ax1d.text(4, 1.5, 'out-in', fontsize = 14)
-
-            # t_diff = tau*H/c . t_dyn = R/v_r
-            # in-out
-            # tau = sigma_rossland_eval * 2*ray_vol**(1/3) * prel.Rsol_cgs 
-            # tau = sigma_rossland_eval * ray_r * prel.Rsol_cgs 
-            # tau = los
-            # tdiff_cumulative = sci.cumulative_trapezoid(tau, ray_r, initial = 0) * prel.Rsol_cgs # this is the conversion for ray_z. You integrate in the z direction
-            # tdiff_cumulative = tdiff_cumulative/ prel.c_cgs
-            # tdyn_cumulative = sci.cumulative_trapezoid(1/np.abs(v_rad), ray_r, initial = 0) 
-            # tdyn_cumulative = tdyn_cumulative * prel.tsol_cgs
-            
-            # ax2d.plot(ray_r/apo, tdyn_cumulative/tfallback_cgs, c = 'b', label = r'$t_{\rm dyn, cum}$')
-            # ax2d.plot(ray_r/apo, tdiff_cumulative/tfallback_cgs, c = 'k', label = r'$t_{\rm diff}$')
-            # for ax in [ax1d, ax2d]:
-            #     ax.set_xlabel(r'$R [R_{\rm a}]$')
-            #     ax.set_xlim(-0.1, 6)
-            #     ax.set_yscale('log')
-            #     ax.set_ylim(.1, 6e3)
-            # ax2d.legend(fontsize = 14)
-            # ax2d.text(4, 1.5, 'in-out', fontsize = 14)
-            # fig_dir.suptitle(f'Snap {snap}, observer {i}, cumulative', fontsize = 16)
-            # fig_dir.tight_layout()
-
-            tdyn_single = ray_r / np.abs(v_rad) * prel.tsol_cgs
-            tdiff_single = los * ray_r * prel.Rsol_cgs / prel.c_cgs
-            plt.figure(figsize = (8,6))
-            plt.plot(ray_r/apo, tdyn_single/tfallback_cgs, c = 'royalblue', label = r'$t_{\rm dyn}$')
-            plt.plot(ray_r/apo, tdiff_single/tfallback_cgs, c = 'darkred', label = r'$t_{\rm diff}$')
-            plt.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
-            plt.axvline(rph[i]/apo, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
-            plt.xlabel(r'$R [R_{\rm a}]$')
-            plt.ylabel(r'$t [t_{\rm fb}]$')
-            plt.yscale('log')
-            plt.xlim(1e-2, 6)
-            plt.ylim(.1, 5e1)
-            plt.legend(fontsize = 14)
-            plt.title(f'Snap {snap}, observer {i}', fontsize = 16)
-            plt.show()
+            if plot:
+                tdyn_single = ray_r / np.abs(v_rad) * prel.tsol_cgs
+                tdiff_single = los * ray_r * prel.Rsol_cgs / prel.c_cgs
+                plt.figure(figsize = (8,6))
+                plt.plot(ray_r/apo, tdyn_single/tfallback_cgs, c = 'royalblue', label = r'$t_{\rm dyn}$')
+                plt.plot(ray_r/apo, tdiff_single/tfallback_cgs, c = 'darkred', label = r'$t_{\rm diff}$')
+                plt.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
+                plt.axvline(rph[i]/apo, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
+                plt.xlabel(r'$R [R_{\rm a}]$')
+                plt.ylabel(r'$t [t_{\rm fb}]$')
+                plt.yscale('log')
+                plt.xlim(1e-2, 6)
+                plt.ylim(.1, 5e1)
+                plt.legend(fontsize = 14)
+                plt.title(f'Snap {snap}, observer {i}', fontsize = 16)
+                plt.show()
 
         if alice:
             with open(f'{pre_saving}/trap/{check}_Rtr{snap}.txt', 'w') as f:
-                    f.write('# Data for the Rtr (all in CGS). Lines are: x_tr, y_tr, z_tr, vol_tr, den_tr, Temp_tr, Vx_tr, Vy_tr, Vz_tr, Vr_tr, IE_tr, Press_tr with IE being internal energy density \n')
+                    f.write('# Data for the Rtr (all in CGS). Lines are: x_tr, y_tr, z_tr, vol_tr, den_tr, Temp_tr, Vr_tr, idx_tr \nwhere idx_tr is the index of the cell in the simulation without any cut\n')
                     f.write(' '.join(map(str, x_tr)) + '\n')
                     f.write(' '.join(map(str, y_tr)) + '\n')
                     f.write(' '.join(map(str, z_tr)) + '\n')
                     f.write(' '.join(map(str, vol_tr)) + '\n')
                     f.write(' '.join(map(str, den_tr)) + '\n')
                     f.write(' '.join(map(str, Temp_tr)) + '\n')
-                    f.write(' '.join(map(str, Vx_tr)) + '\n')
-                    f.write(' '.join(map(str, Vy_tr)) + '\n')
-                    f.write(' '.join(map(str, Vz_tr)) + '\n')
                     f.write(' '.join(map(str, Vr_tr)) + '\n')
-                    f.write(' '.join(map(str, IE_tr)) + '\n')
-                    f.write(' '.join(map(str, Press_tr)) + '\n')
+                    f.write(' '.join(map(str, idx_tr)) + '\n')
                     f.close()
 
 #%%
-# if plot:
-#     snap = 348
-#     photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
-#     xph, yph, zph = photo[0], photo[1], photo[2]
-#     rph = np.sqrt(xph**2 + yph**2 + zph**2)
+if plot:
+    snap = 348
+    photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
+    xph, yph, zph = photo[0], photo[1], photo[2]
+    rph = np.sqrt(xph**2 + yph**2 + zph**2)
     
-#     trap = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/trap/{check}_Rtr{snap}.txt')
-#     x_tr_i, y_tr_i, z_tr_i, Vx_tr, Vy_tr, Vz_tr, Vr_tr = trap[0], trap[1], trap[2], trap[-4], trap[-3], trap[-2], trap[-1]
-#     v_tr_i = np.sqrt(Vx_tr**2 + Vy_tr**2 + Vz_tr**2) * prel.Rsol_cgs * 1e-5/ prel.tsol_cgs
-#     R_tr_i = np.sqrt(x_tr_i**2 + y_tr_i**2 + z_tr_i**2)
-#     idx_chosen = 97
+    trap = np.loadtxt(f'/Users/paolamartire/shocks/src/{check}_Rtr{snap}.txt')
+    x_tr_i, y_tr_i, z_tr_i = trap[0], trap[1], trap[2]
+    R_tr_i = np.sqrt(x_tr_i**2 + y_tr_i**2 + z_tr_i**2)
 
-#     fig, ax2 = plt.subplots(1, 1 , figsize = (6,5))
-#     img = ax2.scatter(R_tr_i/apo, v_tr_i*1e-4)
-#     ax2.set_ylabel(r'$|V| [10^4$ km/s]')
-#     ax2.set_xlabel(r'$R [R_{\rm a}]$')
-#     ax2.set_ylim(.1, 2)
-#     ax2.axvline(np.mean(rph)/apo, c = 'k', linestyle = 'dotted', label =  r'$<R_{\rm ph}>$')
-#     # ax2.axvline(rph[idx_chosen]/apo, c = 'k', linestyle = 'dotted', label =  r'$<R_{\rm ph}>$')
-#     ax2.legend(fontsize = 14)
-#     plt.xlim(0,10)
-#     plt.tight_layout()
+    idx_tr = np.load(f'index_{check}_Rtr{snap}.npy')
+    idx_tr = np.array([int(idx_tr[i]) for i in range(len(idx_tr))])
+    where_zero = np.where(idx_tr == 0)[0]
+    loadpath = f'{pre}/{snap}'
+    data = make_tree(loadpath, snap)
+    X, Y, Z = data.X, data.Y, data.Z
+    x_sim, y_sim, z_sim = X[idx_tr], Y[idx_tr], Z[idx_tr]
+
+    plt.plot(x_tr_i[~where_zero]/x_sim[~where_zero], label = 'x')
+    plt.plot(y_tr_i[~where_zero]/y_sim[~where_zero], label = 'y')
+    plt.plot(z_tr_i[~where_zero]/z_sim[~where_zero], label = 'z')
+    plt.legend()
+
 
 #%%
 eng.exit()
