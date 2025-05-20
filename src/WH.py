@@ -29,7 +29,7 @@ n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 check = '' # 'Low' or 'HiRes' or 'Res20'
 compton = 'Compton'
-snap = '164'
+snap = '348'
 
 #
 ## Constants
@@ -44,7 +44,7 @@ R0 = 0.6 * Rp
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-path = f'{abspath}TDE/{folder}{check}/{snap}'
+path = f'{abspath}/TDE/{folder}{check}/{snap}'
 saving_path = f'{abspath}Figs/{folder}/{check}'
 print(f'We are in: {path}, \nWe save in: {saving_path}')
 
@@ -358,7 +358,7 @@ theta_lim =  np.pi
 step = 0.02
 theta_init = np.arange(-theta_lim, theta_lim, step)
 theta_arr = Ryan_sampler(theta_init)
-tfb = days_since_distruption(f'{abspath}TDE/{folder}{check}/{snap}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+tfb = days_since_distruption(f'{abspath}/TDE/{folder}{check}/{snap}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
 
 #%% Load data
 data = make_tree(path, snap, energy = False)
@@ -381,7 +381,7 @@ except:
     x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params)
     np.save(f'{abspath}/src/stream/stream_{check}{snap}.npy', [theta_arr, x_stream, y_stream, z_stream, thresh_cm])
 
-file = f'{abspath}data/{folder}/stream_{check}{snap}.npy'
+file = f'{abspath}/data/{folder}/stream_{check}{snap}.npy'
 stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr  = orb.follow_the_stream(X, Y, Z, dim_cell, Mass, path = file, params = params)
 
 if save:

@@ -270,26 +270,61 @@ def nouveau_rich(x, y, K, what = 'scattering', slope_length = 5, extrarowsx = 10
 
 
 if __name__ == '__main__':
-    # Test opacities
+    #%% Test opacities
     abspath = '/Users/paolamartire/shocks/'
     opac_path = f'{abspath}/src/Opacity'
     import sys
     sys.path.append(abspath)
 
     import matplotlib.pyplot as plt
+    from scipy.optimize import curve_fit
     from matplotlib.colors import LogNorm
     import Utilities.prelude as prel
 
     save = False
-    treat_den = 'linear'
     #%% Load data (they are the ln of the values)
     T_tab = np.loadtxt(f'{opac_path}/T.txt') 
     Rho_tab = np.loadtxt(f'{opac_path}/rho.txt') 
     rossland_tab = np.loadtxt(f'{opac_path}/ross.txt') # Each row is a fixed T, column a fixed rho
+    planck_tab = np.loadtxt(f'{opac_path}/planck.txt') # Each row is a fixed T, column a fixed rho
     T_plot_tab = np.exp(T_tab)
     Rho_plot_tab = np.exp(Rho_tab)
     ross_plot_tab = np.exp(rossland_tab)
+    planck_plot_tab = np.exp(planck_tab)
     scatt = 0.2*(1+0.7381) * Rho_plot_tab #cm^2/g
+
+    def model(X, a, b):
+        T, den = X
+        return a * T + b * den
+
+    den_exp_ross_Elad = np.zeros(len(T_plot_tab))
+    # den_exp_planck = np.zeros(len(T_plot_tab))
+    den_exp_planck_Elad = np.zeros(len(T_plot_tab))
+    for i in range(len(T_plot_tab)):
+        # T_for_fit = np.repeat(np.log10(T_plot_tab[i]), len(Rho_plot_tab))
+        Rho_for_fit = Rho_tab 
+        Ross_for_fit = rossland_tab[i,:]
+        Planck_for_fit = planck_tab[i,:] #np.log10(planck_plot_tab[i,:])
+        # popt, pcov = curve_fit(model, ydata = Ross_for_fit, xdata=(T_for_fit, Rho_for_fit))
+        # den_exp_ross[i] = popt[1]
+        # popt, pcov = curve_fit(model, ydata = Planck_for_fit, xdata=(T_for_fit, Rho_for_fit))
+        # den_exp_planck[i] = popt[1]
+        den_exp_ross_Elad[i] = (Ross_for_fit[9]-Ross_for_fit[0])/(Rho_for_fit[9]-Rho_for_fit[0]) # this is the slope of the line between the first and the 10th point in Elad's table
+        den_exp_planck_Elad[i] = (Planck_for_fit[9]-Planck_for_fit[0])/(Rho_for_fit[9]-Rho_for_fit[0]) # this is the slope of the line between the first and the 10th point in Elad's table
+
+    # See how density slope looks like from Rosseland and Planck
+    fig, ax = plt.subplots(1,1, figsize = (6,5))
+    # ax.plot(T_plot_tab, den_exp_planck, '--', c = 'b', label = 'from Planck')
+    ax.plot(T_plot_tab, den_exp_ross_Elad,  c = 'darkviolet', label = 'Rosseland')
+    ax.plot(T_plot_tab, den_exp_planck_Elad, c = 'b', label = 'Planck')
+    ax.set_xlabel(r'$T$ [K]')
+    ax.set_ylabel(r'$\rho$ slope')
+    ax.set_xscale('log')
+    ax.set_xlim(1e3, 1e8)
+    ax.set_ylim(0.4, 2.8)
+    ax.legend()
+    plt.tight_layout()
+    plt.savefig(f'{abspath}/Figs/Test/extrap_den_slope.png')
 
     # multiply column i of ross by Rho_plot_tab[i] to get kappa
     ross_rho_tab = []
@@ -299,7 +334,7 @@ if __name__ == '__main__':
 
     # Extrapolate
     T_RICH, Rho_RICH, rosslandRICH = \
-        nouveau_rich(T_tab, Rho_tab, rossland_tab, what = 'scattering', slope_length = 5, treat_den = 'linear')
+        nouveau_rich(T_tab, Rho_tab, rossland_tab, what = 'scattering', slope_length = 5)
     T_plotRICH = np.exp(T_RICH)
     Rho_plotRICH = np.exp(Rho_RICH)
     ross_plotRICH = np.exp(rosslandRICH)
@@ -324,7 +359,6 @@ if __name__ == '__main__':
         ax[i].set_title(f'T = {chosenT} K')
         ax[i].legend()
     ax[0].set_ylabel(r'$\kappa [cm^2g^{-1}]$')
-    plt.suptitle(f'{treat_den} treatment for low density')
     plt.tight_layout()
 
     #%% fixed rho
@@ -342,7 +376,6 @@ if __name__ == '__main__':
     plt.loglog()
     plt.legend()
     plt.grid()
-    plt.title(f'{treat_den} treatment for low density, scattering for high T')
     plt.tight_layout()
 
     #%%
@@ -396,7 +429,6 @@ if __name__ == '__main__':
         else:
             ax.set_xlim(0.8,11)
             ax.set_ylim(-19,11)
-    plt.suptitle(f'{treat_den} treatment for low density, scattering=lower limit for high T')
     plt.tight_layout()
     #%% check with OPAL opacities 
 #     import pandas as pd

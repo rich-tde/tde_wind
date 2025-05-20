@@ -27,6 +27,8 @@ from scipy.ndimage import uniform_filter1d
 import Utilities.prelude as prel
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
+import matplotlib.pyplot as plt
+import src.orbits as orb
 
 #%% Choose parameters -----------------------------------------------------------------
 m = 4
@@ -36,7 +38,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'QuadraticOpacity' # 
+check = '' # 
 
 ## Snapshots stuff
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -51,11 +53,14 @@ Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
 N_ray = 5_000
+apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
 # MATLAB GOES WHRRRR, thanks Cindy.
 eng = matlab.engine.start_matlab()
 Lphoto_all = np.zeros(len(snaps))
 for idx_s, snap in enumerate(snaps):
+    if snap != 348:
+        continue
     print('\n Snapshot: ', snap, '\n')
     box = np.zeros(6)
     # Load data -----------------------------------------------------------------
@@ -111,6 +116,8 @@ for idx_s, snap in enumerate(snaps):
     fluxes = np.zeros(prel.NPIX)
     r_initial = np.zeros(prel.NPIX) # initial starting point for Rph
     for i in range(prel.NPIX):
+        if i!= 0:
+            continue
         # Progress 
         print(f'Snap: {snap}, Obs: {i}', flush=False)
         sys.stdout.flush()
@@ -181,7 +188,7 @@ for idx_s, snap in enumerate(snaps):
         kappa_rossland = np.flipud(sigma_rossland_eval) 
         # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
         los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
-
+        
         # Red 
         # Get 20 unique nearest neighbors to each cell in the wanted ray and use them to compute the gradient along the ray
         xyz3 = np.array([ray_x, ray_y, ray_z]).T
@@ -256,6 +263,20 @@ for idx_s, snap in enumerate(snaps):
         Vzph[i] = ray_vz[photosphere]
         fluxes[i] = Lphoto / (4*np.pi*(r[photosphere]*prel.Rsol_cgs)**2)
         
+        rph_i = np.sqrt(xph[i]**2 + yph[i]**2 + zph[i]**2) # this is the distance of the photosphere from the center
+        plt.figure(figsize = (8,8))
+        plt.plot(r/apo, los, c = 'k')
+        plt.axhline(los[photosphere], c = 'k', linestyle = 'dotted')
+        plt.axvline(r[photosphere]/apo, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
+        # plt.axvline(rph_i/apo, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
+        plt.xlabel(r'$R [R_{\rm a}]$')
+        plt.ylabel(r'$\tau_R$')
+        plt.yscale('log')
+        plt.xlim(-.1, 6)
+        plt.ylim(1e-2, 1e4)
+        plt.legend()
+        plt.title(f'Snap {snap}, observer {i}')
+
         del smoothed_flux, R_lamda, fld_factor, rad_den
         gc.collect()
     Lphoto_snap = np.sum(reds)/num_obs # take the mean
