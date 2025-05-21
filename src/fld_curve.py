@@ -59,8 +59,6 @@ apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 eng = matlab.engine.start_matlab()
 Lphoto_all = np.zeros(len(snaps))
 for idx_s, snap in enumerate(snaps):
-    if snap != 348:
-        continue
     print('\n Snapshot: ', snap, '\n')
     box = np.zeros(6)
     # Load data -----------------------------------------------------------------

@@ -193,7 +193,7 @@ if compute:
 
         if alice:
             with open(f'{pre_saving}/trap/{check}_Rtr{snap}.txt', 'w') as f:
-                    f.write('# Data for the Rtr (all in CGS). Lines are: x_tr, y_tr, z_tr, vol_tr, den_tr, Temp_tr, Vr_tr, idx_tr \nwhere idx_tr is the index of the cell in the simulation without any cut\n')
+                    f.write('# Data for the Rtr (all in CGS). Lines are: x_tr, y_tr, z_tr, vol_tr, den_tr, Temp_tr, Vr_tr, idx_tr \n#where idx_tr is the index of the cell in the simulation without any cut\n')
                     f.write(' '.join(map(str, x_tr)) + '\n')
                     f.write(' '.join(map(str, y_tr)) + '\n')
                     f.write(' '.join(map(str, z_tr)) + '\n')

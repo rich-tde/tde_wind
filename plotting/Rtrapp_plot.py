@@ -217,11 +217,10 @@ else: # Evolution in time (comparison with high res) and comparison with the pho
         percentile16_ph[i] =  np.percentile(vel_ph, 16)
         percentile84_ph[i] = np.percentile(vel_ph, 84)
 
-        x_tr, y_tr, z_tr, vol_tr, den_tr, Temp_tr, Vx_tr, Vy_tr, Vz_tr, Vr_tr, IE_tr, Press_tr = \
+        x_tr, y_tr, z_tr, vol_tr, den_tr, Temp_tr, Vr_tr, _ = \
             np.loadtxt(f'{abspath}/data/{folder}/trap/_Rtr{snap}.txt')
         r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-        vel_tr = np.sqrt(Vx_tr**2 + Vy_tr**2 + Vz_tr**2)
-        vel_tr = vel_tr[r_tr>1e-10]
+        # vel_tr = vel_tr[r_tr>1e-10]
         r_tr = r_tr[r_tr>1e-10]
         count_nozeros_tr[i] = len(r_tr)
         PE_tr_spec = -prel.G * Mbh / (r_tr-Rs)

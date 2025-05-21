@@ -134,8 +134,12 @@ for j, check in enumerate(checks):
             r_ph_all = np.sqrt(xph**2 + yph**2 + zph**2)
             R_ph[i] = np.median(r_ph_all)
 
-            x_tr, y_tr, z_tr, _, _, _, _, _, _, _ = \
+            data_tr= \
                 np.loadtxt(f'{abspath}/data/{folder}/trap/{check}_Rtr{snapR}.txt')
+            # put # in front of the first line of the file and rewite it
+            # data_tr = np.loadtxt(f'{abspath}/data/{folder}/trap/_trap{snapR}.txt')
+            x_tr, y_tr, z_tr = data_tr[0], data_tr[1], data_tr[2]
+
             r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
             R_tr[i] = np.median(r_tr_all)
             

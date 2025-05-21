@@ -166,10 +166,10 @@ if alice:
         tdiff_cumulative = - np.flipud(tdiff_cumulative)/ prel.c_cgs
         tdiff_mid[i] = tdiff_cumulative[0]
 
-    #save
-    np.save(f'{pre_saving}/{check}_tdiff{computation}{snap}mesh.npy',tdiff_mid)
-    np.save(f'{pre_saving}/{check}_tdiff{snap}xs.npy',xs)
-    np.save(f'{pre_saving}/{check}_tdiff{snap}ys.npy',ys)
+    if save:
+        np.save(f'{pre_saving}/{check}_tdiff{computation}{snap}mesh.npy',tdiff_mid)
+        np.save(f'{pre_saving}/{check}_tdiff{snap}xs.npy',xs)
+        np.save(f'{pre_saving}/{check}_tdiff{snap}ys.npy',ys)
 
     eng.exit()
 
