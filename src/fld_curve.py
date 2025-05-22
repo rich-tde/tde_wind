@@ -114,8 +114,6 @@ for idx_s, snap in enumerate(snaps):
     fluxes = np.zeros(prel.NPIX)
     r_initial = np.zeros(prel.NPIX) # initial starting point for Rph
     for i in range(prel.NPIX):
-        if i!= 0:
-            continue
         # Progress 
         print(f'Snap: {snap}, Obs: {i}', flush=False)
         sys.stdout.flush()

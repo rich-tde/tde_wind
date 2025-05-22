@@ -139,12 +139,54 @@ for i in range(len(observers_xyz)):
         make_slices([ray_x, ray_y, ray_z, ray_vz, t, d, ray_vol, ray_weigh, idx, los, sigma_rossland_eval], los_zero)
     c_tau = prel.csol_cgs/los #c/tau [code units]
     
+    t_dyn = ray_z/np.abs(ray_vz) * prel.tsol_cgs # [s]
+    tdiff = los * ray_z * prel.Rsol_cgs / prel.c_cgs
     # rough estimate of tdiff
     tenth_denmiind = np.argmin(np.abs(d-0.5*d[0])) #1/10 of orb.plane density
-    tdiff_est = los[0] * ray_z[tenth_denmiind] * prel.Rsol_cgs / prel.c_cgs # [s] 
+    tdiff_est_tenthtau = los[tenth_denmiind] * ray_z[tenth_denmiind] * prel.Rsol_cgs / prel.c_cgs # [s] 
+    tdiff_est_0tau = los[0] * ray_z[tenth_denmiind] * prel.Rsol_cgs / prel.c_cgs # [s] 
+    # plot
+    fig, (ax1,ax2)  = plt.subplots(1, 2, figsize = (15,8))
+    ax1.plot(ray_z/apo, t_dyn/tfallback_cgs, c = 'k', alpha = .7, label = r'$t_{\rm dyn}=z/v_z$')
+    img = ax1.scatter(ray_z/apo, tdiff/tfallback_cgs, c = los, cmap = 'rainbow', s = 5, norm = colors.LogNorm(1e3, 5e5), label = r'$t_{\rm diff}=\tau z/c$')
+    cbar = plt.colorbar(img)
+    cbar.set_label(r'$\tau$')
+    ax1.axhline(tdiff_est_tenthtau/tfallback_cgs, color = 'maroon', linestyle = '--', label = r't$_{\rm diff}=\tau[\rho=0.5\rho_{\rm mid}] z[\rho=0.5\rho_{\rm mid}]/c$')
+    ax1.axhline(tdiff_est_0tau/tfallback_cgs, color = 'maroon', linestyle = 'dotted', label = r't$_{\rm diff}=\tau_{\rm mid} z[\rho=0.5\rho_{\rm mid}]/c$')
+    ax1.set_ylabel(r'$t [t_{\rm fb}]$')
+    if i == 0:
+        ax1.set_yscale('log')
+    # ax1.set_ylim(0, 2) # a bit further than the Rtrapp
+    ax1.set_xlabel(r'$Z [R_{\rm a}]$')
+    ax1.set_xlim(-0.1, 1)
+    ax1.legend(fontsize = 10)
+    ax1.set_yscale('log')
+    # plt.savefig(f'{abspath}/Figs/{folder}/{check}_tdiff{computation}{snap}{i}.png', bbox_inches='tight')
+
+    # CUMULATIVE 
+    tdiff_cumulative = sci.cumulative_trapezoid(los, ray_z, initial = 0) * prel.Rsol_cgs # this is the conversion for ray_z. You integrate in the z direction
+    tdiff_cumulative/=prel.c_cgs
+    tdyn_cumulative = sci.cumulative_trapezoid(1/np.abs(ray_vz), ray_z, initial = 0) # this is the conversion for ray_z. You integrate in the z direction
+    tdyn_cumulative*=prel.tsol_cgs
+    # plot
+    ax2.plot(ray_z/apo, tdyn_cumulative/tfallback_cgs, c = 'k', alpha = .7, label = r'$t_{\rm dyn}=\int_0^Z dz/v_z$')
+    img = ax2.scatter(ray_z/apo, tdiff_cumulative/tfallback_cgs, c = los, cmap = 'rainbow', s = 5, norm = colors.LogNorm(1e3, 5e5), label = r'$t_{\rm diff}=\frac{1}{c}\int_0^Z \tau(z) dz$')
+    cbar = plt.colorbar(img)
+    cbar.set_label(r'$\tau$')
+    ax2.axhline(tdiff_est_tenthtau/tfallback_cgs, color = 'maroon', linestyle = '--', label = r't$_{\rm diff}=\tau[\rho=0.5\rho_{\rm mid}] z[\rho=0.5\rho_{\rm mid}]/c$')
+    ax2.axhline(tdiff_est_0tau/tfallback_cgs, color = 'maroon', linestyle = 'dotted', label = r't$_{\rm diff}=\tau_{\rm mid} z[\rho=0.5\rho_{\rm mid}]/c$')
+    if i == 0:
+        ax2.set_yscale('log')
+    # ax2.set_ylim(0, 2) # a bit further than the Rtrapp
+    ax2.set_xlabel(r'$Z [R_{\rm a}]$')
+    ax2.set_xlim(-0.1, 1)
+    ax2.legend(fontsize = 10)
+    ax2.set_yscale('log')
+    plt.suptitle(f'x = {labels_obs[i]}, snap {snap}', fontsize = 20)
+    plt.tight_layout()
 
     # plot to check if you're taking the right thing
-    fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,10))
+    # fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,10))
     # cutplot = np.logical_and(Den > 1e-19, np.abs(X-mu_x)<Vol**(1/3))
     # img = ax1.scatter(Y[cutplot], Z[cutplot]/apo, c = X[cutplot]/mu_x,  cmap = 'jet', alpha = 0.7, vmin = 0.5, vmax = 1.5)
     # img = ax1.scatter(xyz2[:,1], xyz2[:,2]/apo, c = xyz2[:,0]/Rt, cmap = 'jet', marker = 's', edgecolors= 'k', label = 'What we want', vmin = 0.5, vmax = 1.5)
@@ -170,7 +212,6 @@ for i in range(len(observers_xyz)):
     # if len(Rtr_idx_all) == 0:
     #     print(f'No Rtr found anywhere for obs {i}', flush=False)
     # R_tr_all = ray_z[Rtr_idx_all]
-    # # Rtr < Rph
     # Rtr_idx_all_inside = np.where(np.abs(R_tr_all)<np.mean(rph))[0]
     # if len(Rtr_idx_all_inside) == 0:
     #     print(f'No Rtr inside Rph for obs {i}', flush=False)
@@ -178,29 +219,11 @@ for i in range(len(observers_xyz)):
     # # take the one most outside
     # Rtr_idx = Rtr_idx_all[-1]
 
-    t_dyn = ray_z/np.abs(ray_vz) * prel.tsol_cgs # [s]
-    tdiff = los * ray_z * prel.Rsol_cgs / prel.c_cgs
-
     # save
     # with open(f'{pre_saving}/{check}_tdiff{snap}{computation}.txt', 'a') as f:
     #     f.write(f'# tdiff for obs at x={labels_obs[i]} [s] \n' + ''.join(map(str, tdiff)) + '\n')
     #     f.close()
     
-    fig, ax1  = plt.subplots(1, 1 , figsize = (7,5))
-    ax1.plot(ray_z/apo, t_dyn/tfallback_cgs, c = 'royalblue', label = r'$t_{\rm dyn}$')
-    ax1.plot(ray_z/apo, tdiff/tfallback_cgs, c = 'darkred', label = r'$t_{\rm diff}$')
-    ax1.axhline(tdiff_est/tfallback_cgs, color = 'deepskyblue', linestyle = '--', label = r't$_{\rm diff}\approx \tau_{\rm op} z[\rho=0.5\rho_{\rm op}/c]$')
-    ax1.set_ylabel(r'$t_{\rm diff} [t_{\rm fb}]$')
-    if i == 0:
-        ax1.set_yscale('log')
-    # ax1.set_ylim(0, 2) # a bit further than the Rtrapp
-    ax1.set_xlabel(r'$Z [R_{\rm a}]$')
-    ax1.set_xlim(-0.1, 1)
-    ax1.legend(fontsize = 18)
-    ax1.set_yscale('log')
-    plt.suptitle(f'x = {labels_obs[i]}, snap {snap}', fontsize = 20)
-    plt.tight_layout()
-    # plt.savefig(f'{abspath}/Figs/{folder}/{check}_tdiff{computation}{snap}{i}.png', bbox_inches='tight')
 # axtau.legend(fontsize = 18)
 #%%
 eng.exit()
