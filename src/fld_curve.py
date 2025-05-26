@@ -1,6 +1,7 @@
 """ FLD curve accoring to Elad's script (MATLAB: start from 1 with indices, * is matrix multiplication, ' is .T). """
 import sys
 sys.path.append('/Users/paolamartire/shocks')
+# import resource
 from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
@@ -38,7 +39,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = '' # 
+check = 'QuadraticOpacity' # 
 
 ## Snapshots stuff
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -258,20 +259,6 @@ for idx_s, snap in enumerate(snaps):
         Vyph[i] = ray_vy[photosphere]
         Vzph[i] = ray_vz[photosphere]
         fluxes[i] = Lphoto / (4*np.pi*(r[photosphere]*prel.Rsol_cgs)**2)
-        
-        rph_i = np.sqrt(xph[i]**2 + yph[i]**2 + zph[i]**2) # this is the distance of the photosphere from the center
-        plt.figure(figsize = (8,8))
-        plt.plot(r/apo, los, c = 'k')
-        plt.axhline(los[photosphere], c = 'k', linestyle = 'dotted')
-        plt.axvline(r[photosphere]/apo, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
-        # plt.axvline(rph_i/apo, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
-        plt.xlabel(r'$R [R_{\rm a}]$')
-        plt.ylabel(r'$\tau_R$')
-        plt.yscale('log')
-        plt.xlim(-.1, 6)
-        plt.ylim(1e-2, 1e4)
-        plt.legend()
-        plt.title(f'Snap {snap}, observer {i}')
 
         del smoothed_flux, R_lamda, fld_factor, rad_den
         gc.collect()
@@ -313,5 +300,6 @@ for idx_s, snap in enumerate(snaps):
             f.close()
         
 eng.exit()
-
+# usage = resource.getrusage(resource.RUSAGE_SELF)
+# print(f"Peak RAM usage: {usage.ru_maxrss / 1024**2:.2f} MB")
 # %%

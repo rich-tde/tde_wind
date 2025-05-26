@@ -52,7 +52,6 @@ tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) #shape: (3, 192)
 observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
-
 # Opacity
 opac_path = f'{abspath}/src/Opacity'
 T_cool = np.loadtxt(f'{opac_path}/T.txt')
@@ -62,6 +61,8 @@ T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 
 
 if compute:
     for snap in snaps:
+        if snap != 348:
+            continue
         if alice:
             loadpath = f'{pre}/snap_{snap}'
         else:
@@ -90,6 +91,8 @@ if compute:
         idx_tr = np.zeros(len(observers_xyz))
 
         for i in range(len(observers_xyz)):
+            if i!=103:
+                continue
             mu_x = observers_xyz[i][0]
             mu_y = observers_xyz[i][1]
             mu_z = observers_xyz[i][2]
@@ -177,19 +180,22 @@ if compute:
             if plot:
                 tdyn_single = ray_r / np.abs(v_rad) * prel.tsol_cgs
                 tdiff_single = los * ray_r * prel.Rsol_cgs / prel.c_cgs
+                print(tdiff_single[0]/tfallback_cgs, ray_r[0], los[0]*ray_r[0])
                 plt.figure(figsize = (8,6))
-                plt.plot(ray_r/apo, tdyn_single/tfallback_cgs, c = 'royalblue', label = r'$t_{\rm dyn}$')
-                plt.plot(ray_r/apo, tdiff_single/tfallback_cgs, c = 'darkred', label = r'$t_{\rm diff}$')
-                plt.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
-                plt.axvline(rph[i]/apo, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
-                plt.xlabel(r'$R [R_{\rm a}]$')
+                plt.plot(ray_r/Rt, tdyn_single/tfallback_cgs, c = 'k', label = r'$t_{\rm dyn}$')
+                img = plt.scatter(ray_r/Rt, tdiff_single/tfallback_cgs, c = los, cmap = 'rainbow', s = 10, label = r'$t_{\rm diff}=\tau r/c$', norm = colors.LogNorm(1e1, 1e5))# np.percentile(los, 5), np.percentile(los, 95)))
+                cbar = plt.colorbar(img)
+                cbar.set_label(r'$\tau$', fontsize = 14)
+                plt.axvline(ray_r[Rtr_idx]/Rt, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
+                plt.axvline(rph[i]/Rt, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
+                plt.xlabel(r'$R [R_{\rm t}]$')
                 plt.ylabel(r'$t [t_{\rm fb}]$')
                 plt.yscale('log')
-                plt.xlim(1e-2, 6)
-                plt.ylim(.1, 5e1)
+                plt.xlim(-1e-2, 80)
+                plt.ylim(1e-3, 1e3)
                 plt.legend(fontsize = 14)
                 plt.title(f'Snap {snap}, observer {i}', fontsize = 16)
-                plt.show()
+                plt.tight_layout()
 
         if alice:
             with open(f'{pre_saving}/trap/{check}_Rtr{snap}.txt', 'w') as f:
