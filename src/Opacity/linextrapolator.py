@@ -263,14 +263,17 @@ def first_rich_extrap(x, y, K, what = 'scattering', slope_length = 5, extrarowsx
 
     return xn, yn, Kn
 
-def nouveau_rich(x, y, K, what = 'scattering', slope_length = 5, extrarowsx = 101, 
+def first_rich_extrap(x, y, K, what = 'scattering', slope_length = 5, extrarowsx = 101, 
                  extrarowsy = 100, highT_slope = -3.5):
     ''' 
     Extra/Interpolation as in the first runs of RICH, where the slope was given by the last and 5th point.
+    Look at:
+    - https://gitlab.com/eladtan/RICH/-/blob/master/source/misc/utils.cpp 
+    - CalcDiffusionCoefficient, which gives you the inverse of Rosseland in https://gitlab.com/eladtan/RICH/-/blob/master/source/Radiation/STAgreyOpacity.cpp 
     x: array of log10(T)
     y: array of log10(rho)
     K: array of log10(kappa) [1/cm]
-    what, str: either scattering or ''.
+    what, str: either scattering_limit or ''.
                if scattering, brings to opacity always above thomson
     
     '''
@@ -332,7 +335,7 @@ def nouveau_rich(x, y, K, what = 'scattering', slope_length = 5, extrarowsx = 10
                     Kxslope = highT_slope #(K[-1, iy_inK] - K[-slope_length, iy_inK]) / deltax
                     Kn[ix][iy] = K[-1, iy_inK] + Kxslope * (xsel - x[-1])
                 
-                if what == 'scattering':
+                if what == 'scattering_limit':
                     thomson_this_den = np.log(thomson * np.exp(ysel)) # 1/cm
                     if Kn[ix][iy] < thomson_this_den:
                         Kn[ix][iy] = thomson_this_den
@@ -348,6 +351,83 @@ def nouveau_rich(x, y, K, what = 'scattering', slope_length = 5, extrarowsx = 10
                     deltay = y[-1] - y[-slope_length]
                     Kyslope = (K[ix_inK, -1] - K[ix_inK, -slope_length]) / deltay
                     Kn[ix][iy] = K[ix_inK, -1] + Kyslope * (ysel - y[-1])
+
+                else:
+                    iy_inK = np.argmin(np.abs(y - ysel))
+                    Kn[ix][iy] = K[ix_inK, iy_inK]
+
+    return xn, yn, Kn
+
+
+def linear_rich(x, y, K, highT_slope, what = 'scattering', extrarowsx = 101, 
+                 extrarowsy = 100):
+    ''' 
+    Extra/Interpolation as in the first runs of RICH, where the slope was given by the last and 5th point.
+    Look at:
+    - https://gitlab.com/eladtan/RICH/-/blob/master/source/misc/utils.cpp 
+    - CalcDiffusionCoefficient, which gives you the inverse of Rosseland in https://gitlab.com/eladtan/RICH/-/blob/master/source/Radiation/STAgreyOpacity.cpp 
+    x: array of log10(T)
+    y: array of log10(rho)
+    K: array of log10(kappa) [1/cm]
+    what, str: either scattering_limit or ''.
+               if scattering, brings to opacity always above thomson
+    
+    '''
+    
+    X = 0.9082339738214822 # From table prescription
+    thomson = 0.2 * (1 + X)
+    
+    # Extend x and y, adding data equally space (this suppose x,y as array equally spaced)
+    # Low extrapolation
+    deltaxn_low = x[1] - x[0]
+    deltayn_low = y[1] - y[0] 
+    x_extra_low = [x[0] - deltaxn_low * (i + 1) for i in range(extrarowsx)]
+    y_extra_low = [y[0] - deltayn_low * (i + 1) for i in range(extrarowsy)]
+    
+    # High extrapolation
+    deltaxn_high = x[-1] - x[-2]
+    deltayn_high = y[-1] - y[-2]
+    x_extra_high = [x[-1] + deltaxn_high * (i + 1) for i in range(extrarowsx)]
+    y_extra_high = [y[-1] + deltayn_high * (i + 1) for i in range(extrarowsy)]
+    
+    # Stack, reverse low to stack properly
+    xn = np.concatenate([x_extra_low[::-1], x, x_extra_high])
+    yn = np.concatenate([y_extra_low[::-1], y, y_extra_high])
+    
+    Kn = np.zeros((len(xn), len(yn)))
+    for ix, xsel in enumerate(xn):
+        for iy, ysel in enumerate(yn):
+            if xsel < x[0]: # Too cold
+                if ysel < y[0]: # Too rarefied
+                    Kn[ix][iy] = K[0, 0] + (xsel - x[0]) + (ysel - y[0])
+                elif ysel > y[-1]: # Too dense
+                    Kn[ix][iy] = K[0, -1] + (xsel - x[0]) + (ysel - y[-1])
+                else: # Density is inside the table
+                    iy_inK = np.argmin(np.abs(y - ysel))
+                    Kn[ix][iy] = K[0, iy_inK] + (xsel - x[0])
+            
+            # Too hot
+            elif xsel > x[-1]: 
+                if ysel < y[0]: # Too rarefied 
+                    Kn[ix][iy] = K[-1, 0] + highT_slope * (xsel - x[-1]) + (ysel - y[0])
+                elif ysel > y[-1]: # Too dense #(K[-1, -1] - K[-slope_length, -1]) / deltax
+                    Kn[ix][iy] = K[-1, -1] + highT_slope * (xsel - x[-1]) + (ysel - y[-1])
+                else: # Density is inside the table
+                    iy_inK = np.argmin(np.abs(y - ysel)) 
+                    Kn[ix][iy] = K[-1, iy_inK] + highT_slope * (xsel - x[-1])
+                
+                if what == 'scattering_limit':
+                    thomson_this_den = np.log(thomson * np.exp(ysel)) # 1/cm
+                    if Kn[ix][iy] < thomson_this_den:
+                        Kn[ix][iy] = thomson_this_den
+
+            else: 
+                ix_inK = np.argmin(np.abs(x - xsel))
+                if ysel < y[0]: # Too rarefied, Temperature is inside table
+                    Kn[ix][iy] = K[ix_inK, 0] + (ysel - y[0])
+                    
+                elif ysel > y[-1]:  # Too dense, Temperature is inside table
+                    Kn[ix][iy] = K[ix_inK, -1] + (ysel - y[-1])
 
                 else:
                     iy_inK = np.argmin(np.abs(y - ysel))
