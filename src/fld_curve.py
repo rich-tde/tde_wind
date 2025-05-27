@@ -22,7 +22,7 @@ import scipy.integrate as sci
 from scipy.interpolate import griddata
 import matlab.engine
 from sklearn.neighbors import KDTree
-from src.Opacity.linextrapolator import nouveau_rich
+from src.Opacity.linextrapolator import linear_rich
 from scipy.ndimage import uniform_filter1d
 
 import Utilities.prelude as prel
@@ -52,7 +52,7 @@ opac_path = f'{abspath}/src/Opacity'
 T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
-T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 7, highT_slope = 0)
+T_cool2, Rho_cool2, rossland2 = linear_rich(T_cool, Rho_cool, rossland, what = 'scattering_limit', highT_slope = 0)
 N_ray = 5_000
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
