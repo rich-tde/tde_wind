@@ -151,26 +151,25 @@ for i in range(len(observers_xyz)):
 
     t_dyn = ray_z/np.abs(ray_vz) * prel.tsol_cgs # [s]
     tdiff = los * ray_z * prel.Rsol_cgs / prel.c_cgs
-    print(tdiff[0]/tfallback_cgs, ray_z[0], los[0]*ray_z[0])
     # rough estimate of tdiff
     tenth_denmiind = np.argmin(np.abs(d-0.5*d[0])) #1/10 of orb.plane density
     tdiff_est_tenthtau = los[tenth_denmiind] * ray_z[tenth_denmiind] * prel.Rsol_cgs / prel.c_cgs # [s] 
     tdiff_est_0tau = los[0] * ray_z[tenth_denmiind] * prel.Rsol_cgs / prel.c_cgs # [s] 
     # plot
     fig, ax1  = plt.subplots(1, 1, figsize = (8,6))
-    ax1.plot(np.sqrt(ray_z**2+Rt**2)/Rt, t_dyn/tfallback_cgs, c = 'k', alpha = .7, label = r'$t_{\rm dyn}=z/v_z$')
-    img = ax1.scatter(ray_z/Rt, tdiff/tfallback_cgs, c = los, cmap = 'rainbow', s = 10, label = r'$t_{\rm diff}=\tau z/c$', norm = colors.LogNorm(1e1, 1e5))# np.percentile(los, 5), np.percentile(los, 95)))
+    ax1.plot(ray_z/apo, t_dyn/tfallback_cgs, c = 'k', alpha = .7, label = r'$t_{\rm dyn}=z/v_z$')
+    img = ax1.scatter(ray_z/apo, tdiff/tfallback_cgs, c = los, cmap = 'turbo', s = 10, label = r'$t_{\rm diff}=\tau z/c$', norm = colors.LogNorm(1e1, 1e5))# np.percentile(los, 5), np.percentile(los, 95)))
     cbar = plt.colorbar(img)
     cbar.set_label(r'$\tau$')
     # ax1.axhline(tdiff_est_tenthtau/tfallback_cgs, color = 'maroon', linestyle = '--', label = r't$_{\rm diff}=\tau[\rho=0.5\rho_{\rm mid}] z[\rho=0.5\rho_{\rm mid}]/c$')
     # ax1.axhline(tdiff_est_0tau/tfallback_cgs, color = 'maroon', linestyle = 'dotted', label = r't$_{\rm diff}=\tau_{\rm mid} z[\rho=0.5\rho_{\rm mid}]/c$')
-    ax1.axvline(ztr/Rt, color = 'k', linestyle = '--', label = r'$Z_{\rm trap}$')
+    ax1.axvline(ztr/apo, color = 'k', linestyle = '--', label = r'$Z_{\rm trap}$')
     ax1.set_ylabel(r'$t [t_{\rm fb}]$')
     ax1.set_ylim(1e-2, 1e2) # a bit further than the Rtrapp
-    ax1.set_xlabel(r'$\sqrt{Z^2+R_t^2}[R_{\rm t}]$')
-    ax1.set_xlim(-1e-2, 80)
-    ax1.legend(fontsize = 10)
+    ax1.set_xlabel(r'$Z [R_{\rm a}]$')
+    ax1.set_xlim(-.1, 4)
     ax1.set_yscale('log')
+    ax1.legend(fontsize = 16)
     plt.title(f'x = {labels_obs[i]}, snap {snap}', fontsize = 20)
     plt.tight_layout()
     # plt.savefig(f'{abspath}/Figs/{folder}/{check}_tdiff{computation}{snap}{i}.png', bbox_inches='tight')

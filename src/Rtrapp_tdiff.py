@@ -91,7 +91,7 @@ if compute:
         idx_tr = np.zeros(len(observers_xyz))
 
         for i in range(len(observers_xyz)):
-            if i!=103:
+            if i not in [0, 50, 103, 120, 191]:
                 continue
             mu_x = observers_xyz[i][0]
             mu_y = observers_xyz[i][1]
@@ -181,20 +181,27 @@ if compute:
                 tdyn_single = ray_r / np.abs(v_rad) * prel.tsol_cgs
                 tdiff_single = los * ray_r * prel.Rsol_cgs / prel.c_cgs
                 print(tdiff_single[0]/tfallback_cgs, ray_r[0], los[0]*ray_r[0])
-                plt.figure(figsize = (8,6))
-                plt.plot(ray_r/Rt, tdyn_single/tfallback_cgs, c = 'k', label = r'$t_{\rm dyn}$')
-                img = plt.scatter(ray_r/Rt, tdiff_single/tfallback_cgs, c = los, cmap = 'rainbow', s = 10, label = r'$t_{\rm diff}=\tau r/c$', norm = colors.LogNorm(1e1, 1e5))# np.percentile(los, 5), np.percentile(los, 95)))
-                cbar = plt.colorbar(img)
-                cbar.set_label(r'$\tau$', fontsize = 14)
-                plt.axvline(ray_r[Rtr_idx]/Rt, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
-                plt.axvline(rph[i]/Rt, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
-                plt.xlabel(r'$R [R_{\rm t}]$')
-                plt.ylabel(r'$t [t_{\rm fb}]$')
-                plt.yscale('log')
-                plt.xlim(-1e-2, 80)
-                plt.ylim(1e-3, 1e3)
-                plt.legend(fontsize = 14)
-                plt.title(f'Snap {snap}, observer {i}', fontsize = 16)
+                fig, ax1 = plt.subplots(1,1,figsize = (8,6))
+                ax1.plot(ray_r/apo, tdyn_single/tfallback_cgs, c = 'k', label = r'$t_{\rm dyn}=R/v_R$')
+                # add a twin y axis to show v_rad 
+                # ax2 = ax1.twinx()
+                # ax2.plot(ray_r/apo, v_rad, c = 'r')
+                # ax2.set_ylabel(r'$v_R$ [cm/s]', fontsize = 20, c = 'r')
+                # ax2.tick_params(axis='y', labelcolor='r')
+                # ax2.set_yscale('log')                
+                img = ax1.scatter(ray_r/apo, tdiff_single/tfallback_cgs, c = los, cmap = 'turbo', s = 10, label = r'$t_{\rm diff}=\tau R/c$', norm = colors.LogNorm(1e1, 1e5))# np.percentile(los, 5), np.percentile(los, 95)))
+                cbar = plt.colorbar(img)#, orientation = 'horizontal')
+                cbar.set_label(r'$\tau$', fontsize = 20)
+                ax1.axvline(Rt/apo, c = 'k', linestyle = '-.', label = r'$R_{\rm t}$')
+                ax1.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
+                ax1.axvline(rph[i]/apo, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
+                ax1.set_xlabel(r'$R [R_{\rm a}]$')
+                ax1.set_ylabel(r'$t [t_{\rm fb}]$')
+                ax1.set_yscale('log')
+                ax1.set_xlim(-.1, 4)
+                ax1.set_ylim(1e-3, 1e3)
+                ax1.legend(fontsize = 14, loc = 'lower right')
+                plt.suptitle(f'Snap {snap}, observer {i}', fontsize = 16)
                 plt.tight_layout()
 
         if alice:
