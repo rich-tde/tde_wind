@@ -29,7 +29,7 @@ n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 check = '' # 'Low' or 'HiRes' or 'Res20'
 compton = 'Compton'
-snap = '348'
+snap = '237'
 
 #
 ## Constants
@@ -353,7 +353,7 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, path, params)
 ## MAIN
 #
 
-save = False
+save = True
 theta_lim =  np.pi
 step = 0.02
 theta_init = np.arange(-theta_lim, theta_lim, step)
@@ -374,16 +374,18 @@ X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Mass_midplane = 
     sec.make_slices([X, Y, Z, dim_cell, Den, Mass], midplane)
 
 #%%
-try:
-    theta_arr, x_stream, y_stream, z_stream, thresh_cm = \
-        np.load(f'{abspath}/src/stream/stream_{check}{snap}.npy')
-except:
-    x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params)
-    np.save(f'{abspath}/src/stream/stream_{check}{snap}.npy', [theta_arr, x_stream, y_stream, z_stream, thresh_cm])
+# try:
+#     theta_arr, x_stream, y_stream, z_stream, thresh_cm = \
+#         np.load(f'{abspath}/data/{folder}/stream_{check}{snap}.npy')
+# except:
+x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params)
+np.save(f'{abspath}/data/{folder}/stream_{check}{snap}.npy', [theta_arr, x_stream, y_stream, z_stream, thresh_cm])
 
+#%%
 file = f'{abspath}/data/{folder}/stream_{check}{snap}.npy'
-stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr  = orb.follow_the_stream(X, Y, Z, dim_cell, Mass, path = file, params = params)
+stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr  = follow_the_stream(X, Y, Z, dim_cell, Mass, path = file, params = params)
 
+#%%
 if save:
     try:
         file = open(f'{abspath}data/{folder}/WH/width_time{np.round(tfb,2)}.txt', 'r')
