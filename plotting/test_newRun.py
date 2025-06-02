@@ -16,7 +16,8 @@ import src.orbits as orb
 import Utilities.prelude as prel
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-
+from src.Opacity.linextrapolator import first_rich_extrap, linear_rich
+import matlab.engine
 #%%
 ## PARAMETERS STAR AND BH
 #
@@ -31,43 +32,108 @@ Rp = orb.pericentre(Rstar, mstar, Mbh, beta)
 R0 = 0.6*Rp
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 compton = 'Compton'
-snap = 214
-checks = ['LowRes', '', 'HiRes', 'QuadraticOpacity']
-check_name = ['Low', 'Fid','High', 'NewFid']
+change = 'AMR'
+if change == 'Extr':
+    snap = 267 # 164 or 267 
+    eng = matlab.engine.start_matlab()
+    checks = ['', 'QuadraticOpacity']
+    check_name = ['Old','Old-']
+    opac_path = f'{abspath}/src/Opacity'
+    T_cool = np.loadtxt(f'{opac_path}/T.txt')
+    Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
+    rossland = np.loadtxt(f'{opac_path}/ross.txt')
+    minT_tab, maxT_tab = np.min(np.exp(T_cool)), np.max(np.exp(T_cool))
+    minRho_tab, maxRho_tab = np.min(np.exp(Rho_cool)), np.max(np.exp(Rho_cool))
+    print(f'minT_tab = {minT_tab}, maxT_tab = {maxT_tab}')
+    print(f'minRho_tab = {minRho_tab}, maxRho_tab = {maxRho_tab}')
+else:
+    snap = 164 # 115, 164, 240 
+    checks = ['QuadraticOpacity', 'QuadraticOpacityNewAMR']
+    check_name = ['Old-','New']
 
-fig, ax = plt.subplots(2, 2, figsize = (20, 15))
+Ncell = np.zeros(len(checks))
+Ncell_mid = np.zeros(len(checks))
+fig, ax = plt.subplots(2, 2, figsize = (18, 10))
+if change == 'Extr':
+    figK, axK = plt.subplots(1, 2, figsize = (10, 5))
 for i,check in enumerate(checks):
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
     path = f'{abspath}/TDE/{folder}/{snap}'
     tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
     data = make_tree(path, snap, energy = True)
     cut = data.Den > 1e-19
-    X, Y, Z, mass, den, Vol, Press, Temp, Diss_den = \
-       sec. make_slices([data.X, data.Y, data.Z, data.Mass, data.Den, data.Vol, data.Press, data.Temp, data.Diss], cut)
-    Ncell = len(data.X)*1e-6
+    X, Y, Z, den, Vol, Diss_den, Temp = \
+       sec. make_slices([data.X, data.Y, data.Z,data.Den, data.Vol, data.Diss, data.Temp], cut)
+    Ncell[i] = len(data.X)
+    print(f'check = {check}, Ncell = {Ncell[i]}')
     dim_cell = Vol**(1/3) 
 
     midplane = np.abs(Z) < dim_cell
-    X_midplane, Y_midplane, Z_midplane, dim_midplane, Mass_midplane, Den_midplane, Press_midplane, Temp_midplane, Diss_den_midplane = \
-    sec.make_slices([X, Y, Z, dim_cell, mass, den, Press, Temp, Diss_den], midplane)
+    X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Diss_den_midplane, Temp_midplane = \
+        sec.make_slices([X, Y, Z, dim_cell, den, Diss_den, Temp], midplane)
+    Ncell_mid[i] = len(X_midplane)
+    Den_midplane_cgs = Den_midplane * prel.Msol_cgs / prel.Rsol_cgs**3 # [g/cm^3]
 
-    idx1_img = i%2
-    idx2_img = i//2
-    img = ax[idx1_img][idx2_img].scatter(X_midplane/apo, Y_midplane/apo, c = Mass_midplane, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e-11, vmax = 1e-8))
-    ax[idx1_img][idx2_img].set_title(f'{check_name[i]}, ' + f't = {str(np.round(tfb,2))} ' + r't$_{\rm fb}$, total $N_{\rm cell} \approx$ ' + str(int(Ncell)) + r'$\cdot 10^6$', fontsize = 20)
-    ax[idx1_img][idx2_img].axhline(2*Rt/apo, c = 'k', ls = '--', alpha = 0.5)
-    ax[idx1_img][idx2_img].axhline(-2*Rt/apo, c = 'k', ls = '--', alpha = 0.5)
-    ax[idx1_img][idx2_img].axvline(2*Rt/apo, c = 'k', ls = '--', alpha = 0.5)
-    ax[idx1_img][idx2_img].axvline(-2*Rt/apo, c = 'k', ls = '--', alpha = 0.5)
-    ax[idx1_img][idx2_img].set_xlim(-.15,.15)
-    ax[idx1_img][idx2_img].set_ylim(-.15, .15)
-    cbar = plt.colorbar(img)
-    cbar.set_label(r'Mass $[M_\odot]$', fontsize = 16)
+    if change == 'Extr':
+        extrapolated_den = np.logical_or(Den_midplane_cgs < minRho_tab, Den_midplane_cgs > maxRho_tab)
+        extrapolated_temp = np.logical_or(Temp_midplane < minT_tab, Temp_midplane > maxT_tab)
+        extrapoalted_all = np.logical_or(extrapolated_den, extrapolated_temp)
+        if check in ['LowRes', '', 'HiRes']:
+            T_cool2, Rho_cool2, rossland2 = first_rich_extrap(T_cool, Rho_cool, rossland, what = 'scattering_limit', slope_length = 5, highT_slope=-3.5)
+        if check in ['QuadraticOpacity', 'QuadraticOpacityNewAMR']:
+            T_cool2, Rho_cool2, rossland2 = linear_rich(T_cool, Rho_cool, rossland, what = 'scattering_limit', highT_slope = 0)
+        sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(Temp_midplane), np.log(Den_midplane_cgs), 'linear', 0)
+        sigma_rossland = np.array(sigma_rossland)[0]
+        sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
+        sigma_rossland_eval[sigma_rossland == 0.0] = 1e-20
+        kappa_mid = sigma_rossland_eval/Den_midplane_cgs # [cm^2/g]
+        tau_mid = sigma_rossland_eval * dim_midplane * prel.Rsol_cgs 
+
+        img = ax[0][i].scatter(X_midplane/apo, Y_midplane/apo, c = tau_mid, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1, vmax = 1e5))
+        cbar = plt.colorbar(img)
+        cbar.set_label(r'$\tau$', fontsize = 20)
+
+        img = ax[1][i].scatter(X_midplane[extrapoalted_all]/apo, Y_midplane[extrapoalted_all]/apo, c = kappa_mid[extrapoalted_all], s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e-1, vmax = 1e2))
+        cbar = plt.colorbar(img)
+        cbar.set_label(r'$\kappa$ [cm$^2$/g] extrapolated cells', fontsize = 20)
+        ax[1][i].text(-1.45, 0.4, r'median $\rho$ = ' + f'{np.median(Den_midplane_cgs[extrapoalted_all]):.2e} g/cm$^3$, median T = {np.median(Temp_midplane[extrapoalted_all]):.2e} ', fontsize = 18)
+
+        img = axK[i].scatter(Den_midplane_cgs[extrapoalted_all], Temp_midplane[extrapoalted_all], s = 1, c = kappa_mid[extrapoalted_all], cmap = 'turbo', norm = colors.LogNorm(vmin = 1e-1, vmax = 1e2))
+        cbar = plt.colorbar(img)
+        cbar.set_label(r'$\kappa$ [cm$^2$/g]', fontsize = 20)
+        axK[i].axvline(minRho_tab, color = 'k', linestyle = '--')
+        axK[i].axvline(maxRho_tab, color = 'k', linestyle = '--')
+        axK[i].axhline(minT_tab, color = 'k', linestyle = '--')
+        axK[i].axhline(maxT_tab, color = 'k', linestyle = '--')
+        axK[i].set_xscale('log')
+        axK[i].set_yscale('log')
+        axK[i].set_xlabel(r'$\rho$ [g/cm$^3$]', fontsize = 18)
+        axK[0].set_ylabel(r'T [K]', fontsize = 18)
+
+    if change == 'AMR':
+        img = ax[0][i].scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane_cgs, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e-11, vmax = 1e-5))
+        cbar = plt.colorbar(img)
+        cbar.set_label(r'$\rho$ [g/cm$^3]$', fontsize = 20)
+
+        img = ax[1][i].scatter(X_midplane/apo, Y_midplane/apo, c = np.abs(Diss_den_midplane)*prel.en_den_converter/prel.tsol_cgs, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e-5, vmax = 1e7))
+        cbar = plt.colorbar(img)
+        cbar.set_label(r'$|\dot{u_{\rm diss}}|$ [g/cm$^3s]$', fontsize = 20)
+    
+    ax[0][i].set_title(f'{check_name[i]} run', fontsize = 20)
     
 for i in range(2):
+    for j in range(2):  
+        ax[i][j].set_xlim(-1.5,.1)
+        ax[i][j].set_ylim(-.5, .5)
+    ax[1][i].set_xlabel(r'X [$R_{\rm a}$]', fontsize = 18)
     ax[i][0].set_ylabel(r'Y [$R_{\rm a}$]', fontsize = 18)
-for j in range(2):
-    ax[1][j].set_xlabel(r'X [$R_{\rm a}$]', fontsize = 18)
 
-plt.tight_layout()
-plt.savefig(f'{abspath}/Figs/multiple/TestOpacMass{snap}.png', dpi = 100, bbox_inches = 'tight')
+fig.suptitle(f't = {np.round(tfb,2)}' + r't$_{\rm fb}, N_{\rm cell, left}/N_{\rm cell, right}=$' + f'{np.round(Ncell[0]/Ncell[1], 2)}, on midplane: {np.round(Ncell_mid[0]/Ncell_mid[1], 2)}', fontsize = 20)
+fig.tight_layout()
+# fig.savefig(f'{abspath}/Figs/Test/Test{change}{snap}.png', dpi = 100, bbox_inches = 'tight')
+if change == 'Extr':
+    figK.suptitle('Extrapolated cells', fontsize = 20)
+    figK.tight_layout()
+    # figK.savefig(f'{abspath}/Figs/Test/TestKextrap{snap}.png', dpi = 100, bbox_inches = 'tight')
+
+# %%

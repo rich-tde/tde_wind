@@ -8,17 +8,21 @@ Created on Tue Nov 26 15:12:06 2024
 import numpy as np
 plot = True
 
-def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 5, extrarowsx = 101, 
-                 extrarowsy = 100, highT_slope = -3.5):
+def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 5, highT_slope = -3.5, extrarowsx = 101, 
+                 extrarowsy = 100):
     ''' 
-    Extra/Interpolation as in the first runs of RICH, where the slope was given by the last and 5th point.
+    Extra/Interpolation as in the first runs of RICH, where the slope was given by the last and 5th point (slope_length value).
+    This code was used for the first light curves.
     Look at:
     - https://gitlab.com/eladtan/RICH/-/blob/master/source/misc/utils.cpp 
-    x: array of log10(T)
-    y: array of log10(rho)
-    K: array of log10(kappa) [1/cm]
+    x: array of ln(T)
+    y: array of ln(rho)
+    K: array of ln(kappa) [1/cm]
     what, str: either scattering_limit or ''.
-               if scattering, brings to opacity always above thomson
+               if scattering_limit, brings to opacity always above thomson. It has to be applied for rosseland.
+    slope_length, int: position of the other point used for the slope.
+    highT_slope, float: slope for high temperature extrapolation.
+    extrarowsx/extrarowsy, int: number of rows/columns to extrapolate.
     
     '''
     X = 0.9082339738214822 # From table prescription
@@ -111,13 +115,13 @@ def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 5, extr
                 else:
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kn[ix][iy] = K[ix_inK, iy_inK]
-    if plot:
-        fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-        ax.scatter(np.log10(np.exp(rho_ext)), slope_rho, c = 'r', s = 2)
-        ax.set_xlabel(r'$\ln(\rho)$')
-        ax.set_ylabel(r'slope $\ln\kappa(\ln\rho)$')
-        ax.set_xlim(-19, -10)
-        plt.show()
+    # if plot:
+    #     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    #     ax.scatter(np.log10(np.exp(rho_ext)), slope_rho, c = 'r', s = 2)
+    #     ax.set_xlabel(r'$\ln(\rho)$')
+    #     ax.set_ylabel(r'slope $\ln\kappa(\ln\rho)$')
+    #     ax.set_xlim(-19, -10)
+    #     plt.show()
 
     return xn, yn, Kn
 
@@ -129,11 +133,14 @@ def linear_rich(x, y, K, highT_slope, what = 'scattering_limit', extrarowsx = 10
     Look at:
     - https://gitlab.com/eladtan/RICH/-/blob/master/source/misc/utils.cpp 
     - CalcDiffusionCoefficient, which gives you the inverse of Rosseland in https://gitlab.com/eladtan/RICH/-/blob/master/source/Radiation/STAgreyOpacity.cpp 
-    x: array of log10(T)
-    y: array of log10(rho)
-    K: array of log10(kappa) [1/cm]
+    x: array of ln(T)
+    y: array of ln(rho)
+    K: array of ln(kappa) [1/cm]
     what, str: either scattering_limit or ''.
-               if scattering, brings to opacity always above thomson
+               if scattering_limit, brings to opacity always above thomson. It has to be applied for rosseland.
+    slope_length, int: position of the other point used for the slope.
+    highT_slope, float: slope for high temperature extrapolation.
+    extrarowsx/extrarowsy, int: number of rows/columns to extrapolate.
     
     '''
     
@@ -204,9 +211,9 @@ def linear_rich(x, y, K, highT_slope, what = 'scattering_limit', extrarowsx = 10
 #     Extra/Interpolation as in the first runs of RICH, where the slope was given by the last and 5th point.
 #     Look at:
 #     - https://gitlab.com/eladtan/RICH/-/blob/master/source/misc/utils.cpp 
-#     x: array of log10(T)
-#     y: array of log10(rho)
-#     K: array of log10(kappa) [1/cm]
+#     x: array of ln(T)
+#     y: array of ln(rho)
+#     K: array of ln(kappa) [1/cm]
 #     what, str: either scattering_limit or ''.
 #                if scattering, brings to opacity always above thomson
     
@@ -313,7 +320,9 @@ if __name__ == '__main__':
     ross_rho_tab = np.array(ross_rho_tab)
     planck_plot_tab = np.exp(planck_tab)
     scatt = 0.2*(1+0.7381) * Rho_plot_tab #1/cm
-
+    #%%
+    print(np.min(ross_plot_tab))
+    #%%
     # check slopes from table
     den_exp_ross_Elad = np.zeros(len(T_plot_tab))
     den_exp_planck_Elad = np.zeros(len(T_plot_tab))

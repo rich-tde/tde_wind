@@ -22,7 +22,7 @@ import scipy.integrate as sci
 from scipy.interpolate import griddata
 import matlab.engine
 from sklearn.neighbors import KDTree
-from src.Opacity.linextrapolator import linear_rich
+from src.Opacity.linextrapolator import first_rich_extrap, linear_rich
 from scipy.ndimage import uniform_filter1d
 
 import Utilities.prelude as prel
@@ -39,7 +39,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'QuadraticOpacity' # 
+check = '' # 
 
 ## Snapshots stuff
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -52,7 +52,11 @@ opac_path = f'{abspath}/src/Opacity'
 T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
-T_cool2, Rho_cool2, rossland2 = linear_rich(T_cool, Rho_cool, rossland, what = 'scattering_limit', highT_slope = 0)
+if check in ['LowRes', '', 'HiRes']:
+    T_cool2, Rho_cool2, rossland2 = first_rich_extrap(T_cool, Rho_cool, rossland, what = 'scattering_limit', slope_length = 5, highT_slope=-3.5)
+if check in ['QuadraticOpacity', 'QuadraticOpacityNewAMR']:
+    T_cool2, Rho_cool2, rossland2 = linear_rich(T_cool, Rho_cool, rossland, what = 'scattering_limit', highT_slope = 0)
+        
 N_ray = 5_000
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
