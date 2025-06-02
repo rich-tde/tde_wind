@@ -55,12 +55,12 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
     X = np.load(f'{path}/CMx_{snap}.npy')
     Y = np.load(f'{path}/CMy_{snap}.npy')
     Z = np.load(f'{path}/CMz_{snap}.npy')
+    Den = np.load(f'{path}/Den_{snap}.npy')
     if what_to_grid == 'Diss':
         to_grid = np.load(f'{path}/Diss_{snap}.npy')
     if what_to_grid == 'Den':
-        to_grid = np.load(f'{path}/Den_{snap}.npy')
+        to_grid = Den
     if what_to_grid == 'tau_scatt':
-        Den = np.load(f'{path}/Den_{snap}.npy')
         kappa_scatt = 0.34 / (prel.Rsol_cgs**2/prel.Msol_cgs) # it's 0.34cm^2/g, you want it in code units
         to_grid = kappa_scatt * Den
     if what_to_grid == 'tau_ross':
@@ -72,7 +72,6 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
         rossland = np.loadtxt(f'{opac_path}/ross.txt')
         T_cool2, Rho_cool2, rossland2 = linear_rich(T_cool, Rho_cool, rossland, what = 'scattering', highT_slope=0)
-        Den = np.load(f'{path}/Den_{snap}.npy')
         Temp = np.load(f'{path}/T_{snap}.npy')
         sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(Temp), np.log(Den), 'linear', 0)
         sigma_rossland = np.array(sigma_rossland)[0]
@@ -133,7 +132,6 @@ if __name__ == '__main__':
     save_fig = False
 
     Rt = Rstar * (Mbh/mstar)**(1/3)
-    xcrt, ycrt, crt = make_cfr(Rt)
     apo = orb.apocentre(Rstar, mstar, Mbh, beta)    
     if m== 6:
         folder = f'R{Rstar}M{mstar}BH1e+0{m}beta{beta}S60n{n}{compton}{check}'
