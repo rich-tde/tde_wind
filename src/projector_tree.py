@@ -1,6 +1,6 @@
 
 """ 
-Column density.
+Column density/dissipation density rate.
 If alice: project density/dissipation on XY plane and save data.
 Else: plot the projection.
 """
@@ -16,25 +16,18 @@ if alice:
 else:
     prepath = '/Users/paolamartire/shocks/'
     compute = False
+    import matplotlib.pyplot as plt
+    import matplotlib.colors as colors
+    from src.orbits import make_cfr
 
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
 import numba
 # from scipy.spatial import KDTree
 from sklearn.neighbors import KDTree
 from Utilities.selectors_for_snap import select_snap
-from src.orbits import make_cfr
 from Utilities.sections import make_slices
 import Utilities.prelude as prel
 from src import orbits as orb
-
-
-##
-# PARAMETERS
-##
-save_fig = False
-what_to_grid = 'tau_ross' # Den or Diss or both
 
 #
 ## FUNCTIONS
@@ -48,10 +41,10 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
     apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
     x_start = -1.2*apo #-7*apo
-    x_stop = apo #2.5*apo
+    x_stop = 0.2*apo #2.5*apo
     xs = np.linspace(x_start, x_stop, num = x_num )
-    y_start = - apo #-4*apo 
-    y_stop = apo  #3*apo
+    y_start = - 0.5*apo #-4*apo 
+    y_stop = 0.5*apo  #3*apo
     ys = np.linspace(y_start, y_stop, num = y_num)
     z_start = -2*Rt #-2*apo 
     z_stop = 2*Rt #2*apo 
@@ -62,17 +55,24 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
     X = np.load(f'{path}/CMx_{snap}.npy')
     Y = np.load(f'{path}/CMy_{snap}.npy')
     Z = np.load(f'{path}/CMz_{snap}.npy')
-    Den = np.load(f'{path}/Den_{snap}.npy')
     if what_to_grid == 'Diss':
         to_grid = np.load(f'{path}/Diss_{snap}.npy')
     if what_to_grid == 'Den':
-        to_grid = Den
-    if what_to_grid == 'both':
-        to_grid = np.load(f'{path}/Diss_{snap}.npy') 
+        to_grid = np.load(f'{path}/Den_{snap}.npy')
     if what_to_grid == 'tau_scatt':
+        Den = np.load(f'{path}/Den_{snap}.npy')
         kappa_scatt = 0.34 / (prel.Rsol_cgs**2/prel.Msol_cgs) # it's 0.34cm^2/g, you want it in code units
         to_grid = kappa_scatt * Den
     if what_to_grid == 'tau_ross':
+        import matlab.engine
+        from src.Opacity.linextrapolator import linear_rich
+        eng = matlab.engine.start_matlab()
+        opac_path = f'{prepath}/src/Opacity'
+        T_cool = np.loadtxt(f'{opac_path}/T.txt')
+        Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
+        rossland = np.loadtxt(f'{opac_path}/ross.txt')
+        T_cool2, Rho_cool2, rossland2 = linear_rich(T_cool, Rho_cool, rossland, what = 'scattering', highT_slope=0)
+        Den = np.load(f'{path}/Den_{snap}.npy')
         Temp = np.load(f'{path}/T_{snap}.npy')
         sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(Temp), np.log(Den), 'linear', 0)
         sigma_rossland = np.array(sigma_rossland)[0]
@@ -84,13 +84,12 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
     cutden = Den > 1e-19
     x_cut, y_cut, z_cut, to_grid_cut, Den_cut = \
         make_slices([X, Y, Z, to_grid, Den], cutden)
+    del X, Y, Z, to_grid, Den
+    # make the tree
     points_tree = np.array([x_cut, y_cut, z_cut]).T
     sim_tree = KDTree(points_tree)
-
     gridded_indexes =  np.zeros(( len(xs), len(ys), len(zs) ))
     gridded =  np.zeros(( len(xs), len(ys), len(zs) ))
-    if what_to_grid == 'both':
-        gridded_den =  np.zeros(( len(xs), len(ys), len(zs) ))
     for i in range(len(xs)):
         for j in range(len(ys)):
             for k in range(len(zs)):
@@ -105,12 +104,8 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
                 if gridded_value <= 0: #anyway it just happens for Diss
                     gridded_value = 1e-20
                 gridded[i, j, k] = gridded_value
-                if what_to_grid == 'both':
-                    gridded_den[i, j, k] = Den_cut[idx]
-    if what_to_grid == 'both':
-        return gridded_indexes, gridded_den, gridded, xs, ys, zs
-    else:
-        return gridded_indexes, gridded, xs, ys, zs
+    del to_grid_cut, Den_cut, x_cut, y_cut, z_cut, points_tree 
+    return gridded_indexes, gridded, xs, ys, zs
 
 @numba.njit
 def projector(gridded_den, x_radii, y_radii, z_radii):
@@ -126,28 +121,20 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
     return flat_den
  
 if __name__ == '__main__':    
-    if what_to_grid == 'tau_ross':
-        import matlab.engine
-        from src.Opacity.linextrapolator import nouveau_rich
-        eng = matlab.engine.start_matlab()
-        opac_path = f'{prepath}/src/Opacity'
-        T_cool = np.loadtxt(f'{opac_path}/T.txt')
-        Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
-        rossland = np.loadtxt(f'{opac_path}/ross.txt')
-        T_cool2, Rho_cool2, rossland2 = nouveau_rich(T_cool, Rho_cool, rossland, what = 'scattering', slope_length = 5)
-    
     m = 4
     Mbh = 10**m
     beta = 1
     mstar = .5
     Rstar = .47
     n = 1.5
-    Rt = Rstar * (Mbh/mstar)**(1/3)
-    xcrt, ycrt, crt = make_cfr(Rt)
-    apocenter = orb.apocentre(Rstar, mstar, Mbh, beta)
     check = ''
     compton = 'Compton'
-    apo = orb.apocentre(Rstar, mstar, Mbh, beta)
+    what_to_grid = 'Den'
+    save_fig = False
+
+    Rt = Rstar * (Mbh/mstar)**(1/3)
+    xcrt, ycrt, crt = make_cfr(Rt)
+    apo = orb.apocentre(Rstar, mstar, Mbh, beta)    
     if m== 6:
         folder = f'R{Rstar}M{mstar}BH1e+0{m}beta{beta}S60n{n}{compton}{check}'
     else:
@@ -158,12 +145,12 @@ if __name__ == '__main__':
         t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
 
         snaps = np.array(snaps)
-        idx_chosen = np.array([np.argmin(np.abs(snaps-100)),
-                               np.argmin(np.abs(snaps-237)),
-                               np.argmin(np.abs(snaps-348))])
-        snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
+        # idx_chosen = np.array([np.argmin(np.abs(snaps-100)),
+        #                        np.argmin(np.abs(snaps-237)),
+        #                        np.argmin(np.abs(snaps-348))])
+        # snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
         
-        with open(f'{prepath}/data/{folder}/projection/big{what_to_grid}time_proj.txt', 'a') as f:
+        with open(f'{prepath}/data/{folder}/projection/{what_to_grid}time_proj.txt', 'a') as f:
             f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
             f.write(f'# t/t_fb (t_fb = {t_fall})\n' + ' '.join(map(str, tfb)) + '\n')
             f.close()
@@ -175,19 +162,12 @@ if __name__ == '__main__':
             else:
                 path = f'{prepath}/TDE/{folder}/{snap}'
             
-            if what_to_grid == 'both':
-                _, grid_den, grid_diss, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100)
-                flat_diss = projector(grid_diss, x_radii, y_radii, z_radii)
-                flat_den = projector(grid_den, x_radii, y_radii, z_radii)
-                np.save(f'{prepath}/data/{folder}/projection/Denproj{snap}.npy', flat_den)
-                np.save(f'{prepath}/data/{folder}/projection/Dissproj{snap}.npy', flat_diss)    
-            else:
-                _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100)
-                flat_q = projector(grid_q, x_radii, y_radii, z_radii)
-                np.save(f'{prepath}/data/{folder}/projection/big{what_to_grid}proj{snap}.npy', flat_q)
+            _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100)
+            flat_q = projector(grid_q, x_radii, y_radii, z_radii)
+            np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}proj{snap}.npy', flat_q)
                 
-        np.save(f'{prepath}/data/{folder}/projection/big{what_to_grid}xarray.npy', x_radii)
-        np.save(f'{prepath}/data/{folder}/projection/big{what_to_grid}yarray.npy', y_radii)
+        np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}xarray.npy', x_radii)
+        np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}yarray.npy', y_radii)
 
     else:
         import src.orbits as orb
@@ -245,7 +225,7 @@ if __name__ == '__main__':
             ax[0].text(-1.1, 0.25, f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$', color = 'k', fontsize = 20)
             # ax[0].text(-0.25, 0.25, f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$', color = 'k', fontsize = 20)
             if save_fig:
-                plt.save_figfig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/{what_to_grid}proj{snap}.png')
+                plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/{what_to_grid}proj{snap}.png')
             plt.show()
 
             plt.figure(figsize = (14,7))
