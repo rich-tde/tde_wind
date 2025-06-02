@@ -65,13 +65,17 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         to_grid = kappa_scatt * Den
     if what_to_grid == 'tau_ross':
         import matlab.engine
-        from src.Opacity.linextrapolator import linear_rich
         eng = matlab.engine.start_matlab()
         opac_path = f'{prepath}/src/Opacity'
         T_cool = np.loadtxt(f'{opac_path}/T.txt')
         Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
         rossland = np.loadtxt(f'{opac_path}/ross.txt')
-        T_cool2, Rho_cool2, rossland2 = linear_rich(T_cool, Rho_cool, rossland, what = 'scattering', highT_slope=0)
+        if check in ['LowRes', '', 'HiRes']:
+            from src.Opacity.linextrapolator import first_rich_extrap
+            T_cool2, Rho_cool2, rossland2 = first_rich_extrap(T_cool, Rho_cool, rossland, what = 'scattering_limit', slope_length = 5, highT_slope=-3.5)
+        if check in ['QuadraticOpacity', 'QuadraticOpacityNewAMR']:
+            from src.Opacity.linextrapolator import linear_rich
+            T_cool2, Rho_cool2, rossland2 = linear_rich(T_cool, Rho_cool, rossland, what = 'scattering_limit', highT_slope = 0)
         Temp = np.load(f'{path}/T_{snap}.npy')
         sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(Temp), np.log(Den), 'linear', 0)
         sigma_rossland = np.array(sigma_rossland)[0]
@@ -104,6 +108,7 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
                     gridded_value = 1e-20
                 gridded[i, j, k] = gridded_value
     del to_grid_cut, Den_cut, x_cut, y_cut, z_cut, points_tree 
+
     return gridded_indexes, gridded, xs, ys, zs
 
 @numba.njit
@@ -148,7 +153,7 @@ if __name__ == '__main__':
         #                        np.argmin(np.abs(snaps-348))])
         # snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
         
-        with open(f'{prepath}/data/{folder}/projection/{what_to_grid}time_proj.txt', 'a') as f:
+        with open(f'{prepath}/data/{folder}/projection/{what_to_grid}time_proj.txt', 'w') as f:
             f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
             f.write(f'# t/t_fb (t_fb = {t_fall})\n' + ' '.join(map(str, tfb)) + '\n')
             f.close()
