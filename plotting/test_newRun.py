@@ -51,7 +51,7 @@ compton = 'Compton'
 section = False
 change = 'Extr'
 if change == 'Extr':
-    snap = 164 # 164 or 267 
+    snap = 267 # 164 or 267 
     eng = matlab.engine.start_matlab()
     checks = ['', 'QuadraticOpacity']
     check_name = ['Old','NewExtr+OldAMR']
@@ -117,10 +117,11 @@ if not section:
         alpha_rosseland_eval = np.exp(alpha_rosseland) # [1/cm]
         alpha_rosseland_eval[alpha_rosseland == 0.0] = 1e-20
         kappa = alpha_rosseland_eval/den_cgs # [cm^2/g]
-        # weighted_kappa = np.sum(kappa * 1/alpha_rosseland_eval) / np.sum(1/alpha_rosseland_eval) # [cm^2/g]
+        weighted_kappa = np.sum(kappa * 1/alpha_rosseland_eval) / np.sum(1/alpha_rosseland_eval) # [cm^2/g]
+        kappa_E = 1/np.mean(1/kappa)
         weights = 1 / alpha_rosseland_eval
-        weighted_kappa = weighted_median(kappa, weights)
-        print(f'check = {check_name[i]}, median kappa = {np.median(kappa)} cm^2/g, weighted kappa = {weighted_kappa} cm^2/g')
+        # weighted_kappa = weighted_median(kappa, weights)
+        print(f'check = {check_name[i]}, median kappa = {np.median(kappa)} cm^2/g, weighted kappa = {weighted_kappa} cm^2/g, kappa_Elena = {kappa_E} cm^2/g')
         
         log_den_cgs = np.log10(den_cgs) # [g/cm^3]
         log_T = np.log10(Temp_cgs) # [K]

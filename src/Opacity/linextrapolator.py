@@ -6,9 +6,9 @@ Created on Tue Nov 26 15:12:06 2024
 @author: konstantinos
 """
 import numpy as np
-plot = True
+import Utilities.prelude as prel
 
-def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 5, highT_slope = 0, extrarowsx = 101, 
+def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 7, highT_slope = 0, extrarowsx = 101, 
                  extrarowsy = 100):
     ''' 
     Extra/Interpolation as in the first runs of RICH, where the slope was given by the last and 5th point (slope_length value).
@@ -45,8 +45,8 @@ def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 5, high
     yn = np.concatenate([y_extra_low[::-1], y, y_extra_high])
     
     Kn = np.zeros((len(xn), len(yn)))
-    rho_ext_Ld, slope_rho_Ld, Temp_ext_Ld = [], [], []
-    rho_ext_Hd, slope_rho_Hd, Temp_ext_Hd = [], [], []
+    # rho_ext_Ld, slope_rho_Ld, Temp_ext_Ld = [], [], []
+    # rho_ext_Hd, slope_rho_Hd, Temp_ext_Hd = [], [], []
     for ix, xsel in enumerate(xn):
         for iy, ysel in enumerate(yn):
             if xsel < x[0]: # Too cold
@@ -58,6 +58,12 @@ def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 5, high
                     # rho_ext.append(ysel)
                     # slope_rho.append(Kyslope)
                     Kn[ix][iy] = K[0, 0] + Kxslope * (xsel - x[0]) + Kyslope * (ysel - y[0])
+                
+                    if what == 'scattering_limit':
+                        thomson_this_den = np.log(thomson * np.exp(ysel)) # 1/cm
+                        if Kn[ix][iy] < thomson_this_den:
+                            Kn[ix][iy] = thomson_this_den
+
                 elif ysel > y[-1]: # Too dense
                     deltay = y[-1] - y[-slope_length] 
                     Kxslope = (K[slope_length - 1, -1] - K[0, -1]) / deltax
@@ -101,56 +107,61 @@ def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 5, high
                 if ysel < y[0]: # Too rarefied, Temperature is inside table
                     deltay = y[slope_length - 1] - y[0]
                     Kyslope = (K[ix_inK, slope_length - 1] - K[ix_inK, 0]) / deltay
-                    rho_ext_Ld.append(ysel)
-                    slope_rho_Ld.append(Kyslope)
-                    Temp_ext_Ld.append(np.exp(xsel))
+                    # rho_ext_Ld.append(ysel)
+                    # slope_rho_Ld.append(Kyslope)
+                    # Temp_ext_Ld.append(np.exp(xsel))
                     Kn[ix][iy] = K[ix_inK, 0] + Kyslope * (ysel - y[0])
+
+                    if what == 'scattering_limit':
+                        thomson_this_den = np.log(thomson * np.exp(ysel)) # 1/cm
+                        if Kn[ix][iy] < thomson_this_den:
+                            Kn[ix][iy] = thomson_this_den
                     
                 elif ysel > y[-1]:  # Too dense, Temperature is inside table
                     deltay = y[-1] - y[-slope_length]
                     Kyslope = (K[ix_inK, -1] - K[ix_inK, -slope_length]) / deltay
-                    rho_ext_Hd.append(ysel)
-                    slope_rho_Hd.append(Kyslope)
-                    Temp_ext_Hd.append(np.exp(xsel))
+                    # rho_ext_Hd.append(ysel)
+                    # slope_rho_Hd.append(Kyslope)
+                    # Temp_ext_Hd.append(np.exp(xsel))
                     Kn[ix][iy] = K[ix_inK, -1] + Kyslope * (ysel - y[-1])
 
                 else:
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kn[ix][iy] = K[ix_inK, iy_inK]
 
-    if __name__ == '__main__':
-        fig1, ax1 = plt.subplots(1, 1, figsize=(6, 6))
-        fig2, ax2 = plt.subplots(1, 1, figsize=(6, 6))
-        ax1.scatter(np.log10(np.exp(rho_ext_Ld)), slope_rho_Ld, s = 2, c = Temp_ext_Ld,
-                   cmap = 'rainbow', norm = LogNorm(vmin = 6e3, vmax = 6e7))
-        cbar = plt.colorbar(ax1.collections[0])
-        cbar.set_label('T [K]')
-        ax2.scatter(np.log10(np.exp(rho_ext_Hd)), slope_rho_Hd, s = 2, c = Temp_ext_Hd,
-                   cmap = 'rainbow', norm = LogNorm(vmin = 6e3, vmax = 6e7))
-        cbar = plt.colorbar(ax2.collections[0])
-        cbar.set_label('T [K]')
-        for ax in [ax1, ax2]:
-            ax.set_xlabel(r'$\log_{10}(\rho)$')
-            ax.set_ylabel(r'$\frac{\ln\kappa_5-\ln\kappa_0}{\ln\rho_5-\ln\rho_0}$')
-            bigticks = np.arange(-19, 14, 2)
-            middle_ticks = (bigticks[:-1] + bigticks[1:]) / 2
-            ticks = np.concatenate([bigticks, middle_ticks])
-            labels = [f'{int(tick)}' if tick in bigticks else "" for tick in ticks]
-            ax.set_xticks(ticks)
-            ax.set_xticklabels(labels)
-            # y
-            bigticks = np.arange(.5, 3, .5)
-            middle_ticks = (bigticks[:-1] + bigticks[1:]) / 2
-            ticks = np.concatenate([bigticks, middle_ticks])
-            labels = [f'{tick}' if tick in bigticks else "" for tick in ticks]
-            ax.set_yticks(ticks)
-            ax.set_yticklabels(labels)
-            ax.grid()
-        ax1.set_ylim(0.8, 2.8)
-        ax2.set_ylim(0.8, 1.8)
-        ax1.set_xlim(-19, -10)
-        ax2.set_xlim(1.9, 12)
-        plt.show()
+    # if __name__ == '__main__':
+    #     fig1, ax1 = plt.subplots(1, 1, figsize=(6, 6))
+    #     fig2, ax2 = plt.subplots(1, 1, figsize=(6, 6))
+    #     ax1.scatter(np.log10(np.exp(rho_ext_Ld)), slope_rho_Ld, s = 2, c = Temp_ext_Ld,
+    #                cmap = 'rainbow', norm = LogNorm(vmin = 6e3, vmax = 6e7))
+    #     cbar = plt.colorbar(ax1.collections[0])
+    #     cbar.set_label('T [K]')
+    #     ax2.scatter(np.log10(np.exp(rho_ext_Hd)), slope_rho_Hd, s = 2, c = Temp_ext_Hd,
+    #                cmap = 'rainbow', norm = LogNorm(vmin = 6e3, vmax = 6e7))
+    #     cbar = plt.colorbar(ax2.collections[0])
+    #     cbar.set_label('T [K]')
+    #     for ax in [ax1, ax2]:
+    #         ax.set_xlabel(r'$\log_{10}(\rho)$')
+    #         ax.set_ylabel(r'$\frac{\ln\kappa_5-\ln\kappa_0}{\ln\rho_5-\ln\rho_0}$')
+    #         bigticks = np.arange(-19, 14, 2)
+    #         middle_ticks = (bigticks[:-1] + bigticks[1:]) / 2
+    #         ticks = np.concatenate([bigticks, middle_ticks])
+    #         labels = [f'{int(tick)}' if tick in bigticks else "" for tick in ticks]
+    #         ax.set_xticks(ticks)
+    #         ax.set_xticklabels(labels)
+    #         # y
+    #         bigticks = np.arange(.5, 3, .5)
+    #         middle_ticks = (bigticks[:-1] + bigticks[1:]) / 2
+    #         ticks = np.concatenate([bigticks, middle_ticks])
+    #         labels = [f'{tick}' if tick in bigticks else "" for tick in ticks]
+    #         ax.set_yticks(ticks)
+    #         ax.set_yticklabels(labels)
+    #         ax.grid()
+    #     ax1.set_ylim(0.8, 2.8)
+    #     ax2.set_ylim(0.8, 1.8)
+    #     ax1.set_xlim(-19, -10)
+    #     ax2.set_xlim(1.9, 12)
+    #     plt.show()
 
     return xn, yn, Kn
 
