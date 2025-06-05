@@ -9,6 +9,7 @@ import sys
 sys.path.append('/Users/paolamartire/shocks')
 
 # Constants
+m_p_cgs = 1.6726219e-24 # [g] proton mass
 c_cgs = 2.99792458e10 #[cm/s]
 h_cgs = 6.62607015e-27 #[gcm^2/s]
 Kb_cgs = 1.380649e-16 #[gcm^2/s^2K]
@@ -35,6 +36,7 @@ csol_cgs = c_cgs / (Rsol_cgs/tsol_cgs) # c in code units
 den_converter = Msol_cgs / Rsol_cgs**3
 en_den_converter = Msol_cgs / (Rsol_cgs  * tsol_cgs**2 ) # Energy Density converter
 en_converter = Msol_cgs * Rsol_cgs**2 / tsol_cgs**2 # Energy converter
+m_p_sol = m_p_cgs / Msol_cgs # [g] proton mass in code units
 
 # Healpy
 import healpy as hp

@@ -126,7 +126,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'QuadraticOpacity'
+check = 'LowResNewAMR'
 if m == 6:
     folder = f'R{Rstar}M{mstar}BH1e+0{m}beta{beta}S60n{n}{compton}{check}'
 else: 

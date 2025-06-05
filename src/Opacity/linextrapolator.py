@@ -8,7 +8,7 @@ Created on Tue Nov 26 15:12:06 2024
 import numpy as np
 plot = True
 
-def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 5, highT_slope = -3.5, extrarowsx = 101, 
+def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 5, highT_slope = 0, extrarowsx = 101, 
                  extrarowsy = 100):
     ''' 
     Extra/Interpolation as in the first runs of RICH, where the slope was given by the last and 5th point (slope_length value).
@@ -25,8 +25,7 @@ def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 5, high
     extrarowsx/extrarowsy, int: number of rows/columns to extrapolate.
     
     '''
-    X = 0.9082339738214822 # From table prescription
-    thomson = 0.2 * (1 + X)
+    thomson = 0.2 * (1 + prel.X_nf)
     
     # Extend x and y, adding data equally space (this suppose x,y as array equally spaced)
     # Low extrapolation
@@ -46,7 +45,8 @@ def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 5, high
     yn = np.concatenate([y_extra_low[::-1], y, y_extra_high])
     
     Kn = np.zeros((len(xn), len(yn)))
-    rho_ext, slope_rho = [], []
+    rho_ext_Ld, slope_rho_Ld, Temp_ext_Ld = [], [], []
+    rho_ext_Hd, slope_rho_Hd, Temp_ext_Hd = [], [], []
     for ix, xsel in enumerate(xn):
         for iy, ysel in enumerate(yn):
             if xsel < x[0]: # Too cold
@@ -101,33 +101,62 @@ def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 5, high
                 if ysel < y[0]: # Too rarefied, Temperature is inside table
                     deltay = y[slope_length - 1] - y[0]
                     Kyslope = (K[ix_inK, slope_length - 1] - K[ix_inK, 0]) / deltay
-                    rho_ext.append(ysel)
-                    slope_rho.append(Kyslope)
+                    rho_ext_Ld.append(ysel)
+                    slope_rho_Ld.append(Kyslope)
+                    Temp_ext_Ld.append(np.exp(xsel))
                     Kn[ix][iy] = K[ix_inK, 0] + Kyslope * (ysel - y[0])
                     
                 elif ysel > y[-1]:  # Too dense, Temperature is inside table
                     deltay = y[-1] - y[-slope_length]
                     Kyslope = (K[ix_inK, -1] - K[ix_inK, -slope_length]) / deltay
-                    # rho_ext.append(ysel)
-                    # slope_rho.append(Kyslope)
+                    rho_ext_Hd.append(ysel)
+                    slope_rho_Hd.append(Kyslope)
+                    Temp_ext_Hd.append(np.exp(xsel))
                     Kn[ix][iy] = K[ix_inK, -1] + Kyslope * (ysel - y[-1])
 
                 else:
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kn[ix][iy] = K[ix_inK, iy_inK]
-    # if plot:
-    #     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-    #     ax.scatter(np.log10(np.exp(rho_ext)), slope_rho, c = 'r', s = 2)
-    #     ax.set_xlabel(r'$\ln(\rho)$')
-    #     ax.set_ylabel(r'slope $\ln\kappa(\ln\rho)$')
-    #     ax.set_xlim(-19, -10)
-    #     plt.show()
+
+    if __name__ == '__main__':
+        fig1, ax1 = plt.subplots(1, 1, figsize=(6, 6))
+        fig2, ax2 = plt.subplots(1, 1, figsize=(6, 6))
+        ax1.scatter(np.log10(np.exp(rho_ext_Ld)), slope_rho_Ld, s = 2, c = Temp_ext_Ld,
+                   cmap = 'rainbow', norm = LogNorm(vmin = 6e3, vmax = 6e7))
+        cbar = plt.colorbar(ax1.collections[0])
+        cbar.set_label('T [K]')
+        ax2.scatter(np.log10(np.exp(rho_ext_Hd)), slope_rho_Hd, s = 2, c = Temp_ext_Hd,
+                   cmap = 'rainbow', norm = LogNorm(vmin = 6e3, vmax = 6e7))
+        cbar = plt.colorbar(ax2.collections[0])
+        cbar.set_label('T [K]')
+        for ax in [ax1, ax2]:
+            ax.set_xlabel(r'$\log_{10}(\rho)$')
+            ax.set_ylabel(r'$\frac{\ln\kappa_5-\ln\kappa_0}{\ln\rho_5-\ln\rho_0}$')
+            bigticks = np.arange(-19, 14, 2)
+            middle_ticks = (bigticks[:-1] + bigticks[1:]) / 2
+            ticks = np.concatenate([bigticks, middle_ticks])
+            labels = [f'{int(tick)}' if tick in bigticks else "" for tick in ticks]
+            ax.set_xticks(ticks)
+            ax.set_xticklabels(labels)
+            # y
+            bigticks = np.arange(.5, 3, .5)
+            middle_ticks = (bigticks[:-1] + bigticks[1:]) / 2
+            ticks = np.concatenate([bigticks, middle_ticks])
+            labels = [f'{tick}' if tick in bigticks else "" for tick in ticks]
+            ax.set_yticks(ticks)
+            ax.set_yticklabels(labels)
+            ax.grid()
+        ax1.set_ylim(0.8, 2.8)
+        ax2.set_ylim(0.8, 1.8)
+        ax1.set_xlim(-19, -10)
+        ax2.set_xlim(1.9, 12)
+        plt.show()
 
     return xn, yn, Kn
 
 
-def linear_rich(x, y, K, highT_slope, what = 'scattering_limit', extrarowsx = 101, 
-                 extrarowsy = 100):
+def linear_rich(x, y, K, what = 'scattering_limit', extrarowsx = 101, 
+                 extrarowsy = 100, highT_slope = 0):
     ''' 
     Extra/Interpolation as in the first runs of RICH, where the slope was given by the last and 5th point.
     Look at:
@@ -143,9 +172,7 @@ def linear_rich(x, y, K, highT_slope, what = 'scattering_limit', extrarowsx = 10
     extrarowsx/extrarowsy, int: number of rows/columns to extrapolate.
     
     '''
-    
-    X = 0.9082339738214822 # From table prescription
-    thomson = 0.2 * (1 + X)
+    thomson = 0.2 * (1 + prel.X_nf)
     
     # Extend x and y, adding data equally space (this suppose x,y as array equally spaced)
     # Low extrapolation
@@ -321,8 +348,6 @@ if __name__ == '__main__':
     planck_plot_tab = np.exp(planck_tab)
     scatt = 0.2*(1+0.7381) * Rho_plot_tab #1/cm
     #%%
-    print(np.min(ross_plot_tab))
-    #%%
     # check slopes from table
     den_exp_ross_Elad = np.zeros(len(T_plot_tab))
     den_exp_planck_Elad = np.zeros(len(T_plot_tab))
@@ -428,33 +453,35 @@ if __name__ == '__main__':
     plt.tight_layout()
 
     #%% fixed rho
-    chosenRhos = [1e-9, 1e-12] # you want 1e-6, 1e-11 kg/m^3 (too far from Elad's table, u want plot it)
+    chosenRhos = [1e-9, 1e-11] # you want 1e-6, 1e-11 kg/m^3 (too far from Elad's table, u want plot it)
     colors_plot = ['forestgreen', 'r']
     lines = ['solid', 'dashed']
     fig, ax = plt.subplots(2,2,figsize = (15,12))
     for i,chosenRho in enumerate(chosenRhos):
         if np.logical_and(chosenRho < max_Rho, chosenRho > min_Rho):
             irho = np.argmin(np.abs(Rho_plot_tab - chosenRho))
-            ax[0][i].plot(T_plot_tab, ross_plot_tab[:, irho]/Rho_plot_tab[irho], c = 'k', label = 'original')
-            ax[1][i].plot(T_plot_tab, ross_plot_tab[:, irho], c = 'k', label = 'original')
+            ax[0][i].plot(T_plot_tab, ross_plot_tab[:, irho], c = 'k', label = 'original')
+            ax[1][i].plot(T_plot_tab, ross_plot_tab[:, irho]/Rho_plot_tab[irho], c = 'k', label = 'original')
         irho_RICH = np.argmin(np.abs(Rho_plotRICH - chosenRho))
-        ax[0][i].plot(T_plotRICH, ross_plotRICH[:, irho_RICH]/Rho_plotRICH[irho_RICH], c = 'yellowgreen', ls = '--', label = r'old extrapolation')
-        ax[1][i].plot(T_plotRICH, ross_plotRICH[:, irho_RICH], c = 'yellowgreen', ls = '--', label = 'old extrapolation')
+        ax[1][i].plot(T_plotRICH, ross_plotRICH[:, irho_RICH]/Rho_plotRICH[irho_RICH], c = 'yellowgreen', ls = '--', label = r'old extrapolation')
+        ax[0][i].plot(T_plotRICH, ross_plotRICH[:, irho_RICH], c = 'yellowgreen', ls = '--', label = 'old extrapolation')
         irho_lin = np.argmin(np.abs(Rho_plotRICH_lin - chosenRho))
-        ax[0][i].plot(T_plotRICH_lin, ross_plotRICH_lin[:, irho_lin]/Rho_plotRICH_lin[irho_lin], c = 'orchid', ls = ':', label = 'new extrapolation')
-        ax[1][i].plot(T_plotRICH_lin, ross_plotRICH_lin[:, irho_lin], c = 'orchid', ls = ':', label = 'new extrapolation')
-        ax[0][i].set_ylim(1e-1, 2e2) #the axis from 7e-4 to 2e1 m2/g
-        ax[1][i].set_ylim(1e-10, 2e-7)
+        ax[1][i].plot(T_plotRICH_lin, ross_plotRICH_lin[:, irho_lin]/Rho_plotRICH_lin[irho_lin], c = 'orchid', ls = ':', label = 'new extrapolation')
+        ax[0][i].plot(T_plotRICH_lin, ross_plotRICH_lin[:, irho_lin], c = 'orchid', ls = ':', label = 'new extrapolation')
+        ax[1][i].set_ylim(1e-1, 2e2) #the axis from 7e-4 to 2e1 m2/g
         ax[0][i].set_title(f'Density: {chosenRho:.0e} g/cm$^3$', fontsize = 16)
         for j in range(2):
             ax[j][i].set_xlabel(r'T [K]')
             ax[j][i].set_xlim(1e1,2e8)
             ax[j][i].axvline(min_T, color = 'grey', linestyle = '--', label = 'lim table')
             ax[j][i].axvline(max_T, color = 'grey', linestyle = '--')
+            ax[1][j].axhline(0.2 * (1 + prel.X_nf), color = 'grey', linestyle = '--')
             ax[j][i].loglog()
             ax[j][i].grid()
-    ax[1][0].set_ylabel(r'$\kappa$ [cm$^2$/g]')
     ax[0][0].set_ylabel(r'$\alpha=\kappa\rho$ [1/cm]')
+    ax[1][0].set_ylabel(r'$\kappa$ [cm$^2$/g]')
+    ax[0][0].set_ylim(1e-10, 2e-7)
+    ax[0][1].set_ylim(1e-13, 2e-9)
     ax[0][0].legend(fontsize=15, loc='upper right')
     plt.tight_layout()
 

@@ -54,7 +54,7 @@ Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 if check in ['LowRes', '', 'HiRes']:
     T_cool2, Rho_cool2, rossland2 = first_rich_extrap(T_cool, Rho_cool, rossland, what = 'scattering_limit', slope_length = 5, highT_slope=-3.5)
-if check in ['QuadraticOpacity', 'QuadraticOpacityNewAMR']:
+if check in ['LowResOpacityNew', 'OpacityNew', 'OpacityNewNewAMR']:
     T_cool2, Rho_cool2, rossland2 = linear_rich(T_cool, Rho_cool, rossland, what = 'scattering_limit', highT_slope = 0)
         
 N_ray = 5_000
