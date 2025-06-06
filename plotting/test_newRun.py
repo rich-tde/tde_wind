@@ -36,7 +36,7 @@ compton = 'Compton'
 choose = 'distribution' # section, distribution
 change = 'Extr'
 if change == 'Extr':
-    snap = 300 # 164 or 267 
+    snap = 164 # 164 or 267 
     eng = matlab.engine.start_matlab()
     checks = ['', 'OpacityNew']
     check_name = ['Old','NewExtr+OldAMR']
@@ -84,6 +84,17 @@ if choose == 'distribution':
             den_cgs = Den_midplane * prel.Msol_cgs / prel.Rsol_cgs**3 # [g/cm^3]
             Temp_cgs = Temp_midplane # [K]
 
+            if check in ['LowRes', '', 'HiRes']:
+                T_cool2, Rho_cool2, rosseland2 = first_rich_extrap(T_cool, Rho_cool, rosseland, what = 'scattering_limit', slope_length = 5, highT_slope=-3.5)
+            if check in ['OpacityNew', 'OpacityNewNewAMR']:
+                T_cool2, Rho_cool2, rosseland2 = linear_rich(T_cool, Rho_cool, rosseland, what = 'scattering_limit', highT_slope = 0)
+        
+            # Compute Rosseland opacity
+            ln_alpha = eng.interp2(T_cool2, Rho_cool2, rosseland2.T, np.log(Temp_cgs), np.log(den_cgs), 'linear', 0)
+            ln_alpha = np.array(ln_alpha)[0]
+            alpha = np.exp(ln_alpha) # [1/cm]
+            alpha[ln_alpha == 0.0] = 1e-20
+
         if where == 'Ph':
             # download fluxes and photosphere
             idx_fluxes = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}_phidx_fluxes.txt')
@@ -91,37 +102,23 @@ if choose == 'distribution':
             snap_flux, time_flux, fluxes = all_fluxes[:,0], all_fluxes[:,1], all_fluxes[:,2:]
             find_snap = np.where(snap_flux == snap)[-1]
             tfb, fluxes_ph = time_flux[find_snap][0], fluxes[find_snap]
-            photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
-            xph, yph, zph, denph, Temp_ph = photo[0], photo[1], photo[2], photo[4], photo[5]
-            alpha, rph_data = photo[-2], photo[-1]
-            rph = np.sqrt(xph**2 + yph**2 + zph**2)
-            ax8.plot(rph_data/rph)
+            _, _, _, _, denph, Tempph, _, _, _, _, alpha, rph = \
+                np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
             median_Rph[i] = np.median(rph)
             den_cgs = denph * prel.Msol_cgs / prel.Rsol_cgs**3 # [g/cm^3]
-            Temp_cgs = Temp_ph # [K]
-            
-        if check in ['LowRes', '', 'HiRes']:
-            T_cool2, Rho_cool2, rosseland2 = first_rich_extrap(T_cool, Rho_cool, rosseland, what = 'scattering_limit', slope_length = 5, highT_slope=-3.5)
-        if check in ['OpacityNew', 'OpacityNewNewAMR']:
-            T_cool2, Rho_cool2, rosseland2 = linear_rich(T_cool, Rho_cool, rosseland, what = 'scattering_limit', highT_slope = 0)
-        
-        # Compute Rosseland opacity
-        alpha_rosseland = eng.interp2(T_cool2, Rho_cool2, rosseland2.T, np.log(Temp_cgs), np.log(den_cgs), 'linear', 0)
-        alpha_rosseland = np.array(alpha_rosseland)[0]
-        alpha_rosseland_eval = np.exp(alpha_rosseland) # [1/cm]
-        alpha_rosseland_eval[alpha_rosseland == 0.0] = 1e-20
-        kappa = alpha_rosseland_eval/den_cgs # [cm^2/g]
-        ax9.plot(alpha/alpha_rosseland_eval)
-        ax9.set_ylim(-0.2, 0.2)
-        weighted_kappa = np.sum(kappa * 1/alpha_rosseland_eval) / np.sum(1/alpha_rosseland_eval) # [cm^2/g]
+            Temp_cgs = Tempph # [K]
+                
+        kappa = alpha/den_cgs # [cm^2/g]
         kappa_E = 1/np.mean(1/kappa)
-        kappa_flux = np.sum(fluxes_ph)/np.sum(fluxes_ph/kappa)
-        # print(f'check = {check_name[i]}, median kappa = {np.median(kappa)} cm^2/g, fluxes kappa = {kappa_flux} cm^2/g, kappa_Elena = {kappa_E} cm^2/g')
+
+        if where == 'Ph':
+            kappa_flux = np.sum(fluxes_ph)/np.sum(fluxes_ph/kappa)
+            print(f'check = {check_name[i]}, median kappa = {np.median(kappa)} cm^2/g, fluxes kappa = {kappa_flux} cm^2/g, kappa_Elena = {kappa_E} cm^2/g')
         
         log_den_cgs = np.log10(den_cgs) # [g/cm^3]
         log_T = np.log10(Temp_cgs) # [K]
         log_kappa = np.log10(kappa) # [cm^2/g]
-        log_alpha = np.log10(alpha_rosseland_eval)
+        log_alpha = np.log10(alpha)
 
         if which_distrib == 'Histo':
             ax1.hist(log_den_cgs, bins = 60, color = colorshist[i], alpha = alphahist[i], label = f'{check_name[i]}')

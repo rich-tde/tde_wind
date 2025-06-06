@@ -121,6 +121,7 @@ for idx_s, snap in enumerate(snaps):
     fluxes = np.zeros(prel.NPIX)
     rph = np.zeros(prel.NPIX) 
     alphaph = np.zeros(prel.NPIX) 
+    Lph = np.zeros(prel.NPIX) 
     r_initial = np.zeros(prel.NPIX) # initial starting point for Rph
     for i in range(prel.NPIX):
         # Progress 
@@ -269,6 +270,7 @@ for idx_s, snap in enumerate(snaps):
         rph[i] = r[photosphere] 
         alphaph[i] = alpha_rossland[photosphere]
         fluxes[i] = Lphoto / (4*np.pi*(r[photosphere]*prel.Rsol_cgs)**2)
+        Lph[i] = Lphoto 
 
         del smoothed_flux, R_lamda, fld_factor, rad_den
         gc.collect()
@@ -296,7 +298,7 @@ for idx_s, snap in enumerate(snaps):
         #     fileph.close()
         
         with open(f'{pre_saving}/photo/{check}_photo{snap}.txt', 'w') as f:
-            f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, alpha, rph \n #NB d is in CGS \n')
+            f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, alpha, rph, Lph \n# NB d, alpha and Lph are in CGS \n')
             f.write(' '.join(map(str, xph)) + '\n')
             f.write(' '.join(map(str, yph)) + '\n')
             f.write(' '.join(map(str, zph)) + '\n')
@@ -309,6 +311,7 @@ for idx_s, snap in enumerate(snaps):
             f.write(' '.join(map(str, Vzph)) + '\n')
             f.write(' '.join(map(str, alphaph)) + '\n')
             f.write(' '.join(map(str, rph)) + '\n')
+            f.write(' '.join(map(str, Lph)) + '\n')
             f.close()
         
 eng.exit()
