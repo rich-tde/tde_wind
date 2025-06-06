@@ -59,7 +59,8 @@ def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 7, high
                     # slope_rho.append(Kyslope)
                     Kn[ix][iy] = K[0, 0] + Kxslope * (xsel - x[0]) + Kyslope * (ysel - y[0])
                 
-                    if what == 'scattering_limit':
+                    if np.logical_and(highT_slope != -3.5, what == 'scattering_limit'):
+                        # the condition on highT_slope is beacuse for the first runs of RICH we didn't have the thomson limit
                         thomson_this_den = np.log(thomson * np.exp(ysel)) # 1/cm
                         if Kn[ix][iy] < thomson_this_den:
                             Kn[ix][iy] = thomson_this_den
@@ -112,7 +113,7 @@ def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 7, high
                     # Temp_ext_Ld.append(np.exp(xsel))
                     Kn[ix][iy] = K[ix_inK, 0] + Kyslope * (ysel - y[0])
 
-                    if what == 'scattering_limit':
+                    if np.logical_and(highT_slope != -3.5, what == 'scattering_limit'):
                         thomson_this_den = np.log(thomson * np.exp(ysel)) # 1/cm
                         if Kn[ix][iy] < thomson_this_den:
                             Kn[ix][iy] = thomson_this_den

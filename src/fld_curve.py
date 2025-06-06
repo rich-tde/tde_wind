@@ -39,7 +39,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'LowResNewAMR' # 
+check = '' # 
 
 ## Snapshots stuff
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -52,7 +52,9 @@ opac_path = f'{abspath}/src/Opacity'
 T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
-if check in ['LowRes', '', 'HiRes', 'LowResNewAMR', 'LowResNewAMRRemoveCenter']:
+if check in ['LowRes', '', 'HiRes']:
+    T_cool2, Rho_cool2, rossland2 = first_rich_extrap(T_cool, Rho_cool, rossland, what = 'scattering_limit', slope_length = 5, highT_slope = -3.5)
+if check in ['LowResNewAMR', 'LowResNewAMRRemoveCenter']:
     T_cool2, Rho_cool2, rossland2 = first_rich_extrap(T_cool, Rho_cool, rossland, what = 'scattering_limit', slope_length = 7, highT_slope = 0)
 if check in ['LowResOpacityNew', 'OpacityNew', 'OpacityNewNewAMR']:
     T_cool2, Rho_cool2, rossland2 = linear_rich(T_cool, Rho_cool, rossland, what = 'scattering_limit', highT_slope = 0)
@@ -117,6 +119,8 @@ for idx_s, snap in enumerate(snaps):
     Vyph = np.zeros(prel.NPIX)
     Vzph = np.zeros(prel.NPIX)
     fluxes = np.zeros(prel.NPIX)
+    rph = np.zeros(prel.NPIX) 
+    alphaph = np.zeros(prel.NPIX) 
     r_initial = np.zeros(prel.NPIX) # initial starting point for Rph
     for i in range(prel.NPIX):
         # Progress 
@@ -174,21 +178,21 @@ for idx_s, snap in enumerate(snaps):
         ray_vz = VZ[idx]
         
         # Interpolate opacity 
-        sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
-        sigma_rossland = np.array(sigma_rossland)[0]
-        underflow_mask = sigma_rossland != 0.0
+        Logalpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
+        Logalpha_rossland = np.array(Logalpha_rossland)[0]
+        underflow_mask = Logalpha_rossland != 0.0
         idx = np.array(idx)
-        d, t, r, ray_x, ray_y, ray_z, sigma_rossland, rad_den, volume, ray_vx, ray_vy, ray_vz, idx = \
-            make_slices([d, t, r, ray_x, ray_y, ray_z, sigma_rossland, rad_den, volume, ray_vx, ray_vy, ray_vz, idx], underflow_mask)
-        sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
-        del sigma_rossland
+        d, t, r, ray_x, ray_y, ray_z, Logalpha_rossland, rad_den, volume, ray_vx, ray_vy, ray_vz, idx = \
+            make_slices([d, t, r, ray_x, ray_y, ray_z, Logalpha_rossland, rad_den, volume, ray_vx, ray_vy, ray_vz, idx], underflow_mask)
+        alpha_rossland = np.exp(Logalpha_rossland) # [1/cm]
+        del Logalpha_rossland
         gc.collect()
 
         # Optical Depth
         r_fuT = np.flipud(r) #.T
-        kappa_rossland = np.flipud(sigma_rossland_eval) 
+        Logalpha_rossland = np.flipud(alpha_rossland) 
         # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
-        los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
+        los = - np.flipud(sci.cumulative_trapezoid(Logalpha_rossland, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
         
         # Red 
         # Get 20 unique nearest neighbors to each cell in the wanted ray and use them to compute the gradient along the ray
@@ -228,13 +232,13 @@ for idx_s, snap in enumerate(snaps):
         gc.collect()
 
         # Eq.(28) from Krumholz07.
-        R_lamda = grad / ( prel.Rsol_cgs * sigma_rossland_eval* rad_den) # this is the conversion for /r from the gradient. It's dimensionless
+        R_lamda = grad / ( prel.Rsol_cgs * alpha_rossland* rad_den) # this is the conversion for /r from the gradient. It's dimensionless
         R_lamda[R_lamda < 1e-10] = 1e-10
         # Eq.(27) from Krumholz07.
         fld_factor = (1/np.tanh(R_lamda) - 1/R_lamda) / R_lamda 
         # Eq.(26) from Krumholz07. You miss a c, but it's in Lphoto2 for computational reasons.
         # Before it was r.T
-        smoothed_flux = -uniform_filter1d(r**2 * fld_factor * gradr / sigma_rossland_eval, 7) #r^2 is here (but it's for the flux) otherwise you get annoying errors in the if. 
+        smoothed_flux = -uniform_filter1d(r**2 * fld_factor * gradr / alpha_rossland, 7) #r^2 is here (but it's for the flux) otherwise you get annoying errors in the if. 
 
         # You can have numerical errors at early times
         try: 
@@ -262,7 +266,9 @@ for idx_s, snap in enumerate(snaps):
         Vxph[i] = ray_vx[photosphere]
         Vyph[i] = ray_vy[photosphere]
         Vzph[i] = ray_vz[photosphere]
+        rph[i] = r[photosphere] 
         fluxes[i] = Lphoto / (4*np.pi*(r[photosphere]*prel.Rsol_cgs)**2)
+        
 
         del smoothed_flux, R_lamda, fld_factor, rad_den
         gc.collect()
@@ -290,7 +296,7 @@ for idx_s, snap in enumerate(snaps):
             fileph.close()
         
         with open(f'{pre_saving}/photo/{check}_photo{snap}.txt', 'w') as f:
-            f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph \n # NB d is in CGS \n')
+            f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, rph \n # NB d is in CGS \n')
             f.write(' '.join(map(str, xph)) + '\n')
             f.write(' '.join(map(str, yph)) + '\n')
             f.write(' '.join(map(str, zph)) + '\n')
@@ -301,6 +307,7 @@ for idx_s, snap in enumerate(snaps):
             f.write(' '.join(map(str, Vxph)) + '\n')
             f.write(' '.join(map(str, Vyph)) + '\n')
             f.write(' '.join(map(str, Vzph)) + '\n')
+            f.write(' '.join(map(str, rph)) + '\n')
             f.close()
         
 eng.exit()
