@@ -20,21 +20,6 @@ from src.Opacity.linextrapolator import first_rich_extrap, linear_rich
 import matlab.engine
 
 #
-def weighted_median(values, weights):
-    """Compute the weighted median of values with the given weights."""
-    # Sort values and weights by values
-    sorted_indices = np.argsort(values)
-    sorted_values = values[sorted_indices]
-    sorted_weights = weights[sorted_indices]
-    
-    # Compute cumulative sum of weights
-    cumulative_weight = np.cumsum(sorted_weights)
-    cutoff = cumulative_weight[-1] / 2.0
-    
-    # Find the weighted median
-    return sorted_values[np.searchsorted(cumulative_weight, cutoff)]
-
-#
 ## PARAMETERS STAR AND BH
 #
 m = 4
@@ -48,18 +33,18 @@ Rp = orb.pericentre(Rstar, mstar, Mbh, beta)
 R0 = 0.6*Rp
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 compton = 'Compton'
-section = False
+choose = 'distribution' # section, distribution
 change = 'Extr'
 if change == 'Extr':
-    snap = 267 # 164 or 267 
+    snap = 300 # 164 or 267 
     eng = matlab.engine.start_matlab()
-    checks = ['', 'QuadraticOpacity']
+    checks = ['', 'OpacityNew']
     check_name = ['Old','NewExtr+OldAMR']
     colorshist = ['yellowgreen', 'forestgreen']
     styles = ['solid', 'dashed']
 elif change == 'AMR':
     snap = 240 # 115, 164, 240 
-    checks = ['QuadraticOpacity', 'QuadraticOpacityNewAMR']
+    checks = ['OpacityNew', 'OpacityNewNewAMR']
     check_name = ['NewExtr+OldAMR','NewExtr+NewAMR']
     colorshist = ['forestgreen', 'k']
 
@@ -72,24 +57,25 @@ minRho_tab, maxRho_tab = np.min(np.exp(Rho_cool)), np.max(np.exp(Rho_cool))
 # print(f'minT_tab = {minT_tab}, maxT_tab = {maxT_tab}')
 # print(f'minRho_tab = {minRho_tab}, maxRho_tab = {maxRho_tab}')
 
-if not section:
+if choose == 'distribution':
     alphahist = [.8, 0.5]
     which_distrib = 'Cum' # 'Cum' or 'Histo
     where = 'Ph' # 'Ph' or 'Mid'
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize = (15, 15))
+    fig8, (ax8,ax9) = plt.subplots(1, 2, figsize = (15, 7))
     median_Rph = np.zeros(len(checks))
     Ncell_ph = np.zeros(len(checks))
     for i, check in enumerate(checks):
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
         path = f'{abspath}/TDE/{folder}/{snap}'
-        tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+
         # Load data either for midplane or photosphere and convert density in CGS
         if where == 'Mid':
+            tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
             data = make_tree(path, snap, energy = True)
             cut = data.Den > 1e-19
             X, Y, Z, den, Vol, Diss_den, Temp = \
                 sec.make_slices([data.X, data.Y, data.Z,data.Den, data.Vol, data.Diss, data.Temp], cut)
-            print(f'check = {check_name[i]}, Ncell = {len(X)}')
             Ncell_ph[i] = len(X)
             dim_cell = Vol**(1/3) 
             midplane = np.abs(Z) < dim_cell
@@ -99,16 +85,24 @@ if not section:
             Temp_cgs = Temp_midplane # [K]
 
         if where == 'Ph':
+            # download fluxes and photosphere
+            idx_fluxes = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}_phidx_fluxes.txt')
+            all_indices, all_fluxes = idx_fluxes[0::2], idx_fluxes[1::2]
+            snap_flux, time_flux, fluxes = all_fluxes[:,0], all_fluxes[:,1], all_fluxes[:,2:]
+            find_snap = np.where(snap_flux == snap)[-1]
+            tfb, fluxes_ph = time_flux[find_snap][0], fluxes[find_snap]
             photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
             xph, yph, zph, denph, Temp_ph = photo[0], photo[1], photo[2], photo[4], photo[5]
+            alpha, rph_data = photo[-2], photo[-1]
             rph = np.sqrt(xph**2 + yph**2 + zph**2)
+            ax8.plot(rph_data/rph)
             median_Rph[i] = np.median(rph)
             den_cgs = denph * prel.Msol_cgs / prel.Rsol_cgs**3 # [g/cm^3]
             Temp_cgs = Temp_ph # [K]
-
+            
         if check in ['LowRes', '', 'HiRes']:
             T_cool2, Rho_cool2, rosseland2 = first_rich_extrap(T_cool, Rho_cool, rosseland, what = 'scattering_limit', slope_length = 5, highT_slope=-3.5)
-        if check in ['QuadraticOpacity', 'QuadraticOpacityNewAMR']:
+        if check in ['OpacityNew', 'OpacityNewNewAMR']:
             T_cool2, Rho_cool2, rosseland2 = linear_rich(T_cool, Rho_cool, rosseland, what = 'scattering_limit', highT_slope = 0)
         
         # Compute Rosseland opacity
@@ -117,11 +111,12 @@ if not section:
         alpha_rosseland_eval = np.exp(alpha_rosseland) # [1/cm]
         alpha_rosseland_eval[alpha_rosseland == 0.0] = 1e-20
         kappa = alpha_rosseland_eval/den_cgs # [cm^2/g]
+        ax9.plot(alpha/alpha_rosseland_eval)
+        ax9.set_ylim(-0.2, 0.2)
         weighted_kappa = np.sum(kappa * 1/alpha_rosseland_eval) / np.sum(1/alpha_rosseland_eval) # [cm^2/g]
         kappa_E = 1/np.mean(1/kappa)
-        weights = 1 / alpha_rosseland_eval
-        # weighted_kappa = weighted_median(kappa, weights)
-        print(f'check = {check_name[i]}, median kappa = {np.median(kappa)} cm^2/g, weighted kappa = {weighted_kappa} cm^2/g, kappa_Elena = {kappa_E} cm^2/g')
+        kappa_flux = np.sum(fluxes_ph)/np.sum(fluxes_ph/kappa)
+        # print(f'check = {check_name[i]}, median kappa = {np.median(kappa)} cm^2/g, fluxes kappa = {kappa_flux} cm^2/g, kappa_Elena = {kappa_E} cm^2/g')
         
         log_den_cgs = np.log10(den_cgs) # [g/cm^3]
         log_T = np.log10(Temp_cgs) # [K]
@@ -199,7 +194,7 @@ if not section:
         d_min, d_max = -14.5, -9.5
         k_min, k_max = -.5, 1.8
         alpha_min, alpha_max = -13.1, -9.5
-        plt.suptitle(f'Photospheric cells at t = {np.round(tfb,2)} ' + r't$_{\rm fb}$. Median $R_{ph}$:' + f'{check_name[0]} {int(median_Rph[0])} R$_\odot$, {check_name[1]} {int(median_Rph[1])} R$_\odot$', fontsize = 20)
+        fig.suptitle(f'Photospheric cells at t = {np.round(tfb,2)} ' + r't$_{\rm fb}$. Median $R_{ph}$:' + f'{check_name[0]} {int(median_Rph[0])} R$_\odot$, {check_name[1]} {int(median_Rph[1])} R$_\odot$', fontsize = 20)
     if where == 'Mid':
         if change == 'Extr':
             d_min, d_max = -11, -3
@@ -209,7 +204,7 @@ if not section:
             alpha_min, alpha_max = -12, 1
         t_min, t_max = 3.5, 8
         k_min, k_max = -.8, 5
-        plt.suptitle(f'Midplane cells at t = {np.round(tfb,2)} ' + r't$_{\rm fb}$, N$_{\rm cell, 1}$/N$_{\rm cell, 2}=$' + f'{np.round(Ncell_ph[0]/Ncell_ph[1], 2)}', fontsize = 20)
+        fig.suptitle(f'Midplane cells at t = {np.round(tfb,2)} ' + r't$_{\rm fb}$, N$_{\rm cell, 1}$/N$_{\rm cell, 2}=$' + f'{np.round(Ncell_ph[0]/Ncell_ph[1], 2)}', fontsize = 20)
     ax1.set_xlim(d_min, d_max)
     ax2.set_xlim(3.5, 8)
     ax3.set_xlim(k_min, k_max)
@@ -217,7 +212,7 @@ if not section:
     fig.tight_layout()
     fig.savefig(f'{abspath}/Figs/Test/MazeOfRuns/{change}/{which_distrib}{where}runs{snap}.png', bbox_inches = 'tight')
 
-if section:
+if choose == 'section':
     Ncell = np.zeros(len(checks))
     Ncell_mid = np.zeros(len(checks))
     fig, ax = plt.subplots(2, 2, figsize = (18, 10))
@@ -247,7 +242,7 @@ if section:
             extrapoalted_all = np.logical_or(extrapolated_den, extrapolated_temp)
             if check in ['LowRes', '', 'HiRes']:
                 T_cool2, Rho_cool2, rosseland2 = first_rich_extrap(T_cool, Rho_cool, rosseland, what = 'scattering_limit', slope_length = 5, highT_slope=-3.5)
-            if check in ['QuadraticOpacity', 'QuadraticOpacityNewAMR']:
+            if check in ['OpacityNew', 'OpacityNewNewAMR']:
                 T_cool2, Rho_cool2, rosseland2 = linear_rich(T_cool, Rho_cool, rosseland, what = 'scattering_limit', highT_slope = 0)
             sigma_rosseland = eng.interp2(T_cool2, Rho_cool2, rosseland2.T, np.log(Temp_midplane), np.log(Den_midplane_cgs), 'linear', 0)
             sigma_rosseland = np.array(sigma_rosseland)[0]
