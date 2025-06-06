@@ -39,7 +39,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = '' # 
+check = 'LowResNewAMR' # 
 
 ## Snapshots stuff
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -58,7 +58,7 @@ if check in ['LowResNewAMR', 'LowResNewAMRRemoveCenter']:
     T_cool2, Rho_cool2, rossland2 = first_rich_extrap(T_cool, Rho_cool, rossland, what = 'scattering_limit', slope_length = 7, highT_slope = 0)
 if check in ['LowResOpacityNew', 'OpacityNew', 'OpacityNewNewAMR']:
     T_cool2, Rho_cool2, rossland2 = linear_rich(T_cool, Rho_cool, rossland, what = 'scattering_limit', highT_slope = 0)
-        
+          
 N_ray = 5_000
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
@@ -178,21 +178,21 @@ for idx_s, snap in enumerate(snaps):
         ray_vz = VZ[idx]
         
         # Interpolate opacity 
-        Logalpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
-        Logalpha_rossland = np.array(Logalpha_rossland)[0]
-        underflow_mask = Logalpha_rossland != 0.0
+        ln_alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
+        ln_alpha_rossland = np.array(ln_alpha_rossland)[0]
+        underflow_mask = ln_alpha_rossland != 0.0
         idx = np.array(idx)
-        d, t, r, ray_x, ray_y, ray_z, Logalpha_rossland, rad_den, volume, ray_vx, ray_vy, ray_vz, idx = \
-            make_slices([d, t, r, ray_x, ray_y, ray_z, Logalpha_rossland, rad_den, volume, ray_vx, ray_vy, ray_vz, idx], underflow_mask)
-        alpha_rossland = np.exp(Logalpha_rossland) # [1/cm]
-        del Logalpha_rossland
+        d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, rad_den, volume, ray_vx, ray_vy, ray_vz, idx = \
+            make_slices([d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, rad_den, volume, ray_vx, ray_vy, ray_vz, idx], underflow_mask)
+        alpha_rossland = np.exp(ln_alpha_rossland) # [1/cm]
+        del ln_alpha_rossland
         gc.collect()
 
         # Optical Depth
         r_fuT = np.flipud(r) #.T
-        Logalpha_rossland = np.flipud(alpha_rossland) 
+        alpha_rossland_fuT = np.flipud(alpha_rossland) 
         # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
-        los = - np.flipud(sci.cumulative_trapezoid(Logalpha_rossland, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
+        los = - np.flipud(sci.cumulative_trapezoid(alpha_rossland_fuT, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
         
         # Red 
         # Get 20 unique nearest neighbors to each cell in the wanted ray and use them to compute the gradient along the ray
@@ -268,7 +268,6 @@ for idx_s, snap in enumerate(snaps):
         Vzph[i] = ray_vz[photosphere]
         rph[i] = r[photosphere] 
         fluxes[i] = Lphoto / (4*np.pi*(r[photosphere]*prel.Rsol_cgs)**2)
-        
 
         del smoothed_flux, R_lamda, fld_factor, rad_den
         gc.collect()
