@@ -39,7 +39,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'LowResNewAMR' # 
+check = '' # 
 
 ## Snapshots stuff
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -267,6 +267,7 @@ for idx_s, snap in enumerate(snaps):
         Vyph[i] = ray_vy[photosphere]
         Vzph[i] = ray_vz[photosphere]
         rph[i] = r[photosphere] 
+        alphaph[i] = alpha_rossland[photosphere]
         fluxes[i] = Lphoto / (4*np.pi*(r[photosphere]*prel.Rsol_cgs)**2)
 
         del smoothed_flux, R_lamda, fld_factor, rad_den
@@ -295,7 +296,7 @@ for idx_s, snap in enumerate(snaps):
             fileph.close()
         
         with open(f'{pre_saving}/photo/{check}_photo{snap}.txt', 'w') as f:
-            f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, rph \n # NB d is in CGS \n')
+            f.write('# Data for the photospere. Lines are: xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, alpha, rph \n # NB d is in CGS \n')
             f.write(' '.join(map(str, xph)) + '\n')
             f.write(' '.join(map(str, yph)) + '\n')
             f.write(' '.join(map(str, zph)) + '\n')
@@ -306,6 +307,7 @@ for idx_s, snap in enumerate(snaps):
             f.write(' '.join(map(str, Vxph)) + '\n')
             f.write(' '.join(map(str, Vyph)) + '\n')
             f.write(' '.join(map(str, Vzph)) + '\n')
+            f.write(' '.join(map(str, alphaph)) + '\n')
             f.write(' '.join(map(str, rph)) + '\n')
             f.close()
         
