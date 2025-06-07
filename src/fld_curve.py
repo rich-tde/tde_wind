@@ -57,7 +57,7 @@ if check in ['LowRes', '', 'HiRes']:
 if check in ['LowResNewAMR', 'LowResNewAMRRemoveCenter']:
     T_cool2, Rho_cool2, rossland2 = first_rich_extrap(T_cool, Rho_cool, rossland, what = 'scattering_limit', slope_length = 7, highT_slope = 0)
 if check in ['LowResOpacityNew', 'OpacityNew', 'OpacityNewNewAMR']:
-    T_cool2, Rho_cool2, rossland2 = linear_rich(T_cool, Rho_cool, rossland, what = 'scattering_limit', highT_slope = 0)
+    T_cool2, Rho_cool2, rossland2 = linear_rich(T_cool, Rho_cool, rossland, what = 'scattering_limit', slope_length = 7, highT_slope = 0)
           
 N_ray = 5_000
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
