@@ -20,6 +20,12 @@ from src.Opacity.linextrapolator import first_rich_extrap, linear_rich
 import matlab.engine
 
 #
+##
+#
+def L_Edd_k(k): # cgs
+    L_e = 1.38*1e42 * (0.34/k)
+    return L_e
+#
 ## PARAMETERS STAR AND BH
 #
 m = 4
@@ -65,6 +71,9 @@ if choose == 'distribution':
     fig8, (ax8,ax9) = plt.subplots(1, 2, figsize = (15, 7))
     median_Rph = np.zeros(len(checks))
     Ncell_ph = np.zeros(len(checks))
+    mediankappa = np.zeros(len(checks))
+    kappaFlux = np.zeros(len(checks))
+    meanLLe = np.zeros(len(checks))
     for i, check in enumerate(checks):
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
         path = f'{abspath}/TDE/{folder}/{snap}'
@@ -102,17 +111,18 @@ if choose == 'distribution':
             snap_flux, time_flux, fluxes = all_fluxes[:,0], all_fluxes[:,1], all_fluxes[:,2:]
             find_snap = np.where(snap_flux == snap)[-1]
             tfb, fluxes_ph = time_flux[find_snap][0], fluxes[find_snap]
-            _, _, _, _, denph, Tempph, _, _, _, _, alpha, rph = \
+            _, _, _, _, denph, Tempph, _, _, _, _, alpha, rph, Lph = \
                 np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
             median_Rph[i] = np.median(rph)
             den_cgs = denph * prel.Msol_cgs / prel.Rsol_cgs**3 # [g/cm^3]
             Temp_cgs = Tempph # [K]
                 
         kappa = alpha/den_cgs # [cm^2/g]
-        kappa_E = 1/np.mean(1/kappa)
 
         if where == 'Ph':
-            kappa_flux = np.sum(fluxes_ph)/np.sum(fluxes_ph/kappa)
+            mediankappa[i] = np.median(kappa)
+            kappaFlux[i] = np.sum(fluxes_ph)/np.sum(fluxes_ph/kappa)
+            meanLLe = np.mean(Lph/L_Edd_k(kappa))
             print(f'check = {check_name[i]}, median kappa = {np.median(kappa)} cm^2/g, fluxes kappa = {kappa_flux} cm^2/g, kappa_Elena = {kappa_E} cm^2/g')
         
         log_den_cgs = np.log10(den_cgs) # [g/cm^3]
