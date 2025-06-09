@@ -42,12 +42,13 @@ compton = 'Compton'
 choose = 'distribution' # section, distribution
 change = 'Extr'
 if change == 'Extr':
-    snap = 164 # 164 or 267 
+    snap = 267 # 164 or 267 
     eng = matlab.engine.start_matlab()
     checks = ['', 'OpacityNew']
     check_name = ['Old','NewExtr+OldAMR']
     colorshist = ['yellowgreen', 'forestgreen']
     styles = ['solid', 'dashed']
+    markers = ['o', 'x']
 elif change == 'AMR':
     snap = 240 # 115, 164, 240 
     checks = ['OpacityNew', 'OpacityNewNewAMR']
@@ -68,11 +69,12 @@ if choose == 'distribution':
     which_distrib = 'Cum' # 'Cum' or 'Histo
     where = 'Ph' # 'Ph' or 'Mid'
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize = (15, 15))
-    fig8, (ax8,ax9) = plt.subplots(1, 2, figsize = (15, 7))
+    figscatt, axscatt = plt.subplots(1,1, figsize = (8, 6))
     median_Rph = np.zeros(len(checks))
     Ncell_ph = np.zeros(len(checks))
     mediankappa = np.zeros(len(checks))
     kappaFlux = np.zeros(len(checks))
+    Lfld = np.zeros(len(checks))
     meanLLe = np.zeros(len(checks))
     for i, check in enumerate(checks):
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
@@ -106,11 +108,18 @@ if choose == 'distribution':
 
         if where == 'Ph':
             # download fluxes and photosphere
+            data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
+            snap_Lum = data[:, 0]   
+            Lum = data[:, 2] 
+            Lfld[i] = Lum[np.where(snap_Lum == snap)[0][0]]
+            print(f'Lfld in {check_name[i]} = {Lfld[i]} erg/s')
             idx_fluxes = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}_phidx_fluxes.txt')
             all_indices, all_fluxes = idx_fluxes[0::2], idx_fluxes[1::2]
             snap_flux, time_flux, fluxes = all_fluxes[:,0], all_fluxes[:,1], all_fluxes[:,2:]
-            find_snap = np.where(snap_flux == snap)[-1]
-            tfb, fluxes_ph = time_flux[find_snap][0], fluxes[find_snap]
+            find_snap = np.where(snap_flux == snap)[0]
+            find_snap = find_snap[-1]
+            tfb, fluxes_ph = time_flux[find_snap], fluxes[find_snap]
+            print(len(fluxes_ph))
             _, _, _, _, denph, Tempph, _, _, _, _, alpha, rph, Lph = \
                 np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
             median_Rph[i] = np.median(rph)
@@ -123,31 +132,34 @@ if choose == 'distribution':
             mediankappa[i] = np.median(kappa)
             kappaFlux[i] = np.sum(fluxes_ph)/np.sum(fluxes_ph/kappa)
             meanLLe = np.mean(Lph/L_Edd_k(kappa))
-            print(f'check = {check_name[i]}, median kappa = {np.median(kappa)} cm^2/g, fluxes kappa = {kappa_flux} cm^2/g, kappa_Elena = {kappa_E} cm^2/g')
+            imgs = axscatt.scatter(np.arange(len(kappa)), kappa, c = fluxes_ph, s = 15, cmap = 'turbo', marker= markers[i], norm = colors.LogNorm(vmin = 1e12, vmax = 1e14), label = f'{check_name[i]}')
+            print(f'ratioLLedd in {check_name[i]}:\nwith mean L_Led(K){meanLLe} cm^2/g \nwith L_edd(kappaFlux)={Lfld[i] / L_Edd_k(kappaFlux[i])}\n-------')
         
         log_den_cgs = np.log10(den_cgs) # [g/cm^3]
         log_T = np.log10(Temp_cgs) # [K]
-        log_kappa = np.log10(kappa) # [cm^2/g]
+        # log_kappa = np.log10(kappa) # [cm^2/g]
         log_alpha = np.log10(alpha)
 
         if which_distrib == 'Histo':
             ax1.hist(log_den_cgs, bins = 60, color = colorshist[i], alpha = alphahist[i], label = f'{check_name[i]}')
             ax2.hist(log_T, bins = 60, color = colorshist[i], alpha = alphahist[i])
-            ax3.hist(log_kappa, bins = 60, color = colorshist[i], alpha = alphahist[i])
+            ax3.hist(kappa, bins = 60, color = colorshist[i], alpha = alphahist[i])
             ax4.hist(log_alpha, bins = 60, color = colorshist[i], alpha = alphahist[i])
 
         elif which_distrib == 'Cum':
             log_den_cgs = np.sort(log_den_cgs)
             log_T = np.sort(log_T)
-            log_kappa = np.sort(log_kappa)
+            # log_kappa = np.sort(log_kappa)
+            kappa = np.sort(kappa)
             log_alpha = np.sort(log_alpha)
             cum_den = np.arange(len(log_den_cgs))/len(log_den_cgs)
             cum_T = np.arange(len(log_T))/len(log_T)
-            cum_kappa = np.arange(len(log_kappa))/len(log_kappa)
+            cum_kappa = np.arange(len(kappa))/len(kappa)
+            # cum_kappa = np.arange(len(log_kappa))/len(log_kappa)
             cum_alpha = np.arange(len(log_alpha))/len(log_alpha)
             ax1.plot(log_den_cgs, cum_den, color = colorshist[i], linewidth = 2, label = f'{check_name[i]}')
             ax2.plot(log_T, cum_T, color = colorshist[i], linewidth = 2)
-            ax3.plot(log_kappa, cum_kappa, color = colorshist[i], linewidth = 2)
+            ax3.plot(kappa, cum_kappa, color = colorshist[i], linewidth = 2)
             ax4.plot(log_alpha, cum_alpha, color = colorshist[i], linewidth = 2)
 
         # Ticks and labels
@@ -161,7 +173,7 @@ if choose == 'distribution':
         ax1.set_xticklabels(labels_d)
         new_ticks_t = np.arange(3, 8, .5)   
         ax2.set_xticks(new_ticks_t)
-        new_ticks_k = np.arange(-1.5, 8, .5)
+        new_ticks_k = np.arange(0, 9, 1)
         mid_k = (new_ticks_k[:-1] + new_ticks_k[1:]) / 2
         all_ticks_k = np.concatenate([new_ticks_k, mid_k])
         labels_k = [f'{tick:.1f}' if tick in new_ticks_k else '' for tick in all_ticks_k]
@@ -176,15 +188,24 @@ if choose == 'distribution':
         ax4.set_xticklabels(labels_alpha)
         ax4.set_xticks(all_ticks_alpha)
 
+    cbars = plt.colorbar(imgs)
+    cbars.set_label(r'Flux$_{\rm ph}$ [erg/(cm$^2$s)]', fontsize = 20)
+    axscatt.set_yticks(all_ticks_k)
+    axscatt.set_yticklabels(labels_k)
+    axscatt.set_xlabel(r'Observer')
+    axscatt.set_ylabel(r'$\kappa$ [cm$^2$/g]')
+    axscatt.legend(fontsize = 16)
+    
+    print(f'ratio {check_name[0]}/{check_name[1]}:\nwith L= {Lfld[0]/Lfld[1]}\nwith mediankappa_inv = {mediankappa[1]/mediankappa[0]}, \nwith kappaFlux_inv = {kappaFlux[1]/kappaFlux[0]}')
     # ax1.axvline(np.log10(maxRho_tab), color = 'k', linestyle = 'dotted', label = r'max table')
     ax1.axvline(np.log10(minRho_tab), color = 'k', linestyle = '--', label = r'min table')
     ax1.set_xlabel(r'$\log_{10}\rho$ [g/cm$^3$]')
     ax2.axvline(np.log10(minT_tab), color = 'k', linestyle = '--')
     ax2.axvline(np.log10(maxT_tab), color = 'k', linestyle = '--')
     ax2.set_xlabel(r'$\log_{10}$T [K]')
-    ax3.axvline(np.log10(0.34), color = 'k', linestyle = '-.')
-    ax3.text(np.log10(0.38), .5, r'$\kappa_{\rm scatt}$', fontsize = 25, rotation = 90)
-    ax3.set_xlabel(r'$\log_{10}\kappa$ [cm$^2$/g]')
+    ax3.axvline(0.34, color = 'k', linestyle = '-.')
+    ax3.text(0.38, .8, r'$\kappa_{\rm scatt}$', fontsize = 25, rotation = 90)
+    ax3.set_xlabel(r'$\kappa$ [cm$^2$/g]')
     ax4.set_xlabel(r'$\log_{10}\alpha$ [1/cm]')
     for ax in [ax1, ax2, ax3, ax4]:
         ax.tick_params(axis='x', which='major', width = 1.5, length = 9, color = 'k')  
@@ -199,8 +220,8 @@ if choose == 'distribution':
     ax1.legend(fontsize = 20, loc = 'lower right')
     if where == 'Ph':
         d_min, d_max = -14.5, -9.5
-        k_min, k_max = -.5, 1.8
-        alpha_min, alpha_max = -13.1, -9.5
+        k_min, k_max = 0, 6.5
+        alpha_min, alpha_max = -13.1, -11
         fig.suptitle(f'Photospheric cells at t = {np.round(tfb,2)} ' + r't$_{\rm fb}$. Median $R_{ph}$:' + f'{check_name[0]} {int(median_Rph[0])} R$_\odot$, {check_name[1]} {int(median_Rph[1])} R$_\odot$', fontsize = 20)
     if where == 'Mid':
         if change == 'Extr':
@@ -209,12 +230,13 @@ if choose == 'distribution':
         else:
             d_min, d_max = -13, -2
             alpha_min, alpha_max = -12, 1
-        t_min, t_max = 3.5, 8
-        k_min, k_max = -.8, 5
+        t_min, t_max = 3.5, 6
+        k_min, k_max = 0, 6
         fig.suptitle(f'Midplane cells at t = {np.round(tfb,2)} ' + r't$_{\rm fb}$, N$_{\rm cell, 1}$/N$_{\rm cell, 2}=$' + f'{np.round(Ncell_ph[0]/Ncell_ph[1], 2)}', fontsize = 20)
     ax1.set_xlim(d_min, d_max)
     ax2.set_xlim(3.5, 8)
     ax3.set_xlim(k_min, k_max)
+    axscatt.set_ylim(k_min, k_max)
     ax4.set_xlim(alpha_min, alpha_max)
     fig.tight_layout()
     fig.savefig(f'{abspath}/Figs/Test/MazeOfRuns/{change}/{which_distrib}{where}runs{snap}.png', bbox_inches = 'tight')

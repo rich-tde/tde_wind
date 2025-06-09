@@ -93,10 +93,15 @@ def find_step(theta_arr, i):
 #         new_list.append(np.array(z))
 #     return new_list
 
-def sort_list(list_passive, leading_list):
+def sort_list(list_passive, leading_list, unique = False):
     """Sort list_passive based on the order of leading_list. 
        list_passive is a list of numpy arrays.
     """
+    if unique == True:
+        where_unique = np.where(np.unique(leading_list))
+        leading_list = leading_list[where_unique]
+        for arr in list_passive:
+            arr = arr[where_unique]
     sort_indices = np.argsort(leading_list)  # Get indices that would sort leading_list
     return [arr[sort_indices] for arr in list_passive]  # Apply those indices to each sub-array
 
