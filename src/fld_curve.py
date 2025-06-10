@@ -54,7 +54,7 @@ Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 if check in ['LowRes', '', 'HiRes']:
     T_cool2, Rho_cool2, rossland2 = first_rich_extrap(T_cool, Rho_cool, rossland, what = 'scattering_limit', slope_length = 5, highT_slope = -3.5)
-if check in ['LowResNewAMR', 'LowResNewAMRRemoveCenter']:
+if check in ['LowResNewAMR', 'LowResNewAMRRemoveCenter', 'NewAMRRemoveCenter']:
     T_cool2, Rho_cool2, rossland2 = first_rich_extrap(T_cool, Rho_cool, rossland, what = 'scattering_limit', slope_length = 7, highT_slope = 0)
 if check in ['LowResOpacityNew', 'OpacityNew', 'OpacityNewNewAMR']:
     T_cool2, Rho_cool2, rossland2 = linear_rich(T_cool, Rho_cool, rossland, what = 'scattering_limit', slope_length = 7, highT_slope = 0)
@@ -290,12 +290,12 @@ for idx_s, snap in enumerate(snaps):
         # save Rph index and fluxes for each observer in the snapshot
         time_rph = np.concatenate([[snap,tfb[idx_s]], ph_idx])
         time_fluxes = np.concatenate([[snap,tfb[idx_s]], fluxes])
-        # with open(f'{pre_saving}/{check}_phidx_fluxes.txt', 'a') as fileph:
-        #     fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
-        #     fileph.write(' '.join(map(str, time_rph)) + '\n')
-        #     fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes [cgs] for each obs \n')
-        #     fileph.write(' '.join(map(str, time_fluxes)) + '\n')
-        #     fileph.close()
+        with open(f'{pre_saving}/{check}_phidx_fluxes.txt', 'a') as fileph:
+            fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
+            fileph.write(' '.join(map(str, time_rph)) + '\n')
+            fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes [cgs] for each obs \n')
+            fileph.write(' '.join(map(str, time_fluxes)) + '\n')
+            fileph.close()
         
         with open(f'{pre_saving}/photo/{check}_photo{snap}.txt', 'w') as f:
             f.write('# Data for the photospere.\n')
