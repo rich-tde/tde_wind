@@ -88,7 +88,7 @@ else:
     commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
     ## Plot as Extended figure 3 in SteinbergStone24
-    fig, ax = plt.subplots(1,len(checks), figsize = (15, 5))
+    fig, ax = plt.subplots(1,1) #len(checks), 1, figsize = (5, 8))
     for i, check in enumerate(checks):
         tfb = np.loadtxt(f'{abspath}/data/{commonfolder}{check}/{check}Mass_encl_time.txt')
         tfb_cgs = tfb * tfallback_cgs
@@ -96,20 +96,21 @@ else:
         Mass_encl = np.transpose(Mass_encl)
         # Mass_encl_cut = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl_cut.txt')
         # Mass_encl_cut = np.transpose(Mass_encl_cut)
-        ax[i].plot(tfb, Mass_encl[0]/mstar, c = 'deepskyblue', linewidth = 2, label = r'$R = R_0$')
-        ax[i].plot(tfb, Mass_encl[1]/mstar, c = 'coral', linewidth = 2, label = r'$R = R_{\rm t}$')
-        ax[i].plot(tfb, Mass_encl[2]/mstar, c = 'mediumseagreen', linewidth = 2, label = r'$R = a_{\rm mb}$')
-        ax[i].plot(tfb, Mass_encl[3]/mstar, c = 'm', linewidth = 2, label = r'$R = R_{\rm a}$')
-        ax[i].set_xlabel(r'$\rm t [t_{fb}]$')
-        ax[i].set_yscale('log')
-        ax[i].set_ylim(1e-9, 2)
-        ax[i].grid()
-        ax[i].set_title(f'{checklab[i]}', fontsize = 20)
-    ax[0].legend(fontsize = 15)
-    ax[0].set_ylabel(r'Mass enclosed $[M_\star]$', fontsize = 20)
+        ax.plot(tfb, Mass_encl[0]/mstar, c = 'deepskyblue', linewidth = 2, label = r'$R = R_0$')
+        ax.plot(tfb, Mass_encl[1]/mstar, c = 'coral', linewidth = 2, label = r'$R = R_{\rm t}$')
+        ax.plot(tfb, Mass_encl[2]/mstar, c = 'mediumseagreen', linewidth = 2, label = r'$R = a_{\rm mb}$')
+        ax.plot(tfb, Mass_encl[3]/mstar, c = 'm', linewidth = 2, label = r'$R = R_{\rm a}$')
+        ax.set_xlabel(r'$\rm t [t_{fb}]$')
+        ax.set_yscale('log')
+        ax.set_ylim(1e-9, 2)
+        ax.grid()
+        ax.set_title(f'{checklab[i]}', fontsize = 20)
+        ax.set_xlim(0, 1.8)
+    ax.legend(fontsize = 15)
+    ax.set_ylabel(r'Mass enclosed $[M_\star]$', fontsize = 20)
     plt.tight_layout()
     # plt.savefig(f'{abspath}/Figs/multiple/mass_encl_all.png', bbox_inches='tight')
-    plt.savefig(f'{abspath}/Figs/Test/mass_encl_Low_RC.png', bbox_inches='tight')
+    plt.savefig(f'{abspath}/Figs/Test/MazeOfRuns/mass_encl_Low_RC.png', bbox_inches='tight')
     
 #     fig, ax = plt.subplots(1,3, figsize = (22, 5))
 #     for i, check in enumerate(checks):

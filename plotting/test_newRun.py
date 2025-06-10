@@ -66,15 +66,16 @@ minRho_tab, maxRho_tab = np.min(np.exp(Rho_cool)), np.max(np.exp(Rho_cool))
 
 if choose == 'distribution':
     alphahist = [.8, 0.5]
-    which_distrib = 'Cum' # 'Cum' or 'Histo
+    which_distrib = 'Histo' # 'Cum' or 'Histo
     where = 'Ph' # 'Ph' or 'Mid'
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize = (15, 15))
-    figscatt, axscatt = plt.subplots(1,1, figsize = (8, 6))
+    figkappa, ((axkappa1, axkappa4) ,(axkappa2, axkappa3)) = plt.subplots(2,2, figsize = (15, 15))
+    Lfld = np.zeros(len(checks))
     median_Rph = np.zeros(len(checks))
     Ncell_ph = np.zeros(len(checks))
     mediankappa = np.zeros(len(checks))
     kappaFlux = np.zeros(len(checks))
-    Lfld = np.zeros(len(checks))
+    L_kappaFlux = np.zeros(len(checks))
     meanLLe = np.zeros(len(checks))
     for i, check in enumerate(checks):
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
@@ -92,14 +93,16 @@ if choose == 'distribution':
             midplane = np.abs(Z) < dim_cell
             X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Diss_den_midplane, Temp_midplane = \
                 sec.make_slices([X, Y, Z, dim_cell, den, Diss_den, Temp], midplane)
-            den_cgs = Den_midplane * prel.Msol_cgs / prel.Rsol_cgs**3 # [g/cm^3]
+            den_cgs = Den_midplane * prel.den_converter # [g/cm^3]
             Temp_cgs = Temp_midplane # [K]
 
             if check in ['LowRes', '', 'HiRes']:
-                T_cool2, Rho_cool2, rosseland2 = first_rich_extrap(T_cool, Rho_cool, rosseland, what = 'scattering_limit', slope_length = 5, highT_slope=-3.5)
-            if check in ['OpacityNew', 'OpacityNewNewAMR']:
-                T_cool2, Rho_cool2, rosseland2 = linear_rich(T_cool, Rho_cool, rosseland, what = 'scattering_limit', highT_slope = 0)
-        
+                T_cool2, Rho_cool2, rosseland2 = first_rich_extrap(T_cool, Rho_cool, rosseland, what = 'scattering_limit', slope_length = 5, highT_slope = -3.5)
+            if check in ['LowResNewAMR', 'LowResNewAMRRemoveCenter', 'NewAMRRemoveCenter']:
+                T_cool2, Rho_cool2, rosseland2 = first_rich_extrap(T_cool, Rho_cool, rosseland, what = 'scattering_limit', slope_length = 7, highT_slope = 0)
+            if check in ['LowResOpacityNew', 'OpacityNew', 'OpacityNewNewAMR']:
+                T_cool2, Rho_cool2, rosseland2 = linear_rich(T_cool, Rho_cool, rosseland, what = 'scattering_limit', slope_length = 7, highT_slope = 0)
+            
             # Compute Rosseland opacity
             ln_alpha = eng.interp2(T_cool2, Rho_cool2, rosseland2.T, np.log(Temp_cgs), np.log(den_cgs), 'linear', 0)
             ln_alpha = np.array(ln_alpha)[0]
@@ -112,54 +115,63 @@ if choose == 'distribution':
             snap_Lum = data[:, 0]   
             Lum = data[:, 2] 
             Lfld[i] = Lum[np.where(snap_Lum == snap)[0][0]]
-            print(f'Lfld in {check_name[i]} = {Lfld[i]} erg/s')
             idx_fluxes = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}_phidx_fluxes.txt')
             all_indices, all_fluxes = idx_fluxes[0::2], idx_fluxes[1::2]
             snap_flux, time_flux, fluxes = all_fluxes[:,0], all_fluxes[:,1], all_fluxes[:,2:]
             find_snap = np.where(snap_flux == snap)[0]
             find_snap = find_snap[-1]
             tfb, fluxes_ph = time_flux[find_snap], fluxes[find_snap]
-            print(len(fluxes_ph))
             _, _, _, _, denph, Tempph, _, _, _, _, alpha, rph, Lph = \
                 np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
+            # denph is already CGS!!!!
             median_Rph[i] = np.median(rph)
-            den_cgs = denph * prel.Msol_cgs / prel.Rsol_cgs**3 # [g/cm^3]
+            den_cgs = denph # [g/cm^3]
             Temp_cgs = Tempph # [K]
-                
+            print(f'Lfld in {check_name[i]} at time {np.round(tfb,2)} = {Lfld[i]} erg/s')
+
         kappa = alpha/den_cgs # [cm^2/g]
 
         if where == 'Ph':
             mediankappa[i] = np.median(kappa)
-            kappaFlux[i] = np.sum(fluxes_ph)/np.sum(fluxes_ph/kappa)
-            meanLLe = np.mean(Lph/L_Edd_k(kappa))
-            imgs = axscatt.scatter(np.arange(len(kappa)), kappa, c = fluxes_ph, s = 15, cmap = 'turbo', marker= markers[i], norm = colors.LogNorm(vmin = 1e12, vmax = 1e14), label = f'{check_name[i]}')
-            print(f'ratioLLedd in {check_name[i]}:\nwith mean L_Led(K){meanLLe} cm^2/g \nwith L_edd(kappaFlux)={Lfld[i] / L_Edd_k(kappaFlux[i])}\n-------')
+            fluxOverkappa = fluxes_ph/kappa
+            kappaFlux[i] = np.sum(fluxes_ph)/np.sum(fluxOverkappa)
+            LLe = Lph/L_Edd_k(kappa)
+            L_kappaFlux[i] = Lfld[i] / L_Edd_k(kappaFlux[i])
+            print(f'ratio L/Ledd in {check_name[i]}:\nwith mean (L_obs/Led(K_obs)) = {np.mean(LLe)} \nwith median (L_obs/Led(K_obs)) = {np.median(LLe)} \nwith flux-weighted inverse k = {L_kappaFlux[i]}\n-------')
         
         log_den_cgs = np.log10(den_cgs) # [g/cm^3]
         log_T = np.log10(Temp_cgs) # [K]
-        # log_kappa = np.log10(kappa) # [cm^2/g]
+        log_kappa = np.log10(kappa) # [cm^2/g]
         log_alpha = np.log10(alpha)
+        log_inverse_kappa = np.log10(1/kappa) 
+        log_lum = np.log10(Lph) # [erg/s]
+        kappa_flux = fluxes_ph/(np.mean(fluxes_ph)*kappa) # [erg/s/cm^2/g]
+        log_inverse_kappaflux = np.log10(kappa_flux)
 
         if which_distrib == 'Histo':
-            ax1.hist(log_den_cgs, bins = 60, color = colorshist[i], alpha = alphahist[i], label = f'{check_name[i]}')
-            ax2.hist(log_T, bins = 60, color = colorshist[i], alpha = alphahist[i])
-            ax3.hist(kappa, bins = 60, color = colorshist[i], alpha = alphahist[i])
-            ax4.hist(log_alpha, bins = 60, color = colorshist[i], alpha = alphahist[i])
+            ax1.hist(den_cgs/np.mean(den_cgs), bins = 60, color = colorshist[i], alpha = alphahist[i], label = f'{check_name[i]}')
+            ax2.hist(Temp_cgs/np.mean(Temp_cgs), bins = 60, color = colorshist[i], alpha = alphahist[i])
+            ax3.hist(kappa/np.mean(kappa), bins = 60, color = colorshist[i], alpha = alphahist[i])
+            ax4.hist(alpha/np.mean(alpha), bins = 60, color = colorshist[i], alpha = alphahist[i])
+            # axkappa1.hist(kappa/np.mean(kappa), bins = 60, color = colorshist[i], alpha = alphahist[i], label = f'{check_name[i]}')
+            # axkappa4.hist(Lph/np.mean(Lph), bins = 60, color = colorshist[i], alpha = alphahist[i])
+            # axkappa2.hist((1/kappa)/(np.mean(1/kappa)), bins = 60, color = colorshist[i], alpha = alphahist[i])
+            # axkappa3.hist(kappa_flux/np.mean(kappa_flux), bins = 60, color = colorshist[i], alpha = alphahist[i])
 
         elif which_distrib == 'Cum':
             log_den_cgs = np.sort(log_den_cgs)
             log_T = np.sort(log_T)
-            # log_kappa = np.sort(log_kappa)
-            kappa = np.sort(kappa)
+            log_kappa = np.sort(log_kappa)
+            # kappa = np.sort(kappa)
             log_alpha = np.sort(log_alpha)
             cum_den = np.arange(len(log_den_cgs))/len(log_den_cgs)
             cum_T = np.arange(len(log_T))/len(log_T)
-            cum_kappa = np.arange(len(kappa))/len(kappa)
-            # cum_kappa = np.arange(len(log_kappa))/len(log_kappa)
+            # cum_kappa = np.arange(len(kappa))/len(kappa)
+            cum_kappa = np.arange(len(log_kappa))/len(log_kappa)
             cum_alpha = np.arange(len(log_alpha))/len(log_alpha)
             ax1.plot(log_den_cgs, cum_den, color = colorshist[i], linewidth = 2, label = f'{check_name[i]}')
             ax2.plot(log_T, cum_T, color = colorshist[i], linewidth = 2)
-            ax3.plot(kappa, cum_kappa, color = colorshist[i], linewidth = 2)
+            ax3.plot(log_kappa, cum_kappa, color = colorshist[i], linewidth = 2)
             ax4.plot(log_alpha, cum_alpha, color = colorshist[i], linewidth = 2)
 
         # Ticks and labels
@@ -173,13 +185,13 @@ if choose == 'distribution':
         ax1.set_xticklabels(labels_d)
         new_ticks_t = np.arange(3, 8, .5)   
         ax2.set_xticks(new_ticks_t)
-        new_ticks_k = np.arange(0, 9, 1)
+        new_ticks_k = np.arange(-2, 4, .5)
         mid_k = (new_ticks_k[:-1] + new_ticks_k[1:]) / 2
         all_ticks_k = np.concatenate([new_ticks_k, mid_k])
         labels_k = [f'{tick:.1f}' if tick in new_ticks_k else '' for tick in all_ticks_k]
         ax3.set_xticks(all_ticks_k)
         ax3.set_xticklabels(labels_k)
-        new_ticks_alpha = np.arange(-13,7, 1) 
+        new_ticks_alpha = np.arange(-13, 7, 1) 
         mid_alpha = (new_ticks_alpha[:-1] + new_ticks_alpha[1:]) / 2
         all_ticks_alpha = np.sort(np.concatenate([new_ticks_alpha, mid_alpha]))
         mid_alpha = (all_ticks_alpha[:-1] + all_ticks_alpha[1:]) / 2
@@ -188,25 +200,27 @@ if choose == 'distribution':
         ax4.set_xticklabels(labels_alpha)
         ax4.set_xticks(all_ticks_alpha)
 
-    cbars = plt.colorbar(imgs)
-    cbars.set_label(r'Flux$_{\rm ph}$ [erg/(cm$^2$s)]', fontsize = 20)
-    axscatt.set_yticks(all_ticks_k)
-    axscatt.set_yticklabels(labels_k)
-    axscatt.set_xlabel(r'Observer')
-    axscatt.set_ylabel(r'$\kappa$ [cm$^2$/g]')
-    axscatt.legend(fontsize = 16)
+    # axkappa1.legend(fontsize = 16)
+    # if which_distrib == 'Histo':
+    #     axkappa1.set_xlabel(r'1/mean $\kappa$')
+    #     axkappa4.set_xlabel(r'1/mean $L$')
+    #     axkappa2.set_xlabel(r'1/mean $\frac{1}{\kappa}$')
+    #     axkappa3.set_xlabel(r'1/mean $\frac{F/<F>}{\kappa}$')
+    #     axkappa2.set_xlim(0, 5)
+    #     axkappa3.set_xlim(0, 5)
     
-    print(f'ratio {check_name[0]}/{check_name[1]}:\nwith L= {Lfld[0]/Lfld[1]}\nwith mediankappa_inv = {mediankappa[1]/mediankappa[0]}, \nwith kappaFlux_inv = {kappaFlux[1]/kappaFlux[0]}')
+    print(f'ratio {check_name[0]}/{check_name[1]}:\nfor Ltot: {Lfld[0]/Lfld[1]}\nfor (inverse of) mediankappa = {mediankappa[1]/mediankappa[0]}, \nfor (inverse of) kappaFlux = {kappaFlux[1]/kappaFlux[0]}')
     # ax1.axvline(np.log10(maxRho_tab), color = 'k', linestyle = 'dotted', label = r'max table')
     ax1.axvline(np.log10(minRho_tab), color = 'k', linestyle = '--', label = r'min table')
-    ax1.set_xlabel(r'$\log_{10}\rho$ [g/cm$^3$]')
     ax2.axvline(np.log10(minT_tab), color = 'k', linestyle = '--')
     ax2.axvline(np.log10(maxT_tab), color = 'k', linestyle = '--')
-    ax2.set_xlabel(r'$\log_{10}$T [K]')
-    ax3.axvline(0.34, color = 'k', linestyle = '-.')
-    ax3.text(0.38, .8, r'$\kappa_{\rm scatt}$', fontsize = 25, rotation = 90)
-    ax3.set_xlabel(r'$\kappa$ [cm$^2$/g]')
-    ax4.set_xlabel(r'$\log_{10}\alpha$ [1/cm]')
+    if which_distrib == 'Cum':
+        ax1.set_xlabel(r'$\log_{10}\rho$ [g/cm$^3$]')
+        ax2.set_xlabel(r'$\log_{10}$T [K]')
+        ax3.set_xlabel(r'$\log_{10}\kappa$ [cm$^2$/g]')
+        ax4.set_xlabel(r'$\log_{10}\alpha$ [1/cm]')        
+    ax3.axvline(np.log10(0.34), color = 'k', linestyle = '-.')
+    ax3.text(np.log10(0.36), .8, r'$\kappa_{\rm scatt}$', fontsize = 25, rotation = 90)
     for ax in [ax1, ax2, ax3, ax4]:
         ax.tick_params(axis='x', which='major', width = 1.5, length = 9, color = 'k')  
         if ax in [ax1, ax3]:
@@ -220,8 +234,8 @@ if choose == 'distribution':
     ax1.legend(fontsize = 20, loc = 'lower right')
     if where == 'Ph':
         d_min, d_max = -14.5, -9.5
-        k_min, k_max = 0, 6.5
-        alpha_min, alpha_max = -13.1, -11
+        k_min, k_max = -0.5, 2
+        alpha_min, alpha_max = -13.1, -9.5
         fig.suptitle(f'Photospheric cells at t = {np.round(tfb,2)} ' + r't$_{\rm fb}$. Median $R_{ph}$:' + f'{check_name[0]} {int(median_Rph[0])} R$_\odot$, {check_name[1]} {int(median_Rph[1])} R$_\odot$', fontsize = 20)
     if where == 'Mid':
         if change == 'Extr':
@@ -236,10 +250,11 @@ if choose == 'distribution':
     ax1.set_xlim(d_min, d_max)
     ax2.set_xlim(3.5, 8)
     ax3.set_xlim(k_min, k_max)
-    axscatt.set_ylim(k_min, k_max)
+    # axkappa.set_ylim(k_min, k_max)
     ax4.set_xlim(alpha_min, alpha_max)
     fig.tight_layout()
     fig.savefig(f'{abspath}/Figs/Test/MazeOfRuns/{change}/{which_distrib}{where}runs{snap}.png', bbox_inches = 'tight')
+    figkappa.savefig(f'{abspath}/Figs/Test/MazeOfRuns/{change}/{which_distrib}Kappa{where}runs{snap}.png', bbox_inches = 'tight')
 
 if choose == 'section':
     Ncell = np.zeros(len(checks))

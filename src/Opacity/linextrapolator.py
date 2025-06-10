@@ -6,9 +6,8 @@ Created on Tue Nov 26 15:12:06 2024
 @author: konstantinos
 """
 import numpy as np
-import Utilities.prelude as prel
 
-def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 7, highT_slope = 0, extrarowsx = 101, 
+def first_rich_extrap(x, y, K, scatter = None, slope_length = 7, highT_slope = 0, extrarowsx = 101, 
                  extrarowsy = 100):
     ''' 
     Extra/Interpolation as in the last runs of RICH.
@@ -24,8 +23,6 @@ def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 7, high
     extrarowsx/extrarowsy, int: number of rows/columns to extrapolate.
     
     '''
-    thomson = 0.2 * (1 + prel.X_nf)
-    
     # Extend x and y, adding data equally space (this suppose x,y as array equally spaced)
     # Low extrapolation
     deltaxn_low = x[1] - x[0]
@@ -58,9 +55,9 @@ def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 7, high
                     # slope_rho.append(Kyslope)
                     Kn[ix][iy] = K[0, 0] + Kxslope * (xsel - x[0]) + Kyslope * (ysel - y[0])
                 
-                    if np.logical_and(highT_slope != -3.5, what == 'scattering_limit'):
+                    if np.logical_and(highT_slope != -3.5, scatter is not None):
                         # the condition on highT_slope is beacuse for the first runs of RICH we didn't have the thomson limit
-                        thomson_this_den = np.log(thomson * np.exp(ysel)) # 1/cm
+                        thomson_this_den = scatter[ix][iy]
                         if Kn[ix][iy] < thomson_this_den:
                             Kn[ix][iy] = thomson_this_den
 
@@ -82,23 +79,19 @@ def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 7, high
                     deltay = y[slope_length - 1] - y[0]
                     Kxslope = highT_slope #(K[-1, 0] - K[-slope_length, 0]) / deltax
                     Kyslope = (K[-1, slope_length - 1] - K[-1, 0]) / deltay
-                    # rho_ext.append(ysel)
-                    # slope_rho.append(Kyslope)
                     Kn[ix][iy] = K[-1, 0] + Kxslope * (xsel - x[-1]) + Kyslope * (ysel - y[0])
                 elif ysel > y[-1]: # Too dense
                     deltay = y[-1] - y[-slope_length] 
                     Kxslope = highT_slope #(K[-1, -1] - K[-slope_length, -1]) / deltax
                     Kyslope = (K[-1, -1] - K[-1, -slope_length]) / deltay
-                    # rho_ext.append(ysel)
-                    # slope_rho.append(Kyslope)
                     Kn[ix][iy] = K[-1, -1] + Kxslope * (xsel - x[-1]) + Kyslope * (ysel - y[-1])
                 else: # Density is inside the table
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kxslope = highT_slope #(K[-1, iy_inK] - K[-slope_length, iy_inK]) / deltax
                     Kn[ix][iy] = K[-1, iy_inK] + Kxslope * (xsel - x[-1])
                 
-                if what == 'scattering_limit':
-                    thomson_this_den = np.log(thomson * np.exp(ysel)) # 1/cm
+                if scatter is not None:
+                    thomson_this_den = scatter[ix][iy]
                     if Kn[ix][iy] < thomson_this_den:
                         Kn[ix][iy] = thomson_this_den
 
@@ -107,142 +100,25 @@ def first_rich_extrap(x, y, K, what = 'scattering_limit', slope_length = 7, high
                 if ysel < y[0]: # Too rarefied, Temperature is inside table
                     deltay = y[slope_length - 1] - y[0]
                     Kyslope = (K[ix_inK, slope_length - 1] - K[ix_inK, 0]) / deltay
-                    # rho_ext_Ld.append(ysel)
-                    # slope_rho_Ld.append(Kyslope)
-                    # Temp_ext_Ld.append(np.exp(xsel))
                     Kn[ix][iy] = K[ix_inK, 0] + Kyslope * (ysel - y[0])
 
-                    if np.logical_and(highT_slope != -3.5, what == 'scattering_limit'):
-                        thomson_this_den = np.log(thomson * np.exp(ysel)) # 1/cm
+                    if np.logical_and(highT_slope != -3.5, scatter is not None):
+                        thomson_this_den =  scatter[ix][iy] # 1/cm
                         if Kn[ix][iy] < thomson_this_den:
                             Kn[ix][iy] = thomson_this_den
                     
                 elif ysel > y[-1]:  # Too dense, Temperature is inside table
                     deltay = y[-1] - y[-slope_length]
                     Kyslope = (K[ix_inK, -1] - K[ix_inK, -slope_length]) / deltay
-                    # rho_ext_Hd.append(ysel)
-                    # slope_rho_Hd.append(Kyslope)
-                    # Temp_ext_Hd.append(np.exp(xsel))
                     Kn[ix][iy] = K[ix_inK, -1] + Kyslope * (ysel - y[-1])
 
                 else:
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kn[ix][iy] = K[ix_inK, iy_inK]
 
-    # if __name__ == '__main__':
-    #     fig1, ax1 = plt.subplots(1, 1, figsize=(6, 6))
-    #     fig2, ax2 = plt.subplots(1, 1, figsize=(6, 6))
-    #     ax1.scatter(np.log10(np.exp(rho_ext_Ld)), slope_rho_Ld, s = 2, c = Temp_ext_Ld,
-    #                cmap = 'rainbow', norm = LogNorm(vmin = 6e3, vmax = 6e7))
-    #     cbar = plt.colorbar(ax1.collections[0])
-    #     cbar.set_label('T [K]')
-    #     ax2.scatter(np.log10(np.exp(rho_ext_Hd)), slope_rho_Hd, s = 2, c = Temp_ext_Hd,
-    #                cmap = 'rainbow', norm = LogNorm(vmin = 6e3, vmax = 6e7))
-    #     cbar = plt.colorbar(ax2.collections[0])
-    #     cbar.set_label('T [K]')
-    #     for ax in [ax1, ax2]:
-    #         ax.set_xlabel(r'$\log_{10}(\rho)$')
-    #         ax.set_ylabel(r'$\frac{\ln\kappa_5-\ln\kappa_0}{\ln\rho_5-\ln\rho_0}$')
-    #         bigticks = np.arange(-19, 14, 2)
-    #         middle_ticks = (bigticks[:-1] + bigticks[1:]) / 2
-    #         ticks = np.concatenate([bigticks, middle_ticks])
-    #         labels = [f'{int(tick)}' if tick in bigticks else "" for tick in ticks]
-    #         ax.set_xticks(ticks)
-    #         ax.set_xticklabels(labels)
-    #         # y
-    #         bigticks = np.arange(.5, 3, .5)
-    #         middle_ticks = (bigticks[:-1] + bigticks[1:]) / 2
-    #         ticks = np.concatenate([bigticks, middle_ticks])
-    #         labels = [f'{tick}' if tick in bigticks else "" for tick in ticks]
-    #         ax.set_yticks(ticks)
-    #         ax.set_yticklabels(labels)
-    #         ax.grid()
-    #     ax1.set_ylim(0.8, 2.8)
-    #     ax2.set_ylim(0.8, 1.8)
-    #     ax1.set_xlim(-19, -10)
-    #     ax2.set_xlim(1.9, 12)
-    #     plt.show()
-
     return xn, yn, Kn
 
-
-# def bilinear_rich(x, y, K, what = 'scattering_limit', extrarowsx = 101, 
-#                  extrarowsy = 100, highT_slope = 0):
-#     ''' 
-#     Extra/Interpolation as in the first runs of RICH, where the slope was given by the last and 5th point.
-#     Look at:
-#     - https://gitlab.com/eladtan/RICH/-/blob/master/source/misc/utils.cpp 
-#     - CalcDiffusionCoefficient, which gives you the inverse of Rosseland in https://gitlab.com/eladtan/RICH/-/blob/master/source/Radiation/STAgreyOpacity.cpp 
-#     x: array of ln(T)
-#     y: array of ln(rho)
-#     K: array of ln(kappa) [1/cm]
-#     what, str: either scattering_limit or ''.
-#                if scattering_limit, brings to opacity always above thomson. It has to be applied for rosseland.
-#     slope_length, int: position of the other point used for the slope.
-#     highT_slope, float: slope for high temperature extrapolation.
-#     extrarowsx/extrarowsy, int: number of rows/columns to extrapolate.
-#     '''
-#     thomson = 0.2 * (1 + prel.X_nf)
-    
-#     # Extend x and y, adding data equally space (this suppose x,y as array equally spaced)
-#     # Low extrapolation
-#     deltaxn_low = x[1] - x[0]
-#     deltayn_low = y[1] - y[0] 
-#     x_extra_low = [x[0] - deltaxn_low * (i + 1) for i in range(extrarowsx)]
-#     y_extra_low = [y[0] - deltayn_low * (i + 1) for i in range(extrarowsy)]
-    
-#     # High extrapolation
-#     deltaxn_high = x[-1] - x[-2]
-#     deltayn_high = y[-1] - y[-2]
-#     x_extra_high = [x[-1] + deltaxn_high * (i + 1) for i in range(extrarowsx)]
-#     y_extra_high = [y[-1] + deltayn_high * (i + 1) for i in range(extrarowsy)]
-    
-#     # Stack, reverse low to stack properly
-#     xn = np.concatenate([x_extra_low[::-1], x, x_extra_high])
-#     yn = np.concatenate([y_extra_low[::-1], y, y_extra_high])
-    
-#     Kn = np.zeros((len(xn), len(yn)))
-#     for ix, xsel in enumerate(xn):
-#         for iy, ysel in enumerate(yn):
-#             if xsel < x[0]: # Too cold
-#                 if ysel < y[0]: # Too rarefied
-#                     Kn[ix][iy] = K[0, 0] + (xsel - x[0]) + (ysel - y[0])
-#                 elif ysel > y[-1]: # Too dense
-#                     Kn[ix][iy] = K[0, -1] + (xsel - x[0]) + (ysel - y[-1])
-#                 else: # Density is inside the table
-#                     iy_inK = np.argmin(np.abs(y - ysel))
-#                     Kn[ix][iy] = K[0, iy_inK] + (xsel - x[0])
-            
-#             # Too hot
-#             elif xsel > x[-1]: 
-#                 if ysel < y[0]: # Too rarefied 
-#                     Kn[ix][iy] = K[-1, 0] + highT_slope * (xsel - x[-1]) + (ysel - y[0])
-#                 elif ysel > y[-1]: # Too dense #(K[-1, -1] - K[-slope_length, -1]) / deltax
-#                     Kn[ix][iy] = K[-1, -1] + highT_slope * (xsel - x[-1]) + (ysel - y[-1])
-#                 else: # Density is inside the table
-#                     iy_inK = np.argmin(np.abs(y - ysel)) 
-#                     Kn[ix][iy] = K[-1, iy_inK] + highT_slope * (xsel - x[-1])
-                
-#                 if what == 'scattering_limit':
-#                     thomson_this_den = np.log(thomson * np.exp(ysel)) # 1/cm
-#                     if Kn[ix][iy] < thomson_this_den:
-#                         Kn[ix][iy] = thomson_this_den
-
-#             else: 
-#                 ix_inK = np.argmin(np.abs(x - xsel))
-#                 if ysel < y[0]: # Too rarefied, Temperature is inside table
-#                     Kn[ix][iy] = K[ix_inK, 0] + (ysel - y[0])
-                    
-#                 elif ysel > y[-1]:  # Too dense, Temperature is inside table
-#                     Kn[ix][iy] = K[ix_inK, -1] + (ysel - y[-1])
-
-#                 else:
-#                     iy_inK = np.argmin(np.abs(y - ysel))
-#                     Kn[ix][iy] = K[ix_inK, iy_inK]
-
-#     return xn, yn, Kn
-
-def linear_rich(x, y, K, what = 'scattering_limit', extrarowsx = 101, 
+def linear_rich(x, y, K, scatter = None, extrarowsx = 101, 
                  extrarowsy = 100, slope_length = 7, highT_slope = 0):
     ''' 
     Extra/Interpolation as in the middle-new runs of RICH.
@@ -257,9 +133,7 @@ def linear_rich(x, y, K, what = 'scattering_limit', extrarowsx = 101,
     slope_length, int: position of the other point used for the slope.
     highT_slope, float: slope for high temperature extrapolation.
     extrarowsx/extrarowsy, int: number of rows/columns to extrapolate.
-    '''
-    thomson = 0.2 * (1 + prel.X_nf)
-    
+    '''    
     # Extend x and y, adding data equally space (this suppose x,y as array equally spaced)
     # Low extrapolation
     deltaxn_low = x[1] - x[0]
@@ -310,8 +184,8 @@ def linear_rich(x, y, K, what = 'scattering_limit', extrarowsx = 101,
                     Kxslope = highT_slope #(K[-1, iy_inK] - K[-slope_length, iy_inK]) / deltax
                     Kn[ix][iy] = K[-1, iy_inK] + Kxslope * (xsel - x[-1])
                 
-                if what == 'scattering_limit':
-                    thomson_this_den = np.log(thomson * np.exp(ysel)) # 1/cm
+                if scatter is not None:
+                    thomson_this_den = scatter[ix][iy]
                     if Kn[ix][iy] < thomson_this_den:
                         Kn[ix][iy] = thomson_this_den
 
@@ -347,6 +221,8 @@ if __name__ == '__main__':
     Rho_tab = np.loadtxt(f'{opac_path}/rho.txt') 
     rossland_tab = np.loadtxt(f'{opac_path}/ross.txt') # Each row is a fixed T, column a fixed rho
     planck_tab = np.loadtxt(f'{opac_path}/planck.txt') # Each row is a fixed T, column a fixed rho
+    scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
+
     T_plot_tab = np.exp(T_tab)
     Rho_plot_tab = np.exp(Rho_tab)
     ross_plot_tab = np.exp(rossland_tab)
@@ -401,19 +277,26 @@ if __name__ == '__main__':
         plt.savefig(f'{abspath}/Figs/Test/extrap_kappa_slope.png')
 
     #%% Extrapolate
+    _, _, scatter2 = linear_rich(T_tab, Rho_tab, scattering, slope_length = 7, highT_slope = 0)
+    scatter2_plot = np.exp(scatter2) # 1/cm
+
     T_RICH, Rho_RICH, rosslandRICH = \
-        first_rich_extrap(T_tab, Rho_tab, rossland_tab, what = 'scattering_limit', slope_length = 5, highT_slope=-3.5)
+        first_rich_extrap(T_tab, Rho_tab, rossland_tab, scatter = scatter2, slope_length = 5, highT_slope=-3.5)
     T_plotRICH = np.exp(T_RICH)
     Rho_plotRICH = np.exp(Rho_RICH)
     ross_plotRICH = np.exp(rosslandRICH)
     T_linRICH, Rho_linRICH, ross_linRICH = \
-        linear_rich(T_tab, Rho_tab, rossland_tab, what = 'scattering_limit', highT_slope=0)
+        linear_rich(T_tab, Rho_tab, rossland_tab, scatter = scatter2, highT_slope=0)
     # T_linRICH, Rho_linRICH, ross_linRICH = \
     #     first_rich_extrap(T_tab, Rho_tab, rossland_tab, what = 'scattering_limit', slope_length = 5, highT_slope=0)
     T_plotRICH_lin = np.exp(T_linRICH)
     Rho_plotRICH_lin = np.exp(Rho_linRICH)
     ross_plotRICH_lin = np.exp(ross_linRICH)
-    
+
+    _, _, rossland_finalRICH = \
+        first_rich_extrap(T_tab, Rho_tab, rossland_tab, scatter = scatter2, slope_length = 7, highT_slope= 0)
+    ross_plot_finalRICH = np.exp(rossland_finalRICH)
+
     # fixed T
     chosenTs = [1e4, 1e5, 1e7] #all inside the table
     fig, ax = plt.subplots(1,3, figsize = (15,5))
@@ -498,6 +381,16 @@ if __name__ == '__main__':
     plt.tight_layout()
 
     #%% Mesh
+    scatter_rho_RICH = []
+    for i in range(len(T_plotRICH)):
+        scatter_rho_RICH.append(scatter2_plot[i, :]/Rho_plotRICH)
+    scatter_rho_RICH = np.array(scatter_rho_RICH)
+
+    ross_rho_finalRICH = []
+    for i in range(len(T_plotRICH)):
+        ross_rho_finalRICH.append(ross_plot_finalRICH[i, :]/Rho_plotRICH)
+    ross_rho_finalRICH = np.array(ross_rho_finalRICH)
+
     ross_rho_RICH = []
     for i in range(len(T_plotRICH)):
         ross_rho_RICH.append(ross_plotRICH[i, :]/Rho_plotRICH)
@@ -506,17 +399,26 @@ if __name__ == '__main__':
     for i in range(len(T_plotRICH_lin)):
         ross_rho_linRICH.append(ross_plotRICH_lin[i, :]/Rho_plotRICH_lin)
     ross_rho_linRICH = np.array(ross_rho_linRICH)
-    fig, (ax1,ax2) = plt.subplots(1,2, figsize = (12,5))
-    img = ax1.pcolormesh(np.log10(T_plotRICH), np.log10(Rho_plotRICH), ross_rho_RICH.T,  norm = LogNorm(vmin = 1e-5, vmax=1e5), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+
+    fig, (ax0, axfin, ax1,ax2) = plt.subplots(1,4, figsize = (20,5))
+    img = ax0.pcolormesh(np.log10(T_plotRICH), np.log10(Rho_plotRICH), scatter_rho_RICH.T,  norm = LogNorm(vmin = 1e-5, vmax=1e4), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+    cbar = plt.colorbar(img)
+    ax0.set_title('Scattering')
+
+    img = axfin.pcolormesh(np.log10(T_plotRICH), np.log10(Rho_plotRICH), ross_rho_finalRICH.T,  norm = LogNorm(vmin = 1e-5, vmax=1e4), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+    cbar = plt.colorbar(img)
+    axfin.set_title('Final extrap')
+
+    img = ax1.pcolormesh(np.log10(T_plotRICH), np.log10(Rho_plotRICH), ross_rho_RICH.T,  norm = LogNorm(vmin = 1e-5, vmax=1e4), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
     cbar = plt.colorbar(img)
     ax1.set_title('Old extrapolation')
-    ax1.set_ylabel(r'$\log_{10} \rho$ [g/cm$^3$]')
-    img = ax2.pcolormesh(np.log10(T_plotRICH_lin), np.log10(Rho_plotRICH_lin), ross_rho_linRICH.T, norm = LogNorm(vmin = 1e-5, vmax=1e5), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+    ax0.set_ylabel(r'$\log_{10} \rho$ [g/cm$^3$]')
+    img = ax2.pcolormesh(np.log10(T_plotRICH_lin), np.log10(Rho_plotRICH_lin), ross_rho_linRICH.T, norm = LogNorm(vmin = 1e-5, vmax=1e4), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
     cbar = plt.colorbar(img)
     cbar.set_label(r'$\kappa$ [cm$^2$/g]')
-    ax2.set_title('New extrapolation')
+    ax2.set_title('A=1 extrapolation')
 
-    for ax in [ax1, ax2]:
+    for ax in [ax0, ax1, ax2, axfin]:
         ax.axvline(np.log10(min_T), color = 'grey', linestyle = '--', label = 'lim table')
         ax.axvline(np.log10(max_T), color = 'grey', linestyle = '--')
         ax.axhline(np.log10(min_Rho), color = 'grey', linestyle = '--')
