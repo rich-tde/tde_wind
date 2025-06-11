@@ -22,7 +22,7 @@ import scipy.integrate as sci
 from scipy.interpolate import griddata
 import matlab.engine
 from sklearn.neighbors import KDTree
-from src.Opacity.linextrapolator import first_rich_extrap, linear_rich
+from src.Opacity.linextrapolator import opacity_extrap, opacity_linear
 from scipy.ndimage import uniform_filter1d
 
 import Utilities.prelude as prel
@@ -53,13 +53,13 @@ T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
-_, _, scatter2 = linear_rich(T_cool, Rho_cool, scattering, slope_length = 7, highT_slope = 0)
+_, _, scatter2 = opacity_linear(T_cool, Rho_cool, scattering, slope_length = 7, highT_slope = 0)
 if check in ['LowRes', '', 'HiRes']:
-    T_cool2, Rho_cool2, rossland2 = first_rich_extrap(T_cool, Rho_cool, rossland, scatter = scatter2, slope_length = 5, highT_slope = -3.5)
+    T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, scatter = scatter2, slope_length = 5, highT_slope = -3.5)
 if check in ['LowResNewAMR', 'LowResNewAMRRemoveCenter', 'NewAMRRemoveCenter']:
-    T_cool2, Rho_cool2, rossland2 = first_rich_extrap(T_cool, Rho_cool, rossland, scatter = scatter2, slope_length = 7, highT_slope = 0)
+    T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, scatter = scatter2, slope_length = 7, highT_slope = 0)
 if check in ['LowResOpacityNew', 'OpacityNew', 'OpacityNewNewAMR']:
-    T_cool2, Rho_cool2, rossland2 = linear_rich(T_cool, Rho_cool, rossland, scatter = scatter2, slope_length = 7, highT_slope = 0)
+    T_cool2, Rho_cool2, rossland2 = opacity_linear(T_cool, Rho_cool, rossland, scatter = scatter2, slope_length = 7, highT_slope = 0)
           
 N_ray = 5_000
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)

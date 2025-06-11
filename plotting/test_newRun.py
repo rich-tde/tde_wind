@@ -16,7 +16,7 @@ import src.orbits as orb
 import Utilities.prelude as prel
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-from src.Opacity.linextrapolator import first_rich_extrap, linear_rich
+from src.Opacity.linextrapolator import opacity_extrap, opacity_linear
 import matlab.engine
 
 #
@@ -42,11 +42,11 @@ compton = 'Compton'
 choose = 'distribution' # section, distribution
 change = 'Extr'
 if change == 'Extr':
-    snap = 267 # 164 or 267 
+    snap = 248 # Fid: 164 or 267 // Low: 126, 248
     eng = matlab.engine.start_matlab()
-    checks = ['', 'OpacityNew']
+    checks = ['LowRes', 'LowResOpacityNew'] #['', 'OpacityNew']
     check_name = ['Old','NewExtr+OldAMR']
-    colorshist = ['yellowgreen', 'forestgreen']
+    colorshist = ['C1', 'goldenrod'] #['yellowgreen', 'forestgreen']
     styles = ['solid', 'dashed']
     markers = ['o', 'x']
 elif change == 'AMR':
@@ -66,7 +66,7 @@ minRho_tab, maxRho_tab = np.min(np.exp(Rho_cool)), np.max(np.exp(Rho_cool))
 
 if choose == 'distribution':
     alphahist = [.8, 0.5]
-    which_distrib = 'Histo' # 'Cum' or 'Histo
+    which_distrib = 'Cum' # 'Cum' or 'Histo
     where = 'Ph' # 'Ph' or 'Mid'
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize = (15, 15))
     figkappa, ((axkappa1, axkappa4) ,(axkappa2, axkappa3)) = plt.subplots(2,2, figsize = (15, 15))
@@ -96,18 +96,6 @@ if choose == 'distribution':
             den_cgs = Den_midplane * prel.den_converter # [g/cm^3]
             Temp_cgs = Temp_midplane # [K]
 
-            if check in ['LowRes', '', 'HiRes']:
-                T_cool2, Rho_cool2, rosseland2 = first_rich_extrap(T_cool, Rho_cool, rosseland, what = 'scattering_limit', slope_length = 5, highT_slope = -3.5)
-            if check in ['LowResNewAMR', 'LowResNewAMRRemoveCenter', 'NewAMRRemoveCenter']:
-                T_cool2, Rho_cool2, rosseland2 = first_rich_extrap(T_cool, Rho_cool, rosseland, what = 'scattering_limit', slope_length = 7, highT_slope = 0)
-            if check in ['LowResOpacityNew', 'OpacityNew', 'OpacityNewNewAMR']:
-                T_cool2, Rho_cool2, rosseland2 = linear_rich(T_cool, Rho_cool, rosseland, what = 'scattering_limit', slope_length = 7, highT_slope = 0)
-            
-            # Compute Rosseland opacity
-            ln_alpha = eng.interp2(T_cool2, Rho_cool2, rosseland2.T, np.log(Temp_cgs), np.log(den_cgs), 'linear', 0)
-            ln_alpha = np.array(ln_alpha)[0]
-            alpha = np.exp(ln_alpha) # [1/cm]
-            alpha[ln_alpha == 0.0] = 1e-20
 
         if where == 'Ph':
             # download fluxes and photosphere
@@ -129,6 +117,20 @@ if choose == 'distribution':
             Temp_cgs = Tempph # [K]
             print(f'Lfld in {check_name[i]} at time {np.round(tfb,2)} = {Lfld[i]} erg/s')
 
+        scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
+        _, _, scatter_ext = opacity_linear(T_cool, Rho_cool, scattering, slope_length = 7, highT_slope = 0)    
+        if check in ['LowRes', '', 'HiRes']:
+            T_cool2, Rho_cool2, rosseland2 = opacity_extrap(T_cool, Rho_cool, rosseland, scatter = scatter_ext, slope_length = 5, highT_slope = -3.5)
+        if check in ['LowResNewAMR', 'LowResNewAMRRemoveCenter', 'NewAMRRemoveCenter']:
+            T_cool2, Rho_cool2, rosseland2 = opacity_extrap(T_cool, Rho_cool, rosseland, scatter = scatter_ext, slope_length = 7, highT_slope = 0)
+        if check in ['LowResOpacityNew', 'OpacityNew', 'OpacityNewNewAMR']:
+            T_cool2, Rho_cool2, rosseland2 = opacity_linear(T_cool, Rho_cool, rosseland, scatter = scatter_ext, slope_length = 7, highT_slope = 0)
+        
+        # Compute Rosseland opacity
+        ln_alpha = eng.interp2(T_cool2, Rho_cool2, rosseland2.T, np.log(Temp_cgs), np.log(den_cgs), 'linear', 0)
+        ln_alpha = np.array(ln_alpha)[0]
+        alpha = np.exp(ln_alpha) # [1/cm]
+        alpha[ln_alpha == 0.0] = 1e-20
         kappa = alpha/den_cgs # [cm^2/g]
 
         if where == 'Ph':
@@ -183,15 +185,18 @@ if choose == 'distribution':
         labels_d = [f'{int(tick)}' if tick in new_ticks_d else '' for tick in all_ticks_d]
         ax1.set_xticks(all_ticks_d)
         ax1.set_xticklabels(labels_d)
-        new_ticks_t = np.arange(3, 8, .5)   
-        ax2.set_xticks(new_ticks_t)
+        new_ticks_t = np.arange(3, 11, 1)  
+        mid_t = (new_ticks_t[:-1] + new_ticks_t[1:]) / 2
+        all_ticks_t = np.concatenate([new_ticks_t, mid_t])
+        labels_t = [f'{tick:.1f}' if tick in new_ticks_t else '' for tick in all_ticks_t]
+        ax2.set_xticklabels(labels_t) 
         new_ticks_k = np.arange(-2, 4, .5)
         mid_k = (new_ticks_k[:-1] + new_ticks_k[1:]) / 2
         all_ticks_k = np.concatenate([new_ticks_k, mid_k])
         labels_k = [f'{tick:.1f}' if tick in new_ticks_k else '' for tick in all_ticks_k]
         ax3.set_xticks(all_ticks_k)
         ax3.set_xticklabels(labels_k)
-        new_ticks_alpha = np.arange(-13, 7, 1) 
+        new_ticks_alpha = np.arange(-15, 7, 1) 
         mid_alpha = (new_ticks_alpha[:-1] + new_ticks_alpha[1:]) / 2
         all_ticks_alpha = np.sort(np.concatenate([new_ticks_alpha, mid_alpha]))
         mid_alpha = (all_ticks_alpha[:-1] + all_ticks_alpha[1:]) / 2
@@ -234,8 +239,8 @@ if choose == 'distribution':
     ax1.legend(fontsize = 20, loc = 'lower right')
     if where == 'Ph':
         d_min, d_max = -14.5, -9.5
-        k_min, k_max = -0.5, 2
-        alpha_min, alpha_max = -13.1, -9.5
+        k_min, k_max = -0.8, 2
+        alpha_min, alpha_max = -14.1, -10.5
         fig.suptitle(f'Photospheric cells at t = {np.round(tfb,2)} ' + r't$_{\rm fb}$. Median $R_{ph}$:' + f'{check_name[0]} {int(median_Rph[0])} R$_\odot$, {check_name[1]} {int(median_Rph[1])} R$_\odot$', fontsize = 20)
     if where == 'Mid':
         if change == 'Extr':
@@ -248,13 +253,13 @@ if choose == 'distribution':
         k_min, k_max = 0, 6
         fig.suptitle(f'Midplane cells at t = {np.round(tfb,2)} ' + r't$_{\rm fb}$, N$_{\rm cell, 1}$/N$_{\rm cell, 2}=$' + f'{np.round(Ncell_ph[0]/Ncell_ph[1], 2)}', fontsize = 20)
     ax1.set_xlim(d_min, d_max)
-    ax2.set_xlim(3.5, 8)
+    ax2.set_xlim(3.5, 8.5)
     ax3.set_xlim(k_min, k_max)
     # axkappa.set_ylim(k_min, k_max)
     ax4.set_xlim(alpha_min, alpha_max)
     fig.tight_layout()
-    fig.savefig(f'{abspath}/Figs/Test/MazeOfRuns/{change}/{which_distrib}{where}runs{snap}.png', bbox_inches = 'tight')
-    figkappa.savefig(f'{abspath}/Figs/Test/MazeOfRuns/{change}/{which_distrib}Kappa{where}runs{snap}.png', bbox_inches = 'tight')
+    fig.savefig(f'{abspath}/Figs/Test/MazeOfRuns/{change}/{which_distrib}{where}runs{checks[0]}{snap}.png', bbox_inches = 'tight')
+    figkappa.savefig(f'{abspath}/Figs/Test/MazeOfRuns/{change}/{which_distrib}Kappa{where}runs{checks[0]}{snap}.png', bbox_inches = 'tight')
 
 if choose == 'section':
     Ncell = np.zeros(len(checks))
@@ -285,9 +290,9 @@ if choose == 'section':
             extrapolated_temp = np.logical_or(Temp_midplane < minT_tab, Temp_midplane > maxT_tab)
             extrapoalted_all = np.logical_or(extrapolated_den, extrapolated_temp)
             if check in ['LowRes', '', 'HiRes']:
-                T_cool2, Rho_cool2, rosseland2 = first_rich_extrap(T_cool, Rho_cool, rosseland, what = 'scattering_limit', slope_length = 5, highT_slope=-3.5)
+                T_cool2, Rho_cool2, rosseland2 = opacity_extrap(T_cool, Rho_cool, rosseland, what = 'scattering_limit', slope_length = 5, highT_slope=-3.5)
             if check in ['OpacityNew', 'OpacityNewNewAMR']:
-                T_cool2, Rho_cool2, rosseland2 = linear_rich(T_cool, Rho_cool, rosseland, what = 'scattering_limit', highT_slope = 0)
+                T_cool2, Rho_cool2, rosseland2 = opacity_linear(T_cool, Rho_cool, rosseland, what = 'scattering_limit', highT_slope = 0)
             sigma_rosseland = eng.interp2(T_cool2, Rho_cool2, rosseland2.T, np.log(Temp_midplane), np.log(Den_midplane_cgs), 'linear', 0)
             sigma_rosseland = np.array(sigma_rosseland)[0]
             sigma_rosseland_eval = np.exp(sigma_rosseland) # [1/cm]

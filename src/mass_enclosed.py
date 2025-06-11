@@ -68,18 +68,10 @@ if alice:
             Diss_neg_encl[i,j] = np.sum(diss[np.logical_and(diss_neg, Rsph < R)] * vol[np.logical_and(diss_neg, Rsph < R)])
     
     np.savetxt(f'{abspath}/data/{folder}/{check}Mass_encl_time.txt', tfb)
-    with open(f'{abspath}/data/{folder}/{check}Mass_encl.txt','w') as file:
-        file.write('# just cells with den > 1e-19. Different lines are for quantities enclosed in R0, Rt, a_mb, apo\n')
-        file.write(''.join(map(str, Mass_encl)) + '\n')
-        file.close()
-    with open(f'{abspath}/data/{folder}/{check}Diss_pos_encl.txt','w') as file:
-        file.write('# just cells with den > 1e-19. Different lines are for quantities enclosed in R0, Rt, a_mb, apo\n')
-        file.write(''.join(map(str, Diss_pos_encl)) + '\n')
-        file.close()
-    with open(f'{abspath}/data/{folder}/{check}Diss_neg_encl.txt','w') as file:
-        file.write('# just cells with den > 1e-19. Different lines are for quantities enclosed in R0, Rt, a_mb, apo\n')
-        file.write(' '.join(map(str, Diss_neg_encl)) + '\n')
-        file.close()
+    np.savetxt(f'{abspath}/data/{folder}/{check}Mass_encl.txt', Mass_encl)
+    np.savetxt(f'{abspath}/data/{folder}/{check}Diss_pos_encl.txt', Diss_pos_encl)
+    np.savetxt(f'{abspath}/data/{folder}/{check}Diss_neg_encl.txt',Diss_neg_encl)
+    np.savetxt(f'{abspath}/data/{folder}/{check}R_Mass_encl.txt', Rcheck)
 
 else:
     checks = ['LowResNewAMR', 'LowResNewAMRRemoveCenter'] #['LowRes', '', 'HiRes']
