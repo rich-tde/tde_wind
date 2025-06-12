@@ -42,9 +42,9 @@ mstar = .5
 Rstar = .47
 n = 1.5 
 compton = 'Compton'
-check = 'QuadraticOpacity' # '' or 'LowRes' or 'HiRes' 
-save = True
-which_cut = 'high' #if 'high' cut density at 1e-12, if '' cut density at 1e-19
+check = 'LowResNewAMRRemoveCenter' # '' or 'LowRes' or 'HiRes' 
+save = False
+which_cut = '' #if 'high' cut density at 1e-12, if '' cut density at 1e-19
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
@@ -53,13 +53,14 @@ Rg = Rs/2
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 R0 = 0.6 * Rt
+Rstart = 0.4 * Rt
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
 if alice: 
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
     col_ecc2 = []
     # col_Rsph = []
-    radii = np.logspace(np.log10(R0), np.log10(apo),
+    radii = np.logspace(np.log10(Rstart), np.log10(apo),
                     num=200) 
     for i,snap in enumerate(snaps):
         print(snap)
@@ -83,18 +84,17 @@ if alice:
 
         col_ecc2.append(ecc_cast)
 
-    if save:
-        np.save(f'{abspath}/data/{folder}/Ecc2_{which_cut}_{check}.npy', col_ecc2)
-        with open(f'{abspath}/data/{folder}/Ecc_{which_cut}_{check}_days.txt', 'w') as file:
-            file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
-            file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-            file.close()
-        np.save(f'{abspath}/data/{folder}/radiiEcc_{which_cut}_{check}.npy', radii)
+    np.save(f'{abspath}/data/{folder}/Ecc2_{which_cut}_{check}.npy', col_ecc2)
+    with open(f'{abspath}/data/{folder}/Ecc_{which_cut}_{check}_days.txt', 'w') as file:
+        file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
+        file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+        file.close()
+    np.save(f'{abspath}/data/{folder}/radiiEcc_{which_cut}_{check}.npy', radii)
 
 else:
     ecc_slice = False
-    space_time = True
-    error = False
+    space_time = False
+    error = True
     ecc_crit = orb.e_mb(Rstar, mstar, Mbh, beta)
 
     if ecc_slice:
@@ -183,50 +183,50 @@ else:
             rel_diff.append(rel_diff_time_i)
             median[i] = np.median(rel_diff_time_i)
 
-    where_are_nans = np.isnan(rel_diff)
-    where_infs = np.isinf(rel_diff)
-    rel_diff = np.array(rel_diff)
-    print('max error', np.max(rel_diff[np.logical_and(~where_are_nans, ~where_infs)]))
-    fig, (ax1, ax2) = plt.subplots(1,2, figsize = (20,10))    
-    img = ax1.pcolormesh(radii/apo, tfb, rel_diff, cmap = 'inferno', vmin = 0.9, vmax = 1.1, rasterized = True)
-    ax1.set_xscale('log')
-    ax1.set_xlabel(r'$R [R_{\rm a}]$')#, fontsize = 25)
-    ax1.set_ylabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
-    ax1.set_ylim(np.min(tfb), np.max(tfbFid))
-    cb = plt.colorbar(img,  orientation='horizontal')
-    cb.set_label(r'$\mathcal{R}$ eccentricity')#, fontsize = 25)
-    cb.ax.tick_params(labelsize=25)
-    cb.ax.tick_params(width=1, length=11, color = 'k',)
+        where_are_nans = np.isnan(rel_diff)
+        where_infs = np.isinf(rel_diff)
+        rel_diff = np.array(rel_diff)
+        print('max error', np.max(rel_diff[np.logical_and(~where_are_nans, ~where_infs)]))
+        fig, (ax1, ax2) = plt.subplots(1,2, figsize = (20,10))    
+        img = ax1.pcolormesh(radii/apo, tfb, rel_diff, cmap = 'inferno', vmin = 0.9, vmax = 1.1, rasterized = True)
+        ax1.set_xscale('log')
+        ax1.set_xlabel(r'$R [R_{\rm a}]$')#, fontsize = 25)
+        ax1.set_ylabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
+        ax1.set_ylim(np.min(tfb), np.max(tfbFid))
+        cb = plt.colorbar(img,  orientation='horizontal')
+        cb.set_label(r'$\mathcal{R}$ eccentricity')#, fontsize = 25)
+        cb.ax.tick_params(labelsize=25)
+        cb.ax.tick_params(width=1, length=11, color = 'k',)
 
-    ax2.plot(tfb, median, c = 'yellowgreen', linewidth = 4)
-    ax2.set_ylabel(r'$\mathcal{R}$ median eccentricity')# fontsize = 25)
-    # ax2.set_ylim(0.98, 1.08)
-    ax2.grid()
-    ax2.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
+        ax2.plot(tfb, median, c = 'yellowgreen', linewidth = 4)
+        ax2.set_ylabel(r'$\mathcal{R}$ median eccentricity')# fontsize = 25)
+        # ax2.set_ylim(0.98, 1.08)
+        ax2.grid()
+        ax2.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
 
     if error:
         import matplotlib.gridspec as gridspec
-        folderL = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes'
+        folderL = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowResNewAMR'
         pathL = f'{abspath}/data/{folderL}'
-        ecc2L = np.load(f'{pathL}/Ecc2_LowRes.npy') 
+        ecc2L = np.load(f'{pathL}/Ecc2_{which_cut}_LowResNewAMR.npy') 
         eccL = np.sqrt(ecc2L)
-        tfb_dataL = np.loadtxt(f'{pathL}/Ecc_LowRes_days.txt')
+        tfb_dataL = np.loadtxt(f'{pathL}/Ecc_{which_cut}_LowResNewAMR_days.txt')
         snapL, tfbL = tfb_dataL[0], tfb_dataL[1]
-        radii = np.load(f'{pathL}/radiiEcc_LowRes.npy')
+        radii = np.load(f'{pathL}/radiiEcc_{which_cut}_LowResNewAMR.npy')
 
-        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowResNewAMRRemoveCenter'
         path = f'{abspath}/data/{folder}'
-        ecc2 = np.load(f'{path}/Ecc2_.npy') 
+        ecc2 = np.load(f'{path}/Ecc2_{which_cut}_LowResNewAMRRemoveCenter.npy') 
         ecc = np.sqrt(ecc2)
-        tfb_data = np.loadtxt(f'{path}/Ecc__days.txt')
+        tfb_data = np.loadtxt(f'{path}/Ecc_{which_cut}_LowResNewAMRRemoveCenter_days.txt')
         snap, tfb = tfb_data[0], tfb_data[1]
 
-        folderH = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes'
-        pathH = f'{abspath}/data/{folderH}'
-        ecc2H = np.load(f'{pathH}/Ecc2_HiRes.npy') 
-        eccH = np.sqrt(ecc2H)
-        tfb_dataH = np.loadtxt(f'{pathH}/Ecc_HiRes_days.txt')
-        snapH, tfbH = tfb_dataH[0], tfb_dataH[1]
+        # folderH = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes'
+        # pathH = f'{abspath}/data/{folderH}'
+        # ecc2H = np.load(f'{pathH}/Ecc2_HiRes.npy') 
+        # eccH = np.sqrt(ecc2H)
+        # tfb_dataH = np.loadtxt(f'{pathH}/Ecc_HiRes_days.txt')
+        # snapH, tfbH = tfb_dataH[0], tfb_dataH[1]
 
         # relative difference L and middle
         rel_diffL = []
@@ -240,15 +240,15 @@ else:
             medianL[i] = np.median(rel_diff_time_i)
             medianLoverF[i] = np.median(eccL[i]/ecc[idx])
         rel_diffH = []
-        medianH = np.zeros(len(eccH))
-        medianFoverH = np.zeros(len(eccH))
-        for i in range(len(eccH)):
-            time = tfbH[i]
-            idx = np.argmin(np.abs(tfb - time))
-            rel_diff_time_i =  find_ratio(ecc[idx], eccH[i]) #
-            rel_diffH.append(rel_diff_time_i)
-            medianH[i] = np.median(rel_diff_time_i)
-            medianFoverH[i] = np.median(ecc[idx]/eccH[i])
+        # medianH = np.zeros(len(eccH))
+        # medianFoverH = np.zeros(len(eccH))
+        # for i in range(len(eccH)):
+        #     time = tfbH[i]
+        #     idx = np.argmin(np.abs(tfb - time))
+        #     rel_diff_time_i =  find_ratio(ecc[idx], eccH[i]) #
+        #     rel_diffH.append(rel_diff_time_i)
+        #     medianH[i] = np.median(rel_diff_time_i)
+        #     medianFoverH[i] = np.median(ecc[idx]/eccH[i])
 
         #%% Plot
         fig = plt.figure(figsize=(25, 9))
@@ -257,19 +257,19 @@ else:
         ax2 = fig.add_subplot(gs[0, 1])  # Second plot
         ax3 = fig.add_subplot(gs[0, 2])  # Third plot
 
-        img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'inferno', vmin = 0.95, vmax = 1.05, rasterized = True)
+        img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'inferno', vmin = 0.95, vmax = 1.5, rasterized = True)
         ax1.set_xscale('log')
         ax1.text(0.22, .88*np.max(tfbL), 'Low vs Fid', fontsize = 28, color = 'k')
         ax1.set_xlabel(r'$R [R_{\rm a}]$')#, fontsize = 25)
         ax1.set_ylabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
 
-        img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'inferno', vmin = 0.95, vmax = 1.05, rasterized = True)
-        ax2.set_xscale('log')
-        ax2.text(0.21, 0.88*np.max(tfbH), 'Fid vs High', fontsize = 28, color = 'k')
-        ax2.set_xlabel(r'$R [R_{\rm a}]$')#, fontsize = 25)
+        # img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'inferno', vmin = 0.95, vmax = 1.05, rasterized = True)
+        # ax2.set_xscale('log')
+        # ax2.text(0.21, 0.88*np.max(tfbH), 'Fid vs High', fontsize = 28, color = 'k')
+        # ax2.set_xlabel(r'$R [R_{\rm a}]$')#, fontsize = 25)
 
         # Create a colorbar that spans the first two subplots
-        cbar_ax = fig.add_subplot(gs[1, 0:2])  # Colorbar subplot below the first two
+        cbar_ax = fig.add_subplot(gs[1, 0])#0:2])  # Colorbar subplot below the first two
         cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
         cb.set_label(r'$\mathcal{R}$ eccentricity')#, fontsize = 25)
         cb.ax.tick_params(labelsize=25)
@@ -281,12 +281,12 @@ else:
         ax3.plot(tfbL, medianL, c = 'yellowgreen', linewidth = 4)
         ax3.plot(tfbL, medianL, c = 'darkorange', linewidth = 4, linestyle = (0, (5, 10)), label = 'Low and Middle')
         # ax3.text(0.4, 1.03, 'Fid vs Low', fontsize = 27, color = 'k')
-        ax3.plot(tfbH, medianH, c = 'yellowgreen', linewidth = 4)
-        ax3.plot(tfbH, medianH, c = 'darkviolet', linewidth = 4, linestyle = (0, (5, 10)), label = 'Middle and High')
+        # ax3.plot(tfbH, medianH, c = 'yellowgreen', linewidth = 4)
+        # ax3.plot(tfbH, medianH, c = 'darkviolet', linewidth = 4, linestyle = (0, (5, 10)), label = 'Middle and High')
         # ax3.text(0.4, 1, 'Fid vs High', fontsize = 27, color = 'k')
         ax3.set_ylabel(r'$\mathcal{R}$ median eccentricity')# fontsize = 25)
         ax3.set_xlim(0.2, tfbL[-1])
-        ax3.set_ylim(0.98, 1.05)
+        ax3.set_ylim(0.98, 1.07)
         ax3.grid()
         ax3.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
 
