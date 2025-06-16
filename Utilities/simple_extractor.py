@@ -168,6 +168,6 @@ for i, snap in enumerate(snaps):
     np.save(f'{prepath}/DpDy_{snap}', DpDy)
     np.save(f'{prepath}/DpDz_{snap}', DpDz)
     np.save(f'{prepath}/DivV_{snap}', DivV)
-    np.savetxt(f'{prepath}/tfb_{snap}', tfb)
+    np.savetxt(f'{prepath}/tfb_{snap}', [tfb])
     print('Done')
                 
