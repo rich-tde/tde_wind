@@ -46,12 +46,17 @@ tfallback = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
 
 if alice:
-    snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
-
+    snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
+    filename = f'{abspath}/data/{folder}/{check}_red.csv'
+    data_fld = np.loadtxt(filename, delimiter=',', dtype=float)
+    snaps_fld = np.array([int(s) for s in data_fld[:,0]])
+    time = data_fld[:, 1]
+    tfb = np.zeros(len(snaps))
     Mass_encl = np.zeros((len(snaps), len(Rcheck)))
     Diss_pos_encl = np.zeros((len(snaps), len(Rcheck)))
     Diss_neg_encl = np.zeros((len(snaps), len(Rcheck)))
     for i,snap in enumerate(snaps):
+        tfb[i] = time[snaps_fld == snap][0] 
         print(snap)
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         data = make_tree(path, snap, energy = True)

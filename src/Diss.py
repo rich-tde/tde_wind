@@ -28,7 +28,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = ''
+check = 'NewAMRRemoveCenter'
 do_cut = 'cutDen' # '' or 'cutDen'
 
 Rt = Rstar * (Mbh/mstar)**(1/3)
@@ -36,7 +36,7 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
 if alice:
-    snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
+    snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
 
     Ldisstot_pos = np.zeros(len(snaps))
     Rdiss_pos = np.zeros(len(snaps))
@@ -62,7 +62,7 @@ if alice:
         Ldisstot_neg[i] = np.sum(Ediss[Ediss_den < 0])
         Rdiss_neg[i] = np.sum(Rsph[Ediss_den < 0] * Ediss[Ediss_den < 0]) / np.sum(Ediss[Ediss_den < 0])
 
-    with open(f'{abspath}/data/{folder}/Rdiss_{check}{do_cut}.txt','a') as file:
+    with open(f'{abspath}/data/{folder}/Rdiss_{check}{do_cut}.txt','w') as file:
         if do_cut == 'cutDen':
             file.write('# just cells with den > 1e-19 \n')
         file.write('# Separeted positive and negative values for Diss. You should use the positive (since it is positive at X=Rp) \n')

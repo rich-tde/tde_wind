@@ -132,11 +132,12 @@ if m == 6:
 else: 
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-snaps, _ = select_snap(m, check, mstar, Rstar, beta, n, time = True)
+snaps, times = select_snap(m, check, mstar, Rstar, beta, n, time = True)
 print(f'We are in folder: {folder}', flush=True)
 sys.stdout.flush()
 
-for snap in snaps:
+for i, snap in enumerate(snaps):
+    tfb = times[i]
     prepath = select_prefix(m, check, mstar, Rstar, beta, n, compton)
     if alice:
         prepath = f'{prepath}/snap_{snap}'
@@ -167,5 +168,6 @@ for snap in snaps:
     np.save(f'{prepath}/DpDy_{snap}', DpDy)
     np.save(f'{prepath}/DpDz_{snap}', DpDz)
     np.save(f'{prepath}/DivV_{snap}', DivV)
+    np.savetxt(f'{prepath}/tfb_{snap}', tfb)
     print('Done')
                 
