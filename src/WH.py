@@ -4,6 +4,7 @@ abspath = '/Users/paolamartire/shocks'
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 from scipy.optimize import brentq
 import numba
 from Utilities.basic_units import radians
@@ -52,7 +53,7 @@ print(f'We are in: {path}, \nWe save in: {saving_path}')
 # FUNCTIONS
 ##
 
-@numba.njit
+#@numba.njit
 def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
     """ Find the T-Z threshold to cut the transverse plane (as a square) in width and height.
     Parameters
@@ -67,17 +68,32 @@ def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
         The (upper) threshold for t and z.
     """
     # First guess of C and find the mass enclosed in the initial boundaries
-    C = 2 #np.min([not_toovercome, 2])
+    C = 2*np.min(dim_plane) #2 #np.min([not_toovercome, 2])
     condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
+    while len(mass_plane[condition]) == 0:
+        print('No points found since the beginning, double C', C)
+        # plt.figure()
+        # plt.scatter(t_plane/apo, z_plane/apo, c= mass_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-12, vmax = 1e-8))
+        # plt.axhline(C/apo, c = 'k', ls = '--')
+        # plt.axvline(C/apo, c = 'k', ls = '--')
+        # plt.axhline(-C/apo, c = 'k', ls = '--')
+        # plt.axvline(-C/apo, c = 'k', ls = '--')
+        # plt.xlim(-4,4)
+        # plt.ylim(-4,4)
+        # plt.show()
+        C *= 2
+        condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
     mass = mass_plane[condition]
+    # print(len(mass[condition]))
     total_mass = np.sum(mass)
     while True:
         # update 
-        step = 2*np.mean(dim_plane[condition])#2*np.max(dim_plane[condition])
+        step = 2*np.mean(dim_plane[condition]) #2*np.max(dim_plane[condition])
         C += step
         condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
         # Check that you add new points
         if len(mass_plane[condition]) == len(mass):
+            print('No new points added, increase C')
             C += 2
             # print(C)
         else:
@@ -92,7 +108,6 @@ def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
             if np.logical_and(total_mass > 0.95 * new_mass, total_mass != new_mass): # to be sure that you've done a step
                 break
             total_mass = new_mass
-   
     return C
 
 def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R0):
@@ -156,7 +171,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
                 ax.set_xlim(-50, 30)
                 ax.set_ylim(-10, 10)
                 ax.set_xlabel(r'T [$R_\odot$]')
-            plt.suptitle('(0,0) is the maximum density point of the radial plane', fontsize = 14)
+            plt.suptitle('(0,0) is the maximum density point of the radial plane')
             plt.tight_layout()
         # Cut the TZ plane to not keep points too far away.
         r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
@@ -359,6 +374,7 @@ step = 0.02
 theta_init = np.arange(-theta_lim, theta_lim, step)
 theta_arr = Ryan_sampler(theta_init)
 tfb = days_since_distruption(f'{abspath}/TDE/{folder}{check}/{snap}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+print(f't/tfb = {np.round(tfb, 3)}')    
 
 #%% Load data
 data = make_tree(path, snap, energy = False)
@@ -382,9 +398,26 @@ x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell,
 np.save(f'{abspath}/data/{folder}/stream_{check}{snap}.npy', [theta_arr, x_stream, y_stream, z_stream, thresh_cm])
 
 #%%
+plt.figure(figsize = (12,6))
+plt.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 5e-4))
+plt.plot(x_stream[:-70]/apo, y_stream[:-70]/apo, c = 'k')
+plt.plot(x_stream[-30:]/apo, y_stream[-30:]/apo, c = 'k')
+plt.plot([x_stream[0]/apo, x_stream[-1]/apo] , [y_stream[0]/apo, y_stream[-1]/apo], c = 'k')
+plt.xlabel(r'$X [R_{\rm a}]$')
+plt.ylabel(r'$Y [R_{\rm a}]$')
+plt.title(r'Stream at t/t$_{\rm fb}$ = ' + str(np.round(tfb,2)) + f', check: {check}', fontsize = 16)
+plt.xlim(-2, .2)
+plt.ylim(-.4, .4)
+
+#%%
 file = f'{abspath}/data/{folder}/stream_{check}{snap}.npy'
 stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr  = follow_the_stream(X, Y, Z, dim_cell, Mass, path = file, params = params)
-
+#%%
+indeces_boundary_lowX, indeces_boundary_upX, indeces_boundary_lowZ, indeces_boundary_upZ = \
+    indeces_boundary[:,0], indeces_boundary[:,1], indeces_boundary[:,2], indeces_boundary[:,3]
+indeces_all = np.arange(len(X))
+x_low_width, y_low_width = X[indeces_boundary_lowX], Y[indeces_boundary_lowX]
+x_up_width, y_up_width = X[indeces_boundary_upX], Y[indeces_boundary_upX]
 #%%
 if save:
     try:
@@ -424,18 +457,39 @@ if save:
 
 
 #%% 
+fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,6), width_ratios= [1.5, .5])
+
+for ax in [ax1, ax2]:
+    # ax.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 5e-4))
+    ax.plot(x_stream[:-70]/apo, y_stream[:-70]/apo, c = 'k')
+    ax.plot(x_stream[-30:]/apo, y_stream[-30:]/apo, c = 'k')
+    ax.plot([x_stream[0]/apo, x_stream[-1]/apo] , [y_stream[0]/apo, y_stream[-1]/apo], c = 'k')
+    ax.plot(x_low_width/apo, y_low_width/apo, c = 'coral')
+    ax.plot(x_up_width/apo, y_up_width/apo, c = 'coral')
+    ax.set_xlabel(r'$X [R_{\rm a}]$')
+ax1.set_ylabel(r'$Y [R_{\rm a}]$')
+ax1.set_xlim(-1, .1)
+ax1.set_ylim(-.2, .2)
+ax2.set_xlim(-.2, .1)
+ax2.set_ylim(-.1, .1)
+plt.suptitle(r'Stream at t/t$_{\rm fb}$ = ' + str(np.round(tfb,2)) + f', check: {check}', fontsize = 16)
+#%%
 # Plot width over r
+plt.figure(figsize = (10,6))
 plt.plot(theta_arr * radians, w_params[0], c = 'k')
-img = plt.scatter(theta_arr * radians, w_params[0], c = w_params[1], cmap = 'viridis')
+img = plt.scatter(theta_arr * radians, w_params[0], c = w_params[1], cmap = 'rainbow', vmin = 0, vmax = 20)
 cbar = plt.colorbar(img)
-cbar.set_label(r'Ncells', fontsize = 16)
-plt.xlabel(r'$\theta$', fontsize = 14)
-plt.ylabel(r'Width [$R_\odot$]', fontsize = 14)
+cbar.set_label(r'Ncells')
+plt.xlabel(r'$\theta$')
+plt.ylabel(r'Width [$R_\odot$]')
 plt.xlim(-3/4*np.pi, 3/4*np.pi)
-plt.ylim(-5,20)
+plt.ylim(0,8)
 plt.grid()
-plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,3)) + f', check: {check}', fontsize = 16)
+plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,2)) + f', check: {check}', fontsize = 16)
 plt.tight_layout()
 plt.show()
 
     
+# %%
+print(w_params[1])
+# %%
