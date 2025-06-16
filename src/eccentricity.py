@@ -199,27 +199,29 @@ else:
         cb.ax.tick_params(width=1, length=11, color = 'k',)
 
         ax2.plot(tfb, median, c = 'yellowgreen', linewidth = 4)
-        ax2.set_ylabel(r'$\mathcal{R}$ median eccentricity')# fontsize = 25)
+        ax2.set_ylabel(r'$\mathcal{R}$ median eccentricity')
         # ax2.set_ylim(0.98, 1.08)
         ax2.grid()
-        ax2.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
+        ax2.set_xlabel(r'$t [t_{\rm fb}]$')
 
     if error:
         import matplotlib.gridspec as gridspec
-        folderL = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowResNewAMR'
-        pathL = f'{abspath}/data/{folderL}'
-        ecc2L = np.load(f'{pathL}/Ecc2_{which_cut}_LowResNewAMR.npy') 
+        checkL = 'LowResNewAMR'
+        pathL = f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{checkL}'
+        ecc2L = np.load(f'{pathL}/Ecc2_{which_cut}_{checkL}.npy') 
         eccL = np.sqrt(ecc2L)
-        tfb_dataL = np.loadtxt(f'{pathL}/Ecc_{which_cut}_LowResNewAMR_days.txt')
+        tfb_dataL = np.loadtxt(f'{pathL}/Ecc_{which_cut}_{checkL}_days.txt')
         snapL, tfbL = tfb_dataL[0], tfb_dataL[1]
-        radii = np.load(f'{pathL}/radiiEcc_{which_cut}_LowResNewAMR.npy')
+        radii = np.load(f'{pathL}/radiiEcc_{which_cut}_{checkL}.npy')
 
-        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowResNewAMRRemoveCenter'
-        path = f'{abspath}/data/{folder}'
-        ecc2 = np.load(f'{path}/Ecc2_{which_cut}_LowResNewAMRRemoveCenter.npy') 
+        check = 'LowResNewAMRRemoveCenter'
+        path = f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+        ecc2 = np.load(f'{path}/Ecc2_{which_cut}_{check}.npy') 
         ecc = np.sqrt(ecc2)
-        tfb_data = np.loadtxt(f'{path}/Ecc_{which_cut}_LowResNewAMRRemoveCenter_days.txt')
+        tfb_data = np.loadtxt(f'{path}/Ecc_{which_cut}_{check}_days.txt')
         snap, tfb = tfb_data[0], tfb_data[1]
+
+        print('comparing', checkL, 'and', check)
 
         # folderH = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes'
         # pathH = f'{abspath}/data/{folderH}'
@@ -231,15 +233,13 @@ else:
         # relative difference L and middle
         rel_diffL = []
         medianL = np.zeros(len(eccL))
-        medianLoverF = np.zeros(len(eccL))
         for i in range(len(eccL)):
             time = tfbL[i]
             idx = np.argmin(np.abs(tfb - time))
             rel_diff_time_i = find_ratio(eccL[i], ecc[idx]) 
             rel_diffL.append(rel_diff_time_i)
             medianL[i] = np.median(rel_diff_time_i)
-            medianLoverF[i] = np.median(eccL[i]/ecc[idx])
-        rel_diffH = []
+        # rel_diffH = []
         # medianH = np.zeros(len(eccH))
         # medianFoverH = np.zeros(len(eccH))
         # for i in range(len(eccH)):
@@ -251,26 +251,28 @@ else:
         #     medianFoverH[i] = np.median(ecc[idx]/eccH[i])
 
         #%% Plot
-        fig = plt.figure(figsize=(25, 9))
-        gs = gridspec.GridSpec(2, 3, width_ratios=[1,1,1.5], height_ratios=[3, 0.5], hspace=0.5, wspace = 0.3)
-        ax1 = fig.add_subplot(gs[0, 0])  # First plot
-        ax2 = fig.add_subplot(gs[0, 1])  # Second plot
-        ax3 = fig.add_subplot(gs[0, 2])  # Third plot
+        # fig = plt.figure(figsize=(25, 9))
+        # gs = gridspec.GridSpec(2, 3, width_ratios=[1,1,1.5], height_ratios=[3, 0.5], hspace=0.5, wspace = 0.3)
+        # ax1 = fig.add_subplot(gs[0, 0])  # First plot
+        # ax2 = fig.add_subplot(gs[0, 1])  # Second plot
+        # ax3 = fig.add_subplot(gs[0, 2])  # Third plot
 
-        img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'inferno', vmin = 0.95, vmax = 1.5, rasterized = True)
+        fig, (ax1, ax3) = plt.subplots(1, 2, figsize=(20, 7))
+        img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'inferno', vmin = 0.95, vmax = 1.4, rasterized = True)
         ax1.set_xscale('log')
         ax1.text(0.22, .88*np.max(tfbL), 'Low vs Fid', fontsize = 28, color = 'k')
-        ax1.set_xlabel(r'$R [R_{\rm a}]$')#, fontsize = 25)
-        ax1.set_ylabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
+        ax1.set_xlabel(r'$R [R_{\rm a}]$')
+        ax1.set_ylabel(r'$t [t_{\rm fb}]$')
 
         # img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'inferno', vmin = 0.95, vmax = 1.05, rasterized = True)
         # ax2.set_xscale('log')
         # ax2.text(0.21, 0.88*np.max(tfbH), 'Fid vs High', fontsize = 28, color = 'k')
-        # ax2.set_xlabel(r'$R [R_{\rm a}]$')#, fontsize = 25)
+        # ax2.set_xlabel(r'$R [R_{\rm a}]$')
 
         # Create a colorbar that spans the first two subplots
-        cbar_ax = fig.add_subplot(gs[1, 0])#0:2])  # Colorbar subplot below the first two
-        cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
+        # cbar_ax = fig.add_subplot(gs[1, 0:2])  # Colorbar subplot below the first two
+        # cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
+        cb = plt.colorbar(img)
         cb.set_label(r'$\mathcal{R}$ eccentricity')#, fontsize = 25)
         cb.ax.tick_params(labelsize=25)
         # label with 3 decimals in the colorbar
@@ -284,20 +286,23 @@ else:
         # ax3.plot(tfbH, medianH, c = 'yellowgreen', linewidth = 4)
         # ax3.plot(tfbH, medianH, c = 'darkviolet', linewidth = 4, linestyle = (0, (5, 10)), label = 'Middle and High')
         # ax3.text(0.4, 1, 'Fid vs High', fontsize = 27, color = 'k')
-        ax3.set_ylabel(r'$\mathcal{R}$ median eccentricity')# fontsize = 25)
+        ax3.set_ylabel(r'$\mathcal{R}$ median eccentricity')
         ax3.set_xlim(0.2, tfbL[-1])
-        ax3.set_ylim(0.98, 1.07)
+        ax3.set_ylim(0.99, 1.02)
         ax3.grid()
         ax3.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
 
-        for ax in [ax1, ax2, ax3]:
+        for ax in [ax1, ax3]: #, ax2]:
             # ax.tick_params(labelsize=26)
             if ax!=ax3:
-                ax.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed')
+                ax.axvline(x=Rt/apo, color = 'white', linestyle = 'dashed')
+                ax.axvline(x=R0/apo, color = 'white', linestyle = ':')
                 ax.tick_params(axis='x', which='major', width=1.4, length=11, color = 'k',)
                 ax.tick_params(axis='y', which='major', width=1.4, length=9, color = 'k',)
                 ax.tick_params(axis='x', which='minor', width=1.2, length=7, color = 'k',)
         
-        plt.savefig(f'{abspath}/Figs/paper/ecc_diff.pdf', bbox_inches='tight')
+        # plt.savefig(f'{abspath}/Figs/paper/ecc_diff.pdf', bbox_inches='tight')
+        plt.tight_layout
+        plt.savefig(f'{abspath}/Figs/Test/MazeOfRuns/sink/ecc_diff.png', bbox_inches='tight')
 
 # %%

@@ -75,6 +75,7 @@ if alice:
 
 else:
     checks = ['LowResNewAMR', 'LowResNewAMRRemoveCenter'] #['LowRes', '', 'HiRes']
+    lines = ['solid', '--']
     checklab = ['Low, New Extr, New AMR', 'Low, New Extr, New AMR + RC'] #['Low', 'Fid', 'High']
     colorcheck = ['plum', 'maroon'] #['C1', 'yellowgreen', 'darkviolet']
     commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
@@ -88,21 +89,23 @@ else:
         Mass_encl = np.transpose(Mass_encl)
         # Mass_encl_cut = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl_cut.txt')
         # Mass_encl_cut = np.transpose(Mass_encl_cut)
-        ax.plot(tfb, Mass_encl[0]/mstar, c = 'deepskyblue', linewidth = 2, label = r'$R = R_0$')
-        ax.plot(tfb, Mass_encl[1]/mstar, c = 'coral', linewidth = 2, label = r'$R = R_{\rm t}$')
-        ax.plot(tfb, Mass_encl[2]/mstar, c = 'mediumseagreen', linewidth = 2, label = r'$R = a_{\rm mb}$')
-        ax.plot(tfb, Mass_encl[3]/mstar, c = 'm', linewidth = 2, label = r'$R = R_{\rm a}$')
-        ax.set_xlabel(r'$\rm t [t_{fb}]$')
+        ax.plot(tfb, Mass_encl[0]/mstar, c = 'deepskyblue', ls = lines[i], linewidth = 2, label = {r'R = R$_0$' if i == 0  else 'with sink term'})
+        ax.plot(tfb, Mass_encl[1]/mstar, c = 'coral', ls = lines[i], linewidth = 2, label = {r'R = R_t' if i == 0 else ''})
+        ax.plot(tfb, Mass_encl[2]/mstar, c = 'mediumseagreen', ls = lines[i], linewidth = 2, label =  {r'R = a$_{\rm mb}$' if i == 0 else ''})
+        ax.plot(tfb, Mass_encl[3]/mstar, c = 'm', ls = lines[i], linewidth = 2, label = {r'R = R$_{\rm apo}$' if i == 0 else ''})
+        # just for the label
+        ax.plot(tfb, Mass_encl[0]/mstar, c = 'deepskyblue', ls = lines[i], linewidth = 2, label = {r'no sink term' if i == 0  else ''})
         ax.set_yscale('log')
-        ax.set_ylim(1e-9, 2)
-        ax.grid()
-        ax.set_title(f'{checklab[i]}', fontsize = 20)
-        ax.set_xlim(0, 1.8)
-    ax.legend(fontsize = 15)
+    ax.set_ylim(1e-9, 2)
+    ax.grid()
+    ax.set_xlim(0, 1.8)
+    ax.set_title(f'Low Res with NewAMR and extrapolated Rosseland', fontsize = 20)
+    ax.legend(fontsize = 12)
     ax.set_ylabel(r'Mass enclosed $[M_\star]$', fontsize = 20)
+    ax.set_xlabel(r'$\rm t [t_{fb}]$', fontsize = 20)
     plt.tight_layout()
     # plt.savefig(f'{abspath}/Figs/multiple/mass_encl_all.png', bbox_inches='tight')
-    plt.savefig(f'{abspath}/Figs/Test/MazeOfRuns/mass_encl_Low_RC.png', bbox_inches='tight')
+    plt.savefig(f'{abspath}/Figs/Test/MazeOfRuns/sink/mass_encl_Low_RC.png', bbox_inches='tight')
     
 #     fig, ax = plt.subplots(1,3, figsize = (22, 5))
 #     for i, check in enumerate(checks):

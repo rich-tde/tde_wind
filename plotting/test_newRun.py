@@ -39,8 +39,8 @@ Rp = orb.pericentre(Rstar, mstar, Mbh, beta)
 R0 = 0.6*Rp
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 compton = 'Compton'
-choose = 'distribution' # section, distribution
-change = 'Extr'
+choose = 'section' # section, distribution
+change = 'AMR'
 if change == 'Extr':
     snap = 248 # Fid: 164 or 267 // Low: 126, 248
     eng = matlab.engine.start_matlab()
@@ -50,10 +50,10 @@ if change == 'Extr':
     styles = ['solid', 'dashed']
     markers = ['o', 'x']
 elif change == 'AMR':
-    snap = 240 # 115, 164, 240 
-    checks = ['OpacityNew', 'OpacityNewNewAMR']
-    check_name = ['NewExtr+OldAMR','NewExtr+NewAMR']
-    colorshist = ['forestgreen', 'k']
+    snap = 126 # 115, 164, 240 # 126, 301 for sink and no sink
+    checks = ['LowResNewAMR', 'LowResNewAMRRemoveCenter'] #['OpacityNew', 'OpacityNewNewAMR']
+    check_name = ['no sink', 'sink'] #['NewExtr+OldAMR','NewExtr+NewAMR']
+    colorshist = ['plum', 'maroon'] ##['forestgreen', 'k']
 
 opac_path = f'{abspath}/src/Opacity'
 T_cool = np.loadtxt(f'{opac_path}/T.txt')
@@ -262,9 +262,17 @@ if choose == 'distribution':
     figkappa.savefig(f'{abspath}/Figs/Test/MazeOfRuns/{change}/{which_distrib}Kappa{where}runs{checks[0]}{snap}.png', bbox_inches = 'tight')
 
 if choose == 'section':
+    radii_grid = [R0, Rt] #*apo 
+    xcfr_grid, ycfr_grid, cfr_grid = [], [], []
+    for i, radius_grid in enumerate(radii_grid):
+        xcr, ycr, cr = orb.make_cfr(radius_grid)
+        xcfr_grid.append(xcr)
+        ycfr_grid.append(ycr)
+        cfr_grid.append(cr)
+
     Ncell = np.zeros(len(checks))
     Ncell_mid = np.zeros(len(checks))
-    fig, ax = plt.subplots(2, 2, figsize = (18, 10))
+    fig, ax = plt.subplots(2, 2, figsize = (14, 10))
     if change == 'Extr':
         figK, axK = plt.subplots(1, 2, figsize = (10, 5))
     for i,check in enumerate(checks):
@@ -273,15 +281,15 @@ if choose == 'section':
         tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
         data = make_tree(path, snap, energy = True)
         cut = data.Den > 1e-19
-        X, Y, Z, den, Vol, Diss_den, Temp = \
-            sec.make_slices([data.X, data.Y, data.Z,data.Den, data.Vol, data.Diss, data.Temp], cut)
+        X, Y, Z, den, Vol, Mass, Diss_den, Temp = \
+            sec.make_slices([data.X, data.Y, data.Z,data.Den, data.Vol, data.Mass, data.Diss, data.Temp], cut)
         Ncell[i] = len(data.X)
         print(f'check = {check}, Ncell = {Ncell[i]}')
         dim_cell = Vol**(1/3) 
 
         midplane = np.abs(Z) < dim_cell
-        X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Diss_den_midplane, Temp_midplane = \
-            sec.make_slices([X, Y, Z, dim_cell, den, Diss_den, Temp], midplane)
+        X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Mass_midplane, Diss_den_midplane, Temp_midplane = \
+            sec.make_slices([X, Y, Z, dim_cell, den, Mass, Diss_den, Temp], midplane)
         Ncell_mid[i] = len(X_midplane)
         Den_midplane_cgs = Den_midplane * prel.Msol_cgs / prel.Rsol_cgs**3 # [g/cm^3]
 
@@ -322,26 +330,44 @@ if choose == 'section':
             axK[0].set_ylabel(r'T [K]', fontsize = 18)
 
         if change == 'AMR':
-            img = ax[0][i].scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane_cgs, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-4))
+            img = ax[0][i].scatter(X_midplane/Rt, Y_midplane/Rt, c = Mass_midplane, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e-14, vmax = 5e-10))
             cbar = plt.colorbar(img)
-            cbar.set_label(r'$\rho$ [g/cm$^3]$', fontsize = 20)
+            cbar.set_label(r'Mass [$M_\odot$]', fontsize = 20)
 
-            img = ax[1][i].scatter(X_midplane/apo, Y_midplane/apo, c = np.abs(Diss_den_midplane)*prel.en_den_converter/prel.tsol_cgs, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e-5, vmax = 1e8))
+            img = ax[1][i].scatter(X_midplane/Rt, Y_midplane/Rt, c = np.abs(Diss_den_midplane)*prel.en_den_converter/prel.tsol_cgs, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e-5, vmax = 5e7))
             cbar = plt.colorbar(img)
             cbar.set_label(r'$|\dot{u_{\rm diss}}|$ [g/cm$^3s]$', fontsize = 20)
-        
-        ax[0][i].set_title(f'{check_name[i]} run', fontsize = 20)
-        
-    for i in range(2):
-        for j in range(2):  
-            ax[i][j].set_xlim(-1.5,.1)
-            ax[i][j].set_ylim(-.5, .5)
-        ax[1][i].set_xlabel(r'X [$R_{\rm a}$]', fontsize = 18)
-        ax[i][0].set_ylabel(r'Y [$R_{\rm a}$]', fontsize = 18)
 
-    fig.suptitle(f't = {np.round(tfb,2)}' + r't$_{\rm fb}, N_{\rm cell, left}/N_{\rm cell, right}=$' + f'{np.round(Ncell[0]/Ncell[1], 2)}, on midplane: {np.round(Ncell_mid[0]/Ncell_mid[1], 2)}', fontsize = 20)
+            big_ticks = np.array([-2, -1, 0, 1, 2]) # [R_t]
+            mid_ticks = (big_ticks[:-1] + big_ticks[1:]) / 2
+            all_ticks = np.sort(np.concatenate([big_ticks, mid_ticks]))
+            for k in range(2):
+                for j in range(2):  
+                    # ax[k][j].contour(xcfr_grid[0]/Rt, ycfr_grid[0]/Rt, cfr_grid[0]/Rt, levels=[0], colors='grey')
+                    # ax[k][j].contour(xcfr_grid[1]/Rt, ycfr_grid[1]/Rt, cfr_grid[1]/Rt, levels=[0], colors='grey')
+                    ax[k][j].axhline(0.6, color = 'grey', linestyle = '--')
+                    ax[k][j].axhline(-0.6, color = 'grey', linestyle = '--')
+                    ax[k][j].axvline(0.6, color = 'grey', linestyle = '--')
+                    ax[k][j].axvline(-0.6, color = 'grey', linestyle = '--')
+                    ax[k][j].set_xlim(-2,2)
+                    ax[k][j].set_ylim(-2,2)
+                    ax[k][j].set_xticks(all_ticks)
+                    ax[k][j].set_xticklabels([f'{tick}' if tick in big_ticks else '' for tick in all_ticks])
+                    ax[k][j].set_yticks(all_ticks)
+                    ax[k][j].set_yticklabels([f'{tick}' if tick in big_ticks else '' for tick in all_ticks])
+                    ax[k][j].tick_params(axis='x', which='major', width = 1, length=7)
+                    ax[k][j].tick_params(axis='y', which='major', width = 1, length=7)
+                    ax[k][j].set_yticks(all_ticks)
+                    ax[k][j].set_aspect('equal')
+                ax[1][k].set_xlabel(r'X [$R_{\rm t}$]')
+                ax[k][0].set_ylabel(r'Y [$R_{\rm t}$]')
+
+        ax[0][i].set_title(f'{check_name[i]}', fontsize = 20)
+        
+
+    fig.suptitle(f't = {np.round(tfb,2)}' + r't$_{\rm fb}$', fontsize = 20) #, N_{\rm cell, left}/N_{\rm cell, right}=$' + f'{np.round(Ncell[0]/Ncell[1], 3)}, on midplane: {np.round(Ncell_mid[0]/Ncell_mid[1], 3)}', fontsize = 20)
     fig.tight_layout()
-    # fig.savefig(f'{abspath}/Figs/Test/MazeOfRuns/{change}/Test{change}{snap}.png', dpi = 100, bbox_inches = 'tight')
+    fig.savefig(f'{abspath}/Figs/Test/MazeOfRuns/sink/TestLowRes_sink{snap}.png', dpi = 100, bbox_inches = 'tight')
     if change == 'Extr':
         figK.suptitle('Extrapolated cells', fontsize = 20)
         figK.tight_layout()

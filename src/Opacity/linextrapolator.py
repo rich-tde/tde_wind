@@ -41,6 +41,9 @@ def opacity_extrap(x, y, K, scatter = None, slope_length = 7, highT_slope = 0, e
     yn = np.concatenate([y_extra_low[::-1], y, y_extra_high])
     
     Kn = np.zeros((len(xn), len(yn)))
+    T_scatter = []
+    d_scatter = []
+    alpha_scatter = []
     for ix, xsel in enumerate(xn):
         for iy, ysel in enumerate(yn):
             if xsel < x[0]: # Too cold
@@ -56,6 +59,9 @@ def opacity_extrap(x, y, K, scatter = None, slope_length = 7, highT_slope = 0, e
                         scatter_this_den = scatter[ix][iy]
                         if Kn[ix][iy] < scatter_this_den:
                             Kn[ix][iy] = scatter_this_den
+                        T_scatter.append(xsel)
+                        d_scatter.append(ysel)
+                        alpha_scatter.append(Kn[ix][iy])
 
                 elif ysel > y[-1]: # Too dense
                     deltay = y[-1] - y[-slope_length] 
@@ -90,7 +96,9 @@ def opacity_extrap(x, y, K, scatter = None, slope_length = 7, highT_slope = 0, e
                     scatter_this_den = scatter[ix][iy]
                     if Kn[ix][iy] < scatter_this_den:
                         Kn[ix][iy] = scatter_this_den
-
+                    T_scatter.append(xsel)
+                    d_scatter.append(ysel)
+                    alpha_scatter.append(Kn[ix][iy])
             else: 
                 ix_inK = np.argmin(np.abs(x - xsel))
                 if ysel < y[0]: # Too rarefied, Temperature is inside table
@@ -102,6 +110,9 @@ def opacity_extrap(x, y, K, scatter = None, slope_length = 7, highT_slope = 0, e
                         scatter_this_den =  scatter[ix][iy] # 1/cm
                         if Kn[ix][iy] < scatter_this_den:
                             Kn[ix][iy] = scatter_this_den
+                        T_scatter.append(xsel)
+                        d_scatter.append(ysel)
+                        alpha_scatter.append(Kn[ix][iy])
                     
                 elif ysel > y[-1]:  # Too dense, Temperature is inside table
                     deltay = y[-1] - y[-slope_length]
@@ -111,6 +122,53 @@ def opacity_extrap(x, y, K, scatter = None, slope_length = 7, highT_slope = 0, e
                 else:
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kn[ix][iy] = K[ix_inK, iy_inK]
+
+    # check how scatter works
+    # if __name__ == '__main__':
+    #     xn_real = np.exp(xn)
+    #     yn_real = np.exp(yn)
+    #     T_scatter_real = np.exp(T_scatter)
+    #     d_scatter_real = np.exp(d_scatter)
+    #     alpha_scatter_real = np.exp(alpha_scatter) 
+    #     alpha_real = np.exp(Kn)
+    #     kappa_scatter = alpha_scatter_real/d_scatter_real
+    #     kappa_n = []
+    #     for m in range((len(xn_real))):
+    #         kappa_n.append(alpha_real[m, :] / yn_real)
+    #     kappa_n = np.array(kappa_n)
+    #     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+    #     img = ax.pcolormesh(np.log10(xn_real), np.log10(yn_real), kappa_n.T, norm=LogNorm(vmin=1e-5, vmax=1e4), cmap='jet')
+    #     plt.colorbar(img, label=r'$\kappa$ [cm$^2$/g]')
+    #     plt.scatter(np.log10(T_scatter_real), np.log10(d_scatter_real), c = 'k',  s=4)
+    #     ax.axvline(np.log10(min_T), color = 'grey', linestyle = '--', label = 'lim table')
+    #     ax.axvline(np.log10(max_T), color = 'grey', linestyle = '--')
+    #     ax.axhline(np.log10(min_Rho), color = 'grey', linestyle = '--')
+    #     ax.axhline(np.log10(max_Rho), color = 'grey', linestyle = '--')
+    #     ax.axhline(np.log10(1e-19*prel.Msol_cgs/prel.Rsol_cgs**3), color = 'grey', linestyle = ':', label = 'simulation cut')
+    #     # Get the existing ticks on the x-axis
+    #     big_ticks = [-10, -5, 0, 5, 10, 15] #ax.get_xticks()
+    #     # Calculate midpoints between each pair of ticks
+    #     midpointsx = np.arange(big_ticks[0], big_ticks[-1])
+    #     # Combine the original ticks and midpointsx
+    #     new_ticksx = np.sort(np.concatenate((big_ticks, midpointsx)))
+    #     labelsx = [str(np.round(tick,2)) if tick in big_ticks else "" for tick in new_ticksx]   
+    #     ax.set_xticks(new_ticksx)
+    #     ax.set_xticklabels(labelsx)
+
+    #     big_ticks = [-20, -15, -10, -5, 0, 5, 10, 15] #ax.get_yticks()
+    #     # Calculate midpoints between each pair of ticks
+    #     midpoints = np.arange(big_ticks[0], big_ticks[-1])
+    #     # Combine the original ticks and midpoints
+    #     new_ticks = np.sort(np.concatenate((big_ticks, midpoints)))
+    #     labels = [str(np.round(tick,2)) if tick in big_ticks else "" for tick in new_ticks]   
+    #     ax.set_yticks(new_ticks)
+    #     ax.set_yticklabels(labels)
+
+    #     ax.tick_params(axis='x', which='major', width=1.2, length=7, color = 'k')
+    #     ax.tick_params(axis='y', which='major', width=1.2, length=7, color = 'k')
+    #     ax.set_xlabel(r'$\log_{10} T$ [K]')
+    #     ax.set_xlim(0.8,11)
+    #     ax.set_ylim(-19.5,11)
 
     return xn, yn, Kn
 
@@ -408,6 +466,86 @@ if __name__ == '__main__':
     plt.tight_layout()
     if save:
         plt.savefig(f'{abspath}/Figs/Test/extrap_kappa_mesh.png')
+    
+    #%% check difference with and without scatter
+    from Utilities.operators import find_ratio
+    _, _, ln_rossland_noscatt = \
+        opacity_extrap(ln_T_tab, ln_Rho_tab, ln_rossland_tab, scatter = None, slope_length = 7, highT_slope= 0)
+    ross_noscatt = np.exp(ln_rossland_noscatt)
+    kappa_ross_noscatt = []
+    for i in range(len(T_ext)):
+        kappa_ross_noscatt.append(ross_noscatt[i, :]/Rho_ext)
+    kappa_ross_noscatt = np.array(kappa_ross_noscatt)
+
+    ratio_scatt = []
+    for idx in range(len(kappa_ross_final)):
+        ratio_scatt.append(find_ratio(kappa_ross_final[idx], kappa_ross_noscatt[idx]))
+    ratio_scatt = np.array(ratio_scatt)
+
+    # import one random photosphere file among the ones with the last extrapolation
+    snap = 340
+    check = 'LowResNewAMR'
+    folder = f'R0.47M0.5BH10000beta1S60n1.5Compton{check}'
+    data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
+    snap_Lum, time = data[:, 0], data[:, 1]
+    tfb = time[np.where(snap_Lum == snap)[0][0]]
+    _, _, _, _, denph, Tempph, _, _, _, _, alpha, rph, Lph = \
+                np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
+    fig, (ax0, ax1, ax2) = plt.subplots(1,3, figsize = (20,10))
+    plt.suptitle('Final Rosseland extrapolation', fontsize = 20)
+    img = ax0.pcolormesh(np.log10(T_ext), np.log10(Rho_ext), kappa_ross_final.T,  norm = LogNorm(vmin = 1e-5, vmax=1e4), cmap = 'jet', alpha = 0.7) 
+    cbar = plt.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'$\kappa$ [cm$^2$/g]')
+    ax0.set_ylabel(r'$\log_{10} \rho$ [g/cm$^3$]')
+    ax0.set_title('with scattering limit', fontsize = 20)
+
+    img = ax1.pcolormesh(np.log10(T_ext), np.log10(Rho_ext), kappa_ross_noscatt.T,  norm = LogNorm(vmin = 1e-5, vmax=1e4), cmap = 'jet', alpha = 0.7) 
+    cbar = plt.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'$\kappa$ [cm$^2$/g]')
+    ax1.set_title('without scattering limit', fontsize = 20)
+
+    img = ax2.pcolormesh(np.log10(T_ext), np.log10(Rho_ext), ratio_scatt.T, vmin = 1, vmax=2, cmap = 'plasma') 
+    cbar = plt.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'${\rm R}$')
+    ax2.set_title('Ratio', fontsize = 20)
+
+    for ax in [ax0, ax1, ax2]:
+        ax.scatter(np.log10(Tempph), np.log10(denph), facecolors = 'none', edgecolor = {'k' if ax in [ax0, ax1] else 'white'}, s = 25, label = f'photosphere t={tfb:.2f} ' + r't$_{\rm fb}$')
+        ax.axvline(np.log10(min_T), color = 'grey', linestyle = '--', label = 'lim table')
+        ax.axvline(np.log10(max_T), color = 'grey', linestyle = '--')
+        ax.axhline(np.log10(min_Rho), color = 'grey', linestyle = '--')
+        ax.axhline(np.log10(max_Rho), color = 'grey', linestyle = '--')
+        ax.axhline(np.log10(1e-19*prel.Msol_cgs/prel.Rsol_cgs**3), color = 'grey', linestyle = ':', label = 'simulation cut')
+        # Get the existing ticks on the x-axis
+        big_ticks = [-10, -5, 0, 5, 10, 15] #ax.get_xticks()
+        # Calculate midpoints between each pair of ticks
+        midpointsx = np.arange(big_ticks[0], big_ticks[-1])
+        # Combine the original ticks and midpointsx
+        new_ticksx = np.sort(np.concatenate((big_ticks, midpointsx)))
+        labelsx = [str(np.round(tick,2)) if tick in big_ticks else "" for tick in new_ticksx]   
+        ax.set_xticks(new_ticksx)
+        ax.set_xticklabels(labelsx)
+
+        big_ticks = [-20, -15, -10, -5, 0, 5, 10, 15] #ax.get_yticks()
+        # Calculate midpoints between each pair of ticks
+        midpoints = np.arange(big_ticks[0], big_ticks[-1])
+        # Combine the original ticks and midpoints
+        new_ticks = np.sort(np.concatenate((big_ticks, midpoints)))
+        labels = [str(np.round(tick,2)) if tick in big_ticks else "" for tick in new_ticks]   
+        ax.set_yticks(new_ticks)
+        ax.set_yticklabels(labels)
+
+        ax.tick_params(axis='x', which='major', width=1.2, length=7, color = 'k')
+        ax.tick_params(axis='y', which='major', width=1.2, length=7, color = 'k')
+        ax.set_xlabel(r'$\log_{10} T$ [K]')
+        ax.set_xlim(0.8,11)
+        ax.set_ylim(-19.5,11)
+    ax0.legend(fontsize=12, loc='center right')
+    plt.tight_layout()
+    if save:
+        plt.savefig(f'{abspath}/Figs/Test/extrapScatt_kappa_mesh.png')
+
+    
     #%% check with OPAL opacities 
 #     import pandas as pd
 #     optable = 'opal0'
