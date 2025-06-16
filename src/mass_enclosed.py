@@ -82,6 +82,7 @@ else:
 
     ## Plot as Extended figure 3 in SteinbergStone24
     fig, ax = plt.subplots(1,1) #len(checks), 1, figsize = (5, 8))
+    figDiss, axDiss = plt.subplots(1,1) #len(checks), 1, figsize = (5, 8))
     for i, check in enumerate(checks):
         tfb = np.loadtxt(f'{abspath}/data/{commonfolder}{check}/{check}Mass_encl_time.txt')
         tfb_cgs = tfb * tfallback_cgs
@@ -96,6 +97,9 @@ else:
         # just for the label
         ax.plot(tfb, Mass_encl[0]/mstar, c = 'deepskyblue', ls = lines[i], linewidth = 2, label = {r'no sink term' if i == 0  else ''})
         ax.set_yscale('log')
+
+        tfbDiss, _, Ldisstot_pos, _, _ = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}cutDen.txt', comments = '#')
+
     ax.set_ylim(1e-9, 2)
     ax.grid()
     ax.set_xlim(0, 1.8)
