@@ -42,10 +42,13 @@ if alice:
     Rdiss_pos = np.zeros(len(snaps))
     Ldisstot_neg = np.zeros(len(snaps))
     Rdiss_neg = np.zeros(len(snaps))
-    for i,snap in enumerate(snaps):
+    tfb = np.zeros(len(snaps))
+    for i, snap in enumerate(snaps):
         print(snap, flush=False) 
         sys.stdout.flush()
+        
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+        tfb[i] = np.loadtxt(f'{path}/tfb_{snap}.txt')
         data = make_tree(path, snap, energy = True)
         X, Y, Z, vol, den, Rad_den, Ediss_den = \
             data.X, data.Y, data.Z, data.Vol, data.Den, data.Rad, data.Diss

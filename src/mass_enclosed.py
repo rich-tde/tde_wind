@@ -14,7 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import Utilities.prelude as prel
-from Utilities.operators import make_tree, calc_deriv
+from Utilities.operators import make_tree, sort_list
 from Utilities.selectors_for_snap import select_snap
 from Utilities.sections import make_slices
 import src.orbits as orb
@@ -55,10 +55,13 @@ if alice:
     Mass_encl = np.zeros((len(snaps), len(Rcheck)))
     Diss_pos_encl = np.zeros((len(snaps), len(Rcheck)))
     Diss_neg_encl = np.zeros((len(snaps), len(Rcheck)))
+    tfb = np.zeros(len(snaps))
     for i,snap in enumerate(snaps):
-        tfb[i] = time[snaps_fld == snap][0] 
-        print(snap)
+        print(snap,  flush = True)
+        sys.stdout.flush()
+        
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+        tfb[i] = np.loadtxt(f'{path}/tfb_{snap}.txt')
         data = make_tree(path, snap, energy = True)
         mass, den, vol, diss = data.Mass, data.Den, data.Vol, data.Diss
         Rsph = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
@@ -86,8 +89,7 @@ else:
     commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
     ## Plot as Extended figure 3 in SteinbergStone24
-    fig, (ax1, ax2) = plt.subplots(1,2, figsize = (18,6)) #len(checks), 1, figsize = (5, 8))
-    figDiss, axDiss = plt.subplots(1,1) #len(checks), 1, figsize = (5, 8))
+    fig, ((ax1, ax2), (axDiss1, axDiss2)) = plt.subplots(2,2, figsize = (16,14)) #len(checks), 1, figsize = (5, 8))
     for i, check in enumerate(checks):
         tfb = np.loadtxt(f'{abspath}/data/{commonfolder}{check}/{check}Mass_encl_time.txt')
         # tfb_cgs = tfb * tfallback_cgs
@@ -95,39 +97,72 @@ else:
         Mass_encl = np.transpose(Mass_encl)
         if i < 2:
             ax = ax1
-        ax.plot(tfb, Mass_encl[0]/mstar, c = 'deepskyblue', ls = lines[i], linewidth = 2, label = {r'R = R$_0$' if i == 0  else 'with sink term'})
-        ax.plot(tfb, Mass_encl[1]/mstar, c = 'coral', ls = lines[i], linewidth = 2, label = {r'R = R_t' if i == 0 else ''})
-        ax.plot(tfb, Mass_encl[2]/mstar, c = 'mediumseagreen', ls = lines[i], linewidth = 2, label =  {r'R = a$_{\rm mb}$' if i == 0 else ''})
-        ax.plot(tfb, Mass_encl[3]/mstar, c = 'm', ls = lines[i], linewidth = 2, label = {r'R = R$_{\rm apo}$' if i == 0 else ''})
+            axDiss = axDiss1
+            # axLum = axLum1
+        else:
+            ax = ax2
+            axDiss = axDiss2
+            # axLum = axLum2
+        ax.plot(tfb, Mass_encl[0]/mstar, c = 'deepskyblue', ls = lines[i], linewidth = 2, label = {r'R $< R_0$' if i in [0,2]  else 'with sink term'})
+        ax.plot(tfb, Mass_encl[1]/mstar, c = 'coral', ls = lines[i], linewidth = 2, label = {r'R $< R_{t}$' if i in [0,2] else ''})
+        ax.plot(tfb, Mass_encl[2]/mstar, c = 'mediumseagreen', ls = lines[i], linewidth = 2, label =  {r'R $< a_{\rm mb}$' if i in [0,2] else ''})
+        # ax.plot(tfb, Mass_encl[3]/mstar, c = 'm', ls = lines[i], linewidth = 2, label = {r'R $< R_{\rm apo}$' if i in [0,2] else ''})
         # just for the label
-        ax.plot(tfb, Mass_encl[0]/mstar, c = 'deepskyblue', ls = lines[i], linewidth = 2, label = {r'no sink term' if i == 0  else ''})
-
+        ax.plot(tfb, Mass_encl[0]/mstar, c = 'deepskyblue', ls = lines[i], linewidth = 2, label = {r'no sink term' if i in [0,2]  else ''})
+        
         Diss_encl = np.loadtxt(f'{abspath}/data/{commonfolder}{check}/{check}Diss_pos_encl.txt')
         Diss_encl = (np.transpose(Diss_encl)) * prel.en_converter/prel.tsol_cgs
-        axDiss.plot(tfb, Diss_encl[0]/mstar, c = 'deepskyblue', ls = lines[i], linewidth = 2, label = {r'R = R$_0$' if i == 0  else 'with sink term'})
-        axDiss.plot(tfb, Diss_encl[1]/mstar, c = 'coral', ls = lines[i], linewidth = 2, label = {r'R = R_t' if i == 0 else ''})
-        axDiss.plot(tfb, Diss_encl[2]/mstar, c = 'mediumseagreen', ls = lines[i], linewidth = 2, label =  {r'R = a$_{\rm mb}$' if i == 0 else ''})
-        axDiss.plot(tfb, Diss_encl[3]/mstar, c = 'm', ls = lines[i], linewidth = 2, label = {r'R = R$_{\rm apo}$' if i == 0 else ''})
+        axDiss.plot(tfb, Diss_encl[0], c = 'deepskyblue', ls = lines[i], linewidth = 2, label = {r'R $< R_0$' if i in [0,2]  else 'with sink term'})
+        axDiss.plot(tfb, Diss_encl[1], c = 'coral', ls = lines[i], linewidth = 2, label = {r'R $< R_{t}$' if i in [0,2] else ''})
+        axDiss.plot(tfb, Diss_encl[2], c = 'mediumseagreen', ls = lines[i], linewidth = 2, label =  {r'R $< a_{\rm mb}$' if i in [0,2] else ''})
+        # axDiss.plot(tfb, Diss_encl[3], c = 'm', ls = lines[i], linewidth = 2, label = {r'R $< R_{\rm apo}$' if i in [0,2] else ''})
         # just for the label
-        axDiss.plot(tfb, Diss_encl[0]/mstar, c = 'deepskyblue', ls = lines[i], linewidth = 2, label = {r'no sink term' if i == 0  else ''})
-        axDiss.set_yscale('log')
+        axDiss.plot(tfb, Diss_encl[0], c = 'deepskyblue', ls = lines[i], linewidth = 2, label = {r'no sink term' if i in [0,2]  else ''})
+        # axDiss.set_yscale('log')
+        axDiss.set_ylim(2e37, 1e43)
 
-        ax.set_ylim(1e-9, 2)
-    axDiss.set_ylim(1e37, 1e44)
+        data_totDiss = np.loadtxt(f'{abspath}/data/{commonfolder}{check}/Rdiss_{check}cutDen.txt')
+        tfbdissAMR, LDissAMR = data_totDiss[0], data_totDiss[2] * prel.en_converter/prel.tsol_cgs
+        axDiss.plot(tfbdissAMR, LDissAMR, c = 'k', ls = lines[i], linewidth = 2, label = {r'total Diss' if i in [0,2]  else 'with sink term'})
+        axDiss.set_xlabel(r'$\rm t [t_{fb}]$')
+        # filename = f'{abspath}/data/{commonfolder}{check}/{check}_red.csv'
+        # dataLum = np.loadtxt(filename, delimiter=',', dtype=float)
+        # t_Lum = dataLum[:, 1]
+        # Lum = dataLum[:, 2]
+        # Lum, t_Lum = sort_list([Lum, t_Lum], t_Lum, unique=True)
+
+        # axLum.plot(t_Lum, Lum, c = 'b', ls = lines[i], linewidth = 2, label = {r'L$_{\rm FLD}$' if i in [0,2] else ''})
+        # axLum.plot(tfbdissAMR, LDissAMR, c = 'k', ls = lines[i], linewidth = 2, label = {r'no sink term' if i in [0,2]  else ''})
+        # axLum.set_xlabel(r'$\rm t [t_{fb}]$')
+        # axLum.set_ylim(5e37, 1e43)
+    
     ax1.set_ylabel(r'Mass enclosed $[M_\star]$')
-    axDiss.set_ylabel(r'Dissipation rate [erg/s]')
-    for a in [ax, axDiss]:
-        a.set_yscale('log')
+    axDiss1.set_ylabel(r'Dissipation rate enclosed [erg/s]')
+    original_ticks = ax1.get_xticks()
+    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+    # y 
+    original_ticks_y = ax1.get_yticks()
+    midpoints_y = (original_ticks_y[:-1] + original_ticks_y[1:]) / 2
+    new_ticks_y = np.sort(np.concatenate((original_ticks_y, midpoints_y)))
+    for a in [ax1, ax2, axDiss1, axDiss2]:
+        a.set_xticks(new_ticks)
+        a.tick_params(axis='both', which='major', length=7, width=1)
+        a.tick_params(axis='both', which='minor', length=4, width=1)
         a.grid()
-        a.set_xlim(0, 1.8)
-        a.set_title(f'Low Res with NewAMR and extrapolated Rosseland')
-        a.legend(fontsize = 12)
-        a.set_xlabel(r'$\rm t [t_{fb}]$')
+        a.set_xlim(0.01, 1.8)
+        if a in [ax1, ax2]:
+            a.set_yticks(new_ticks_y)
+        a.set_yscale('log')
+
+    ax1.set_ylim(1e-9, 9e-2)
+    ax2.set_ylim(1e-9, 9e-2)
+    ax2.legend(fontsize = 20)
+    axDiss2.legend(fontsize = 20)
+    ax1.set_title(f'Low Res', fontsize = 20)
+    ax2.set_title(f'Fid Res', fontsize = 20)
     fig.tight_layout()
-    figDiss.tight_layout()
-    # plt.savefig(f'{abspath}/Figs/multiple/mass_encl_all.png', bbox_inches='tight')
-    fig.savefig(f'{abspath}/Figs/Test/MazeOfRuns/sink/mass_encl_Low_RC.png', bbox_inches='tight')
-    figDiss.savefig(f'{abspath}/Figs/Test/MazeOfRuns/sink/Diss_encl_Low_RC.png', bbox_inches='tight')
+    fig.savefig(f'{abspath}/Figs/Test/MazeOfRuns/sink/massDiss_encl.png', bbox_inches='tight')
 
     #%%
     # for i, check in enumerate(checks):
