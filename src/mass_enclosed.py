@@ -30,8 +30,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'NewAMRRemovingCenter'
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+check = 'NewAMRRemoveCenter'
 
 ##
 # MAIN
@@ -46,6 +45,7 @@ tfallback = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
 
 if alice:
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
     filename = f'{abspath}/data/{folder}/{check}_red.csv'
     data_fld = np.loadtxt(filename, delimiter=',', dtype=float)
@@ -79,42 +79,59 @@ if alice:
     np.savetxt(f'{abspath}/data/{folder}/{check}R_Mass_encl.txt', Rcheck)
 
 else:
-    checks = ['LowResNewAMR', 'LowResNewAMRRemoveCenter'] #['LowRes', '', 'HiRes']
-    lines = ['solid', '--']
-    checklab = ['Low, New Extr, New AMR', 'Low, New Extr, New AMR + RC'] #['Low', 'Fid', 'High']
-    colorcheck = ['plum', 'maroon'] #['C1', 'yellowgreen', 'darkviolet']
+    checks = ['LowResNewAMR', 'LowResNewAMRRemoveCenter', 'OpacityNewNewAMR', 'NewAMRRemoveCenter'] #['LowRes', '', 'HiRes']
+    lines = ['solid', '--', 'solid', '--']
+    checklab = [r'Low, Old$^*$ Extr, New AMR', r'Low, Old$^*$ Extr, New AMR + RC', 'Fid, New Extr, New AMR', r'Fid, Old$^*$ Extr, New AMR + RC'] #['Low', 'Fid', 'High']
+    colorcheck = ['plum', 'maroon', 'royalblue', 'k'] #['C1', 'yellowgreen', 'darkviolet']
     commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
     ## Plot as Extended figure 3 in SteinbergStone24
-    fig, ax = plt.subplots(1,1) #len(checks), 1, figsize = (5, 8))
+    fig, (ax1, ax2) = plt.subplots(1,2, figsize = (18,6)) #len(checks), 1, figsize = (5, 8))
     figDiss, axDiss = plt.subplots(1,1) #len(checks), 1, figsize = (5, 8))
     for i, check in enumerate(checks):
         tfb = np.loadtxt(f'{abspath}/data/{commonfolder}{check}/{check}Mass_encl_time.txt')
-        tfb_cgs = tfb * tfallback_cgs
+        # tfb_cgs = tfb * tfallback_cgs
         Mass_encl = np.loadtxt(f'{abspath}/data/{commonfolder}{check}/{check}Mass_encl.txt', comments="#")
         Mass_encl = np.transpose(Mass_encl)
-        # Mass_encl_cut = np.loadtxt(f'{abspath}/data/{folder}{check}/{check}Mass_encl_cut.txt')
-        # Mass_encl_cut = np.transpose(Mass_encl_cut)
+        if i < 2:
+            ax = ax1
         ax.plot(tfb, Mass_encl[0]/mstar, c = 'deepskyblue', ls = lines[i], linewidth = 2, label = {r'R = R$_0$' if i == 0  else 'with sink term'})
         ax.plot(tfb, Mass_encl[1]/mstar, c = 'coral', ls = lines[i], linewidth = 2, label = {r'R = R_t' if i == 0 else ''})
         ax.plot(tfb, Mass_encl[2]/mstar, c = 'mediumseagreen', ls = lines[i], linewidth = 2, label =  {r'R = a$_{\rm mb}$' if i == 0 else ''})
         ax.plot(tfb, Mass_encl[3]/mstar, c = 'm', ls = lines[i], linewidth = 2, label = {r'R = R$_{\rm apo}$' if i == 0 else ''})
         # just for the label
         ax.plot(tfb, Mass_encl[0]/mstar, c = 'deepskyblue', ls = lines[i], linewidth = 2, label = {r'no sink term' if i == 0  else ''})
-        ax.set_yscale('log')
 
-        tfbDiss, _, Ldisstot_pos, _, _ = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}cutDen.txt', comments = '#')
+        Diss_encl = np.loadtxt(f'{abspath}/data/{commonfolder}{check}/{check}Diss_pos_encl.txt')
+        Diss_encl = (np.transpose(Diss_encl)) * prel.en_converter/prel.tsol_cgs
+        axDiss.plot(tfb, Diss_encl[0]/mstar, c = 'deepskyblue', ls = lines[i], linewidth = 2, label = {r'R = R$_0$' if i == 0  else 'with sink term'})
+        axDiss.plot(tfb, Diss_encl[1]/mstar, c = 'coral', ls = lines[i], linewidth = 2, label = {r'R = R_t' if i == 0 else ''})
+        axDiss.plot(tfb, Diss_encl[2]/mstar, c = 'mediumseagreen', ls = lines[i], linewidth = 2, label =  {r'R = a$_{\rm mb}$' if i == 0 else ''})
+        axDiss.plot(tfb, Diss_encl[3]/mstar, c = 'm', ls = lines[i], linewidth = 2, label = {r'R = R$_{\rm apo}$' if i == 0 else ''})
+        # just for the label
+        axDiss.plot(tfb, Diss_encl[0]/mstar, c = 'deepskyblue', ls = lines[i], linewidth = 2, label = {r'no sink term' if i == 0  else ''})
+        axDiss.set_yscale('log')
 
-    ax.set_ylim(1e-9, 2)
-    ax.grid()
-    ax.set_xlim(0, 1.8)
-    ax.set_title(f'Low Res with NewAMR and extrapolated Rosseland', fontsize = 20)
-    ax.legend(fontsize = 12)
-    ax.set_ylabel(r'Mass enclosed $[M_\star]$', fontsize = 20)
-    ax.set_xlabel(r'$\rm t [t_{fb}]$', fontsize = 20)
-    plt.tight_layout()
+        ax.set_ylim(1e-9, 2)
+    axDiss.set_ylim(1e37, 1e44)
+    ax1.set_ylabel(r'Mass enclosed $[M_\star]$')
+    axDiss.set_ylabel(r'Dissipation rate [erg/s]')
+    for a in [ax, axDiss]:
+        a.set_yscale('log')
+        a.grid()
+        a.set_xlim(0, 1.8)
+        a.set_title(f'Low Res with NewAMR and extrapolated Rosseland')
+        a.legend(fontsize = 12)
+        a.set_xlabel(r'$\rm t [t_{fb}]$')
+    fig.tight_layout()
+    figDiss.tight_layout()
     # plt.savefig(f'{abspath}/Figs/multiple/mass_encl_all.png', bbox_inches='tight')
-    plt.savefig(f'{abspath}/Figs/Test/MazeOfRuns/sink/mass_encl_Low_RC.png', bbox_inches='tight')
+    fig.savefig(f'{abspath}/Figs/Test/MazeOfRuns/sink/mass_encl_Low_RC.png', bbox_inches='tight')
+    figDiss.savefig(f'{abspath}/Figs/Test/MazeOfRuns/sink/Diss_encl_Low_RC.png', bbox_inches='tight')
+
+    #%%
+    # for i, check in enumerate(checks):
+    #     tfbDiss, _, Ldisstot_pos, _, _ = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}cutDen.txt', comments = '#')
     
 #     fig, ax = plt.subplots(1,3, figsize = (22, 5))
 #     for i, check in enumerate(checks):

@@ -12,6 +12,7 @@ import numpy as np
 import h5py
 import os
 from Utilities.selectors_for_snap import select_snap, select_prefix
+from Utilities.time_extractor import days_since_distruption
 
 
 ## File structure is
@@ -132,21 +133,22 @@ if m == 6:
 else: 
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-snaps, times = select_snap(m, check, mstar, Rstar, beta, n, time = True)
+snaps = select_snap(m, check, mstar, Rstar, beta, n, time = False)
 print(f'We are in folder: {folder}', flush=True)
 sys.stdout.flush()
 
 for i, snap in enumerate(snaps):
-    tfb = times[i]
     prepath = select_prefix(m, check, mstar, Rstar, beta, n, compton)
     if alice:
         prepath = f'{prepath}/snap_{snap}'
     else: 
         prepath = f'{prepath}/{snap}'
     file = f'{prepath}/snap_{snap}.h5'
+
+    tfb = days_since_distruption(file, m, mstar, Rstar, choose = 'tfb')
     box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz, DivV = extractor(file)
-    
-    # Save to another file.
+   
+   # Save to another file.
     np.save(f'{prepath}/box_{snap}', box) 
     np.save(f'{prepath}/CMx_{snap}', X)   
     np.save(f'{prepath}/CMy_{snap}', Y) 
