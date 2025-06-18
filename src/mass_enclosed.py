@@ -169,7 +169,7 @@ else:
 
     #%%
     if what_to_plot == 'Maccr':
-        checks = ['', 'OpacityNewNewAMR', 'NewAMRRemoveCenter']
+        checks = ['OpacityNew', 'OpacityNewNewAMR', 'NewAMRRemoveCenter']
         checklab = ['Fid, Old', 'Fid, lin Extr, New AMR', 'Fid, final Extr, New AMR + sink']
         fig, ax = plt.subplots(1,3, figsize = (22, 5))
         for i, check in enumerate(checks):
@@ -212,7 +212,6 @@ else:
             labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
             ax[i].set_xticklabels(labels)
             ax[i].set_xlim(0, np.max(tfbL))
-
 
         ax[0].set_ylabel(r'Luminosity [erg/s] from $R<R_0$')#, fontsize = 25)
         ax[0].legend(fontsize = 18)

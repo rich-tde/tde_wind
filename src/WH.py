@@ -36,7 +36,6 @@ snap = '237'
 ## Constants
 #
 
-
 Mbh = 10**m
 Rs = 2*prel.G*Mbh / prel.csol_cgs**2
 Rt = Rstar * (Mbh/mstar)**(1/3)
@@ -70,32 +69,22 @@ def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
     # First guess of C and find the mass enclosed in the initial boundaries
     C = 2*np.min(dim_plane) #2 #np.min([not_toovercome, 2])
     condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
+    # to be sure that you have points in the plane
     while len(mass_plane[condition]) == 0:
         print('No points found since the beginning, double C', C)
-        # plt.figure()
-        # plt.scatter(t_plane/apo, z_plane/apo, c= mass_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-12, vmax = 1e-8))
-        # plt.axhline(C/apo, c = 'k', ls = '--')
-        # plt.axvline(C/apo, c = 'k', ls = '--')
-        # plt.axhline(-C/apo, c = 'k', ls = '--')
-        # plt.axvline(-C/apo, c = 'k', ls = '--')
-        # plt.xlim(-4,4)
-        # plt.ylim(-4,4)
-        # plt.show()
         C *= 2
         condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
     mass = mass_plane[condition]
-    # print(len(mass[condition]))
     total_mass = np.sum(mass)
     while True:
         # update 
-        step = 2*np.mean(dim_plane[condition]) #2*np.max(dim_plane[condition])
+        step = 2*np.mean(dim_plane[condition]) 
         C += step
         condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
         # Check that you add new points
         if len(mass_plane[condition]) == len(mass):
             print('No new points added, increase C')
-            C += 2
-            # print(C)
+            C += step
         else:
             tocheck = r_plane[condition]-R0
             if tocheck.any()<0:
@@ -105,13 +94,26 @@ def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
             mass = mass_plane[condition]
             new_mass = np.sum(mass) 
             # old mass is > 95% of the new mass
-            if np.logical_and(total_mass > 0.95 * new_mass, total_mass != new_mass): # to be sure that you've done a step
+            if np.logical_and(total_mass > 0.95 * new_mass, total_mass != new_mass): 
                 break
             total_mass = new_mass
     return C
 
 def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R0):
-    """ Find the maxima density points in the radial plane for all the thetas in theta_arr"""
+    """ Find the maxima density points in the radial plane for all the thetas in theta_arr 
+    Parameters
+    ----------
+    x_data, y_data, z_data, dim_data, den_data : array
+        X, Y, Z, coordinates, dimension and density of simualtion points.
+    theta_arr : array
+        Angles in radians.
+    R0 : float
+        Smoothing radius.
+    Returns
+    -------
+    x_max, y_max, z_max : array
+        X, Y, Z coordinates of the maximum density points in the radial plane of each angle in the sample.
+    """
     x_max = np.zeros(len(theta_arr))
     y_max = np.zeros(len(theta_arr))
     z_max = np.zeros(len(theta_arr))
@@ -129,11 +131,26 @@ def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R
         
     return x_max, y_max, z_max    
 
-def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, theta_arr, params, test = False):
-    """ Find the centres of mass in the transverse plane"""
-    Mbh, Rstar, mstar, beta = params[0], params[1], params[2], params[3]
-    Rt = Rstar * (Mbh/mstar)**(1/3)
-    R0 = 0.6 * Rt
+def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, theta_arr, params, all_iterations = False):
+    """ Find the centres of mass in the transverse plane
+    Parameters
+    ----------
+    x_data, y_data, z_data, dim_data, den_data, mass_data : array
+        X, Y, Z, coordinates, dimension, density and mass of simualtion points.
+    theta_arr : array
+        Angles in radians.
+    params : list
+        List of parameters [Mbh, Rstar, mstar, beta].
+    all_iterations : bool
+        If True, returns (in the reversed order) all the iterations of the centers of mass and the radial maximum points.
+    Returns
+    -------
+    x_max, y_max, z_max : array
+        X, Y, Z coordinates of the maximum density points in the radial plane of each angle in the sample.
+    """
+    Mbh, Rstar, mstar, beta = params
+    Rt = orb.tidal_radius(Rstar, mstar, Mbh)
+    R0 = 0.6 * (Rt/beta)
     apo = orb.apocentre(Rstar, mstar, Mbh, beta)
     # indeces = np.arange(len(x_data))
     # Cut a bit the data for computational reasons
@@ -145,7 +162,6 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     print('radial done')
 
     # First iteration: find the center of mass of each transverse plane of the maxima-density stream
-    # indeces_cmTR = np.zeros(len(theta_arr))
     x_cmTR = np.zeros(len(theta_arr))
     y_cmTR = np.zeros(len(theta_arr))
     z_cmTR = np.zeros(len(theta_arr))
@@ -153,26 +169,27 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         print(idx)
         # Find the transverse plane
         condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, coord = True)
-        x_plane, y_plane, z_plane, mass_plane, den_plane, dim_plane = \
-            sec.make_slices([x_cut, y_cut, z_cut, mass_cut, den_cut, dim_cut], condition_T)
-        if idx == np.argmin(np.abs(theta_arr)): # plot section at pericenter
-            print(theta_arr[idx])
-            from matplotlib import colors
-            fig, (ax1, ax2) = plt.subplots(1,2, figsize = (20,8))
-            img = ax1.scatter(x_T, z_plane, c = den_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 1e-6))
-            cbar = plt.colorbar(img)
-            cbar.set_label(r'Density $[M_\odot/R_\odot^3]$')
-            ax1.set_ylabel(r'Z [$R_\odot$]')
-            img = ax2.scatter(x_T, z_plane, c = mass_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-12, vmax = 1e-8))
-            cbar = plt.colorbar(img)
-            cbar.set_label(r'Cell mass $[R_\odot]$')
-            for ax in [ax1, ax2]:
-                ax.scatter(0,0, edgecolor= 'k', marker = 'o', facecolors='none', s=80)
-                ax.set_xlim(-50, 30)
-                ax.set_ylim(-10, 10)
-                ax.set_xlabel(r'T [$R_\odot$]')
-            plt.suptitle('(0,0) is the maximum density point of the radial plane')
-            plt.tight_layout()
+        x_plane, y_plane, z_plane, dim_plane, den_plane, mass_plane = \
+            sec.make_slices([x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut], condition_T)
+        # plot section at pericenter
+        # if idx == np.argmin(np.abs(theta_arr)): 
+        #     print(theta_arr[idx])
+        #     from matplotlib import colors
+        #     fig, (ax1, ax2) = plt.subplots(1,2, figsize = (20,8))
+        #     img = ax1.scatter(x_T, z_plane, c = den_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 1e-6))
+        #     cbar = plt.colorbar(img)
+        #     cbar.set_label(r'Density $[M_\odot/R_\odot^3]$')
+        #     ax1.set_ylabel(r'Z [$R_\odot$]')
+        #     img = ax2.scatter(x_T, z_plane, c = mass_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-12, vmax = 1e-8))
+        #     cbar = plt.colorbar(img)
+        #     cbar.set_label(r'Cell mass $[R_\odot]$')
+        #     for ax in [ax1, ax2]:
+        #         ax.scatter(0,0, edgecolor= 'k', marker = 'o', facecolors='none', s=80)
+        #         ax.set_xlim(-50, 30)
+        #         ax.set_ylim(-10, 10)
+        #         ax.set_xlabel(r'T [$R_\odot$]')
+        #     plt.suptitle('(0,0) is the maximum density point of the radial plane')
+        #     plt.tight_layout()
         # Cut the TZ plane to not keep points too far away.
         r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
         thresh = get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) #8 * Rstar * (r_stream_rad[idx]/Rp)**(1/2)
@@ -197,25 +214,26 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         print(idx)
         # Find the transverse plane
         condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, coord = True)
-        x_plane, y_plane, z_plane, mass_plane, den_plane, dim_plane = \
-            sec.make_slices([x_cut, y_cut, z_cut, mass_cut, den_cut, dim_cut], condition_T)
-        if idx == np.argmin(np.abs(theta_arr)): # plot section at pericenter
-            from matplotlib import colors
-            fig, (ax1, ax2) = plt.subplots(1,2, figsize = (20,8))
-            img = ax1.scatter(x_T, z_plane, c = den_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 1e-6))
-            cbar = plt.colorbar(img)
-            cbar.set_label(r'Density $[M_\odot/R_\odot^3]$')
-            ax1.set_ylabel(r'Z [$R_\odot$]')
-            img = ax2.scatter(x_T, z_plane, c = mass_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-12, vmax = 1e-8))
-            cbar = plt.colorbar(img)
-            cbar.set_label(r'Cell mass $[R_\odot]$')
-            for ax in [ax1, ax2]:
-                ax.scatter(0,0, edgecolor= 'k', marker = 'o', facecolors='none', s=80)
-                ax.set_xlim(-50, 30)
-                ax.set_ylim(-10, 10)
-                ax.set_xlabel(r'T [$R_\odot$]')
-            plt.suptitle('(0,0) is the center of mass of the TZ plane of the max density point', fontsize = 14)
-            plt.tight_layout()
+        x_plane, y_plane, z_plane, dim_plane, den_plane, mass_plane = \
+            sec.make_slices([x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut], condition_T)
+        # plot section at pericenter
+        # if idx == np.argmin(np.abs(theta_arr)): 
+        #     from matplotlib import colors
+        #     fig, (ax1, ax2) = plt.subplots(1,2, figsize = (20,8))
+        #     img = ax1.scatter(x_T, z_plane, c = den_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 1e-6))
+        #     cbar = plt.colorbar(img)
+        #     cbar.set_label(r'Density $[M_\odot/R_\odot^3]$')
+        #     ax1.set_ylabel(r'Z [$R_\odot$]')
+        #     img = ax2.scatter(x_T, z_plane, c = mass_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-12, vmax = 1e-8))
+        #     cbar = plt.colorbar(img)
+        #     cbar.set_label(r'Cell mass $[R_\odot]$')
+        #     for ax in [ax1, ax2]:
+        #         ax.scatter(0,0, edgecolor= 'k', marker = 'o', facecolors='none', s=80)
+        #         ax.set_xlim(-50, 30)
+        #         ax.set_ylim(-10, 10)
+        #         ax.set_xlabel(r'T [$R_\odot$]')
+        #     plt.suptitle('(0,0) is the center of mass of the TZ plane of the max density point', fontsize = 14)
+        #     plt.tight_layout()
         # Restrict the points to not keep points too far away.
         r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
         thresh = get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) #8 * Rstar * (r_cmTR[idx]/Rp)**(1/2)
@@ -229,30 +247,63 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         y_cm[idx]= np.sum(y_plane * mass_plane) / np.sum(mass_plane)
         z_cm[idx] = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
         thresh_cm[idx] = thresh
-    #     x_com = np.sum(x_plane * mass_plane) / np.sum(mass_plane)
-    #     y_com = np.sum(y_plane * mass_plane) / np.sum(mass_plane)
-    #     z_com = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
     #     # Search in the tree the closest point to the center of mass
     #     points = np.array([x_plane, y_plane, z_plane]).T
     #     tree = KDTree(points)
-    #     _, idx_cm = tree.query([x_com, y_com, z_com])
+    #     _, idx_cm = tree.query([x_cm, y_cm, z_cm])
     #     indeces_cm[idx]= indeces_plane[idx_cm]
     # indeces_cm = indeces_cm.astype(int)
-    if test == True:
+    if all_iterations:
         return x_cm, y_cm, z_cm, thresh_cm, x_cmTR, y_cmTR, z_cmTR, x_stream_rad, y_stream_rad, z_stream_rad
     else:
         return x_cm, y_cm, z_cm, thresh_cm
 
 def bound_mass(x, check_data, mass_data, m_thres):
-    """ Function to use with root finding to find the coordinate threshold to respect the wanted mass enclosed in"""
+    """ Function to use with root finding to find the coordinate threshold to respect the wanted mass enclosed.
+    Parameters
+    ----------
+    x : float
+        The threshold to find.
+    check_data, mass_data : array
+        The data to check the threshold against and the corresponding mass data.
+    m_thres : float
+        The threshold mass to respect.
+    Returns
+    -------
+    float
+        The difference between the total mass enclosed in the threshold and the wanted threshold mass.
+    """
     condition = np.abs(check_data) < x # it's either x_T or Z
     mass = mass_data[condition]
     total_mass = np.sum(mass)
     return total_mass - m_thres
 
-def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, idx, params):
-    """ Find the width and the height of the stream for a single theta """
-    Mbh, Rstar, mstar, beta = params[0], params[1], params[2], params[3]
+def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, idx, params, mass_percetage):
+    """ Find the width and the height of the stream for a single theta 
+    Parameters
+    ----------
+    x_data, y_data, z_data, dim_data, mass_data : array
+        X, Y, Z, coordinates, dimension and mass of simualtion points.
+    stream : array
+        Stream data containing: theta, x, y, z coordinates, threshold.
+    idx : int
+        Index of the theta in the stream to consider.
+    params : list
+        List of parameters [Mbh, Rstar, mstar, beta].
+    Returns
+    -------
+    indeces_boundary : array
+        Indeces of the boundaries in the data. You have to use them to slice np.arange(len(x_data)).
+    x_T_width : array
+        X coordinates of the transverse plane boundaries.
+    w_params : array
+        Width parameters: [width, number of cells in width].
+    h_params : array
+        Height parameters: [height, number of cells in height].
+    thresh : float  
+        Threshold for the transverse plane.
+    """
+    Mbh, Rstar, mstar, beta = params
     Rt = Rstar * (Mbh/mstar)**(1/3)
     R0 = 0.6 * (Rt / beta) 
     indeces = np.arange(len(x_data))
@@ -261,9 +312,7 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     condition_T, x_Tplane, _ = sec.transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, coord = True)
     x_plane, y_plane, z_plane, dim_plane, mass_plane, indeces_plane = \
         sec.make_slices([x_data, y_data, z_data, dim_data, mass_data, indeces], condition_T)
-    # Restrict to not keep points too far away.
     r_spherical_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
-    # thresh = get_threshold(x_Tplane, z_plane, r_plane, mass_plane, dim_plane, R0) #8 * Rstar * (r_cm/Rp)**(1/2)
     thresh = thresh_stream[idx]
     condition_x = np.abs(x_Tplane) < thresh
     condition_z = np.abs(z_plane) < thresh
@@ -272,7 +321,8 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
         sec.make_slices([x_plane, x_Tplane, y_plane, z_plane, r_spherical_plane, dim_plane, mass_plane, indeces_plane], condition)
     if np.min(r_spherical_plane)< R0:
         print(f'The threshold to cut the TZ plane in width is too broad: you overcome R0 at angle #{theta_arr[idx]} of the stream')
-    mass_to_reach = 0.25 * np.sum(mass_plane) #25% for each quarter
+    
+    mass_to_reach = (mass_percetage/2) * np.sum(mass_plane) #25% for each quarter
     # Find the threshold for x
     x_Tplanepositive, mass_planepositive, indices_planepositive, dim_cell_xpositive = \
         x_Tplane[x_Tplane>=0], mass_plane[x_Tplane>=0], indeces_plane[x_Tplane>=0], dim_plane[x_Tplane>=0]
@@ -324,13 +374,8 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     # height = np.max([height, dim_stream[idx]]) # to avoid 0 height
 
     # Compute the number of cells in width and height using the cells in the rectangle
-    # rectangle = condition_contourT & condition_contourZ
-    dim_cell_Wpositive = np.mean(dim_cell_xpositive[condition_contourTpositive])
-    dim_cell_Wnegative = np.mean(dim_cell_xnegative[condition_contourTnegative])
-    dim_cell_Hpositive = np.mean(dim_cell_zpositive[condition_contourZpositive])
-    dim_cell_Hnegative = np.mean(dim_cell_znegative[condition_contourZnegative])
-    dim_cell_mean = np.mean([dim_cell_Wpositive, dim_cell_Wnegative, dim_cell_Hpositive, dim_cell_Hnegative])
-    # dim_cell_mean = np.mean(dim_plane[rectangle])
+    cell_contour = np.logical_and(x_Tplane >= x_T_low, np.logical_and(x_Tplane <= x_T_up, np.logical_and(z_plane >= z_low, z_plane <= z_up)))
+    dim_cell_mean = np.mean(dim_plane[cell_contour])
     ncells_w = np.round(width/dim_cell_mean, 0) # round to the nearest integer
     ncells_h = np.round(height/dim_cell_mean, 0) # round to the nearest integer
 
@@ -341,10 +386,9 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
 
     return indeces_boundary, x_T_width, w_params, h_params, thresh
 
-def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, path, params):
+def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, stream, params, mass_percentage = 0.5):
     """ Find width and height all along the stream """
     # Find the stream (load it)
-    stream = np.load(path)
     theta_arr = stream[0]
     # Find the boundaries for each theta
     indeces_boundary = []
@@ -352,8 +396,9 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, path, params)
     w_params = []
     h_params = []
     for i in range(len(theta_arr)):
+        print(i)
         indeces_boundary_i, x_T_width_i, w_params_i, h_params_i, _ = \
-            find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, i, params)
+            find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, i, params, mass_percentage)
         indeces_boundary.append(indeces_boundary_i)
         x_T_width.append(x_T_width_i)
         w_params.append(w_params_i)
@@ -362,13 +407,13 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, path, params)
     x_T_width = np.array(x_T_width)
     w_params = np.transpose(np.array(w_params)) # line 1: width, line 2: ncells
     h_params = np.transpose(np.array(h_params)) # line 1: height, line 2: ncells
-    return stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr
+    return stream, indeces_boundary, x_T_width, w_params, h_params
 
 #
 ## MAIN
 #
 
-save = True
+save = False
 theta_lim =  np.pi
 step = 0.02
 theta_init = np.arange(-theta_lim, theta_lim, step)
@@ -390,10 +435,6 @@ X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Mass_midplane = 
     sec.make_slices([X, Y, Z, dim_cell, Den, Mass], midplane)
 
 #%%
-# try:
-#     theta_arr, x_stream, y_stream, z_stream, thresh_cm = \
-#         np.load(f'{abspath}/data/{folder}/stream_{check}{snap}.npy')
-# except:
 x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params)
 np.save(f'{abspath}/data/{folder}/stream_{check}{snap}.npy', [theta_arr, x_stream, y_stream, z_stream, thresh_cm])
 
@@ -410,45 +451,29 @@ plt.xlim(-2, .2)
 plt.ylim(-.4, .4)
 
 #%%
-file = f'{abspath}/data/{folder}/stream_{check}{snap}.npy'
-stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr  = follow_the_stream(X, Y, Z, dim_cell, Mass, path = file, params = params)
-#%%
-indeces_boundary_lowX, indeces_boundary_upX, indeces_boundary_lowZ, indeces_boundary_upZ = \
-    indeces_boundary[:,0], indeces_boundary[:,1], indeces_boundary[:,2], indeces_boundary[:,3]
+stream = np.load(f'{abspath}/data/{folder}/stream_{check}{snap}.npy')
+stream, indeces_boundary50, x_T_width50, w_params50, h_params50  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params)
+
+indeces_boundary_lowX50, indeces_boundary_upX50, indeces_boundary_lowZ50, indeces_boundary_upZ50 = \
+    indeces_boundary50[:,0], indeces_boundary50[:,1], indeces_boundary50[:,2], indeces_boundary50[:,3]
 indeces_all = np.arange(len(X))
-x_low_width, y_low_width = X[indeces_boundary_lowX], Y[indeces_boundary_lowX]
-x_up_width, y_up_width = X[indeces_boundary_upX], Y[indeces_boundary_upX]
+x_low_width50, y_low_width50 = X[indeces_boundary_lowX50], Y[indeces_boundary_lowX50]
+x_up_width50, y_up_width50 = X[indeces_boundary_upX50], Y[indeces_boundary_upX50]
 #%%
 if save:
-    try:
-        file = open(f'{abspath}data/{folder}/WH/width_time{np.round(tfb,2)}.txt', 'r')
-        # Perform operations on the file
-        file.close()
-    except FileNotFoundError:
-        with open(f'{abspath}data/{folder}/WH/width_time{np.round(tfb,2)}.txt','a') as fstart:
-            # if file exist, save theta and date of execution
-            fstart.write(f'# theta, done on {datetime.now()} \n')
-            fstart.write((' '.join(map(str, theta_arr)) + '\n'))
-
     with open(f'{abspath}data/{folder}/WH/width_time{np.round(tfb,2)}.txt','a') as file:
+        # if file exist, save theta and date of execution
+        file.write(f'# theta, done on {datetime.now()} \n')
+        file.write((' '.join(map(str, theta_arr)) + '\n'))
         file.write(f'# {check}, done on {datetime.now()}, snap {snap} \n# Width \n')
         file.write((' '.join(map(str, w_params[0])) + '\n'))
         file.write(f'# Ncells \n')
         file.write((' '.join(map(str, w_params[1])) + '\n'))
         file.write(f'################################ \n')
 
-    # same for height
-    try:
-        file = open(f'{abspath}data/{folder}/WH/height_time{np.round(tfb,2)}.txt', 'r')
-        # Perform operations on the file
-        file.close()
-    except FileNotFoundError:
-        with open(f'{abspath}data/{folder}/WH/height_time{np.round(tfb,2)}.txt','a') as fstart:
-            # if file exist
-            fstart.write(f'# theta, done on {datetime.now()} \n')
-            fstart.write((' '.join(map(str, theta_arr)) + '\n'))
-
     with open(f'{abspath}data/{folder}/WH/height_time{np.round(tfb,2)}.txt','a') as file:
+        file.write(f'# theta, done on {datetime.now()} \n')
+        file.write((' '.join(map(str, theta_arr)) + '\n'))
         file.write(f'# {check}, done on {datetime.now()}, snap {snap} \n# Height \n')
         file.write((' '.join(map(str, h_params[0])) + '\n'))
         file.write(f'# Ncells \n')
@@ -457,15 +482,29 @@ if save:
 
 
 #%% 
-fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,6), width_ratios= [1.5, .5])
+stream, indeces_boundary70, x_T_width70, w_params70, h_params70  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.70)
+indeces_boundary_lowX70, indeces_boundary_upX70, indeces_boundary_lowZ70, indeces_boundary_upZ70 = \
+indeces_boundary70[:,0], indeces_boundary70[:,1], indeces_boundary70[:,2], indeces_boundary70[:,3]
+indeces_all = np.arange(len(X))
+x_low_width70, y_low_width70 = X[indeces_boundary_lowX70], Y[indeces_boundary_lowX70]
+x_up_width70, y_up_width70 = X[indeces_boundary_upX70], Y[indeces_boundary_upX70]
+#%%
+stream, indeces_boundary80, x_T_width80, w_params80, h_params80  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.80)
+indeces_boundary_lowX80, indeces_boundary_upX80, indeces_boundary_lowZ80, indeces_boundary_upZ80 = \
+indeces_boundary80[:,0], indeces_boundary80[:,1], indeces_boundary80[:,2], indeces_boundary80[:,3]
+indeces_all = np.arange(len(X))
+x_low_width80, y_low_width80 = X[indeces_boundary_lowX80], Y[indeces_boundary_lowX80]
+x_up_width80, y_up_width80 = X[indeces_boundary_upX80], Y[indeces_boundary_upX80]
 
+#%%
+fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,6), width_ratios= [1.5, .5])
 for ax in [ax1, ax2]:
     # ax.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 5e-4))
     ax.plot(x_stream[:-70]/apo, y_stream[:-70]/apo, c = 'k')
     ax.plot(x_stream[-30:]/apo, y_stream[-30:]/apo, c = 'k')
     ax.plot([x_stream[0]/apo, x_stream[-1]/apo] , [y_stream[0]/apo, y_stream[-1]/apo], c = 'k')
-    ax.plot(x_low_width/apo, y_low_width/apo, c = 'coral')
-    ax.plot(x_up_width/apo, y_up_width/apo, c = 'coral')
+    ax.plot(x_low_width50/apo, y_low_width50/apo, c = 'coral')
+    ax.plot(x_up_width50/apo, y_up_width50/apo, c = 'coral')
     ax.set_xlabel(r'$X [R_{\rm a}]$')
 ax1.set_ylabel(r'$Y [R_{\rm a}]$')
 ax1.set_xlim(-1, .1)
@@ -474,22 +513,37 @@ ax2.set_xlim(-.2, .1)
 ax2.set_ylim(-.1, .1)
 plt.suptitle(r'Stream at t/t$_{\rm fb}$ = ' + str(np.round(tfb,2)) + f', check: {check}', fontsize = 16)
 #%%
-# Plot width over r
-plt.figure(figsize = (10,6))
-plt.plot(theta_arr * radians, w_params[0], c = 'k')
-img = plt.scatter(theta_arr * radians, w_params[0], c = w_params[1], cmap = 'rainbow', vmin = 0, vmax = 20)
+# Plot 
+fig, (ax1,ax2) = plt.subplots(1,2, figsize = (18,6))
+ax1.plot(theta_arr * radians, w_params50[0], c = 'k')
+ax1.plot(theta_arr * radians, w_params70[0], c = 'k')
+ax1.plot(theta_arr * radians, w_params80[0], c = 'k')
+ax1.scatter(theta_arr * radians, w_params50[0], c = w_params50[1], cmap = 'rainbow', vmin = 0, vmax = 20, marker = 'o', label  = '50% mass')
+ax1.scatter(theta_arr * radians, w_params70[0], c = w_params70[1], cmap = 'rainbow', vmin = 0, vmax = 20, marker = 'x', label  = '70% mass')
+img = ax1.scatter(theta_arr * radians, w_params80[0], c = w_params80[1], cmap = 'rainbow', vmin = 0, vmax = 20, marker = 's', label  = '80% mass')
 cbar = plt.colorbar(img)
 cbar.set_label(r'Ncells')
-plt.xlabel(r'$\theta$')
-plt.ylabel(r'Width [$R_\odot$]')
-plt.xlim(-3/4*np.pi, 3/4*np.pi)
-plt.ylim(0,8)
-plt.grid()
-plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,2)) + f', check: {check}', fontsize = 16)
+ax1.set_ylabel(r'Width [$R_\odot$]')
+ax1.set_ylim(0.1,6)
+
+ax2.plot(theta_arr * radians, h_params50[0], c = 'k')
+ax2.plot(theta_arr * radians, h_params70[0], c = 'k')
+ax2.plot(theta_arr * radians, h_params80[0], c = 'k')
+ax2.scatter(theta_arr * radians, h_params50[0], c = h_params50[1], cmap = 'rainbow', vmin = 0, vmax = 10, marker = 'o', label  = '50% mass')
+ax2.scatter(theta_arr * radians, h_params70[0], c = h_params70[1], cmap = 'rainbow', vmin = 0, vmax = 10, marker = 'x', label  = '70% mass')
+img = ax2.scatter(theta_arr * radians, h_params80[0], c = h_params80[1], cmap = 'rainbow', vmin = 0, vmax = 10, marker = 's', label  = '80% mass')
+cbar = plt.colorbar(img)
+cbar.set_label(r'Ncells')
+ax2.set_ylabel(r'Height [$R_\odot$]')
+ax2.set_ylim(0.1,4)
+
+for ax in [ax1, ax2]:
+    ax.set_xlabel(r'$\theta$')
+    ax.set_xlim(-2.5, 2.5)#-3/4*np.pi, 3/4*np.pi)
+    ax.grid()
+ax1.legend(fontsize = 14)
+plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,2)), fontsize = 16)
 plt.tight_layout()
 plt.show()
 
-    
-# %%
-print(w_params[1])
-# %%
+#%%
