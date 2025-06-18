@@ -50,7 +50,7 @@ if change == 'Extr':
     styles = ['solid', 'dashed']
     markers = ['o', 'x']
 elif change == 'AMR':
-    snap = 126 # 115, 164, 240 # 126, 301 for sink and no sink
+    snap = 229 # 115, 164, 240 # 126, 301 for sink and no sink
     checks = ['LowResNewAMR', 'LowResNewAMRRemoveCenter'] #['OpacityNew', 'OpacityNewNewAMR']
     check_name = ['no sink', 'sink'] #['NewExtr+OldAMR','NewExtr+NewAMR']
     colorshist = ['plum', 'maroon'] ##['forestgreen', 'k']
@@ -272,24 +272,28 @@ if choose == 'section':
 
     Ncell = np.zeros(len(checks))
     Ncell_mid = np.zeros(len(checks))
-    fig, ax = plt.subplots(2, 2, figsize = (14, 10))
     if change == 'Extr':
+        fig, ax = plt.subplots(2, 2, figsize = (14, 10))
         figK, axK = plt.subplots(1, 2, figsize = (10, 5))
+    elif change == 'AMR':
+        fig, ax = plt.subplots(3, 2, figsize = (14, 18))
     for i,check in enumerate(checks):
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
         path = f'{abspath}/TDE/{folder}/{snap}'
-        tfb = days_since_distruption(f'{path}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
+        tfb = np.loadtxt(f'{path}/tfb_{snap}.txt')
         data = make_tree(path, snap, energy = True)
+        divV = np.load(f'{path}/divV_{snap}.npy')
         cut = data.Den > 1e-19
-        X, Y, Z, den, Vol, Mass, Diss_den, Temp = \
-            sec.make_slices([data.X, data.Y, data.Z,data.Den, data.Vol, data.Mass, data.Diss, data.Temp], cut)
+        X, Y, Z, den, Vol, Mass, Diss_den, Temp, divV = \
+            sec.make_slices([data.X, data.Y, data.Z,data.Den, data.Vol, data.Mass, data.Diss, data.Temp, divV], cut)
         Ncell[i] = len(data.X)
         print(f'check = {check}, Ncell = {Ncell[i]}')
         dim_cell = Vol**(1/3) 
 
         midplane = np.abs(Z) < dim_cell
-        X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Mass_midplane, Diss_den_midplane, Temp_midplane = \
-            sec.make_slices([X, Y, Z, dim_cell, den, Mass, Diss_den, Temp], midplane)
+        X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Mass_midplane, Diss_den_midplane, Temp_midplane, divV_midplane = \
+            sec.make_slices([X, Y, Z, dim_cell, den, Mass, Diss_den, Temp, divV], midplane)
+        Diss_midplane = Diss_den_midplane * dim_midplane
         Ncell_mid[i] = len(X_midplane)
         Den_midplane_cgs = Den_midplane * prel.Msol_cgs / prel.Rsol_cgs**3 # [g/cm^3]
 
@@ -330,18 +334,22 @@ if choose == 'section':
             axK[0].set_ylabel(r'T [K]', fontsize = 18)
 
         if change == 'AMR':
-            img = ax[0][i].scatter(X_midplane/Rt, Y_midplane/Rt, c = Mass_midplane, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e-14, vmax = 5e-10))
+            img = ax[0][i].scatter(X_midplane/Rt, Y_midplane/Rt, c = Den_midplane, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 5e-11, vmax = 1e-5))
             cbar = plt.colorbar(img)
-            cbar.set_label(r'Mass [$M_\odot$]', fontsize = 20)
+            cbar.set_label(r'$\rho [M_\odot/R_\odot^3$]', fontsize = 20)
 
-            img = ax[1][i].scatter(X_midplane/Rt, Y_midplane/Rt, c = np.abs(Diss_den_midplane)*prel.en_den_converter/prel.tsol_cgs, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e-5, vmax = 5e7))
+            img = ax[1][i].scatter(X_midplane[Diss_midplane>0]/Rt, Y_midplane[Diss_midplane>0]/Rt, c = Diss_midplane[Diss_midplane>0]*prel.en_converter/prel.tsol_cgs, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e35, vmax = 6e40))
             cbar = plt.colorbar(img)
-            cbar.set_label(r'$|\dot{u_{\rm diss}}|$ [g/cm$^3s]$', fontsize = 20)
+            cbar.set_label(r'$\dot{E}_{\rm diss, +}$ [erg/s]', fontsize = 20)
+
+            img = ax[2][i].scatter(X_midplane/Rt, Y_midplane/Rt, c = np.abs(divV_midplane)/prel.tsol_cgs, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e-5, vmax = 6e-2))
+            cbar = plt.colorbar(img)
+            cbar.set_label(r'$|\nabla v|$ [1/s]', fontsize = 20)
 
             big_ticks = np.array([-2, -1, 0, 1, 2]) # [R_t]
             mid_ticks = (big_ticks[:-1] + big_ticks[1:]) / 2
             all_ticks = np.sort(np.concatenate([big_ticks, mid_ticks]))
-            for k in range(2):
+            for k in range(3):
                 for j in range(2):  
                     # ax[k][j].contour(xcfr_grid[0]/Rt, ycfr_grid[0]/Rt, cfr_grid[0]/Rt, levels=[0], colors='grey')
                     # ax[k][j].contour(xcfr_grid[1]/Rt, ycfr_grid[1]/Rt, cfr_grid[1]/Rt, levels=[0], colors='grey')
@@ -349,8 +357,6 @@ if choose == 'section':
                     ax[k][j].axhline(-0.6, color = 'grey', linestyle = '--')
                     ax[k][j].axvline(0.6, color = 'grey', linestyle = '--')
                     ax[k][j].axvline(-0.6, color = 'grey', linestyle = '--')
-                    ax[k][j].set_xlim(-2,2)
-                    ax[k][j].set_ylim(-2,2)
                     ax[k][j].set_xticks(all_ticks)
                     ax[k][j].set_xticklabels([f'{tick}' if tick in big_ticks else '' for tick in all_ticks])
                     ax[k][j].set_yticks(all_ticks)
@@ -359,7 +365,9 @@ if choose == 'section':
                     ax[k][j].tick_params(axis='y', which='major', width = 1, length=7)
                     ax[k][j].set_yticks(all_ticks)
                     ax[k][j].set_aspect('equal')
-                ax[1][k].set_xlabel(r'X [$R_{\rm t}$]')
+                    ax[k][j].set_xlim(-1.5, 1.5)
+                    ax[k][j].set_ylim(-1.5, 1.5)
+                    ax[2][j].set_xlabel(r'X [$R_{\rm t}$]')
                 ax[k][0].set_ylabel(r'Y [$R_{\rm t}$]')
 
         ax[0][i].set_title(f'{check_name[i]}', fontsize = 20)

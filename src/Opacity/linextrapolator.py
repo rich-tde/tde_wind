@@ -363,61 +363,64 @@ if __name__ == '__main__':
     kappa_ross_final = np.array(kappa_ross_final)
 
     # Plot at fixed T
-    chosenTs = [1e4, 1e5, 1e7] #all inside the table
+    chosenTs = [1e2, 1e4, 1e5] #all inside the table
     fig, ax = plt.subplots(1,3, figsize = (15,5))
     for i,chosenT in enumerate(chosenTs):
-        iT = np.argmin(np.abs(T__tab - chosenT))
-        ax[i].plot(Rho__tab, kappa_ross_tab[iT, :], c = 'k', label = 'original')
+        if np.logical_and(chosenT < max_T, chosenT > min_T):
+            iT = np.argmin(np.abs(T__tab - chosenT))
+            ax[i].plot(Rho__tab, kappa_ross_tab[iT, :], c = 'k', linewidth =2.5, label = r' $\kappa_R$ table')
         iT_ext = np.argmin(np.abs(T_ext - chosenT))
-        ax[i].plot(Rho_ext, kappa_ross_Oldext[iT_ext, :], '--', c = 'yellowgreen', label = 'old extrapolation')
+        ax[i].plot(Rho_ext, kappa_ross_final[iT_ext, :], c = 'yellowgreen', label = r' $\kappa_R$ final extrapolation')
         # print the angular coefficien of the line above
         # idx_overcome = np.where(Rho_ext>np.max(Rho_tab))[0][0]
         # print(np.gradient(np.log(kappa_ross_Oldext[iT_4, idx_overcome:]), np.log(Rho_ext[idx_overcome:])))
-        ax[i].plot(Rho_ext, kappa_ross_lin[iT_ext, :], ':', c = 'orchid', label = r'linear in $\rho$ A=1')
+        ax[i].plot(Rho_ext, kappa_ross_lin[iT_ext, :], ':', c = 'C1', label = r' $\kappa_R$ linear in $\rho$ A=1')
         # ax[i].set_ylim(.2, 1e4)
         # ax[i].set_xlim(5e-1, 1e-12)
-        ax[i].plot(Rho_ext, kappa_scatter[iT_ext, :], c = 'coral', label = 'scattering')
-        ax[i].axhline(0.2 * (1 + prel.X_nf),  color = 'maroon', linestyle = '--', label = 'Thomson scattering')
+        ax[i].plot(Rho_ext, kappa_scatter[iT_ext, :], c = 'dodgerblue', ls = '--', label = r' $\kappa_{\rm scatt}$')
+        ax[i].axhline(0.2 * (1 + prel.X_nf),  color = 'firebrick', linestyle = '--', label = 'Thomson scattering')
         ax[i].set_xlabel(r'$\rho$ [g/cm$^3$]')
         ax[i].axvline(1e-19*prel.Msol_cgs/prel.Rsol_cgs**3, color = 'grey', linestyle = ':', label = 'simulation cut')
         ax[i].axvline(min_Rho, color = 'grey', linestyle = '--', label = 'lim table')
         ax[i].axvline(max_Rho, color = 'grey', linestyle = '--')
         ax[i].set_title(f'T = {chosenT:.0e} K')        
         ax[i].loglog()
-    ax[0].legend()
+        ax[i].set_xlim(1e-20, 1e4)
+    ax[1].legend()
     ax[0].set_ylabel(r'$\kappa$ [cm$^{2}$/g]')
     plt.tight_layout()
     #%% fixed rho
-    chosenRhos = [1e-9, 1e-11] # you want 1e-6, 1e-11 kg/m^3 (too far from Elad's table, u want plot it)
+    chosenRhos = [1e-11, 1e-9] # you want 1e-6, 1e-11 kg/m^3 (too far from Elad's table, u want plot it)
     colors_plot = ['forestgreen', 'r']
     lines = ['solid', 'dashed']
     fig, ax = plt.subplots(1,2,figsize = (15,6))
     for i,chosenRho in enumerate(chosenRhos):
         if np.logical_and(chosenRho < max_Rho, chosenRho > min_Rho):
             irho = np.argmin(np.abs(Rho__tab - chosenRho))
-            ax[i].plot(T__tab, kappa_ross_tab[:, irho], c = 'k', label = 'original')
+            ax[i].plot(T__tab, kappa_ross_tab[:, irho], c = 'k', linewidth = 2.5, label = 'original')
         i_Rho = np.argmin(np.abs(Rho_ext - chosenRho))
-        ax[i].plot(T_ext, kappa_ross_Oldext[:, i_Rho], c = 'yellowgreen', ls = '--', label = r'old extrapolation')
-        ax[i].plot(T_ext, kappa_ross_lin[:, i_Rho], c = 'orchid', ls = ':', label = r'linear in $\rho$ A =1')
+        ax[i].plot(T_ext, kappa_ross_final[:, i_Rho], c = 'yellowgreen', ls = '--', label = r'final extrapolation')
+        ax[i].plot(T_ext, kappa_ross_lin[:, i_Rho], c = 'C1', ls = ':', label = r'linear in $\rho$ A =1')
         ax[i].set_xlabel(r'T [K]')
         ax[i].set_xlim(1e1,2e8)
         ax[i].set_ylim(1e-1, 2e2) #the axis from 7e-4 to 2e1 m2/g
         ax[i].axvline(min_T, color = 'grey', linestyle = '--', label = 'lim table')
         ax[i].axvline(max_T, color = 'grey', linestyle = '--')
-        ax[i].plot(T_ext, kappa_scatter[:, i_Rho], c = 'coral', label = 'scattering')
-        ax[i].axhline(0.2 * (1 + prel.X_nf), color = 'maroon', linestyle = '--', label = 'Thomson scattering')
+        ax[i].plot(T_ext, kappa_scatter[:, i_Rho], c = 'dodgerblue', ls = '--', label = 'scattering')
+        ax[i].axhline(0.2 * (1 + prel.X_nf), color = 'firebrick', linestyle = '--', label = 'Thomson scattering')
         ax[i].loglog()
         ax[i].grid()
         ax[i].set_title(f'Density: {chosenRho:.0e} g/cm$^3$', fontsize = 16)
     ax[1].set_ylabel(r'$\kappa$ [cm$^2$/g]')
-    ax[1].legend(fontsize=15, loc='upper right')
+    ax[0].legend(fontsize=15, loc='upper right')
     plt.tight_layout()
 
     #%% Mesh
     fig, (ax0, axfin, ax1,ax2) = plt.subplots(1,4, figsize = (25,7))
-    img = ax0.pcolormesh(np.log10(T_ext), np.log10(Rho_ext), kappa_scatter.T,  norm = LogNorm(vmin = 1e-5, vmax=1e4), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+    img = ax0.pcolormesh(np.log10(T_ext), np.log10(Rho_ext), kappa_scatter.T,  norm = LogNorm(vmin = 1e-4, vmax=1), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
     cbar = plt.colorbar(img)
     ax0.set_title('Scattering')
+    cbar.set_label(r'$\kappa$ [cm$^2$/g]')
 
     img = axfin.pcolormesh(np.log10(T_ext), np.log10(Rho_ext), kappa_ross_final.T,  norm = LogNorm(vmin = 1e-5, vmax=1e4), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
     cbar = plt.colorbar(img)
@@ -429,7 +432,6 @@ if __name__ == '__main__':
     ax0.set_ylabel(r'$\log_{10} \rho$ [g/cm$^3$]')
     img = ax2.pcolormesh(np.log10(T_ext), np.log10(Rho_ext), kappa_ross_Oldext.T, norm = LogNorm(vmin = 1e-5, vmax=1e4), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
     cbar = plt.colorbar(img)
-    cbar.set_label(r'$\kappa$ [cm$^2$/g]')
     ax2.set_title('A=1 extrapolation')
 
     for ax in [ax0, ax1, ax2, axfin]:
