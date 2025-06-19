@@ -278,7 +278,7 @@ def bound_mass(x, check_data, mass_data, m_thres):
     total_mass = np.sum(mass)
     return total_mass - m_thres
 
-def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, idx, params, mass_percetage):
+def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, idx, params, mass_percentage):
     """ Find the width and the height of the stream for a single theta 
     Parameters
     ----------
@@ -322,12 +322,12 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     if np.min(r_spherical_plane)< R0:
         print(f'The threshold to cut the TZ plane in width is too broad: you overcome R0 at angle #{theta_arr[idx]} of the stream')
     
-    mass_to_reach = (mass_percetage/2) * np.sum(mass_plane) #25% for each quarter
+    mass_to_reach = (mass_percentage/2) * np.sum(mass_plane) #25% for each quarter
     # Find the threshold for x
-    x_Tplanepositive, mass_planepositive, indices_planepositive, dim_cell_xpositive = \
-        x_Tplane[x_Tplane>=0], mass_plane[x_Tplane>=0], indeces_plane[x_Tplane>=0], dim_plane[x_Tplane>=0]
-    x_Tplanenegative, mass_planenegative, indices_planenegative, dim_cell_xnegative = \
-        x_Tplane[x_Tplane<0], mass_plane[x_Tplane<0], indeces_plane[x_Tplane<0], dim_plane[x_Tplane<0]
+    x_Tplanepositive, mass_planepositive, indices_planepositive = \
+        x_Tplane[x_Tplane>=0], mass_plane[x_Tplane>=0], indeces_plane[x_Tplane>=0]
+    x_Tplanenegative, mass_planenegative, indices_planenegative = \
+        x_Tplane[x_Tplane<0], mass_plane[x_Tplane<0], indeces_plane[x_Tplane<0]
 
     contourTpositive = brentq(bound_mass, 0, thresh, args=(x_Tplanepositive, mass_planepositive, mass_to_reach))
     condition_contourTpositive = np.abs(x_Tplanepositive) < contourTpositive
@@ -349,10 +349,10 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     # width = np.max([width, dim_stream[idx]]) # to avoid 0 width
 
     # Find the threshold for z 
-    z_planepositive, mass_planepositive, indices_planepositive, dim_cell_zpositive = \
-        z_plane[z_plane>=0], mass_plane[z_plane>=0], indeces_plane[z_plane>=0], dim_plane[z_plane>=0]
-    z_planenegative, mass_planenegative, indices_planenegative, dim_cell_znegative = \
-        z_plane[z_plane<0], mass_plane[z_plane<0], indeces_plane[z_plane<0], dim_plane[z_plane<0]
+    z_planepositive, mass_planepositive, indices_planepositive = \
+        z_plane[z_plane>=0], mass_plane[z_plane>=0], indeces_plane[z_plane>=0]
+    z_planenegative, mass_planenegative, indices_planenegative = \
+        z_plane[z_plane<0], mass_plane[z_plane<0], indeces_plane[z_plane<0]
 
     contourZpositive = brentq(bound_mass, 0, thresh, args=(z_planepositive, mass_planepositive, mass_to_reach))
     condition_contourZpositive = np.abs(z_planepositive) < contourZpositive
@@ -384,6 +384,65 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     w_params = np.array([width, ncells_w])
     h_params = np.array([height, ncells_h])
 
+    if idx == 120: #np.abs(theta_arr[idx] - 1.5) == np.min(np.abs(theta_arr - 1.5)):
+        # Compute weighted histogram data
+        counts_T, bin_edges_T = np.histogram(x_Tplane, bins=50, weights=mass_plane)
+        counts_Z, bin_edges_Z = np.histogram(z_plane, bins=50, weights=mass_plane)
+        # Compute bin centers for plotting
+        bin_centers_T = 0.5 * (bin_edges_T[:-1] + bin_edges_T[1:])
+        bin_centers_Z = 0.5 * (bin_edges_Z[:-1] + bin_edges_Z[1:])
+        # Plot as a continuous line
+        fig, ((ax1, ax2), (ax3,ax4)) = plt.subplots(2,2, figsize = (12,12))
+        ax1.plot(bin_centers_T, counts_T, c = 'k')
+        ax1.axvline(x=x_T_low, color='grey', linestyle = '--', label = 'Stream width')
+        ax1.axvline(x=x_T_up, color='grey', linestyle = '--')
+        # find standard deviation of the counts
+        # ax1.axhline(np.percentile(counts_T, 50), color='red', linestyle = '--', label = 'std counts')
+        # ax1.axhline(np.percentile(counts_T, 100-(mass_percentage*100)/2), color='red', linestyle = '--', label = 'std counts')
+        ax1.legend()            
+
+        ax1.set_ylabel(r'Mass [$M_\odot$]')
+        ax1.set_xlabel(r'T [$R_\odot$]')
+
+        img = ax2.scatter(x_Tplane, z_plane, c = mass_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 4e-10, vmax = 4e-8))
+        cbar = plt.colorbar(img)
+        cbar.set_label(r'Mass [$M_\odot$]')
+        ax2.set_xlabel(r'T [$R_\odot$]')
+        ax2.set_ylabel(r'Z [$R_\odot$]')
+        ax2.axvline(x=x_T_low, color='grey', linestyle = '--')
+        ax2.axvline(x=x_T_up, color='grey', linestyle = '--')
+        ax2.axhline(y=z_low, color='grey', linestyle = '--')
+        ax2.axhline(y=z_up, color='grey', linestyle = '--')
+        #ticks
+        original_ticks = ax1.get_xticks()
+        mid_ticks = (original_ticks[1:] + original_ticks[:-1]) / 2
+        new_ticks = np.concatenate((original_ticks, mid_ticks))
+        for ax in [ax1, ax2]:
+            ax.set_xticks(new_ticks)
+            ax.set_xticks(new_ticks)
+            labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]
+            ax.set_xticklabels(labels)
+            ax.set_xlim(x_T_low-2, x_T_up+2)
+        ax2.set_ylim(z_low-1, z_up+1)
+
+        ax3.plot(bin_centers_Z, counts_Z,  c = 'k')
+        ax3.axvline(x=z_low, color='grey', linestyle = '--')
+        ax3.axvline(x=z_up, color='grey', linestyle = '--')
+        ax3.set_ylabel(r'Mass [$M_\odot$]')
+        ax3.set_xlabel(r'Z [$R_\odot$]')    
+        original_ticks = ax3.get_xticks()
+        mid_ticks = (original_ticks[1:] + original_ticks[:-1]) / 2
+        new_ticks = np.concatenate((original_ticks, mid_ticks))
+        ax3.set_xticks(new_ticks)
+        # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]
+        # ax3.set_xticklabels(labels)
+        ax3.set_xlim(z_low-1.5, z_up+1.5)
+
+        for ax in [ax1, ax2, ax3]:
+            ax.tick_params(axis='both', which='major', length=10,)
+        plt.tight_layout()
+        plt.suptitle(f'Width and height at $\theta$ = {np.round(theta_arr[idx], 2)} rad', fontsize = 16)
+
     return indeces_boundary, x_T_width, w_params, h_params, thresh
 
 def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, stream, params, mass_percentage = 0.5):
@@ -409,6 +468,7 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, stream, param
     h_params = np.transpose(np.array(h_params)) # line 1: height, line 2: ncells
     return stream, indeces_boundary, x_T_width, w_params, h_params
 
+#%%
 #
 ## MAIN
 #
@@ -440,7 +500,10 @@ np.save(f'{abspath}/data/{folder}/stream_{check}{snap}.npy', [theta_arr, x_strea
 
 #%%
 plt.figure(figsize = (12,6))
-plt.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 5e-4))
+img = plt.scatter(X_midplane/apo, Y_midplane/apo, c = Mass_midplane, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = 5e-10, vmax = 1e-4))
+# img = plt.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = 5e-14, vmax = 5e-4))
+cbar = plt.colorbar(img)
+cbar.set_label(r'Mass $[M_\odot]$')
 plt.plot(x_stream[:-70]/apo, y_stream[:-70]/apo, c = 'k')
 plt.plot(x_stream[-30:]/apo, y_stream[-30:]/apo, c = 'k')
 plt.plot([x_stream[0]/apo, x_stream[-1]/apo] , [y_stream[0]/apo, y_stream[-1]/apo], c = 'k')

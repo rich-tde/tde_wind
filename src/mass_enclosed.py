@@ -211,9 +211,9 @@ else:
             ax[i].set_xticks(new_ticks)
             labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
             ax[i].set_xticklabels(labels)
-            ax[i].set_xlim(0, np.max(tfbL))
+            ax[i].set_xlim(0.01, 1.6)
 
-        ax[0].set_ylabel(r'Luminosity [erg/s] from $R<R_0$')#, fontsize = 25)
+        ax[0].set_ylabel(r'Luminosity [erg/s] from $R<R_0$', fontsize = 22)
         ax[0].legend(fontsize = 18)
         # plt.savefig(f'{abspath}/Figs/paper/Maccr_encl.pdf', bbox_inches='tight')
 
