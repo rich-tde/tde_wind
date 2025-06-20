@@ -169,8 +169,8 @@ else:
 
     #%%
     if what_to_plot == 'Maccr':
-        checks = ['OpacityNew', 'OpacityNewNewAMR', 'NewAMRRemoveCenter']
-        checklab = ['Fid, Old', 'Fid, lin Extr, New AMR', 'Fid, final Extr, New AMR + sink']
+        checks = ['LowRes', 'LowResNewAMR', 'LowResNewAMRRemoveCenter'] #['OpacityNew', 'OpacityNewNewAMR', 'NewAMRRemoveCenter']
+        checklab = ['Low, Old', 'Low, final Extr New AMR', 'Low, final Extr New AMR+sinks'] #'Fid, Old', 'Fid, lin Extr, New AMR', 'Fid, final Extr, New AMR + sink']
         fig, ax = plt.subplots(1,3, figsize = (22, 5))
         for i, check in enumerate(checks):
             folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'

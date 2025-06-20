@@ -39,21 +39,27 @@ Rp = orb.pericentre(Rstar, mstar, Mbh, beta)
 R0 = 0.6*Rp
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 compton = 'Compton'
-choose = 'section' # section, distribution
-change = 'AMR'
+choose = 'distribution' # section, distribution
+change = 'Extr'
 if change == 'Extr':
-    snap = 248 # Fid: 164 or 267 // Low: 126, 248
+    snap = 125 # Fid: 164 or 267270 // Low: 126, 248
     eng = matlab.engine.start_matlab()
-    checks = ['LowRes', 'LowResOpacityNew'] #['', 'OpacityNew']
-    check_name = ['Old','NewExtr+OldAMR']
-    colorshist = ['C1', 'goldenrod'] #['yellowgreen', 'forestgreen']
+    checks = ['LowRes', 'LowResNewAMR'] #'LowResOpacityNew'] #['', 'OpacityNew'] #
+    check_name = ['Old','NewExtr+NewAMR']
+    colorshist = ['C1', 'plum'] #['yellowgreen', 'forestgreen'] #['C1', 'goldenrod'] #
     styles = ['solid', 'dashed']
     markers = ['o', 'x']
+elif change == 'sink':
+    snap = 217 # 126, 301
+    eng = matlab.engine.start_matlab()
+    checks = ['LowResNewAMR', 'LowResNewAMRRemoveCenter'] #['', 'OpacityNew']
+    check_name = ['no sink','sink']
+    colorshist = ['plum', 'maroon']
 elif change == 'AMR':
-    snap = 229 # 115, 164, 240 # 126, 301 for sink and no sink
-    checks = ['LowResNewAMR', 'LowResNewAMRRemoveCenter'] #['OpacityNew', 'OpacityNewNewAMR']
-    check_name = ['no sink', 'sink'] #['NewExtr+OldAMR','NewExtr+NewAMR']
-    colorshist = ['plum', 'maroon'] ##['forestgreen', 'k']
+    snap = 229 # 115, 164, 240 
+    checks = ['OpacityNew', 'OpacityNewNewAMR']
+    check_name = ['NewExtr+OldAMR','NewExtr+NewAMR']
+    colorshist = ['forestgreen', 'k']
 
 opac_path = f'{abspath}/src/Opacity'
 T_cool = np.loadtxt(f'{opac_path}/T.txt')
@@ -69,7 +75,8 @@ if choose == 'distribution':
     which_distrib = 'Cum' # 'Cum' or 'Histo
     where = 'Ph' # 'Ph' or 'Mid'
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize = (15, 15))
-    figkappa, ((axkappa1, axkappa4) ,(axkappa2, axkappa3)) = plt.subplots(2,2, figsize = (15, 15))
+    # if where == 'Mid':
+    #     figkappa, ((axkappa1, axkappa4) ,(axkappa2, axkappa3)) = plt.subplots(2,2, figsize = (15, 15))
     Lfld = np.zeros(len(checks))
     median_Rph = np.zeros(len(checks))
     Ncell_ph = np.zeros(len(checks))
@@ -96,7 +103,6 @@ if choose == 'distribution':
             den_cgs = Den_midplane * prel.den_converter # [g/cm^3]
             Temp_cgs = Temp_midplane # [K]
 
-
         if where == 'Ph':
             # download fluxes and photosphere
             data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
@@ -109,8 +115,15 @@ if choose == 'distribution':
             find_snap = np.where(snap_flux == snap)[0]
             find_snap = find_snap[-1]
             tfb, fluxes_ph = time_flux[find_snap], fluxes[find_snap]
-            _, _, _, _, denph, Tempph, _, _, _, _, alpha, rph, Lph = \
-                np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
+            photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
+            if len(photo) == 13:
+                _, _, _, _, denph, Tempph, _, _, _, _, _, rph, Lph = \
+                    np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
+            else: 
+                xph, yph, zph, _, denph, Tempph, _, _, _, _ = \
+                    np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
+                rph = np.sqrt(xph**2 + yph**2 + zph**2)
+
             # denph is already CGS!!!!
             median_Rph[i] = np.median(rph)
             den_cgs = denph # [g/cm^3]
@@ -259,7 +272,7 @@ if choose == 'distribution':
     ax4.set_xlim(alpha_min, alpha_max)
     fig.tight_layout()
     fig.savefig(f'{abspath}/Figs/Test/MazeOfRuns/{change}/{which_distrib}{where}runs{checks[0]}{snap}.png', bbox_inches = 'tight')
-    figkappa.savefig(f'{abspath}/Figs/Test/MazeOfRuns/{change}/{which_distrib}Kappa{where}runs{checks[0]}{snap}.png', bbox_inches = 'tight')
+    # figkappa.savefig(f'{abspath}/Figs/Test/MazeOfRuns/{change}/{which_distrib}Kappa{where}runs{checks[0]}{snap}.png', bbox_inches = 'tight')
 
 if choose == 'section':
     radii_grid = [R0, Rt] #*apo 
