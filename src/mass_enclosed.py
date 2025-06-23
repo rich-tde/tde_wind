@@ -78,7 +78,7 @@ if alice:
     np.savetxt(f'{abspath}/data/{folder}/{check}Diss_neg_encl.txt',Diss_neg_encl)
 
 else:
-    what_to_plot = 'Maccr'
+    what_to_plot = 'sink'
     
     if what_to_plot == 'sink':
         checks = ['LowResNewAMR', 'LowResNewAMRRemoveCenter', 'OpacityNewNewAMR', 'NewAMRRemoveCenter']
@@ -120,8 +120,9 @@ else:
             # axDiss.plot(tfb, Diss_encl[3], c = 'm', ls = lines[i], linewidth = 2, label = {r'R $< R_{\rm apo}$' if i in [0,2] else ''})
             # just for the label
             axDiss.plot(tfb, Diss_encl[0], c = 'deepskyblue', ls = lines[i], linewidth = 2, label = {r'no sink term' if i in [0,2]  else ''})
+            axDiss.set_xlabel(r'$\rm t [t_{fb}]$')
             
-            # axDiss.scatter(tfb[137], Diss_encl[0][136], c = 'k', marker = 'x', s = 100, label = r'$t_{\rm fb}$')
+            # axDiss.scatter(tfb[136], Diss_encl[0][136], c = 'k', marker = 'x', s = 100, label = r'$t_{\rm fb}$')
             # axDiss.scatter(tfb[137], Diss_encl[0][137], c = 'k', marker = 'x', s = 100, label = r'$t_{\rm fb}$')
             # filename = f'{abspath}/data/{commonfolder}{check}/{check}_red.csv'
             # dataLum = np.loadtxt(filename, delimiter=',', dtype=float)
@@ -160,7 +161,6 @@ else:
                 a.set_ylim(1e-9, 9e-2)
             else:
                 a.set_ylim(2e37, 1e43)
-                ax.set_xlabel(r'$\rm t [t_{fb}]$')
             a.set_yscale('log')
 
         fig.suptitle(f'New AMR runs', fontsize = 25)

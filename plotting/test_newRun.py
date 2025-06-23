@@ -39,8 +39,8 @@ Rp = orb.pericentre(Rstar, mstar, Mbh, beta)
 R0 = 0.6*Rp
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 compton = 'Compton'
-choose = 'distribution' # section, distribution
-change = 'Extr'
+choose = 'section' # section, distribution
+change = 'sink'
 if change == 'Extr':
     snap = 125 # Fid: 164 or 267270 // Low: 126, 248
     eng = matlab.engine.start_matlab()
@@ -50,13 +50,13 @@ if change == 'Extr':
     styles = ['solid', 'dashed']
     markers = ['o', 'x']
 elif change == 'sink':
-    snap = 217 # 126, 301
+    snap = 218 # 126, 301
     eng = matlab.engine.start_matlab()
     checks = ['LowResNewAMR', 'LowResNewAMRRemoveCenter'] #['', 'OpacityNew']
     check_name = ['no sink','sink']
     colorshist = ['plum', 'maroon']
 elif change == 'AMR':
-    snap = 229 # 115, 164, 240 
+    snap = 229 # 115, 164, 240  
     checks = ['OpacityNew', 'OpacityNewNewAMR']
     check_name = ['NewExtr+OldAMR','NewExtr+NewAMR']
     colorshist = ['forestgreen', 'k']
@@ -288,7 +288,7 @@ if choose == 'section':
     if change == 'Extr':
         fig, ax = plt.subplots(2, 2, figsize = (14, 10))
         figK, axK = plt.subplots(1, 2, figsize = (10, 5))
-    elif change == 'AMR':
+    elif change == 'AMR' or change == 'sink':
         fig, ax = plt.subplots(3, 2, figsize = (14, 18))
     for i,check in enumerate(checks):
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
@@ -297,15 +297,15 @@ if choose == 'section':
         data = make_tree(path, snap, energy = True)
         divV = np.load(f'{path}/divV_{snap}.npy')
         cut = data.Den > 1e-19
-        X, Y, Z, den, Vol, Mass, Diss_den, Temp, divV = \
-            sec.make_slices([data.X, data.Y, data.Z,data.Den, data.Vol, data.Mass, data.Diss, data.Temp, divV], cut)
+        X, Y, Z, den, Vol, Mass, Diss_den, Temp, divV, Rad_den = \
+            sec.make_slices([data.X, data.Y, data.Z,data.Den, data.Vol, data.Mass, data.Diss, data.Temp, divV, data.Rad], cut)
         Ncell[i] = len(data.X)
         print(f'check = {check}, Ncell = {Ncell[i]}')
         dim_cell = Vol**(1/3) 
 
         midplane = np.abs(Z) < dim_cell
-        X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Mass_midplane, Diss_den_midplane, Temp_midplane, divV_midplane = \
-            sec.make_slices([X, Y, Z, dim_cell, den, Mass, Diss_den, Temp, divV], midplane)
+        X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Mass_midplane, Diss_den_midplane, Temp_midplane, divV_midplane, Rad_den_midplane = \
+            sec.make_slices([X, Y, Z, dim_cell, den, Mass, Diss_den, Temp, divV, Rad_den], midplane)
         Diss_midplane = Diss_den_midplane * dim_midplane
         Ncell_mid[i] = len(X_midplane)
         Den_midplane_cgs = Den_midplane * prel.Msol_cgs / prel.Rsol_cgs**3 # [g/cm^3]
@@ -346,18 +346,20 @@ if choose == 'section':
             axK[i].set_xlabel(r'$\rho$ [g/cm$^3$]', fontsize = 18)
             axK[0].set_ylabel(r'T [K]', fontsize = 18)
 
-        if change == 'AMR':
-            img = ax[0][i].scatter(X_midplane/Rt, Y_midplane/Rt, c = Den_midplane, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 5e-11, vmax = 1e-5))
-            cbar = plt.colorbar(img)
-            cbar.set_label(r'$\rho [M_\odot/R_\odot^3$]', fontsize = 20)
+        if change == 'AMR' or change == 'sink':
+            # img = ax[0][i].scatter(X_midplane/Rt, Y_midplane/Rt, c = Den_midplane, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 5e-11, vmax = 1e-5))
+            # cbar = plt.colorbar(img)
+            # cbar.set_label(r'$\rho [M_\odot/R_\odot^3$]', fontsize = 20)
 
-            img = ax[1][i].scatter(X_midplane[Diss_midplane>0]/Rt, Y_midplane[Diss_midplane>0]/Rt, c = Diss_midplane[Diss_midplane>0]*prel.en_converter/prel.tsol_cgs, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e35, vmax = 6e40))
+            img = ax[1][i].scatter(X_midplane[Diss_midplane>0]/Rt, Y_midplane[Diss_midplane>0]/Rt, c = Diss_midplane[Diss_midplane>0]*prel.en_converter/prel.tsol_cgs, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e28, vmax = 6e40))
             cbar = plt.colorbar(img)
             cbar.set_label(r'$\dot{E}_{\rm diss, +}$ [erg/s]', fontsize = 20)
+            # img = ax[1][i].sc atter(X_midplane/Rt, Y_midplane/Rt, c = Rad_den_midplane*prel.en_den_converter, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e7, vmax = 4e11))
+            # img = ax[1][i].scatter(X_midplane/Rt, Y_midplane/Rt, c = Rad_den_midplane*dim_midplane**3*prel.en_converter, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e39, vmax = 5e41))
 
-            img = ax[2][i].scatter(X_midplane/Rt, Y_midplane/Rt, c = np.abs(divV_midplane)/prel.tsol_cgs, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e-5, vmax = 6e-2))
-            cbar = plt.colorbar(img)
-            cbar.set_label(r'$|\nabla v|$ [1/s]', fontsize = 20)
+            # img = ax[2][i].scatter(X_midplane/Rt, Y_midplane/Rt, c = np.abs(divV_midplane)/prel.tsol_cgs, s = 1, cmap = 'turbo', norm = colors.LogNorm(vmin = 1e-5, vmax = 6e-2))
+            # cbar = plt.colorbar(img)
+            # cbar.set_label(r'$|\nabla v|$ [1/s]', fontsize = 20)
 
             big_ticks = np.array([-2, -1, 0, 1, 2]) # [R_t]
             mid_ticks = (big_ticks[:-1] + big_ticks[1:]) / 2
@@ -388,7 +390,7 @@ if choose == 'section':
 
     fig.suptitle(f't = {np.round(tfb,2)}' + r't$_{\rm fb}$', fontsize = 20) #, N_{\rm cell, left}/N_{\rm cell, right}=$' + f'{np.round(Ncell[0]/Ncell[1], 3)}, on midplane: {np.round(Ncell_mid[0]/Ncell_mid[1], 3)}', fontsize = 20)
     fig.tight_layout()
-    fig.savefig(f'{abspath}/Figs/Test/MazeOfRuns/sink/TestLowRes_sink{snap}.png', dpi = 100, bbox_inches = 'tight')
+    # fig.savefig(f'{abspath}/Figs/Test/MazeOfRuns/{change}/TestLowRes_{change}{snap}.png', dpi = 100, bbox_inches = 'tight')
     if change == 'Extr':
         figK.suptitle('Extrapolated cells', fontsize = 20)
         figK.tight_layout()

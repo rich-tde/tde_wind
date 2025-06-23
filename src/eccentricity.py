@@ -42,7 +42,7 @@ mstar = .5
 Rstar = .47
 n = 1.5 
 compton = 'Compton'
-check = 'LowResNewAMRRemoveCenter' # '' or 'LowRes' or 'HiRes' 
+check = 'OpacityNew' # '' or 'LowRes' or 'HiRes' 
 save = False
 which_cut = '' #if 'high' cut density at 1e-12, if '' cut density at 1e-19
 
@@ -57,14 +57,16 @@ Rstart = 0.4 * Rt
 apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
 if alice: 
-    snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
+    snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) #[100,115,164,199,216]
     col_ecc2 = []
     # col_Rsph = []
     radii = np.logspace(np.log10(Rstart), np.log10(apo),
                     num=200) 
+    tfb = np.zeros(len(snaps))
     for i,snap in enumerate(snaps):
         print(snap)
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+        tfb[i] = np.loadtxt(f'{path}/tfb_{snap}.txt')
         data = make_tree(path, snap, energy = True)
         R_vec = np.transpose(np.array([data.X, data.Y, data.Z]))
         vel_vec = np.transpose(np.array([data.VX, data.VY, data.VZ]))
@@ -204,24 +206,24 @@ else:
         ax2.grid()
         ax2.set_xlabel(r'$t [t_{\rm fb}]$')
 
-    if error:
+    if error: # compare resolutions
         import matplotlib.gridspec as gridspec
-        checkL = 'LowResNewAMR'
-        pathL = f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{checkL}'
-        ecc2L = np.load(f'{pathL}/Ecc2_{which_cut}_{checkL}.npy') 
-        eccL = np.sqrt(ecc2L)
-        tfb_dataL = np.loadtxt(f'{pathL}/Ecc_{which_cut}_{checkL}_days.txt')
-        snapL, tfbL = tfb_dataL[0], tfb_dataL[1]
-        radii = np.load(f'{pathL}/radiiEcc_{which_cut}_{checkL}.npy')
+        check1 = 'LowResNewAMR'
+        path1 = f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check1}'
+        ecc_quad1 = np.load(f'{path1}/Ecc2_{which_cut}_{check1}.npy') 
+        ecc1 = np.sqrt(ecc_quad1)
+        tfb_data1 = np.loadtxt(f'{path1}/Ecc_{which_cut}_{check1}_days.txt')
+        snap1, tfb1 = tfb_data1[0], tfb_data1[1]
+        radii = np.load(f'{path1}/radiiEcc_{which_cut}_{check1}.npy')
 
         check = 'LowResNewAMRRemoveCenter'
         path = f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-        ecc2 = np.load(f'{path}/Ecc2_{which_cut}_{check}.npy') 
-        ecc = np.sqrt(ecc2)
+        ecc_quad = np.load(f'{path}/Ecc2_{which_cut}_{check}.npy') 
+        ecc = np.sqrt(ecc_quad)
         tfb_data = np.loadtxt(f'{path}/Ecc_{which_cut}_{check}_days.txt')
         snap, tfb = tfb_data[0], tfb_data[1]
 
-        print('comparing', checkL, 'and', check)
+        print('comparing', check1, 'and', check)
 
         # folderH = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes'
         # pathH = f'{abspath}/data/{folderH}'
@@ -232,13 +234,17 @@ else:
 
         # relative difference L and middle
         rel_diffL = []
-        medianL = np.zeros(len(eccL))
-        for i in range(len(eccL)):
-            time = tfbL[i]
+        medianL = np.zeros(len(ecc1))
+        percentile16 = np.zeros(len(ecc1))
+        percentile84 = np.zeros(len(ecc1))
+        for i in range(len(ecc1)):
+            time = tfb1[i]
             idx = np.argmin(np.abs(tfb - time))
-            rel_diff_time_i = find_ratio(eccL[i], ecc[idx]) 
+            rel_diff_time_i = ecc[idx]/ecc1[i] #find_ratio(ecc1[i], ecc[idx]) 
             rel_diffL.append(rel_diff_time_i)
             medianL[i] = np.median(rel_diff_time_i)
+            percentile16[i] = np.percentile(rel_diff_time_i, 16)
+            percentile84[i] = np.percentile(rel_diff_time_i, 84)
         # rel_diffH = []
         # medianH = np.zeros(len(eccH))
         # medianFoverH = np.zeros(len(eccH))
@@ -258,9 +264,9 @@ else:
         # ax3 = fig.add_subplot(gs[0, 2])  # Third plot
 
         fig, (ax1, ax3) = plt.subplots(1, 2, figsize=(20, 7))
-        img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'inferno', vmin = 0.95, vmax = 1.4, rasterized = True)
+        img = ax1.pcolormesh(radii/apo, tfb1, rel_diffL, cmap = 'inferno', vmin = 1, vmax = 1.8, rasterized = True)
         ax1.set_xscale('log')
-        ax1.text(0.22, .88*np.max(tfbL), 'Low vs Fid', fontsize = 28, color = 'k')
+        # ax1.text(0.22, .88*np.max(tfb1), 'Low vs Fid', fontsize = 28, color = 'k')
         ax1.set_xlabel(r'$R [R_{\rm a}]$')
         ax1.set_ylabel(r'$t [t_{\rm fb}]$')
 
@@ -273,21 +279,22 @@ else:
         # cbar_ax = fig.add_subplot(gs[1, 0:2])  # Colorbar subplot below the first two
         # cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
         cb = plt.colorbar(img)
-        cb.set_label(r'$\mathcal{R}$ eccentricity')#, fontsize = 25)
+        cb.set_label(r'sink/no sink')#r'$\mathcal{R}$ eccentricity')
         cb.ax.tick_params(labelsize=25)
         # label with 3 decimals in the colorbar
         # cb.set_ticks([0.98, 1, 1.02])
         # cb.set_ticklabels(['0.98', '1', '1.02']) 
         cb.ax.tick_params(width=1, length=11, color = 'k',)
 
-        ax3.plot(tfbL, medianL, c = 'yellowgreen', linewidth = 4)
-        ax3.plot(tfbL, medianL, c = 'darkorange', linewidth = 4, linestyle = (0, (5, 10)), label = 'Low and Middle')
-        # ax3.text(0.4, 1.03, 'Fid vs Low', fontsize = 27, color = 'k')
+        ax3.plot(tfb1, medianL, linewidth = 4, c = 'darkorange')
+        # ax3.plot(tfb1, medianL, c = 'yellowgreen', linewidth = 4, linestyle = (0, (5, 10)), label = 'Low and Middle')
+        ax3.plot(tfb1, percentile16, c = 'grey')
+        ax3.plot(tfb1, percentile84, c = 'grey')
         # ax3.plot(tfbH, medianH, c = 'yellowgreen', linewidth = 4)
         # ax3.plot(tfbH, medianH, c = 'darkviolet', linewidth = 4, linestyle = (0, (5, 10)), label = 'Middle and High')
         # ax3.text(0.4, 1, 'Fid vs High', fontsize = 27, color = 'k')
-        ax3.set_ylabel(r'$\mathcal{R}$ median eccentricity')
-        ax3.set_xlim(0.2, tfbL[-1])
+        ax3.set_ylabel(r'median sink/no sink')#$\mathcal{R}$ median eccentricity')
+        ax3.set_xlim(0.2, tfb1[-1])
         ax3.set_ylim(0.99, 1.02)
         ax3.grid()
         ax3.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
@@ -295,8 +302,8 @@ else:
         for ax in [ax1, ax3]: #, ax2]:
             # ax.tick_params(labelsize=26)
             if ax!=ax3:
-                ax.axvline(x=Rt/apo, color = 'white', linestyle = 'dashed')
-                ax.axvline(x=R0/apo, color = 'white', linestyle = ':')
+                ax.axvline(x=Rt/apo, color = 'white', linestyle = 'dashed', linewidth = 2)
+                ax.axvline(x=R0/apo, color = 'white', linestyle = ':', linewidth = 2)
                 ax.tick_params(axis='x', which='major', width=1.4, length=11, color = 'k',)
                 ax.tick_params(axis='y', which='major', width=1.4, length=9, color = 'k',)
                 ax.tick_params(axis='x', which='minor', width=1.2, length=7, color = 'k',)

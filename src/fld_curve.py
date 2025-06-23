@@ -103,31 +103,31 @@ for idx_s, snap in enumerate(snaps):
     xyz = np.array([X, Y, Z]).T
     R = np.sqrt(X**2 + Y**2 + Z**2)
     # Cross dot -----------------------------------------------------------------
-    observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) #shape: (3, 192)
-    observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
     num_obs = prel.NPIX # you'll use it for the mean of the observers. It's 192, unless you don't find the photosphere for someone and so decrease of 1
+    observers_xyz = hp.pix2vec(prel.NSIDE, range(num_obs)) #shape: (3, 192)
+    observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 
     # Dynamic Box 
-    reds = np.zeros(prel.NPIX)
-    ph_idx = np.zeros(prel.NPIX)
-    xph = np.zeros(prel.NPIX) 
-    yph = np.zeros(prel.NPIX)
-    zph = np.zeros(prel.NPIX)
-    volph = np.zeros(prel.NPIX)
-    denph = np.zeros(prel.NPIX) 
-    Tempph = np.zeros(prel.NPIX)
-    Rad_denph = np.zeros(prel.NPIX)
-    Vxph = np.zeros(prel.NPIX) 
-    Vyph = np.zeros(prel.NPIX)
-    Vzph = np.zeros(prel.NPIX)
-    fluxes = np.zeros(prel.NPIX)
-    rph = np.zeros(prel.NPIX) 
-    alphaph = np.zeros(prel.NPIX) 
-    Lph = np.zeros(prel.NPIX) 
-    r_initial = np.zeros(prel.NPIX) # initial starting point for Rph
-    for i in range(prel.NPIX):
+    reds = np.zeros(num_obs)
+    ph_idx = np.zeros(num_obs)
+    xph = np.zeros(num_obs) 
+    yph = np.zeros(num_obs)
+    zph = np.zeros(num_obs)
+    volph = np.zeros(num_obs)
+    denph = np.zeros(num_obs) 
+    Tempph = np.zeros(num_obs)
+    Rad_denph = np.zeros(num_obs)
+    Vxph = np.zeros(num_obs) 
+    Vyph = np.zeros(num_obs)
+    Vzph = np.zeros(num_obs)
+    fluxes = np.zeros(num_obs)
+    rph = np.zeros(num_obs) 
+    alphaph = np.zeros(num_obs) 
+    Lph = np.zeros(num_obs) 
+    r_initial = np.zeros(num_obs) # initial starting point for Rph
+    for i in range(num_obs):
         # Progress 
-        print(f'Snap: {snap}, Obs: {i}', flush=False)
+        print(f'Snap: {snap}, Obs: {i}', flush=True)
         sys.stdout.flush()
 
         mu_x = observers_xyz[i][0]
@@ -246,9 +246,9 @@ for idx_s, snap in enumerate(snaps):
         # You can have numerical errors at early times
         try: 
             photosphere = np.where( ((smoothed_flux>0) & (los<2/3) ))[0][0] 
-        except IndexError: # if you don't find the photosphere, exlude the observer
-            num_obs -= 1
-            print(f'No photosphere found for observer {i}, now observers are {num_obs}', flush=False)
+        except IndexError: # if you don't find the photosphere, skip the observer
+            # num_obs -= 1 # you don't have light from there, but the observers are still 192
+            print(f'No photosphere found for observer {i}', flush=True)
             sys.stdout.flush()
             continue
         Lphoto2 = 4*np.pi * prel.c_cgs*smoothed_flux[photosphere] * prel.Msol_cgs / (prel.tsol_cgs**2) # you have to convert rad_den*r^2/lenght = energy/lenght^2 = mass/time^2
