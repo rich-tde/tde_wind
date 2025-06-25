@@ -37,7 +37,7 @@ n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 check = 'LowResNewAMR' 
 compton = 'Compton'
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 if alice:
     snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
 else: 
@@ -339,14 +339,12 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
         condition_contourTpositive = np.abs(x_Tplanepositive) < contourTpositive
         x_T_contourTpositive, indeces_contourTpositive = sec.make_slices([x_Tplanepositive, indices_planepositive], condition_contourTpositive)
     except ValueError as e:
-        print(f'ValueError for positive contourT at angle #{np.round(theta_arr[idx],2)}: {e}', flush = True)
         return None, None, None, None, None
     try:
         contourTnegative = brentq(bound_mass, 0, thresh, args=(x_Tplanenegative, mass_planenegative, mass_to_reach))
         condition_contourTnegative = np.abs(x_Tplanenegative) < contourTnegative
         x_T_contourTnegative, indeces_contourTnegative = sec.make_slices([x_Tplanenegative, indices_planenegative], condition_contourTnegative)
     except ValueError as e:
-        print(f'ValueError for negative contourT at angle #{np.round(theta_arr[idx],2)}: {e}', flush = True)
         return None, None, None, None, None
     # contourT = brentq(bound_mass, 0, thresh, args=(x_Tplane, mass_plane, mass_to_reach))
     # condition_contourT = np.abs(x_Tplane) < contourT
@@ -370,14 +368,12 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
         condition_contourZpositive = np.abs(z_planepositive) < contourZpositive
         z_contourZpositive, indeces_contourZpositive = sec.make_slices([z_planepositive, indices_planepositive], condition_contourZpositive)
     except ValueError as e:
-        print(f'ValueError for positive contourZ at angle #{np.round(theta_arr[idx],2)}: {e}', flush = True)
         return None, None, None, None, None
     try:
         contourZnegative = brentq(bound_mass, 0, thresh, args=(z_planenegative, mass_planenegative, mass_to_reach))
         condition_contourZnegative = np.abs(z_planenegative) < contourZnegative
         z_contourZnegative, indeces_contourZnegative = sec.make_slices([z_planenegative, indices_planenegative], condition_contourZnegative)
     except ValueError as e:
-        print(f'ValueError for negative contourZ at angle #{np.round(theta_arr[idx],2)}: {e}', flush = True)
         return None, None, None, None, None
     
     # contourZ = brentq(bound_mass, 0, thresh, args=(z_plane, mass_plane, mass_to_reach))
