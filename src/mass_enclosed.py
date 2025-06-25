@@ -78,7 +78,7 @@ if alice:
     np.savetxt(f'{abspath}/data/{folder}/{check}Diss_neg_encl.txt',Diss_neg_encl)
 
 else:
-    what_to_plot = 'sink'
+    what_to_plot = 'Maccr'
     
     if what_to_plot == 'sink':
         checks = ['LowResNewAMR', 'LowResNewAMRRemoveCenter', 'OpacityNewNewAMR', 'NewAMRRemoveCenter']
@@ -171,7 +171,7 @@ else:
     if what_to_plot == 'Maccr':
         checks = ['LowRes', 'LowResNewAMR', 'LowResNewAMRRemoveCenter'] #['OpacityNew', 'OpacityNewNewAMR', 'NewAMRRemoveCenter']
         checklab = ['Low, Old', 'Low, final Extr New AMR', 'Low, final Extr New AMR+sinks'] #'Fid, Old', 'Fid, lin Extr, New AMR', 'Fid, final Extr, New AMR + sink']
-        fig, ax = plt.subplots(1,3, figsize = (22, 5))
+        fig, ax = plt.subplots(1,3, figsize = (25, 5))
         for i, check in enumerate(checks):
             folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
             tfb = np.loadtxt(f'{abspath}/data/{folder}/{check}Mass_encl_time.txt')
@@ -200,8 +200,14 @@ else:
             ax[i].plot(tfbDis, np.abs(Diss_encl0), c = 'cornflowerblue', label = r'L$_{\rm diss}$')
             ax[i].plot(tfbL, np.abs(Lacc0), c = 'chocolate', label = r'L$_{\rm acc}=0.05\dot{M}c^2$')
             ax[i].set_xlabel(r'$\rm t [t_{fb}]$')
+            original_ticks = ax[i].get_yticks()
+            midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+            new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+            ax[i].set_yticks(new_ticks)
+            labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+            ax[i].set_yticklabels(labels)
             ax[i].set_yscale('log')
-            ax[i].set_ylim(1e37, 1e44)
+            ax[i].set_ylim(5e38, 5e43)
             # ax[i].text(np.max(tfbL)-0.4, 2e37, f'{checklab[i]} res', fontsize = 25)
             ax[i].set_title(f'{checklab[i]}', fontsize = 20)
             ax[i].grid()

@@ -46,6 +46,22 @@ def from_cylindric(theta, r):
     y = r * np.sin(theta)
     return x, y
 
+def draw_line(x_arr, alpha):
+    """ Draw a line in the x-y plane with slope tg(alpha).
+    Parameters
+    ----------
+    x_arr: array.
+        x coordinates of the points where you want to draw the line.
+    alpha: float.
+        Angle in radians of the line you want to draw.
+    Returns
+    -------
+    y_arr: array.
+        y coordinates of the points where you want to draw the line.
+    """
+    y_arr = np.tan(alpha) * x_arr
+    return y_arr
+
 def to_spherical_components(vec_x, vec_y, vec_z, lat, long):
     """ Transform the components of a vector from cartesian to spherical coordinates.
     NB: you need to pass the latitude and longitude (in radians) because 

@@ -208,7 +208,7 @@ else:
 
     if error: # compare resolutions
         import matplotlib.gridspec as gridspec
-        check1 = 'LowResNewAMR'
+        check1 = 'OpacityNewNewAMR' #LowResNewAMR'
         path1 = f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check1}'
         ecc_quad1 = np.load(f'{path1}/Ecc2_{which_cut}_{check1}.npy') 
         ecc1 = np.sqrt(ecc_quad1)
@@ -216,7 +216,7 @@ else:
         snap1, tfb1 = tfb_data1[0], tfb_data1[1]
         radii = np.load(f'{path1}/radiiEcc_{which_cut}_{check1}.npy')
 
-        check = 'LowResNewAMRRemoveCenter'
+        check = 'NewAMRRemoveCenter' #'LowResNewAMRRemoveCenter'
         path = f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         ecc_quad = np.load(f'{path}/Ecc2_{which_cut}_{check}.npy') 
         ecc = np.sqrt(ecc_quad)
@@ -264,7 +264,7 @@ else:
         # ax3 = fig.add_subplot(gs[0, 2])  # Third plot
 
         fig, (ax1, ax3) = plt.subplots(1, 2, figsize=(20, 7))
-        img = ax1.pcolormesh(radii/apo, tfb1, rel_diffL, cmap = 'inferno', vmin = 1, vmax = 1.8, rasterized = True)
+        img = ax1.pcolormesh(radii/apo, tfb1, rel_diffL, cmap = 'inferno', vmin = .9, vmax = 2, rasterized = True)
         ax1.set_xscale('log')
         # ax1.text(0.22, .88*np.max(tfb1), 'Low vs Fid', fontsize = 28, color = 'k')
         ax1.set_xlabel(r'$R [R_{\rm a}]$')
@@ -294,7 +294,11 @@ else:
         # ax3.plot(tfbH, medianH, c = 'darkviolet', linewidth = 4, linestyle = (0, (5, 10)), label = 'Middle and High')
         # ax3.text(0.4, 1, 'Fid vs High', fontsize = 27, color = 'k')
         ax3.set_ylabel(r'median sink/no sink')#$\mathcal{R}$ median eccentricity')
-        ax3.set_xlim(0.2, tfb1[-1])
+        original_ticks = ax3.get_xticks()
+        mid_ticks = (original_ticks[1:] + original_ticks[:-1]) / 2
+        all_ticks = np.concatenate(([original_ticks, mid_ticks]))
+        ax3.set_xticks(all_ticks)
+        ax3.set_xlim(0.11, tfb1[-1])
         ax3.set_ylim(0.99, 1.02)
         ax3.grid()
         ax3.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
@@ -310,6 +314,6 @@ else:
         
         # plt.savefig(f'{abspath}/Figs/paper/ecc_diff.pdf', bbox_inches='tight')
         plt.tight_layout
-        plt.savefig(f'{abspath}/Figs/Test/MazeOfRuns/sink/ecc_diff.png', bbox_inches='tight')
+        plt.savefig(f'{abspath}/Figs/Test/MazeOfRuns/sink/ecc_diff_Fid.png', bbox_inches='tight')
 
 # %%

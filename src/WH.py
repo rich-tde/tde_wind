@@ -1,26 +1,33 @@
 import sys
-sys.path.append('/Users/paolamartire/shocks')
-abspath = '/Users/paolamartire/shocks'
+sys.path.append('/Users/paolamartire/shocks/')
+from Utilities.isalice import isalice
+alice, plot = isalice()
+if alice:
+    abspath = '/data1/martirep/shocks/shock_capturing'
+    save = True
+else:
+    abspath = '/Users/paolamartire/shocks'
+    import matplotlib.pyplot as plt
+    from Utilities.basic_units import radians
+    import matplotlib.colors as colors
+    save = False
 
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-from scipy.optimize import brentq
-import numba
-from Utilities.basic_units import radians
 from datetime import datetime
+import numpy as np
+import numba
+from scipy.optimize import brentq
+from sklearn.neighbors import KDTree
 
-from Utilities.operators import make_tree, to_cylindric, Ryan_sampler
+import Utilities.prelude as prel
 import Utilities.sections as sec
 import src.orbits as orb
-from Utilities.time_extractor import days_since_distruption
-import Utilities.prelude as prel
+from Utilities.operators import make_tree, to_cylindric, Ryan_sampler, draw_line
+from Utilities.selectors_for_snap import select_snap
 
-#
+#%%
 ## Parameters
 #
 
-#%%
 m = 4
 Mbh = 10**m
 beta = 1
@@ -28,13 +35,13 @@ mstar = .5
 Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
-check = '' # 'Low' or 'HiRes' or 'Res20'
+check = 'LowResNewAMR' 
 compton = 'Compton'
-snap = '237'
-
-#
-## Constants
-#
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+if alice:
+    snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
+else: 
+    snaps = [237]
 
 Mbh = 10**m
 Rs = 2*prel.G*Mbh / prel.csol_cgs**2
@@ -42,17 +49,16 @@ Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 R0 = 0.6 * Rp
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
-
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-path = f'{abspath}/TDE/{folder}{check}/{snap}'
-saving_path = f'{abspath}Figs/{folder}/{check}'
-print(f'We are in: {path}, \nWe save in: {saving_path}')
+theta_lim =  np.pi
+step = 0.02
+theta_init = np.arange(-theta_lim, theta_lim, step)
+theta_arr = Ryan_sampler(theta_init)
 
 ##
 # FUNCTIONS
 ##
 
-#@numba.njit
+@numba.njit
 def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
     """ Find the T-Z threshold to cut the transverse plane (as a square) in width and height.
     Parameters
@@ -145,28 +151,29 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         If True, returns (in the reversed order) all the iterations of the centers of mass and the radial maximum points.
     Returns
     -------
-    x_max, y_max, z_max : array
-        X, Y, Z coordinates of the maximum density points in the radial plane of each angle in the sample.
+    thresh_cm: array
+        Threshold for the transverse plane for each angle in the sample.
+    x_cm, y_cm, z_cm, indeces_cm : array
+        X, Y, Z coordinates, indices of x_data of the com points in the transverse plane of each angle in the sample.
     """
     Mbh, Rstar, mstar, beta = params
     Rt = orb.tidal_radius(Rstar, mstar, Mbh)
     R0 = 0.6 * (Rt/beta)
     apo = orb.apocentre(Rstar, mstar, Mbh, beta)
-    # indeces = np.arange(len(x_data))
     # Cut a bit the data for computational reasons
     cutting = np.logical_and(np.abs(z_data) < 100, np.abs(y_data) < 10*apo)
     x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut = \
         sec.make_slices([x_data, y_data, z_data, dim_data, den_data, mass_data], cutting)
     # Find the radial maximum points to have a first guess of the stream (necessary for the threshold and the tg)
     x_stream_rad, y_stream_rad, z_stream_rad = find_radial_maximum(x_cut, y_cut, z_cut, dim_cut, den_cut, theta_arr, R0)
-    print('radial done')
+    print('radial done', flush = True)
 
     # First iteration: find the center of mass of each transverse plane of the maxima-density stream
     x_cmTR = np.zeros(len(theta_arr))
     y_cmTR = np.zeros(len(theta_arr))
     z_cmTR = np.zeros(len(theta_arr))
     for idx in range(len(theta_arr)):
-        print(idx)
+        # print(idx)
         # Find the transverse plane
         condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, coord = True)
         x_plane, y_plane, z_plane, dim_plane, den_plane, mass_plane = \
@@ -203,15 +210,14 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         y_cmTR[idx]= np.sum(y_plane * mass_plane) / np.sum(mass_plane)
         z_cmTR[idx] = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
 
-    print('Iteration radial-transverse done')
+    print('Iteration radial-transverse done', flush = True)
     # Second iteration: find the center of mass of each transverse plane corresponding to COM stream
-    # indeces_cm = np.zeros(len(theta_arr))
     x_cm = np.zeros(len(theta_arr))
     y_cm = np.zeros(len(theta_arr))
     z_cm = np.zeros(len(theta_arr))
     thresh_cm = np.zeros(len(theta_arr))
     for idx in range(len(theta_arr)):
-        print(idx)
+        # print(idx)
         # Find the transverse plane
         condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, coord = True)
         x_plane, y_plane, z_plane, dim_plane, den_plane, mass_plane = \
@@ -247,12 +253,11 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         y_cm[idx]= np.sum(y_plane * mass_plane) / np.sum(mass_plane)
         z_cm[idx] = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
         thresh_cm[idx] = thresh
-    #     # Search in the tree the closest point to the center of mass
-    #     points = np.array([x_plane, y_plane, z_plane]).T
-    #     tree = KDTree(points)
-    #     _, idx_cm = tree.query([x_cm, y_cm, z_cm])
-    #     indeces_cm[idx]= indeces_plane[idx_cm]
-    # indeces_cm = indeces_cm.astype(int)
+    # Search in the tree the closest point to the center of mass
+    # points = np.array([x_data, y_data, z_data]).T
+    # tree = KDTree(points)
+    # _, indeces_cm = tree.query(np.array([x_cm, y_cm, z_cm]).T, k=1)
+    # indeces_cm = [ int(indeces_cm[i][0]) for i in range(len(indeces_cm))]
     if all_iterations:
         return x_cm, y_cm, z_cm, thresh_cm, x_cmTR, y_cmTR, z_cmTR, x_stream_rad, y_stream_rad, z_stream_rad
     else:
@@ -384,7 +389,7 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     w_params = np.array([width, ncells_w])
     h_params = np.array([height, ncells_h])
 
-    if idx == 120: #np.abs(theta_arr[idx] - 1.5) == np.min(np.abs(theta_arr - 1.5)):
+    if np.logical_and(alice == False, idx == 120): #np.abs(theta_arr[idx] - 1.5) == np.min(np.abs(theta_arr - 1.5)):
         # Compute weighted histogram data
         counts_T, bin_edges_T = np.histogram(x_Tplane, bins=50, weights=mass_plane)
         counts_Z, bin_edges_Z = np.histogram(z_plane, bins=50, weights=mass_plane)
@@ -445,7 +450,7 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
 
     return indeces_boundary, x_T_width, w_params, h_params, thresh
 
-def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, stream, params, mass_percentage = 0.5):
+def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, stream, params, mass_percentage = 0.8):
     """ Find width and height all along the stream """
     # Find the stream (load it)
     theta_arr = stream[0]
@@ -466,147 +471,135 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, stream, param
     x_T_width = np.array(x_T_width)
     w_params = np.transpose(np.array(w_params)) # line 1: width, line 2: ncells
     h_params = np.transpose(np.array(h_params)) # line 1: height, line 2: ncells
-    return stream, indeces_boundary, x_T_width, w_params, h_params
+    return indeces_boundary, x_T_width, w_params, h_params
 
-#%%
 #
 ## MAIN
-#
+#%%
+for i, snap in enumerate(snaps):
+    print(f'Snap {snap}', flush = True)
+    if alice:
+        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+    else:
+        path = f'{abspath}/TDE/{folder}/{snap}'
+    data = make_tree(path, snap, energy = False)
+    X, Y, Z, Den, Mass, Vol = \
+        data.X, data.Y, data.Z, data.Den, data.Mass, data.Vol
+    cutden = Den >1e-19
+    X, Y, Z, Den, Mass, Vol = \
+        sec.make_slices([X, Y, Z, Den, Mass, Vol], cutden)
+    R = np.sqrt(X**2 + Y**2 + Z**2)
+    THETA, RADIUS_cyl = to_cylindric(X, Y)
+    dim_cell = Vol**(1/3) 
+    x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params)
+    stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
+    indeces_boundary, x_T_width, w_params, h_params  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.8)
 
-save = False
-theta_lim =  np.pi
-step = 0.02
-theta_init = np.arange(-theta_lim, theta_lim, step)
-theta_arr = Ryan_sampler(theta_init)
-tfb = days_since_distruption(f'{abspath}/TDE/{folder}{check}/{snap}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
-print(f't/tfb = {np.round(tfb, 3)}')    
+    if save:
+        np.save(f'{abspath}/data/{folder}/WH/stream_{check}{snap}.npy', stream)
+        with open(f'{abspath}/data/{folder}/WH/wh_{snap}.txt','w') as file:
+            # if file exist, save theta and date of execution
+            file.write(f'# theta, done on {datetime.now()} \n')
+            file.write((' '.join(map(str, theta_arr)) + '\n'))
+            file.write(f'# Width \n')
+            file.write((' '.join(map(str, w_params[0])) + '\n'))
+            file.write(f'# Ncells width\n')
+            file.write((' '.join(map(str, w_params[1])) + '\n'))
+            file.write(f'# Height \n')
+            file.write((' '.join(map(str, h_params[0])) + '\n'))
+            file.write(f'# Ncells height \n')
+            file.write((' '.join(map(str, h_params[1])) + '\n'))
 
-#%% Load data
-data = make_tree(path, snap, energy = False)
-X, Y, Z, Den, Mass = \
-    data.X, data.Y, data.Z, data.Den, data.Mass
-R = np.sqrt(X**2 + Y**2 + Z**2)
-THETA, RADIUS_cyl = to_cylindric(X, Y)
-dim_cell = data.Vol**(1/3) # according to Elad
-
-# Cross section at midplane
-midplane = np.abs(data.Z) < dim_cell
-X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Mass_midplane = \
-    sec.make_slices([X, Y, Z, dim_cell, Den, Mass], midplane)
 
 #%%
-x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params)
-np.save(f'{abspath}/data/{folder}/stream_{check}{snap}.npy', [theta_arr, x_stream, y_stream, z_stream, thresh_cm])
-
-#%%
-plt.figure(figsize = (12,6))
-img = plt.scatter(X_midplane/apo, Y_midplane/apo, c = Mass_midplane, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = 5e-10, vmax = 1e-4))
-# img = plt.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = 5e-14, vmax = 5e-4))
-cbar = plt.colorbar(img)
-cbar.set_label(r'Mass $[M_\odot]$')
-plt.plot(x_stream[:-70]/apo, y_stream[:-70]/apo, c = 'k')
-plt.plot(x_stream[-30:]/apo, y_stream[-30:]/apo, c = 'k')
-plt.plot([x_stream[0]/apo, x_stream[-1]/apo] , [y_stream[0]/apo, y_stream[-1]/apo], c = 'k')
-plt.xlabel(r'$X [R_{\rm a}]$')
-plt.ylabel(r'$Y [R_{\rm a}]$')
-plt.title(r'Stream at t/t$_{\rm fb}$ = ' + str(np.round(tfb,2)) + f', check: {check}', fontsize = 16)
-plt.xlim(-2, .2)
-plt.ylim(-.4, .4)
-
-#%%
-stream = np.load(f'{abspath}/data/{folder}/stream_{check}{snap}.npy')
-stream, indeces_boundary50, x_T_width50, w_params50, h_params50  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params)
-
-indeces_boundary_lowX50, indeces_boundary_upX50, indeces_boundary_lowZ50, indeces_boundary_upZ50 = \
+if not alice:
+    stream = np.load(f'{abspath}/data/{folder}/stream_{check}{snap}.npy')
+    # Find the stream in the simulation data
+    # tree_plot = KDTree(np.array([X, Y, Z]).T)
+    # _, indeces_plot = tree_plot.query(np.array([x_stream, y_stream, z_stream]).T, k=1)
+    indeces_boundary_lowX, indeces_boundary_upX, indeces_boundary_lowZ, indeces_boundary_upZ = \
+        indeces_boundary[:,0], indeces_boundary[:,1], indeces_boundary[:,2], indeces_boundary[:,3]
+    indeces_all = np.arange(len(X))
+    x_low_width, y_low_width = X[indeces_boundary_lowX], Y[indeces_boundary_lowX]
+    x_up_width, y_up_width = X[indeces_boundary_upX], Y[indeces_boundary_upX]
+    # 50% treshold
+    indeces_boundary50, x_T_width50, w_params50, h_params50  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.50)
+    indeces_boundary_lowX50, indeces_boundary_upX50, indeces_boundary_lowZ50, indeces_boundary_upZ50 = \
     indeces_boundary50[:,0], indeces_boundary50[:,1], indeces_boundary50[:,2], indeces_boundary50[:,3]
-indeces_all = np.arange(len(X))
-x_low_width50, y_low_width50 = X[indeces_boundary_lowX50], Y[indeces_boundary_lowX50]
-x_up_width50, y_up_width50 = X[indeces_boundary_upX50], Y[indeces_boundary_upX50]
-#%%
-if save:
-    with open(f'{abspath}data/{folder}/WH/width_time{np.round(tfb,2)}.txt','a') as file:
-        # if file exist, save theta and date of execution
-        file.write(f'# theta, done on {datetime.now()} \n')
-        file.write((' '.join(map(str, theta_arr)) + '\n'))
-        file.write(f'# {check}, done on {datetime.now()}, snap {snap} \n# Width \n')
-        file.write((' '.join(map(str, w_params[0])) + '\n'))
-        file.write(f'# Ncells \n')
-        file.write((' '.join(map(str, w_params[1])) + '\n'))
-        file.write(f'################################ \n')
+    indeces_all = np.arange(len(X))
+    x_low_width50, y_low_width50 = X[indeces_boundary_lowX50], Y[indeces_boundary_lowX50]
+    x_up_width50, y_up_width50 = X[indeces_boundary_upX50], Y[indeces_boundary_upX50]
+    # Plot
+    midplane = np.abs(Z) < dim_cell
+    X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Mass_midplane = \
+        sec.make_slices([X, Y, Z, dim_cell, Den, Mass], midplane)
+    x_arr = np.arange(-2, 0.1, .1)
+    # the angles
+    line3_4 = draw_line(x_arr, 3/4*np.pi)
+    lineminus3_4 = draw_line(x_arr, -3/4*np.pi)
+    fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,6), width_ratios= [1.5, .5])
+    for ax in [ax1, ax2]:
+        img = ax.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-11, vmax = 1e-4))
+        ax.plot(x_stream[:-70]/apo, y_stream[:-70]/apo, c = 'k')
+        ax.plot(x_stream[-30:]/apo, y_stream[-30:]/apo, c = 'k')
+        ax.plot([x_stream[0]/apo, x_stream[-1]/apo] , [y_stream[0]/apo, y_stream[-1]/apo], c = 'k')
+        ax.plot(x_low_width50/apo, y_low_width50/apo, c = 'coral')
+        ax.plot(x_up_width50/apo, y_up_width50/apo, c = 'coral')
+        ax.plot(x_arr, line3_4, c = 'grey', linestyle = '--')
+        ax.plot(x_arr, lineminus3_4, c = 'grey', linestyle = '--')
+        ax.set_xlabel(r'$X [R_{\rm a}]$')
+    cbar = plt.colorbar(img)
+    cbar.set_label(r'Density $[M_\odot/R_\odot^3]$')
+    ax1.set_ylabel(r'$Y [R_{\rm a}]$')
+    ax1.set_xlim(-1, .1)
+    ax1.set_ylim(-.2, .2)
+    ax2.set_xlim(-.2, .1)
+    ax2.set_ylim(-.1, .1)
+    plt.suptitle(r'Stream at t/t$_{\rm fb}$ = ' + str(np.round(tfb,2)) + f', check: {check}', fontsize = 16)
+    #%%
+    fig, (ax1,ax2) = plt.subplots(1,2, figsize = (18,6))
+    ax1.plot(theta_arr * radians, w_params50[0], c = 'k')
+    ax1.plot(theta_arr * radians, w_params[0], c = 'k')
+    ax1.scatter(theta_arr * radians, w_params50[0], c = w_params50[1], cmap = 'rainbow', vmin = 0, vmax = 25, marker = 'o', label  = '50% mass')
+    img = ax1.scatter(theta_arr * radians, w_params[0], c = w_params[1], cmap = 'rainbow', vmin = 0, vmax = 25, marker = 's', label  = '80% mass')
+    cbar = plt.colorbar(img)
+    cbar.set_label(r'Ncells')
+    ax1.set_ylabel(r'Width [$R_\odot$]')
+    ax1.set_ylim(0.1,6)
 
-    with open(f'{abspath}data/{folder}/WH/height_time{np.round(tfb,2)}.txt','a') as file:
-        file.write(f'# theta, done on {datetime.now()} \n')
-        file.write((' '.join(map(str, theta_arr)) + '\n'))
-        file.write(f'# {check}, done on {datetime.now()}, snap {snap} \n# Height \n')
-        file.write((' '.join(map(str, h_params[0])) + '\n'))
-        file.write(f'# Ncells \n')
-        file.write((' '.join(map(str, h_params[1])) + '\n'))
-        file.write(f'################################ \n')
+    ax2.plot(theta_arr * radians, h_params50[0], c = 'k')
+    ax2.plot(theta_arr * radians, h_params[0], c = 'k')
+    ax2.scatter(theta_arr * radians, h_params50[0], c = h_params50[1], cmap = 'rainbow', vmin = 0, vmax = 10, marker = 'o', label  = '50% mass')
+    img = ax2.scatter(theta_arr * radians, h_params[0], c = h_params[1], cmap = 'rainbow', vmin = 0, vmax = 10, marker = 's', label  = '80% mass')
+    cbar = plt.colorbar(img)
+    cbar.set_label(r'Ncells')
+    ax2.set_ylabel(r'Height [$R_\odot$]')
+    ax2.set_ylim(0.1, 4)
+
+    for ax in [ax1, ax2]:
+        ax.set_xlabel(r'$\theta$')
+        ax.set_xlim(-2.5, 2.5)#-3/4*np.pi, 3/4*np.pi)
+        ax.grid()
+    ax1.legend(fontsize = 14)
+    plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,2)), fontsize = 16)
+    plt.tight_layout()
+    plt.show()
+
+    #%%
+    fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,6), width_ratios= [1.5, .5])
+    for ax in [ax1, ax2]:
+        # ax.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 5e-4))
+        ax.plot(x_stream[:-70]/apo, y_stream[:-70]/apo, c = 'k')
+        ax.plot(x_stream[-30:]/apo, y_stream[-30:]/apo, c = 'k')
+        ax.plot([x_stream[0]/apo, x_stream[-1]/apo] , [y_stream[0]/apo, y_stream[-1]/apo], c = 'k')
+        ax.plot(x_low_width/apo, y_low_width/apo, c = 'coral')
+        ax.plot(x_up_width/apo, y_up_width/apo, c = 'coral')
+        ax.set_xlabel(r'$X [R_{\rm a}]$')
+    ax1.set_ylabel(r'$Y [R_{\rm a}]$')
+    ax1.set_xlim(-1, .1)
+    ax1.set_ylim(-.2, .2)
+    ax2.set_xlim(-.2, .1)
+    ax2.set_ylim(-.1, .1)
+    plt.suptitle(r'Stream at t/t$_{\rm fb}$ = ' + str(np.round(tfb,2)) + f', check: {check}', fontsize = 16)
 
 
-#%% 
-stream, indeces_boundary70, x_T_width70, w_params70, h_params70  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.70)
-indeces_boundary_lowX70, indeces_boundary_upX70, indeces_boundary_lowZ70, indeces_boundary_upZ70 = \
-indeces_boundary70[:,0], indeces_boundary70[:,1], indeces_boundary70[:,2], indeces_boundary70[:,3]
-indeces_all = np.arange(len(X))
-x_low_width70, y_low_width70 = X[indeces_boundary_lowX70], Y[indeces_boundary_lowX70]
-x_up_width70, y_up_width70 = X[indeces_boundary_upX70], Y[indeces_boundary_upX70]
-#%%
-stream, indeces_boundary80, x_T_width80, w_params80, h_params80  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.80)
-indeces_boundary_lowX80, indeces_boundary_upX80, indeces_boundary_lowZ80, indeces_boundary_upZ80 = \
-indeces_boundary80[:,0], indeces_boundary80[:,1], indeces_boundary80[:,2], indeces_boundary80[:,3]
-indeces_all = np.arange(len(X))
-x_low_width80, y_low_width80 = X[indeces_boundary_lowX80], Y[indeces_boundary_lowX80]
-x_up_width80, y_up_width80 = X[indeces_boundary_upX80], Y[indeces_boundary_upX80]
-
-#%%
-fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,6), width_ratios= [1.5, .5])
-for ax in [ax1, ax2]:
-    # ax.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 5e-4))
-    ax.plot(x_stream[:-70]/apo, y_stream[:-70]/apo, c = 'k')
-    ax.plot(x_stream[-30:]/apo, y_stream[-30:]/apo, c = 'k')
-    ax.plot([x_stream[0]/apo, x_stream[-1]/apo] , [y_stream[0]/apo, y_stream[-1]/apo], c = 'k')
-    ax.plot(x_low_width50/apo, y_low_width50/apo, c = 'coral')
-    ax.plot(x_up_width50/apo, y_up_width50/apo, c = 'coral')
-    ax.set_xlabel(r'$X [R_{\rm a}]$')
-ax1.set_ylabel(r'$Y [R_{\rm a}]$')
-ax1.set_xlim(-1, .1)
-ax1.set_ylim(-.2, .2)
-ax2.set_xlim(-.2, .1)
-ax2.set_ylim(-.1, .1)
-plt.suptitle(r'Stream at t/t$_{\rm fb}$ = ' + str(np.round(tfb,2)) + f', check: {check}', fontsize = 16)
-#%%
-# Plot 
-fig, (ax1,ax2) = plt.subplots(1,2, figsize = (18,6))
-ax1.plot(theta_arr * radians, w_params50[0], c = 'k')
-ax1.plot(theta_arr * radians, w_params70[0], c = 'k')
-ax1.plot(theta_arr * radians, w_params80[0], c = 'k')
-ax1.scatter(theta_arr * radians, w_params50[0], c = w_params50[1], cmap = 'rainbow', vmin = 0, vmax = 20, marker = 'o', label  = '50% mass')
-ax1.scatter(theta_arr * radians, w_params70[0], c = w_params70[1], cmap = 'rainbow', vmin = 0, vmax = 20, marker = 'x', label  = '70% mass')
-img = ax1.scatter(theta_arr * radians, w_params80[0], c = w_params80[1], cmap = 'rainbow', vmin = 0, vmax = 20, marker = 's', label  = '80% mass')
-cbar = plt.colorbar(img)
-cbar.set_label(r'Ncells')
-ax1.set_ylabel(r'Width [$R_\odot$]')
-ax1.set_ylim(0.1,6)
-
-ax2.plot(theta_arr * radians, h_params50[0], c = 'k')
-ax2.plot(theta_arr * radians, h_params70[0], c = 'k')
-ax2.plot(theta_arr * radians, h_params80[0], c = 'k')
-ax2.scatter(theta_arr * radians, h_params50[0], c = h_params50[1], cmap = 'rainbow', vmin = 0, vmax = 10, marker = 'o', label  = '50% mass')
-ax2.scatter(theta_arr * radians, h_params70[0], c = h_params70[1], cmap = 'rainbow', vmin = 0, vmax = 10, marker = 'x', label  = '70% mass')
-img = ax2.scatter(theta_arr * radians, h_params80[0], c = h_params80[1], cmap = 'rainbow', vmin = 0, vmax = 10, marker = 's', label  = '80% mass')
-cbar = plt.colorbar(img)
-cbar.set_label(r'Ncells')
-ax2.set_ylabel(r'Height [$R_\odot$]')
-ax2.set_ylim(0.1,4)
-
-for ax in [ax1, ax2]:
-    ax.set_xlabel(r'$\theta$')
-    ax.set_xlim(-2.5, 2.5)#-3/4*np.pi, 3/4*np.pi)
-    ax.grid()
-ax1.legend(fontsize = 14)
-plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,2)), fontsize = 16)
-plt.tight_layout()
-plt.show()
-
-#%%

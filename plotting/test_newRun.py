@@ -39,22 +39,28 @@ Rp = orb.pericentre(Rstar, mstar, Mbh, beta)
 R0 = 0.6*Rp
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 compton = 'Compton'
-choose = 'section' # section, distribution
+choose = 'distribution' # section, distribution
 change = 'sink'
 if change == 'Extr':
+    which_run_idx = np.array([0,1])
     snap = 125 # Fid: 164 or 267270 // Low: 126, 248
     eng = matlab.engine.start_matlab()
-    checks = ['LowRes', 'LowResNewAMR'] #'LowResOpacityNew'] #['', 'OpacityNew'] #
-    check_name = ['Old','NewExtr+NewAMR']
-    colorshist = ['C1', 'plum'] #['yellowgreen', 'forestgreen'] #['C1', 'goldenrod'] #
+    checks = ['LowRes', 'LowResNewAMR', 'LowResOpacityNew', '', 'OpacityNew', 'OpacityNewNewAMR'] 
+    check_name = ['Old','NewExtr+NewAMR','NewExtr+Old AMR', 'Old', 'NewExtr+OldAMR', 'NewExtr+NewAMR']
+    colorshist = ['C1', 'plum', 'goldenrod', 'yellowgreen', 'forestgreen', 'royalblue']
+    checks = np.array(checks)[which_run_idx]
+    check_name = check_name[which_run_idx]
+    colorshist = np.array(colorshist)[which_run_idx]
     styles = ['solid', 'dashed']
-    markers = ['o', 'x']
 elif change == 'sink':
-    snap = 218 # 126, 301
+    snap = 240 # 126, 301
     eng = matlab.engine.start_matlab()
-    checks = ['LowResNewAMR', 'LowResNewAMRRemoveCenter'] #['', 'OpacityNew']
+    which_run_idx = np.array([2, 3])
+    checks = ['LowResNewAMR', 'LowResNewAMRRemoveCenter', 'OpacityNewNewAMR', 'NewAMRRemoveCenter']
+    colorshist = ['plum', 'maroon', 'royalblue', 'k']
+    checks = np.array(checks)[which_run_idx]
+    colorshist = np.array(colorshist)[which_run_idx]
     check_name = ['no sink','sink']
-    colorshist = ['plum', 'maroon']
 elif change == 'AMR':
     snap = 229 # 115, 164, 240  
     checks = ['OpacityNew', 'OpacityNewNewAMR']
@@ -150,16 +156,17 @@ if choose == 'distribution':
             mediankappa[i] = np.median(kappa)
             fluxOverkappa = fluxes_ph/kappa
             kappaFlux[i] = np.sum(fluxes_ph)/np.sum(fluxOverkappa)
-            LLe = Lph/L_Edd_k(kappa)
-            L_kappaFlux[i] = Lfld[i] / L_Edd_k(kappaFlux[i])
-            print(f'ratio L/Ledd in {check_name[i]}:\nwith mean (L_obs/Led(K_obs)) = {np.mean(LLe)} \nwith median (L_obs/Led(K_obs)) = {np.median(LLe)} \nwith flux-weighted inverse k = {L_kappaFlux[i]}\n-------')
+            # check if Eddington limitide
+            # LLe = Lph/L_Edd_k(kappa)
+            # L_kappaFlux[i] = Lfld[i] / L_Edd_k(kappaFlux[i])
+            # print(f'ratio L/Ledd in {check_name[i]}:\nwith mean (L_obs/Led(K_obs)) = {np.mean(LLe)} \nwith median (L_obs/Led(K_obs)) = {np.median(LLe)} \nwith flux-weighted inverse k = {L_kappaFlux[i]}\n-------')
+            # log_lum = np.log10(Lph) # [erg/s]
         
         log_den_cgs = np.log10(den_cgs) # [g/cm^3]
         log_T = np.log10(Temp_cgs) # [K]
         log_kappa = np.log10(kappa) # [cm^2/g]
         log_alpha = np.log10(alpha)
         log_inverse_kappa = np.log10(1/kappa) 
-        log_lum = np.log10(Lph) # [erg/s]
         kappa_flux = fluxes_ph/(np.mean(fluxes_ph)*kappa) # [erg/s/cm^2/g]
         log_inverse_kappaflux = np.log10(kappa_flux)
 
