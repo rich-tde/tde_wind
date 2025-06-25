@@ -77,7 +77,7 @@ def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
     condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
     # to be sure that you have points in the plane
     while len(mass_plane[condition]) == 0:
-        print('No points found since the beginning, double C', C)
+        print('No points found since the beginning, double C', np.round(C,3))
         C *= 2
         condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
     mass = mass_plane[condition]
@@ -334,14 +334,20 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     x_Tplanenegative, mass_planenegative, indices_planenegative = \
         x_Tplane[x_Tplane<0], mass_plane[x_Tplane<0], indeces_plane[x_Tplane<0]
 
-    contourTpositive = brentq(bound_mass, 0, thresh, args=(x_Tplanepositive, mass_planepositive, mass_to_reach))
-    condition_contourTpositive = np.abs(x_Tplanepositive) < contourTpositive
-    x_T_contourTpositive, indeces_contourTpositive = sec.make_slices([x_Tplanepositive, indices_planepositive], condition_contourTpositive)
-
-    contourTnegative = brentq(bound_mass, 0, thresh, args=(x_Tplanenegative, mass_planenegative, mass_to_reach))
-    condition_contourTnegative = np.abs(x_Tplanenegative) < contourTnegative
-    x_T_contourTnegative, indeces_contourTnegative = sec.make_slices([x_Tplanenegative, indices_planenegative], condition_contourTnegative)
-
+    try:
+        contourTpositive = brentq(bound_mass, 0, thresh, args=(x_Tplanepositive, mass_planepositive, mass_to_reach))
+        condition_contourTpositive = np.abs(x_Tplanepositive) < contourTpositive
+        x_T_contourTpositive, indeces_contourTpositive = sec.make_slices([x_Tplanepositive, indices_planepositive], condition_contourTpositive)
+    except ValueError as e:
+        print(f'ValueError for positive contourT at angle #{np.round(theta_arr[idx],2)}: {e}', flush = True)
+        return None, None, None, None, None
+    try:
+        contourTnegative = brentq(bound_mass, 0, thresh, args=(x_Tplanenegative, mass_planenegative, mass_to_reach))
+        condition_contourTnegative = np.abs(x_Tplanenegative) < contourTnegative
+        x_T_contourTnegative, indeces_contourTnegative = sec.make_slices([x_Tplanenegative, indices_planenegative], condition_contourTnegative)
+    except ValueError as e:
+        print(f'ValueError for negative contourT at angle #{np.round(theta_arr[idx],2)}: {e}', flush = True)
+        return None, None, None, None, None
     # contourT = brentq(bound_mass, 0, thresh, args=(x_Tplane, mass_plane, mass_to_reach))
     # condition_contourT = np.abs(x_Tplane) < contourT
     # x_T_contourT, indeces_contourT = make_slices([x_Tplane, indeces_plane], condition_contourT)
@@ -359,14 +365,21 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     z_planenegative, mass_planenegative, indices_planenegative = \
         z_plane[z_plane<0], mass_plane[z_plane<0], indeces_plane[z_plane<0]
 
-    contourZpositive = brentq(bound_mass, 0, thresh, args=(z_planepositive, mass_planepositive, mass_to_reach))
-    condition_contourZpositive = np.abs(z_planepositive) < contourZpositive
-    z_contourZpositive, indeces_contourZpositive = sec.make_slices([z_planepositive, indices_planepositive], condition_contourZpositive)
-
-    contourZnegative = brentq(bound_mass, 0, thresh, args=(z_planenegative, mass_planenegative, mass_to_reach))
-    condition_contourZnegative = np.abs(z_planenegative) < contourZnegative
-    z_contourZnegative, indeces_contourZnegative = sec.make_slices([z_planenegative, indices_planenegative], condition_contourZnegative)
-
+    try: 
+        contourZpositive = brentq(bound_mass, 0, thresh, args=(z_planepositive, mass_planepositive, mass_to_reach))
+        condition_contourZpositive = np.abs(z_planepositive) < contourZpositive
+        z_contourZpositive, indeces_contourZpositive = sec.make_slices([z_planepositive, indices_planepositive], condition_contourZpositive)
+    except ValueError as e:
+        print(f'ValueError for positive contourZ at angle #{np.round(theta_arr[idx],2)}: {e}', flush = True)
+        return None, None, None, None, None
+    try:
+        contourZnegative = brentq(bound_mass, 0, thresh, args=(z_planenegative, mass_planenegative, mass_to_reach))
+        condition_contourZnegative = np.abs(z_planenegative) < contourZnegative
+        z_contourZnegative, indeces_contourZnegative = sec.make_slices([z_planenegative, indices_planenegative], condition_contourZnegative)
+    except ValueError as e:
+        print(f'ValueError for negative contourZ at angle #{np.round(theta_arr[idx],2)}: {e}', flush = True)
+        return None, None, None, None, None
+    
     # contourZ = brentq(bound_mass, 0, thresh, args=(z_plane, mass_plane, mass_to_reach))
     # condition_contourZ = np.abs(z_plane) < contourZ
     # z_contourZ, indeces_contourZ = sec.make_slices([z_plane, indeces_plane], condition_contourZ)
@@ -455,23 +468,28 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, stream, param
     # Find the stream (load it)
     theta_arr = stream[0]
     # Find the boundaries for each theta
+    theta_wh = []
     indeces_boundary = []
     x_T_width = []
     w_params = []
     h_params = []
     for i in range(len(theta_arr)):
-        print(i)
         indeces_boundary_i, x_T_width_i, w_params_i, h_params_i, _ = \
             find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, i, params, mass_percentage)
-        indeces_boundary.append(indeces_boundary_i)
-        x_T_width.append(x_T_width_i)
-        w_params.append(w_params_i)
-        h_params.append(h_params_i)
+        if indeces_boundary_i is None:
+            print(f'Skipping theta {theta_arr[i]} due to ValueError in boundary finding.', flush = True)
+            continue
+        else:
+            theta_wh.append(theta_arr[i])
+            indeces_boundary.append(indeces_boundary_i)
+            x_T_width.append(x_T_width_i)
+            w_params.append(w_params_i)
+            h_params.append(h_params_i)
     indeces_boundary = np.array(indeces_boundary).astype(int)
     x_T_width = np.array(x_T_width)
     w_params = np.transpose(np.array(w_params)) # line 1: width, line 2: ncells
     h_params = np.transpose(np.array(h_params)) # line 1: height, line 2: ncells
-    return indeces_boundary, x_T_width, w_params, h_params
+    return theta_wh, indeces_boundary, x_T_width, w_params, h_params
 
 #
 ## MAIN
@@ -493,14 +511,14 @@ for i, snap in enumerate(snaps):
     dim_cell = Vol**(1/3) 
     x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params)
     stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
-    indeces_boundary, x_T_width, w_params, h_params  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.8)
+    theta_wh, indeces_boundary, x_T_width, w_params, h_params  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.8)
 
     if save:
         np.save(f'{abspath}/data/{folder}/WH/stream_{check}{snap}.npy', stream)
         with open(f'{abspath}/data/{folder}/WH/wh_{snap}.txt','w') as file:
             # if file exist, save theta and date of execution
             file.write(f'# theta, done on {datetime.now()} \n')
-            file.write((' '.join(map(str, theta_arr)) + '\n'))
+            file.write((' '.join(map(str, theta_wh)) + '\n'))
             file.write(f'# Width \n')
             file.write((' '.join(map(str, w_params[0])) + '\n'))
             file.write(f'# Ncells width\n')
@@ -523,7 +541,7 @@ if not alice:
     x_low_width, y_low_width = X[indeces_boundary_lowX], Y[indeces_boundary_lowX]
     x_up_width, y_up_width = X[indeces_boundary_upX], Y[indeces_boundary_upX]
     # 50% treshold
-    indeces_boundary50, x_T_width50, w_params50, h_params50  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.50)
+    theta_wh50, indeces_boundary50, x_T_width50, w_params50, h_params50  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.50)
     indeces_boundary_lowX50, indeces_boundary_upX50, indeces_boundary_lowZ50, indeces_boundary_upZ50 = \
     indeces_boundary50[:,0], indeces_boundary50[:,1], indeces_boundary50[:,2], indeces_boundary50[:,3]
     indeces_all = np.arange(len(X))
