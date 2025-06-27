@@ -39,11 +39,11 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'LowResNewAMRRemoveCenter' # 
+check = 'NewAMR' # 
 
 ## Snapshots stuff
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
+snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 print('we are in: ', pre)
 
@@ -56,7 +56,7 @@ scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
 _, _, scatter2 = opacity_linear(T_cool, Rho_cool, scattering, slope_length = 7, highT_slope = 0)
 if check in ['LowRes', '', 'HiRes']:
     T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, scatter = scatter2, slope_length = 5, highT_slope = -3.5)
-if check in ['LowResNewAMR', 'LowResNewAMRRemoveCenter', 'NewAMRRemoveCenter']:
+if check in ['LowResNewAMR', 'LowResNewAMRRemoveCenter', 'NewAMRRemoveCenter', 'NewAMR', 'HiResNewAMR']:
     T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, scatter = scatter2, slope_length = 7, highT_slope = 0)
 if check in ['LowResOpacityNew', 'OpacityNew', 'OpacityNewNewAMR']:
     T_cool2, Rho_cool2, rossland2 = opacity_linear(T_cool, Rho_cool, rossland, scatter = scatter2, slope_length = 7, highT_slope = 0)

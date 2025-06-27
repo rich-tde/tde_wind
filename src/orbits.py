@@ -31,10 +31,8 @@ def Mdot_fb(Mbh, G, t, dmdE):
     Mdot = -2/3 * dmdE * (np.pi * G * Mbh / 2)**(2/3) * t**(-5/3)
     return Mdot
 
-def keplerian_orbit(theta, a, Rp, ecc=1):
-    # we expect theta as from the function to_cylindric, i.e. clockwise. 
-    # You have to mirror it to get the angle for the usual polar coordinates.
-    theta = -theta
+def keplerian_orbit(theta, a, Rp, ecc=1, toflip = False):
+    # Don't care of the sign of theta, since you have the cos
     if ecc == 1:
         p = 2 * Rp
     else:
@@ -236,14 +234,12 @@ if __name__ == '__main__':
     X, Y, Z, dim_cell, Den, Mass = \
         make_slices([data.X, data.Y, data.Z, dim_cell, data.Den, data.Mass], cut)
 
-    make_stream = True
-    make_width = True
+    make_stream = False
+    make_width = False
     test_s = False
-    test_orbit = False
+    test_orbit = True
 
     if test_s:
-        params = None
-        theta_arr = np.linspace(-np.pi, 0, 100)
         # x^2+y^2 = 1
         x = np.cos(theta_arr)
         y = np.sin(theta_arr)
@@ -272,7 +268,7 @@ if __name__ == '__main__':
         plt.plot(x_Witta, y_Witta, c = 'r', label = 'Witta')
         plt.plot(x_kepler, y_kepler, '--', c = 'b', label = 'Keplerian')
         plt.xlim(-300,20)
-        plt.ylim(-60,60)
+        plt.ylim(-100, 100)
         plt.legend()
         plt.grid()
         plt.show()
@@ -308,15 +304,13 @@ if __name__ == '__main__':
         plt.grid()
         plt.legend()
         plt.show() 
-    #%%
+    
     if make_width:
         file = f'/Users/paolamartire/shocks/data/{folder}/stream_{check}{snap}.npy' 
         stream, indeces_boundary, x_T_width, w_params, h_params, theta_arr  = follow_the_stream(X, Y, Z, dim_cell, Mass, path = file, params = params)
         cm_x, cm_y, cm_z = stream[0], stream[1], stream[2]
         low_x, low_y = X[indeces_boundary[:,0]] , Y[indeces_boundary[:,0]]
         up_x, up_y = X[indeces_boundary[:,1]] , Y[indeces_boundary[:,1]]
-
-        #%%
         # midplane = Z < dim_cell
         # X_midplane, Y_midplane, Den_midplane, Mass_midplane = make_slices([X, Y, Den, Mass], midplane)
         plt.figure(figsize = (12,8))
