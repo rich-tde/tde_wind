@@ -1,3 +1,4 @@
+""" Measures the stream width and heigh for all considered snaps. """
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 from Utilities.isalice import isalice
@@ -18,7 +19,6 @@ from datetime import datetime
 import numpy as np
 import numba
 from scipy.optimize import brentq
-from sklearn.neighbors import KDTree
 
 import Utilities.prelude as prel
 import Utilities.sections as sec
@@ -40,10 +40,6 @@ params = [Mbh, Rstar, mstar, beta]
 check = 'LowResNewAMR'
 compton = 'Compton'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-if alice:
-    snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
-else: 
-    snaps = [237]
 
 Mbh = 10**m
 Rs = 2*prel.G*Mbh / prel.csol_cgs**2
@@ -51,10 +47,6 @@ Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 R0 = 0.6 * Rp
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
-theta_lim =  np.pi
-step = 0.02
-theta_init = np.arange(-theta_lim, theta_lim, step)
-theta_arr = Ryan_sampler(theta_init)
 
 ##
 # FUNCTIONS
@@ -162,7 +154,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     Rt = orb.tidal_radius(Rstar, mstar, Mbh)
     R0 = 0.6 * (Rt/beta)
     apo = orb.apocentre(Rstar, mstar, Mbh, beta)
-    # Cut a bit the data for computational reasons
+    # Cut a bit the data at the first step of everything for computational reasons
     cutting = np.logical_and(np.abs(z_data) < 100, np.abs(y_data) < 10*apo)
     x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut = \
         sec.make_slices([x_data, y_data, z_data, dim_data, den_data, mass_data], cutting)
@@ -177,7 +169,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     for idx in range(len(theta_arr)):
         # print(idx)
         # Find the transverse plane
-        condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, coord = True)
+        condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, just_plane = True)
         x_plane, y_plane, z_plane, dim_plane, den_plane, mass_plane = \
             sec.make_slices([x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut], condition_T)
         # plot section at pericenter
@@ -221,7 +213,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     for idx in range(len(theta_arr)):
         # print(idx)
         # Find the transverse plane
-        condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, coord = True)
+        condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, just_plane = True)
         x_plane, y_plane, z_plane, dim_plane, den_plane, mass_plane = \
             sec.make_slices([x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut], condition_T)
         # plot section at pericenter
@@ -316,7 +308,7 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     indeces = np.arange(len(x_data))
     theta_arr, x_stream, y_stream, z_stream, thresh_stream = stream[0], stream[1], stream[2], stream[3], stream[4]
     # Find the transverse plane 
-    condition_T, x_Tplane, _ = sec.transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, coord = True)
+    condition_T, x_Tplane, _ = sec.transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, just_plane = True)
     x_plane, y_plane, z_plane, dim_plane, mass_plane, indeces_plane = \
         sec.make_slices([x_data, y_data, z_data, dim_data, mass_data, indeces], condition_T)
     r_spherical_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
@@ -490,193 +482,47 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, stream, param
     return theta_wh, indeces_boundary, x_T_width, w_params, h_params
 
 if __name__ == '__main__':
-    if compute:
-        print('We are in folder', folder, flush = True)
-        for i, snap in enumerate(snaps):
-            print(f'Snap {snap}', flush = True)
-            sys.stdout.flush()
-            if alice:
-                path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-            else:
-                path = f'{abspath}/TDE/{folder}/{snap}'
-            data = make_tree(path, snap, energy = False)
-            X, Y, Z, Den, Mass, Vol = \
-                data.X, data.Y, data.Z, data.Den, data.Mass, data.Vol
-            cutden = Den >1e-19
-            X, Y, Z, Den, Mass, Vol = \
-                sec.make_slices([X, Y, Z, Den, Mass, Vol], cutden)
-            R = np.sqrt(X**2 + Y**2 + Z**2)
-            THETA, RADIUS_cyl = to_cylindric(X, Y)
-            dim_cell = Vol**(1/3) 
-            x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params)
-            stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
-            theta_wh, indeces_boundary, x_T_width, w_params, h_params  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.8)
-
-            if save:
-                np.save(f'{abspath}/data/{folder}/WH/stream_{check}{snap}.npy', stream)
-                with open(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt','w') as file:
-                    # if file exist, save theta and date of execution
-                    file.write(f'# theta, done on {datetime.now()} \n')
-                    file.write((' '.join(map(str, theta_wh)) + '\n'))
-                    file.write(f'# Width \n')
-                    file.write((' '.join(map(str, w_params[0])) + '\n'))
-                    file.write(f'# Ncells width\n')
-                    file.write((' '.join(map(str, w_params[1])) + '\n'))
-                    file.write(f'# Height \n')
-                    file.write((' '.join(map(str, h_params[0])) + '\n'))
-                    file.write(f'# Ncells height \n')
-                    file.write((' '.join(map(str, h_params[1])) + '\n'))
-                np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{check}{snap}.npy', indeces_boundary)
-
-
-    #%%
-    if not compute:
-        from Utilities.operators import sort_list
-        single_snap = 225
-        wanted_time = [0.5, 1, 1.2]
-        # line at 3/4 and -3/4 pi
-        x_arr = np.arange(-2, 0.1, .1)
-        line3_4 = draw_line(x_arr, 3/4*np.pi)
-        lineminus3_4 = draw_line(x_arr, -3/4*np.pi)
-
-        checks = ['LowResNewAMR']
-        checks_name = ['Low', 'Fid']
-        markers_sizes = [30, 10]
-        linestyle_checks = [['dashed', 'solid'], ['dashed', 'solid']]
-        color_checks = [['k', 'grey'], ['dodgerblue', 'darkcyan']]
-        
-        for i, time in enumerate(wanted_time):
-            fig, (ax0, ax1, ax2) = plt.subplots(3, 1, figsize = (10,12))
-            ax1bis = ax1.twinx()
-            ax2bis = ax2.twinx()
-
-            for i, check in enumerate(checks):
-                folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-                data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
-                snaps = np.array([int(s) for s in data[:,0]])
-                tfb = data[:, 1]
-                idx_time = np.argmin(np.abs(tfb - time)) # find the closest snap to the wanted time
-                snap = snaps[idx_time]
-                if np.abs(tfb[idx_time]- time) > 0.05:
-                    print(f'Warning: the time {time} is not well represented in the data, closest is {tfb[idx_time]}')
-                theta_arr, x_stream, y_stream, z_stream, _ = np.load(f'{abspath}/data/{folder}/WH/stream_{check}{snap}.npy', allow_pickle=True)
-                wh = np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
-                theta_wh, width, N_width, height, N_height = \
-                    wh[0], wh[1], wh[2], wh[3], wh[4]
-                
-                ax0.plot(x_stream/apo, y_stream/apo, c = color_checks[0][i], linestyle = linestyle_checks[0][i], linewidth = 1+i, label = f'{checks_name[i]}')
-                ax0.plot(x_arr, line3_4, c = 'grey', alpha = 0.2)
-                ax0.plot(x_arr, lineminus3_4, c = 'grey', alpha = 0.2)
-                ax1.scatter(theta_wh * radians, N_width, c = color_checks[0][i], s = markers_sizes[i], linestyle = linestyle_checks[0][i], label = f'{checks_name[i]}')
-                ax2.scatter(theta_wh * radians, N_height, c = color_checks[0][i], s = markers_sizes[i], linestyle = linestyle_checks[0][i], label = f'{checks_name[i]}')
-                ax1bis.plot(theta_wh * radians, width, c = color_checks[1][i], linestyle = linestyle_checks[1][i])
-                ax2bis.plot(theta_wh * radians, height, c = color_checks[1][i], linestyle = linestyle_checks[1][i])
-
-            ax0.set_xlim(-2,0.2)
-            ax0.set_ylim(-.2,.2)
-            ax1.set_yscale('log')
-            ax1.set_ylabel(r'N$_{\rm cells}$')
-            ax1bis.set_yscale('log')
-            ax1bis.set_ylabel(r'Width [$R_\odot$]', c = 'dodgerblue')
-            ax1bis.tick_params(axis='y', which='major', length=10, width=1.5, color = 'dodgerblue')
-            ax1bis.tick_params(axis='y', which='minor', length=5, width=1, color = 'dodgerblue')
-            # ax1bis.set_ylim(.1,10)
-            ax1bis.tick_params(axis='y', labelcolor='dodgerblue')
-            ax2.set_yscale('log')
-            ax2.set_ylabel(r'N$_{\rm cells}$')
-            ax2bis.set_yscale('log')
-            ax2bis.set_ylabel(r'Height [$R_\odot$]', c = 'dodgerblue')
-            ax2bis.tick_params(axis='y', which='major', length=10, width=1.5, color = 'dodgerblue')
-            ax2bis.tick_params(axis='y', which='minor', length=5, width=1, color = 'dodgerblue')
-            # ax2bis.set_ylim(0.1,10)
-            ax2bis.tick_params(axis='y', labelcolor='dodgerblue')
-            for ax in [ax1, ax2]:
-                ax.set_xlim(-2.5, 2.5)#-3/4*np.pi, 3/4*np.pi)
-                ax.set_ylim(.9, 20)
-                ax.grid()
-                ax.tick_params(axis='both', which='major', length=10, width=1.5)
-                ax.tick_params(axis='both', which='minor', length=5, width=1)
-                ax.set_xlabel(r'$\theta$')
-            
-            ax2.legend(fontsize = 14)
-            plt.suptitle(r't/t$_{fb}$ = ' + str(time), fontsize = 16)
-            plt.tight_layout()
-            plt.show()
-            # Find the stream in the simulation data
-            # tree_plot = KDTree(np.array([X, Y, Z]).T)
-            # _, indeces_plot = tree_plot.query(np.array([x_stream, y_stream, z_stream]).T, k=1)
-
-        #%%
-        check = 'LowResNewAMR' 
-        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-        path = f'{abspath}/TDE/{folder}/{single_snap}'
-        tfb_single = np.loadtxt(f'{abspath}/TDE/{folder}/{single_snap}/tfb_{single_snap}.txt')
-        data = make_tree(path, single_snap, energy = False)
+    theta_lim =  np.pi
+    step = 0.02
+    theta_init = np.arange(-theta_lim, theta_lim, step)
+    theta_arr = Ryan_sampler(theta_init)
+    
+    if alice:
+        snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
+    else: 
+        snaps = [237]
+    print('We are in folder', folder, flush = True)
+    for i, snap in enumerate(snaps):
+        print(f'Snap {snap}', flush = True)
+        if alice:
+            path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+        else:
+            path = f'{abspath}/TDE/{folder}/{snap}'
+        data = make_tree(path, snap, energy = False)
         X, Y, Z, Den, Mass, Vol = \
             data.X, data.Y, data.Z, data.Den, data.Mass, data.Vol
         cutden = Den >1e-19
-        dim_cell = Vol**(1/3)
-        X, Y, Z, Den, Mass, dim_cell = \
-            sec.make_slices([X, Y, Z, Den, Mass, dim_cell], cutden)
-        midplane = np.abs(Z) < dim_cell
-        X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Mass_midplane = \
-            sec.make_slices([X, Y, Z, dim_cell, Den, Mass], midplane)
-        
-        theta_arr, x_stream, y_stream, z_stream, thresh_cm = np.load(f'{abspath}/data/{folder}/WH/stream_{check}{single_snap}.npy', allow_pickle=True)
+        X, Y, Z, Den, Mass, Vol = \
+            sec.make_slices([X, Y, Z, Den, Mass, Vol], cutden)
+        R = np.sqrt(X**2 + Y**2 + Z**2)
+        THETA, RADIUS_cyl = to_cylindric(X, Y)
+        dim_cell = Vol**(1/3) 
+        x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params)
         stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
         theta_wh, indeces_boundary, x_T_width, w_params, h_params  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.8)
 
-        
-        # Find the cells in the stream
-        indeces_boundary_lowX, indeces_boundary_upX, indeces_boundary_lowZ, indeces_boundary_upZ = \
-            indeces_boundary[:,0], indeces_boundary[:,1], indeces_boundary[:,2], indeces_boundary[:,3]
-        indeces_all = np.arange(len(X))
-        x_low_width, y_low_width = X[indeces_boundary_lowX], Y[indeces_boundary_lowX]
-        x_up_width, y_up_width = X[indeces_boundary_upX], Y[indeces_boundary_upX]
-
-        #%% Plot 
-        fig, (ax1,ax2) = plt.subplots(1,2, figsize = (18,6))
-        ax1.plot(theta_arr * radians, w_params[0], c = 'k')
-        img = ax1.scatter(theta_arr * radians, w_params[0], c = w_params[1], cmap = 'rainbow', vmin = 0, vmax = 25, marker = 's', label  = '80% mass')
-        cbar = plt.colorbar(img)
-        cbar.set_label(r'Ncells')
-        ax1.set_ylabel(r'Width [$R_\odot$]')
-        ax1.set_ylim(0.1,6)
-
-        ax2.plot(theta_arr * radians, h_params[0], c = 'k')
-        img = ax2.scatter(theta_arr * radians, h_params[0], c = h_params[1], cmap = 'rainbow', vmin = 0, vmax = 10, marker = 's', label  = '80% mass')
-        cbar = plt.colorbar(img)
-        cbar.set_label(r'Ncells')
-        ax2.set_ylabel(r'Height [$R_\odot$]')
-        ax2.set_ylim(0.1, 4)
-
-        for ax in [ax1, ax2]:
-            ax.set_xlabel(r'$\theta$')
-            ax.set_xlim(-2.5, 2.5)#-3/4*np.pi, 3/4*np.pi)
-            ax.grid()
-        ax1.legend(fontsize = 14)
-        plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb_single,2)), fontsize = 16)
-        plt.tight_layout()
-        plt.show()
-
-        fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,6), width_ratios= [1.5, .5])
-        for ax in [ax1, ax2]:
-            ax.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 5e-4))
-            ax.plot(x_stream[:-70]/apo, y_stream[:-70]/apo, c = 'k')
-            ax.plot(x_stream[-30:]/apo, y_stream[-30:]/apo, c = 'k')
-            ax.plot([x_stream[0]/apo, x_stream[-1]/apo] , [y_stream[0]/apo, y_stream[-1]/apo], c = 'k')
-            ax.plot(x_low_width/apo, y_low_width/apo, c = 'coral')
-            ax.plot(x_up_width/apo, y_up_width/apo, c = 'coral')
-            ax.plot(x_arr, line3_4, c = 'grey', linestyle = '--')
-            ax.plot(x_arr, lineminus3_4, c = 'grey', linestyle = '--')
-            ax.set_xlabel(r'$X [R_{\rm a}]$')
-        ax1.set_ylabel(r'$Y [R_{\rm a}]$')
-        ax1.set_xlim(-1, .1)
-        ax1.set_ylim(-.2, .2)
-        ax2.set_xlim(-.2, .1)
-        ax2.set_ylim(-.1, .1)
-        plt.suptitle(r'Stream at t/t$_{\rm fb}$ = ' + str(np.round(tfb_single,2)) + f', check: {check}', fontsize = 16)
-
-
-
-# %%
+        if save:
+            np.save(f'{abspath}/data/{folder}/WH/stream_{check}{snap}.npy', stream)
+            with open(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt','w') as file:
+                # if file exist, save theta and date of execution
+                file.write(f'# theta, done on {datetime.now()} \n')
+                file.write((' '.join(map(str, theta_wh)) + '\n'))
+                file.write(f'# Width \n')
+                file.write((' '.join(map(str, w_params[0])) + '\n'))
+                file.write(f'# Ncells width\n')
+                file.write((' '.join(map(str, w_params[1])) + '\n'))
+                file.write(f'# Height \n')
+                file.write((' '.join(map(str, h_params[0])) + '\n'))
+                file.write(f'# Ncells height \n')
+                file.write((' '.join(map(str, h_params[1])) + '\n'))
+            np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{check}{snap}.npy', indeces_boundary)

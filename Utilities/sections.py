@@ -47,7 +47,7 @@ def tangent_versor(x_orbit, y_orbit, idx, smooth_orbit = False):
         return vers_tg
          
 # def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit, idx, step_ang, coord = False):
-def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit, idx, coord = False):
+def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit, idx, just_plane = True):
     """
     Find the transverse plane to the orbit at the chosen point.
     If coord == True, it returns the coordinates of the data in the plane with respect to the new coordinates system,
@@ -91,7 +91,7 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit
     x_onplaneall = np.dot(data_trasl, vers_norm)
     # condition_cut = np.abs(x_onplaneall) < 100
     # condition_tra = np.logical_and(condition_tra, condition_cut)
-    if coord:
+    if just_plane:
         x_onplane = x_onplaneall[condition_tra]
         # y_onplane = np.dot(data_trasl[condition_coord], vers_tg)
         # find the T of xchosen (won't be 0 because stream points are among simulation data)
@@ -99,7 +99,7 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit
         x0 = x_onplaneall[np.argmin(rad_trasl)]
         return condition_tra, x_onplane, x0
     else:
-        return condition_tra
+        return condition_tra, x_onplaneall
     
 def tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, idx):
     """ Find the tangent plane the chosen point (idx) in the SMOOTHED orbit."""
