@@ -38,7 +38,7 @@ Mbh = 10**m
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
 if alice:
-    snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
+    snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) #[100,115,164,199,216]
 
     col_ie = np.zeros(len(snaps))
     col_orb_en_pos = np.zeros(len(snaps))

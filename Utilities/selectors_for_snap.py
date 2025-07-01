@@ -26,17 +26,17 @@ def select_snap(m, check, mstar, rstar, beta, n, compton = 'Compton',  time = Fa
     if alice:
         snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/snap_{snap}/snap_{snap}.h5') or os.path.exists(f'{pre}/snap_{snap}/CMx_{snap}.npy')]
         # in case you've deleted some .h5 files
-        if not [os.path.exists(f'{pre}/snap_{snap}/snap_{snap}.h5') for snap in snapshots]:
-            time = False
+        # if not [os.path.exists(f'{pre}/snap_{snap}/snap_{snap}.h5') for snap in snapshots]:
+        #     time = False
     else:
         snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/{snap}/snap_{snap}.h5')]
     if time:
         days = np.zeros(len(snapshots))
         for i,snap in enumerate(snapshots):
             if alice:
-                tfb = days_since_distruption(f'{pre}/snap_{snap}/snap_{snap}.h5', m, mstar, rstar, choose = 'tfb')
+                tfb = np.loadtxt(f'{pre}/snap_{snap}/tfb_{snap}.txt')
             else:
-                tfb = days_since_distruption(f'{pre}/{snap}/snap_{snap}.h5', m, mstar, rstar, choose = 'tfb')
+                tfb = np.loadtxt(f'{pre}/{snap}/tfb_{snap}.txt')
             days[i] = tfb
         return snapshots, days
     else:
