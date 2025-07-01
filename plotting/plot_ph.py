@@ -184,16 +184,12 @@ statL = np.zeros(len(tfbL))
 pvalueL = np.zeros(len(tfbL))
 
 for i, snapi in enumerate(snapsL):
-        # snapiF = snaps[i]
-        # snapiL = snapsL[np.argmin(np.abs(tfbL-tfb_i))]
-        # # need the fiducial again for the KS stat
-        # photoFid = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/photo/NewAMR_photo{snapiF}.txt')
-        # xph_iFid, yph_iFid, zph_iFid = photoFid[0], photoFid[1], photoFid[2] 
-        # rph_iFid = np.sqrt(xph_iFid**2 + yph_iFid**2 + zph_iFid**2)
         # LowRes data
         photo = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/photo/LowResNewAMR_photo{snapi}.txt')
         xph_i, yph_i, zph_i, vol_i = photo[0], photo[1], photo[2], photo[3]
         rph_i = np.sqrt(xph_i**2 + yph_i**2 + zph_i**2)
+        if rph_i.any() < R0:
+                print('Less than R0:', rph_i[rph_i<R0])
         # ksL = ks_2samp(rph_i, rph_iFid, alternative='two-sided')
         # statL[i], pvalueL[i] = ksL.statistic, ksL.pvalue
         mean_rphL[i] = np.mean(rph_i)
@@ -206,6 +202,7 @@ for i, snapi in enumerate(snapsL):
 timeL_ratio, ratioL = ratio_BigOverSmall(tfb, mean_rph, tfbL, mean_rphL)
 _, ratioLmedian = ratio_BigOverSmall(tfb, median_ph, tfbL, median_phL)
 _, ratioL_weigh = ratio_BigOverSmall(tfb, mean_rph_weig, tfbL, mean_rphL_weig)
+_, ratioL_gmean = ratio_BigOverSmall(tfb, gmean_ph, tfbL, gmean_phL)
 
 mean_rphH = np.zeros(len(tfbH))
 mean_rphH_weig = np.zeros(len(tfbH))
@@ -215,10 +212,8 @@ percentile16H = np.zeros(len(tfbH))
 percentile84H = np.zeros(len(tfbH))
 
 for i, snapi in enumerate(snapsH):
-        if i<30:
-                continue
         # HiRes data
-        photo = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/photo/HiResNewMR_photo{snapi}.txt')
+        photo = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/photo/HiResNewAMR_photo{snapi}.txt')
         xph_i, yph_i, zph_i, vol_i = photo[0], photo[1], photo[2], photo[3] 
         rph_i = np.sqrt(xph_i**2 + yph_i**2 + zph_i**2)
         # mean
@@ -233,23 +228,22 @@ for i, snapi in enumerate(snapsH):
 timeH_ratio, ratioH = ratio_BigOverSmall(tfb, mean_rph, tfbH, mean_rphH)
 _, ratioHmedian = ratio_BigOverSmall(tfb, median_ph, tfbH, median_phH)
 _, ratioH_weigh = ratio_BigOverSmall(tfb, mean_rph_weig, tfbH, mean_rphH_weig)
+_, ratioH_gmean = ratio_BigOverSmall(tfb, gmean_ph, tfbH, gmean_phH)
 
 #%% Compare the photosphere distribution
-snaps_cdf = [snaps[np.argmin(np.abs(tfb-0.53))], snaps[np.argmin(np.abs(tfb-0.57))]]
+snaps_cdf = [snaps[np.argmin(np.abs(tfb-0.46))], snaps[np.argmin(np.abs(tfb-0.53))], snaps[np.argmin(np.abs(tfb-0.57))]]
 fig, ax = plt.subplots(3, 3, figsize=(20, 12))
 for i, chosen_snap in enumerate(snaps_cdf):
-        time = tfb[np.argmin(np.abs(snaps - chosen_snap))]
-        chosen_idx = np.argmin(np.abs(snaps - chosen_snap))
+        time = tfb[np.argmin(np.abs(snaps - chosen_snap))]      
         photo = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/photo/NewAMR_photo{chosen_snap}.txt')
         xph, yph, zph = photo[0], photo[1], photo[2] 
         rph = np.sqrt(xph**2 + yph**2 + zph**2)
-        rph_weig = rph*fluxes[chosen_idx]/np.sum(fluxes[chosen_idx])
-        time = tfb[np.argmin(np.abs(snapsL - chosen_snap))]
-        chosen_idx = np.argmin(np.abs(snapsL - chosen_snap))
-        photoL = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/photo/LowResNewAMR_photo{chosen_snap}.txt')
+
+        idx_L = np.argmin(np.abs(tfbL - time))
+        chosen_snapL = snapsL[idx_L]
+        photoL = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/photo/LowResNewAMR_photo{chosen_snapL}.txt')
         xphL, yphL, zphL = photoL[0], photoL[1], photoL[2]
         rphL = np.sqrt(xphL**2 + yphL**2 + zphL**2)
-        rphL_weig = rphL * fluxesL[chosen_idx]/np.sum(fluxesL[chosen_idx])
         # time = tfb[np.argmin(np.abs(snapsH - chosen_snap))]
         # chosen_idx = np.argmin(np.abs(snapsH - chosen_snap))
         # photoH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/photo/HiResNewAMR_photo{chosen_snap}.txt')
@@ -257,10 +251,10 @@ for i, chosen_snap in enumerate(snaps_cdf):
         # rphH = np.sqrt(xphH**2 + yphH**2 + zphH**2)
         # rphH_weig = rphH * fluxesH[chosen_idx]/np.sum(fluxesH[chosen_idx])
 
-        rphL_cdf = np.sort(np.log10(rphL))
+        rphL_cdf = np.sort(rphL)
         cumL = list(np.arange(len(rphL_cdf))/len(rphL_cdf))
         rphL_cdf = list(rphL_cdf)
-        rph_cdf = np.sort(np.log10(rph))
+        rph_cdf = np.sort(rph)
         cum = list(np.arange(len(rph_cdf))/len(rph_cdf))
         rph_cdf = list(rph_cdf)
         # rphH_cdf = np.sort(rphH)
@@ -278,35 +272,35 @@ for i, chosen_snap in enumerate(snaps_cdf):
         # # rphH_cdf_weig = list(rphH_cdf_weig)
 
         # plot the distibution of rph with logspaced bin
-        binsLzoom = np.linspace(np.log10(np.min(rphL[rphL<2*apo]/apo)), 2, 20)
-        binszoom = np.linspace(np.log10(np.min(rph[rph<2*apo]/apo)), 2, 20)
-        # binsHzoom = np.linspace(np.log10(np.min(rphH[rphH<2*apo]/apo)), 2, 20)
+        binsLzoom = np.linspace(np.log10(np.min(rphL[rphL<2*Rt]/Rt)), 2, 20)
+        binszoom = np.linspace(np.log10(np.min(rph[rph<2*Rt]/Rt)), 2, 20)
+        # binsHzoom = np.linspace(np.log10(np.min(rphH[rphH<2*Rt]/Rt)), 2, 20)
         # zoom in 
-        ax[0][i].hist(rphL[rphL<2*apo]/apo, bins = binsLzoom, alpha = 0.5, color = 'C1', label = 'Low')
-        ax[0][i].hist(rph[rph<2*apo]/apo, bins = binszoom, alpha = 0.5, color = 'yellowgreen', label = 'Fid')
-        # ax[0][i].hist(rphH[rphH<2*apo]/apo, bins = binsHzoom, alpha = 0.5, color = 'darkviolet', label = 'High')
+        ax[0][i].hist(rphL[rphL<2*Rt]/Rt, bins = 60, alpha = 0.5, color = 'C1', label = 'Low')
+        ax[0][i].hist(rph[rph<2*Rt]/Rt, bins = 60, alpha = 0.5, color = 'yellowgreen', label = 'Fid')
+        # ax[0][i].hist(rphH[rphH<2*Rt]/Rt, bins = binsHzoom, alpha = 0.5, color = 'darkviolet', label = 'High')
         ax[0][0].set_ylabel(r'Counts for R$\leq 2R_{\rm a}$', fontsize = 20)
-        ax[0][i].set_title(r'$t/t_{fb}$='+f'{np.round(time,2)}', fontsize = 20)
+        ax[0][i].set_title(r'$t/t_{\rm fb}$='+f'{np.round(time,2)}', fontsize = 20)
         ax[0][i].set_xlim(-0.1,2)
 
-        binsL = np.logspace(np.log10(np.min(rphL/apo)), np.log10(np.max(rphL/apo)), 50)
-        bins = np.logspace(np.log10(np.min(rph/apo)), np.log10(np.max(rph/apo)), 50)
-        # binsH = np.logspace(np.log10(np.min(rphH/apo)), np.log10(np.max(rphH/apo)), 50)
-        ax[1][i].hist(rphL/apo, bins = binsL, alpha = 0.5, color = 'C1', label = 'Low')
-        ax[1][i].hist(rph/apo, bins = bins, alpha = 0.5, color = 'yellowgreen', label = 'Fid')
-        # ax[1][i].hist(rphH/apo, bins = binsH, alpha = 0.5, color = 'darkviolet', label = 'High')
+        binsL = np.logspace(np.log10(np.min(rphL/Rt)), np.log10(np.max(rphL/Rt)), 50)
+        bins = np.logspace(np.log10(np.min(rph/Rt)), np.log10(np.max(rph/Rt)), 50)
+        # binsH = np.logspace(np.log10(np.min(rphH/Rt)), np.log10(np.max(rphH/Rt)), 50)
+        ax[1][i].hist(rphL/Rt, bins = 60, alpha = 0.5, color = 'C1', label = 'Low')
+        ax[1][i].hist(rph/Rt, bins = 60, alpha = 0.5, color = 'yellowgreen', label = 'Fid')
+        # ax[1][i].hist(rphH/Rt, bins = binsH, alpha = 0.5, color = 'darkviolet', label = 'High')
         ax[1][0].set_ylabel('Counts (all)')
 
         # CDF of rph 
         print('CDF:', len(cumL))
-        ax[2][i].plot(np.array(rphL_cdf)/apo, cumL, alpha = 0.5, color = 'C1', label = 'Low')
-        ax[2][i].plot(np.array(rph_cdf)/apo, cum, alpha = 0.5, color = 'yellowgreen', label = 'Fid')
-        # ax[2][i].plot(np.array(rphH_cdf)/apo, cumH, alpha = 0.5, color = 'darkviolet', label = 'High')
+        ax[2][i].plot(np.array(rphL_cdf)/Rt, cumL, alpha = 0.5, color = 'C1', label = 'Low')
+        ax[2][i].plot(np.array(rph_cdf)/Rt, cum, alpha = 0.5, color = 'yellowgreen', label = 'Fid')
+        # ax[2][i].plot(np.array(rphH_cdf)/Rt, cumH, alpha = 0.5, color = 'darkviolet', label = 'High')
         
         for i in range(3):
                 ax[2][i].grid()
-                ax[2][i].set_xlabel(r'$R_{ph} [R_a]$')
-        ax[1][0].legend(fontsize = 18)
+                ax[2][i].set_xlabel(r'$R_{ph} [R_t]$')
+        ax[0][0].legend(fontsize = 18)
         ax[2][0].set_ylabel('CDF')
 plt.tight_layout()
 # plt.savefig(f'{abspath}/Figs/multiple/photo/Rphdistribution.png')
@@ -420,41 +414,60 @@ plt.grid()
 plt.legend(fontsize = 18)
 
 #%%
-fig, ((ax1, ax3), (ax2, ax4)) = plt.subplots(2, 2, figsize=(15, 7), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-ax1.plot(tfbL, mean_rphL_weig/apo, c = 'C1', label = 'Low')
-ax1.plot(tfb, mean_rph_weig/apo, c = 'yellowgreen', label = 'Fid')
-ax1.plot(tfbH, mean_rphH_weig/apo, c = 'darkviolet', label = 'High')
-ax1.set_ylabel(r'$\langle R_{ph} \rangle [R_a]$')
-ax1.legend(fontsize = 18, loc = 'lower right')
+fig, ((ax1, ax3, ax5, ax7), (ax2, ax4, ax6, ax8)) = plt.subplots(2, 4, figsize=(25, 7), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
 
-ax2.plot(timeL_ratio, ratioL_weigh, color = 'yellowgreen')
-ax2.plot(timeL_ratio, ratioL_weigh, '--', color = 'C1')
-ax2.plot(timeH_ratio, ratioH_weigh, color = 'yellowgreen')
-ax2.plot(timeH_ratio, ratioH_weigh, '--', color = 'darkviolet')
-ax2.set_xlabel(r't [$t_{fb}$]')
-ax2.set_ylabel(r'$|\Delta_{\rm rel}|$')
+ax1.plot(tfbL, mean_rphL/apo, c = 'C1', label = 'Low')
+ax1.plot(tfb, mean_rph/apo, c = 'yellowgreen', label = 'Fid')
+ax1.plot(tfbH, mean_rphH/apo, c = 'darkviolet', label = 'High')
+ax1.set_ylabel(r'mean $R_{\rm ph} [R_a]$')
 
-ax3.plot(tfbL, mean_rphL/apo, c = 'C1', label = 'Low')
-ax3.plot(tfb, mean_rph/apo, c = 'yellowgreen', label = 'Fid')
-ax3.plot(tfbH, mean_rphH/apo, c = 'darkviolet', label = 'High')
-ax3.set_ylabel(r'$\langle R_{ph} \rangle [R_a]$')
+ax2.plot(timeL_ratio, ratioL, color = 'yellowgreen')
+ax2.plot(timeL_ratio, ratioL, '--', color = 'C1')
+ax2.plot(timeH_ratio, ratioH, color = 'yellowgreen')
+ax2.plot(timeH_ratio, ratioH, '--', color = 'darkviolet')
+ax2.set_ylabel(r'$\mathcal{R} R_{\rm ph}$')
 
-ax4.plot(timeL_ratio, ratioL, color = 'yellowgreen')
-ax4.plot(timeL_ratio, ratioL, '--', color = 'C1')
-ax4.plot(timeH_ratio, ratioH, color = 'yellowgreen')
-ax4.plot(timeH_ratio, ratioH, '--', color = 'darkviolet')
-ax4.set_ylabel(r'$|\Delta_{\rm rel}|$')
-for ax in [ax1, ax2, ax3, ax4]:
-        if ax in [ax1, ax3]:
+ax3.plot(tfbL, gmean_phL/apo, c = 'C1', label = 'Low')
+ax3.plot(tfb, gmean_ph/apo, c = 'yellowgreen', label = 'Fid')
+ax3.plot(tfbH, gmean_phH/apo, c = 'darkviolet', label = 'High')
+ax3.set_ylabel(r'gmean $R_{\rm ph} [R_a]$')
+
+ax4.plot(timeL_ratio, ratioL_gmean, color = 'yellowgreen')
+ax4.plot(timeL_ratio, ratioL_gmean, '--', color = 'C1')
+ax4.plot(timeH_ratio, ratioH_gmean, color = 'yellowgreen')
+ax4.plot(timeH_ratio, ratioH_gmean, '--', color = 'darkviolet') 
+
+ax5.plot(tfbL, median_phL/apo, c = 'C1', label = 'Low')
+ax5.plot(tfb, median_ph/apo, c = 'yellowgreen', label = 'Fid')
+ax5.plot(tfbH, median_phH/apo, c = 'darkviolet', label = 'High')
+ax5.set_ylabel(r'median $R_{\rm ph} [R_a]$')
+
+ax6.plot(timeL_ratio, ratioLmedian, color = 'yellowgreen')
+ax6.plot(timeL_ratio, ratioLmedian, '--', color = 'C1')
+ax6.plot(timeH_ratio, ratioHmedian, color = 'yellowgreen')
+ax6.plot(timeH_ratio, ratioHmedian, '--', color = 'darkviolet')
+
+ax7.plot(tfbL, mean_rphL_weig/apo, c = 'C1', label = 'Low')
+ax7.plot(tfb, mean_rph_weig/apo, c = 'yellowgreen', label = 'Fid')
+ax7.plot(tfbH, mean_rphH_weig/apo, c = 'darkviolet', label = 'High')
+ax7.set_ylabel(r'weighted mean $R_{ph} [R_a]$')
+
+ax8.plot(timeL_ratio, ratioL_weigh, color = 'yellowgreen')
+ax8.plot(timeL_ratio, ratioL_weigh, '--', color = 'C1')
+ax8.plot(timeH_ratio, ratioH_weigh, color = 'yellowgreen')
+ax8.plot(timeH_ratio, ratioH_weigh, '--', color = 'darkviolet')
+# ax5.axvline(0.46)
+for ax in [ax1, ax2, ax3, ax4, ax5, ax6, ax7, ax8]:
+        if ax in [ax1, ax3, ax5, ax7]:
                 ax.set_yscale('log')
+                ax.axhline(R0/apo, c='k', ls=':', label=r'$R_0$')
+                ax.axhline(Rt/apo, c='k', ls='--', label=r'$R_{\rm t}$')
+                ax.set_ylim(2e-3, 4.5)
         ax.grid()
-        if ax in [ax2, ax4]:
+        if ax in [ax2, ax4, ax6, ax8]:
                 ax.set_xlabel(r't [$t_{fb}$]')
                 ax.set_ylim(0.5, 3)
-ax1.set_title('Flux-weighted photosphere')
-ax3.set_title('Standard average photosphere')
+ax1.legend(fontsize = 16, loc = 'lower right')
 plt.tight_layout()
-# print('median ratioL_weigh:', np.median(np.nan_to_num(ratioL_weigh)))
-# print('median ratioH_weigh:', np.median(np.nan_to_num(ratioH_weigh)))
 
 # %%
