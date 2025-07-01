@@ -32,7 +32,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = '' # 'LowRes' or 'HiRes'
+check = 'NewAMR' # 'LowRes' or 'HiRes'
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 coord_to_cut = 'z' # 'x', 'y', 'z'
@@ -77,18 +77,15 @@ else:
     indecesorbital = np.concatenate(np.where(latitude_moll==0))
 
 for idx, snap in enumerate(snaps):
-    print(snap)
+    print(snap, flush=True)
     if do:
         # you are in alice
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
 
         data = make_tree(path, snap, energy = True)
-        X, Y, Z, den, mass, vol, ie_den, Rad_den, VX, VY, VZ, Diss_den = \
-            data.X, data.Y, data.Z, data.Den, data.Mass, data.Vol, data.IE, data.Rad, data.VX, data.VY, data.VZ, data.Diss
+        X, Y, Z, vol, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den = \
+            data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Temp, data.IE, data.Rad, data.VX, data.VY, data.VZ, data.Diss
         Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
-        vel = np.sqrt(np.power(VX, 2) + np.power(VY, 2) + np.power(VZ, 2))
-        orb_en = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh)
-        orb_en_den = orb_en/vol
         dim_cell = (3/(4*np.pi) * vol)**(1/3)
         if coord_to_cut == 'x':
             cutcoord = X
@@ -103,11 +100,11 @@ for idx, snap in enumerate(snaps):
         cut = np.logical_and(density_cut, coordinate_cut)
         # x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut = \
         #     sec.make_slices([X, Y, Z, dim_cell, den, data.Temp, ie_den, orb_en_den, Rad_den], cut)
-        x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut = \
-            sec.make_slices([X, Y, Z, dim_cell, den, data.Temp, ie_den, orb_en_den, Rad_den, VX, VY, VZ, Diss_den], cut)
+        x_cut, y_cut, z_cut, dim_cut, mass_cut, den_cut, temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut = \
+            sec.make_slices([X, Y, Z, dim_cell, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den], cut)
         
         np.save(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy',\
-                 [x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut])
+                 [x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut])
         
     else:
         # you are not in alice

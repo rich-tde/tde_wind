@@ -12,9 +12,7 @@ import matplotlib.colors as colors
 import Utilities.prelude as prel
 import Utilities.sections as sec
 import src.orbits as orb
-from Utilities.operators import make_tree, to_cylindric, Ryan_sampler, draw_line
-from Utilities.selectors_for_snap import select_snap
-
+from Utilities.operators import make_tree, draw_line
 
 m = 4
 Mbh = 10**m
@@ -24,26 +22,21 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-what = 'section' #section or comparison
+what = 'comparison' #section or comparison
 
 Mbh = 10**m
 Rs = 2*prel.G*Mbh / prel.csol_cgs**2
 Rt = Rstar * (Mbh/mstar)**(1/3)
 Rp =  Rt / beta
 R0 = 0.6 * Rp
-apo = orb.apocentre(Rstar, mstar, Mbh, beta)
+apo = orb.apocentre(Rstar, mstar, Mbh, beta)    
 
-if what == 'section':
-    check = 'LowResNewAMR'
-    snap = 225
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+if what == 'comparison':
     # line at 3/4 and -3/4 pi
     x_arr = np.arange(-2, 0.1, .1)
     line3_4 = draw_line(x_arr, 3/4*np.pi)
     lineminus3_4 = draw_line(x_arr, -3/4*np.pi)
-
-if what == 'comparison':
-    wanted_time = [0.5, 1, 1.2]
+    wanted_time = [0.5, 0.75]#1, 1.2]
     checks = ['LowResNewAMR', 'NewAMR']
     compton = 'Compton'
     checks_name = ['Low', 'Fid']
@@ -113,7 +106,8 @@ if what == 'comparison':
         # _, indeces_plot = tree_plot.query(np.array([x_stream, y_stream, z_stream]).T, k=1)
 
 if what == 'single_snap_behavior' or what == 'section':
-    check = 'LowResNewAMR' 
+    check = 'LowResNewAMR'
+    snap = 225
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     path = f'{abspath}/TDE/{folder}/{snap}'
     # Load data snap
@@ -183,7 +177,7 @@ if what == 'single_snap_behavior' or what == 'section':
         plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb_single,2)), fontsize = 16)
 
     if what == 'section':
-        idx = np.argmin(np.abs(theta_arr + 3*np.pi/4)) # find the index of the theta closest to 1.5
+        idx = 175 #np.argmin(np.abs(theta_arr + 3*np.pi/4)) # find the index of the theta closest to 1.5
 
         indeces = np.arange(len(X))
         # find in the simulaion the boundary and the points inside
@@ -231,5 +225,30 @@ if what == 'single_snap_behavior' or what == 'section':
         ax1.set_ylim(z_low-1, z_up+1)
         ax1.set_title(r'$\theta$ = ' + f'{np.round(theta_arr[idx], 2)}, t =  {np.round(tfb_single,2)}' + r' $t_{\rm fb}$', fontsize = 18)
 
-
+if what == 'expansion':
+    check = 'LowResNewAMR'
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    before_after = []
+    time_before_after = []
+    angle_check = np.pi/4
+    dataLum = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
+    snaps = np.array([int(s) for s in dataLum[:,0]])
+    tfb = dataLum[:, 1]
+    for i, snap in enumerate(snaps):
+        if snap >319:
+            continue
+        print(snap)
+        path = f'{abspath}/TDE/{folder}/{snap}'
+        wh = np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
+        theta_wh, width, N_width, height, N_height = wh[0], wh[1], wh[2], wh[3], wh[4]
+        idx_before = np.argmin(np.abs(theta_wh + angle_check)) # so you search for -angle
+        idx_after = np.argmin(np.abs(theta_wh - angle_check))
+        print(idx_before, idx_after)
+        if np.abs(theta_wh[idx_before] + angle_check) > 0.1 or np.abs(theta_wh[idx_after] - angle_check) > 0.1:
+            print(f'Warning: the angle {angle_check} is not well represented in the data, closest are {theta_wh[idx_before]} and {theta_wh[idx_after]}')
+            continue
+        before_after.append(width[idx_before] / width[idx_after])
+        time_before_after.append(tfb[i])
     
+    fig, ax = plt.subplots(figsize = (8,6))
+    ax.scatter(time_before_after, before_after, c = 'k')

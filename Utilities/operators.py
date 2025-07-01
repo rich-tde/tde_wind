@@ -114,10 +114,9 @@ def sort_list(list_passive, leading_list, unique = False):
        list_passive is a list of numpy arrays.
     """
     if unique == True:
-        where_unique = np.where(np.unique(leading_list))
-        leading_list = leading_list[where_unique]
-        for arr in list_passive:
-            arr = arr[where_unique]
+        _, unique_indices = np.unique(leading_list, return_index=True)
+        leading_list = leading_list[unique_indices]  # Keep only unique values
+        list_passive = [arr[unique_indices] for arr in list_passive]  # Apply unique indices to each sub-array
     sort_indices = np.argsort(leading_list)  # Get indices that would sort leading_list
     return [arr[sort_indices] for arr in list_passive]  # Apply those indices to each sub-array
 
