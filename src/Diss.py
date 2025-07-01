@@ -28,7 +28,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'NewAMRRemoveCenter'
+check = 'NewAMR'
 do_cut = 'cutDen' # '' or 'cutDen'
 
 Rt = Rstar * (Mbh/mstar)**(1/3)
@@ -77,26 +77,78 @@ if alice:
         file.close()
 
 else:
-    data = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}cutDen.txt', comments = '#')
+    from plotting.paper.IHopeIsTheLast import ratio_BigOverSmall
+    commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+    dataL = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/Rdiss_LowResNewAMRcutDen.txt', comments = '#')
+    tfbL, Rdiss_posL, Ldisstot_posL, Rdiss_negL, Ldisstot_negL = dataL[0], dataL[1], dataL[2], dataL[3], dataL[4]
+    data = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/Rdiss_NewAMRcutDen.txt', comments = '#')
     tfb, Rdiss_pos, Ldisstot_pos, Rdiss_neg, Ldisstot_neg = data[0], data[1], data[2], data[3], data[4]
-    datanocut = np.loadtxt(f'{abspath}/data/{folder}/convergence/Rdiss_{check}.txt')
-    timenocut, Rnocut, Eradtotnocut, LDissnocut = datanocut[0], datanocut[1], datanocut[2], datanocut[3] 
-    datacutCoord = np.loadtxt(f'{abspath}/data/{folder}/convergence/Rdiss_{check}cutCoord.txt')
-    timecutCoord, RcutCoord, EradtotcutCoord, LDisscutCoord = datacutCoord[0], datacutCoord[1], datacutCoord[2], datacutCoord[3] 
-    datacutDenCoord = np.loadtxt(f'{abspath}/data/{folder}/convergence/Rdiss_{check}cutDenCoord.txt')
-    timecutDenCoord, RcutDenCoord, EradtotcutDenCoord, LDisscutDenCoord = datacutDenCoord[0], datacutDenCoord[1], datacutDenCoord[2], datacutCoord[3] 
-    
-    plt.figure()
-    plt.plot(tfb, Ldisstot_pos, label = 'L positive, cut den', color = 'blue')
-    plt.plot(tfb, np.abs(Ldisstot_neg), label = r'$|$L negative, cut den$|$', color = 'purple')
-    plt.plot(timenocut, LDissnocut, label = 'L tot, no cut', color = 'red')
-    plt.plot(timecutCoord, LDisscutCoord, label = 'L tot, cutCoord ', color = 'green')
-    plt.plot(timecutDenCoord, LDisscutDenCoord, label = 'L tot, cutDenCoord', color = 'orange', ls = '--')
-    plt.yscale('log')
-    plt.xlabel(r't [t$_{\rm fb}$]')
-    plt.ylabel('Dissipation rate [energy/time]')
-    plt.legend()
-    plt.savefig(f'{abspath}/Figs/{folder}/TestCuts_LDiss.png')
+    dataH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/Rdiss_HiResNewAMRcutDen.txt', comments = '#')
+    tfbH, Rdiss_posH, Ldisstot_posH, Rdiss_negH, Ldisstot_negH = dataH[0], dataH[1], dataH[2], dataH[3], dataH[4]
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 14))
+    ax1.plot(tfbL, Ldisstot_posL * prel.en_converter/prel.tsol_cgs, color = 'C1', label = 'Low')
+    ax1.plot(tfb, Ldisstot_pos * prel.en_converter/prel.tsol_cgs, color = 'yellowgreen', label = 'Fid')
+    ax1.plot(tfbH, Ldisstot_posH * prel.en_converter/prel.tsol_cgs, color = 'darkviolet', label = 'High')
+    # ax1.plot(tfb, np.abs(Ldisstot_neg) * prel.en_converter/prel.tsol_cgs, label = r'$|$L negative, cut den$|$', color = 'grey')
+    ax1.set_ylabel('Dissipation rate [erg/s]')
+    ax1.legend(fontsize = 16)
+
+    ax2.plot(tfbL, Rdiss_posL/apo, c = 'C1')
+    ax2.plot(tfb, Rdiss_pos/apo, c = 'yellowgreen')
+    ax2.plot(tfbH, Rdiss_posH/apo, c = 'darkviolet')
+    ax2.axhline(Rt/apo, color = 'k', linestyle = '--', label = r'$R_{\rm t}$')
+
+
+    ax2.set_ylabel(r'$R_{\rm diss}$ [R$_{\rm a}$]')
+    for ax in [ax1, ax2]:
+        ax.set_yscale('log')
+        ax.grid()
+        ax.tick_params(axis='both', which='major', length = 7, width = 1.2)
+        ax.tick_params(axis='both', which='minor', length = 3, width = 1)
+    ax2.set_xlabel(r't [t$_{\rm fb}$]')
+
+    # with ratios
+    tfb_ratioDiss_L, ratio_DissL = ratio_BigOverSmall(tfb, Ldisstot_pos, tfbL, Ldisstot_posL)
+    tfb_ratioDiss_H, ratio_DissH = ratio_BigOverSmall(tfb, Ldisstot_pos, tfbH, Ldisstot_posH)
+    tfb_ratioRdiss_L, ratio_RdissL = ratio_BigOverSmall(tfb, Rdiss_pos, tfbL, Rdiss_posL)
+    tfb_ratioRdiss_H, ratio_RdissH = ratio_BigOverSmall(tfb, Rdiss_pos, tfbH, Rdiss_posH)
+
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(22, 16))
+    ax1.plot(tfbL, Ldisstot_posL * prel.en_converter/prel.tsol_cgs, color = 'C1', label = 'Low')
+    ax1.plot(tfb, Ldisstot_pos * prel.en_converter/prel.tsol_cgs, color = 'yellowgreen', label = 'Fid')
+    ax1.plot(tfbH, Ldisstot_posH * prel.en_converter/prel.tsol_cgs, color = 'darkviolet', label = 'High')
+    ax1.set_ylabel('Dissipation rate [erg/s]')
+    ax1.legend(fontsize = 16)
+
+    ax3.plot(tfb_ratioDiss_L, ratio_DissL, color = 'C1')
+    ax3.plot(tfb_ratioDiss_L, ratio_DissL, '--', color = 'yellowgreen')
+    ax3.plot(tfb_ratioDiss_H, ratio_DissH, color = 'yellowgreen')
+    ax3.plot(tfb_ratioDiss_H, ratio_DissH, '--', color = 'darkviolet')
+
+    ax2.plot(tfbL, Rdiss_posL/apo, c = 'C1')
+    ax2.plot(tfb, Rdiss_pos/apo, c = 'yellowgreen')
+    ax2.plot(tfbH, Rdiss_posH/apo, c = 'darkviolet')
+    ax2.set_ylabel(r'$R_{\rm diss}$ [R$_{\rm a}$]')
+    ax2.axhline(Rt/apo, color = 'k', linestyle = '--', label = r'$R_{\rm t}$')
+    ax3.set_ylabel('Ratio of dissipation rate')
+
+    ax4.plot(tfb_ratioRdiss_L, ratio_RdissL, color = 'C1')
+    ax4.plot(tfb_ratioRdiss_L, ratio_RdissL, '--', color = 'yellowgreen')
+    ax4.plot(tfb_ratioRdiss_H, ratio_RdissH, color = 'yellowgreen')
+    ax4.plot(tfb_ratioRdiss_H, ratio_RdissH, '--', color = 'darkviolet')
+    ax4.set_ylabel(r'ratio $R_{\rm diss}$')
+
+    for ax in [ax1, ax2, ax3, ax4]:
+        if ax != ax4:
+            ax.set_yscale('log')
+        ax.grid()
+        ax.tick_params(axis='both', which='major', length = 7, width = 1.2)
+        ax.tick_params(axis='both', which='minor', length = 3, width = 1)
+        ax.set_xlim(0, 1.7)
+    ax3.set_xlabel(r't [t$_{\rm fb}$]')
+    ax4.set_xlabel(r't [t$_{\rm fb}$]')
+
 
 ### AS IT WAS BEFORE
 

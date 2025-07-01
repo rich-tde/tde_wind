@@ -42,9 +42,9 @@ mstar = .5
 Rstar = .47
 n = 1.5 
 compton = 'Compton'
-check = 'OpacityNew' # '' or 'LowRes' or 'HiRes' 
+check = 'NewAMR' # '' or 'LowRes' or 'HiRes' 
 save = False
-which_cut = '' #if 'high' cut density at 1e-12, if '' cut density at 1e-19
+which_cut = 'high' #if 'high' cut density at 1e-12, if '' cut density at 1e-19
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
@@ -95,7 +95,7 @@ if alice:
 
 else:
     ecc_slice = False
-    space_time = False
+    space_time = True
     error = True
     ecc_crit = orb.e_mb(Rstar, mstar, Mbh, beta)
 
@@ -146,9 +146,7 @@ else:
         ecc2 = np.load(f'{path}/Ecc2_{which_cut}_{check}.npy') 
         ecc = np.sqrt(ecc2)
         tfb_data= np.loadtxt(f'{path}/Ecc_{which_cut}_{check}_days.txt')
-        snap_, tfb = tfb_data[0], tfb_data[1]
-        tfb_dataFid = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n1.5{compton}/Ecc_{which_cut}__days.txt')
-        tfbFid = tfb_dataFid[1]
+        snap, tfb = tfb_data[0], tfb_data[1]
         radii = np.load(f'{path}/radiiEcc_{which_cut}_{check}.npy')
         
         # Plot
@@ -168,142 +166,98 @@ else:
         plt.tick_params(axis='x', which='major', width=1.2, length=8, color = 'k', labelsize=25)
         plt.tick_params(axis='y', which='major', width=1, length=8, color = 'white', labelsize=25)
         plt.tick_params(axis='x', which='minor', width=1, length=6, color = 'k', labelsize=25)
-        plt.ylim(np.min(tfbFid), np.max(tfbFid))
+        plt.xlim(R0/apo, np.max(radii)/apo)
+        # plt.ylim(0.054, 1.7)
         plt.savefig(f'{abspath}/Figs/paper/ecc{which_cut}{check}.pdf', bbox_inches='tight')
 
-        folderFid = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n1.5{compton}'
-        pathFid = f'{abspath}/data/{folderFid}'
-        ecc2Fid = np.load(f'{pathFid}/Ecc2_.npy') 
-        eccFid = np.sqrt(ecc2Fid)
-
-        rel_diff = []
-        median = np.zeros(len(ecc))
-        for i in range(len(ecc)):
-            time = tfbFid[i]
-            idx = np.argmin(np.abs(tfbFid - time))
-            rel_diff_time_i =  find_ratio(eccFid[idx], ecc[i]) #
-            rel_diff.append(rel_diff_time_i)
-            median[i] = np.median(rel_diff_time_i)
-
-        where_are_nans = np.isnan(rel_diff)
-        where_infs = np.isinf(rel_diff)
-        rel_diff = np.array(rel_diff)
-        print('max error', np.max(rel_diff[np.logical_and(~where_are_nans, ~where_infs)]))
-        fig, (ax1, ax2) = plt.subplots(1,2, figsize = (20,10))    
-        img = ax1.pcolormesh(radii/apo, tfb, rel_diff, cmap = 'inferno', vmin = 0.9, vmax = 1.1, rasterized = True)
-        ax1.set_xscale('log')
-        ax1.set_xlabel(r'$R [R_{\rm a}]$')#, fontsize = 25)
-        ax1.set_ylabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
-        ax1.set_ylim(np.min(tfb), np.max(tfbFid))
-        cb = plt.colorbar(img,  orientation='horizontal')
-        cb.set_label(r'$\mathcal{R}$ eccentricity')#, fontsize = 25)
-        cb.ax.tick_params(labelsize=25)
-        cb.ax.tick_params(width=1, length=11, color = 'k',)
-
-        ax2.plot(tfb, median, c = 'yellowgreen', linewidth = 4)
-        ax2.set_ylabel(r'$\mathcal{R}$ median eccentricity')
-        # ax2.set_ylim(0.98, 1.08)
-        ax2.grid()
-        ax2.set_xlabel(r'$t [t_{\rm fb}]$')
 
     if error: # compare resolutions
         import matplotlib.gridspec as gridspec
-        check1 = 'OpacityNewNewAMR' #LowResNewAMR'
-        path1 = f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check1}'
-        ecc_quad1 = np.load(f'{path1}/Ecc2_{which_cut}_{check1}.npy') 
-        ecc1 = np.sqrt(ecc_quad1)
-        tfb_data1 = np.loadtxt(f'{path1}/Ecc_{which_cut}_{check1}_days.txt')
-        snap1, tfb1 = tfb_data1[0], tfb_data1[1]
-        radii = np.load(f'{path1}/radiiEcc_{which_cut}_{check1}.npy')
+        commonpath = f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+        ecc_quadL = np.load(f'{commonpath}LowResNewAMR/Ecc2_{which_cut}_LowResNewAMR.npy') 
+        eccL = np.sqrt(ecc_quadL)
+        tfb_dataL = np.loadtxt(f'{commonpath}LowResNewAMR/Ecc_{which_cut}_LowResNewAMR_days.txt')
+        snapL, tfbL = tfb_dataL[0], tfb_dataL[1]
+        radii = np.load(f'{commonpath}LowResNewAMR/radiiEcc_{which_cut}_LowResNewAMR.npy')
 
-        check = 'NewAMRRemoveCenter' #'LowResNewAMRRemoveCenter'
-        path = f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-        ecc_quad = np.load(f'{path}/Ecc2_{which_cut}_{check}.npy') 
+        ecc_quad = np.load(f'{commonpath}NewAMR/Ecc2_{which_cut}_NewAMR.npy') 
         ecc = np.sqrt(ecc_quad)
-        tfb_data = np.loadtxt(f'{path}/Ecc_{which_cut}_{check}_days.txt')
+        tfb_data = np.loadtxt(f'{commonpath}NewAMR/Ecc_{which_cut}_NewAMR_days.txt')
         snap, tfb = tfb_data[0], tfb_data[1]
 
-        print('comparing', check1, 'and', check)
-
-        # folderH = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes'
-        # pathH = f'{abspath}/data/{folderH}'
-        # ecc2H = np.load(f'{pathH}/Ecc2_HiRes.npy') 
-        # eccH = np.sqrt(ecc2H)
-        # tfb_dataH = np.loadtxt(f'{pathH}/Ecc_HiRes_days.txt')
-        # snapH, tfbH = tfb_dataH[0], tfb_dataH[1]
+        ecc_quadH = np.load(f'{commonpath}HiResNewAMR/Ecc2_{which_cut}_HiResNewAMR.npy') 
+        eccH = np.sqrt(ecc_quadH)
+        tfb_dataH = np.loadtxt(f'{commonpath}HiResNewAMR/Ecc_{which_cut}_HiResNewAMR_days.txt')
+        snapH, tfbH = tfb_dataH[0], tfb_dataH[1]
 
         # relative difference L and middle
         rel_diffL = []
-        medianL = np.zeros(len(ecc1))
-        percentile16 = np.zeros(len(ecc1))
-        percentile84 = np.zeros(len(ecc1))
-        for i in range(len(ecc1)):
-            time = tfb1[i]
-            idx = np.argmin(np.abs(tfb - time))
-            rel_diff_time_i = ecc[idx]/ecc1[i] #find_ratio(ecc1[i], ecc[idx]) 
+        medianL = np.zeros(len(ecc))
+        for i in range(len(ecc)):
+            time = tfb[i]
+            idx = np.argmin(np.abs(tfbL - time))
+            rel_diff_time_i = ecc[i]/eccL[idx] #find_ratio(eccL[i], ecc[idx]) 
             rel_diffL.append(rel_diff_time_i)
             medianL[i] = np.median(rel_diff_time_i)
-            percentile16[i] = np.percentile(rel_diff_time_i, 16)
-            percentile84[i] = np.percentile(rel_diff_time_i, 84)
-        # rel_diffH = []
-        # medianH = np.zeros(len(eccH))
-        # medianFoverH = np.zeros(len(eccH))
-        # for i in range(len(eccH)):
-        #     time = tfbH[i]
-        #     idx = np.argmin(np.abs(tfb - time))
-        #     rel_diff_time_i =  find_ratio(ecc[idx], eccH[i]) #
-        #     rel_diffH.append(rel_diff_time_i)
-        #     medianH[i] = np.median(rel_diff_time_i)
-        #     medianFoverH[i] = np.median(ecc[idx]/eccH[i])
+
+        rel_diffH = []
+        medianH = np.zeros(len(eccH))
+        for i in range(len(eccH)):
+            time = tfbH[i]
+            idx = np.argmin(np.abs(tfb - time))
+            rel_diff_time_i =  eccH[i]/ecc[idx] #find_ratio(ecc[idx], eccH[i])
+            rel_diffH.append(rel_diff_time_i)
+            medianH[i] =  np.median(rel_diff_time_i)
 
         #%% Plot
-        # fig = plt.figure(figsize=(25, 9))
-        # gs = gridspec.GridSpec(2, 3, width_ratios=[1,1,1.5], height_ratios=[3, 0.5], hspace=0.5, wspace = 0.3)
-        # ax1 = fig.add_subplot(gs[0, 0])  # First plot
-        # ax2 = fig.add_subplot(gs[0, 1])  # Second plot
-        # ax3 = fig.add_subplot(gs[0, 2])  # Third plot
+        vmin = 0.95
+        vmax = 2
+        fig = plt.figure(figsize=(25, 9))
+        gs = gridspec.GridSpec(2, 3, width_ratios=[1,1,1.5], height_ratios=[3, 0.5], hspace=0.5, wspace = 0.3)
+        ax1 = fig.add_subplot(gs[0, 0])  # First plot
+        ax2 = fig.add_subplot(gs[0, 1])  # Second plot
+        ax3 = fig.add_subplot(gs[0, 2])  # Third plot
 
-        fig, (ax1, ax3) = plt.subplots(1, 2, figsize=(20, 7))
-        img = ax1.pcolormesh(radii/apo, tfb1, rel_diffL, cmap = 'inferno', vmin = .9, vmax = 2, rasterized = True)
+        img = ax1.pcolormesh(radii/apo, tfb, rel_diffL, cmap = 'inferno', vmin = vmin, vmax = vmax, rasterized = True)
         ax1.set_xscale('log')
-        # ax1.text(0.22, .88*np.max(tfb1), 'Low vs Fid', fontsize = 28, color = 'k')
+        ax1.text(0.22, .88*np.max(tfb), 'Fid/Low', fontsize = 28, color = 'k')
         ax1.set_xlabel(r'$R [R_{\rm a}]$')
         ax1.set_ylabel(r'$t [t_{\rm fb}]$')
 
-        # img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'inferno', vmin = 0.95, vmax = 1.05, rasterized = True)
-        # ax2.set_xscale('log')
-        # ax2.text(0.21, 0.88*np.max(tfbH), 'Fid vs High', fontsize = 28, color = 'k')
-        # ax2.set_xlabel(r'$R [R_{\rm a}]$')
+        img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'inferno', vmin = vmin, vmax = vmax, rasterized = True)
+        ax2.set_xscale('log')
+        ax2.text(0.21, 0.88*np.max(tfb), 'High/Fid', fontsize = 28, color = 'k')
+        ax2.set_xlabel(r'$R [R_{\rm a}]$')
 
         # Create a colorbar that spans the first two subplots
-        # cbar_ax = fig.add_subplot(gs[1, 0:2])  # Colorbar subplot below the first two
-        # cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
-        cb = plt.colorbar(img)
-        cb.set_label(r'sink/no sink')#r'$\mathcal{R}$ eccentricity')
+        cbar_ax = fig.add_subplot(gs[1, 0:2])  # Colorbar subplot below the first two
+        cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
         cb.ax.tick_params(labelsize=25)
+        cb.set_label(r'$\mathcal{R}$ eccentricity')
         # label with 3 decimals in the colorbar
         # cb.set_ticks([0.98, 1, 1.02])
         # cb.set_ticklabels(['0.98', '1', '1.02']) 
         cb.ax.tick_params(width=1, length=11, color = 'k',)
 
-        ax3.plot(tfb1, medianL, linewidth = 4, c = 'darkorange')
-        # ax3.plot(tfb1, medianL, c = 'yellowgreen', linewidth = 4, linestyle = (0, (5, 10)), label = 'Low and Middle')
-        ax3.plot(tfb1, percentile16, c = 'grey')
-        ax3.plot(tfb1, percentile84, c = 'grey')
-        # ax3.plot(tfbH, medianH, c = 'yellowgreen', linewidth = 4)
-        # ax3.plot(tfbH, medianH, c = 'darkviolet', linewidth = 4, linestyle = (0, (5, 10)), label = 'Middle and High')
+        ax3.plot(tfb, medianL, linewidth = 4, c = 'darkorange')
+        ax3.plot(tfb, medianL, c = 'yellowgreen', linewidth = 4, linestyle = (0, (5, 10)), label = 'Low and Middle')
+        ax3.plot(tfbH, medianH, c = 'yellowgreen', linewidth = 4)
+        ax3.plot(tfbH, medianH, c = 'darkviolet', linewidth = 4, linestyle = (0, (5, 10)), label = 'Middle and High')
         # ax3.text(0.4, 1, 'Fid vs High', fontsize = 27, color = 'k')
         ax3.set_ylabel(r'median sink/no sink')#$\mathcal{R}$ median eccentricity')
         original_ticks = ax3.get_xticks()
         mid_ticks = (original_ticks[1:] + original_ticks[:-1]) / 2
         all_ticks = np.concatenate(([original_ticks, mid_ticks]))
         ax3.set_xticks(all_ticks)
-        ax3.set_xlim(0.11, tfb1[-1])
-        ax3.set_ylim(0.99, 1.02)
+        labels = [f'{tick:.1f}' if tick in original_ticks else '' for tick in all_ticks]
+        ax3.set_xticks(all_ticks)
+        ax3.set_xticklabels(labels, fontsize=25)
+        # ax3.set_xlim(0.04, tfbL[-1])
+        ax3.set_ylim(vmin, vmax)
         ax3.grid()
         ax3.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
 
-        for ax in [ax1, ax3]: #, ax2]:
+        for ax in [ax1, ax2, ax3]: #, ax2]:
             # ax.tick_params(labelsize=26)
             if ax!=ax3:
                 ax.axvline(x=Rt/apo, color = 'white', linestyle = 'dashed', linewidth = 2)
@@ -311,9 +265,9 @@ else:
                 ax.tick_params(axis='x', which='major', width=1.4, length=11, color = 'k',)
                 ax.tick_params(axis='y', which='major', width=1.4, length=9, color = 'k',)
                 ax.tick_params(axis='x', which='minor', width=1.2, length=7, color = 'k',)
+                ax.set_ylim(np.min(tfb), np.max(tfb))
         
-        # plt.savefig(f'{abspath}/Figs/paper/ecc_diff.pdf', bbox_inches='tight')
+        plt.savefig(f'{abspath}/Figs/paper/ecc_diff.pdf', bbox_inches='tight')
         plt.tight_layout
-        plt.savefig(f'{abspath}/Figs/Test/MazeOfRuns/sink/ecc_diff_Fid.png', bbox_inches='tight')
 
 # %%
