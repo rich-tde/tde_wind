@@ -40,7 +40,7 @@ def tangent_versor(x_orbit, y_orbit, idx, smooth_orbit = False):
         x_coord_tg = x_orbit_sm[idx+1] - x_orbit_sm[idx-1]
         y_coord_tg = y_orbit_sm[idx+1] - y_orbit_sm[idx-1]
     vec_tg = np.array([x_coord_tg, y_coord_tg])
-    norm_tg = np.max(np.linalg.norm(vec_tg), 1e-20)
+    norm_tg = max(np.linalg.norm(vec_tg), 1e-20)
     vers_tg = vec_tg / norm_tg
     if smooth_orbit:
         return vers_tg, x_orbit_sm, y_orbit_sm

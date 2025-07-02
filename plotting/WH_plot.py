@@ -13,6 +13,7 @@ import Utilities.prelude as prel
 import Utilities.sections as sec
 import src.orbits as orb
 from Utilities.operators import make_tree, draw_line
+from plotting.paper.IHopeIsTheLast import split_data_red
 
 m = 4
 Mbh = 10**m
@@ -22,7 +23,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-what = 'comparison' #section or comparison
+what = 'expansion' #section or comparison or expansion or single_snap_behavior
 
 Mbh = 10**m
 Rs = 2*prel.G*Mbh / prel.csol_cgs**2
@@ -41,7 +42,7 @@ if what == 'comparison':
     compton = 'Compton'
     checks_name = ['Low', 'Fid']
     markers_sizes = [30, 10]
-    linestyle_checks = [['dashed', 'solid'], ['dashed', 'solid']]
+    linestyle_checks = ['solid', 'dashed']
     color_checks = [['k', 'grey'], ['dodgerblue', 'darkcyan']]
 
     for i, time in enumerate(wanted_time):
@@ -63,13 +64,13 @@ if what == 'comparison':
             theta_wh, width, N_width, height, N_height = \
                 wh[0], wh[1], wh[2], wh[3], wh[4]
             
-            ax0.plot(x_stream/apo, y_stream/apo, c = color_checks[0][i], linestyle = linestyle_checks[0][i], linewidth = 1+i, label = f'{checks_name[i]}')
+            ax0.plot(x_stream/apo, y_stream/apo, c = color_checks[0][i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
             ax0.plot(x_arr, line3_4, c = 'grey', alpha = 0.2)
             ax0.plot(x_arr, lineminus3_4, c = 'grey', alpha = 0.2)
-            ax1.scatter(theta_wh * radians, N_width, c = color_checks[0][i], s = markers_sizes[i], linestyle = linestyle_checks[0][i], label = f'{checks_name[i]}')
-            ax2.scatter(theta_wh * radians, N_height, c = color_checks[0][i], s = markers_sizes[i], linestyle = linestyle_checks[0][i], label = f'{checks_name[i]}')
-            ax1bis.plot(theta_wh * radians, width, c = color_checks[1][i], linestyle = linestyle_checks[1][i])
-            ax2bis.plot(theta_wh * radians, height, c = color_checks[1][i], linestyle = linestyle_checks[1][i])
+            ax1.scatter(theta_wh * radians, N_width, c = color_checks[0][i], s = markers_sizes[i], label = f'{checks_name[i]}')
+            ax2.scatter(theta_wh * radians, N_height, c = color_checks[0][i], s = markers_sizes[i], label = f'{checks_name[i]}')
+            ax1bis.plot(theta_wh * radians, width, c = color_checks[1][i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
+            ax2bis.plot(theta_wh * radians, height, c = color_checks[1][i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
 
         ax0.set_xlim(-2,0.2)
         ax0.set_ylim(-.2,.2)
@@ -97,7 +98,9 @@ if what == 'comparison':
             ax.tick_params(axis='both', which='minor', length=5, width=1)
             ax.set_xlabel(r'$\theta$')
         
-        ax2.legend(fontsize = 14)
+        ax0.legend(fontsize = 14)
+        ax1.legend(fontsize = 14)
+        ax1bis.legend(fontsize = 14)
         plt.suptitle(r't/t$_{fb}$ = ' + str(time), fontsize = 16)
         plt.tight_layout()
         plt.show()
@@ -226,16 +229,19 @@ if what == 'single_snap_behavior' or what == 'section':
         ax1.set_title(r'$\theta$ = ' + f'{np.round(theta_arr[idx], 2)}, t =  {np.round(tfb_single,2)}' + r' $t_{\rm fb}$', fontsize = 18)
 
 if what == 'expansion':
-    check = 'LowResNewAMR'
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    # checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
+    # colors_checks = ['C1', 'yellowgreen', 'darkviolet']
+
+    check = 'NewAMR'
     before_after = []
     time_before_after = []
-    angle_check = np.pi/4
-    dataLum = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
-    snaps = np.array([int(s) for s in dataLum[:,0]])
-    tfb = dataLum[:, 1]
+    ratio_of_pi = 4
+    angle_check = np.pi/ratio_of_pi 
+
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    snaps, Lum, tfb = split_data_red(check)
     for i, snap in enumerate(snaps):
-        if snap >319:
+        if snap > 204:
             continue
         print(snap)
         path = f'{abspath}/TDE/{folder}/{snap}'
@@ -251,4 +257,7 @@ if what == 'expansion':
         time_before_after.append(tfb[i])
     
     fig, ax = plt.subplots(figsize = (8,6))
-    ax.scatter(time_before_after, before_after, c = 'k')
+    ax.plot(time_before_after, before_after, c = 'forestgreen')
+    ax.axhline(y=1, color='grey', linestyle = '--')
+    ax.set_xlabel(r't/t$_{\rm fb}$')
+    ax.set_ylabel(f'Width (-$\pi$/{ratio_of_pi}) / Width($\pi$/{ratio_of_pi})')

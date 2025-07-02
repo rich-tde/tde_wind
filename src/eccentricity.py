@@ -197,6 +197,7 @@ else:
             time = tfb[i]
             idx = np.argmin(np.abs(tfbL - time))
             rel_diff_time_i = ecc[i]/eccL[idx] #find_ratio(eccL[i], ecc[idx]) 
+            rel_diff_time_i[eccL[idx] == 0] = 0 
             rel_diffL.append(rel_diff_time_i)
             medianL[i] = np.median(rel_diff_time_i)
 
@@ -206,12 +207,13 @@ else:
             time = tfbH[i]
             idx = np.argmin(np.abs(tfb - time))
             rel_diff_time_i =  eccH[i]/ecc[idx] #find_ratio(ecc[idx], eccH[i])
+            rel_diff_time_i[ecc[idx] == 0] = 0
             rel_diffH.append(rel_diff_time_i)
             medianH[i] =  np.median(rel_diff_time_i)
 
         #%% Plot
         vmin = 0.95
-        vmax = 2
+        vmax = 1.05
         fig = plt.figure(figsize=(25, 9))
         gs = gridspec.GridSpec(2, 3, width_ratios=[1,1,1.5], height_ratios=[3, 0.5], hspace=0.5, wspace = 0.3)
         ax1 = fig.add_subplot(gs[0, 0])  # First plot
@@ -252,7 +254,7 @@ else:
         labels = [f'{tick:.1f}' if tick in original_ticks else '' for tick in all_ticks]
         ax3.set_xticks(all_ticks)
         ax3.set_xticklabels(labels, fontsize=25)
-        # ax3.set_xlim(0.04, tfbL[-1])
+        ax3.set_xlim(0.08, 1.1)
         ax3.set_ylim(vmin, vmax)
         ax3.grid()
         ax3.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
@@ -266,6 +268,7 @@ else:
                 ax.tick_params(axis='y', which='major', width=1.4, length=9, color = 'k',)
                 ax.tick_params(axis='x', which='minor', width=1.2, length=7, color = 'k',)
                 ax.set_ylim(np.min(tfb), np.max(tfb))
+                ax.set_xlim(R0/apo, np.max(radii)/apo)
         
         plt.savefig(f'{abspath}/Figs/paper/ecc_diff.pdf', bbox_inches='tight')
         plt.tight_layout
