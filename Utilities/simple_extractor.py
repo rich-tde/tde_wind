@@ -54,19 +54,19 @@ def extractor(filename):
     DpDz = []
     DivV = []
     
-    print('tot ranks: ', len(keys))
+    #print('tot ranks: ', len(keys))
     # Iterate over ranks
     for key in keys:
         if key in not_ranks:
             # Skip whatever is not a mpi rank
             if key == 'Box':
-                print(key)
+                #print(key)
                 for i in range(len(box)):
                     box[i] = f[key][i]
             else:
                 continue
         else:
-            print(key)
+            #print(key)
 
             x_data = f[key]['CMx']
             y_data = f[key]['CMy']
@@ -135,7 +135,6 @@ else:
 
 snaps = select_snap(m, check, mstar, Rstar, beta, n, time = False)
 print(f'We are in folder: {folder}', flush=True)
-sys.stdout.flush()
 
 for i, snap in enumerate(snaps):
     prepath = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -144,6 +143,8 @@ for i, snap in enumerate(snaps):
     else: 
         prepath = f'{prepath}/{snap}'
     file = f'{prepath}/snap_{snap}.h5'
+
+    print(snap, flush=True)
 
     tfb = days_since_distruption(file, m, mstar, Rstar, choose = 'tfb')
     box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz, DivV = extractor(file)

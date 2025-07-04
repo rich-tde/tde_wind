@@ -9,10 +9,10 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'QuadraticOpacity'
+check = 'NewAMR'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-start = 100
+start = 81
 slow_down_factor = 2  # Increase this value to make the video slower
 
 # Get the height of the first image to calculate the scale
@@ -27,10 +27,10 @@ def get_image_size(image_path):
     return width, height
 
 # For Denproj
-# how_many = 3
-# path = f'{abspath}/Figs/{folder}/projection/denproj_diss%d.png' #{folder}/projection/denproj%d.png'
-# output_path = f'{abspath}/Figs/{folder}/projection/denproj_diss{how_many}{check}.mp4' #{folder}/movie_proj{check}.mp4'
-# first_image_path = f'{abspath}/Figs/{folder}/projection/denproj_diss{start}.png' #{folder}/projection/denproj{start}.png'
+how_many = 3
+path = f'{abspath}/Figs/{folder}/projection/denproj_diss%d.png' #{folder}/projection/denproj%d.png'
+output_path = f'{abspath}/Figs/{folder}/projection/denproj_diss{how_many}{check}.mp4' #{folder}/movie_proj{check}.mp4'
+first_image_path = f'{abspath}/Figs/{folder}/projection/denproj_diss{start}.png' #{folder}/projection/denproj{start}.png'
 
 # For Slices 
 # path = f'{abspath}/Figs/{folder}/slices/Panel6Slice%d.png' 
@@ -38,9 +38,9 @@ def get_image_size(image_path):
 # first_image_path = f'{abspath}/Figs/{folder}/slices/Panel6Slice%d{start}.png'
 
 # For Opacity
-path = f'{abspath}/Figs/{folder}/testOpac/{check}_TestOpac%d.png' 
-output_path = f'{abspath}/Figs/{folder}/testOpac/TestOpac_movie.mp4'
-first_image_path = f'{abspath}/Figs/{folder}/testOpac/{check}_TestOpac{start}.png'
+# path = f'{abspath}/Figs/{folder}/testOpac/{check}_TestOpac%d.png' 
+# output_path = f'{abspath}/Figs/{folder}/testOpac/TestOpac_movie.mp4'
+# first_image_path = f'{abspath}/Figs/{folder}/testOpac/{check}_TestOpac{start}.png'
 
 # For outflow
 # path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/{how_many}/E_%d.png' 

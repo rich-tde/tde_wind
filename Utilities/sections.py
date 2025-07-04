@@ -47,7 +47,6 @@ def tangent_versor(x_orbit, y_orbit, idx, smooth_orbit = False):
     else:
         return vers_tg
          
-# def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit, idx, step_ang, coord = False):
 def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit, idx, just_plane = True):
     """
     Find the transverse plane to the orbit at the chosen point.
@@ -123,7 +122,7 @@ def tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, idx):
 if __name__ == '__main__':
     from Utilities.operators import make_tree
     import matplotlib.pyplot as plt
-    from src.orbits import follow_the_stream, make_cfr
+    from src.orbits import make_cfr
     G = 1
     m = 4
     Mbh = 10**m

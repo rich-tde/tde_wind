@@ -17,13 +17,13 @@ module load rclone
 radius=0.47
 starmass=0.5
 bhmass=10000 # don't use scientific notation here.
-suffix="beta1S60n1.5ComptonNewAMRRemoveCenter"
+suffix="beta1S60n1.5ComptonNewAMR"
 
 simulation="R"$radius"M"$starmass"BH"$bhmass""$suffix"" 
 
 # Specify the desired snapsots, check which are available with rclone lsl
-first_snap=200
-last_snap=215
+first_snap=248
+last_snap=260
 
 # Make the dir
 # mkdir $simulation

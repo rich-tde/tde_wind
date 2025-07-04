@@ -35,15 +35,15 @@ def to_cylindric(x,y):
         else:
             theta_coord = -np.pi/2
     # theta_coord go from -pi to pi with negative values in the 3rd and 4th quadrant. You want to mirror 
-    theta_broadcasted = -theta_coord
-    return theta_broadcasted, radius
+    theta_ourConv = -theta_coord
+    return theta_ourConv, radius
 
 def from_cylindric(theta, r):
     # we expect theta as from the function to_cylindric, i.e. clockwise. 
-    # You have to mirror it to get the angle for the usual polar coordinates.
-    theta = -theta
-    x = r * np.cos(theta)
-    y = r * np.sin(theta)
+    # You have to mirror it to get the angle for the python polar coordinates.
+    theta_fornumpy = -theta
+    x = r * np.cos(theta_fornumpy)
+    y = r * np.sin(theta_fornumpy)
     return x, y
 
 def draw_line(x_arr, alpha):
@@ -53,13 +53,14 @@ def draw_line(x_arr, alpha):
     x_arr: array.
         x coordinates of the points where you want to draw the line.
     alpha: float.
-        Angle in radians of the line you want to draw.
+        Angle in radians of the line you want to draw. 
+        You use your own convention for the angle, so it has to be flipped (use -alpha) for numpy
     Returns
     -------
     y_arr: array.
         y coordinates of the points where you want to draw the line.
     """
-    y_arr = np.tan(alpha) * x_arr
+    y_arr = np.tan(-alpha) * x_arr
     return y_arr
 
 def to_spherical_components(vec_x, vec_y, vec_z, lat, long):
@@ -78,11 +79,11 @@ def J_cart_in_sphere(lat, long):
                         [np.cos(lat), -np.sin(lat), 0]])
     return matrix
 
-def rotate_coordinate(x , y, theta):
-    """ Rotate the coordinates of an angle theta."""
-    x_rot = x * np.cos(theta) - y * np.sin(theta)
-    y_rot = x * np.sin(theta) + y * np.cos(theta)
-    return x_rot, y_rot
+# def rotate_coordinate(x , y, theta):
+#     """ Rotate the coordinates of an angle theta."""
+#     x_rot = x * np.cos(theta) - y * np.sin(theta)
+#     y_rot = x * np.sin(theta) + y * np.cos(theta)
+#     return x_rot, y_rot
 
 def Ryan_sampler(theta_arr):
     """ Function to sample the angle in the orbital plane so that you have more points also at apocenter."""
@@ -100,18 +101,10 @@ def find_step(theta_arr, i):
         step = theta_arr[1] - theta_arr[0]
     return step
 
-# def sort_list(list_passive, leading_list):
-#     """ Sort list_passive based on the order of leading_list. List_passive is a list of arrays."""
-#     new_list = []
-#     for arr_passive in list_passive:
-#         zipped_pairs = zip(leading_list, arr_passive)
-#         z = [x for _, x in sorted(zipped_pairs)]
-#         new_list.append(np.array(z))
-#     return new_list
-
 def sort_list(list_passive, leading_list, unique = False):
     """Sort list_passive based on the order of leading_list. 
        list_passive is a list of numpy arrays.
+       NB: If you want to sort also leading_list, you have to add it, as final element, to list_passive.
     """
     if unique == True:
         _, unique_indices = np.unique(leading_list, return_index=True)
@@ -143,19 +136,19 @@ def find_ratio(L1, L2):
 #             medians[i]= median
 #     return np.array(medians)
 
-def average_array(values, w, window_size=7):
-    """ Compute the weighted average of the values in a window of size window_size."""
-    n = len(values)
-    half_window = window_size // 2
-    averages = np.copy(values) 
-    if half_window != 0:
-        for i in range(half_window, n-half_window): #I don't care of the first/last points
-            window = values[i-half_window:i+window_size]
-            distances = np.abs(w[i-half_window:i+window_size]-w[i])
-            weights = np.power(distances,2)
-            average = np.average(window, weights = weights)
-            averages[i]= average
-    return np.array(averages)
+# def average_array(values, w, window_size=7):
+#     """ Compute the weighted average of the values in a window of size window_size."""
+#     n = len(values)
+#     half_window = window_size // 2
+#     averages = np.copy(values) 
+#     if half_window != 0:
+#         for i in range(half_window, n-half_window): #I don't care of the first/last points
+#             window = values[i-half_window:i+window_size]
+#             distances = np.abs(w[i-half_window:i+window_size]-w[i])
+#             weights = np.power(distances,2)
+#             average = np.average(window, weights = weights)
+#             averages[i]= average
+#     return np.array(averages)
 class data_snap:
     # create a class to be used in make_tree so that it gives just one output.
     def __init__(self, sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, time, IE = None, Rad =None, Diss = None, Entropy = None):
