@@ -103,7 +103,7 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
                                     
                 # Store
                 gridded_indexes[i, j, k] = idx
-                gridded_value = to_grid_cut[idx]
+                gridded_value = max(0, to_grid_cut[idx]) # so you don't have negative values in Diss
                 if gridded_value <= 0: #anyway it just happens for Diss
                     gridded_value = 1e-20
                 gridded[i, j, k] = gridded_value
@@ -123,7 +123,8 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
                 flat_den[i,j] += gridded_den[i,j,k] * dz
 
     return flat_den
- 
+
+#%%
 if __name__ == '__main__':    
     m = 4
     Mbh = 10**m
@@ -131,15 +132,18 @@ if __name__ == '__main__':
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = ''
+    check = 'NewAMR'
     compton = 'Compton'
-    what_to_grid = 'Den'
+    what_to_grid = 'Diss'
     save_fig = False
 
     Rt = Rstar * (Mbh/mstar)**(1/3)
-    apo = orb.apocentre(Rstar, mstar, Mbh, beta)    
-    if m== 6:
-        folder = f'R{Rstar}M{mstar}BH1e+0{m}beta{beta}S60n{n}{compton}{check}'
+    Rp = Rt/beta
+    apo = orb.apocentre(Rstar, mstar, Mbh, beta) 
+    e_mb = orb.e_mb(Rstar, mstar, Mbh, beta)   
+    a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
+    if check == '':
+        folder = f'opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     else:
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
@@ -148,8 +152,8 @@ if __name__ == '__main__':
         t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
 
         snaps = np.array(snaps)
-        # idx_chosen = np.array([np.argmin(np.abs(snaps-100)),
-        #                        np.argmin(np.abs(snaps-237)),
+        # idx_chosen = np.array([np.argmin(np.abs(snaps-97)),
+        #                        np.argmin(np.abs(snaps-238)),
         #                        np.argmin(np.abs(snaps-348))])
         # snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
         
@@ -158,6 +162,8 @@ if __name__ == '__main__':
             f.write(f'# t/t_fb (t_fb = {t_fall})\n' + ' '.join(map(str, tfb)) + '\n')
             f.close()
         for snap in snaps:
+            if snap != 106:
+                continue
             print(snap, flush=False)
             sys.stdout.flush()
             if alice:
@@ -173,77 +179,97 @@ if __name__ == '__main__':
         np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}yarray.npy', y_radii)
 
     else:
+        import healpy as hp
         import src.orbits as orb
-        faraway = False
-        whats = ['tau_scatt', 'tau_ross']
-        labels_what = ['scattering', 'Rosseland']
-        # t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
-        time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/{what_to_grid}time_proj.txt')
-        snaps = [int(i) for i in time[0]]
-        tfb = time[1]
-        xcrt, ycrt, crt = orb.make_cfr(Rt)
+        from plotting.paper.IHopeIsTheLast import split_data_red
+        from Utilities.operators import from_cylindric
+        snap = 237
+        faraway = True
+        what_to_grid = 'den' #['tau_scatt', 'tau_ross']
 
-        for j, snap in enumerate(snaps):
-            if int(snap)!= 237:
-                continue
+        snaps, Lum, tfb = split_data_red('NewAMR')
+        tfb_single = tfb[np.argmin(np.abs(snap-snaps))]
+
+        # geometric thigns
+        observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
+        observers_xyz = np.array(observers_xyz).T
+        x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
+        r = np.sqrt(x**2 + y**2 + z**2)   # Radius (should be 1 for unit vectors)
+        theta = np.arctan2(y, x)          # Azimuthal angle in radians
+        phi = np.arccos(z / r)            # Elevation angle in radians
+        longitude_moll = theta              
+        latitude_moll = np.pi / 2 - phi 
+        indecesorbital = np.concatenate(np.where(latitude_moll==0))
+        first_idx, last_idx = np.min(indecesorbital), np.max(indecesorbital)
+        radii_grid = [Rt/apo, a_mb/apo, 1] #*apo 
+        xcfr_grid, ycfr_grid, cfr_grid = [], [], []
+        for i, radius_grid in enumerate(radii_grid):
+            xcr, ycr, cr = orb.make_cfr(radius_grid)
+            xcfr_grid.append(xcr)
+            ycfr_grid.append(ycr)
+            cfr_grid.append(cr)
+
+        theta_arr = np.arange(0, 2*np.pi, 0.01)
+        r_arr_ell = orb.keplerian_orbit(theta_arr, a_mb, Rp, ecc=e_mb)
+        x_arr_ell, y_arr_ell = from_cylindric(theta_arr, r_arr_ell)
+        
+        fig, ax = plt.subplots(1, 1, figsize = (14,7))
+        flat_q = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denbigproj{snap}.npy')
+        x_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denbigxarray.npy')
+        y_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denbigyarray.npy')
+        dataph = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
+        xph, yph, zph, volph= dataph[0], dataph[1], dataph[2], dataph[3]
+        # midph= np.abs(zph) < volph**(1/3)
+        # xph_mid, yph_mid, zph_mid = make_slices([xph, yph, zph], midph)
+       
+        if what_to_grid == 'den':
+            flat_q *= prel.Msol_cgs/prel.Rsol_cgs**2
+            if faraway:
+                vmin = 5e-2
+                vmax = 2e7
+                ax.set_xlim(-6, 2.5)
+                ax.set_ylim(-3, 2)
+            else:
+                vmin = 1e3
+                vmax = 7e6
+                ax.set_xlim(-1.2, 0.1)
+                ax.set_ylim(-0.3, 0.3)
             
-            tfb_single = tfb[j]
-            fig, ax = plt.subplots(2, 1, figsize = (14,14))
+        img = ax.pcolormesh(x_radii/apo, y_radii/apo, flat_q.T, cmap = 'plasma',
+                            norm = colors.LogNorm(vmin = vmin, vmax = vmax))
+        cb = plt.colorbar(img)
+        ax.plot(xph[indecesorbital]/apo, yph[indecesorbital]/apo, c = 'white', markersize = 5, marker = 'H', label = r'$R_{\rm ph}$')
+        # just to connect the first and last 
+        ax.plot([xph[first_idx]/apo, xph[last_idx]/apo], [yph[first_idx]/apo, yph[last_idx]/apo], c = 'white', markersize = 1, marker = 'H')
+        cb.set_label(r'Column density[g/cm$^2$]')
+        ax.set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
+        ax.set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
+        ax.contour(xcrt/apo, ycrt/apo, crt/apo, [0], linestyles = 'dashed', colors = 'w', alpha = 1)
+        ax.scatter(0, 0, color = 'k', edgecolors = 'orange', s = 40)
+        ax.plot(x_arr_ell/apo, y_arr_ell/apo, c= 'white', linestyle = 'dashed', alpha = 0.7)
+        for j in range(len(radii_grid)):
+            ax.contour(xcfr_grid[j], ycfr_grid[j], cfr_grid[j], levels=[0], colors='white', alpha = 0.5)
+    
+            
+        plt.tight_layout()
+        ax.set_title(f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$', color = 'k', fontsize = 25)
+        ax.text(-5.5, 1.5, f'{check}', color = 'white', fontsize = 20)
+        plt.show()
 
-            flat_scatt = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/tau_scattproj{snap}.npy')
-            flat_ross = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/tau_rossproj{snap}.npy')
-            ratio = flat_scatt/flat_ross
-            x_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/tau_scattxarray.npy')
-            y_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/tau_scattyarray.npy')
-                
-            # if what_to_grid == 'den':
-            #     flat_q *= prel.Msol_cgs/prel.Rsol_cgs**2
-            #     if faraway:
-            #         vmin = 5e-2
-            #         vmax = 2e7
-            #     else:
-            #         vmin = 1e3
-            #         vmax = 7e6
-            # if what_to_grid == 'tau_ross' or what_to_grid == 'tau_scatt':
-            vmin = 1e3
-            vmax = 1e5
-                
-            img = ax[0].pcolormesh(x_radii/apo, y_radii/apo, flat_scatt.T, cmap = 'rainbow',
-                                norm = colors.LogNorm(vmin = vmin, vmax = vmax))
-            cb = plt.colorbar(img)
-            cb.set_label(f'Optical depth ({labels_what[0]})')
-            img = ax[1].pcolormesh(x_radii/apo, y_radii/apo, flat_ross.T, cmap = 'rainbow',
-                                norm = colors.LogNorm(vmin = vmin, vmax = vmax))
-            cb = plt.colorbar(img)
-            cb.set_label(f'Optical depth ({labels_what[1]})')
-            for i in range(2):
-                ax[i].set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
-                ax[i].contour(xcrt/apo, ycrt/apo, crt/apo, [0], linestyles = 'dashed', colors = 'w', alpha = 1)
-                ax[i].scatter(0, 0, color = 'k', edgecolors = 'orange', s = 40)
-                ax[i].set_xlim(-1.2, 0.1)
-                ax[i].set_ylim(-0.3, 0.3)
-                
-            ax[1].set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
-            plt.tight_layout()
-            ax[0].text(-1.1, 0.25, f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$', color = 'k', fontsize = 20)
-            # ax[0].text(-0.25, 0.25, f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$', color = 'k', fontsize = 20)
-            if save_fig:
-                plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/{what_to_grid}proj{snap}.png')
-            plt.show()
-
-            plt.figure(figsize = (14,7))
-            img = plt.pcolormesh(x_radii/apo, y_radii/apo, ratio.T, cmap = 'jet',
-                            norm = colors.LogNorm(vmin = 1e-3, vmax = 1e2))
-            cb = plt.colorbar()
-            cb.set_label(r'$\tau_{\rm scatt}/\tau_{\rm Ross}$')
-            plt.contour(xcrt/apo, ycrt/apo, crt/apo, [0], linestyles = 'dashed', colors = 'w', alpha = 1)
-            plt.scatter(0, 0, color = 'k', edgecolors = 'orange', s = 40)
-            plt.xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
-            plt.ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
-            plt.text(-370/apo, 270/apo, f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$', color = 'k', fontsize = 20)
-            plt.tight_layout()
-            if save_fig:
-                plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/tauproj_diff_{snap}.png')
+        #%%
+        plt.figure(figsize = (14,7))
+        img = plt.pcolormesh(x_radii/apo, y_radii/apo, ratio.T, cmap = 'jet',
+                        norm = colors.LogNorm(vmin = 1e-3, vmax = 1e2))
+        cb = plt.colorbar()
+        cb.set_label(r'$\tau_{\rm scatt}/\tau_{\rm Ross}$')
+        plt.contour(xcrt/apo, ycrt/apo, crt/apo, [0], linestyles = 'dashed', colors = 'w', alpha = 1)
+        plt.scatter(0, 0, color = 'k', edgecolors = 'orange', s = 40)
+        plt.xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
+        plt.ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
+        plt.text(-370/apo, 270/apo, f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$', color = 'k', fontsize = 20)
+        plt.tight_layout()
+        if save_fig:
+            plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/tauproj_diff_{snap}.png')
 
 
        

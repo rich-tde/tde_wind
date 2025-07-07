@@ -13,7 +13,7 @@ else:
     from Utilities.basic_units import radians
     import matplotlib.colors as colors
     save = False
-    compute = False
+    compute = True
 
 from datetime import datetime
 import numpy as np
@@ -37,7 +37,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
-check = 'LowResNewAMR'
+check = 'NewAMR'
 compton = 'Compton'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
@@ -129,6 +129,18 @@ def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R
         y_max[i] = y_plane[idx_max]
         z_max[i] = z_plane[idx_max]
         
+        if np.logical_and(alice == False, i == 130):
+            r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
+            r_central = np.sqrt(x_max[i]**2 + y_max[i]**2 + z_max[i]**2)
+            fig, ax1 = plt.subplots(1,1, figsize = (10,5))
+            ax1.scatter(r_plane/Rt, den_plane, s = 10, c = 'k', label = 'Density')
+            ax1.set_xlabel(r'R [$R_{\rm t}$]')
+            ax1.set_ylabel(r'Density $[M_\odot/R_\odot^3]$')
+            ax1.set_xlim(0.1, r_central/Rt+1)
+            ax1.axvline(r_central/Rt, c = 'yellowgreen')
+            ax1.set_title(r'$\theta$ = ' + f'{np.round(theta_arr[i],2)} rad', fontsize = 14)
+            plt.show()
+
     return x_max, y_max, z_max    
 
 def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, theta_arr, params, all_iterations = False):
@@ -482,15 +494,26 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, stream, param
     return theta_wh, indeces_boundary, x_T_width, w_params, h_params
 
 if __name__ == '__main__':
+    from Utilities.operators import from_cylindric
     theta_lim =  np.pi
     step = 0.02
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_arr = Ryan_sampler(theta_init)
+    # r_init = orb.keplerian_orbit(theta_init, .1, 13, ecc = 0.99)
+    # r_arr = orb.keplerian_orbit(theta_arr, .1, 13, ecc = 0.99)
+    # x, y = from_cylindric(theta_init, r_init)
+    # x_arr, y_arr = from_cylindric(theta_arr, r_arr)
+    # plt.figure(figsize = (15,5))
+    # plt.scatter(x,y, c = 'k', s = 20, label = 'Initially spaced angles')
+    # plt.scatter(x_arr, y_arr, c = 'r', s = 5, label = 'Our sample')
+    # plt.legend()
     
+
+    #%%
     if alice:
         snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
     else: 
-        snaps = [237]
+        snaps = [238]
     print('We are in folder', folder, flush = True)
     for i, snap in enumerate(snaps):
         print(f'Snap {snap}', flush = True)
@@ -507,7 +530,15 @@ if __name__ == '__main__':
         R = np.sqrt(X**2 + Y**2 + Z**2)
         THETA, RADIUS_cyl = to_cylindric(X, Y)
         dim_cell = Vol**(1/3) 
-        x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params)
+        x_stream, y_stream, z_stream, thresh_cm, x_cmTR, y_cmTR, z_cmTR, x_stream_rad, y_stream_rad, z_stream_rad = \
+            find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, all_iterations = True)
+        #%%
+        plt.figure(figsize = (15,5))
+        plt.plot(x_stream_rad, y_stream_rad, c = 'k', s = 20, label = 'Max density')
+        plt.plot(x_cmTR, y_cmTR, c = 'blue', s = 5, ls = '--', label = 'first guess')
+        plt.plot(x_stream, y_stream, c = 'r', s = 5, ls = '--', label = 'final stream')
+        # x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, all_iterations = True)
+        #%%
         stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
         theta_wh, indeces_boundary, x_T_width, w_params, h_params  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.8)
 

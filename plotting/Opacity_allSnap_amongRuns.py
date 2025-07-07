@@ -10,13 +10,12 @@ if alice:
 else:
     abspath = '/Users/paolamartire/shocks'
 import csv
+import healpy as hp
 import numpy as np
-from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
-from matplotlib.collections import LineCollection
 import Utilities.prelude as prel
 import matplotlib.colors as colors
-from Utilities.operators import sort_list, find_ratio
+from Utilities.sections import make_slices
 from src import orbits as orb
 from plotting.paper.IHopeIsTheLast import statistics_photo, split_data_red, ratio_BigOverSmall
 
@@ -36,28 +35,30 @@ Rt = Rstar * (Mbh/mstar)**(1/3)
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
-# Luminosity and Rph
+#%% Luminosity and Rph
 # Low
 snapL, LumL, tfbL = split_data_red('LowRes')
 snapLQ, LumLQ, tfbLQ = split_data_red('LowResOpacityNew')
 snapL_AMR, LumL_AMR, tfbL_AMR = split_data_red('LowResNewAMR')
 snapL_AMRRC, LumL_AMRRC, tfbL_AMRRC = split_data_red('LowResNewAMRRemoveCenter')
-median_phL, percentile16L, percentile84L = statistics_photo(snapL, 'LowRes')
-median_phLQ, _, _ = statistics_photo(snapLQ, 'LowResOpacityNew')
-median_phL_AMR, _, _ = statistics_photo(snapL_AMR, 'LowResNewAMR')
-median_phL_AMRRC, _, _ = statistics_photo(snapL_AMRRC, 'LowResNewAMRRemoveCenter')
+_, median_phL, percentile16L, percentile84L = statistics_photo(snapL, 'LowRes')
+_, median_phLQ, _, _ = statistics_photo(snapLQ, 'LowResOpacityNew')
+_, median_phL_AMR, _, _ = statistics_photo(snapL_AMR, 'LowResNewAMR')
+_, median_phL_AMRRC, _, _ = statistics_photo(snapL_AMRRC, 'LowResNewAMRRemoveCenter')
 # Fiducial 
 snap, Lum, tfb = split_data_red('')
 snapQ, LumQ, tfbQ = split_data_red('OpacityNew')
-snapAMR, LumAMR, tfbAMR = split_data_red('OpacityNewNewAMR')
+# snapAMR_Q, LumAMR_Q, tfbAMR_Q = split_data_red('OpacityNewNewAMR')
+snapAMR, LumAMR, tfbAMR = split_data_red('NewAMR')
 snapAMR_RC, LumAMR_RC, tfbAMR_RC = split_data_red('NewAMRRemoveCenter')
-median_ph, percentile16, percentile84 = statistics_photo(snap, '')
-median_phQ, _, _ = statistics_photo(snapQ, 'OpacityNew')
-median_phAMR, _, _ = statistics_photo(snapAMR, 'OpacityNewNewAMR')
-median_phAMR_RC, _, _ = statistics_photo(snapAMR_RC, 'NewAMRRemoveCenter')
+_, median_ph, percentile16, percentile84 = statistics_photo(snap, '')
+_, median_phQ, _, _ = statistics_photo(snapQ, 'OpacityNew')
+# _, median_phAMR_Q, _, _ = statistics_photo(snapAMR, 'OpacityNewNewAMR')
+_, median_phAMR, _, _ = statistics_photo(snapAMR, 'NewAMR')
+_, median_phAMR_RC, _, _ = statistics_photo(snapAMR_RC, 'NewAMRRemoveCenter')
 # High
 snapH, LumH, tfbH = split_data_red('HiRes')
-median_phH, percentile16H, percentile84H = statistics_photo(snapH, 'HiRes')
+_, median_phH, percentile16H, percentile84H = statistics_photo(snapH, 'HiRes')
 
 # Dissipation (positive sign, which is the one of pericenter)
 dataDissL = np.loadtxt(f'{abspath}/data/opacity_tests/{commonfold}LowRes/Rdiss_LowRescutDen.txt')
@@ -67,7 +68,9 @@ tfbdiss, LDiss = dataDiss[0], dataDiss[2] * prel.en_converter/prel.tsol_cgs
 dataDissH = np.loadtxt(f'{abspath}/data/opacity_tests/{commonfold}HiRes/Rdiss_HiRescutDen.txt')
 tfbdissH, LDissH = dataDissH[0], dataDissH[2] *  prel.en_converter/prel.tsol_cgs 
 
-dataDissAMR = np.loadtxt(f'{abspath}/data/opacity_tests/{commonfold}OpacityNewNewAMR/Rdiss_OpacityNewNewAMRcutDen.txt')
+# dataDissAMR_Q = np.loadtxt(f'{abspath}/data/opacity_tests/{commonfold}OpacityNewNewAMR/Rdiss_OpacityNewNewAMRcutDen.txt')
+# tfbdissAMR_Q, LDissAMR_Q = dataDissAMR_Q[0], dataDissAMR_Q[2] * prel.en_converter/prel.tsol_cgs
+dataDissAMR = np.loadtxt(f'{abspath}/data/opacity_tests/{commonfold}NewAMR/Rdiss_NewAMRcutDen.txt')
 tfbdissAMR, LDissAMR = dataDissAMR[0], dataDissAMR[2] * prel.en_converter/prel.tsol_cgs
 dataDissAMR_RC = np.loadtxt(f'{abspath}/data/opacity_tests/{commonfold}NewAMRRemoveCenter/Rdiss_NewAMRRemoveCentercutDen.txt')
 tfbdissAMR_RC, LDissAMR_RC = dataDissAMR_RC[0], dataDissAMR_RC[2] * prel.en_converter/prel.tsol_cgs
@@ -92,24 +95,26 @@ ax3.plot(tfbL, LumL, c = 'C1', label = 'OldExtr, OldAMR')
 ax3.plot(tfbLQ, LumLQ, c = 'goldenrod', label = 'NewExtr, OldAMR')
 ax3.plot(tfbL_AMR, LumL_AMR, c = 'plum', label = r'Old$^*$Extr, NewAMR')
 ax3.plot(tfbL_AMRRC, LumL_AMRRC, c = 'maroon', label = r'Old$^*$Extr, NewAMR, RemoveCenter')
-ratioQ, tfb_ratioQ = ratio_BigOverSmall(tfb, Lum, tfbQ, LumQ)
+tfb_ratioQ, ratioQ = ratio_BigOverSmall(tfb, Lum, tfbQ, LumQ)
 ax2.plot(tfb_ratioQ, ratioQ, linewidth = 2, color = 'forestgreen', label = 'New vs Old Extr, Old AMR')
 ax2.plot(tfb_ratioQ, ratioQ, linewidth = 2, color = 'yellowgreen', linestyle = (0, (5, 10)))
-ratioAMR, tfb_ratioAMR = ratio_BigOverSmall(tfbQ, LumQ, tfbAMR, LumAMR)
-ax2.plot(tfb_ratioAMR, ratioAMR, linewidth = 2, color = 'k', label = 'New Extr, New vs Old AMR')
+tfb_ratioAMR, ratioAMR = ratio_BigOverSmall(tfbQ, LumQ, tfbAMR, LumAMR)
+ax2.plot(tfb_ratioAMR, ratioAMR, linewidth = 2, color = 'k', label = 'New vs Old AMR')
 ax2.plot(tfb_ratioAMR, ratioAMR, linewidth = 2, color = 'forestgreen', linestyle = (0, (5, 10)))
-ratioLQ, tfb_ratioLQ = ratio_BigOverSmall(tfbL, LumL, tfbLQ, LumLQ)
+
+tfb_ratioLQ, ratioLQ = ratio_BigOverSmall(tfbL, LumL, tfbLQ, LumLQ)
 ax4.plot(tfb_ratioLQ, ratioLQ, linewidth = 2, color = 'goldenrod', label = 'New vs Old Extr, Old AMR')
 ax4.plot(tfb_ratioLQ, ratioLQ, linewidth = 2, color = 'C1', linestyle = (0, (5, 10)))
-ratioAMR_RC, tfb_ratioAMR_RC = ratio_BigOverSmall(tfbAMR, LumAMR, tfbAMR_RC, LumAMR_RC)
+tfb_ratioAMR_RC, ratioAMR_RC = ratio_BigOverSmall(tfbAMR, LumAMR, tfbAMR_RC, LumAMR_RC)
 ax2.plot(tfb_ratioAMR_RC, ratioAMR_RC, linewidth = 2, color = 'k', label = 'New vs Old*+RC Extr, New AMR')
 ax2.plot(tfb_ratioAMR_RC, ratioAMR_RC, linewidth = 2, color = 'royalblue', linestyle = (0, (5, 10)))
-ratioL_AMR, tfb_ratioL_AMR = ratio_BigOverSmall(tfbL, LumL, tfbL_AMR, LumL_AMR)
+tfb_ratioL_AMR, ratioL_AMR = ratio_BigOverSmall(tfbL, LumL, tfbL_AMR, LumL_AMR)
 ax4.plot(tfb_ratioL_AMR, ratioL_AMR, linewidth = 2, color = 'plum', label = 'New Extr, New vs Old AMR')
 ax4.plot(tfb_ratioL_AMR, ratioL_AMR, linewidth = 2, color = 'C1', linestyle = (0, (5, 10)))
-ratioL_AMRRC, tfb_ratioL_AMRRC = ratio_BigOverSmall(tfbL_AMR, LumL_AMR, tfbL_AMRRC, LumL_AMRRC)
+tfb_ratioL_AMRRC, ratioL_AMRRC = ratio_BigOverSmall(tfbL_AMR, LumL_AMR, tfbL_AMRRC, LumL_AMRRC)
 ax4.plot(tfb_ratioL_AMRRC, ratioL_AMRRC, linewidth = 2, color = 'maroon', label = 'New Extr,RC')
 ax4.plot(tfb_ratioL_AMRRC, ratioL_AMRRC, linewidth = 2, color = 'plum', linestyle = (0, (5, 10)))
+
 
 # Get the existing ticks 
 original_ticks_y = ax1.get_yticks()
@@ -128,11 +133,6 @@ for ax in [ax1, ax2, ax3, ax4]:
     ax.tick_params(axis='y', which='minor', width = 1, length = 4, color = 'k')
     ax.set_xlim(0.01, np.max(tfb))
     ax.grid()
-    # ax.axvline(tfb[np.argmin(np.abs(snap-248))], c = 'k', linestyle = '--', alpha = .5)
-    # ax.axvline(tfb[np.argmin(np.abs(snap-161))], c = 'k', linestyle = '--', alpha = .5)
-    # ax.axvline(tfb[np.argmin(np.abs(snap-164))], c = 'k', linestyle = '--', alpha = .5)
-    # ax.axvline(tfb[np.argmin(np.abs(snap-115))], c = 'k', linestyle = '--', alpha = .5)
-    # ax.axvline(tfb[np.argmin(np.abs(snap-240))], c = 'k', linestyle = '--', alpha = .5)
     if ax in [ax2, ax4]:
         ax.set_yscale('log')
         ax.set_ylim(.8, 15)
@@ -144,13 +144,8 @@ for ax in [ax1, ax2, ax3, ax4]:
         ax.set_yscale('log')
         ax.set_ylim(2e37, 4e42)
         ax.legend(fontsize = 16)
-# ax3.axvline(tfbLQ[np.argmin(np.abs(snapL_AMR-225))], c = 'k', linestyle = '--', alpha = .5)
-# ax3.axvline(tfbLQ[np.argmin(np.abs(snapL_AMR-227))], c = 'k', linestyle = '--', alpha = .5)
-# ax3.axvline(tfbLQ[np.argmin(np.abs(snapL_AMR-229))], c = 'k', linestyle = '--', alpha = .5)
 
-ax2.set_ylabel(r'$\mathcal{R}$ Luminosity')#, fontsize = 20)
-# ax2.axhline(5, c = 'k', linestyle = '--', alpha = .5)
-# ax2.axhline(1.5, c = 'k', linestyle = '--', alpha = .5)
+ax2.set_ylabel(r'$\mathcal{R}$ Luminosity')
 plt.tight_layout()
 plt.savefig(f'{abspath}/Figs/Test/MazeOfRuns/fld_OpAMR.png', bbox_inches='tight')
 
@@ -164,7 +159,7 @@ ax1.set_ylabel(r'Luminosity [erg/s]')#, fontsize = 20)
 ax1.set_ylim(9e37, 8e42)
 ax1.legend(fontsize = 16, loc = 'lower right')
 
-ratioRC, tfb_ratioRC = ratio_BigOverSmall(tfbL_AMRRC, LumL_AMRRC, tfbAMR_RC, LumAMR_RC)
+tfb_ratioRC, ratioRC = ratio_BigOverSmall(tfbL_AMRRC, LumL_AMRRC, tfbAMR_RC, LumAMR_RC)
 ax2.plot(tfb_ratioRC, ratioRC, linewidth = 2, color = 'k')
 ax2.set_ylim(.9, 10)
 ax2.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 20)
@@ -194,14 +189,14 @@ plt.savefig(f'{abspath}/Figs/Test/MazeOfRuns/fld_resRemoveCenter.png', bbox_inch
 
 # %% Photosphere
 fig, ax1 = plt.subplots(1, 1, figsize=(8, 6)) #, gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-ax1.plot(tfbL, median_phL/apo, c = 'C1', label = 'Low old')
-ax1.plot(tfbLQ, median_phLQ/apo, c = 'goldenrod', label = 'Low NewExtr, OldAMR')
+# ax1.plot(tfbL, median_phL/apo, c = 'C1', label = 'Low old')
+# ax1.plot(tfbLQ, median_phLQ/apo, c = 'goldenrod', label = 'Low NewExtr, OldAMR')
 ax1.plot(tfb, median_ph/apo, c = 'yellowgreen', label = 'Fid old')
-ax1.plot(tfbL_AMR, median_phL_AMR/apo, c ='plum', label = r'Low Old$^*$Extr, NewAMR')
-ax1.plot(tfbL_AMRRC, median_phL_AMRRC/apo, c = 'maroon', label = r'Low Old$^*$Extr, NewAMR, RemoveCenter')
-ax1.plot(tfbQ, median_phQ/apo, c = 'forestgreen', label = 'Fid, NewExtr, OldAMR')
-ax1.plot(tfbAMR, median_phAMR/apo, c = 'royalblue', label = 'Fid NewExtr, NewAMR')
-ax1.plot(tfbH, median_phH/apo, c = 'darkviolet', label = 'High old')
+# ax1.plot(tfbL_AMR, median_phL_AMR/apo, c ='plum', label = r'Low Old$^*$Extr, NewAMR')
+# ax1.plot(tfbL_AMRRC, median_phL_AMRRC/apo, c = 'maroon', label = r'Low Old$^*$Extr, NewAMR, RemoveCenter')
+# ax1.plot(tfbQ, median_phQ/apo, c = 'forestgreen', label = 'Fid, NewExtr, OldAMR')
+ax1.plot(tfbAMR, median_phAMR/apo, c = 'royalblue', label = 'NewAMR')
+# ax1.plot(tfbH, median_phH/apo, c = 'darkviolet', label = 'High old')
 ax1.axhline(Rt/apo, c = 'k', linestyle = '--', linewidth = 2)
 ax1.text(1.6, 1.2*Rt/apo, r'$R_{\rm t}$', fontsize = 18)
 ax1.set_yscale('log')
@@ -235,6 +230,103 @@ ax1.set_xticklabels(labels)
 ax1.grid()
 ax1.set_xlim(0, np.max(tfb))
 ax1.set_xlabel(r't [$t_{fb}$]')
+ax1.axvline(0.5, c = 'k', linestyle = '--', alpha = .5)
+ax1.axvline(0.6, c = 'k', linestyle = '--', alpha = .5)
 plt.tight_layout()
 plt.savefig(f'{abspath}/Figs/Test/MazeOfRuns/Rph_OpAMR.png', bbox_inches='tight')
+
+# %% Check photosphere at different times
+snapsOld, _, tfbsOld = split_data_red('')
+folderOld = f'{abspath}/data/opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}/photo'
+
+snapsNew, _, tfbsNew = split_data_red('NewAMR')
+folderNew = f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}NewAMR/photo'
+
+snapsLNew, _, tfbsLNew = split_data_red('LowResNewAMR')
+folderLNew = f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowResNewAMR/photo'
+
+# geometri things for plotting
+observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
+observers_xyz = np.array(observers_xyz).T
+x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
+r = np.sqrt(x**2 + y**2 + z**2)   # Radius (should be 1 for unit vectors)
+theta = np.arctan2(y, x)          # Azimuthal angle in radians
+phi = np.arccos(z / r)            # Elevation angle in radians
+longitude_moll = theta              
+latitude_moll = np.pi / 2 - phi 
+indecesorbital = np.concatenate(np.where(latitude_moll==0))
+first_idx, last_idx = np.min(indecesorbital), np.max(indecesorbital)
+
+for i, tfb in enumerate(tfbsNew):
+    snapNew = snapsNew[i]
+    if snapNew not in [115, 164, 175, 237, 280, 318]:
+        continue
+    print(snapNew)
+    dataphNew = np.loadtxt(f'{folderNew}/NewAMR_photo{snapNew}.txt')
+    xphNew, yphNew, zphNew, volphNew = dataphNew[0], dataphNew[1], dataphNew[2], dataphNew[3]
+    # yz plane and midplane
+    yz_phNew = np.abs(xphNew-Rt) < volphNew**(1/3)
+    yph_yzNew, zph_yzNew = make_slices([yphNew, zphNew], yz_phNew)
+    falselong_ph_yzNew = np.arctan2(zph_yzNew, yph_yzNew)
+    sorted_indices_yzNew = np.argsort(falselong_ph_yzNew)
+    yph_yzNew_sorted, zph_yzNew_sorted = yph_yzNew[sorted_indices_yzNew], zph_yzNew[sorted_indices_yzNew]
+    xph_midNew, yph_midNew, zph_midNew = xphNew[indecesorbital], yphNew[indecesorbital], zphNew[indecesorbital]  
+
+    snapOld = snapsOld[np.argmin(np.abs(tfbsOld - tfb))]
+    dataph = np.loadtxt(f'{folderOld}/_photo{snapOld}.txt')
+    xph, yph, zph, volph = dataph[0], dataph[1], dataph[2], dataph[3]
+    yz_ph = np.abs(xph-Rt) < volph**(1/3)
+    yph_yz, zph_yz = make_slices([yph, zph], yz_ph)
+    falselong_ph_yz = np.arctan2(zph_yz, yph_yz) 
+    sorted_indices_yz = np.argsort(falselong_ph_yz)  # Sorting by y-coordinate
+    yph_yz_sorted, zph_yz_sorted = yph_yz[sorted_indices_yz], zph_yz[sorted_indices_yz]
+    xph_mid, yph_mid, zph_mid = xph[indecesorbital], yph[indecesorbital], zph[indecesorbital]
+    
+    snapLNew = snapsLNew[np.argmin(np.abs(tfbsLNew - tfb))]
+    dataphLNew = np.loadtxt(f'{folderLNew}/LowResNewAMR_photo{snapNew}.txt')
+    xphLNew, yphLNew, zphLNew, volphLNew = dataphLNew[0], dataphLNew[1], dataphLNew[2], dataphLNew[3]
+    yz_phLNew = np.abs(xphLNew-Rt) < volphLNew**(1/3)
+    yph_yzLNew, zph_yzLNew = make_slices([yphLNew, zphLNew], yz_phLNew)
+    falselong_ph_yzLNew = np.arctan2(zph_yzLNew, yph_yzLNew)
+    sorted_indices_yzLNew = np.argsort(falselong_ph_yzLNew)
+    yph_yzLNew_sorted = yph_yzLNew[sorted_indices_yzLNew]
+    zph_yzLNew_sorted = zph_yzLNew[sorted_indices_yzLNew]
+    xph_midLNew, yph_midLNew, zph_midLNew = xphLNew[indecesorbital], yphLNew[indecesorbital], zphLNew[indecesorbital]
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 7))
+    ax1.plot(xph_mid/apo, yph_mid/apo,  c = 'yellowgreen', markersize = 10, marker = 'H', label = 'Old')
+    ax1.plot(xph_midNew/apo, yph_midNew/apo,  c = 'b', markersize = 10, marker = 'H', label = 'New AMR')
+    ax1.plot(xphLNew[indecesorbital]/apo, yphLNew[indecesorbital]/apo,  c = 'C1', markersize = 10, marker = 'H', label = 'LowRes New AMR')
+    # just to connect the first and last 
+    ax1.plot([xph[first_idx]/apo, xph[last_idx]/apo], [yph[first_idx]/apo, yph[last_idx]/apo], c = 'yellowgreen', markersize = 10, marker = 'H')
+    ax1.plot([xphNew[first_idx]/apo, xphNew[last_idx]/apo], [yphNew[first_idx]/apo, yphNew[last_idx]/apo], c = 'b', markersize = 10, marker = 'H')
+    ax1.plot([xphLNew[first_idx]/apo, xphLNew[last_idx]/apo], [yphLNew[first_idx]/apo, yphLNew[last_idx]/apo], c = 'C1', markersize = 10, marker = 'H')
+    # ax1.quiver(xph_mid/apo, yph_mid/apo, Vxph[indecesorbital]/40, Vyph[indecesorbital]/40, angles='xy', scale_units='xy', scale=0.7, color="k", width=0.003, headwidth = 6)
+    # ax1.text(-2.6, -2.8, r'z = 0', fontsize = 25)
+    # ax1.text(-2.6, 1.65, f't = {np.round(tfb[i],2)}' + r' t$_{\rm fb}$', color = 'k', fontsize = 26)
+    ax1.set_xlabel(r'X [$R_{\rm a}$]', fontsize = 25)
+    ax1.set_ylabel(r'Y [$R_{\rm a}$]', fontsize = 25)
+    ax1.set_xlim(-4, 2)
+    ax1.set_ylim(-3, 2)
+    
+    ax2.plot(yph_yz_sorted/apo, zph_yz_sorted/apo,  c = 'yellowgreen', markersize = 10, marker = 'H', label = 'Old')
+    ax2.plot(yph_yzNew_sorted/apo, zph_yzNew_sorted/apo,  c = 'b', markersize = 10, marker = 'H', label = 'New AMR')
+    ax2.plot(yph_yzLNew_sorted/apo, zph_yzLNew_sorted/apo,  c = 'C1', markersize = 10, marker = 'H', label = 'LowRes New AMR')
+    # # if yph_yz_sorted is not empty, connect the last and first point
+    if len(yph_yz_sorted) > 0:
+        ax2.plot([yph_yz_sorted[-1]/apo, yph_yz_sorted[0]/apo], [zph_yz_sorted[-1]/apo, zph_yz_sorted[0]/apo], c = 'k', alpha = 0.5)
+    if len(yph_yzNew_sorted) > 0:
+        ax2.plot([yph_yzNew_sorted[-1]/apo, yph_yzNew_sorted[0]/apo], [zph_yzNew_sorted[-1]/apo, zph_yzNew_sorted[0]/apo], c = 'C1', alpha = 0.5)
+    if len(yph_yzLNew_sorted) > 0:
+        ax2.plot([yph_yzLNew_sorted[-1]/apo, yph_yzLNew_sorted[0]/apo], [zph_yzLNew_sorted[-1]/apo, zph_yzLNew_sorted[0]/apo], c = 'b', alpha = 0.5)
+    ax2.set_xlabel(r'Y [$R_{\rm a}$]', fontsize = 25)
+    ax2.set_ylabel(r'Z [$R_{\rm a}$]', fontsize = 25)
+    ax2.set_xlim(-2, 2)
+    ax2.set_ylim(-3.5, 3.5)
+    plt.suptitle(f'Photosphere at t = {np.round(tfb,2)} t$_{{fb}}$', fontsize = 30)
+
+    for ax in [ax1, ax2]:
+        ax.scatter(0,0, c= 'k', marker = 'x', s=80)
+        ax.legend(fontsize = 20)
+
 # %%
