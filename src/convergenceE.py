@@ -44,12 +44,12 @@ if alice:
     col_orb_en_pos = np.zeros(len(snaps))
     col_orb_en_neg = np.zeros(len(snaps))
     col_Rad = np.zeros(len(snaps))
-    if thresh == 'cutCoord':
-        col_ie_thres = np.zeros(len(snaps))
-        col_orb_en_thres_pos = np.zeros(len(snaps))
-        col_orb_en_thres_neg = np.zeros(len(snaps))
-        col_Rad_thres = np.zeros(len(snaps))
-        missingMass = np.zeros(len(snaps))
+    # if thresh == 'cutCoord':
+    #     col_ie_thres = np.zeros(len(snaps))
+    #     col_orb_en_thres_pos = np.zeros(len(snaps))
+    #     col_orb_en_thres_neg = np.zeros(len(snaps))
+    #     col_Rad_thres = np.zeros(len(snaps))
+    #     missingMass = np.zeros(len(snaps))
 
     for i,snap in enumerate(snaps):
         print(snap, flush=False)
@@ -76,38 +76,38 @@ if alice:
         col_Rad[i] = np.sum(Rad)
 
         # consider the small box for the cut in coordinates
-        if thresh == 'cutCoord':
-            box = np.load(f'{path}/box_{snap}.npy')
-            if np.logical_and(int(snap)>80, int(snap) <= 317):
-                boxL = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes/snap_{snap}/box_{snap}.npy')
-                if int(snap) <= 267:
-                    boxH = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes/snap_{snap}/box_{snap}.npy')
-                else:
-                    boxH = box
-            else: 
-                boxH = box
-                boxL = box
+        # if thresh == 'cutCoord':
+        #     box = np.load(f'{path}/box_{snap}.npy')
+        #     if np.logical_and(int(snap)>80, int(snap) <= 317):
+        #         boxL = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}LowRes/snap_{snap}/box_{snap}.npy')
+        #         if int(snap) <= 267:
+        #             boxH = np.load(f'/home/martirep/data_pi-rossiem/TDE_data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiRes/snap_{snap}/box_{snap}.npy')
+        #         else:
+        #             boxH = box
+        #     else: 
+        #         boxH = box
+        #         boxL = box
             # xmin, ymin, zmin = np.max([box[0], boxL[0], boxH[0], -0.75*apo]), np.max([box[1], boxL[1], boxH[1]]), np.max([box[2], boxL[2], boxH[2]])
             # print("ratio xmin/0.75apo: ", -xmin/(0.75*apo), flush=False)
             # sys.stdout.flush()
-            xmin, ymin, zmin = np.max([box[0], boxL[0], boxH[0]]), np.max([box[1], boxL[1], boxH[1]]), np.max([box[2], boxL[2], boxH[2]])
-            xmax, ymax, zmax = np.min([box[3], boxL[3], boxH[3]]), np.min([box[4], boxL[4], boxH[4]]), np.min([box[5], boxL[5], boxH[5]])
-            cut_coord = (X > xmin) & (X < xmax) & (Y > ymin) & (Y < ymax) & (Z > zmin) & (Z < zmax) 
-            Rad_thresh = Rad[cut_coord]
-            cut_den_coord = (X_cut > xmin) & (X_cut < xmax) & (Y_cut > ymin) & (Y_cut < ymax) & (Z_cut > zmin) & (Z_cut < zmax)
-            den_thresh, orb_en_thresh, ie_thresh, mass_thresh = \
-                sec.make_slices([den_cut, orb_en_cut, ie_cut, mass_cut], cut_den_coord)
+            # xmin, ymin, zmin = np.max([box[0], boxL[0], boxH[0]]), np.max([box[1], boxL[1], boxH[1]]), np.max([box[2], boxL[2], boxH[2]])
+            # xmax, ymax, zmax = np.min([box[3], boxL[3], boxH[3]]), np.min([box[4], boxL[4], boxH[4]]), np.min([box[5], boxL[5], boxH[5]])
+            # cut_coord = (X > xmin) & (X < xmax) & (Y > ymin) & (Y < ymax) & (Z > zmin) & (Z < zmax) 
+            # Rad_thresh = Rad[cut_coord]
+            # cut_den_coord = (X_cut > xmin) & (X_cut < xmax) & (Y_cut > ymin) & (Y_cut < ymax) & (Z_cut > zmin) & (Z_cut < zmax)
+            # den_thresh, orb_en_thresh, ie_thresh, mass_thresh = \
+            #     sec.make_slices([den_cut, orb_en_cut, ie_cut, mass_cut], cut_den_coord)
 
-            # total energies with the cut in density (not in radiation) and coordinates
-            col_ie_thres[i] = np.sum(ie_thresh)
-            col_orb_en_thres_pos[i] = np.sum(orb_en_thresh[orb_en_thresh > 0])
-            col_orb_en_thres_neg[i] = np.sum(orb_en_thresh[orb_en_thresh < 0])
-            col_Rad_thres[i] = np.sum(Rad_thresh)
-            missingMass[i] = np.sum(mass_thresh)/np.sum(mass_cut)
+            # # total energies with the cut in density (not in radiation) and coordinates
+            # col_ie_thres[i] = np.sum(ie_thresh)
+            # col_orb_en_thres_pos[i] = np.sum(orb_en_thresh[orb_en_thresh > 0])
+            # col_orb_en_thres_neg[i] = np.sum(orb_en_thresh[orb_en_thresh < 0])
+            # col_Rad_thres[i] = np.sum(Rad_thresh)
+            # missingMass[i] = np.sum(mass_thresh)/np.sum(mass_cut)
 
-    if thresh == 'cutCoord':
-        print("ratio mass_box/mass_all: ", missingMass, flush = True)
-        np.save(f'{abspath}/data/{folder}/convE_{check}_thresh.npy', [col_ie_thres, col_orb_en_thres_pos, col_orb_en_thres_neg, col_Rad_thres])
+    # if thresh == 'cutCoord':
+    #     print("ratio mass_box/mass_all: ", missingMass, flush = True)
+    #     np.save(f'{abspath}/data/{folder}/convE_{check}_thresh.npy', [col_ie_thres, col_orb_en_thres_pos, col_orb_en_thres_neg, col_Rad_thres])
 
     np.save(f'{abspath}/data/{folder}/convE_{check}.npy', [col_ie, col_orb_en_pos, col_orb_en_neg, col_Rad])
     with open(f'{abspath}/data/{folder}/convE_{check}_days.txt', 'w') as file:
@@ -119,7 +119,6 @@ if alice:
 
 else:
     import matplotlib.pyplot as plt
-    from Utilities.operators import find_ratio
     commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     _, tfbL = np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/convE_LowResNewAMR_days.txt')
     IEL, OELpos, OELneg,  _ = np.load(f'{abspath}/data/{commonfolder}LowRes/convE_LowRes{thresh}.npy')
