@@ -24,7 +24,7 @@ import Utilities.prelude as prel
 import Utilities.sections as sec
 import src.orbits as orb
 from Utilities.operators import make_tree, to_cylindric, Ryan_sampler, draw_line
-from Utilities.selectors_for_snap import select_snap
+from Utilities.selectors_for_snap import select_snap, select_prefix
 
 #%%
 ## Parameters
@@ -39,7 +39,10 @@ n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 check = 'NewAMR'
 compton = 'Compton'
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+if check not in ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']:
+    folder = f'opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+else:
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 Mbh = 10**m
 Rs = 2*prel.G*Mbh / prel.csol_cgs**2
@@ -495,6 +498,7 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, stream, param
 
 if __name__ == '__main__':
     from Utilities.operators import from_cylindric
+    print('We are in folder', folder, flush = True)
     theta_lim =  np.pi
     step = 0.02
     theta_init = np.arange(-theta_lim, theta_lim, step)
@@ -508,19 +512,18 @@ if __name__ == '__main__':
     # plt.scatter(x_arr, y_arr, c = 'r', s = 5, label = 'Our sample')
     # plt.legend()
     
-
-    #%%
     if alice:
         snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
     else: 
         snaps = [238]
-    print('We are in folder', folder, flush = True)
     for i, snap in enumerate(snaps):
         print(f'Snap {snap}', flush = True)
+        
+        path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
         if alice:
-            path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+            path = f'{path}/snap_{snap}'
         else:
-            path = f'{abspath}/TDE/{folder}/{snap}'
+            path = f'{path}/{snap}'
         data = make_tree(path, snap, energy = False)
         X, Y, Z, Den, Mass, Vol = \
             data.X, data.Y, data.Z, data.Den, data.Mass, data.Vol
@@ -532,16 +535,17 @@ if __name__ == '__main__':
         dim_cell = Vol**(1/3) 
         x_stream, y_stream, z_stream, thresh_cm, x_cmTR, y_cmTR, z_cmTR, x_stream_rad, y_stream_rad, z_stream_rad = \
             find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, all_iterations = True)
-        #%%
-        plt.figure(figsize = (15,5))
-        plt.plot(x_stream_rad, y_stream_rad, c = 'k', s = 20, label = 'Max density')
-        plt.plot(x_cmTR, y_cmTR, c = 'blue', s = 5, ls = '--', label = 'first guess')
-        plt.plot(x_stream, y_stream, c = 'r', s = 5, ls = '--', label = 'final stream')
-        # x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, all_iterations = True)
-        #%%
         stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
         theta_wh, indeces_boundary, x_T_width, w_params, h_params  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.8)
 
+        #%%
+        # plt.figure(figsize = (15,5))
+        # plt.plot(x_stream_rad, y_stream_rad, c = 'k', s = 20, label = 'Max density')
+        # plt.plot(x_cmTR, y_cmTR, c = 'blue', s = 5, ls = '--', label = 'first guess')
+        # plt.plot(x_stream, y_stream, c = 'r', s = 5, ls = '--', label = 'final stream')
+        # x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, all_iterations = True)
+
+        
         if save:
             np.save(f'{abspath}/data/{folder}/WH/stream_{check}{snap}.npy', stream)
             with open(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt','w') as file:
