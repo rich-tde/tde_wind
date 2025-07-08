@@ -37,7 +37,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
-check = 'NewAMR'
+check = ''
 compton = 'Compton'
 if check not in ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']:
     folder = f'opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -74,7 +74,7 @@ def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
     condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
     # to be sure that you have points in the plane
     while len(mass_plane[condition]) == 0:
-        print('No points found since the beginning, double C', np.round(C,3))
+        print('No points found since the beginning, double C', np.round(C,2))
         C *= 2
         condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
     mass = mass_plane[condition]
@@ -86,7 +86,8 @@ def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
         condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
         # Check that you add new points
         if len(mass_plane[condition]) == len(mass):
-            print('No new points added, increase C')
+            print(f'No new points added, increase C addinging {np.round(step,2)} to {np.round(C,2)}')
+            print(f'len[condition]: {mass_plane[condition]}')
             C += step
         else:
             tocheck = r_plane[condition]-R0
@@ -518,7 +519,7 @@ if __name__ == '__main__':
         snaps = [238]
     for i, snap in enumerate(snaps):
         print(f'Snap {snap}', flush = True)
-        
+
         path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
         if alice:
             path = f'{path}/snap_{snap}'
