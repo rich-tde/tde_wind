@@ -12,8 +12,9 @@ import matplotlib.colors as colors
 import Utilities.prelude as prel
 import Utilities.sections as sec
 import src.orbits as orb
-from Utilities.operators import make_tree, draw_line
+from Utilities.operators import make_tree, draw_line, format_pi_frac
 from plotting.paper.IHopeIsTheLast import split_data_red
+from matplotlib.ticker import FuncFormatter
 
 m = 4
 Mbh = 10**m
@@ -23,7 +24,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-what = 'expansion' #section or comparison or expansion or single_snap_behavior
+what = 'max_compr' #section or comparison or expansion or single_snap_behavior
 
 Mbh = 10**m
 Rs = 2*prel.G*Mbh / prel.csol_cgs**2
@@ -278,6 +279,7 @@ if what == 'expansion' or what == 'max_compr':
     checks = ['LowResNewAMR', 'NewAMR']#, 'HiResNewAMR']
     colors_checks = ['C1', 'yellowgreen', 'darkviolet']
     names_checks = ['Low', 'Fid', 'High']
+    markers_checks = ['x', 'o', 's']
     ratio_of_pi = 2
 
     # check = 'LowResNewAMR'
@@ -307,6 +309,8 @@ if what == 'expansion' or what == 'max_compr':
             angle_check = np.pi/ratio_of_pi 
 
             for i, snap in enumerate(snaps):
+                if snap > 247: # after 1tfb
+                    continue 
                 print(snap)
                 path = f'{abspath}/TDE/{folder}/{snap}'
                 wh = np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
@@ -325,12 +329,16 @@ if what == 'expansion' or what == 'max_compr':
             ax2.plot(time_before_after, before_after_h, c = colors_checks[j])
         
         if what == 'max_compr':
-            theta_compr = np.zeros(len(snaps))
-            height_compr = np.zeros(len(snaps))
-            width_compr = np.zeros(len(snaps))
-            Nheight_compr = np.zeros(len(snaps))
-            Nwidth_compr = np.zeros(len(snaps))
+            vmin_ang = -np.pi/8
+            vmax_ang = np.pi/4
+            theta_compr = np.zeros(247)
+            height_compr = np.zeros(247)
+            width_compr = np.zeros(247)
+            Nheight_compr = np.zeros(247)
+            Nwidth_compr = np.zeros(247)
             for i, snap in enumerate(snaps):
+                if snap > 247: # after 1tfb
+                    continue 
                 print(snap)
                 path = f'{abspath}/TDE/{folder}/{snap}'
                 wh = np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
@@ -342,7 +350,14 @@ if what == 'expansion' or what == 'max_compr':
                 Nheight_compr[i] = N_height[angle_check_idx]
                 Nwidth_compr[i] = N_width[angle_check_idx]
             
-            ax1.plot(tfb, height_compr/Rstar, c = colors_checks[j], label = names_checks[j])
+            img = ax1.scatter(tfb[:247-80], height_compr[:247-80]/Rstar, c = theta_compr[:247-80], marker = markers_checks[j], label = names_checks[j], vmin = vmin_ang, vmax = vmax_ang, cmap = 'rainbow', s = 50)
+    
+    if what == 'max_compr':
+        cbar = plt.colorbar(img)
+        # Define the exact ticks you want:
+        ticks = np.array([vmin_ang, 0, np.pi/8,  vmax_ang])
+        cbar.set_ticks(ticks)
+        cbar.ax.yaxis.set_major_formatter(FuncFormatter(format_pi_frac))
     
     ax1.legend(fontsize = 18)
 

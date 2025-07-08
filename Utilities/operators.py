@@ -46,6 +46,26 @@ def from_cylindric(theta, r):
     y = r * np.sin(theta_fornumpy)
     return x, y
 
+def format_pi_frac(x, pos): # write colorbar ticks in terms of pi fractions
+    frac = x / np.pi
+    common = {
+        -0.5: r'$-\frac{\pi}{2}$',
+        -1/3: r'$-\frac{\pi}{3}$',
+        -0.25: r'$-\frac{\pi}{4}$',
+        -1/6: r'$-\frac{\pi}{6}$',
+        -1/8: r'$-\frac{\pi}{8}$',
+        0: r'$0$',
+        1/8: r'$\frac{\pi}{8}$',
+        1/6: r'$\frac{\pi}{6}$',
+        0.25: r'$\frac{\pi}{4}$',
+        1/3: r'$\frac{\pi}{3}$',
+        0.5: r'$\frac{\pi}{2}$',
+    }
+    for val, label in common.items():
+        if np.isclose(frac, val, atol=1e-3):
+            return label
+    return r'${0:.2g}\pi$'.format(frac)
+
 def draw_line(x_arr, alpha):
     """ Draw a line in the x-y plane with slope tg(alpha).
     Parameters
