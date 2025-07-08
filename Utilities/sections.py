@@ -85,7 +85,7 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit
     zhat = np.array([0,0,1])
     kRhat = np.array([vers_tg[0], vers_tg[1],0]) # points in the direction of the orbit
     xRhat = np.cross(zhat, vers_tg) # points outwards
-    xRhat /= np.linalg.norm(xRhat)
+    xRhat /= min(np.linalg.norm(xRhat), 1e-20) # avoid division by zero
     vers_norm = np.array([xRhat[0], xRhat[1]])
     # New x (T) coordinate
     x_onplaneall = np.dot(data_trasl, vers_norm)
@@ -111,7 +111,7 @@ def tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, idx):
     vers_tg = tangent_versor(x_orbit, y_orbit, idx)
     zhat = np.array([0,0,1])
     xRhat = np.cross(zhat, vers_tg) # points outwards
-    xRhat /= np.linalg.norm(xRhat)
+    xRhat /= min(np.linalg.norm(xRhat), 1e-20) # avoid division by zero
     vers_norm = np.array([xRhat[0], xRhat[1]])
     # and take the points orthogonal to the vector orthogonal to the tangent vector in the orbital plane (i.e parallel to the tg)
     r_data_trasl = np.transpose(np.array([x_data_trasl, y_data_trasl]))
