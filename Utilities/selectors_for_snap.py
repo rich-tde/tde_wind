@@ -14,9 +14,15 @@ def select_prefix(m, check, mstar, rstar, beta, n, compton):
     else:
         folder = f'R{rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     if alice:
-        prepath = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}'
+        prepath = f'/home/martirep/data_pi-rossiem/TDE_data'
     else: 
-        prepath = f'/Users/paolamartire/shocks/TDE/{folder}'
+        prepath = f'/Users/paolamartire/shocks/TDE'
+
+    if check not in ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']:
+        prepath = f'{prepath}/opacity_tests/{folder}'
+    else:
+        prepath = f'{prepath}/{folder}'
+
     return prepath
 
 def select_snap(m, check, mstar, rstar, beta, n, compton = 'Compton',  time = False):
