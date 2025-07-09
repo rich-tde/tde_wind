@@ -24,7 +24,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-what = 'max_compr' #section or comparison or expansion or single_snap_behavior
+what = 'comparison' #section or comparison or expansion or single_snap_behavior
 
 Mbh = 10**m
 Rs = 2*prel.G*Mbh / prel.csol_cgs**2

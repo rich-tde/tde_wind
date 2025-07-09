@@ -37,7 +37,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
-check = ''
+check = 'NewAMR'
 compton = 'Compton'
 if check not in ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']:
     folder = f'opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -538,13 +538,8 @@ if __name__ == '__main__':
             find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, all_iterations = True)
         stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
         theta_wh, indeces_boundary, x_T_width, w_params, h_params  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.8)
-
         #%%
-        # plt.figure(figsize = (15,5))
-        # plt.plot(x_stream_rad, y_stream_rad, c = 'k', s = 20, label = 'Max density')
-        # plt.plot(x_cmTR, y_cmTR, c = 'blue', s = 5, ls = '--', label = 'first guess')
-        # plt.plot(x_stream, y_stream, c = 'r', s = 5, ls = '--', label = 'final stream')
-        # x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, all_iterations = True)
+        x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, all_iterations = True)
 
         
         if save:
