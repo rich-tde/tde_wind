@@ -36,6 +36,7 @@ def select_snap(m, check, mstar, rstar, beta, n, compton = 'Compton',  time = Fa
         #     time = False
     else:
         snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/{snap}/snap_{snap}.h5')]
+    snapshots = np.array(snapshots)
     if time:
         days = np.zeros(len(snapshots))
         for i,snap in enumerate(snapshots):
