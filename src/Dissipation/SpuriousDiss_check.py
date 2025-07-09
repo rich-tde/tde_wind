@@ -43,7 +43,7 @@ if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
     snaps, tfb = snaps[tfb<0.3], tfb[tfb<0.30] # select only the first 30% of the fall
     
-    with open(f'{abspath}/data/{folder}/Diss/spuriousDiss_{check}_days.txt', 'w') as file:
+    with open(f'{prepath}/data/{folder}/Diss/spuriousDiss_{check}_days.txt', 'w') as file:
             file.write(f'# In spuriousDiss_{check}, you will find internal, orbital+, orbital-, diss+ energy, all cut in density and R>0.2*apo.')
             file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
             file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
@@ -76,7 +76,7 @@ if alice:
         orb_en_neg[i] = np.sum(orb_en_cut[orb_en_cut < 0])
         diss_pos[i] = np.sum(diss_cut[diss_cut > 0])
 
-    np.save(f'{abspath}/data/{folder}/Diss/spuriousDiss_{check}.npy', [ie, orb_en_pos, orb_en_neg, diss_pos])
+    np.save(f'{prepath}/data/{folder}/Diss/spuriousDiss_{check}.npy', [ie, orb_en_pos, orb_en_neg, diss_pos])
 
 else:
     snap = 106
@@ -84,6 +84,10 @@ else:
     color_checks = ['k', 'r']
     checks_label = ['New AMR', 'Old']
     
+    ie, orb_en_pos, orb_en_neg, diss_pos = \
+        np.load(f'{abspath}/data/{folder}/Diss/spuriousDiss_{check}.npy', allow_pickle=True)
+
+    #%% 
     fig, ax = plt.subplots(2,2, figsize=(20, 12))
     fig_w, ax_w = plt.subplots(1,1, figsize=(8, 8))
     for i, check in enumerate(checks):

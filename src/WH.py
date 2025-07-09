@@ -37,7 +37,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
-check = 'NewAMR'
+check = 'HiResNewAMR'
 compton = 'Compton'
 if check not in ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']:
     folder = f'opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -534,14 +534,10 @@ if __name__ == '__main__':
         R = np.sqrt(X**2 + Y**2 + Z**2)
         THETA, RADIUS_cyl = to_cylindric(X, Y)
         dim_cell = Vol**(1/3) 
-        x_stream, y_stream, z_stream, thresh_cm, x_cmTR, y_cmTR, z_cmTR, x_stream_rad, y_stream_rad, z_stream_rad = \
-            find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, all_iterations = True)
         stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
         theta_wh, indeces_boundary, x_T_width, w_params, h_params  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.8)
-        #%%
-        x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, all_iterations = True)
+        x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params)
 
-        
         if save:
             np.save(f'{abspath}/data/{folder}/WH/stream_{check}{snap}.npy', stream)
             with open(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt','w') as file:
