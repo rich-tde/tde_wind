@@ -534,7 +534,7 @@ if __name__ == '__main__':
         R = np.sqrt(X**2 + Y**2 + Z**2)
         THETA, RADIUS_cyl = to_cylindric(X, Y)
         dim_cell = Vol**(1/3) 
-        x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, all_iterations = True)
+        x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params)
         stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
         theta_wh, indeces_boundary, x_T_width, w_params, h_params  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.8)
         #%%
