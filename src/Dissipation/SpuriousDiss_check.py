@@ -49,10 +49,10 @@ if alice:
             file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
             file.close()
 
-    ie = np.zeros(len(snaps))
-    orb_en_pos = np.zeros(len(snaps))
-    orb_en_neg = np.zeros(len(snaps))
-    diss_pos = np.zeros(len(snaps))
+    ie_sum = np.zeros(len(snaps))
+    orb_en_pos_sum = np.zeros(len(snaps))
+    orb_en_neg_sum = np.zeros(len(snaps))
+    diss_pos_sum = np.zeros(len(snaps))
     for i, snap in enumerate(snaps):
         print(snap, flush = True)
 
@@ -71,12 +71,12 @@ if alice:
             make_slices([orb_en, ie, diss], cut)
 
         # total energies with only the cut in density (not in radiation)
-        ie[i] = np.sum(ie_cut)
-        orb_en_pos[i] = np.sum(orb_en_cut[orb_en_cut > 0])
-        orb_en_neg[i] = np.sum(orb_en_cut[orb_en_cut < 0])
-        diss_pos[i] = np.sum(diss_cut[diss_cut > 0])
+        ie_sum[i] = np.sum(ie_cut)
+        orb_en_pos_sum[i] = np.sum(orb_en_cut[orb_en_cut > 0])
+        orb_en_neg_sum[i] = np.sum(orb_en_cut[orb_en_cut < 0])
+        diss_pos_sum[i] = np.sum(diss_cut[diss_cut > 0])
 
-    np.save(f'{prepath}/data/{folder}/Diss/spuriousDiss_{check}.npy', [ie, orb_en_pos, orb_en_neg, diss_pos])
+    np.save(f'{prepath}/data/{folder}/Diss/spuriousDiss_{check}.npy', [ie_sum, orb_en_pos_sum, orb_en_neg_sum, diss_pos_sum])
 
 else:
     snap = 106
@@ -165,14 +165,15 @@ else:
     fig_w.tight_layout()
 
     #%%
-    # ln_T = np.loadtxt(f'Tfile.txt') 
-    # ln_Rho = np.loadtxt(f'density.txt') 
-    # ln_U = np.loadtxt(f'Ufile.txt')
-    # print(np.shape(ln_T), np.shape(ln_Rho), np.shape(ln_U))
+    ln_T = np.loadtxt(f'Tfile.txt') 
+    ln_T = ln_T[:]
+    ln_Rho = np.loadtxt(f'density.txt') 
+    ln_U = np.loadtxt(f'Ufile.txt')
+    print(np.shape(ln_T), np.shape(ln_Rho), np.shape(ln_U))
 
-    # plt.figure(figsize=(12, 12))
-    # img = plt.pcolormesh(ln_T, ln_Rho, ln_U.T, cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
-    # cbar = plt.colorbar(img, label=r'$\ln U$')
+    plt.figure(figsize=(12, 12))
+    img = plt.pcolormesh(ln_T, ln_Rho, ln_U.T, cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+    cbar = plt.colorbar(img, label=r'$\ln U$')
 
 
 
