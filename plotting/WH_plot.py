@@ -24,7 +24,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-what = 'comparison' #section or comparison or expansion or single_snap_behavior
+what = 'section' #section or comparison or max_compr or single_snap_behavior
 
 Mbh = 10**m
 Rs = 2*prel.G*Mbh / prel.csol_cgs**2
@@ -111,7 +111,7 @@ if what == 'comparison':
 
 if what == 'single_snap_behavior' or what == 'section':
     check = 'NewAMR'
-    snap = 164
+    snap = 162
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     path = f'{abspath}/TDE/{folder}/{snap}'
     # Load data snap
@@ -142,7 +142,7 @@ if what == 'single_snap_behavior' or what == 'section':
         # Plot stream (zoom out and in on theorbital plane) 
         fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,6), width_ratios= [1.5, .5])
         for ax in [ax1, ax2]:
-            ax.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 5e-4))
+            ax.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 1e-6))
             ax.plot(x_stream[:-70]/apo, y_stream[:-70]/apo, c = 'k')
             ax.plot(x_stream[-30:]/apo, y_stream[-30:]/apo, c = 'k')
             ax.plot([x_stream[0]/apo, x_stream[-1]/apo] , [y_stream[0]/apo, y_stream[-1]/apo], c = 'k')
@@ -154,7 +154,7 @@ if what == 'single_snap_behavior' or what == 'section':
         ax1.set_ylabel(r'$Y [R_{\rm a}]$')
         ax1.set_xlim(-1, .1)
         ax1.set_ylim(-.3, .3)
-        ax2.set_xlim(-.2, .1)
+        ax2.set_xlim(-.2, .05)
         ax2.set_ylim(-.1, .1)
         plt.suptitle(r'Stream at t/t$_{\rm fb}$ = ' + str(np.round(tfb_single,2)) + f', check: {check}', fontsize = 16)
 
@@ -181,12 +181,14 @@ if what == 'single_snap_behavior' or what == 'section':
         plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb_single,2)), fontsize = 16)
 
     if what == 'section':
+        q_color = 'Mass'
         idx = np.argmin(height) #np.argmin(np.abs(theta_arr + 3*np.pi/4)) # find the index of the theta closest to 1.5
-        if theta_arr[idx] < 0:
-            x_arr = np.arange(-2, 0.1, .1)
-        else:
-            x_arr = np.arange(0, 2.1, .1)
-        y_arr_chosentheta = draw_line(x_arr, theta_arr[idx])
+        chosentheta = theta_wh[idx]
+        thetabefore = theta_wh[np.argmin(height)] - np.pi/2
+        thetaafter = theta_wh[np.argmin(height)] + np.pi/2
+        x_arr = np.arange(-.1, 1.1, .1)
+        y_arr_chosentheta = draw_line(x_arr, chosentheta)
+        y_arr_thetaafterbefore = draw_line(x_arr, thetabefore)
 
         indeces = np.arange(len(X))
         # find in the simulaion the boundary and the points inside
@@ -203,28 +205,75 @@ if what == 'single_snap_behavior' or what == 'section':
         stream_cells_Z = np.logical_and(z_sec >= z_low, z_sec <= z_up)
         stream_cells = np.logical_and(stream_cells_T, stream_cells_Z)
 
-        print(np.sum(mass_sec[stream_cells])/np.sum(mass_sec))
+        print('Mass in the stream/mass section: ', np.sum(mass_sec[stream_cells])/np.sum(mass_sec))
         print(f'Mass cells betwwen +-T, no limit in Z: {int(100*np.sum(mass_sec[stream_cells_T]) / np.sum(mass_sec))}\% of total mass in the plane (below section threshold)')
         print(f'Mass cells betwwen +-Z, no limit in T: {int(100*np.sum(mass_sec[stream_cells_Z]) / np.sum(mass_sec))}\% of total mass in the plane (below section threshold)')
 
-        vmax = np.percentile(mass_sec, 99)
-        vmin = np.percentile(mass_sec, 50)
+        # if q_color == 'Mass':
+        #     vmax = [1e-7, 8e-9] # for 0.1 tfb: [1e-5, 5e-12] 
+        #     vmin = 1e-13 #1e-14 
+        #     q_points = Mass_midplane
+        # elif q_color == 'Density':
+        #     vmax = [1e-2, 2e-10] 
+        #     vmin = 1e-12
+        #     q_points = Den_midplane * prel.den_converter
+        # fig, (ax0, ax1) = plt.subplots(1, 2,figsize = (18,6), width_ratios = [1.5, 1])
+        # for i, ax in enumerate([ax0, ax1]):
+        #     img = ax.scatter(X_midplane/apo, Y_midplane/apo, c = q_points, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = vmin, vmax = vmax[i]))
+        #     cbar = plt.colorbar(img)
+        #     if q_color == 'Mass':
+        #         cbar.set_label(r'Mass [$M_\odot$]') 
+        #     elif q_color == 'Density':
+        #         cbar.set_label(r'Density [g/cm$^3$]') 
+        #     # ax0.plot(x_stream/apo, y_stream/apo, c = 'k', ls = ':')
+        #     ax.scatter(x_low_width/apo, y_low_width/apo, c = 'k', s = 5)
+        #     ax.scatter(x_up_width/apo, y_up_width/apo, c = 'k', s = 5)
+        #     ax.plot(x_arr, y_arr_chosentheta, c = 'b', label = r'$\alpha$')
+        #     ax.plot(x_arr, y_arr_thetaafterbefore, c = 'r', label = r'$\alpha \pm \pi/2$')
+        #     ax.set_xlabel(r'X [$R_{\rm a}$]')
+        #     ax.scatter(0,0, c = 'k', s = 40)
+
+        # ax0.set_xlim(-0.8, 0.05) #-1, 0.1)
+        # ax0.set_ylim(-.3, .3) #-.3, .3)
+        # ax0.set_ylabel(r'Y [$R_{\rm a}$]')
+        # ax1.set_xlim(-0.1, 0.05) #-1, 0.1)
+        # ax1.set_ylim(-.1, .1) #-.3, .3)
+        # ax1.legend(fontsize = 14, loc = 'upper left')
+        # plt.savefig(f'{abspath}/Figs/max_compr/{check}{snap}_{q_color}.png')
+
+        if q_color == 'Mass':
+            vmax = 1e-9 # for 0.1 tfb: [1e-5, 5e-12] 
+            vmin = 1e-13 #1e-14 
+            q_points = Mass_midplane
+            q_plane = mass_plane
+            q_sec = mass_sec
+        elif q_color == 'Density':
+            vmax = 1e-2
+            vmin = 1e-12
+            q_points = Den_midplane * prel.den_converter
+            q_plane = den_plane * prel.den_converter
+            q_sec = den_sec * prel.den_converter
+
         fig, ((ax0, ax1), (ax2, ax3)) = plt.subplots(2,2,figsize = (18,14))
-        img = ax0.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane*prel.den_converter, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-12, vmax = 1e-3))
+        img = ax0.scatter(X_midplane/apo, Y_midplane/apo, c = q_points, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = vmin, vmax = vmax))
         cbar = plt.colorbar(img, ax=ax0)
-        cbar.set_label(r'Density [g/cm$^3$]')
+        if q_color == 'Mass':
+            cbar.set_label(r'Mass [$M_\odot$]') 
+        elif q_color == 'Density':
+            cbar.set_label(r'Density [g/cm$^3$]')
         ax0.plot(x_stream/apo, y_stream/apo, c = 'k', ls = ':')
-        ax0.plot(x_low_width/apo, y_low_width/apo, c = 'k')
-        ax0.plot(x_up_width/apo, y_up_width/apo, c = 'k')
-        ax0.plot(x_arr, y_arr_chosentheta, c = 'grey')
+        ax0.scatter(x_low_width/apo, y_low_width/apo, c = 'k', s = 5)
+        ax0.scatter(x_up_width/apo, y_up_width/apo, c = 'k', s = 5)
+        ax0.plot(x_arr, y_arr_chosentheta, c = 'b')
+        ax0.plot(x_arr, y_arr_thetaafterbefore, c = 'r')
         ax0.set_xlim(-1, 0.1)
         ax0.set_ylim(-.3, .3)
         ax0.set_xlabel(r'X [$R_{\rm a}$]')
         ax0.set_ylabel(r'Y [$R_{\rm a}$]')
         
-        img = ax1.scatter(x_T_plane, z_plane, c = mass_plane, s = 20, cmap = 'rainbow', norm = colors.LogNorm(vmin = vmin, vmax = vmax))
+        img = ax1.scatter(x_T_plane, z_plane, c = q_plane, s = 20, cmap = 'rainbow', norm = colors.LogNorm(vmin = vmin, vmax = vmax))
         cbar = plt.colorbar(img)
-        img = ax1.scatter(x_T_sec[stream_cells], z_sec[stream_cells], c = mass_sec[stream_cells], s = 40, edgecolor = 'k', cmap = 'rainbow', norm = colors.LogNorm(vmin = vmin, vmax = vmax))
+        img = ax1.scatter(x_T_sec[stream_cells], z_sec[stream_cells], c = q_sec[stream_cells], s = 40, edgecolor = 'k', cmap = 'rainbow', norm = colors.LogNorm(vmin = vmin, vmax = vmax))
         cbar.set_label(r'Mass [$M_\odot$]')
         ax1.set_xlabel(r'T [$R_\odot$]')
         ax1.set_ylabel(r'Z [$R_\odot$]')
@@ -252,13 +301,6 @@ if what == 'single_snap_behavior' or what == 'section':
 
         # Compute weighted histogram data
         bins = np.arange(-3.1, 3.1, .2)
-        # counts_T, bin_edges_T = np.histogram(x_T_sec, bins=50, weights=mass_sec)
-        # counts_Z, bin_edges_Z = np.histogram(z_sec, bins=50, weights=mass_sec)
-        # # Compute bin centers for plotting
-        # bin_centers_T = 0.5 * (bin_edges_T[:-1] + bin_edges_T[1:])
-        # bin_centers_Z = 0.5 * (bin_edges_Z[:-1] + bin_edges_Z[1:])
-        # # Plot as a continuous line
-        # ax2.plot(bin_centers_T, counts_T, c = 'k')
         ax2.hist(x_T_sec, bins = bins, weights=mass_sec, color='orange', alpha = 0.5)
         ax2.axvline(x = x_T_low, color='grey', linestyle = '--', label = 'Stream width')
         ax2.axvline(x = x_T_up, color='grey', linestyle = '--')
@@ -272,94 +314,90 @@ if what == 'single_snap_behavior' or what == 'section':
         ax3.set_xlabel(r'T [$R_\odot$]')
         ax3.set_ylabel(r'Density [$M_\odot/R_\odot^3$]')
 
-        plt.suptitle(r'$\theta$ = ' + f'{np.round(theta_arr[idx], 2)}, t =  {np.round(tfb_single,2)}' + r' $t_{\rm fb}$', fontsize = 25)
+        plt.suptitle(r'$\alpha$ = ' + f'{np.round(theta_wh[idx], 2)}, {check}, t =  {np.round(tfb_single,2)}' + r' $t_{\rm fb}$', fontsize = 25)
         plt.tight_layout()
 
-if what == 'expansion' or what == 'max_compr':
-    checks = ['LowResNewAMR', 'NewAMR']#, 'HiResNewAMR']
+if what == 'max_compr':
+    checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
     colors_checks = ['C1', 'yellowgreen', 'darkviolet']
     names_checks = ['Low', 'Fid', 'High']
     markers_checks = ['x', 'o', 's']
     ratio_of_pi = 2
+    vmin_ang = -np.pi/8
+    vmax_ang = np.pi/4
 
-    # check = 'LowResNewAMR'
-    if what == 'expansion':
-        fig, (ax1, ax2) = plt.subplots(2,1, figsize = (10,10))
-        ax2.set_ylabel(f'H (-$\pi$/{ratio_of_pi}) / H($\pi$/{ratio_of_pi})')
-        ax2.set_yscale('log')
-        for ax in [ax1, ax2]:
-            ax.axhline(y=1, color='grey', linestyle = '--')
-            ax.grid()
-        ax2.set_xlabel(r't [t$_{\rm fb}$]')
-    
-    if what == 'max_compr':
-        fig, ax1 = plt.subplots(1,1, figsize = (10,7))
-        ax1.set_xlabel(r't/t$_{\rm fb}$')
-        ax1.set_ylabel(r'H$_{\rm min} [R_\star]$')
-        ax1.grid()
+    # to look how the expansion/compression changes with time
+    fig, (ax1, ax2) = plt.subplots(2,1, figsize = (10,10))
+    ax1.set_ylabel(r'$\Delta (\alpha-\pi$/' + f'{ratio_of_pi}) /' + r'$\Delta (\alpha+\pi$/' + f'{ratio_of_pi})')
+    ax2.set_ylabel(r'H ($\alpha-\pi$/' + f'{ratio_of_pi}) /' + r'H($\alpha+\pi$/' + f'{ratio_of_pi})')
+    for ax in [ax1, ax2]:
+        ax.axhline(y=1, color='grey', linestyle = '--')
+        ax.set_yscale('log')
+        ax.grid()
+    ax2.set_xlabel(r't [t$_{\rm fb}$]')
+
+    # to plot where is the maximum compression
+    fig_compr, ax1_compr = plt.subplots(1,1, figsize = (12,7))
+    ax1_compr.set_xlabel(r't/t$_{\rm fb}$')
+    ax1_compr.set_ylabel(r'H$_{\rm min} [R_\star]$')
+    ax1_compr.grid()
 
     for j, check in enumerate(checks):
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-        snaps, Lum, tfb = split_data_red(check)
+        snaps, Lum, tfbs = split_data_red(check)
+        len_arr = len(snaps[tfbs< 1.05])
+        snaps, Lum, tfbs = snaps[:len_arr], Lum[:len_arr], tfbs[:len_arr]
+        print(snaps[np.argmin(np.abs(tfbs-.1))])
 
-        if what == 'expansion':
-            before_after_width = []
-            before_after_h = []
-            time_before_after = []
-            angle_check = np.pi/ratio_of_pi 
+        before_after_width = []
+        before_after_h = []
+        tfb_befaft = []
+        theta_compr = np.zeros(len(snaps))
+        height_compr = np.zeros(len(snaps))
+        width_compr = np.zeros(len(snaps))
+        Nheight_compr = np.zeros(len(snaps))
+        Nwidth_compr = np.zeros(len(snaps))
 
-            for i, snap in enumerate(snaps):
-                if snap > 247: # after 1tfb
-                    continue 
-                print(snap)
-                path = f'{abspath}/TDE/{folder}/{snap}'
-                wh = np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
-                theta_wh, width, N_width, height, N_height = wh[0], wh[1], wh[2], wh[3], wh[4]
-                idx_before = np.argmin(np.abs(theta_wh + angle_check)) # so you search for -angle
-                idx_after = np.argmin(np.abs(theta_wh - angle_check))
-                if np.abs(theta_wh[idx_before] + angle_check) > 0.1 or np.abs(theta_wh[idx_after] - angle_check) > 0.1:
-                    print(f'Warning: the angle {angle_check} is not well represented in the data, closest are {theta_wh[idx_before]} and {theta_wh[idx_after]}')
-                    continue
-                before_after_width.append(width[idx_before] / width[idx_after])
-                before_after_h.append(height[idx_before] / height[idx_after])
-                time_before_after.append(tfb[i])
-            
-            ax1.plot(time_before_after, before_after_width, c = colors_checks[j])
-            ax1.set_ylabel(f'$\Delta (-\pi$/{ratio_of_pi}) / $\Delta(\pi$/{ratio_of_pi})')
-            ax2.plot(time_before_after, before_after_h, c = colors_checks[j])
+        for i, tfb in enumerate(tfbs):
+            snap = snaps[i]
+            path = f'{abspath}/TDE/{folder}/{snap}'
+            wh = np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
+            theta_wh, width, N_width, height, N_height = wh[0], wh[1], wh[2], wh[3], wh[4]
+            angle_check_idx = np.argmin(height)
+            theta_compr[i] = theta_wh[angle_check_idx]
+            height_compr[i] = height[angle_check_idx]
+            width_compr[i] = width[angle_check_idx]
+            Nheight_compr[i] = N_height[angle_check_idx]
+            Nwidth_compr[i] = N_width[angle_check_idx]
+            theta_inc = theta_compr[i] - np.pi/ ratio_of_pi
+            theta_out = theta_compr[i] + np.pi/ ratio_of_pi
+
+            idx_before = np.argmin(np.abs(theta_wh - theta_inc)) 
+            idx_after = np.argmin(np.abs(theta_wh - theta_out))
+            if snap == 98:
+                print(theta_compr[i])
+
+            if theta_inc < -np.pi or theta_inc > 0:
+                continue
+            before_after_width.append(width[idx_before] / width[idx_after])
+            before_after_h.append(height[idx_before] / height[idx_after])
+            tfb_befaft.append(tfb)
         
-        if what == 'max_compr':
-            vmin_ang = -np.pi/8
-            vmax_ang = np.pi/4
-            theta_compr = np.zeros(247)
-            height_compr = np.zeros(247)
-            width_compr = np.zeros(247)
-            Nheight_compr = np.zeros(247)
-            Nwidth_compr = np.zeros(247)
-            for i, snap in enumerate(snaps):
-                if snap > 247: # after 1tfb
-                    continue 
-                print(snap)
-                path = f'{abspath}/TDE/{folder}/{snap}'
-                wh = np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
-                theta_wh, width, N_width, height, N_height = wh[0], wh[1], wh[2], wh[3], wh[4]
-                angle_check_idx = np.argmin(height)
-                theta_compr[i] = theta_wh[angle_check_idx]
-                height_compr[i] = height[angle_check_idx]
-                width_compr[i] = width[angle_check_idx]
-                Nheight_compr[i] = N_height[angle_check_idx]
-                Nwidth_compr[i] = N_width[angle_check_idx]
-            
-            img = ax1.scatter(tfb[:247-80], height_compr[:247-80]/Rstar, c = theta_compr[:247-80], marker = markers_checks[j], label = names_checks[j], vmin = vmin_ang, vmax = vmax_ang, cmap = 'rainbow', s = 50)
+        ax1.plot(tfb_befaft, before_after_width, c = colors_checks[j], label = names_checks[j])
+        ax2.plot(tfb_befaft, before_after_h, c = colors_checks[j])
     
-    if what == 'max_compr':
-        cbar = plt.colorbar(img)
-        # Define the exact ticks you want:
-        ticks = np.array([vmin_ang, 0, np.pi/8,  vmax_ang])
-        cbar.set_ticks(ticks)
-        cbar.ax.yaxis.set_major_formatter(FuncFormatter(format_pi_frac))
+        img_compr = ax1_compr.scatter(tfbs, height_compr/Rstar, c = theta_compr, marker = markers_checks[j], label = names_checks[j], vmin = vmin_ang, vmax = vmax_ang, cmap = 'rainbow', s = 50)
     
+    cbar = plt.colorbar(img_compr)
+    cbar.set_label(r'$\alpha$ [rad]')
+    # Define the exact ticks you want:
+    ticks = np.array([vmin_ang, 0, np.pi/8,  vmax_ang])
+    cbar.set_ticks(ticks)
+    cbar.ax.yaxis.set_major_formatter(FuncFormatter(format_pi_frac))
+    ax1_compr.legend(fontsize = 18)
+    ax1_compr.axvline(0.1, c = 'k', ls = '--')
     ax1.legend(fontsize = 18)
+    
 
         
                 
