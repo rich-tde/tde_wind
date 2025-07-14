@@ -1,5 +1,4 @@
 """ Checks for the initial high dissipation"""
-# %%
 abspath = '/Users/paolamartire/shocks'
 import sys
 sys.path.append(abspath)
@@ -16,6 +15,7 @@ else:
     import matplotlib.pyplot as plt
     from matplotlib.colors import LogNorm
     import matplotlib.colors as colors
+    from scipy.integrate import cumulative_trapezoid
 
 import numpy as np
 from Utilities.sections import make_slices
@@ -79,101 +79,152 @@ if alice:
     np.save(f'{prepath}/data/{folder}/Diss/spuriousDiss_{check}.npy', [ie_sum, orb_en_pos_sum, orb_en_neg_sum, diss_pos_sum])
 
 else:
-    snap = 106
-    checks = ['NewAMR', '']
-    color_checks = ['k', 'r']
-    checks_label = ['New AMR', 'Old']
-    
-    ie, orb_en_pos, orb_en_neg, diss_pos = \
-        np.load(f'{abspath}/data/{folder}/Diss/spuriousDiss_{check}.npy', allow_pickle=True)
+    how_to_check = 'ionization' # 'energies' or 'widths' or 'ionization'
+    t_fall_days = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
+    tfall_cgs = t_fall_days * 24 * 3600 
 
-    #%% 
-    fig, ax = plt.subplots(2,2, figsize=(20, 12))
-    fig_w, ax_w = plt.subplots(1,1, figsize=(8, 8))
-    for i, check in enumerate(checks):
-        if check == '':
-            idx_width = np.arange(190, 211) 
-            folder = f'opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-        else:
-            idx_width = np.arange(240, 261)
-            folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    if how_to_check == 'energies':
+        check = 'NewAMR'
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+        snaps, tfbs = np.loadtxt(f'{abspath}/data/{folder}/Diss/spuriousDiss_{check}_days.txt')
+        ie_sum, orb_en_pos_sum, orb_en_neg_sum, diss_pos_sum = \
+            np.load(f'{abspath}/data/{folder}/Diss/spuriousDiss_{check}.npy', allow_pickle=True)
+        ie_sum *= prel.en_converter # convert to erg
+        orb_en_neg_sum *= prel.en_converter
+        diss_pos_sum *= prel.en_converter / prel.tsol_cgs # convert to erg/s
+        # integrate diss_pos_sum over tfbs
+        tfbs_cgs = tfbs * tfall_cgs # convert to cgs
+        diss_pos_int = cumulative_trapezoid(diss_pos_sum, tfbs_cgs, initial = 0)
+        
+        plt.figure(figsize=(12, 8))
+        plt.plot(tfbs, ie_sum, c = 'forestgreen', label = r'$E_{\rm ie}$')
+        plt.plot(tfbs, np.abs(orb_en_neg_sum), c = 'deepskyblue', label = r'$|E_{\rm orb}|$ bound material')
+        plt.plot(tfbs, diss_pos_int, c = 'orangered', label = r'$E_{\rm diss}$')
+        plt.yscale('log')
+        plt.xlabel(r'$t [t_{\rm fb}]$')
+        plt.ylabel(r'Energy [erg]')
+        plt.legend(fontsize = 16)
+        plt.title(r'Material outside 0.2 $R_{\rm a}$', fontsize = 20)
 
-        x_denproj = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denxarray.npy')
-        y_denproj = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denyarray.npy')
-        flat_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denproj{snap}.npy')
-        flat_den_cgs = flat_den * prel.den_converter * prel.Rsol_cgs
-        flat_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Dissproj{snap}.npy')
-        flat_diss_cgs = flat_diss * prel.en_den_converter * prel.Rsol_cgs / prel.tsol_cgs# [erg/s/cm2]
-        # make =1 the nan values so they disappera with logcolor
-        flat_diss_cgs_plot = flat_diss_cgs
-        flat_diss_cgs_plot[np.isnan(flat_diss_cgs_plot)] = 1
-        flat_diss_cgs_plot[flat_diss_cgs_plot == 0] = 1
-        img = ax[i][0].pcolormesh(x_denproj/apo, y_denproj/apo, flat_den_cgs.T, cmap = 'plasma', \
-                            norm = colors.LogNorm(vmin = 1e2, vmax = 5e7))
-        
-        cbar = plt.colorbar(img)
-        cbar.set_label(r'Column density [g cm$^{-2}$]')
-        
-        img = ax[i][1].pcolormesh(x_denproj/apo, y_denproj/apo, flat_diss_cgs.T, \
-                            cmap = 'viridis', norm = colors.LogNorm(vmin = 1e14, vmax = 1e19))
-        
-        cbar = plt.colorbar(img)
-        cbar.set_label(r'E_{\rm diss} column density [erg s$^{-1}$cm$^{-2}]$')
+    if how_to_check == 'ionization':
+        snap = 96
+        check = 'NewAMR'
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
+        path = f'{abspath}/TDE/{folder}/{snap}'
+        tfb = np.loadtxt(f'{path}/tfb_{snap}.txt')
+        ln_T = np.loadtxt(f'Tfile.txt') 
+        ln_T = ln_T[:495]
+        ln_Rho = np.loadtxt(f'density.txt') # 604 elements
+        ln_U = np.loadtxt(f'Ufile.txt')
+        ln_U = ln_U.reshape(495,604) # 495 rows (y for colormesh), 604 columns (x for colormesh)
+        # substract vecrorially ln_rho to ln_u 
+        ln_U = ln_U - ln_Rho[None:,]
 
-        path = f'{abspath}/TDE/{folder}/{snap}' 
+        plt.figure(figsize=(12, 12))
+        img = plt.pcolormesh(ln_T, ln_Rho, ln_U.T, cmap = 'jet', alpha = 0.7) 
+        cbar = plt.colorbar(img, label=r'$\ln (U/\rho)$')
+        plt.xlabel(r'$\ln (T)$')
+        plt.ylabel(r'$\ln (\rho)$')
+
         data = make_tree(path, snap, energy = True)
-        tfb = np.loadtxt(f'{abspath}/TDE/{folder}/{snap}/tfb_{snap}.txt')
         cut = data.Den > 1e-19
-        X, Y, Z, mass, den, Vol, Mass, Press, Temp, vx, vy, vz, IE_den, Diss_den = \
-            make_slices([data.X, data.Y, data.Z, data.Mass, data.Den, data.Vol, data.Mass, data.Press, data.Temp, data.VX, data.VY, data.VZ, data.IE, data.Diss], cut)
-        dim_cell = Vol**(1/3) 
+        X, Y, Z, Vol, Temp, Diss_den = \
+            make_slices([data.X, data.Y, data.Z, data.Vol, data.Temp, data.Diss], cut)
         Diss = Diss_den * Vol
-        IE_spec = IE_den / den
+        Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
+        mask_noinfall = Rsph > 0.2*apo
+        R_noinfall, T_noinfall, Diss_noinfall = Rsph[mask_noinfall], Temp[mask_noinfall], Diss[mask_noinfall]
 
-        theta_arr, x_stream, y_stream, z_stream, thresh_cm = np.load(f'{abspath}/data/{folder}/WH/stream_{check}{snap}.npy', allow_pickle=True)
-        # img = plt.scatter(x_stream/apo, y_stream/apo, c = np.arange(len(x_stream)), label = 'stream', cmap = 'jet')
-        # cbar = plt.colorbar(img)
-        stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
-        indeces_boundary = np.load(f'{abspath}/data/{folder}/WH/indeces_boundary_{check}{snap}.npy')
-        indeces_boundary_lowX, indeces_boundary_upX, indeces_boundary_lowZ, indeces_boundary_upZ = \
-            indeces_boundary[:,0], indeces_boundary[:,1], indeces_boundary[:,2], indeces_boundary[:,3]
-        indeces_all = np.arange(len(X))
-        x_low_width, y_low_width = X[indeces_boundary_lowX], Y[indeces_boundary_lowX]
-        x_up_width, y_up_width = X[indeces_boundary_upX], Y[indeces_boundary_upX]
+        plt.figure(figsize=(14, 7), dpi=150)
+        img = plt.scatter(T_noinfall, np.abs(Diss_noinfall*prel.en_converter)/prel.tsol_cgs, s = 1, c = R_noinfall/apo, cmap='rainbow', vmin=0.15, vmax=1, rasterized=True)
+        cbar = plt.colorbar(img, label=r'$R/R_{\rm a}$')
+        plt.xlabel(r'$T$ [K]')
+        plt.ylabel(r'$|$Diss rate$|$ [erg/s]')
+        plt.loglog()
+        plt.ylim(1e29, 1e36)
+        plt.tick_params(axis='x', which='major', width=1.2, length=8, color = 'k')
+        plt.tick_params(axis='y', which='major', width=1.2, length=8, color = 'k')
+        plt.title(f't = {np.round(tfb, 2)}' + r' $t_{\rm fb}$', fontsize=20)
 
-        wh = np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
-        theta_wh, width, N_width, height, N_height = wh[0], wh[1], wh[2], wh[3], wh[4]
-                
-        ax_w.plot(theta_wh[idx_width], width[idx_width], c = color_checks[i], label = f'{checks_label[i]}')
-        for k in range(2):   
-            ax[i][k].plot(x_low_width[idx_width]/apo, y_low_width[idx_width]/apo, c = color_checks[i], label = f'{checks_label[i]}')
-            ax[i][k].plot(x_up_width[idx_width]/apo, y_up_width[idx_width]/apo, c = color_checks[i])
+    if how_to_check == 'widths':
+        snap = 106
+        checks = ['NewAMR', '']
+        color_checks = ['k', 'r']
+        checks_label = ['New AMR', 'Old']
+        fig, ax = plt.subplots(2,2, figsize=(20, 12))
+        fig_w, ax_w = plt.subplots(1,1, figsize=(8, 8))
+        for i, check in enumerate(checks):
+            if check == '':
+                idx_width = np.arange(190, 211) 
+                folder = f'opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+            else:
+                idx_width = np.arange(240, 261)
+                folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-        for i in range(2):
-            ax[i][0].set_ylabel(r'Y [$R_{\rm a}$]')
-            for j in range(2):
-                ax[j][i].set_xlim(-1, 0)
-                ax[j][i].set_ylim(-.5, .1)
-            ax[1][i].set_xlabel(r'X [$R_{\rm a}$]')
+            x_denproj = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denxarray.npy')
+            y_denproj = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denyarray.npy')
+            flat_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denproj{snap}.npy')
+            flat_den_cgs = flat_den * prel.den_converter * prel.Rsol_cgs
+            flat_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Dissproj{snap}.npy')
+            flat_diss_cgs = flat_diss * prel.en_den_converter * prel.Rsol_cgs / prel.tsol_cgs# [erg/s/cm2]
+            # make =1 the nan values so they disappera with logcolor
+            flat_diss_cgs_plot = flat_diss_cgs
+            flat_diss_cgs_plot[np.isnan(flat_diss_cgs_plot)] = 1
+            flat_diss_cgs_plot[flat_diss_cgs_plot == 0] = 1
+            img = ax[i][0].pcolormesh(x_denproj/apo, y_denproj/apo, flat_den_cgs.T, cmap = 'plasma', \
+                                norm = colors.LogNorm(vmin = 1e2, vmax = 5e7))
+            
+            cbar = plt.colorbar(img)
+            cbar.set_label(r'Column density [g cm$^{-2}$]')
+            
+            img = ax[i][1].pcolormesh(x_denproj/apo, y_denproj/apo, flat_diss_cgs.T, \
+                                cmap = 'viridis', norm = colors.LogNorm(vmin = 1e14, vmax = 1e19))
+            
+            cbar = plt.colorbar(img)
+            cbar.set_label(r'E_{\rm diss} column density [erg s$^{-1}$cm$^{-2}]$')
 
-    fig.suptitle(f't = {np.round(tfb, 2)}' +  r' t$_{\rm fb}$', fontsize = 22)
-    fig.tight_layout()
-    fig_w.suptitle(f't = {np.round(tfb, 2)}' +  r' t$_{\rm fb}$', fontsize = 22)
-    ax_w.set_xlabel(r'$\theta$ [rad]', fontsize = 16)
-    ax_w.set_ylabel(r'Width [$R_\odot$]', fontsize = 16)
-    ax_w.set_ylim(1, 5)
-    fig_w.tight_layout()
+            path = f'{abspath}/TDE/{folder}/{snap}' 
+            data = make_tree(path, snap, energy = True)
+            tfb = np.loadtxt(f'{abspath}/TDE/{folder}/{snap}/tfb_{snap}.txt')
+            cut = data.Den > 1e-19
+            X, Y, Z, mass, den, Vol, Mass, Press, Temp, vx, vy, vz, IE_den, Diss_den = \
+                make_slices([data.X, data.Y, data.Z, data.Mass, data.Den, data.Vol, data.Mass, data.Press, data.Temp, data.VX, data.VY, data.VZ, data.IE, data.Diss], cut)
+            dim_cell = Vol**(1/3) 
+            Diss = Diss_den * Vol
+            IE_spec = IE_den / den
 
-    #%%
-    ln_T = np.loadtxt(f'Tfile.txt') 
-    ln_T = ln_T[:]
-    ln_Rho = np.loadtxt(f'density.txt') 
-    ln_U = np.loadtxt(f'Ufile.txt')
-    print(np.shape(ln_T), np.shape(ln_Rho), np.shape(ln_U))
+            theta_arr, x_stream, y_stream, z_stream, thresh_cm = np.load(f'{abspath}/data/{folder}/WH/stream_{check}{snap}.npy', allow_pickle=True)
+            # img = plt.scatter(x_stream/apo, y_stream/apo, c = np.arange(len(x_stream)), label = 'stream', cmap = 'jet')
+            # cbar = plt.colorbar(img)
+            stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
+            indeces_boundary = np.load(f'{abspath}/data/{folder}/WH/indeces_boundary_{check}{snap}.npy')
+            indeces_boundary_lowX, indeces_boundary_upX, indeces_boundary_lowZ, indeces_boundary_upZ = \
+                indeces_boundary[:,0], indeces_boundary[:,1], indeces_boundary[:,2], indeces_boundary[:,3]
+            indeces_all = np.arange(len(X))
+            x_low_width, y_low_width = X[indeces_boundary_lowX], Y[indeces_boundary_lowX]
+            x_up_width, y_up_width = X[indeces_boundary_upX], Y[indeces_boundary_upX]
 
-    plt.figure(figsize=(12, 12))
-    img = plt.pcolormesh(ln_T, ln_Rho, ln_U.T, cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
-    cbar = plt.colorbar(img, label=r'$\ln U$')
+            wh = np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
+            theta_wh, width, N_width, height, N_height = wh[0], wh[1], wh[2], wh[3], wh[4]
+                    
+            ax_w.plot(theta_wh[idx_width], width[idx_width], c = color_checks[i], label = f'{checks_label[i]}')
+            for k in range(2):   
+                ax[i][k].plot(x_low_width[idx_width]/apo, y_low_width[idx_width]/apo, c = color_checks[i], label = f'{checks_label[i]}')
+                ax[i][k].plot(x_up_width[idx_width]/apo, y_up_width[idx_width]/apo, c = color_checks[i])
 
+            for i in range(2):
+                ax[i][0].set_ylabel(r'Y [$R_{\rm a}$]')
+                for j in range(2):
+                    ax[j][i].set_xlim(-1, 0)
+                    ax[j][i].set_ylim(-.5, .1)
+                ax[1][i].set_xlabel(r'X [$R_{\rm a}$]')
 
-
+        fig.suptitle(f't = {np.round(tfb, 2)}' +  r' t$_{\rm fb}$', fontsize = 22)
+        fig.tight_layout()
+        fig_w.suptitle(f't = {np.round(tfb, 2)}' +  r' t$_{\rm fb}$', fontsize = 22)
+        ax_w.set_xlabel(r'$\theta$ [rad]', fontsize = 16)
+        ax_w.set_ylabel(r'Width [$R_\odot$]', fontsize = 16)
+        ax_w.set_ylim(1, 5)
+        fig_w.tight_layout()
+        
+        
