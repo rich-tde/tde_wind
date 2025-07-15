@@ -103,9 +103,7 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
                                     
                 # Store
                 gridded_indexes[i, j, k] = idx
-                gridded_value = max(0, to_grid_cut[idx]) # so you don't have negative values in Diss
-                if gridded_value <= 0: #anyway it just happens for Diss
-                    gridded_value = 1e-20
+                gridded_value = max(1e-20, to_grid_cut[idx]) # so you don't have negative values in Diss
                 gridded[i, j, k] = gridded_value
     del to_grid_cut, Den_cut, x_cut, y_cut, z_cut, points_tree 
 
