@@ -31,7 +31,10 @@ Rstar = .47
 n = 1.5 # 'n1.5'
 compton = 'Compton'
 check = 'NewAMR' # '' or 'HiRes' or 'LowRes'
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+if check in ['NewAMR', 'HiResNewAMR', 'LowResNewAMR']:
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+else:
+    folder = f'opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 Rt = Rstar * (Mbh/mstar)**(1/3)
 R0 = 0.6 * Rt
@@ -120,7 +123,7 @@ else:
         # substract vecrorially ln_rho to ln_u 
         ln_U = ln_U - ln_Rho[None:,]
 
-        plt.figure(figsize=(12, 12))
+        plt.figure(figsize=(15, 12))
         img = plt.pcolormesh(ln_T, ln_Rho, ln_U.T, cmap = 'jet', alpha = 0.7) 
         cbar = plt.colorbar(img, label=r'$\ln (U/\rho)$')
         plt.xlabel(r'$\ln (T)$')
