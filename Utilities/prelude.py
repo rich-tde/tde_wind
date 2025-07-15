@@ -19,6 +19,7 @@ G_cgs = 6.6743e-8 # cgs
 Rsol_cgs = 6.957e10 # [cm]
 Rsol_AU = 0.00465 # [AU]
 Msol_cgs = 1.989e33 # [g]
+ev_toK = 11604.505 # [K/eV] conversion factor from eV to K
 
 # Solar and SI units
 c_SI = 2.99e8 #m

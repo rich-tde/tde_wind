@@ -30,7 +30,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'NewAMR'
+check = ''
 choosen_snaps = np.array([100, 237, 348])
 save = True
 
@@ -47,7 +47,10 @@ Rg = Rs/2
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
 e_mb = orb.e_mb(Rstar, mstar, Mbh, beta)
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+if check in ['NewAMR', 'HiResNewAMR', 'LowResNewAMR']:
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
+else:
+    folder = f'opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 solarR_to_au = 215
 
 #%% make cfr
@@ -241,10 +244,10 @@ if talk:
     from Utilities.operators import sort_list
     data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
     snaps, Lum, tfb = split_data_red('NewAMR')
-    dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_NewAMRcutDen.txt')
-    tfbdiss, LDiss = dataDiss[0], dataDiss[2] * prel.en_converter/prel.tsol_cgs 
+    # dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_NewAMRcutDen.txt')
+    # tfbdiss, LDiss = dataDiss[0], dataDiss[2] * prel.en_converter/prel.tsol_cgs 
     for i, snap in enumerate(snaps):
-        if snap not in np.arange(96,100):
+        if snap not in np.arange(96,97):
             continue
         print(snap)
         x_denproj = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denxarray.npy')
@@ -260,7 +263,7 @@ if talk:
 
         fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize = (40,15), gridspec_kw={'width_ratios': [1, 1, 0.8]})
         ax3.scatter(tfb[:i+1], Lum[:i+1], c = 'k', s = 18, label = r'L$_{\rm FLD}$')
-        ax3.plot(tfbdiss[:i+1], LDiss[:i+1], ls = '--', c = 'k', label = r'L$_{\rm diss}$')
+        # ax3.plot(tfbdiss[:i+1], LDiss[:i+1], ls = '--', c = 'k', label = r'L$_{\rm diss}$')
         ax3.set_xlabel(r't $[t_{\rm fb}]$')
         ax3.set_ylabel(r'L [erg/s]')
         ax3.set_yscale('log')
@@ -288,8 +291,8 @@ if talk:
             ax.set_xlabel(r'X [$R_{\rm a}$]')
         
         plt.tight_layout()
-        plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/denproj_diss{snap}.png')
-        plt.close()
+        # plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/denproj_diss{snap}.png')
+        # plt.close()
 
 if overview:
     t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)

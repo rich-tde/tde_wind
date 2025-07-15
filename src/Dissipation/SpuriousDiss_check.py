@@ -87,32 +87,46 @@ else:
     tfall_cgs = t_fall_days * 24 * 3600 
 
     if how_to_check == 'energies':
-        check = 'NewAMR'
-        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-        snaps, tfbs = np.loadtxt(f'{abspath}/data/{folder}/Diss/spuriousDiss_{check}_days.txt')
-        ie_sum, orb_en_pos_sum, orb_en_neg_sum, diss_pos_sum = \
-            np.load(f'{abspath}/data/{folder}/Diss/spuriousDiss_{check}.npy', allow_pickle=True)
-        ie_sum *= prel.en_converter # convert to erg
-        orb_en_neg_sum *= prel.en_converter
-        diss_pos_sum *= prel.en_converter / prel.tsol_cgs # convert to erg/s
-        # integrate diss_pos_sum over tfbs
-        tfbs_cgs = tfbs * tfall_cgs # convert to cgs
-        diss_pos_int = cumulative_trapezoid(diss_pos_sum, tfbs_cgs, initial = 0)
-        
+        checks = ['', 'NewAMR']
+        check_label = ['Old', 'NewAMR']
+        linestyles = ['--', 'solid']
+
         plt.figure(figsize=(12, 8))
-        plt.plot(tfbs, ie_sum, c = 'forestgreen', label = r'$E_{\rm ie}$')
-        plt.plot(tfbs, np.abs(orb_en_neg_sum), c = 'deepskyblue', label = r'$|E_{\rm orb}|$ bound material')
-        plt.plot(tfbs, diss_pos_int, c = 'orangered', label = r'$E_{\rm diss}$')
+        for i, check in enumerate(checks):
+            if check in ['NewAMR', 'HiResNewAMR', 'LowResNewAMR']:
+                folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+            else:
+                folder = f'opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+
+            snaps, tfbs = np.loadtxt(f'{abspath}/data/{folder}/Diss/spuriousDiss_{check}_days.txt')
+            ie_sum, orb_en_pos_sum, orb_en_neg_sum, diss_pos_sum = \
+                np.load(f'{abspath}/data/{folder}/Diss/spuriousDiss_{check}.npy', allow_pickle=True)
+            ie_sum *= prel.en_converter # convert to erg
+            orb_en_neg_sum *= prel.en_converter
+            diss_pos_sum *= prel.en_converter / prel.tsol_cgs # convert to erg/s
+            # integrate diss_pos_sum over tfbs
+            tfbs_cgs = tfbs * tfall_cgs # convert to cgs
+            diss_pos_int = cumulative_trapezoid(diss_pos_sum, tfbs_cgs, initial = 0)
+            
+            plt.title(r'Material outside 0.2 $R_{\rm a}$', fontsize = 20)
+            plt.plot(tfbs, ie_sum, c = 'forestgreen', ls = linestyles[i], label = [r'$E_{\rm ie}$' if check == 'NewAMR' else f'{check_label[i]}']) 
+            plt.plot(tfbs, np.abs(orb_en_neg_sum), c = 'deepskyblue', ls = linestyles[i], label = r'$|E_{\rm orb}|$ bound material' if check == 'NewAMR' else '')
+            plt.plot(tfbs, diss_pos_int, c = 'orangered', ls = linestyles[i], label = r'$E_{\rm diss}$' if check == 'NewAMR' else '')
+            plt.plot(tfbs, diss_pos_int, c = 'orangered', ls = linestyles[i], label = f'{check_label[i]}' if check == 'NewAMR' else '')
+
         plt.yscale('log')
         plt.xlabel(r'$t [t_{\rm fb}]$')
         plt.ylabel(r'Energy [erg]')
         plt.legend(fontsize = 16)
-        plt.title(r'Material outside 0.2 $R_{\rm a}$', fontsize = 20)
 
     if how_to_check == 'ionization':
         snap = 96
-        check = 'NewAMR'
-        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
+        check = ''
+        if check in ['NewAMR', 'HiResNewAMR', 'LowResNewAMR']:
+            folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+        else:
+            folder = f'opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+
         path = f'{abspath}/TDE/{folder}/{snap}'
         tfb = np.loadtxt(f'{path}/tfb_{snap}.txt')
         ln_T = np.loadtxt(f'Tfile.txt') 
@@ -137,17 +151,18 @@ else:
         Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
         mask_noinfall = Rsph > 0.2*apo
         R_noinfall, T_noinfall, Diss_noinfall = Rsph[mask_noinfall], Temp[mask_noinfall], Diss[mask_noinfall]
+        print(check, np.sum(Diss_noinfall[Diss_noinfall>0]))
 
         plt.figure(figsize=(14, 7), dpi=150)
-        img = plt.scatter(T_noinfall, np.abs(Diss_noinfall*prel.en_converter)/prel.tsol_cgs, s = 1, c = R_noinfall/apo, cmap='rainbow', vmin=0.15, vmax=1, rasterized=True)
-        cbar = plt.colorbar(img, label=r'$R/R_{\rm a}$')
-        plt.xlabel(r'$T$ [K]')
-        plt.ylabel(r'$|$Diss rate$|$ [erg/s]')
-        plt.loglog()
-        plt.ylim(1e29, 1e36)
-        plt.tick_params(axis='x', which='major', width=1.2, length=8, color = 'k')
-        plt.tick_params(axis='y', which='major', width=1.2, length=8, color = 'k')
-        plt.title(f't = {np.round(tfb, 2)}' + r' $t_{\rm fb}$', fontsize=20)
+        # img = plt.scatter(T_noinfall, np.abs(Diss_noinfall*prel.en_converter)/prel.tsol_cgs, s = 1, c = R_noinfall/apo, cmap='rainbow', vmin=0.15, vmax=1, rasterized=True)
+        # cbar = plt.colorbar(img, label=r'$R/R_{\rm a}$')
+        # plt.xlabel(r'$T$ [K]')
+        # plt.ylabel(r'$|$Diss rate$|$ [erg/s]')
+        # plt.loglog()
+        # plt.ylim(1e30, 1e38)
+        # plt.tick_params(axis='x', which='major', width=1.2, length=8, color = 'k')
+        # plt.tick_params(axis='y', which='major', width=1.2, length=8, color = 'k')
+        # plt.title(f'run: {check} , t = {np.round(tfb, 2)}' + r' $t_{\rm fb}$', fontsize=20)
 
     if how_to_check == 'widths':
         snap = 106
