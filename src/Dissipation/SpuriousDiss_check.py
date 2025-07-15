@@ -56,6 +56,7 @@ if alice:
     orb_en_pos_sum = np.zeros(len(snaps))
     orb_en_neg_sum = np.zeros(len(snaps))
     diss_pos_sum = np.zeros(len(snaps))
+    diss_neg_sum = np.zeros(len(snaps))
     for i, snap in enumerate(snaps):
         print(snap, flush = True)
 
@@ -78,8 +79,9 @@ if alice:
         orb_en_pos_sum[i] = np.sum(orb_en_cut[orb_en_cut > 0])
         orb_en_neg_sum[i] = np.sum(orb_en_cut[orb_en_cut < 0])
         diss_pos_sum[i] = np.sum(diss_cut[diss_cut > 0])
+        diss_neg_sum[i] = np.sum(diss_cut[diss_cut < 0])
 
-    np.save(f'{prepath}/data/{folder}/Diss/spuriousDiss_{check}.npy', [ie_sum, orb_en_pos_sum, orb_en_neg_sum, diss_pos_sum])
+    np.save(f'{prepath}/data/{folder}/Diss/spuriousDiss_{check}.npy', [ie_sum, orb_en_pos_sum, orb_en_neg_sum, diss_pos_sum, diss_neg_sum])
 
 else:
     how_to_check = 'ionization' # 'energies' or 'widths' or 'ionization'

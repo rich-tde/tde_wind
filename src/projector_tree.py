@@ -164,8 +164,7 @@ if __name__ == '__main__':
         for snap in snaps:
             if snap != 106:
                 continue
-            print(snap, flush=False)
-            sys.stdout.flush()
+            print(snap, flush=True)
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
             else:
