@@ -87,6 +87,7 @@ else:
     how_to_check = 'energies' # 'energies' or 'widths' or 'ionization'
     t_fall_days = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
     tfall_cgs = t_fall_days * 24 * 3600 
+    recomb_en = 13.6*prel.ev_to_erg * mstar*prel.Msol_cgs/prel.m_p_cgs
 
     if how_to_check == 'energies':
         checks = ['', 'NewAMR']
@@ -117,6 +118,7 @@ else:
             ax[i].plot(tfbs, diss_neg_int, c = 'darkviolet', label = r'$|E_{\rm diss, -}|$')
             ax[i].set_yscale('log')
             ax[i].set_xlabel(r'$t [t_{\rm fb}]$')
+            ax[i].axhline(recomb_en, c = 'k', ls = '--', label = r'$E_{\rm rec}$')
             ax[i].set_title(f'{check_label[i]}', fontsize = 20)
 
         ax[0].legend(fontsize = 16)
@@ -251,3 +253,4 @@ else:
         fig_w.tight_layout()
         
         
+# %%
