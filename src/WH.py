@@ -188,25 +188,6 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, just_plane = True)
         x_plane, y_plane, z_plane, dim_plane, den_plane, mass_plane = \
             sec.make_slices([x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut], condition_T)
-        # plot section at pericenter
-        # if idx == np.argmin(np.abs(theta_arr)): 
-        #     print(theta_arr[idx])
-        #     from matplotlib import colors
-        #     fig, (ax1, ax2) = plt.subplots(1,2, figsize = (20,8))
-        #     img = ax1.scatter(x_T, z_plane, c = den_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 1e-6))
-        #     cbar = plt.colorbar(img)
-        #     cbar.set_label(r'Density $[M_\odot/R_\odot^3]$')
-        #     ax1.set_ylabel(r'Z [$R_\odot$]')
-        #     img = ax2.scatter(x_T, z_plane, c = mass_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-12, vmax = 1e-8))
-        #     cbar = plt.colorbar(img)
-        #     cbar.set_label(r'Cell mass $[R_\odot]$')
-        #     for ax in [ax1, ax2]:
-        #         ax.scatter(0,0, edgecolor= 'k', marker = 'o', facecolors='none', s=80)
-        #         ax.set_xlim(-50, 30)
-        #         ax.set_ylim(-10, 10)
-        #         ax.set_xlabel(r'T [$R_\odot$]')
-        #     plt.suptitle('(0,0) is the maximum density point of the radial plane')
-        #     plt.tight_layout()
         # Cut the TZ plane to not keep points too far away.
         r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
         thresh = get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) #8 * Rstar * (r_stream_rad[idx]/Rp)**(1/2)
@@ -219,8 +200,8 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         x_cmTR[idx] = np.sum(x_plane * mass_plane) / np.sum(mass_plane)
         y_cmTR[idx]= np.sum(y_plane * mass_plane) / np.sum(mass_plane)
         z_cmTR[idx] = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
-
     print('Iteration radial-transverse done', flush = True)
+
     # Second iteration: find the center of mass of each transverse plane corresponding to COM stream
     x_cm = np.zeros(len(theta_arr))
     y_cm = np.zeros(len(theta_arr))

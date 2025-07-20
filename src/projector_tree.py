@@ -130,7 +130,7 @@ if __name__ == '__main__':
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = 'NewAMR'
+    check = ''
     compton = 'Compton'
     what_to_grid = 'Diss'
     save_fig = False
@@ -180,9 +180,10 @@ if __name__ == '__main__':
         import src.orbits as orb
         from plotting.paper.IHopeIsTheLast import split_data_red
         from Utilities.operators import from_cylindric
-        snap = 106
+        snap = 348
         faraway = ''
         what_to_grid = 'Diss' #['tau_scatt', 'tau_ross', 'Den']
+        sign = '' # '' for positive, '_neg' for negative
 
         snaps, Lum, tfb = split_data_red('NewAMR')
         tfb_single = tfb[np.argmin(np.abs(snap-snaps))]
@@ -211,7 +212,7 @@ if __name__ == '__main__':
         x_arr_ell, y_arr_ell = from_cylindric(theta_arr, r_arr_ell)
         
         fig, ax = plt.subplots(1, 1, figsize = (14,7))
-        flat_q = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{what_to_grid}{faraway}proj{snap}.npy')
+        flat_q = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{what_to_grid}{faraway}proj{snap}{sign}.npy')
         x_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{what_to_grid}{faraway}xarray.npy')
         y_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{what_to_grid}{faraway}yarray.npy')
         dataph = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
@@ -238,12 +239,12 @@ if __name__ == '__main__':
             cbar_label = r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$'
             cmap = 'viridis'
             
-        img = ax.pcolormesh(x_radii/apo, y_radii/apo, flat_q.T, cmap = cmap,
+        img = ax.pcolormesh(x_radii/apo, y_radii/apo, np.abs(flat_q).T, cmap = cmap,
                             norm = colors.LogNorm(vmin = vmin, vmax = vmax))
         cb = plt.colorbar(img)
-        ax.plot(xph[indecesorbital]/apo, yph[indecesorbital]/apo, c = 'white', markersize = 5, marker = 'H', label = r'$R_{\rm ph}$')
+        # ax.plot(xph[indecesorbital]/apo, yph[indecesorbital]/apo, c = 'white', markersize = 5, marker = 'H', label = r'$R_{\rm ph}$')
         # just to connect the first and last 
-        ax.plot([xph[first_idx]/apo, xph[last_idx]/apo], [yph[first_idx]/apo, yph[last_idx]/apo], c = 'white', markersize = 1, marker = 'H')
+        # ax.plot([xph[first_idx]/apo, xph[last_idx]/apo], [yph[first_idx]/apo, yph[last_idx]/apo], c = 'white', markersize = 1, marker = 'H')
         cb.set_label(cbar_label)
         ax.set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
         ax.set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
@@ -254,5 +255,6 @@ if __name__ == '__main__':
             
         plt.tight_layout()
         ax.set_title(f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$, res: ' + f'{check}', color = 'k', fontsize = 25)
+        plt.savefig(f'{prepath}/Figs/Test/{folder}/projection/{what_to_grid}{faraway}proj{snap}{sign}.png', dpi = 300)
         plt.show()
 # %%

@@ -44,7 +44,7 @@ apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
 if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
-    snaps, tfb = snaps[tfb<0.3], tfb[tfb<0.30] # select only the first 30% of the fall
+    # snaps, tfb = snaps[tfb<0.3], tfb[tfb<0.30] # select only the first 30% of the fall
     
     with open(f'{prepath}/data/{folder}/Diss/spuriousDiss_{check}_days.txt', 'w') as file:
             file.write(f'# In spuriousDiss_{check}, you will find internal, orbital+, orbital-, diss+ energy, all cut in density and R>0.2*apo.')
@@ -84,7 +84,7 @@ if alice:
     np.save(f'{prepath}/data/{folder}/Diss/spuriousDiss_{check}.npy', [ie_sum, orb_en_pos_sum, orb_en_neg_sum, diss_pos_sum, diss_neg_sum])
 
 else:
-    how_to_check = 'energies' # 'energies' or 'widths' or 'ionization'
+    how_to_check = 'ionization' # 'energies' or 'widths' or 'ionization'
     t_fall_days = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
     tfall_cgs = t_fall_days * 24 * 3600 
     recomb_en = 13.6*prel.ev_to_erg * mstar*prel.Msol_cgs/prel.m_p_cgs
@@ -128,7 +128,7 @@ else:
 
     if how_to_check == 'ionization':
         snap = 96
-        check = ''
+        check = 'NewAMR'
         if check in ['NewAMR', 'HiResNewAMR', 'LowResNewAMR']:
             folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         else:
@@ -136,40 +136,57 @@ else:
 
         path = f'{abspath}/TDE/{folder}/{snap}'
         tfb = np.loadtxt(f'{path}/tfb_{snap}.txt')
-        ln_T = np.loadtxt(f'Tfile.txt') 
+        ln_T = np.loadtxt(f'Tfile.txt') # 298980 elements, (first) 495 unique
         ln_T = ln_T[:495]
         ln_Rho = np.loadtxt(f'density.txt') # 604 elements
         ln_U = np.loadtxt(f'Ufile.txt')
         ln_U = ln_U.reshape(495,604) # 495 rows (y for colormesh), 604 columns (x for colormesh)
-        # substract vecrorially ln_rho to ln_u 
-        ln_U = ln_U - ln_Rho[None:,]
+        # substract vectorially ln_rho to ln_u 
+        ln_U_rho = ln_U - ln_Rho[None:,]
+        log10_T = np.log10(np.exp(ln_T))
+        log10_Rho = np.log10(np.exp(ln_Rho))
+        log10_U_rho = np.log10(np.exp(ln_U_rho))
 
         plt.figure(figsize=(15, 12))
-        img = plt.pcolormesh(ln_T, ln_Rho, ln_U.T, cmap = 'jet', alpha = 0.7) 
-        cbar = plt.colorbar(img, label=r'$\ln (U/\rho)$')
-        plt.xlabel(r'$\ln (T)$')
-        plt.ylabel(r'$\ln (\rho)$')
+        img = plt.pcolormesh(log10_T, log10_Rho, log10_U_rho.T, cmap = 'jet', alpha = 0.7) 
+        cbar = plt.colorbar(img, label=r'$\log_{10}$ specific i.e. [erg/g]')
+        plt.xlabel(r'$\log_{10} (T)$ [K]')
+        plt.ylabel(r'$\log_{10} (\rho)$ [g/cm$^3$]')
+
 
         data = make_tree(path, snap, energy = True)
         cut = data.Den > 1e-19
-        X, Y, Z, Vol, Temp, Diss_den = \
-            make_slices([data.X, data.Y, data.Z, data.Vol, data.Temp, data.Diss], cut)
-        Diss = Diss_den * Vol
-        Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
-        mask_noinfall = Rsph > 0.2*apo
-        R_noinfall, T_noinfall, Diss_noinfall = Rsph[mask_noinfall], Temp[mask_noinfall], Diss[mask_noinfall]
-        print(check, np.sum(Diss_noinfall[Diss_noinfall>0]))
+        X, Y, Z, Vol, Temp, Den, Diss_den, IE_den = \
+            make_slices([data.X, data.Y, data.Z, data.Vol, data.Temp, data.Den, data.Diss, data.IE], cut)
+        IE_den_cgs = IE_den * prel.en_den_converter
+        # print(np.max(IE_den_cgs)*1e-11, np.mean(IE_den_cgs)*1e-11)
+        # Diss = Diss_den * Vol
+        # Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
+        # if np.sum(Diss[Diss>0]) > np.abs(np.sum(Diss[Diss<0])):
+        #     cut_diss = Diss > 0
+        #     print('Dissipation has positive sign')
+        # else:
+        #     cut_diss = Diss < 0
+        #     print('Dissipation has negative sign')
+        # mask_noinfall = np.logical_and(cut_diss, Rsph > 0.2*apo)
+        # R_noinfall, T_noinfall, Den_infall, Diss_noinfall = make_slices([Rsph, Temp, Den, Diss], mask_noinfall)
+        # Den_infall_cgs = Den_infall * prel.den_converter
 
-        plt.figure(figsize=(14, 7), dpi=150)
-        img = plt.scatter(T_noinfall, np.abs(Diss_noinfall*prel.en_converter)/prel.tsol_cgs, s = 1, c = R_noinfall/apo, cmap='rainbow', vmin=0.15, vmax=1, rasterized=True)
-        cbar = plt.colorbar(img, label=r'$R/R_{\rm a}$')
-        plt.xlabel(r'$T$ [K]')
-        plt.ylabel(r'$|$Diss rate$|$ [erg/s]')
-        plt.loglog()
-        plt.ylim(1e30, 1e38)
-        plt.tick_params(axis='x', which='major', width=1.2, length=8, color = 'k')
-        plt.tick_params(axis='y', which='major', width=1.2, length=8, color = 'k')
-        plt.title(f'run: {check} , t = {np.round(tfb, 2)}' + r' $t_{\rm fb}$', fontsize=20)
+        # fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 14), dpi=150)
+        # img = ax1.scatter(T_noinfall, np.abs(Diss_noinfall*prel.en_converter)/prel.tsol_cgs, c= Den_infall_cgs, s = 1, cmap='rainbow', norm = LogNorm(vmin=1e-9, vmax=1), rasterized=True)
+        # cbar = plt.colorbar(img, label=r'$\rho$ [g/cm$^3$]')
+        # img = ax2.scatter(T_noinfall, np.abs(Diss_noinfall*prel.en_converter)/prel.tsol_cgs, s = 1, c = R_noinfall/apo, cmap='rainbow', vmin=0.4, vmax=1, rasterized=True)
+        # cbar = plt.colorbar(img, label=r'R/R$_{\rm a}$')
+
+        # for ax in [ax1, ax2]:
+        #     ax.loglog()
+        #     ax.set_ylabel(r'$|$Diss rate$|$ [erg/s]')
+        #     ax.set_ylim(1e33, 2e38)
+        #     ax.tick_params(axis='both', which='major', width=1.2, length=8, color = 'k')
+        #     ax.tick_params(axis='both', which='minor', width=1, length=4, color = 'k')
+        # ax2.set_xlabel(r'T [K]')
+        # plt.suptitle(f'run: {check}, points with $R>0.2R_a$, t = {np.round(tfb, 2)}' + r' $t_{\rm fb}$', fontsize=20)
+        # plt.tight_layout()
 
     if how_to_check == 'widths':
         snap = 106
