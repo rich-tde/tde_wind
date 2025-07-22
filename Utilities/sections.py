@@ -47,7 +47,7 @@ def tangent_versor(x_orbit, y_orbit, idx, smooth_orbit = False):
     else:
         return vers_tg
          
-def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit, idx, just_plane = True):
+def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit, idx, rstar, just_plane = True):
     """
     Find the transverse plane to the orbit at the chosen point.
     If coord == True, it returns the coordinates of the data in the plane with respect to the new coordinates system,
@@ -63,18 +63,12 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit
     dot_product = np.dot(data_trasl, vers_tg) #that's the projection of the data on the tangent vector
     condition_tra = np.abs(dot_product) < dim_data 
 
-    # Slice as wide as the widest --> more cells in the center 
-    # Consider just the cells nearby (both in 2D and 3D)
-    # R_data_mod = np.sqrt(x_data**2 + y_data**2+ z_data**2)
-    # R_chosen_mod = np.sqrt(x_chosen**2 + y_chosen**2 + z_chosen**2)
-    # r_data_mod = np.sqrt(x_data**2 + y_data**2)
-    # r_chosen_mod = np.sqrt(x_chosen**2 + y_chosen**2)
-    s = 0.5 #[R_star] since in BonnerotLu22 the planes have thickness 1R_star. If you use step_ang: 2*step_ang * r_chosen_mod
-    condition_x = np.abs(x_data - x_chosen) < s
-    condition_y = np.abs(y_data - y_chosen) < s
+    s = 0.5 * rstar  # so thickess is = R_star as in BonnerotLu22. If you use step_ang: 2*step_ang * r_chosen_mod
+    condition_x = np.abs(x_data_trasl) < s
+    condition_y = np.abs(y_data_trasl) < s
     condition_z = np.abs(z_data - z_chosen) < s
     condition_coord = np.logical_and(condition_x, np.logical_and(condition_y, condition_z))
-    # Find the widest cell
+    # keep only the points in the tg plane and, if possible, near the chosen point
     if (condition_tra&condition_coord).any() != False:
         max_dim = np.max(dim_data[condition_tra&condition_coord])#_R&condition_r])
         # Change the condition_tra
@@ -89,14 +83,13 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit
     vers_norm = np.array([xRhat[0], xRhat[1]])
     # New x (T) coordinate
     x_onplaneall = np.dot(data_trasl, vers_norm)
-    # condition_cut = np.abs(x_onplaneall) < 100
-    # condition_tra = np.logical_and(condition_tra, condition_cut)
+    # y_onplaneall = np.dot(data_trasl, vers_tg)
     if just_plane:
         x_onplane = x_onplaneall[condition_tra]
-        # y_onplane = np.dot(data_trasl[condition_coord], vers_tg)
+        # y_onplane = y_onplaneall[condition_tra]
         # find the T of xchosen (won't be 0 because stream points are among simulation data)
         rad_trasl = np.sqrt(x_data_trasl**2 + y_data_trasl**2)
-        x0 = x_onplaneall[np.argmin(rad_trasl)]
+        x0 = x_onplaneall[np.argmin(rad_trasl)] # since for now the stream is not in the data (u don't query it), it's not 0
         return condition_tra, x_onplane, x0
     else:
         return condition_tra, x_onplaneall

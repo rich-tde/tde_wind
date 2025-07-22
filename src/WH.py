@@ -133,21 +133,22 @@ def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R
         y_max[i] = y_plane[idx_max]
         z_max[i] = z_plane[idx_max]
         
-        if np.logical_and(alice == False, i == 130):
-            r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
-            r_central = np.sqrt(x_max[i]**2 + y_max[i]**2 + z_max[i]**2)
-            fig, ax1 = plt.subplots(1,1, figsize = (10,5))
-            ax1.scatter(r_plane/Rt, den_plane, s = 10, c = 'k', label = 'Density')
-            ax1.set_xlabel(r'R [$R_{\rm t}$]')
-            ax1.set_ylabel(r'Density $[M_\odot/R_\odot^3]$')
-            ax1.set_xlim(0.1, r_central/Rt+1)
-            ax1.axvline(r_central/Rt, c = 'yellowgreen')
-            ax1.set_title(r'$\theta$ = ' + f'{np.round(theta_arr[i],2)} rad', fontsize = 14)
-            plt.show()
+        if np.logical_and(alice == False, __name__ == '__main__'):
+            if i == idx_forplot:
+                r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
+                r_central = np.sqrt(x_max[i]**2 + y_max[i]**2 + z_max[i]**2)
+                fig, ax1 = plt.subplots(1,1, figsize = (10,5))
+                ax1.scatter(r_plane/Rt, den_plane, s = 10, c = 'k', label = 'Density')
+                ax1.set_xlabel(r'R [$R_{\rm t}$]')
+                ax1.set_ylabel(r'Density $[M_\odot/R_\odot^3]$')
+                ax1.set_xlim(0.1, r_central/Rt+1)
+                ax1.axvline(r_central/Rt, c = 'yellowgreen')
+                ax1.set_title(r'$\theta$ = ' + f'{np.round(theta_arr[i],2)} rad', fontsize = 14)
+                plt.show()
 
     return x_max, y_max, z_max    
 
-def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, theta_arr, params, all_iterations = False):
+def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, theta_arr, params, Rstar, all_iterations = False):
     """ Find the centres of mass in the transverse plane
     Parameters
     ----------
@@ -185,7 +186,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     for idx in range(len(theta_arr)):
         # print(idx)
         # Find the transverse plane
-        condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, just_plane = True)
+        condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, Rstar, just_plane = True)
         x_plane, y_plane, z_plane, dim_plane, den_plane, mass_plane = \
             sec.make_slices([x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut], condition_T)
         # Cut the TZ plane to not keep points too far away.
@@ -210,7 +211,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     for idx in range(len(theta_arr)):
         # print(idx)
         # Find the transverse plane
-        condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, just_plane = True)
+        condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, Rstar, just_plane = True)
         x_plane, y_plane, z_plane, dim_plane, den_plane, mass_plane = \
             sec.make_slices([x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut], condition_T)
         # plot section at pericenter
@@ -305,7 +306,7 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     indeces = np.arange(len(x_data))
     theta_arr, x_stream, y_stream, z_stream, thresh_stream = stream[0], stream[1], stream[2], stream[3], stream[4]
     # Find the transverse plane 
-    condition_T, x_Tplane, _ = sec.transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, just_plane = True)
+    condition_T, x_Tplane, _ = sec.transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, Rstar, just_plane = True)
     x_plane, y_plane, z_plane, dim_plane, mass_plane, indeces_plane = \
         sec.make_slices([x_data, y_data, z_data, dim_data, mass_data, indeces], condition_T)
     r_spherical_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
@@ -385,70 +386,70 @@ def find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, 
     ncells_h = np.round(height/dim_cell_mean, 0) # round to the nearest integer
 
     indeces_boundary = np.array([idx_low, idx_up, idx_low_h, idx_up_h]).astype(int)
-    x_T_width = np.array([x_T_low, x_T_up])
     w_params = np.array([width, ncells_w])
     h_params = np.array([height, ncells_h])
 
-    if np.logical_and(alice == False, idx == 120): #np.abs(theta_arr[idx] - 1.5) == np.min(np.abs(theta_arr - 1.5)):
-        # Compute weighted histogram data
-        counts_T, bin_edges_T = np.histogram(x_Tplane, bins=50, weights=mass_plane)
-        counts_Z, bin_edges_Z = np.histogram(z_plane, bins=50, weights=mass_plane)
-        # Compute bin centers for plotting
-        bin_centers_T = 0.5 * (bin_edges_T[:-1] + bin_edges_T[1:])
-        bin_centers_Z = 0.5 * (bin_edges_Z[:-1] + bin_edges_Z[1:])
-        # Plot as a continuous line
-        fig, ((ax1, ax2), (ax3,ax4)) = plt.subplots(2,2, figsize = (12,12))
-        ax1.plot(bin_centers_T, counts_T, c = 'k')
-        ax1.axvline(x=x_T_low, color='grey', linestyle = '--', label = 'Stream width')
-        ax1.axvline(x=x_T_up, color='grey', linestyle = '--')
-        # find standard deviation of the counts
-        # ax1.axhline(np.percentile(counts_T, 50), color='red', linestyle = '--', label = 'std counts')
-        # ax1.axhline(np.percentile(counts_T, 100-(mass_percentage*100)/2), color='red', linestyle = '--', label = 'std counts')
-        ax1.legend()            
+    if np.logical_and(alice == False, __name__ == '__main__'):
+        if idx == idx_forplot: #np.abs(theta_arr[idx] - 1.5) == np.min(np.abs(theta_arr - 1.5)):
+            # Compute weighted histogram data
+            counts_T, bin_edges_T = np.histogram(x_Tplane, bins=50, weights=mass_plane)
+            counts_Z, bin_edges_Z = np.histogram(z_plane, bins=50, weights=mass_plane)
+            # Compute bin centers for plotting
+            bin_centers_T = 0.5 * (bin_edges_T[:-1] + bin_edges_T[1:])
+            bin_centers_Z = 0.5 * (bin_edges_Z[:-1] + bin_edges_Z[1:])
+            # Plot as a continuous line
+            fig, ((ax1, ax2), (ax3,ax4)) = plt.subplots(2,2, figsize = (12,12))
+            ax1.plot(bin_centers_T, counts_T, c = 'k')
+            ax1.axvline(x=x_T_low, color='grey', linestyle = '--', label = 'Stream width')
+            ax1.axvline(x=x_T_up, color='grey', linestyle = '--')
+            # find standard deviation of the counts
+            # ax1.axhline(np.percentile(counts_T, 50), color='red', linestyle = '--', label = 'std counts')
+            # ax1.axhline(np.percentile(counts_T, 100-(mass_percentage*100)/2), color='red', linestyle = '--', label = 'std counts')
+            ax1.legend()            
 
-        ax1.set_ylabel(r'Mass [$M_\odot$]')
-        ax1.set_xlabel(r'T [$R_\odot$]')
+            ax1.set_ylabel(r'Mass [$M_\odot$]')
+            ax1.set_xlabel(r'T [$R_\odot$]')
 
-        img = ax2.scatter(x_Tplane, z_plane, c = mass_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 4e-10, vmax = 4e-8))
-        cbar = plt.colorbar(img)
-        cbar.set_label(r'Mass [$M_\odot$]')
-        ax2.set_xlabel(r'T [$R_\odot$]')
-        ax2.set_ylabel(r'Z [$R_\odot$]')
-        ax2.axvline(x=x_T_low, color='grey', linestyle = '--')
-        ax2.axvline(x=x_T_up, color='grey', linestyle = '--')
-        ax2.axhline(y=z_low, color='grey', linestyle = '--')
-        ax2.axhline(y=z_up, color='grey', linestyle = '--')
-        #ticks
-        original_ticks = ax1.get_xticks()
-        mid_ticks = (original_ticks[1:] + original_ticks[:-1]) / 2
-        new_ticks = np.concatenate((original_ticks, mid_ticks))
-        for ax in [ax1, ax2]:
-            ax.set_xticks(new_ticks)
-            ax.set_xticks(new_ticks)
-            labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]
-            ax.set_xticklabels(labels)
-            ax.set_xlim(x_T_low-2, x_T_up+2)
-        ax2.set_ylim(z_low-1, z_up+1)
+            img = ax2.scatter(x_Tplane, z_plane, c = mass_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 4e-10, vmax = 4e-8))
+            cbar = plt.colorbar(img)
+            cbar.set_label(r'Mass [$M_\odot$]')
+            ax2.set_xlabel(r'T [$R_\odot$]')
+            ax2.set_ylabel(r'Z [$R_\odot$]')
+            ax2.axvline(x=x_T_low, color='grey', linestyle = '--')
+            ax2.axvline(x=x_T_up, color='grey', linestyle = '--')
+            ax2.axhline(y=z_low, color='grey', linestyle = '--')
+            ax2.axhline(y=z_up, color='grey', linestyle = '--')
+            #ticks
+            original_ticks = ax1.get_xticks()
+            mid_ticks = (original_ticks[1:] + original_ticks[:-1]) / 2
+            new_ticks = np.concatenate((original_ticks, mid_ticks))
+            for ax in [ax1, ax2]:
+                ax.set_xticks(new_ticks)
+                ax.set_xticks(new_ticks)
+                labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]
+                ax.set_xticklabels(labels)
+                ax.set_xlim(x_T_low-2, x_T_up+2)
+            ax2.set_ylim(z_low-1, z_up+1)
 
-        ax3.plot(bin_centers_Z, counts_Z,  c = 'k')
-        ax3.axvline(x=z_low, color='grey', linestyle = '--')
-        ax3.axvline(x=z_up, color='grey', linestyle = '--')
-        ax3.set_ylabel(r'Mass [$M_\odot$]')
-        ax3.set_xlabel(r'Z [$R_\odot$]')    
-        original_ticks = ax3.get_xticks()
-        mid_ticks = (original_ticks[1:] + original_ticks[:-1]) / 2
-        new_ticks = np.concatenate((original_ticks, mid_ticks))
-        ax3.set_xticks(new_ticks)
-        # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]
-        # ax3.set_xticklabels(labels)
-        ax3.set_xlim(z_low-1.5, z_up+1.5)
+            ax3.plot(bin_centers_Z, counts_Z,  c = 'k')
+            ax3.axvline(x=z_low, color='grey', linestyle = '--')
+            ax3.axvline(x=z_up, color='grey', linestyle = '--')
+            ax3.set_ylabel(r'Mass [$M_\odot$]')
+            ax3.set_xlabel(r'Z [$R_\odot$]')    
+            original_ticks = ax3.get_xticks()
+            mid_ticks = (original_ticks[1:] + original_ticks[:-1]) / 2
+            new_ticks = np.concatenate((original_ticks, mid_ticks))
+            ax3.set_xticks(new_ticks)
+            # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]
+            # ax3.set_xticklabels(labels)
+            ax3.set_xlim(z_low-1.5, z_up+1.5)
 
-        for ax in [ax1, ax2, ax3]:
-            ax.tick_params(axis='both', which='major', length=10,)
-        plt.tight_layout()
-        plt.suptitle(r'Width and height at $\theta$' + f'= {np.round(theta_arr[idx], 2)} rad', fontsize = 16)
+            for ax in [ax1, ax2, ax3]:
+                ax.tick_params(axis='both', which='major', length=10)
+            plt.tight_layout()
+            plt.suptitle(r'Width and height at $\theta$' + f'= {np.round(theta_arr[idx], 2)} rad', fontsize = 16)
 
-    return indeces_boundary, x_T_width, w_params, h_params, thresh
+    return indeces_boundary, w_params, h_params
 
 def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, stream, params, mass_percentage = 0.8):
     """ Find width and height all along the stream """
@@ -457,11 +458,10 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, stream, param
     # Find the boundaries for each theta
     theta_wh = []
     indeces_boundary = []
-    x_T_width = []
     w_params = []
     h_params = []
     for i in range(len(theta_arr)):
-        indeces_boundary_i, x_T_width_i, w_params_i, h_params_i, _ = \
+        indeces_boundary_i, w_params_i, h_params_i = \
             find_single_boundaries(x_data, y_data, z_data, dim_data, mass_data, stream, i, params, mass_percentage)
         if indeces_boundary_i is None:
             print(f'Skipping theta {theta_arr[i]} due to ValueError in boundary finding.', flush = True)
@@ -469,35 +469,30 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, stream, param
         else:
             theta_wh.append(theta_arr[i])
             indeces_boundary.append(indeces_boundary_i)
-            x_T_width.append(x_T_width_i)
             w_params.append(w_params_i)
             h_params.append(h_params_i)
     indeces_boundary = np.array(indeces_boundary).astype(int)
-    x_T_width = np.array(x_T_width)
     w_params = np.transpose(np.array(w_params)) # line 1: width, line 2: ncells
     h_params = np.transpose(np.array(h_params)) # line 1: height, line 2: ncells
-    return theta_wh, indeces_boundary, x_T_width, w_params, h_params
+    return theta_wh, indeces_boundary, w_params, h_params
 
 if __name__ == '__main__':
     from Utilities.operators import from_cylindric
-    print('We are in folder', folder, flush = True)
     theta_lim =  np.pi
     step = 0.02
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_arr = Ryan_sampler(theta_init)
-    # r_init = orb.keplerian_orbit(theta_init, .1, 13, ecc = 0.99)
-    # r_arr = orb.keplerian_orbit(theta_arr, .1, 13, ecc = 0.99)
-    # x, y = from_cylindric(theta_init, r_init)
-    # x_arr, y_arr = from_cylindric(theta_arr, r_arr)
-    # plt.figure(figsize = (15,5))
-    # plt.scatter(x,y, c = 'k', s = 20, label = 'Initially spaced angles')
-    # plt.scatter(x_arr, y_arr, c = 'r', s = 5, label = 'Our sample')
-    # plt.legend()
-    
+    if not alice:
+        theta_arr = theta_arr[136:146]
+        idx_forplot = 4
+
     if alice:
         snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
     else: 
+        check = 'NewAMR'
         snaps = [238]
+    
+    print('We are in res', check, flush = True)
     for i, snap in enumerate(snaps):
         print(f'Snap {snap}', flush = True)
 
@@ -515,12 +510,10 @@ if __name__ == '__main__':
         R = np.sqrt(X**2 + Y**2 + Z**2)
         THETA, RADIUS_cyl = to_cylindric(X, Y)
         dim_cell = Vol**(1/3) 
-        x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params)
+        x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, Rstar)
         stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
-        theta_wh, indeces_boundary, x_T_width, w_params, h_params  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.8)
-        #%%
-
-        
+        theta_wh, indeces_boundary, w_params, h_params  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.8)
+    
         if save:
             np.save(f'{abspath}/data/{folder}/WH/stream_{check}{snap}.npy', stream)
             with open(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt','w') as file:
@@ -536,3 +529,21 @@ if __name__ == '__main__':
                 file.write(f'# Ncells height \n')
                 file.write((' '.join(map(str, h_params[1])) + '\n'))
             np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{check}{snap}.npy', indeces_boundary)
+        
+        if alice == False:
+            fig, (ax1, ax2) = plt.subplots(1,2,figsize=(15, 5))
+            ax1.plot(theta_wh*radians, w_params[0], c = 'k', label = 'isodensity (80\% mass enclosed)')
+            # print(f'N cells width and H: {w_params[1][idx_forplot]} {h_params_sp[1][idx_forplot]}')
+            ax1.legend(fontsize = 16)
+            ax1.set_ylabel(r'Width [$R_\odot$]')
+            ax1.set_ylim(1.1, 10)
+            ax2.plot(theta_wh*radians, h_params[0], c = 'k')
+            ax2.set_ylabel(r'Height [$R_\odot$]')
+            ax2.set_ylim(.2, 10)
+            for ax in [ax1, ax2]:
+                ax.set_yscale('log')
+                ax.set_xlabel(r'$\theta$')
+                ax.set_xlim(-2.5, 2.5)
+                ax.tick_params(axis='both', which='major', length = 8, width = 1.2)
+                ax.tick_params(axis='both', which='minor', length = 4, width = 1)
+            plt.tight_layout()

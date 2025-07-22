@@ -31,6 +31,7 @@ Rstar = .47
 n = 1.5 # 'n1.5'
 compton = 'Compton'
 check = 'NewAMR' # '' or 'HiRes' or 'LowRes'
+where = '_everywhere'
 if check in ['NewAMR', 'HiResNewAMR', 'LowResNewAMR']:
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 else:
@@ -70,7 +71,10 @@ if alice:
         Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
         vel = np.sqrt(np.power(VX, 2) + np.power(VY, 2) + np.power(VZ, 2))
         orb_en = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh, R0)
-        cut = np.logical_and(den > 1e-19, Rsph > 0.2*apo) # cut in density and in radius to be far away from the BH
+        if where == '':
+            cut = np.logical_and(den > 1e-19, Rsph > 0.2*apo) # cut in density and in radius to be far away from the BH
+        if where == '_everywhere':
+            cut = den > 1e-19
         orb_en_cut, ie_cut, diss_cut = \
             make_slices([orb_en, ie, diss], cut)
 
@@ -81,10 +85,10 @@ if alice:
         diss_pos_sum[i] = np.sum(diss_cut[diss_cut > 0])
         diss_neg_sum[i] = np.sum(diss_cut[diss_cut < 0])
 
-    np.save(f'{prepath}/data/{folder}/Diss/spuriousDiss_{check}.npy', [ie_sum, orb_en_pos_sum, orb_en_neg_sum, diss_pos_sum, diss_neg_sum])
+    np.save(f'{prepath}/data/{folder}/Diss/spuriousDiss_{check}{where}.npy', [ie_sum, orb_en_pos_sum, orb_en_neg_sum, diss_pos_sum, diss_neg_sum])
 
 else:
-    how_to_check = 'ionization' # 'energies' or 'widths' or 'ionization'
+    how_to_check = 'energies' # 'energies' or 'widths' or 'ionization'
     t_fall_days = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
     tfall_cgs = t_fall_days * 24 * 3600 
     recomb_en = 13.6*prel.ev_to_erg * mstar*prel.Msol_cgs/prel.m_p_cgs
@@ -102,7 +106,7 @@ else:
 
             snaps, tfbs = np.loadtxt(f'{abspath}/data/{folder}/Diss/spuriousDiss_{check}_days.txt')
             ie_sum, orb_en_pos_sum, orb_en_neg_sum, diss_pos_sum, diss_neg_sum = \
-                np.load(f'{abspath}/data/{folder}/Diss/spuriousDiss_{check}.npy', allow_pickle=True)
+                np.load(f'{abspath}/data/{folder}/Diss/spuriousDiss_{check}{where}.npy', allow_pickle=True)
             ie_sum *= prel.en_converter # convert to erg
             orb_en_neg_sum *= prel.en_converter
             diss_pos_sum *= prel.en_converter / prel.tsol_cgs # convert to erg/s
@@ -123,7 +127,10 @@ else:
 
         ax[0].legend(fontsize = 16)
         ax[0].set_ylabel(r'Energy [erg]')
-        plt.suptitle(r'Material outside 0.2 $R_{\rm a}$', fontsize = 20)
+        if where == '_everywhere':
+            plt.suptitle(r'All material with $\rho > 1e-19$', fontsize = 20)
+        else:
+            plt.suptitle(r'R > 0.2 R$_a$, $\rho > 1e-19$', fontsize = 20)
 
 
     if how_to_check == 'ionization':
@@ -152,7 +159,6 @@ else:
         cbar = plt.colorbar(img, label=r'$\log_{10}$ specific i.e. [erg/g]')
         plt.xlabel(r'$\log_{10} (T)$ [K]')
         plt.ylabel(r'$\log_{10} (\rho)$ [g/cm$^3$]')
-
 
         data = make_tree(path, snap, energy = True)
         cut = data.Den > 1e-19
