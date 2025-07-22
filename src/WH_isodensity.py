@@ -394,13 +394,14 @@ if __name__ == '__main__':
         dim_cell = Vol**(1/3) 
 
         try:
-            stream = np.load(f'{abspath}/data/{folder}/WHs/stream_{check}{snap}.npy', allow_pickle=True)
+            stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
+            print('Load stream from file', flush=True)
         except FileNotFoundError:
             from src.WH import find_transverse_com
             x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, Rstar)
             stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
             if save:
-                np.save(f'{abspath}/data/{folder}/WH/stream_{check}{snap}.npy', stream)
+                np.save(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', stream)
         
         theta_wh, density_thresholds, indeces_enclosed, contour_stats = follow_the_stream_isodensity(X, Y, Z, dim_cell, Den, Mass, stream, params = params)
         w_params = np.array([[stats['width'] for stats in contour_stats],
