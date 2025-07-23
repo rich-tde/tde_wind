@@ -61,7 +61,7 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_str
     just_plane : bool, optional
         If True, return only data points within the transverse plane.
         If False, return T-coordinates for all simulation data. Default is True.
-    ----    
+    ----     
     Returns:
     condition_tra : array_like (bool)
         Boolean mask indicating which data points lie within the transverse plane

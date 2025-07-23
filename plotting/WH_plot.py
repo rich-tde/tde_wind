@@ -25,7 +25,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-what = 'section' # 'section' or 'comparison' or 'max_compr' or 'single_snap_behavior'
+what = 'section' # 'section' or 'comparison' or 'max_compr' or 'single_snap_behavior' 
 
 Mbh = 10**m
 Rs = 2*prel.G*Mbh / prel.csol_cgs**2
@@ -362,7 +362,4 @@ if what == 'max_compr':
     ax1_compr.legend(fontsize = 18)
     ax1_compr.axvline(0.1, c = 'k', ls = '--')
     ax1.legend(fontsize = 18)
-    
 
-        
-                

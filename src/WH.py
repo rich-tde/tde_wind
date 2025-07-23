@@ -477,20 +477,18 @@ def follow_the_stream(x_data, y_data, z_data, dim_data, mass_data, stream, param
     return theta_wh, indeces_boundary, w_params, h_params
 
 if __name__ == '__main__':
-    from Utilities.operators import from_cylindric
     theta_lim =  np.pi
     step = 0.02
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_arr = Ryan_sampler(theta_init)
-    if not alice:
-        theta_arr = theta_arr[136:146]
-        idx_forplot = 4
+    idx_forplot = 4
 
     if alice:
         snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
     else: 
         check = 'NewAMR'
         snaps = [238]
+        theta_arr = theta_arr[136:146]
     
     print('We are in res', check, flush = True)
     for i, snap in enumerate(snaps):
