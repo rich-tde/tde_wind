@@ -24,42 +24,61 @@ def radial_plane(x_data, y_data, dim_data, theta_chosen):
 
     return condition_coord
 
-def tangent_versor(x_orbit, y_orbit, idx, smooth_orbit = False):
-    """ Find the components of the tangent vector to the orbit at the chosen point (idx)."""
-    # Smooth the orbit
-    x_orbit_sm = gaussian_filter1d(x_orbit, 4)
-    y_orbit_sm = gaussian_filter1d(y_orbit, 4)
+def tangent_versor(x_stream, y_stream, idx, smooth_stream = False):
+    """ Find the components of the tangent vector to the stream at the chosen point (idx)."""
+    # Smooth the stream
+    x_stream_sm = gaussian_filter1d(x_stream, 4)
+    y_stream_sm = gaussian_filter1d(y_stream, 4)
     # Compute the tangent vector (take care of boundaries)
     if idx == 0:
-        x_coord_tg = x_orbit_sm[1] - x_orbit_sm[idx]
-        y_coord_tg = y_orbit_sm[1] - y_orbit_sm[idx]
-    elif idx == len(y_orbit_sm)-1:
-        x_coord_tg = x_orbit_sm[idx] - x_orbit_sm[-2] 
-        y_coord_tg = y_orbit_sm[idx] - y_orbit_sm[-2]
+        x_coord_tg = x_stream_sm[1] - x_stream_sm[idx]
+        y_coord_tg = y_stream_sm[1] - y_stream_sm[idx]
+    elif idx == len(y_stream_sm)-1:
+        x_coord_tg = x_stream_sm[idx] - x_stream_sm[-2] 
+        y_coord_tg = y_stream_sm[idx] - y_stream_sm[-2]
     else:
-        x_coord_tg = x_orbit_sm[idx+1] - x_orbit_sm[idx-1]
-        y_coord_tg = y_orbit_sm[idx+1] - y_orbit_sm[idx-1]
+        x_coord_tg = x_stream_sm[idx+1] - x_stream_sm[idx-1]
+        y_coord_tg = y_stream_sm[idx+1] - y_stream_sm[idx-1]
     vec_tg = np.array([x_coord_tg, y_coord_tg])
     norm_tg = max(np.linalg.norm(vec_tg), 1e-20)
     vers_tg = vec_tg / norm_tg
-    if smooth_orbit:
-        return vers_tg, x_orbit_sm, y_orbit_sm
+    if smooth_stream:
+        return vers_tg, x_stream_sm, y_stream_sm
     else:
         return vers_tg
          
-def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit, idx, rstar, just_plane = True):
+def transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, rstar, just_plane = True):
     """
-    Find the transverse plane to the orbit at the chosen point.
-    If coord == True, it returns the coordinates of the data in the plane with respect to the new coordinates system,
-    i.e. the one that have versors (That =: Zhat X tg_vect, Zhat, tg_vect).
+    Parameters:
+    x_data, y_data, z_data, dim_data: arrays 
+        X, Y, Z coordinates, dimension of simulation points.
+    x_stream, y_stream, z_stream: arrays
+        X, Y, Z coordinates of the stream.
+    idx : int
+        Index of the chosen point along the stream
+    rstar : float
+        Stellar radius (used to define plane thickness = 0.5 * rstar)
+    just_plane : bool, optional
+        If True, return only data points within the transverse plane.
+        If False, return T-coordinates for all simulation data. Default is True.
+    ----    
+    Returns:
+    condition_tra : array_like (bool)
+        Boolean mask indicating which data points lie within the transverse plane
+    x_onplane or x_onplaneall : array_like
+        T-coordinates of data points:
+        - If just_plane=True: T-coordinates only for points in the transverse plane
+        - If just_plane=False: T-coordinates for all simulation data
+    x0 : float (only if just_plane=True)
+        T-coordinate of the central point.
     """
     # Put the data in the reference system of the chosen point
-    x_chosen, y_chosen, z_chosen = x_orbit[idx], y_orbit[idx], z_orbit[idx]
+    x_chosen, y_chosen, z_chosen = x_stream[idx], y_stream[idx], z_stream[idx]
     x_data_trasl = x_data - x_chosen
     y_data_trasl = y_data - y_chosen
     data_trasl = np.transpose([x_data_trasl, y_data_trasl])
     # Find the tg versor at the chosen point and the points orthogonal to it
-    vers_tg = tangent_versor(x_orbit, y_orbit, idx)
+    vers_tg = tangent_versor(x_stream, y_stream, idx)
     dot_product = np.dot(data_trasl, vers_tg) #that's the projection of the data on the tangent vector
     condition_tra = np.abs(dot_product) < dim_data 
 
@@ -94,14 +113,14 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_orbit, y_orbit, z_orbit
     else:
         return condition_tra, x_onplaneall
     
-def tangent_plane(x_data, y_data, dim_data, x_orbit, y_orbit, idx):
-    """ Find the tangent plane the chosen point (idx) in the SMOOTHED orbit."""
+def tangent_plane(x_data, y_data, dim_data, x_stream, y_stream, idx):
+    """ Find the tangent plane the chosen point (idx) in the SMOOTHED stream."""
     # Put the data in the reference system of the chosen point
-    x_chosen, y_chosen = x_orbit[idx], y_orbit[idx]
+    x_chosen, y_chosen = x_stream[idx], y_stream[idx]
     x_data_trasl = x_data - x_chosen
     y_data_trasl = y_data - y_chosen
     # Find the versors in 3D: (T,Z, K=tg_vec)
-    vers_tg = tangent_versor(x_orbit, y_orbit, idx)
+    vers_tg = tangent_versor(x_stream, y_stream, idx)
     zhat = np.array([0,0,1])
     xRhat = np.cross(zhat, vers_tg) # points outwards
     xRhat /= max(np.linalg.norm(xRhat), 1e-20) # avoid division by zero
@@ -145,7 +164,7 @@ if __name__ == '__main__':
     # X_rad_midplane = X_rad[np.abs(Z_rad) < dim_cell[condition_rad]]
     # Y_rad_midplane = Y_rad[np.abs(Z_rad) < dim_cell[condition_rad]]
 
-    # vec_tg, x_orbit_sm, y_orbit_sm = tangent_versor(x_stream, y_stream, idx, smooth_orbit = True)
+    # vec_tg, x_stream_sm, y_stream_sm = tangent_versor(x_stream, y_stream, idx, smooth_stream = True)
 
     plt.figure(figsize = (12,4))
     for idx in range(5,200):
@@ -166,8 +185,8 @@ if __name__ == '__main__':
         # plt.scatter(X_rad_midplane, Y_rad_midplane, s=.1, alpha = 0.8, c = 'b', label = 'Radial plane')
         plt.scatter(X_tra_midplane, Y_tra_midplane, s=.1, alpha = 0.8,  label = 'Transverse plane')
         # plt.scatter(X_tg_midplane, Y_tg_midplane, s=.1, alpha = 0.8, c = 'g', label = 'Tangent plane')
-        # plt.quiver(x_orbit_sm[idx], y_orbit_sm[idx], vec_tg[0], vec_tg[1], width = 2e-3, scale = 0.1, scale_units='xy', color='k')
-    plt.plot(x_stream, y_stream,  c = 'r', label = 'Orbit')
+        # plt.quiver(x_stream_sm[idx], y_stream_sm[idx], vec_tg[0], vec_tg[1], width = 2e-3, scale = 0.1, scale_units='xy', color='k')
+    plt.plot(x_stream, y_stream,  c = 'r', label = 'Stream')
     plt.contour(xcfr, ycfr, cfr, [0], linestyles = 'dotted', colors = 'k')
     plt.xlim(-300,20)
     plt.ylim(-60,60)
