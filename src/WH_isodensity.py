@@ -14,7 +14,7 @@ else:
     from Utilities.basic_units import radians
     import matplotlib.colors as colors
     save = False
-    compute = True
+    compute = False
 
 from datetime import datetime
 import numpy as np
@@ -348,108 +348,107 @@ def follow_the_stream_isodensity(x_data, y_data, z_data, dim_data, density_data,
     return theta_wh, np.array(density_thresholds), indeces_enclosed, contour_stats
 
 if __name__ == '__main__':
-    snap = 238
-    print(f'We are in folder {folder}, snap {snap}')
     theta_lim =  np.pi
     step = 0.02
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_arr = Ryan_sampler(theta_init)
     idx_forplot = 4
+    print(f'We are in folder {folder}', flush=True)
     
     path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
     
-    #%%
     if alice:
         snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
     else: 
         snaps = [238]
         theta_arr = theta_arr[160:170]  # Take every second element for better performance
     
-    for i, snap in enumerate(snaps):
-        print(f'Snap {snap}', flush = True)
+    if compute:
+        for i, snap in enumerate(snaps):
+            print(f'Snap {snap}', flush = True)
 
-        path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
-        if alice:
-            path = f'{path}/snap_{snap}'
-        else:
-            path = f'{path}/{snap}'
+            path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
+            if alice:
+                path = f'{path}/snap_{snap}'
+            else:
+                path = f'{path}/{snap}'
 
-        data = make_tree(path, snap, energy = False)
-        X, Y, Z, Den, Mass, Vol = \
-            data.X, data.Y, data.Z, data.Den, data.Mass, data.Vol
-        cutden = Den >1e-19
-        X, Y, Z, Den, Mass, Vol = \
-            sec.make_slices([X, Y, Z, Den, Mass, Vol], cutden)
-        dim_cell = Vol**(1/3) 
+            data = make_tree(path, snap, energy = False)
+            X, Y, Z, Den, Mass, Vol = \
+                data.X, data.Y, data.Z, data.Den, data.Mass, data.Vol
+            cutden = Den >1e-19
+            X, Y, Z, Den, Mass, Vol = \
+                sec.make_slices([X, Y, Z, Den, Mass, Vol], cutden)
+            dim_cell = Vol**(1/3) 
 
-        try:
-            stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
-            print('Load stream from file', flush=True)
-        except FileNotFoundError:
-            from src.WH import find_transverse_com
-            x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, Rstar)
-            stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
-            if save:
-                np.save(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', stream)
-        
-        theta_wh, density_thresholds, indeces_enclosed, contour_stats = follow_the_stream_isodensity(X, Y, Z, dim_cell, Den, Mass, stream, params = params)
-        w_params = np.array([[stats['width'] for stats in contour_stats],
-                            [stats['ncells_w'] for stats in contour_stats]])
-        h_params = np.array([[stats['height'] for stats in contour_stats],
-                            [stats['ncells_h'] for stats in contour_stats]])
-        indeces_boundary = np.array([stats['indeces_boundary'] for stats in contour_stats])
-
-        if save:
-            with open(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt','w') as file:
-                # if file exist, save theta and date of execution
-                file.write(f'# theta, done on {datetime.now()} \n')
-                file.write((' '.join(map(str, theta_wh)) + '\n'))
-                file.write(f'# Width \n')
-                file.write((' '.join(map(str, w_params[0])) + '\n'))
-                file.write(f'# Ncells width\n')
-                file.write((' '.join(map(str, w_params[1])) + '\n'))
-                file.write(f'# Height \n')
-                file.write((' '.join(map(str, h_params[0])) + '\n'))
-                file.write(f'# Ncells height \n')
-                file.write((' '.join(map(str, h_params[1])) + '\n'))
-            np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{check}{snap}.npy', indeces_boundary)
-        #%%
-        if not alice:
-            tfb = np.loadtxt(f'{abspath}/TDE/{folder}/{snap}/tfb_{snap}.txt')
-            theta_wh_sp, width_sp, N_width_sp, height_sp, N_height_sp = \
-                np.loadtxt(f'{abspath}/data/{folder}/WH/spatial/wh_{check}{snap}.txt')
-            theta_wh_iso, width_iso, N_width_iso, height_iso, N_height_iso = \
-                np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
+            try:
+                stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
+                print('Load stream from file', flush=True)
+            except FileNotFoundError:
+                from src.WH import find_transverse_com
+                x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, Rstar)
+                stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
+                if save:
+                    np.save(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', stream)
             
-            fig, (ax1, ax2) = plt.subplots(1,2,figsize=(15, 5))
-            figC, (ax3, ax4) = plt.subplots(1,2,figsize=(15, 5))
-            ax1.plot(theta_wh_iso*radians, width_iso, c = 'dodgerblue', label = 'isodensity (80\% mass enclosed)')
-            ax1.plot(theta_wh_sp*radians, width_sp, c = 'k', label = 'spatial (\"80\%\" mass enclosed)')
-            ax1.legend(fontsize = 16)
-            ax1.set_ylabel(r'Width [$R_\odot$]')
-            ax1.set_ylim(1.1, 10)
+            theta_wh, density_thresholds, indeces_enclosed, contour_stats = follow_the_stream_isodensity(X, Y, Z, dim_cell, Den, Mass, stream, params = params)
+            w_params = np.array([[stats['width'] for stats in contour_stats],
+                                [stats['ncells_w'] for stats in contour_stats]])
+            h_params = np.array([[stats['height'] for stats in contour_stats],
+                                [stats['ncells_h'] for stats in contour_stats]])
+            indeces_boundary = np.array([stats['indeces_boundary'] for stats in contour_stats])
 
-            ax2.plot(theta_wh_iso*radians, height_iso, c = 'dodgerblue')
-            ax2.plot(theta_wh_sp*radians, height_sp, c = 'k')
-            ax2.set_ylabel(r'Height [$R_\odot$]')
-            ax2.set_ylim(.2, 10)
-
-            ax3.scatter(theta_wh_iso*radians, N_width_iso, c = 'dodgerblue', label = 'isodensity (80\% mass enclosed)')
-            ax3.scatter(theta_wh_sp*radians, N_width_sp, c = 'k', label = 'spatial (\"80\%\" mass enclosed)')
-            ax3.legend(fontsize = 16)
-            ax3.set_ylabel(r'N cells width')
-            ax3.set_ylim(5, 20)    
-            ax4.scatter(theta_wh_iso*radians, N_height_iso, c = 'dodgerblue')
-            ax4.scatter(theta_wh_sp*radians, N_height_sp, c = 'k')
-            ax4.set_ylabel(r'N cells height')
-            ax4.set_ylim(0.9, 10)
-            for ax in [ax1, ax2, ax3, ax4]:
-                ax.set_yscale('log')
-                ax.set_xlabel(r'$\theta$')
-                ax.set_xlim(-2.5, 2.5)
-                ax.tick_params(axis='both', which='major', length = 8, width = 1.2)
-                ax.tick_params(axis='both', which='minor', length = 4, width = 1)
-            plt.suptitle(f'Width and height with different root-finder conditions at t = {np.round(tfb,2)} ' + r't$_{\rm fb}$', fontsize = 16)
-            plt.tight_layout()
+            if save:
+                with open(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt','w') as file:
+                    # if file exist, save theta and date of execution
+                    file.write(f'# theta, done on {datetime.now()} \n')
+                    file.write((' '.join(map(str, theta_wh)) + '\n'))
+                    file.write(f'# Width \n')
+                    file.write((' '.join(map(str, w_params[0])) + '\n'))
+                    file.write(f'# Ncells width\n')
+                    file.write((' '.join(map(str, w_params[1])) + '\n'))
+                    file.write(f'# Height \n')
+                    file.write((' '.join(map(str, h_params[0])) + '\n'))
+                    file.write(f'# Ncells height \n')
+                    file.write((' '.join(map(str, h_params[1])) + '\n'))
+                np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{check}{snap}.npy', indeces_boundary)
         
-# %%
+    if not alice:
+        snap = snaps[0]
+        tfb = np.loadtxt(f'{abspath}/TDE/{folder}/{snap}/tfb_{snap}.txt')
+        theta_wh_sp, width_sp, N_width_sp, height_sp, N_height_sp = \
+            np.loadtxt(f'{abspath}/data/{folder}/WH/spatial/wh_{check}{snap}.txt')
+        theta_wh_iso, width_iso, N_width_iso, height_iso, N_height_iso = \
+            np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
+        
+        fig, (ax1, ax2) = plt.subplots(1,2,figsize=(15, 5))
+        figC, (ax3, ax4) = plt.subplots(1,2,figsize=(15, 5))
+        ax1.plot(theta_wh_iso*radians, width_iso, c = 'dodgerblue', label = 'isodensity (80\% mass enclosed)')
+        ax1.plot(theta_wh_sp*radians, width_sp, c = 'k', label = 'spatial (\"80\%\" mass enclosed)')
+        ax1.legend(fontsize = 16)
+        ax1.set_ylabel(r'Width [$R_\odot$]')
+        ax1.set_ylim(1.1, 10)
+
+        ax2.plot(theta_wh_iso*radians, height_iso, c = 'dodgerblue')
+        ax2.plot(theta_wh_sp*radians, height_sp, c = 'k')
+        ax2.set_ylabel(r'Height [$R_\odot$]')
+        ax2.set_ylim(.2, 10)
+
+        ax3.scatter(theta_wh_iso*radians, N_width_iso, c = 'dodgerblue', label = 'isodensity (80\% mass enclosed)')
+        ax3.scatter(theta_wh_sp*radians, N_width_sp, c = 'k', label = 'spatial (\"80\%\" mass enclosed)')
+        ax3.legend(fontsize = 16)
+        ax3.set_ylabel(r'N cells width')
+        ax3.set_ylim(5, 20)    
+        ax4.scatter(theta_wh_iso*radians, N_height_iso, c = 'dodgerblue')
+        ax4.scatter(theta_wh_sp*radians, N_height_sp, c = 'k')
+        ax4.set_ylabel(r'N cells height')
+        ax4.set_ylim(0.9, 10)
+        for ax in [ax1, ax2, ax3, ax4]:
+            ax.set_yscale('log')
+            ax.set_xlabel(r'$\theta$')
+            ax.set_xlim(-2.5, 2.5)
+            ax.tick_params(axis='both', which='major', length = 8, width = 1.2)
+            ax.tick_params(axis='both', which='minor', length = 4, width = 1)
+        plt.suptitle(f'Width and height with different root-finder conditions at t = {np.round(tfb,2)} ' + r't$_{\rm fb}$', fontsize = 16)
+        plt.tight_layout()
+    
