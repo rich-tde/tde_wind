@@ -513,8 +513,8 @@ if __name__ == '__main__':
         theta_wh, indeces_boundary, w_params, h_params  = follow_the_stream(X, Y, Z, dim_cell, Mass, stream, params = params, mass_percentage = 0.8)
     
         if save:
-            np.save(f'{abspath}/data/{folder}/WH/stream_{check}{snap}.npy', stream)
-            with open(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt','w') as file:
+            np.save(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', stream)
+            with open(f'{abspath}/data/{folder}/WH/spatial/wh_{check}{snap}.txt','w') as file:
                 # if file exist, save theta and date of execution
                 file.write(f'# theta, done on {datetime.now()} \n')
                 file.write((' '.join(map(str, theta_wh)) + '\n'))
@@ -526,7 +526,7 @@ if __name__ == '__main__':
                 file.write((' '.join(map(str, h_params[0])) + '\n'))
                 file.write(f'# Ncells height \n')
                 file.write((' '.join(map(str, h_params[1])) + '\n'))
-            np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{check}{snap}.npy', indeces_boundary)
+            np.save(f'{abspath}/data/{folder}/WH/spatial/indeces_boundary_{check}{snap}.npy', indeces_boundary)
         
         if alice == False:
             fig, (ax1, ax2) = plt.subplots(1,2,figsize=(15, 5))

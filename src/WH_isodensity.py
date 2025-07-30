@@ -397,7 +397,7 @@ if __name__ == '__main__':
             h_params = np.array([[stats['height'] for stats in contour_stats],
                                 [stats['ncells_h'] for stats in contour_stats]])
             indeces_boundary = np.array([stats['indeces_boundary'] for stats in contour_stats])
-            indeces_enclosed = np.array()
+            indeces_enclosed = np.array(indeces_enclosed, dtype=object)
 
             if save:
                 with open(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt','w') as file:
