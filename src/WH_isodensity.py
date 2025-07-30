@@ -397,6 +397,7 @@ if __name__ == '__main__':
             h_params = np.array([[stats['height'] for stats in contour_stats],
                                 [stats['ncells_h'] for stats in contour_stats]])
             indeces_boundary = np.array([stats['indeces_boundary'] for stats in contour_stats])
+            indeces_enclosed = np.array()
 
             if save:
                 with open(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt','w') as file:
@@ -412,7 +413,7 @@ if __name__ == '__main__':
                     file.write(f'# Ncells height \n')
                     file.write((' '.join(map(str, h_params[1])) + '\n'))
                 np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{check}{snap}.npy', indeces_boundary)
-                np.save(f'{abspath}/data/{folder}/WH/indeces_enclosed_{check}{snap}.npy', indeces_enclosed)
+                np.save(f'{abspath}/data/{folder}/WH/indeces_enclosed_{check}{snap}.npy', indeces_enclosed, allow_pickle=True)
         
     if not alice:
         snap = snaps[0]
