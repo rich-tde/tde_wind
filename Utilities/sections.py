@@ -46,7 +46,54 @@ def tangent_versor(x_stream, y_stream, idx, smooth_stream = False):
         return vers_tg, x_stream_sm, y_stream_sm
     else:
         return vers_tg
-         
+
+
+def change_coordinates(x_data, y_data, x_stream, y_stream, idx, z_datas = None):
+    """ 2D-Rototranslation of the reference system in the chosen point 
+    with orientation given by vers_tg.
+    Parameters:
+    x_data, y_data: arrays
+        X, Y coordinates of the data points.
+    x_chosen, y_chosen: float
+        X, Y coordinates of the chosen point.
+    vers_tg: array_like
+        Tangent vector at the chosen point.
+    z_datas: list, optional
+        If provided, it contains Z coordinates of the data points and the chosen point.
+        If None, Z coordinates are not considered.
+    Returns:
+    x_onplaneall, y_onplaneall: array_like
+        X, Y coordinates of the data points in the transverse plane.
+    x_data_trasl, y_data_trasl: array_like
+        X, Y coordinates of the data points after translation to the chosen point.
+    z_data_trasl: array_like, optional
+        Z coordinates of the data points after translation to the chosen point.
+    """ 
+    # Put the data in the reference system of the chosen point
+    x_chosen, y_chosen = x_stream[idx], y_stream[idx]
+    # Find the tg versor at the chosen point and the points orthogonal to it
+    vers_tg = tangent_versor(x_stream, y_stream, idx)
+    x_data_trasl = x_data - x_chosen
+    y_data_trasl = y_data - y_chosen
+    data_trasl = np.transpose([x_data_trasl, y_data_trasl])
+    if z_datas is not None:
+        z_data = z_datas[0]
+        z_stream = z_datas[1]
+        z_chosen = z_stream[idx]
+        z_data_trasl = z_data - z_chosen
+    zhat = np.array([0,0,1])
+    # kRhat = np.array([vers_tg[0], vers_tg[1],0]) # points in the direction of the orbit
+    xRhat = np.cross(zhat, vers_tg) # points outwards
+    xRhat /= max(np.linalg.norm(xRhat), 1e-20) # avoid division by zero
+    # kRhat = np.array([vers_tg[0], vers_tg[1],0]) # points in the direction of the orbit
+    vers_norm = np.array([xRhat[0], xRhat[1]]) 
+    x_onplaneall = np.dot(data_trasl, vers_norm)
+    y_onplaneall = np.dot(data_trasl, vers_tg)
+    if z_datas is not None:
+        return x_onplaneall, y_onplaneall, x_data_trasl, y_data_trasl, z_data_trasl
+    else:
+        return x_onplaneall, y_onplaneall
+             
 def transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, rstar, just_plane = True):
     """
     Parameters:
@@ -71,38 +118,23 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_str
         - If just_plane=False: T-coordinates for all simulation data
     x0 : float (only if just_plane=True)
         T-coordinate of the central point.
-    """
-    # Put the data in the reference system of the chosen point
-    x_chosen, y_chosen, z_chosen = x_stream[idx], y_stream[idx], z_stream[idx]
-    x_data_trasl = x_data - x_chosen
-    y_data_trasl = y_data - y_chosen
-    data_trasl = np.transpose([x_data_trasl, y_data_trasl])
-    # Find the tg versor at the chosen point and the points orthogonal to it
-    vers_tg = tangent_versor(x_stream, y_stream, idx)
-    dot_product = np.dot(data_trasl, vers_tg) #that's the projection of the data on the tangent vector
-    condition_tra = np.abs(dot_product) < dim_data 
+    """        
+    # Rototrasl data
+    x_onplaneall, y_onplaneall, x_data_trasl, y_data_trasl, z_data_trasl = \
+        change_coordinates(x_data, y_data, x_stream, y_stream, idx, z_datas = [z_data, z_stream])
+    condition_tra = np.abs(y_onplaneall) < dim_data 
 
     s = 0.5 * rstar  # so thickess is = R_star as in BonnerotLu22. If you use step_ang: 2*step_ang * r_chosen_mod
     condition_x = np.abs(x_data_trasl) < s
     condition_y = np.abs(y_data_trasl) < s
-    condition_z = np.abs(z_data - z_chosen) < s
+    condition_z = np.abs(z_data_trasl) < s
     condition_coord = np.logical_and(condition_x, np.logical_and(condition_y, condition_z))
     # keep only the points in the tg plane and, if possible, near the chosen point
     if (condition_tra&condition_coord).any() != False:
         max_dim = np.max(dim_data[condition_tra&condition_coord])#_R&condition_r])
         # Change the condition_tra
-        condition_tra = np.abs(dot_product) < max_dim
+        condition_tra = np.abs(y_onplaneall) < max_dim
 
-    # Find the coordinates of the data in the new system and use them to cut the plane
-    # Find the versors in 3D
-    zhat = np.array([0,0,1])
-    kRhat = np.array([vers_tg[0], vers_tg[1],0]) # points in the direction of the orbit
-    xRhat = np.cross(zhat, vers_tg) # points outwards
-    xRhat /= max(np.linalg.norm(xRhat), 1e-20) # avoid division by zero
-    vers_norm = np.array([xRhat[0], xRhat[1]])
-    # New x (T) coordinate
-    x_onplaneall = np.dot(data_trasl, vers_norm)
-    # y_onplaneall = np.dot(data_trasl, vers_tg)
     if just_plane:
         x_onplane = x_onplaneall[condition_tra]
         # y_onplane = y_onplaneall[condition_tra]
@@ -142,57 +174,58 @@ if __name__ == '__main__':
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = ''
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}Compton'
-    snap = '164'
-    path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
+    snap = '162'
+    check = 'NewAMR'
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}Compton{check}'
+    path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
+    tfb = np.loadtxt(f'{path}/tfb_{snap}.txt')
     Rt = Rstar * (Mbh/mstar)**(1/3)
-    theta_lim = np.pi
-    step = 0.02
     params = [Mbh, Rstar, mstar, beta]
     xcfr, ycfr, cfr = make_cfr(Rt)
     data = make_tree(path, snap, energy = False)
-    dim_cell = data.Vol**(1/3)
+    X, Y, Z, Vol = data.X, data.Y, data.Z, data.Vol
+    dim_cell = Vol**(1/3)
 
-    stream = np.load(f'/Users/paolamartire/shocks/data/{folder}/stream_{check}{snap}.npy' )
-    theta_arr, x_stream, y_stream, z_stream = stream[0], stream[1], stream[2], stream[3]
+    theta_arr, x_stream, y_stream, z_stream, _ = \
+        np.load(f'/Users/paolamartire/shocks/data/{folder}/WH/stream/stream_{check}{snap}.npy' )
       
     # idx =  100
-    # condition_rad = radial_plane(data.X, data.Y, dim_cell, theta_arr[idx])
+    # condition_rad = radial_plane(X, Y, dim_cell, theta_arr[idx])
     # X_rad, Y_rad, Z_rad = \
-    #     make_slices([data.X, data.Y, data.Z], condition_rad)
+    #     make_slices([X, Y, Z], condition_rad)
     # X_rad_midplane = X_rad[np.abs(Z_rad) < dim_cell[condition_rad]]
     # Y_rad_midplane = Y_rad[np.abs(Z_rad) < dim_cell[condition_rad]]
 
     # vec_tg, x_stream_sm, y_stream_sm = tangent_versor(x_stream, y_stream, idx, smooth_stream = True)
 
-    plt.figure(figsize = (12,4))
-    for idx in range(5,200):
-        step_ang = theta_arr[idx+1]-theta_arr[idx]
-        # condition_tra, x_onplane, x0 = transverse_plane(data.X, data.Y, data.Z, dim_cell, x_stream, y_stream, z_stream, idx, step_ang, coord = True)
-        condition_tra, x_onplane, x0 = transverse_plane(data.X, data.Y, data.Z, dim_cell, x_stream, y_stream, z_stream, idx, coord = True)
+    fig, (ax1, ax2) = plt.subplots(1,2, figsize = (12,4), width_ratios=(1.5,.8))
+    for idx in range(140,142):
+    # idx = 120
+        condition_tra, x_onplane, _ = transverse_plane(X, Y, Z, dim_cell, x_stream, y_stream, z_stream, idx, Rstar, just_plane = True)
         X_tra, Y_tra, Z_tra = \
-            make_slices([data.X, data.Y, data.Z], condition_tra)
+            make_slices([X, Y, Z], condition_tra)
         X_tra_midplane = X_tra[np.abs(Z_tra) < dim_cell[condition_tra]]
         Y_tra_midplane = Y_tra[np.abs(Z_tra) < dim_cell[condition_tra]]
                                 
-        condition_tg = tangent_plane(data.X, data.Y, dim_cell, x_stream, y_stream, idx)
+        condition_tg = tangent_plane(X, Y, dim_cell, x_stream, y_stream, idx)
         X_tg, Y_tg, Z_tg = \
-            make_slices([data.X, data.Y, data.Z], condition_tg)
+            make_slices([X, Y, Z], condition_tg)
         X_tg_midplane = X_tg[np.abs(Z_tg) < dim_cell[condition_tg]]
         Y_tg_midplane = Y_tg[np.abs(Z_tg) < dim_cell[condition_tg]]
         
-        # plt.scatter(X_rad_midplane, Y_rad_midplane, s=.1, alpha = 0.8, c = 'b', label = 'Radial plane')
-        plt.scatter(X_tra_midplane, Y_tra_midplane, s=.1, alpha = 0.8,  label = 'Transverse plane')
-        # plt.scatter(X_tg_midplane, Y_tg_midplane, s=.1, alpha = 0.8, c = 'g', label = 'Tangent plane')
-        # plt.quiver(x_stream_sm[idx], y_stream_sm[idx], vec_tg[0], vec_tg[1], width = 2e-3, scale = 0.1, scale_units='xy', color='k')
-    plt.plot(x_stream, y_stream,  c = 'r', label = 'Stream')
-    plt.contour(xcfr, ycfr, cfr, [0], linestyles = 'dotted', colors = 'k')
-    plt.xlim(-300,20)
-    plt.ylim(-60,60)
-    # plt.legend()
-    plt.title(r'Thickness planes $= 1R_\odot$', fontsize = 14)
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/{check}/Transverse/transverseslice.png')
+        for ax in [ax1, ax2]:
+            ax.scatter(X_tra_midplane, Y_tra_midplane, s=.1, alpha = 0.8,  label = 'Transverse plane')
+            ax.scatter(X_tg_midplane, Y_tg_midplane, s=.1, alpha = 0.8, c = 'g', label = 'Tangent plane')
+            ax.plot(x_stream, y_stream,  c = 'k', label = 'Stream')
+            # ax.contour(xcfr, ycfr, cfr, [0], linestyles = 'dotted', colors = 'k')
+            ax.set_xlabel(r'$X [R_\odot]$')
+    ax1.set_xlim(-300,20)
+    ax1.set_ylim(-60,60)
+    ax2.set_xlim(0,15)
+    ax2.set_ylim(-5,15)
+    ax1.set_ylabel(r'$Y [R_\odot]$')
+    plt.suptitle(f'Transverse and tangential plane at t = {tfb:.2f}' + r' $t_{\rm fb}$ for $\theta$ = ' + f'{theta_arr[idx]:.2f} rad', fontsize = 18)
+    plt.tight_layout()
     plt.show()
 
             

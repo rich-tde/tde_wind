@@ -1,4 +1,11 @@
-""" Checks for the initial high dissipation"""
+""" Checks for the initial high dissipation. 
+if alice:
+    - computes the total internal, orbital+, orbital-, diss+ energy, all cut in density and, if where = '', at R>0.2*apo.
+else:
+    - plots the energies computed in alice for the 3 res
+    - plots ELad's Utable and Diss-T scatter plot
+    - plots the widths of the stream for 2 res
+""" 
 abspath = '/Users/paolamartire/shocks'
 import sys
 sys.path.append(abspath)
@@ -18,7 +25,7 @@ else:
     from scipy.integrate import cumulative_trapezoid
 
 import numpy as np
-from Utilities.sections import make_slices
+from Utilities.sections import make_slices, transverse_plane, change_coordinates
 import Utilities.prelude as prel
 from src import orbits as orb
 from Utilities.operators import make_tree
@@ -88,7 +95,7 @@ if alice:
     np.save(f'{prepath}/data/{folder}/Diss/spuriousDiss_{check}{where}.npy', [ie_sum, orb_en_pos_sum, orb_en_neg_sum, diss_pos_sum, diss_neg_sum])
 
 else:
-    how_to_check = 'energies' # 'energies' or 'widths' or 'ionization'
+    how_to_check = 'pancake' # 'energies' or 'widths' or 'ionization'
     t_fall_days = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
     tfall_cgs = t_fall_days * 24 * 3600 
     recomb_en = 13.6*prel.ev_to_erg * mstar*prel.Msol_cgs/prel.m_p_cgs
@@ -132,7 +139,6 @@ else:
         else:
             plt.suptitle(r'R > 0.2 R$_a$, $\rho > 1e-19$', fontsize = 20)
 
-
     if how_to_check == 'ionization':
         snap = 96
         check = 'NewAMR'
@@ -165,34 +171,33 @@ else:
         X, Y, Z, Vol, Temp, Den, Diss_den, IE_den = \
             make_slices([data.X, data.Y, data.Z, data.Vol, data.Temp, data.Den, data.Diss, data.IE], cut)
         IE_den_cgs = IE_den * prel.en_den_converter
-        # print(np.max(IE_den_cgs)*1e-11, np.mean(IE_den_cgs)*1e-11)
-        # Diss = Diss_den * Vol
-        # Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
-        # if np.sum(Diss[Diss>0]) > np.abs(np.sum(Diss[Diss<0])):
-        #     cut_diss = Diss > 0
-        #     print('Dissipation has positive sign')
-        # else:
-        #     cut_diss = Diss < 0
-        #     print('Dissipation has negative sign')
-        # mask_noinfall = np.logical_and(cut_diss, Rsph > 0.2*apo)
-        # R_noinfall, T_noinfall, Den_infall, Diss_noinfall = make_slices([Rsph, Temp, Den, Diss], mask_noinfall)
-        # Den_infall_cgs = Den_infall * prel.den_converter
+        Diss = Diss_den * Vol
+        Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
+        if np.sum(Diss[Diss>0]) > np.abs(np.sum(Diss[Diss<0])):
+            cut_diss = Diss > 0
+            print('Dissipation has positive sign')
+        else:
+            cut_diss = Diss < 0
+            print('Dissipation has negative sign')
+        mask_noinfall = np.logical_and(cut_diss, Rsph > 0.2*apo)
+        R_noinfall, T_noinfall, Den_infall, Diss_noinfall = make_slices([Rsph, Temp, Den, Diss], mask_noinfall)
+        Den_infall_cgs = Den_infall * prel.den_converter
 
-        # fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 14), dpi=150)
-        # img = ax1.scatter(T_noinfall, np.abs(Diss_noinfall*prel.en_converter)/prel.tsol_cgs, c= Den_infall_cgs, s = 1, cmap='rainbow', norm = LogNorm(vmin=1e-9, vmax=1), rasterized=True)
-        # cbar = plt.colorbar(img, label=r'$\rho$ [g/cm$^3$]')
-        # img = ax2.scatter(T_noinfall, np.abs(Diss_noinfall*prel.en_converter)/prel.tsol_cgs, s = 1, c = R_noinfall/apo, cmap='rainbow', vmin=0.4, vmax=1, rasterized=True)
-        # cbar = plt.colorbar(img, label=r'R/R$_{\rm a}$')
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 14), dpi=150)
+        img = ax1.scatter(T_noinfall, np.abs(Diss_noinfall*prel.en_converter)/prel.tsol_cgs, c= Den_infall_cgs, s = 1, cmap='rainbow', norm = LogNorm(vmin=1e-9, vmax=1), rasterized=True)
+        cbar = plt.colorbar(img, label=r'$\rho$ [g/cm$^3$]')
+        img = ax2.scatter(T_noinfall, np.abs(Diss_noinfall*prel.en_converter)/prel.tsol_cgs, s = 1, c = R_noinfall/apo, cmap='rainbow', vmin=0.4, vmax=1, rasterized=True)
+        cbar = plt.colorbar(img, label=r'R/R$_{\rm a}$')
 
-        # for ax in [ax1, ax2]:
-        #     ax.loglog()
-        #     ax.set_ylabel(r'$|$Diss rate$|$ [erg/s]')
-        #     ax.set_ylim(1e33, 2e38)
-        #     ax.tick_params(axis='both', which='major', width=1.2, length=8, color = 'k')
-        #     ax.tick_params(axis='both', which='minor', width=1, length=4, color = 'k')
-        # ax2.set_xlabel(r'T [K]')
-        # plt.suptitle(f'run: {check}, points with $R>0.2R_a$, t = {np.round(tfb, 2)}' + r' $t_{\rm fb}$', fontsize=20)
-        # plt.tight_layout()
+        for ax in [ax1, ax2]:
+            ax.loglog()
+            ax.set_ylabel(r'$|$Diss rate$|$ [erg/s]')
+            ax.set_ylim(1e33, 2e38)
+            ax.tick_params(axis='both', which='major', width=1.2, length=8, color = 'k')
+            ax.tick_params(axis='both', which='minor', width=1, length=4, color = 'k')
+        ax2.set_xlabel(r'T [K]')
+        plt.suptitle(f'run: {check}, points with $R>0.2R_a$, t = {np.round(tfb, 2)}' + r' $t_{\rm fb}$', fontsize=20)
+        plt.tight_layout()
 
     if how_to_check == 'widths':
         snap = 106
@@ -275,5 +280,42 @@ else:
         ax_w.set_ylim(1, 5)
         fig_w.tight_layout()
         
-        
+    if how_to_check == 'pancake':
+        snap = 162
+        path = f'{abspath}/TDE/{folder}/{snap}'
+        tfb = np.loadtxt(f'{abspath}/TDE/{folder}/{snap}/tfb_{snap}.txt')
+        data = make_tree(path, snap, energy = True)
+        cut = data.Den > 1e-19 
+        X, Y, Z, Vol, Mass, Den, VX, VY, VZ = \
+            make_slices([data.X, data.Y, data.Z, data.Vol, data.Mass, data.Den, data.VX, data.VY, data.VZ], cut)
+        dim_cell = Vol**(1/3)
+        theta_arr, x_stream, y_stream, z_stream, _ = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
+        idx_chosen = np.argmin(np.abs(theta_arr))
+
+        condition_T, x_T = transverse_plane(X, Y, Z, dim_cell, x_stream, y_stream, z_stream, idx_chosen, Rstar, just_plane = False)
+        x_plane, x_T_plane, y_plane, z_plane, dim_plane, VX_plane, VY_plane, VZ_plane, den_plane = \
+            make_slices([X, x_T, Y, Z, dim_cell, VX, VY, VZ, Den], condition_T)
+        mid_plane = np.abs(z_plane) < dim_plane
+        t_dot, _ = change_coordinates(VX_plane, VY_plane, x_stream, y_stream, idx_chosen, z_datas = None)
+
+        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(27, 8), width_ratios=(1.5, 1))
+        ax0.plot(x_stream/apo, y_stream/apo, c = 'k')
+        ax0.scatter(x_plane[mid_plane]/apo, y_plane[mid_plane]/apo, c = 'b', s = 10)
+        ax0.scatter(x_stream[idx_chosen]/apo, y_stream[idx_chosen]/apo, c = 'r', s = 20)
+        ax0.set_xlabel(r'X [$R_{\rm a}$]')
+        ax0.set_ylabel(r'Y [$R_{\rm a}$]')
+        ax0.set_xlim(-1.2, 0.1)
+        ax0.set_ylim(-.2, .2)
+        img = ax1.scatter(x_T_plane, z_plane, c = den_plane, s = 20, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-7))
+        cbar = plt.colorbar(img)
+        ax1.quiver(x_T_plane, z_plane, t_dot, VZ_plane, color = 'k', angles='xy', scale_units='xy', scale=80, width = 0.002)
+        cbar.set_label(r'Den [$M_\odot/R_\odot^3$]')
+        ax1.set_xlabel(r'T [$R_\odot$]')
+        ax1.set_ylabel(r'Z [$R_\odot$]') 
+        ax1.set_xlim(-5,5)
+        ax1.set_ylim(-2,2)
+        plt.suptitle(f't = {np.round(tfb, 2)}' +  r' t$_{\rm fb}, \theta$' + f' = {np.round(theta_arr[idx_chosen], 2)} [rad]', fontsize = 22)
+        plt.tight_layout()
+
+
 # %%

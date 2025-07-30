@@ -97,13 +97,7 @@ def J_cart_in_sphere(lat, long):
     matrix = np.array([[np.sin(lat)*np.cos(long), np.cos(lat)*np.cos(long), -np.sin(long)],
                         [np.sin(lat)*np.sin(long), np.cos(lat)*np.sin(long), np.cos(long)],
                         [np.cos(lat), -np.sin(lat), 0]])
-    return matrix
-
-# def rotate_coordinate(x , y, theta):
-#     """ Rotate the coordinates of an angle theta."""
-#     x_rot = x * np.cos(theta) - y * np.sin(theta)
-#     y_rot = x * np.sin(theta) + y * np.cos(theta)
-#     return x_rot, y_rot
+    return matrix 
 
 def Ryan_sampler(theta_arr):
     """ Function to sample the angle in the orbital plane so that you have more points also at apocenter."""
