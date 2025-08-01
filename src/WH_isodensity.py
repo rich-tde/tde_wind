@@ -348,16 +348,16 @@ def follow_the_stream_isodensity(x_data, y_data, z_data, dim_data, density_data,
     return theta_wh, np.array(density_thresholds), indeces_enclosed, contour_stats
 
 if __name__ == '__main__':
-    # theta_lim =  np.pi
-    # step = 0.02
-    # theta_init = np.arange(-theta_lim, theta_lim, step)
-    # theta_arr = Ryan_sampler(theta_init)
-    from Utilities.operators import to_cylindric
-    from Utilities.parabola_arclength_uniform_sampling import generate_uniform_ellipse_points
-    a = orb.semimajor_axis(Rstar, mstar, Mbh, prel.G)
-    e = orb.e_mb(Rstar, mstar, Mbh, beta) 
-    N = 200    # number of points
-    theta_arr = generate_uniform_ellipse_points(a, e, N)
+    theta_lim =  np.pi
+    step = 0.02
+    theta_init = np.arange(-theta_lim, theta_lim, step)
+    theta_arr = Ryan_sampler(theta_init)
+    # from Utilities.operators import to_cylindric
+    # from Utilities.parabola_arclength_uniform_sampling import generate_uniform_ellipse_points
+    # a = orb.semimajor_axis(Rstar, mstar, Mbh, prel.G)
+    # e = orb.e_mb(Rstar, mstar, Mbh, beta) 
+    # N = 200    # number of points
+    # theta_arr = generate_uniform_ellipse_points(a, e, N)
     idx_forplot = 4
     print(f'We are in folder {folder}', flush=True)
     
