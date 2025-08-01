@@ -44,12 +44,12 @@ if check not in ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']:
 else:
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-Mbh = 10**m
-Rs = 2*prel.G*Mbh / prel.csol_cgs**2
-Rt = Rstar * (Mbh/mstar)**(1/3)
-Rp =  Rt / beta
-R0 = 0.6 * Rp
-apo = orb.apocentre(Rstar, mstar, Mbh, beta)
+things = orb.get_things_about(params)
+Rs = things['Rs']
+Rt = things['Rt']
+Rp = things['Rp']
+R0 = things['R0']
+apo = things['apo']
 
 ##
 # FUNCTIONS

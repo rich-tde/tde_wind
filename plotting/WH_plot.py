@@ -25,7 +25,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-what = 'single_snap_behavior' # 'section' or 'comparison' or 'max_compr' or 'single_snap_behavior' 
+what = 'max_compr' # 'section' or 'comparison' or 'max_compr' or 'single_snap_behavior' 
 
 Mbh = 10**m
 Rs = 2*prel.G*Mbh / prel.csol_cgs**2
@@ -65,7 +65,7 @@ if what == 'comparison':
             print(f'Check: {check}, time: {np.round(tfb[idx_time], 2)}')
             # Load the data
             theta_arr, x_stream, y_stream, z_stream, _ = \
-                np.load(f'{abspath}/data/{folder}/WH/stream_{check}{snap}.npy', allow_pickle=True)
+                np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
             theta_wh, width, N_width, height, N_height = \
                 np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
             ax0.plot(x_stream/apo, y_stream/apo, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')

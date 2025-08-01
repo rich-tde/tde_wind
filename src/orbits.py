@@ -7,7 +7,7 @@ import sys
 sys.path.insert(0,'/Users/paolamartire/shocks/')
 import numpy as np
 import numba
-import Utilities.prelude
+import Utilities.prelude as prel
 import matplotlib.pyplot as plt
 from scipy.optimize import brentq
 from scipy.integrate import odeint
@@ -89,6 +89,33 @@ def energy_mb(Rstar, mstar, Mbh, G):
     En = G * Mbh * Rstar / Rt**2
     return En
 
+def get_things_about(params, c = prel.csol_cgs, G = prel.G):
+    Mbh, Rstar, mstar, beta = params
+    Rg = R_grav(Mbh, c, G)
+    Rs = 2 * Rg
+    Rt = tidal_radius(Rstar, mstar, Mbh)
+    R0 = 0.6 * Rt
+    Rp = pericentre(Rstar, mstar, Mbh, beta)
+    a = semimajor_axis(Rstar, mstar, Mbh, G)
+    apo = apocentre(Rstar, mstar, Mbh, beta)
+    ecc_mb = e_mb(Rstar, mstar, Mbh, beta)
+    E_mb = energy_mb(Rstar, mstar, Mbh, G)
+    t_fb_days = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2) #[days]
+    # make a dictionary
+    things = {
+        'Rg': Rg,
+        'Rs': Rs,
+        'Rp': Rp,
+        'Rt': Rt,
+        'R0': R0,
+        'a': a,
+        'apo': apo, 
+        'ecc_mb': ecc_mb,
+        'E_mb': E_mb,
+        't_fb_days': t_fb_days
+    }
+    return things
+
 def parameters_orbit(Rp, Ra, Mbh, c, G ):
     # Rp, Ra, Mbh, c, G = params_orb[0], params_orb[1], params_orb[2], params_orb[3], params_orb[4]
     Rs = 2 * G * Mbh / c**2
@@ -139,7 +166,6 @@ def deriv_an_orbit(theta, a, Rp, ecc, choose):
         dr_dtheta = p * ecc * np.sin(theta)/ (1 + ecc * np.cos(theta))**2
     # elif choose == 'Witta':
     return dr_dtheta
-
 
 def deriv_maxima(theta_arr, x_orbit, y_orbit):
     # Find the idx where the orbit starts to decrease too much (i.e. the stream is not there anymore)

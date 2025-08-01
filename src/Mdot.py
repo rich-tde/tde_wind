@@ -31,7 +31,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = ''
+check = 'NewAMR'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 cond_selection = '' # if 'B' you put the extra condition on the Bernouilli coeff to select cells
 
@@ -56,7 +56,8 @@ print(f'escape velocity: {v_esc*convers_kms} km/s')
 def f_out_LodatoRossi(M_fb, M_edd):
     f = 2/np.pi * np.arctan(1/7.5 * (M_fb/M_edd-1))
     return f
-#%% MAIN
+
+# MAIN
 if compute: # compute dM/dt = dM/dE * dE/dt
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
     tfb_cgs = tfb * tfallback_cgs #converted to seconds
