@@ -25,7 +25,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-what = 'section' # 'section' or 'comparison' or 'max_compr' or 'single_snap_behavior' 
+what = 'single_snap_behavior' # 'section' or 'comparison' or 'max_compr' or 'single_snap_behavior' 
 
 Mbh = 10**m
 Rs = 2*prel.G*Mbh / prel.csol_cgs**2
@@ -129,7 +129,7 @@ if what == 'single_snap_behavior' or what == 'section':
     X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Mass_midplane = \
         sec.make_slices([X, Y, Z, dim_cell, Den, Mass], midplane)
     # Load data stream
-    theta_arr, x_stream, y_stream, z_stream, thresh_cm = np.load(f'{abspath}/data/{folder}/WH/stream_{check}{snap}.npy', allow_pickle=True)
+    theta_arr, x_stream, y_stream, z_stream, thresh_cm = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
     stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
     wh = np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
     theta_wh, width, N_width, height, N_height = wh[0], wh[1], wh[2], wh[3], wh[4]
@@ -162,22 +162,27 @@ if what == 'single_snap_behavior' or what == 'section':
         plt.suptitle(r'Stream at t/t$_{\rm fb}$ = ' + str(np.round(tfb_single,2)) + f', check: {check}', fontsize = 16)
 
         # Plot width and height and number of cells
-        fig, (ax1,ax2) = plt.subplots(1,2, figsize = (18,6))
-        img = ax1.scatter(theta_arr * radians, N_width, c = width, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1, vmax = 15))
-        cbar = plt.colorbar(img)
-        cbar.set_label(r'Width [$R_\odot$]')
-        ax1.set_ylabel(r'Ncells')
-        ax1.set_ylim(np.min(N_width[np.abs(theta_arr) < 2.5])-1, 20)
-        img = ax2.scatter(theta_arr * radians, N_height, c = height, cmap = 'rainbow', norm = colors.LogNorm(vmin = 0.5, vmax = 10))
-        cbar = plt.colorbar(img)
-        cbar.set_label(r'Height [$R_\odot$]')
-        ax2.set_ylabel(r'Ncells')
-        ax2.set_ylim(0, np.max(N_height[np.abs(theta_arr) < 2.5]) + 1)
-        for ax in [ax1, ax2]:
+        fig, ((ax1,ax2), (ax3, ax4)) = plt.subplots(2,2, figsize = (18,9))
+        ax1.plot(theta_wh * radians, width, c = 'dodgerblue')
+        img = ax3.scatter(theta_arr * radians, N_width, c = 'dodgerblue')#, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1, vmax = 15))
+        # cbar = plt.colorbar(img)
+        ax1.set_ylabel(r'Width [$R_\odot$]')
+        ax3.set_ylabel(r'Ncells')
+        ax2.plot(theta_wh * radians, height, c = 'orange')
+        img = ax4.scatter(theta_arr * radians, N_height, c = 'orange')#, cmap = 'rainbow', norm = colors.LogNorm(vmin = 0.5, vmax = 10))
+        # cbar = plt.colorbar(img)
+        ax2.set_ylabel(r'Height [$R_\odot$]')
+        # ax4.set_ylabel(r'Ncells')
+        ax1.set_ylim(1.1, 10)
+        ax2.set_ylim(.2, 10)
+        ax3.set_ylim(5, 20)    
+        ax4.set_ylim(0.9, 10)
+        for ax in [ax1, ax2, ax3, ax4]:
+            ax.set_yscale('log')
             ax.set_xlabel(r'$\theta$')
-            ax.set_xlim(-2.5, 2.5)#-3/4*np.pi, 3/4*np.pi)
-            ax.grid()
-        plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb_single,2)), fontsize = 16)
+            ax.set_xlim(-2.5, 2.5)
+            ax.tick_params(axis='both', which='major', length = 8, width = 1.2)
+            ax.tick_params(axis='both', which='minor', length = 4, width = 1)
         plt.tight_layout()
 
     if what == 'section':

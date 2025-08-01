@@ -25,7 +25,7 @@ else:
     from scipy.integrate import cumulative_trapezoid
 
 import numpy as np
-from Utilities.sections import make_slices, transverse_plane, change_coordinates
+from Utilities.sections import make_slices, transverse_plane, rotate_coordinates
 import Utilities.prelude as prel
 from src import orbits as orb
 from Utilities.operators import make_tree
@@ -39,6 +39,7 @@ n = 1.5 # 'n1.5'
 compton = 'Compton'
 check = 'NewAMR' # '' or 'HiRes' or 'LowRes'
 where = '_everywhere'
+params = [Mbh, Rstar, mstar, beta]
 if check in ['NewAMR', 'HiResNewAMR', 'LowResNewAMR']:
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 else:
@@ -281,41 +282,91 @@ else:
         fig_w.tight_layout()
         
     if how_to_check == 'pancake':
-        snap = 162
+        snap = 96
         path = f'{abspath}/TDE/{folder}/{snap}'
         tfb = np.loadtxt(f'{abspath}/TDE/{folder}/{snap}/tfb_{snap}.txt')
         data = make_tree(path, snap, energy = True)
         cut = data.Den > 1e-19 
-        X, Y, Z, Vol, Mass, Den, VX, VY, VZ = \
-            make_slices([data.X, data.Y, data.Z, data.Vol, data.Mass, data.Den, data.VX, data.VY, data.VZ], cut)
+        X, Y, Z, Vol, Mass, Den, VX, VY, VZ, Diss_den = \
+            make_slices([data.X, data.Y, data.Z, data.Vol, data.Mass, data.Den, data.VX, data.VY, data.VZ, data.Diss], cut)
         dim_cell = Vol**(1/3)
-        theta_arr, x_stream, y_stream, z_stream, _ = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
-        idx_chosen = np.argmin(np.abs(theta_arr))
+        Diss = Diss_den * Vol
+        # theta_arr = np.arange(-.5, .5, .1)   
+        # from src.WH import find_transverse_com
+        # x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, Rstar)
+        theta_arr, x_stream, y_stream, z_stream, thresh_cm = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
+        idx_chosen = 244 #np.argmin(np.abs(theta_arr))
 
         condition_T, x_T = transverse_plane(X, Y, Z, dim_cell, x_stream, y_stream, z_stream, idx_chosen, Rstar, just_plane = False)
-        x_plane, x_T_plane, y_plane, z_plane, dim_plane, VX_plane, VY_plane, VZ_plane, den_plane = \
-            make_slices([X, x_T, Y, Z, dim_cell, VX, VY, VZ, Den], condition_T)
+        x_plane, x_T_plane, y_plane, z_plane, dim_plane, mass_plane, VX_plane, VY_plane, VZ_plane, den_plane = \
+            make_slices([X, x_T, Y, Z, dim_cell, Mass, VX, VY, VZ, Den], condition_T)
+        # cut at the threshold
+        below_thres = np.logical_and(np.abs(x_T_plane) < thresh_cm[idx_chosen], np.abs(z_plane) < thresh_cm[idx_chosen])
+        x_plane, x_T_plane, y_plane, z_plane, dim_plane, mass_plane, VX_plane, VY_plane, VZ_plane, den_plane = \
+            make_slices([x_plane, x_T_plane, y_plane, z_plane, dim_plane, mass_plane, VX_plane, VY_plane, VZ_plane, den_plane], below_thres)
+
+        
+        mid = np.abs(Z) < dim_cell
+        X_mid, Y_mid, Diss_mid = make_slices([X, Y, Diss], mid)
         mid_plane = np.abs(z_plane) < dim_plane
-        t_dot, _ = change_coordinates(VX_plane, VY_plane, x_stream, y_stream, idx_chosen, z_datas = None)
+        t_dot, _ = rotate_coordinates(VX_plane, VY_plane, x_stream, y_stream, idx_chosen, z_datas = None)
+        E_kin_t = 0.5 * np.sum(mass_plane * t_dot**2) * prel.en_converter 
+        E_kin_z = 0.5 * np.sum(mass_plane * VZ_plane**2) * prel.en_converter
+
+        # load data energy
+        snaps, tfbs = np.loadtxt(f'{abspath}/data/{folder}/Diss/spuriousDiss_{check}_days.txt')
+        tfbs_cgs = tfbs * tfall_cgs # convert to cgs
+        ie_sum, orb_en_pos_sum, orb_en_neg_sum, diss_pos_sum, diss_neg_sum = \
+            np.load(f'{abspath}/data/{folder}/Diss/spuriousDiss_{check}{where}.npy', allow_pickle=True)
+        time_en = np.argmin(np.abs(snaps - snap))
+        ie_snap = ie_sum[time_en] * prel.en_converter # convert to erg
+        orb_en_neg_snap = orb_en_neg_sum[time_en] * prel.en_converter
+        diss_pos_sum *= prel.en_converter / prel.tsol_cgs # convert to erg/s
+        diss_neg_sum *= prel.en_converter / prel.tsol_cgs # convert to erg/s
+        diss_pos_int = cumulative_trapezoid(diss_pos_sum, tfbs_cgs, initial = 0)
+        diss_neg_int = cumulative_trapezoid(np.abs(diss_neg_sum), tfbs_cgs, initial = 0)
+        diss_pos_snap = diss_pos_int[time_en]
+        diss_neg_snap = diss_neg_int[time_en]
+        print(f'ie = {ie_snap}, \norb_en_neg = {orb_en_neg_snap}, \ndiss = {max(diss_pos_snap, diss_neg_snap)}, \nE_kin_t = {E_kin_t}')
+        print(f'sum new kinetic energy = {E_kin_t + E_kin_z}')
 
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(27, 8), width_ratios=(1.5, 1))
-        ax0.plot(x_stream/apo, y_stream/apo, c = 'k')
+        img = ax0.scatter(X_mid/apo, Y_mid/apo, c = Diss_mid * prel.en_converter/prel.tsol_cgs, s = 1, cmap = 'viridis', norm = colors.LogNorm(vmin = 1e28, vmax = 1e35))
+        plt.colorbar(img,  label=r'Dissipation rate [erg/s]')
+        ax0.scatter(x_stream/apo, y_stream/apo, c = 'k', s = 4)
         ax0.scatter(x_plane[mid_plane]/apo, y_plane[mid_plane]/apo, c = 'b', s = 10)
         ax0.scatter(x_stream[idx_chosen]/apo, y_stream[idx_chosen]/apo, c = 'r', s = 20)
         ax0.set_xlabel(r'X [$R_{\rm a}$]')
         ax0.set_ylabel(r'Y [$R_{\rm a}$]')
-        ax0.set_xlim(-1.2, 0.1)
-        ax0.set_ylim(-.2, .2)
-        img = ax1.scatter(x_T_plane, z_plane, c = den_plane, s = 20, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-7))
+        ax0.set_xlim(-.8, 0.1)
+        ax0.set_ylim(-.5, .2)
+        img = ax1.scatter(x_T_plane, z_plane, c = den_plane, s = 40, cmap = 'rainbow', norm = colors.LogNorm(vmin = np.percentile(den_plane, 40), vmax = np.max(den_plane)))
         cbar = plt.colorbar(img)
-        ax1.quiver(x_T_plane, z_plane, t_dot, VZ_plane, color = 'k', angles='xy', scale_units='xy', scale=80, width = 0.002)
+        ax1.quiver(x_T_plane, z_plane, t_dot, VZ_plane, color = 'k', angles='xy', scale_units='xy', scale=40, width = 0.002)
         cbar.set_label(r'Den [$M_\odot/R_\odot^3$]')
         ax1.set_xlabel(r'T [$R_\odot$]')
         ax1.set_ylabel(r'Z [$R_\odot$]') 
-        ax1.set_xlim(-5,5)
-        ax1.set_ylim(-2,2)
-        plt.suptitle(f't = {np.round(tfb, 2)}' +  r' t$_{\rm fb}, \theta$' + f' = {np.round(theta_arr[idx_chosen], 2)} [rad]', fontsize = 22)
+        plt.suptitle(f'TZ plane, t = {np.round(tfb, 2)}' +  r' t$_{\rm fb}, \theta$' + f' = {np.round(theta_arr[idx_chosen], 2)} [rad]', fontsize = 22)
         plt.tight_layout()
+
+        # fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(27, 8), width_ratios=(1.5, 1))
+        # ax0.plot(x_stream/apo, y_stream/apo, c = 'k')
+        # ax0.scatter(x_plane[mid_plane]/apo, y_plane[mid_plane]/apo, c = 'b', s = 10)
+        # ax0.scatter(x_stream[idx_chosen]/apo, y_stream[idx_chosen]/apo, c = 'r', s = 20)
+        # ax0.set_xlabel(r'X [$R_{\rm a}$]')
+        # ax0.set_ylabel(r'Y [$R_{\rm a}$]')
+        # ax0.set_xlim(-1.2, 0.1)
+        # ax0.set_ylim(-.2, .2)
+        # img = ax1.scatter(x_plane, z_plane, c = den_plane, s = 20, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-7))
+        # cbar = plt.colorbar(img)
+        # ax1.quiver(x_plane, z_plane, VX_plane, VZ_plane, color = 'k', angles='xy', scale_units='xy', scale=80, width = 0.002)
+        # cbar.set_label(r'Den [$M_\odot/R_\odot^3$]')
+        # ax1.set_xlabel(r'X [$R_\odot$]')
+        # ax1.set_ylabel(r'Z [$R_\odot$]') 
+        # ax1.set_xlim(-5+x_stream[idx_chosen],5+x_stream[idx_chosen])
+        # ax1.set_ylim(-2+z_stream[idx_chosen],2+z_stream[idx_chosen])
+        # plt.suptitle(f'XZ plane, t = {np.round(tfb, 2)}' +  r' t$_{\rm fb}, \theta$' + f' = {np.round(theta_arr[idx_chosen], 2)} [rad]', fontsize = 22)
+        # plt.tight_layout()
 
 
 # %%
