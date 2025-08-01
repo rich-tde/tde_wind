@@ -148,10 +148,36 @@ def R_selfinter(Rstar, mstar, Mbh, beta, c, G):
     R = (1+e_mb) * Rt / (beta * (1-e_mb * np.cos(theta/2)))
     return R
 
-def orbital_energy(r, vel, mass, G, c, M, R0):
+def smoothed_pw_potential(r, M, G, R0):
+    """
+    Compute the smoothed Paczyński–Wiita potential at a single radius r.
+
+    Parameters:
+        r : float
+            Radius at which to compute the potential.
+        G : float
+            Gravitational constant.
+        M : float
+            Mass of the black hole.
+        R0 : float 
+            Smoothing radius.
+
+    Returns: 
+        Phi : float
+            Gravitational potential at radius r.
+    """
+    Rg = R_grav(Mbh, c, G)
+    Rs = 2 * Rg
+    if r >= R0:
+        return -G * M / (r - Rs)
+    else:
+        A = G * M * r / (R0 * (R0 - Rs)**2)
+        B = -G * M / (R0 - Rs) * (R0 / (R0 - Rs) + 1)
+        return A * r + B
+
+def orbital_energy(r, vel, mass, Mbh, G, R0):
     # no angular momentum??
-    Rs = 2*G*M/c**2
-    potential = np.where( r <= R0, -G * M * r**2 / (2 * R0 * (R0 - Rs)**2), -G * M / (r - Rs))
+    potential = smoothed_pw_potential(r, Mbh, G, R0) #np.where( r <= R0, -G * M * r**2 / (2 * R0 * (R0 - Rs)**2), -G * M / (r - Rs))
     energy = mass * (0.5 * vel**2 + potential)
     return energy
 
