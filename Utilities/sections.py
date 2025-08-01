@@ -19,7 +19,7 @@ def radial_plane(x_data, y_data, dim_data, theta_chosen):
     # and take the points orthogonal to that
     condition_plane = np.abs(np.dot(r_data, orthog_vector)) < dim_data
     # Take points in the same quadrant as the chosen point (i.e. select half plane)
-    condition_pos = (y_data * y_chosen > 0) & (x_data * x_chosen > 0)
+    condition_pos = (y_data * y_chosen >= 0) & (x_data * x_chosen >= 0)
     condition_coord = np.logical_and(condition_plane, condition_pos)
 
     return condition_coord
@@ -48,7 +48,7 @@ def tangent_versor(x_stream, y_stream, idx, smooth_stream = False):
         return vers_tg
 
 
-def change_coordinates(x_data, y_data, x_stream, y_stream, idx, z_datas = None):
+def rotate_coordinates(x_data, y_data, x_stream, y_stream, idx, z_datas = None):
     """ 2D-Rototranslation of the reference system in the chosen point 
     with orientation given by vers_tg.
     Parameters:
@@ -69,30 +69,18 @@ def change_coordinates(x_data, y_data, x_stream, y_stream, idx, z_datas = None):
     z_data_trasl: array_like, optional
         Z coordinates of the data points after translation to the chosen point.
     """ 
-    # Put the data in the reference system of the chosen point
-    x_chosen, y_chosen = x_stream[idx], y_stream[idx]
     # Find the tg versor at the chosen point and the points orthogonal to it
     vers_tg = tangent_versor(x_stream, y_stream, idx)
-    x_data_trasl = x_data - x_chosen
-    y_data_trasl = y_data - y_chosen
-    data_trasl = np.transpose([x_data_trasl, y_data_trasl])
-    if z_datas is not None:
-        z_data = z_datas[0]
-        z_stream = z_datas[1]
-        z_chosen = z_stream[idx]
-        z_data_trasl = z_data - z_chosen
+    data = np.transpose([x_data, y_data])
     zhat = np.array([0,0,1])
     # kRhat = np.array([vers_tg[0], vers_tg[1],0]) # points in the direction of the orbit
     xRhat = np.cross(zhat, vers_tg) # points outwards
     xRhat /= max(np.linalg.norm(xRhat), 1e-20) # avoid division by zero
     # kRhat = np.array([vers_tg[0], vers_tg[1],0]) # points in the direction of the orbit
     vers_norm = np.array([xRhat[0], xRhat[1]]) 
-    x_onplaneall = np.dot(data_trasl, vers_norm)
-    y_onplaneall = np.dot(data_trasl, vers_tg)
-    if z_datas is not None:
-        return x_onplaneall, y_onplaneall, x_data_trasl, y_data_trasl, z_data_trasl
-    else:
-        return x_onplaneall, y_onplaneall
+    x_onplaneall = np.dot(data, vers_norm)
+    y_onplaneall = np.dot(data, vers_tg)
+    return x_onplaneall, y_onplaneall
              
 def transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, rstar, just_plane = True):
     """
@@ -118,10 +106,15 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_str
         - If just_plane=False: T-coordinates for all simulation data
     x0 : float (only if just_plane=True)
         T-coordinate of the central point.
-    """        
-    # Rototrasl data
-    x_onplaneall, y_onplaneall, x_data_trasl, y_data_trasl, z_data_trasl = \
-        change_coordinates(x_data, y_data, x_stream, y_stream, idx, z_datas = [z_data, z_stream])
+    """       
+    # Put the data in the reference system of the chosen point
+    x_chosen, y_chosen, z_chosen = x_stream[idx], y_stream[idx], z_stream[idx]
+    x_data_trasl = x_data - x_chosen
+    y_data_trasl = y_data - y_chosen 
+    z_data_trasl = z_data - z_chosen 
+    # Rotate data
+    x_onplaneall, y_onplaneall = \
+        rotate_coordinates(x_data_trasl, y_data_trasl, x_stream, y_stream, idx)
     condition_tra = np.abs(y_onplaneall) < dim_data 
 
     s = 0.5 * rstar  # so thickess is = R_star as in BonnerotLu22. If you use step_ang: 2*step_ang * r_chosen_mod
