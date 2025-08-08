@@ -72,7 +72,7 @@ if alice:
         file.write((' '.join(map(str, bins)) + '\n'))
         file.close()
     for snap in snaps:
-        print(f'Snap: {snap}')
+        print(f'Snap: {snap}', flush=True)
         # Load data
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         data = make_tree(path, snap, energy = False)

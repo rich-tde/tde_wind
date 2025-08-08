@@ -167,10 +167,12 @@ def smoothed_pw_potential(r, params, G):
     Mbh = params[0]
     Rs = things['Rs']   
     R0 = things['R0']
-    if r >= R0:
-        pot = -G * Mbh / (r - Rs)
-    else:
-        pot = -G * Mbh / (R0 - Rs) * (1 + 0.5 * R0 / (R0 - Rs) - 0.5 * r**2 / (R0 * (R0 - Rs)))
+    pot = np.empty_like(r, dtype=float)
+
+    mask = r >= R0
+    pot[mask] = -G * Mbh / (r[mask] - Rs)
+    pot[~mask] = -G * Mbh / (R0 - Rs) * (1 + 0.5 * R0 / (R0 - Rs) - 0.5 * r[~mask]**2 / (R0 * (R0 - Rs)))
+
     return pot
 
 def orbital_energy(r, vel, mass, params, G):
