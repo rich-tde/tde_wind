@@ -53,52 +53,50 @@ movie = False
 dMdecc = False
 
 if alice:
-    checks = ['NewAMR']#['LowRes', '','HiRes'] 
-    print('Normalization for energy:', norm)
+    check = 'NewAMR'
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    print(f'Check: {check}', flush=True)
 
-    for check in checks:
-        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-        print(f'Check: {check}')
-        snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
-        bins1 = np.arange(-6.5, -1.5, .1) 
-        bins2 = np.arange(-1.5, 0, .01)
-        bins3 = np.arange(0, 2, .1)
-        bins = np.concatenate((bins1, bins2, bins3))
-        # save snaps, tfb and energy bins
-        with open(f'{abspath}/data/{folder}/wind/dMdE_{check}_days.txt','w') as filedays:
-            filedays.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
-            filedays.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-            filedays.close()
-        with open(f'{abspath}/data/{folder}/wind/dMdE_{check}_bins.txt','w') as file:
-            file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
-            file.write((' '.join(map(str, bins)) + '\n'))
+    snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
+    bins1 = np.arange(-6.5, -1.5, .1) 
+    bins2 = np.arange(-1.5, 0, .01)
+    bins3 = np.arange(0, 2, .1)
+    bins = np.concatenate((bins1, bins2, bins3))
+    # save snaps, tfb and energy bins
+    with open(f'{abspath}/data/{folder}/wind/dMdE_{check}_days.txt','w') as filedays:
+        filedays.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
+        filedays.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+        filedays.close()
+    with open(f'{abspath}/data/{folder}/wind/dMdE_{check}_bins.txt','w') as file:
+        file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
+        file.write((' '.join(map(str, bins)) + '\n'))
+        file.close()
+    for snap in snaps:
+        print(f'Snap: {snap}')
+        # Load data
+        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+        data = make_tree(path, snap, energy = False)
+        # Compute the orbital energy
+        X, Y, Z, VX, VY, VZ, Den, mass, Vol = \
+            data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Den, data.Mass, data.Vol
+        cut = Den > 1e-19
+        dim_cell = Vol**(1/3) 
+        X, Y, Z, VX, VY, VZ, mass = \
+            sec.make_slices([X, Y, Z, VX, VY, VZ, mass], cut)
+        R = np.sqrt(X**2 + Y**2 + Z**2)
+        V = np.sqrt(VX**2 + VY**2 + VZ**2)
+        orbital_enegy = orb.orbital_energy(R, V, mass, params, prel.G)
+        specific_orbital_energy = orbital_enegy / mass
+
+        # (Specific) energy bins 
+        specOE_norm = specific_orbital_energy/norm 
+        mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
+        dm_dE = mass_binned / (np.diff(bins_edges)*norm)
+
+        with open(f'{abspath}/data/{folder}/wind/dMdE_{check}.txt','a') as file:
+            file.write(f'# dM/dE [code units] snap {snap} \n')
+            file.write((' '.join(map(str, dm_dE)) + '\n'))
             file.close()
-        for snap in snaps:
-            print(f'Snap: {snap}')
-            # Load data
-            path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-            data = make_tree(path, snap, energy = False)
-            # Compute the orbital energy
-            X, Y, Z, VX, VY, VZ, Den, mass, Vol = \
-                data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Den, data.Mass, data.Vol
-            cut = Den > 1e-19
-            dim_cell = 0.5*Vol**(1/3) 
-            X, Y, Z, VX, VY, VZ, mass = \
-                sec.make_slices([X, Y, Z, VX, VY, VZ, mass], cut)
-            R = np.sqrt(X**2 + Y**2 + Z**2)
-            V = np.sqrt(VX**2 + VY**2 + VZ**2)
-            orbital_enegy = orb.orbital_energy(R, V, mass, Mbh, prel.G, R0)
-            specific_orbital_energy = orbital_enegy / mass
-
-            # (Specific) energy bins 
-            specOE_norm = specific_orbital_energy/norm 
-            mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
-            dm_dE = mass_binned / (np.diff(bins_edges)*norm)
-
-            with open(f'{abspath}/data/{folder}/wind/dMdE_{check}.txt','a') as file:
-                file.write(f'# dM/dE [code units] snap {snap} \n')
-                file.write((' '.join(map(str, dm_dE)) + '\n'))
-                file.close()
 
 if test_bins:
     snap = 348
@@ -113,7 +111,7 @@ if test_bins:
     mass = data.Mass
     R = np.sqrt(data.X**2 + data.Y**2 + data.Z**2)
     V = np.sqrt(data.VX**2 + data.VY**2 + data.VZ**2)
-    orbital_enegy = orb.orbital_energy(R, V, mass, prel.G, prel.csol_cgs, Mbh)
+    orbital_enegy = orb.orbital_energy(R, V, mass, params, prel.G)
     specific_orbital_energy = orbital_enegy / mass
     specOE_norm = specific_orbital_energy/norm
     # Cutoff for low density
@@ -266,7 +264,7 @@ if dMdecc:
         vel_vec = np.transpose(np.array([VX, VY, VZ]))
         R = np.linalg.norm(R_vec, axis = 1)
         V = np.linalg.norm(vel_vec, axis=1)
-        orbital_enegy = orb.orbital_energy(R, V, mass, prel.G, prel.csol_cgs, Mbh)
+        orbital_enegy = orb.orbital_energy(R, V, mass, params, prel.G)
         specific_orbital_energy = orbital_enegy / mass
         bound = specific_orbital_energy<0
         R_vec_bound, vel_vec_bound, specOE_bound, mass_bound  = \
