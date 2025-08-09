@@ -420,7 +420,7 @@ if __name__ == '__main__':
                     file.write(f'# Ncells height \n')
                     file.write((' '.join(map(str, h_params[1])) + '\n'))
                 np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{check}{snap}.npy', indeces_boundary)
-                np.save(f'{abspath}/data/{folder}/WH/indeces_enclosed_{check}{snap}.npy', indeces_enclosed, allow_pickle=True)
+                np.save(f'{abspath}/data/{folder}/WH/enclosed/indeces_enclosed_{check}{snap}.npy', indeces_enclosed, allow_pickle=True)
 
             if not alice:
                 # Plotting results

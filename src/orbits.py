@@ -27,8 +27,9 @@ def keplerian_energy(Mbh, G, t):
     return energy
 
 def Mdot_fb(Mbh, G, t, dmdE):
-    """ Mass fallback rate according to Keplers law for t and dM/dE from numerical simualtion data."""
-    Mdot = -2/3 * dmdE * (np.pi * G * Mbh / 2)**(2/3) * t**(-5/3)
+    """ Mass fallback rate according to Keplers law for t and dM/dE from numerical simualtion data.
+    Eq.26 in Rossi+20"""
+    Mdot = -2/3 * dmdE * (np.pi * G * Mbh / np.sqrt(2))**(2/3) * t**(-5/3)
     return Mdot
 
 def keplerian_orbit(theta, a, Rp, ecc=1, toflip = False):
@@ -96,7 +97,7 @@ def get_things_about(params, c = prel.csol_cgs, G = prel.G):
     Rt = tidal_radius(Rstar, mstar, Mbh)
     R0 = 0.6 * Rt
     Rp = pericentre(Rstar, mstar, Mbh, beta)
-    a = semimajor_axis(Rstar, mstar, Mbh, G)
+    a_mb = semimajor_axis(Rstar, mstar, Mbh, G)
     apo = apocentre(Rstar, mstar, Mbh, beta)
     ecc_mb = e_mb(Rstar, mstar, Mbh, beta)
     E_mb = energy_mb(Rstar, mstar, Mbh, G)
@@ -108,7 +109,7 @@ def get_things_about(params, c = prel.csol_cgs, G = prel.G):
         'Rp': Rp,
         'Rt': Rt,
         'R0': R0,
-        'a': a,
+        'a_mb': a_mb,
         'apo': apo, 
         'ecc_mb': ecc_mb,
         'E_mb': E_mb,

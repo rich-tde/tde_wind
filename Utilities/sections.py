@@ -167,7 +167,7 @@ if __name__ == '__main__':
     mstar = .5
     Rstar = .47
     n = 1.5
-    snap = '162'
+    snap = '238'
     check = 'NewAMR'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}Compton{check}'
     path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
@@ -191,8 +191,8 @@ if __name__ == '__main__':
 
     # vec_tg, x_stream_sm, y_stream_sm = tangent_versor(x_stream, y_stream, idx, smooth_stream = True)
 
-    fig, (ax1, ax2) = plt.subplots(1,2, figsize = (12,4), width_ratios=(1.5,.8))
-    for idx in range(140,142):
+    fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,5), width_ratios=(1.5,.8))
+    for idx in range(187,190):
     # idx = 120
         condition_tra, x_onplane, _ = transverse_plane(X, Y, Z, dim_cell, x_stream, y_stream, z_stream, idx, Rstar, just_plane = True)
         X_tra, Y_tra, Z_tra = \
@@ -200,22 +200,22 @@ if __name__ == '__main__':
         X_tra_midplane = X_tra[np.abs(Z_tra) < dim_cell[condition_tra]]
         Y_tra_midplane = Y_tra[np.abs(Z_tra) < dim_cell[condition_tra]]
                                 
-        condition_tg = tangent_plane(X, Y, dim_cell, x_stream, y_stream, idx)
-        X_tg, Y_tg, Z_tg = \
-            make_slices([X, Y, Z], condition_tg)
-        X_tg_midplane = X_tg[np.abs(Z_tg) < dim_cell[condition_tg]]
-        Y_tg_midplane = Y_tg[np.abs(Z_tg) < dim_cell[condition_tg]]
+        # condition_tg = tangent_plane(X, Y, dim_cell, x_stream, y_stream, idx)
+        # X_tg, Y_tg, Z_tg = \
+        #     make_slices([X, Y, Z], condition_tg)
+        # X_tg_midplane = X_tg[np.abs(Z_tg) < dim_cell[condition_tg]]
+        # Y_tg_midplane = Y_tg[np.abs(Z_tg) < dim_cell[condition_tg]]
         
         for ax in [ax1, ax2]:
             ax.scatter(X_tra_midplane, Y_tra_midplane, s=.1, alpha = 0.8,  label = 'Transverse plane')
-            ax.scatter(X_tg_midplane, Y_tg_midplane, s=.1, alpha = 0.8, c = 'g', label = 'Tangent plane')
+            # ax.scatter(X_tg_midplane, Y_tg_midplane, s=.1, alpha = 0.8, c = 'g', label = 'Tangent plane')
             ax.plot(x_stream, y_stream,  c = 'k', label = 'Stream')
             # ax.contour(xcfr, ycfr, cfr, [0], linestyles = 'dotted', colors = 'k')
             ax.set_xlabel(r'$X [R_\odot]$')
     ax1.set_xlim(-300,20)
     ax1.set_ylim(-60,60)
-    ax2.set_xlim(0,15)
-    ax2.set_ylim(-5,15)
+    ax2.set_xlim(-2*Rt,2*Rt)
+    ax2.set_ylim(-2*Rt,2*Rt)
     ax1.set_ylabel(r'$Y [R_\odot]$')
     plt.suptitle(f'Transverse and tangential plane at t = {tfb:.2f}' + r' $t_{\rm fb}$ for $\theta$ = ' + f'{theta_arr[idx]:.2f} rad', fontsize = 18)
     plt.tight_layout()

@@ -32,23 +32,27 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'NewAMR'
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-cond_selection = '' # if 'B' you put the extra condition on the Bernouilli coeff to select cells
+cond_selection = 'B' # if 'B' you put the extra condition on the Bernouilli coeff to select cells
 
-tfallback = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2) #[days]
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+params = [Mbh, Rstar, mstar, beta]
+things = orb.get_things_about(params)
+tfallback = things['t_fb_days']
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
-Rt = Rstar * (Mbh/mstar)**(1/3)
-Rp = Rt/beta
-R0 = 0.6 * Rp
-norm_dMdE = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call \Delta E). It's GM/Rt^2 * Rstar
-apo = orb.apocentre(Rstar, mstar, Mbh, beta) 
-amin = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
-radii = np.array([0.2*amin, 0.5*amin, 0.7 * amin, amin])
+Rs = things['Rs']
+Rt = things['Rt']
+Rp = things['Rp']
+R0 = things['R0']
+apo = things['apo']
+amin = things['a_mb'] # semimajor axis of the bound orbit
+norm_dMdE = things['E_mb']
+
+radii = np.array([Rt, 0.5*amin, amin])
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
-Medd = Ledd/(0.1*prel.c_cgs**2)
-v_esc = np.sqrt(2*prel.G*Mbh/(0.5*amin))
+Medd = Ledd/prel.c_cgs**2
+v_esc = np.sqrt(2*prel.G*Mbh/Rt)
 convers_kms = prel.Rsol_cgs * 1e-5/prel.tsol_cgs # it's aorund 400
-print(f'escape velocity: {v_esc*convers_kms} km/s')
+print(f'escape velocity at Rt: {v_esc*convers_kms} km/s')
 
 #
 ## FUNCTIONS
@@ -61,10 +65,10 @@ def f_out_LodatoRossi(M_fb, M_edd):
 if compute: # compute dM/dt = dM/dE * dE/dt
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
     tfb_cgs = tfb * tfallback_cgs #converted to seconds
-    bins = np.loadtxt(f'{abspath}/data/{folder}/dMdE_{check}_equalbins.txt')
+    bins = np.loadtxt(f'{abspath}/data/{folder}/wind/dMdE_{check}_bins.txt')
     max_bin_negative = np.abs(np.min(bins))
-    mid_points = (bins[:-1]+bins[1:])* norm_dMdE/2  # get rid of the normalization
-    dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/dMdE_{check}_equal.txt')[0] # distribution just after the disruption
+    mid_points = (bins[:-1]+bins[1:]) * norm_dMdE/2  # get rid of the normalization
+    dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/wind/dMdE_{check}.txt')[0] # distribution just after the disruption
     bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
    
     mfall = np.zeros(len(tfb_cgs))
@@ -74,7 +78,6 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     Vwind_neg = []
     for i, snap in enumerate(snaps):
         print(snap, flush=True)
-        sys.stdout.flush()
         if alice:
             path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         else:
@@ -85,12 +88,11 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         # Find the energy of the element at time t
         energy = orb.keplerian_energy(Mbh, prel.G, tsol) # it'll give it positive
         i_bin = np.argmin(np.abs(energy-np.abs(bins_tokeep))) # just to be sure that you match the data
-        if energy/bins_tokeep[i_bin] > max_bin_negative:
+        if energy-bins_tokeep[i_bin] > max_bin_negative:
             print('You overcome the maximum negative bin')
         
         dMdE_t = dMdE_distr_tokeep[i_bin]
-        mdot = orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t)
-        mfall[i] = mdot # code units
+        mfall[i] = orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t)
 
         data = make_tree(path, snap, energy = True)
         X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den = \
@@ -102,21 +104,20 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         IE_spec = IE_den/Den
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
         V = np.sqrt(VX**2 + VY**2 + VZ**2)
-        orb_en = orb.orbital_energy(Rsph, V, Mass, prel.G, prel.csol_cgs, Mbh, R0) 
+        orb_en = orb.orbital_energy(Rsph, V, Mass, params, prel.G) 
         bern = orb_en/Mass + IE_spec + Press/Den
         long = np.arctan2(Y, X)          # Azimuthal angle in radians
         lat = np.arccos(Z / Rsph)
         v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
         # Positive velocity (and unbound)
         if cond_selection == 'B':
-            cond = np.logical_and(v_rad >= 0, bern > 0)
+            cond = np.logical_and(v_rad >= 0, np.logical_and(bern > 0, X > amin))
         elif cond_selection == '':
             cond = v_rad >= 0  
         X_pos, Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
             make_slices([X, Den, Rsph, v_rad, dim_cell], cond)
         if Den_pos.size == 0:
             print(f'no positive', flush=True)
-            sys.stdout.flush()
             mwind_pos.append(0)
             Vwind_pos.append(0)
         else:
@@ -144,7 +145,6 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             make_slices([X, Den, Rsph, v_rad, dim_cell], cond)
         if Den_neg.size == 0:
             print(f'no bern negative: {bern}', flush=True)
-            sys.stdout.flush()
             mwind_pos.append(0)
             Vwind_pos.append(0)
         else:
@@ -169,7 +169,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     Vwind_pos = np.transpose(np.array(Vwind_pos))
     Vwind_neg = np.transpose(np.array(Vwind_neg))
 
-    with open(f'{abspath}/data/{folder}/Mdot_{check}_{cond_selection}pos_equal.txt','w') as file:
+    with open(f'{abspath}/data/{folder}/wind/Mdot_{check}_{cond_selection}pos_equal.txt','w') as file:
         if cond_selection == 'B':
             file.write(f'# Distinguish using Bernouilli criterion \n#t/tfb \n')
         else:
@@ -177,46 +177,38 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         file.write(f' '.join(map(str, tfb)) + '\n')
         file.write(f'# Mdot_f \n')
         file.write(f' '.join(map(str, mfall)) + '\n')
-        file.write(f'# Mdot_wind at 0.2 amin\n')
+        file.write(f'# Mdot_wind at Rt\n')
         file.write(f' '.join(map(str, mwind_pos[0])) + '\n')
         file.write(f'# Mdot_wind at 0.5 amin\n')
         file.write(f' '.join(map(str, mwind_pos[1])) + '\n')
-        file.write(f'# Mdot_wind at 0.7 amin\n')
-        file.write(f' '.join(map(str, mwind_pos[2])) + '\n')
         file.write(f'# Mdot_wind at amin\n')
-        file.write(f' '.join(map(str, mwind_pos[3])) + '\n')
-        file.write(f'# v_wind at 0.2 amin\n')
+        file.write(f' '.join(map(str, mwind_pos[2])) + '\n')
+        file.write(f'# v_wind at Rt\n')
         file.write(f' '.join(map(str, Vwind_pos[0])) + '\n')
         file.write(f'# v_wind at 0.5 amin\n')
         file.write(f' '.join(map(str, Vwind_pos[1])) + '\n')
-        file.write(f'# v_wind at 0.7 amin\n')
-        file.write(f' '.join(map(str, Vwind_pos[2])) + '\n')
         file.write(f'# v_wind at amin\n')
-        file.write(f' '.join(map(str, Vwind_pos[3])) + '\n')
+        file.write(f' '.join(map(str, Vwind_pos[2])) + '\n')
         file.close()
     
-    with open(f'{abspath}/data/{folder}/Mdot_{check}_{cond_selection}neg_equal.txt','w') as file:
+    with open(f'{abspath}/data/{folder}/wind/Mdot_{check}_{cond_selection}neg_equal.txt','w') as file:
         if cond_selection == 'B':
-            file.write(f'# Distinguish using Bernouilli criterion \n#t/tfb \n')
+            file.write(f'# Distinguish using Bernouilli criterion and X > a_mb \n#t/tfb \n')
         else:
             file.write(f'# t/tfb \n')
         file.write(f' '.join(map(str, tfb)) + '\n')
-        file.write(f'# Mdot_wind at 0.2 amin\n')
+        file.write(f'# Mdot_wind at Rt\n')
         file.write(f' '.join(map(str, mwind_neg[0])) + '\n')
         file.write(f'# Mdot_wind at 0.5 amin\n')
         file.write(f' '.join(map(str, mwind_neg[1])) + '\n')
-        file.write(f'# Mdot_wind at 0.7 amin\n')
-        file.write(f' '.join(map(str, mwind_neg[2])) + '\n')
         file.write(f'# Mdot_wind at amin\n')
-        file.write(f' '.join(map(str, mwind_neg[3])) + '\n')
-        file.write(f'# v_wind at 0.2 amin\n')
+        file.write(f' '.join(map(str, mwind_neg[2])) + '\n')
+        file.write(f'# v_wind at Rt\n')
         file.write(f' '.join(map(str, Vwind_neg[0])) + '\n')
         file.write(f'# v_wind at 0.5 amin\n')
         file.write(f' '.join(map(str, Vwind_neg[1])) + '\n')
-        file.write(f'# v_wind at 0.7 amin\n')
-        file.write(f' '.join(map(str, Vwind_neg[2])) + '\n')
         file.write(f'# v_wind at amin\n')
-        file.write(f' '.join(map(str, Vwind_neg[3])) + '\n')
+        file.write(f' '.join(map(str, Vwind_neg[2])) + '\n')
         file.close()
 
 if plot:
