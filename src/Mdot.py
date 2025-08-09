@@ -89,7 +89,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         energy = orb.keplerian_energy(Mbh, prel.G, tsol) # it'll give it positive
         i_bin = np.argmin(np.abs(energy-np.abs(bins_tokeep))) # just to be sure that you match the data
         if energy-np.abs(bins_tokeep[i_bin]) > 0:
-            print(f'You overcome the maximum negative bin ({max_bin_negative}). You required {energy}')
+            print(f'You overcome the maximum negative bin ({max_bin_negative*norm_dMdE}). You required {energy}')
             continue
         
         dMdE_t = dMdE_distr_tokeep[i_bin]
