@@ -76,6 +76,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     Vwind_pos = []
     mwind_neg = []
     Vwind_neg = []
+    tfb_kept = []
     for i, snap in enumerate(snaps):
         print(snap, flush=True)
         if alice:
@@ -90,12 +91,9 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         i_bin = np.argmin(np.abs(energy-np.abs(bins_tokeep))) # just to be sure that you match the data
         if energy-max_bin_negative*norm_dMdE > 0:
             print(f'You overcome the maximum negative bin ({max_bin_negative*norm_dMdE}). You required {energy}')
-            mwind_pos.append(0)
-            Vwind_pos.append(0)
-            mwind_neg.append(0)
-            Vwind_neg.append(0)
             continue
-        
+
+        tfb_kept.append(tfb[i])
         dMdE_t = dMdE_distr_tokeep[i_bin]
         mfall[i] = orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t)
 
@@ -123,8 +121,8 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             make_slices([X, Den, Rsph, v_rad, dim_cell], cond)
         if Den_pos.size == 0:
             print(f'no positive', flush=True)
-            mwind_pos.append(0)
-            Vwind_pos.append(0)
+            mwind_pos.append(np.zeros(len(radii)))
+            Vwind_pos.append(np.zeros(len(radii)))
         else:
             Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos # there should be a pi factor here, but you put it later
             Mdot_pos_casted = np.zeros(len(radii))
@@ -150,8 +148,8 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             make_slices([X, Den, Rsph, v_rad, dim_cell], cond)
         if Den_neg.size == 0:
             print(f'no bern negative: {bern}', flush=True)
-            mwind_pos.append(0)
-            Vwind_pos.append(0)
+            mwind_neg.append(np.zeros(len(radii)))
+            Vwind_neg.append(np.zeros(len(radii)))
         else:
             Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg # there should be a pi factor here, but you put it later
             Mdot_neg_casted = np.zeros(len(radii))
@@ -179,7 +177,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             file.write(f'# Distinguish using Bernouilli criterion \n#t/tfb \n')
         else:
             file.write(f'# t/tfb \n')
-        file.write(f' '.join(map(str, tfb)) + '\n')
+        file.write(f' '.join(map(str, tfb_kept)) + '\n')
         file.write(f'# Mdot_f \n')
         file.write(f' '.join(map(str, mfall)) + '\n')
         file.write(f'# Mdot_wind at Rt\n')
