@@ -134,8 +134,8 @@ if compute: # compute dM/dt = dM/dE * dE/dt
                     Mdot_pos_casted[j] = np.sum(Mdot_pos[selected_pos]) * np.pi 
                     v_rad_pos_casted[j] = np.mean(v_rad_pos[selected_pos])
                     # print('sum of circles/sphere you want: ', np.pi*np.sum(dim_cell_pos[selected_pos]**2)/(4*np.pi*r**2))
-        mwind_pos.append(Mdot_pos_casted)
-        Vwind_pos.append(v_rad_pos_casted)
+            mwind_pos.append(Mdot_pos_casted)
+            Vwind_pos.append(v_rad_pos_casted)
         # Negative velocity (and bound)
         if cond_selection == 'B':
             cond = np.logical_and(v_rad < 0, bern <= 0)
@@ -161,8 +161,8 @@ if compute: # compute dM/dt = dM/dE * dE/dt
                     Mdot_neg_casted[j] = np.sum(Mdot_neg[selected_neg]) * np.pi #4 *  * radii**2
                     v_rad_neg_casted[j] = np.mean(v_rad_neg[selected_neg])
                     # print('sum of circles/sphere you want: ', np.pi*np.sum(dim_cell_neg[selected_neg]**2)/(4*np.pi*r**2))
-        mwind_neg.append(Mdot_neg_casted)
-        Vwind_neg.append(v_rad_neg_casted)
+            mwind_neg.append(Mdot_neg_casted)
+            Vwind_neg.append(v_rad_neg_casted)
 
     mwind_pos = np.transpose(np.array(mwind_pos)) # shape pass from len(snap) x len(radii) to len(radii) x len(snap)
     mwind_neg = np.transpose(np.array(mwind_neg))
