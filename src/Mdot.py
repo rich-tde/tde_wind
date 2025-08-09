@@ -90,6 +90,10 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         i_bin = np.argmin(np.abs(energy-np.abs(bins_tokeep))) # just to be sure that you match the data
         if energy-max_bin_negative*norm_dMdE > 0:
             print(f'You overcome the maximum negative bin ({max_bin_negative*norm_dMdE}). You required {energy}')
+            mwind_pos.append(0)
+            Vwind_pos.append(0)
+            mwind_neg.append(0)
+            Vwind_neg.append(0)
             continue
         
         dMdE_t = dMdE_distr_tokeep[i_bin]
