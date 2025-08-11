@@ -49,7 +49,7 @@ norm_dMdE = things['E_mb']
 
 radii = np.array([Rt, 0.5*amin, amin])
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
-Medd = Ledd/prel.c_cgs**2
+Medd = Ledd/(0.1*prel.c_cgs**2)
 v_esc = np.sqrt(2*prel.G*Mbh/Rt)
 convers_kms = prel.Rsol_cgs * 1e-5/prel.tsol_cgs # it's aorund 400
 print(f'escape velocity at Rt: {v_esc*convers_kms} km/s')
@@ -228,7 +228,7 @@ if plot:
     ax1.scatter(tfb, np.abs(mwind_pos2)/Medd_code, s = 10, c = 'dodgerblue', label = r'$\dot{M}_{\rm out}$')
     # ax1.plot(tfb, np.abs(mwind_neg2)/Medd_code, ls = '--', c = 'forestgreen', label = r'$\dot{M}_{\rm in}$')
     ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm fb}$', c = 'k')
-    ax1.plot(tfb[-35:], 4e5*np.array(tfb[-35:])**(-5/9), ls = 'dotted', c = 'k', label = r'$t^{-5/9}$')
+    # ax1.plot(tfb[-35:], 4e5*np.array(tfb[-35:])**(-5/9), ls = 'dotted', c = 'k', label = r'$t^{-5/9}$')
     # ax1.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
     # ax1.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
     ax1.set_yscale('log')
@@ -246,8 +246,8 @@ if plot:
         ax.set_xticks(new_ticks)
         labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
         ax.set_xticklabels(labels)
-        ax.tick_params(axis='x', which='major', width=0.7, length=7)
-        ax.tick_params(axis='x', which='minor', width=0.5, length=5)
+        ax.tick_params(axis='both', which='major', width=1, length=7)
+        ax.tick_params(axis='both', which='minor', width=.8, length=4)
         ax.set_xlim(0, 1.7)
         ax.grid()
     plt.tight_layout()

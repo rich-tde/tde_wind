@@ -391,7 +391,7 @@ if __name__ == '__main__':
                 stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
                 print('Load stream from file', flush=True)
             except FileNotFoundError:
-                from src.WH import find_transverse_com
+                from WH_spatial import find_transverse_com
                 print('Stream not found, computing it', flush=True)
                 x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, Rstar)
                 stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
