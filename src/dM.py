@@ -58,10 +58,10 @@ if alice:
     print(f'Check: {check}', flush=True)
 
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
-    bins1 = np.arange(-6.5, -1.5, .1) 
-    bins2 = np.arange(-1.5, 0, .01)
-    bins3 = np.arange(0, 2, .1)
-    bins = np.concatenate((bins1, bins2, bins3))
+    # bins1 = np.arange(-6.5, -1.5, .1) 
+    # bins2 = np.arange(-1.5, 0, .01)
+    # bins3 = np.arange(0, 2, .1)
+    bins = np.arange(-6.5, 2, .01) #np.concatenate((bins1, bins2, bins3))
     # save snaps, tfb and energy bins
     with open(f'{abspath}/data/{folder}/wind/dMdE_{check}_days.txt','w') as filedays:
         filedays.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
