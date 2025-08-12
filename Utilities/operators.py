@@ -243,8 +243,11 @@ def single_branch(radii, R, tocast, weights, keep_track = False):
     -------
     final_casted: arr
         Casted down version of tocast
+    all_indices: arr (optional)
+        Indices used in casting if keep_track=True
     """
     gridded_tocast = np.zeros((len(radii)))
+    all_indices = []  # For keep_track functionality
 
     use_weights = not isinstance(weights, str)
     if use_weights:
@@ -254,20 +257,22 @@ def single_branch(radii, R, tocast, weights, keep_track = False):
     tree = KDTree(R) 
 
     for i in range(len(radii)):
-        # radius = np.array([radii[i]]).reshape(1, -1) 
         radius = np.array([[radii[i]]]) # reshape to match the tree
         if i == 0:
             width = radii[1] - radii[i]
         elif i == len(radii)-1:
             width = radii[i] - radii[i-1]
         else:
-            width = radii[i+1] - radii[i-1]
+            width = (radii[i+1] - radii[i-1]) / 2
         width *= 1.5 # make it slightly bigger to smooth things
         # indices = tree.query_ball_point(radius, width) #if KDTree from scipy
         indices = tree.query_radius(radius, width) #if KDTree from sklearn
         indices = np.concatenate(indices)
+        if keep_track:
+            all_indices.append(indices.astype(int))
         # Handle case where no points are found
         if len(indices) == 0:
+            print(f'No points found for radius {radii[i]}', flush=True)
             gridded_tocast[i] = 0
             if use_weights:
                 gridded_weights[i] = 0
@@ -289,7 +294,7 @@ def single_branch(radii, R, tocast, weights, keep_track = False):
         final_casted = gridded_tocast
 
     if keep_track:
-        return final_casted, indices
+        return final_casted, all_indices
     else:
         return final_casted
 
