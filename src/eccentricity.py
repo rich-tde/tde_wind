@@ -16,21 +16,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Utilities.prelude
 import matplotlib.colors as colors
-from Utilities.operators import make_tree, single_branch, find_ratio
+from Utilities.operators import make_tree, single_branch
 import Utilities.sections as sec
 import src.orbits as orb
 from Utilities.selectors_for_snap import select_snap
-
-
-#
-## CONSTANTS
-#
-G = 1
-G_SI = 6.6743e-11
-Msol = 2e30 #1.98847e30 # kg
-Rsol = 7e8 #6.957e8 # m
-t = np.sqrt(Rsol**3 / (Msol*G_SI ))
-c = 3e8 / (7e8/t)
+import Utilities.prelude as prel
 
 #
 ## PARAMETERS STAR AND BH
@@ -42,56 +32,56 @@ mstar = .5
 Rstar = .47
 n = 1.5 
 compton = 'Compton'
-check = 'NewAMR' # '' or 'LowRes' or 'HiRes' 
+check = 'HiResNewAMR' # '' or 'LowRes' or 'HiRes' 
 save = False
 which_cut = 'high' #if 'high' cut density at 1e-12, if '' cut density at 1e-19
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-Rs = 2*G*Mbh / c**2
-Rg = Rs/2
-Rt = Rstar * (Mbh/mstar)**(1/3)
-Rp =  Rt / beta
-R0 = 0.6 * Rt
+params = [Mbh, Rstar, mstar, beta]
+things = orb.get_things_about(params)
+Rs = things['Rs']
+Rt = things['Rt']
+Rp = things['Rp']
+R0 = things['R0']
+apo = things['apo']
 Rstart = 0.4 * Rt
-apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
 if alice: 
-    snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) #[100,115,164,199,216]
+    snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
     col_ecc2 = []
     # col_Rsph = []
-    radii = np.logspace(np.log10(Rstart), np.log10(apo),
-                    num=200) 
-    tfb = np.zeros(len(snaps))
+    radii = np.logspace(np.log10(Rstart), np.log10(apo), num=200)  
+
     for i,snap in enumerate(snaps):
         print(snap)
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-        tfb[i] = np.loadtxt(f'{path}/tfb_{snap}.txt')
         data = make_tree(path, snap, energy = True)
+        Mass = data.Mass
         R_vec = np.transpose(np.array([data.X, data.Y, data.Z]))
         vel_vec = np.transpose(np.array([data.VX, data.VY, data.VZ]))
         Rsph = np.linalg.norm(R_vec, axis = 1)
         vel = np.linalg.norm(vel_vec, axis=1)
-        orb_en = orb.orbital_energy(Rsph, vel, data.Mass, G, c, Mbh, R0)
-        spec_orb_en = orb_en / data.Mass
-        ecc2 = orb.eccentricity_squared(R_vec, vel_vec, spec_orb_en, Mbh, G)
+        orb_en = orb.orbital_energy(Rsph, vel, Mass, params, prel.G)
+        spec_orb_en = orb_en / Mass
+        ecc2 = orb.eccentricity_squared(R_vec, vel_vec, spec_orb_en, Mbh, prel.G)
 
         # throw fluff and unbound material
         if which_cut == 'high':
             cut = np.logical_and(data.Den > 1e-12, orb_en < 0)
         else:
             cut = np.logical_and(data.Den > 1e-19, orb_en < 0)
-        Rsph_cut, mass_cut, ecc_cut = sec.make_slices([Rsph, data.Mass, ecc2], cut)
+        Rsph_cut, mass_cut, ecc_cut = sec.make_slices([Rsph, Mass, ecc2], cut)
         ecc_cast = single_branch(radii, Rsph_cut, ecc_cut, weights = mass_cut)
 
         col_ecc2.append(ecc_cast)
 
     np.save(f'{abspath}/data/{folder}/Ecc2_{which_cut}_{check}.npy', col_ecc2)
+    np.save(f'{abspath}/data/{folder}/EccRadii_{which_cut}_{check}.npy', radii)
     with open(f'{abspath}/data/{folder}/Ecc_{which_cut}_{check}_days.txt', 'w') as file:
         file.write(f'# {folder}_{check} \n' + ' '.join(map(str, snaps)) + '\n')
         file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
         file.close()
-    np.save(f'{abspath}/data/{folder}/radiiEcc_{which_cut}_{check}.npy', radii)
 
 else:
     ecc_slice = False
@@ -147,7 +137,7 @@ else:
         ecc = np.sqrt(ecc2)
         tfb_data= np.loadtxt(f'{path}/Ecc_{which_cut}_{check}_days.txt')
         snap, tfb = tfb_data[0], tfb_data[1]
-        radii = np.load(f'{path}/radiiEcc_{which_cut}_{check}.npy')
+        radii = np.load(f'{path}/EccRadii_{which_cut}_{check}.npy')
         
         # Plot
         plt.figure(figsize=(8,7))
@@ -178,7 +168,7 @@ else:
         eccL = np.sqrt(ecc_quadL)
         tfb_dataL = np.loadtxt(f'{commonpath}LowResNewAMR/Ecc_{which_cut}_LowResNewAMR_days.txt')
         snapL, tfbL = tfb_dataL[0], tfb_dataL[1]
-        radii = np.load(f'{commonpath}LowResNewAMR/radiiEcc_{which_cut}_LowResNewAMR.npy')
+        radii = np.load(f'{commonpath}LowResNewAMR/EccRadii_{which_cut}_LowResNewAMR.npy')
 
         ecc_quad = np.load(f'{commonpath}NewAMR/Ecc2_{which_cut}_NewAMR.npy') 
         ecc = np.sqrt(ecc_quad)
