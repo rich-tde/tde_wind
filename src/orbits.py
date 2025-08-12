@@ -41,12 +41,13 @@ def keplerian_orbit(theta, a, Rp, ecc=1, toflip = False):
     radius = p / (1 + ecc * np.cos(theta))
     return radius
 
-# def bern_coeff(Rsph, vel, den, mass, Press, params):
-#     orb_en = orbital_energy(Rsph, vel, mass, params, prel.G) 
-#     orb_en_spec = orb_en/mass
-#     IE_spec = IE_den / den
-#     B = orb_en_spec + IE_spec + Press/den
-#     return B
+def bern_coeff(Rsph, vel, den, mass, Press, IE_den, Rad_den, params):
+    orb_en = orbital_energy(Rsph, vel, mass, params, prel.G) 
+    orb_en_spec = orb_en/mass
+    IE_spec = IE_den / den
+    Press_spec = (Rad_den/3 + Press) / den
+    B = orb_en_spec + IE_spec + Press_spec
+    return B
 
 def R_grav(Mbh, c, G):
     """ Gravitational radius of the black hole."""

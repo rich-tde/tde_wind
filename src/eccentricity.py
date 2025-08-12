@@ -1,7 +1,9 @@
 """Eccentricity (squared) from angular momentum.
 If alice: compute the time-space plot using tree.
-If not: or plot the time-space plot 
-        or plot the relative difference between in resolutions (both space-time plots ans line plots of the median of the errors)."""
+If not: If time-space, plot the time-space plot of the eccentricity.
+        If ecc_slice, plot the eccentricity slice at a given time.
+        If error, compute the relative difference between resolutions and plot it.
+"""
 import sys
 sys.path.append('/Users/paolamartire/shocks')
 
@@ -32,7 +34,7 @@ mstar = .5
 Rstar = .47
 n = 1.5 
 compton = 'Compton'
-check = 'HiResNewAMR' # '' or 'LowRes' or 'HiRes' 
+check = 'NewAMR' # '' or 'LowRes' or 'HiRes' 
 save = False
 which_cut = 'high' #if 'high' cut density at 1e-12, if '' cut density at 1e-19
 
@@ -45,6 +47,7 @@ Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
 apo = things['apo']
+ecc_mb = things['ecc_mb']
 Rstart = 0.4 * Rt
 
 if alice: 
@@ -86,7 +89,6 @@ else:
     ecc_slice = False
     space_time = True
     error = True
-    ecc_crit = orb.e_mb(Rstar, mstar, Mbh, beta)
 
     if ecc_slice:
         radii_grid = [R0, Rt] 
@@ -97,7 +99,7 @@ else:
             xcfr_grid.append(xcr)
             ycfr_grid.append(ycr)
             cfr_grid.append(cr)
-        snap = 348
+        snap = 318
         path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
         data = make_tree(path, snap, energy = True)
         X, Y, Z, VX, VY, VZ, Den, Mass, Vol = \
@@ -146,19 +148,18 @@ else:
         cb = plt.colorbar(img)
         cb.ax.tick_params(labelsize=25)
         cb.set_label(r'Eccentricity' , fontsize = 25, labelpad = 1)
-        # line thicks 2
+        plt.axvline(x=R0/apo, color = 'k', linestyle = 'dotted', linewidth = 2)
         plt.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed', linewidth = 2)
-        plt.text(1.05*Rt/apo, 0.9*np.max(tfb), r'$R_{\rm t}$', fontsize = 25, color = 'k')
+        plt.text(1.05*R0/apo, 0.9*np.max(tfb), r'$R_{\rm 0}$', fontsize = 24, color = 'k')
+        plt.text(1.05*Rt/apo, 0.9*np.max(tfb), r'$R_{\rm t}$', fontsize = 24, color = 'k')
         plt.xscale('log')
         plt.xlabel(r'$R [R_{\rm a}]$')#, fontsize = 25)
-        plt.ylabel(r'$t [t_{fb}]$')#, fontsize = 25)
-        plt.tick_params(axis='x', which='major', width=1.2, length=8, color = 'k', labelsize=25)
-        plt.tick_params(axis='y', which='major', width=1, length=8, color = 'white', labelsize=25)
-        plt.tick_params(axis='x', which='minor', width=1, length=6, color = 'k', labelsize=25)
-        plt.xlim(R0/apo, np.max(radii)/apo)
+        plt.ylabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
+        plt.tick_params(axis='both', which='major', width=1.2, length=10, color = 'k', labelsize=25)
+        plt.tick_params(axis='x', which='minor', width=.9, length=6, color = 'k', labelsize=25)
+        plt.xlim(0.8*R0/apo, np.max(radii)/apo)
         # plt.ylim(0.054, 1.7)
         plt.savefig(f'{abspath}/Figs/paper/ecc{which_cut}{check}.pdf', bbox_inches='tight')
-
 
     if error: # compare resolutions
         import matplotlib.gridspec as gridspec
@@ -182,8 +183,7 @@ else:
         # relative difference L and middle
         rel_diffL = []
         medianL = np.zeros(len(ecc))
-        for i in range(len(ecc)):
-            time = tfb[i]
+        for i, time in enumerate(tfb):
             idx = np.argmin(np.abs(tfbL - time))
             rel_diff_time_i = ecc[i]/eccL[idx] #find_ratio(eccL[i], ecc[idx]) 
             rel_diff_time_i[eccL[idx] == 0] = 0 
@@ -192,8 +192,7 @@ else:
 
         rel_diffH = []
         medianH = np.zeros(len(eccH))
-        for i in range(len(eccH)):
-            time = tfbH[i]
+        for i, time in enumerate(tfbH):
             idx = np.argmin(np.abs(tfb - time))
             rel_diff_time_i =  eccH[i]/ecc[idx] #find_ratio(ecc[idx], eccH[i])
             rel_diff_time_i[ecc[idx] == 0] = 0
@@ -203,39 +202,49 @@ else:
         #%% Plot
         vmin = 0.95
         vmax = 1.05
-        fig = plt.figure(figsize=(25, 9))
-        gs = gridspec.GridSpec(2, 3, width_ratios=[1,1,1.5], height_ratios=[3, 0.5], hspace=0.5, wspace = 0.3)
+        fig = plt.figure(figsize=(20, 9))
+        gs = gridspec.GridSpec(1, 3, width_ratios=[1,1,.05], hspace=0.5)
         ax1 = fig.add_subplot(gs[0, 0])  # First plot
         ax2 = fig.add_subplot(gs[0, 1])  # Second plot
-        ax3 = fig.add_subplot(gs[0, 2])  # Third plot
 
-        img = ax1.pcolormesh(radii/apo, tfb, rel_diffL, cmap = 'inferno', vmin = vmin, vmax = vmax, rasterized = True)
+        img = ax1.pcolormesh(radii/apo, tfb, rel_diffL, cmap = 'Greens', vmin = vmin, vmax = vmax, rasterized = True)
         ax1.set_xscale('log')
-        ax1.text(0.22, .88*np.max(tfb), 'Fid/Low', fontsize = 28, color = 'k')
+        ax1.text(0.35, .88*np.max(tfb), r'$e_{\rm Fid}/e_{\rm Low}$', fontsize = 30, color = 'k')
         ax1.set_xlabel(r'$R [R_{\rm a}]$')
         ax1.set_ylabel(r'$t [t_{\rm fb}]$')
 
-        img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'inferno', vmin = vmin, vmax = vmax, rasterized = True)
+        img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'Greens', vmin = vmin, vmax = vmax, rasterized = True)
         ax2.set_xscale('log')
-        ax2.text(0.21, 0.88*np.max(tfb), 'High/Fid', fontsize = 28, color = 'k')
+        ax2.text(0.35, 0.88*np.max(tfb), r'$e_{\rm High}/e_{\rm Fid}$', fontsize = 30, color = 'k')
         ax2.set_xlabel(r'$R [R_{\rm a}]$')
 
         # Create a colorbar that spans the first two subplots
-        cbar_ax = fig.add_subplot(gs[1, 0:2])  # Colorbar subplot below the first two
-        cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
+        cbar_ax = fig.add_subplot(gs[0, 2])  # Colorbar subplot below the first two
+        cb = fig.colorbar(img, cax=cbar_ax)
         cb.ax.tick_params(labelsize=25)
-        cb.set_label(r'$\mathcal{R}$ eccentricity')
+        cb.set_label(r'ratio eccentricity')
         # label with 3 decimals in the colorbar
         # cb.set_ticks([0.98, 1, 1.02])
         # cb.set_ticklabels(['0.98', '1', '1.02']) 
         cb.ax.tick_params(width=1, length=11, color = 'k',)
 
-        ax3.plot(tfb, medianL, linewidth = 4, c = 'darkorange')
-        ax3.plot(tfb, medianL, c = 'yellowgreen', linewidth = 4, linestyle = (0, (5, 10)), label = 'Low and Middle')
-        ax3.plot(tfbH, medianH, c = 'yellowgreen', linewidth = 4)
-        ax3.plot(tfbH, medianH, c = 'darkviolet', linewidth = 4, linestyle = (0, (5, 10)), label = 'Middle and High')
+        for ax in [ax1, ax2]:
+            ax.axvline(x=Rt/apo, color = 'white', linestyle = 'dashed', linewidth = 2)
+            ax.axvline(x=R0/apo, color = 'white', linestyle = ':', linewidth = 2)
+            ax.tick_params(axis='both', which='major', width=1.4, length=11, color = 'k',)
+            ax.tick_params(axis='x', which='minor', width=1.2, length=7, color = 'k',)
+            ax.set_ylim(np.min(tfb), np.max(tfb))
+            # ax.set_xlim(R0/apo, np.max(radii)/apo)
+        
+        plt.savefig(f'{abspath}/Figs/paper/ecc_diff.pdf', bbox_inches='tight')
+        plt.tight_layout
+
+        fig, ax3 = plt.subplots(1,1,figsize=(9, 5))
+        ax3.plot(tfb, np.abs(1-medianL), linewidth = 4, c = 'darkorange', label = 'Fid/Low')
+        ax3.plot(tfb, np.abs(1-medianL), c = 'yellowgreen', linewidth = 4, linestyle = (0, (5, 10)))
+        ax3.plot(tfbH, np.abs(1-medianH), c = 'darkviolet', linewidth = 4, label = 'High/Fid')
+        ax3.plot(tfbH, np.abs(1-medianH), c = 'yellowgreen', linewidth = 4,linestyle = (0, (5, 10)),)
         # ax3.text(0.4, 1, 'Fid vs High', fontsize = 27, color = 'k')
-        ax3.set_ylabel(r'median sink/no sink')#$\mathcal{R}$ median eccentricity')
         original_ticks = ax3.get_xticks()
         mid_ticks = (original_ticks[1:] + original_ticks[:-1]) / 2
         all_ticks = np.concatenate(([original_ticks, mid_ticks]))
@@ -244,22 +253,11 @@ else:
         ax3.set_xticks(all_ticks)
         ax3.set_xticklabels(labels, fontsize=25)
         ax3.set_xlim(0.08, 1.1)
-        ax3.set_ylim(vmin, vmax)
+        ax3.set_ylim(-0.01, 0.08)
+        ax3.set_ylabel(r'$|$1 - ratio eccentricity$|$')
         ax3.grid()
         ax3.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
+        ax3.legend(fontsize = 25)
 
-        for ax in [ax1, ax2, ax3]: #, ax2]:
-            # ax.tick_params(labelsize=26)
-            if ax!=ax3:
-                ax.axvline(x=Rt/apo, color = 'white', linestyle = 'dashed', linewidth = 2)
-                ax.axvline(x=R0/apo, color = 'white', linestyle = ':', linewidth = 2)
-                ax.tick_params(axis='x', which='major', width=1.4, length=11, color = 'k',)
-                ax.tick_params(axis='y', which='major', width=1.4, length=9, color = 'k',)
-                ax.tick_params(axis='x', which='minor', width=1.2, length=7, color = 'k',)
-                ax.set_ylim(np.min(tfb), np.max(tfb))
-                ax.set_xlim(R0/apo, np.max(radii)/apo)
-        
-        plt.savefig(f'{abspath}/Figs/paper/ecc_diff.pdf', bbox_inches='tight')
-        plt.tight_layout
 
 # %%

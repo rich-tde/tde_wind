@@ -22,9 +22,9 @@ from Utilities.sections import make_slices
 
 ##
 # PARAMETERS
-## 
+#%%
 m = 4
-Mbh = 10**m
+Mbh = 10**4
 Mbh_cgs = Mbh * prel.Msol_cgs
 beta = 1
 mstar = .5
@@ -46,6 +46,8 @@ R0 = things['R0']
 apo = things['apo']
 amin = things['a_mb'] # semimajor axis of the bound orbit
 norm_dMdE = things['E_mb']
+t_fb_days_cgs = things['t_fb_days'] * 24 * 3600 # in seconds
+max_Mdot = mstar*prel.Msol_cgs/(3*t_fb_days_cgs) # in code units
 
 radii = np.array([Rt, 0.5*amin, amin])
 radii_names = [f'Rt', f'0.5 a_mb', f'a_mb']
@@ -53,7 +55,8 @@ Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
 Medd = Ledd/(0.1*prel.c_cgs**2)
 v_esc = np.sqrt(2*prel.G*Mbh/Rt)
 convers_kms = prel.Rsol_cgs * 1e-5/prel.tsol_cgs # it's aorund 400
-print(f'escape velocity at Rt: {v_esc*convers_kms} km/s')
+# print(f'escape velocity at Rt: {v_esc*convers_kms} km/s')
+# print(np.log10(max_Mdot/Medd), 'Mdot max in Eddington units')
 
 #
 ## FUNCTIONS
@@ -229,14 +232,15 @@ if plot:
     ax1.scatter(tfb, np.abs(mwind_pos2)/Medd_code, s = 10, c = 'dodgerblue', label = r'$\dot{M}_{\rm out}$ at $a_{\rm mb}$')
     # ax1.plot(tfb, np.abs(mwind_neg2)/Medd_code, ls = '--', c = 'forestgreen', label = r'$\dot{M}_{\rm in}$')
     ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm fb}$', c = 'k')
+    # ax1.axhline(max_Mdot/Medd, ls = '--', c = 'k', label = r'theoretical $\dot{M}_{\rm max}$')
     # ax1.plot(tfb[-35:], 4e5*np.array(tfb[-35:])**(-5/9), ls = 'dotted', c = 'k', label = r'$t^{-5/9}$')
     # ax1.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
     # ax1.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
     ax1.set_yscale('log')
     ax1.set_ylim(1e-1, 8e5)
     ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')    
-    # ax2.plot(tfb, Vwind_pos1/v_esc, '--', c = 'dodgerblue')#, label = r'$v_{\rm out} [B>0]$')
-    # ax2.plot(tfb, Vwind_neg1/v_esc, '--', c = 'forestgreen')#, label = r'$v_{\rm in} [B>0]$')
+    ax2.plot(tfb, Vwind_pos1/v_esc, '--', c = 'dodgerblue')#, label = r'$v_{\rm out} [B>0]$')
+    ax2.plot(tfb, Vwind_neg1/v_esc, '--', c = 'forestgreen')#, label = r'$v_{\rm in} [B>0]$')
     # ax2.set_ylabel(r'$v_{\rm out}/v_{\rm esc}(0.5 a_{\rm mb})$')
     original_ticks = ax1.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2

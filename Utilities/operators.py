@@ -285,7 +285,7 @@ def single_branch(radii, R, tocast, weights, keep_track = False):
         else:
             if weights == 'mean':
                 gridded_tocast[i] = np.mean(tocast[indices])
-            if weights == 'sum':
+            elif weights == 'sum':
                 gridded_tocast[i] = np.sum(tocast[indices])
     if use_weights:
         gridded_weights += 1e-20 # avoid division by zero

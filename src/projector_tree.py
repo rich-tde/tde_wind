@@ -33,23 +33,31 @@ from src import orbits as orb
 ## FUNCTIONS
 #
 
-def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 100):
+def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 100, how_far = ''):
     """ ALL outputs are in in solar units """
     Mbh = 10**m
     Rt = Rstar * (Mbh/mstar)**(1/3)
     # R0 = 0.6 * Rt
     apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
-    x_start = -1.2*apo #-7*apo
-    x_stop = 0.2*apo #2.5*apo
-    xs = np.linspace(x_start, x_stop, num = x_num )
-    y_start = - 0.5*apo #-4*apo 
-    y_stop = 0.5*apo  #3*apo
-    ys = np.linspace(y_start, y_stop, num = y_num)
-    z_start = -2*Rt #-2*apo 
-    z_stop = 2*Rt #2*apo 
-    zs = np.linspace(z_start, z_stop, z_num) #simulator units
+    if how_far == 'big':
+        x_start = -6*apo
+        x_stop = 2.5*apo
+        y_start = -4*apo 
+        y_stop = 3*apo
+        z_start = -2*apo 
+        z_stop = 2*apo 
+    else:
+        x_start = -1.2*apo #-7*apo
+        x_stop = 0.2*apo #2.5*apo
+        y_start = - 0.5*apo #-4*apo 
+        y_stop = 0.5*apo  #3*apo
+        z_start = -2*Rt #-2*apo 
+        z_stop = 2*Rt #2*apo 
 
+    xs = np.linspace(x_start, x_stop, num = x_num)
+    ys = np.linspace(y_start, y_stop, num = y_num)
+    zs = np.linspace(z_start, z_stop, z_num) #simulator units
     # data = make_tree(path, snap, energy = True)
     # sim_tree = data.sim_tree
     X = np.load(f'{path}/CMx_{snap}.npy')
@@ -132,14 +140,18 @@ if __name__ == '__main__':
     n = 1.5
     check = ''
     compton = 'Compton'
-    what_to_grid = 'Diss'
+    what_to_grid = 'Den'
+    how_far = 'big' # 'big' for big grid, '' for small grid
     save_fig = False
 
-    Rt = Rstar * (Mbh/mstar)**(1/3)
-    Rp = Rt/beta
-    apo = orb.apocentre(Rstar, mstar, Mbh, beta) 
-    e_mb = orb.e_mb(Rstar, mstar, Mbh, beta)   
-    a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
+    params = [Mbh, Rstar, mstar, beta]
+    things = orb.get_things_about(params)
+    Rs = things['Rs']
+    Rt = things['Rt']
+    Rp = things['Rp']
+    R0 = things['R0']
+    apo = things['apo']
+    a_mb = things['a_mb']
     if check == '':
         folder = f'opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     else:
@@ -150,18 +162,17 @@ if __name__ == '__main__':
         t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
 
         snaps = np.array(snaps)
-        # idx_chosen = np.array([np.argmin(np.abs(snaps-97)),
-        #                        np.argmin(np.abs(snaps-238)),
-        #                        np.argmin(np.abs(snaps-348))])
-        # snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
+        idx_chosen = np.array([np.argmin(np.abs(snaps-97)),
+                               np.argmin(np.abs(snaps-238)),
+                               np.argmin(np.abs(snaps-318))])
+        snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
         
-        with open(f'{prepath}/data/{folder}/projection/{what_to_grid}time_proj.txt', 'w') as f:
+        with open(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}time_proj.txt', 'w') as f:
             f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
             f.write(f'# t/t_fb (t_fb = {t_fall})\n' + ' '.join(map(str, tfb)) + '\n')
             f.close()
+            
         for snap in snaps:
-            if snap != 106:
-                continue
             print(snap, flush=True)
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
@@ -170,10 +181,10 @@ if __name__ == '__main__':
             
             _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100)
             flat_q = projector(grid_q, x_radii, y_radii, z_radii)
-            np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}proj{snap}.npy', flat_q)
+            np.save(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}proj{snap}.npy', flat_q)
                 
-        np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}xarray.npy', x_radii)
-        np.save(f'{prepath}/data/{folder}/projection/{what_to_grid}yarray.npy', y_radii)
+        np.save(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}xarray.npy', x_radii)
+        np.save(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}yarray.npy', y_radii)
 
     else:
         import healpy as hp
@@ -182,7 +193,7 @@ if __name__ == '__main__':
         from Utilities.operators import from_cylindric
         snap = 348
         faraway = ''
-        what_to_grid = 'Diss' #['tau_scatt', 'tau_ross', 'Den']
+        what_to_grid = 'Den' #['tau_scatt', 'tau_ross', 'Den']
         sign = '' # '' for positive, '_neg' for negative
 
         snaps, Lum, tfb = split_data_red('NewAMR')
