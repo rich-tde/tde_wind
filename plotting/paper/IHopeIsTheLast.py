@@ -133,12 +133,12 @@ if __name__ == '__main__':
     # Luminosity
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
     ax1.plot(tfbL, LumL, c = 'C1', label = 'Low')
-    ax1.plot(tfbdissL, LDissL, ls = '--', c = 'C1')
+    # ax1.plot(tfbdissL, LDissL, ls = '--', c = 'C1')
     ax1.plot(tfb, Lum, c = 'yellowgreen', label = 'Fid')
-    ax1.plot(tfbdiss, LDiss, ls = '--', c = 'yellowgreen')
+    # ax1.plot(tfbdiss, LDiss, ls = '--', c = 'yellowgreen')
     # ax1.plot(tfbdissOld, LDissOld, ls = '--', c = 'forestgreen', label = 'Old')
     ax1.plot(tfbH, LumH, c = 'darkviolet', label = 'High')
-    ax1.plot(tfbdissH, LDissH, ls = '--', c = 'darkviolet')
+    # ax1.plot(tfbdissH, LDissH, ls = '--', c = 'darkviolet')
 
     ax1.axhline(y=Ledd, c = 'k', linestyle = '-.', linewidth = 2)
     ax1.axhline(y=Ledd, c = 'k', linestyle = '-.', linewidth = 2)

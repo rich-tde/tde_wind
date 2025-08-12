@@ -48,7 +48,7 @@ Ecirc = -prel.G*Mbh/(4*Rp)
 
 # Choose what to do
 test_bins = False
-compare_times = False
+compare_times = True
 movie = False 
 dMdecc = False
 
@@ -135,22 +135,22 @@ if test_bins:
 if compare_times:
     from Utilities.operators import find_ratio
     commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    datadays = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE__days.txt')
+    datadays = np.loadtxt(f'{abspath}data/{commonfolder}NewAMR/wind/dMdE_NewAMR_days.txt')
     snaps, tfb= datadays[0], datadays[1]
-    bins = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE__equalbins.txt')
+    bins = np.loadtxt(f'{abspath}data/{commonfolder}NewAMR/wind/dMdE_NewAMR_bins.txt')
     print('Bins len', len(bins))
     mid_points = (bins[:-1]+bins[1:])/2
-    data = np.loadtxt(f'{abspath}data/{commonfolder}/dMdE__equal.txt')
+    data = np.loadtxt(f'{abspath}data/{commonfolder}NewAMR/wind/dMdE_NewAMR.txt')
     
-    datadaysH = np.loadtxt(f'{abspath}data/{commonfolder}HiRes/dMdE_HiRes_days.txt')
+    datadaysH = np.loadtxt(f'{abspath}data/{commonfolder}HiResNewAMR/wind/dMdE_HiResNewAMR_days.txt')
     snapsH, tfbH = datadaysH[0], datadaysH[1]
-    dataH = np.loadtxt(f'{abspath}data/{commonfolder}HiRes/dMdE_HiRes_equal.txt')
+    dataH = np.loadtxt(f'{abspath}data/{commonfolder}HiResNewAMR/wind/dMdE_HiResNewAMR.txt')
     
-    datadaysL = np.loadtxt(f'{abspath}data/{commonfolder}LowRes/dMdE_LowRes_days.txt')
+    datadaysL = np.loadtxt(f'{abspath}data/{commonfolder}LowResNewAMR/wind/dMdE_LowResNewAMR_days.txt')
     snapsL, tfbL = datadaysL[0], datadaysL[1]
-    dataL = np.loadtxt(f'{abspath}data/{commonfolder}LowRes/dMdE_LowRes_equal.txt')
+    dataL = np.loadtxt(f'{abspath}data/{commonfolder}LowResNewAMR/wind/dMdE_LowResNewAMR.txt')
 
-    final_time = 1#tfbH[-1]
+    final_time = 0.6 #tfbH[-1]
     idx_snap = np.argmin(np.abs(tfb - final_time))
     idx_snapH = np.argmin(np.abs(tfbH - final_time))
     idx_snapL = np.argmin(np.abs(tfbL - final_time))
