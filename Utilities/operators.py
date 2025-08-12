@@ -15,7 +15,6 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 
 import numpy as np
-import astropy.coordinates as coord
 # from scipy.spatial import KDTree
 from sklearn.neighbors import KDTree
 import k3match
@@ -246,42 +245,49 @@ def single_branch(radii, R, tocast, weights, keep_track = False):
         Casted down version of tocast
     """
     gridded_tocast = np.zeros((len(radii)))
-    # check if weights is an integer
-    if type(weights) != str:
+
+    use_weights = not isinstance(weights, str)
+    if use_weights:
         gridded_weights = np.zeros((len(radii)))
+
     R = R.reshape(-1, 1) # Reshaping to 2D array with one column
     tree = KDTree(R) 
+
     for i in range(len(radii)):
-        radius = np.array([radii[i]]).reshape(1, -1) # reshape to match the tree
+        # radius = np.array([radii[i]]).reshape(1, -1) 
+        radius = np.array([[radii[i]]]) # reshape to match the tree
         if i == 0:
-            width = radii[1] - radii[0]
+            width = radii[1] - radii[i]
         elif i == len(radii)-1:
-            width = radii[-1] - radii[-2]
+            width = radii[i] - radii[i-1]
         else:
             width = radii[i+1] - radii[i-1]
-        width *= 2 # make it slightly bigger to smooth things
+        width *= 1.5 # make it slightly bigger to smooth things
         # indices = tree.query_ball_point(radius, width) #if KDTree from scipy
         indices = tree.query_radius(radius, width) #if KDTree from sklearn
         indices = np.concatenate(indices)
-        # if len(indices) < 2 :
-        #     print('small sample of indices in single_branch', flush=True)
-        #     sys.stdout.flush()
-        #     # gridded_tocast[i] = 0
-        # else:    
-        indices = [int(idx) for idx in indices]
-        if type(weights) != str:
+        # Handle case where no points are found
+        if len(indices) == 0:
+            gridded_tocast[i] = 0
+            if use_weights:
+                gridded_weights[i] = 0
+            continue
+        indices = indices.astype(int)
+
+        if use_weights:
             gridded_tocast[i] = np.sum(tocast[indices] * weights[indices])
             gridded_weights[i] = np.sum(weights[indices])
         else:
-            if type(weights) == 'mean':
+            if weights == 'mean':
                 gridded_tocast[i] = np.mean(tocast[indices])
-            if type(weights) == 'sum':
+            if weights == 'sum':
                 gridded_tocast[i] = np.sum(tocast[indices])
-    if type(weights) != str:
+    if use_weights:
         gridded_weights += 1e-20 # avoid division by zero
         final_casted = np.divide(gridded_tocast, gridded_weights)
     else:
         final_casted = gridded_tocast
+
     if keep_track:
         return final_casted, indices
     else:
