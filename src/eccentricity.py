@@ -50,11 +50,10 @@ Rstart = 0.4 * Rt
 if alice: 
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
     col_ecc2 = []
-    # col_Rsph = []
     radii = np.logspace(np.log10(Rstart), np.log10(apo), num=200)  
 
     for i,snap in enumerate(snaps):
-        print(snap)
+        print(snap, flush=True)
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         data = make_tree(path, snap, energy = True)
         Mass = data.Mass

@@ -258,7 +258,7 @@ def single_branch(radii, R, tocast, weights, keep_track = False):
         elif i == len(radii)-1:
             width = radii[-1] - radii[-2]
         else:
-            width = (radii[i+1] - radii[i-1])/2
+            width = radii[i+1] - radii[i-1]
         width *= 2 # make it slightly bigger to smooth things
         # indices = tree.query_ball_point(radius, width) #if KDTree from scipy
         indices = tree.query_radius(radius, width) #if KDTree from sklearn
