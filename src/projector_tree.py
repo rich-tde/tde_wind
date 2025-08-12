@@ -138,7 +138,7 @@ if __name__ == '__main__':
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = ''
+    check = 'NewAMR'
     compton = 'Compton'
     what_to_grid = 'Den'
     how_far = 'big' # 'big' for big grid, '' for small grid
@@ -152,6 +152,8 @@ if __name__ == '__main__':
     R0 = things['R0']
     apo = things['apo']
     a_mb = things['a_mb']
+    e_mb = things['ecc_mb']
+
     if check == '':
         folder = f'opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     else:
@@ -179,7 +181,7 @@ if __name__ == '__main__':
             else:
                 path = f'{prepath}/TDE/{folder}/{snap}'
             
-            _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100)
+            _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100, how_far = how_far)
             flat_q = projector(grid_q, x_radii, y_radii, z_radii)
             np.save(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}proj{snap}.npy', flat_q)
                 
@@ -191,8 +193,7 @@ if __name__ == '__main__':
         import src.orbits as orb
         from plotting.paper.IHopeIsTheLast import split_data_red
         from Utilities.operators import from_cylindric
-        snap = 348
-        faraway = ''
+        snap = 318
         what_to_grid = 'Den' #['tau_scatt', 'tau_ross', 'Den']
         sign = '' # '' for positive, '_neg' for negative
 
@@ -223,15 +224,15 @@ if __name__ == '__main__':
         x_arr_ell, y_arr_ell = from_cylindric(theta_arr, r_arr_ell)
         
         fig, ax = plt.subplots(1, 1, figsize = (14,7))
-        flat_q = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{what_to_grid}{faraway}proj{snap}{sign}.npy')
-        x_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{what_to_grid}{faraway}xarray.npy')
-        y_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{what_to_grid}{faraway}yarray.npy')
+        flat_q = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}proj{snap}{sign}.npy')
+        x_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}xarray.npy')
+        y_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}yarray.npy')
         dataph = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
         xph, yph, zph, volph= dataph[0], dataph[1], dataph[2], dataph[3]
         # midph= np.abs(zph) < volph**(1/3)
         # xph_mid, yph_mid, zph_mid = make_slices([xph, yph, zph], midph)
        
-        if faraway == 'big':
+        if how_far == 'big':
             ax.set_xlim(-6, 2.5)
             ax.set_ylim(-3, 2)
         else:
@@ -266,6 +267,6 @@ if __name__ == '__main__':
             
         plt.tight_layout()
         ax.set_title(f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$, res: ' + f'{check}', color = 'k', fontsize = 25)
-        plt.savefig(f'{prepath}/Figs/Test/{folder}/projection/{what_to_grid}{faraway}proj{snap}{sign}.png', dpi = 300)
+        # plt.savefig(f'{prepath}/Figs/Test/{folder}/projection/{what_to_grid}{faraway}proj{snap}{sign}.png', dpi = 300)
         plt.show()
 # %%

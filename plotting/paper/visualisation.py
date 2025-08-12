@@ -30,28 +30,25 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = ''
-choosen_snaps = np.array([100, 237, 348])
+check = 'NewAMR'
+choosen_snaps = np.array([97, 238, 318])
 save = True
 
-DeltaE = orb.energy_mb(Rstar, mstar, Mbh, G=1) # specific energy of the mb debris 
-DeltaE_cgs = DeltaE * prel.en_converter/prel.Msol_cgs
 t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
 t_fall_hour = t_fall * 24
 
-Rt = Rstar * (Mbh/mstar)**(1/3)
-Rp = beta * Rt
-R0 = 0.6 * Rt
-Rs = 2*prel.G*Mbh/prel.csol_cgs**2
-Rg = Rs/2
-apo = orb.apocentre(Rstar, mstar, Mbh, beta)
-a_mb = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
-e_mb = orb.e_mb(Rstar, mstar, Mbh, beta)
-if check in ['NewAMR', 'HiResNewAMR', 'LowResNewAMR']:
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
-else:
-    folder = f'opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-solarR_to_au = 215
+params = [Mbh, Rstar, mstar, beta]
+things = orb.get_things_about(params)
+Rs = things['Rs']
+Rt = things['Rt']
+Rp = things['Rp']
+R0 = things['R0']
+apo = things['apo']
+a_mb = things['a_mb']
+e_mb = things['ecc_mb']
+
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
+
 
 #%% make cfr
 radii_grid = [Rt/apo, a_mb/apo, 1] #*apo 
@@ -147,7 +144,7 @@ for i, snap in enumerate(choosen_snaps):
         ax_inset.add_patch(inset_rect)
 
     # Photosphere
-    dataph = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/_photo{snap}.txt')
+    dataph = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
     xph, yph, zph, volph= dataph[0], dataph[1], dataph[2], dataph[3]
     midph= np.abs(zph) < volph**(1/3)
     # xph_mid, yph_mid, zph_mid = make_slices([xph, yph, zph], midph)
