@@ -26,16 +26,20 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-Rp = orb.pericentre(Rstar, mstar, Mbh, beta)
-R0 = 0.6*Rp
 compton = 'Compton'
 check = 'NewAMR' 
-thresh = '' # '' or 'cutCoord'
+# thresh = '' # '' or 'cutCoord'
 
 #%%
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 Mbh = 10**m
-apo = orb.apocentre(Rstar, mstar, Mbh, beta)
+params = [Mbh, Rstar, mstar, beta]
+things = orb.get_things_about(params)
+Rs = things['Rs']
+Rt = things['Rt']
+Rp = things['Rp']
+R0 = things['R0']
+apo = things['apo']
 
 if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
@@ -66,7 +70,7 @@ if alice:
             sec.make_slices([X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den], cut)
         Rsph_cut = np.sqrt(np.power(X_cut, 2) + np.power(Y_cut, 2) + np.power(Z_cut, 2))
         vel_cut = np.sqrt(np.power(VX_cut, 2) + np.power(VY_cut, 2) + np.power(VZ_cut, 2))
-        orb_en_cut = orb.orbital_energy(Rsph_cut, vel_cut, mass_cut, prel.G, prel.csol_cgs, Mbh, R0)
+        orb_en_cut = orb.orbital_energy(Rsph_cut, vel_cut, mass_cut, params, prel.G)
         ie_cut = ie_den_cut * vol_cut
 
         # total energies with only the cut in density (not in radiation)
@@ -111,7 +115,7 @@ if alice:
 
     np.save(f'{abspath}/data/{folder}/convE_{check}.npy', [col_ie, col_orb_en_pos, col_orb_en_neg, col_Rad])
     with open(f'{abspath}/data/{folder}/convE_{check}_days.txt', 'w') as file:
-            file.write(f'# In convE_{check}_thresh you find internal, orbital (pos and neg) and radiation energy [NO denisty/specific] inside the biggest box enclosed in the three simulation volumes and cut in density.\n')
+            # file.write(f'# In convE_{check}_thresh you find internal, orbital (pos and neg) and radiation energy [NO denisty/specific] inside the biggest box enclosed in the three simulation volumes and cut in density.\n')
             file.write(f'# In convE_{check} only cut in density.')
             file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
             file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
@@ -121,11 +125,11 @@ else:
     import matplotlib.pyplot as plt
     commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     _, tfbL = np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/convE_LowResNewAMR_days.txt')
-    IEL, OELpos, OELneg,  _ = np.load(f'{abspath}/data/{commonfolder}LowRes/convE_LowRes{thresh}.npy')
+    IEL, OELpos, OELneg,  _ = np.load(f'{abspath}/data/{commonfolder}LowRes/convE_LowRes.npy')
     _, tfb = np.loadtxt(f'{abspath}/data/{commonfolder}NewAMR/convE_NewAMR_days.txt')
-    IE, OEpos, OEneg,   _ = np.load(f'{abspath}/data/{commonfolder}/convE_{thresh}.npy')
+    IE, OEpos, OEneg,   _ = np.load(f'{abspath}/data/{commonfolder}/convE_.npy')
     _, tfbH = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/convE_HiResNewAMR_days.txt')
-    IEH, OEHpos, OEHneg, _ = np.load(f'{abspath}/data/{commonfolder}HiRes/convE_HiRes{thresh}.npy')
+    IEH, OEHpos, OEHneg, _ = np.load(f'{abspath}/data/{commonfolder}HiRes/convE_HiRes.npy')
    
     fig, (ax1, ax2) = plt.subplots(1,2, figsize = (14,5))
     ax1.plot(tfbL, prel.en_converter * OELpos, c = 'C1', label = 'Low')

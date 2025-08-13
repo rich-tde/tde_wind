@@ -81,7 +81,8 @@ which_obs = 'axis' # 'arch', 'quadrants', 'axis'
 which_part = 'outflow'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snap = 318
+snap = 162
+tfb = np.loadtxt(f'{abspath}/TDE/{folder}/{snap}/tfb_{snap}.txt')
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 Rs = things['Rs']
@@ -336,15 +337,8 @@ ax1.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto R^{
 # ax1.text(.04, 3e-11, r'$\propto R^{-3}$', fontsize = 20, color = 'k', rotation = -32)
 ax1.plot(x_test, y_test4, c = 'gray', ls = '-.', label = r'$\rho \propto R^{-4}$')
 # ax1.text(.1, 9e-9, r'$\propto R^{-4}$', fontsize = 20, color = 'k', rotation = -45)
-ax1.set_ylim(1e-15, 1e-7)
-ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
-ax2.set_ylabel(r'$|v_r|$ [km/s]')
-ax3.set_ylabel(r'$|v_r| \rho R^2$ [g/s]')
-ax2.set_ylim(8e2, 3e4)
-ax3.set_ylim(1e18, 5e27)
 xmin = 0.5*Rt/apo
 xmax = 10
-ax2.axhline(v_esc_kms, c = 'gray', ls = 'dotted')#, label = r'$v_{\rm esc} (R_p)$')
 for ax in [ax1, ax2, ax3]:
     #put the legend if which_obs != 'all_rotate'. Lt it be outside
     # boxleg = ax.get_position()
@@ -359,6 +353,14 @@ for ax in [ax1, ax2, ax3]:
     ax.tick_params(axis='both', which='minor', size=4)
     ax.tick_params(axis='both', which='major', size=6)
     ax.grid()
+ax1.text(0.1*xmax, 1e-8, f't = {np.round(tfb,2)}' + r't$_{\rm fb}$', fontsize = 20)
+ax2.axhline(v_esc_kms, c = 'gray', ls = 'dotted')#, label = r'$v_{\rm esc} (R_p)$')
+ax1.set_ylim(1e-15, 1e-7)
+ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
+ax2.set_ylim(8e2, 3e4)
+ax2.set_ylabel(r'$|v_r|$ [km/s]')
+ax3.set_ylim(1e18, 5e27)
+ax3.set_ylabel(r'$|v_r| \rho R^2$ [g/s]')
 plt.tight_layout()
 fig.savefig(f'{abspath}/Figs/paper/den_prof{snap}{which_obs}{which_part}.pdf', bbox_inches = 'tight')
 # fig1.savefig(f'{abspath}/Figs/outflow/vel_prof{snap}{which_obs}{which_part}.png', bbox_inches = 'tight')
