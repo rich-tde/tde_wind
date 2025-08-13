@@ -44,15 +44,15 @@ apo = things['apo']
 if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 
-    col_ie = np.zeros(len(snaps))
-    col_orb_en_pos = np.zeros(len(snaps))
-    col_orb_en_neg = np.zeros(len(snaps))
-    col_Rad = np.zeros(len(snaps))
+    tot_ie = np.zeros(len(snaps))
+    tot_orb_en_pos = np.zeros(len(snaps))
+    tot_orb_en_neg = np.zeros(len(snaps))
+    tot_Rad = np.zeros(len(snaps))
     # if thresh == 'cutCoord':
-    #     col_ie_thres = np.zeros(len(snaps))
-    #     col_orb_en_thres_pos = np.zeros(len(snaps))
-    #     col_orb_en_thres_neg = np.zeros(len(snaps))
-    #     col_Rad_thres = np.zeros(len(snaps))
+    #     tot_ie_thres = np.zeros(len(snaps))
+    #     tot_orb_en_thres_pos = np.zeros(len(snaps))
+    #     tot_orb_en_thres_neg = np.zeros(len(snaps))
+    #     tot_Rad_thres = np.zeros(len(snaps))
     #     missingMass = np.zeros(len(snaps))
 
     for i,snap in enumerate(snaps):
@@ -74,10 +74,10 @@ if alice:
         ie_cut = ie_den_cut * vol_cut
 
         # total energies with only the cut in density (not in radiation)
-        col_ie[i] = np.sum(ie_cut)
-        col_orb_en_pos[i] = np.sum(orb_en_cut[orb_en_cut > 0])
-        col_orb_en_neg[i] = np.sum(orb_en_cut[orb_en_cut < 0])
-        col_Rad[i] = np.sum(Rad)
+        tot_ie[i] = np.sum(ie_cut)
+        tot_orb_en_pos[i] = np.sum(orb_en_cut[orb_en_cut > 0])
+        tot_orb_en_neg[i] = np.sum(orb_en_cut[orb_en_cut < 0])
+        tot_Rad[i] = np.sum(Rad)
 
         # consider the small box for the cut in coordinates
         # if thresh == 'cutCoord':
@@ -103,17 +103,17 @@ if alice:
             #     sec.make_slices([den_cut, orb_en_cut, ie_cut, mass_cut], cut_den_coord)
 
             # # total energies with the cut in density (not in radiation) and coordinates
-            # col_ie_thres[i] = np.sum(ie_thresh)
-            # col_orb_en_thres_pos[i] = np.sum(orb_en_thresh[orb_en_thresh > 0])
-            # col_orb_en_thres_neg[i] = np.sum(orb_en_thresh[orb_en_thresh < 0])
-            # col_Rad_thres[i] = np.sum(Rad_thresh)
+            # tot_ie_thres[i] = np.sum(ie_thresh)
+            # tot_orb_en_thres_pos[i] = np.sum(orb_en_thresh[orb_en_thresh > 0])
+            # tot_orb_en_thres_neg[i] = np.sum(orb_en_thresh[orb_en_thresh < 0])
+            # tot_Rad_thres[i] = np.sum(Rad_thresh)
             # missingMass[i] = np.sum(mass_thresh)/np.sum(mass_cut)
 
     # if thresh == 'cutCoord':
     #     print("ratio mass_box/mass_all: ", missingMass, flush = True)
-    #     np.save(f'{abspath}/data/{folder}/convE_{check}_thresh.npy', [col_ie_thres, col_orb_en_thres_pos, col_orb_en_thres_neg, col_Rad_thres])
+    #     np.save(f'{abspath}/data/{folder}/convE_{check}_thresh.npy', [tot_ie_thres, tot_orb_en_thres_pos, tot_orb_en_thres_neg, tot_Rad_thres])
 
-    np.save(f'{abspath}/data/{folder}/convE_{check}.npy', [col_ie, col_orb_en_pos, col_orb_en_neg, col_Rad])
+    np.save(f'{abspath}/data/{folder}/convE_{check}.npy', [tot_ie, tot_orb_en_pos, tot_orb_en_neg, tot_Rad])
     with open(f'{abspath}/data/{folder}/convE_{check}_days.txt', 'w') as file:
             # file.write(f'# In convE_{check}_thresh you find internal, orbital (pos and neg) and radiation energy [NO denisty/specific] inside the biggest box enclosed in the three simulation volumes and cut in density.\n')
             file.write(f'# In convE_{check} only cut in density.')
@@ -125,21 +125,20 @@ else:
     import matplotlib.pyplot as plt
     commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     _, tfbL = np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/convE_LowResNewAMR_days.txt')
-    IEL, OELpos, OELneg,  _ = np.load(f'{abspath}/data/{commonfolder}LowRes/convE_LowRes.npy')
+    IEL, OELpos, OELneg,  _ = np.load(f'{abspath}/data/{commonfolder}LowResNewAMR/convE_LowResNewAMR.npy')
     _, tfb = np.loadtxt(f'{abspath}/data/{commonfolder}NewAMR/convE_NewAMR_days.txt')
-    IE, OEpos, OEneg,   _ = np.load(f'{abspath}/data/{commonfolder}/convE_.npy')
+    IE, OEpos, OEneg,   _ = np.load(f'{abspath}/data/{commonfolder}NewAMR/convE_NewAMR.npy')
     _, tfbH = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/convE_HiResNewAMR_days.txt')
-    IEH, OEHpos, OEHneg, _ = np.load(f'{abspath}/data/{commonfolder}HiRes/convE_HiRes.npy')
-   
+    IEH, OEHpos, OEHneg, _ = np.load(f'{abspath}/data/{commonfolder}HiResNewAMR/convE_HiResNewAMR.npy')
+
     fig, (ax1, ax2) = plt.subplots(1,2, figsize = (14,5))
     ax1.plot(tfbL, prel.en_converter * OELpos, c = 'C1', label = 'Low')
     ax1.plot(tfb, prel.en_converter * OEpos, c = 'yellowgreen', label = 'Fid')
     ax1.plot(tfbH, prel.en_converter * OEHpos, c = 'darkviolet', label = 'High')
-    ax1.set_ylabel(r'$|$OE$|$ [$10^{48}$ erg/s]')
+    ax1.set_ylabel(r'$|$OE$|$ [erg/s]')
     ax1.set_title(r'Unbound gas')
     # ax1.set_ylim(11.5,12)
     ax1.legend(fontsize = 15)
-    ax1.set_yscale('log')
 
     ax2.plot(tfbL, prel.en_converter * np.abs(OELneg), c = 'C1', label = 'Low')
     ax2.plot(tfb, prel.en_converter * np.abs(OEneg), c = 'yellowgreen', label = 'Fid')
@@ -147,8 +146,9 @@ else:
     ax2.set_title(r'Bound gas')
     for ax in (ax1, ax2):
         ax.set_xlabel(r'$t [t_{\rm fb}]$')
-    # ax2.set_ylim(12.2, 13)
-    ax2.set_yscale('log')
+        # ax.set_yscale('log')
+        # ax.set_ylim(1e49, 1.5e49)
+        ax.grid()
     plt.tight_layout()
 
 

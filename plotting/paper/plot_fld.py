@@ -32,9 +32,12 @@ tfallback = 2.5777261297507925 * 24 * 3600 #2.5 days
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
 apocenter = orb.apocentre(Rstar, mstar, Mbh, beta)
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
+params = [Mbh, Rstar, mstar, beta]
+things = orb.get_things_about(params)
+t_fall = things['t_fb_days']
 t_fall_cgs = t_fall * 24 * 3600
-Rt = Rstar * (Mbh/mstar)**(1/3)
+Rt = things['Rt']
+apo = things['apo']
 
 data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
 snaps, tfb, Lum = data[:, 0], data[:, 1], data[:, 2]
