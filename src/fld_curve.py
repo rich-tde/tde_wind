@@ -45,7 +45,7 @@ check = 'HiResNewAMR' #
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
-print('we are in: ', pre)
+print('we are in: ', pre, flush=True)
 
 #%% Opacities: load and interpolate ----------------------------------------------------------------
 opac_path = f'{abspath}/src/Opacity'
@@ -68,7 +68,7 @@ apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 eng = matlab.engine.start_matlab()
 Lphoto_all = np.zeros(len(snaps))
 for idx_s, snap in enumerate(snaps):
-    print('\n Snapshot: ', snap, '\n')
+    print('\n Snapshot: ', snap, '\n', flush=True)
     box = np.zeros(6)
     # Load data -----------------------------------------------------------------
     if alice:
