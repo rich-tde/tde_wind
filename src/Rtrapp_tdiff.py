@@ -81,7 +81,7 @@ def r_trapp(loadpath, snap):
     den_tr = np.zeros(len(observers_xyz))
     Temp_tr = np.zeros(len(observers_xyz))
     Vr_tr = np.zeros(len(observers_xyz))
-    V_tr = np.sqrt(len(observers_xyz))
+    V_tr = np.zeros(len(observers_xyz))
     idx_tr = np.zeros(len(observers_xyz))
 
     for i in range(len(observers_xyz)):
@@ -231,6 +231,7 @@ snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True)
 for snap in snaps:
     if alice:
         loadpath = f'{pre}/snap_{snap}'
+        print(snap, flush=True)
     else:
         test_idx = [0, 103, 120, 150, 180, 191]
         if snap != 318:
@@ -290,3 +291,4 @@ if plot:
 
 #%%
 eng.exit()
+
