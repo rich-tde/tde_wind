@@ -30,6 +30,7 @@ from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
 import matplotlib.pyplot as plt
 import src.orbits as orb
+from Utilities.operators import make_tree
 
 #%% Choose parameters -----------------------------------------------------------------
 m = 4
@@ -47,7 +48,7 @@ snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True)
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 print('we are in: ', pre, flush=True)
 
-#%% Opacities: load and interpolate ----------------------------------------------------------------
+# Opacities: load and interpolate ----------------------------------------------------------------
 opac_path = f'{abspath}/src/Opacity'
 T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
@@ -64,7 +65,7 @@ if check in ['LowResNewAMR', 'LowResNewAMRRemoveCenter', 'NewAMRRemoveCenter', '
 N_ray = 5_000
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 
-# MATLAB GOES WHRRRR, thanks Cindy.
+#%% MATLAB GOES WHRRRR, thanks Cindy.
 eng = matlab.engine.start_matlab()
 Lphoto_all = np.zeros(len(snaps))
 for idx_s, snap in enumerate(snaps):
@@ -72,34 +73,19 @@ for idx_s, snap in enumerate(snaps):
     box = np.zeros(6)
     # Load data -----------------------------------------------------------------
     if alice:
-        X = np.load(f'{pre}/snap_{snap}/CMx_{snap}.npy')
-        Y = np.load(f'{pre}/snap_{snap}/CMy_{snap}.npy')
-        Z = np.load(f'{pre}/snap_{snap}/CMz_{snap}.npy')
-        VX = np.load(f'{pre}/snap_{snap}/Vx_{snap}.npy')
-        VY = np.load(f'{pre}/snap_{snap}/Vy_{snap}.npy')
-        VZ = np.load(f'{pre}/snap_{snap}/Vz_{snap}.npy')
-        T = np.load(f'{pre}/snap_{snap}/T_{snap}.npy')
-        Den = np.load(f'{pre}/snap_{snap}/Den_{snap}.npy')
-        Rad = np.load(f'{pre}/snap_{snap}/Rad_{snap}.npy') # specific rad energy
-        Vol = np.load(f'{pre}/snap_{snap}/Vol_{snap}.npy')
-        box = np.load(f'{pre}/snap_{snap}/box_{snap}.npy')
+        loadpath = f'{pre}/snap_{snap}'
     else:
-        X = np.load(f'{pre}/{snap}/CMx_{snap}.npy')
-        Y = np.load(f'{pre}/{snap}/CMy_{snap}.npy')
-        Z = np.load(f'{pre}/{snap}/CMz_{snap}.npy')
-        VX = np.load(f'{pre}/{snap}/Vx_{snap}.npy')
-        VY = np.load(f'{pre}/{snap}/Vy_{snap}.npy')
-        VZ = np.load(f'{pre}/{snap}/Vz_{snap}.npy')
-        T = np.load(f'{pre}/{snap}/T_{snap}.npy')
-        Den = np.load(f'{pre}/{snap}/Den_{snap}.npy')
-        Rad = np.load(f'{pre}/{snap}/Rad_{snap}.npy') # specific rad energy
-        Vol = np.load(f'{pre}/{snap}/Vol_{snap}.npy')
-        box = np.load(f'{pre}/{snap}/box_{snap}.npy')
+        loadpath = f'{pre}/{snap}'
     
+    data = make_tree(loadpath, snap, energy = True)
+    box = np.load(f'{loadpath}/box_{snap}.npy')
+    X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ = \
+        data.X, data.Y, data.Z, data.Temp, data.Den, data.Rad_den, data.Vol, data.VX, data.VY, data.VZ
+
     denmask = Den > 1e-19
-    X, Y, Z, T, Den, Rad, Vol, VX, VY, VZ = make_slices([X, Y, Z, T, Den, Rad, Vol, VX, VY, VZ], denmask)
-    Rad_den = np.multiply(Rad,Den) # now you have energy density
-    del Rad   
+    X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ = \
+        make_slices([X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ], denmask)
+
     xyz = np.array([X, Y, Z]).T
     R = np.sqrt(X**2 + Y**2 + Z**2)
     # Cross dot -----------------------------------------------------------------

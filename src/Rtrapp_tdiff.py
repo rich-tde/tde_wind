@@ -5,11 +5,9 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
-    compute = True
     save = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = True
     save = False
 
 #%%
@@ -49,7 +47,7 @@ Rp = things['Rp']
 R0 = things['R0']
 apo = things['apo']
 norm = things['E_mb']
-tfallback = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2) #[days]
+tfallback = things['t_fb_days']
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
 
 # Opacity
@@ -83,11 +81,15 @@ def r_trapp(loadpath, snap):
     den_tr = np.zeros(len(observers_xyz))
     Temp_tr = np.zeros(len(observers_xyz))
     Vr_tr = np.zeros(len(observers_xyz))
+    V_tr = np.sqrt(len(observers_xyz))
     idx_tr = np.zeros(len(observers_xyz))
 
     for i in range(len(observers_xyz)):
-        if i not in [0, 50, 103, 120, 191]:
-            continue
+        if not alice:
+            if i not in test_idx:
+                continue
+            else:
+                print(i, flush=True)
         mu_x = observers_xyz[i][0]
         mu_y = observers_xyz[i][1]
         mu_z = observers_xyz[i][2]
@@ -116,11 +118,11 @@ def r_trapp(loadpath, snap):
         tree = KDTree(xyz, leaf_size=50)
         _, idx = tree.query(xyz2, k=1)
         idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
-        idx = np.unique(idx)
+        # idx = np.unique(idx)
         ray_x = X[idx]
         ray_y = Y[idx]
         ray_z = Z[idx]
-        ray_r = np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) 
+        ray_r = r #np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) 
         t = T[idx]
         d = Den[idx] * prel.den_converter
         ray_vol = Vol[idx]
@@ -128,19 +130,20 @@ def r_trapp(loadpath, snap):
         ray_vy = VY[idx]
         ray_vz = VZ[idx]
         ray_idx_sim = idx_sim[idx]
-        ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r = \
-            sort_list([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r], ray_r)
+        # ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r = \
+        #     sort_list([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r], ray_r)
         idx = np.array(idx)
         long_ph_s = np.arctan2(ray_y, ray_x)          # Azimuthal angle in radians
         lat_ph_s = np.arccos(ray_z/ ray_r) 
         v_rad, _, _= to_spherical_components(ray_vx, ray_vy, ray_vz, lat_ph_s, long_ph_s)
+        vel = np.sqrt(ray_vx**2 + ray_vy**2 + ray_vz**2)
 
         # Interpolate ----------------------------------------------------------
         sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
         sigma_rossland = np.array(sigma_rossland)[0]
         underflow_mask = sigma_rossland != 0.0
-        ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, ray_idx_sim, sigma_rossland, idx = \
-            make_slices([ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, ray_idx_sim, sigma_rossland, idx], underflow_mask)
+        ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, sigma_rossland, idx = \
+            make_slices([ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, sigma_rossland, idx], underflow_mask)
         sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
         del sigma_rossland
         gc.collect()
@@ -151,8 +154,8 @@ def r_trapp(loadpath, snap):
         # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
         los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland_fuT, ray_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_z. YOu integrate in the z direction
         los_zero = los != 0
-        ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, ray_idx_sim, sigma_rossland_eval, los, idx = \
-            make_slices([ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, ray_idx_sim, sigma_rossland_eval, los, idx], los_zero)
+        ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, sigma_rossland_eval, los, idx = \
+            make_slices([ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, sigma_rossland_eval, los, idx], los_zero)
         c_tau = prel.csol_cgs/los # c/tau [code units]
 
         # select the inner part, where tau big --> c/tau < v
@@ -170,6 +173,7 @@ def r_trapp(loadpath, snap):
         den_tr[i] = d[Rtr_idx]/prel.den_converter
         Temp_tr[i] = t[Rtr_idx]
         Vr_tr[i] = v_rad[Rtr_idx]
+        V_tr[i] = vel[Rtr_idx]
         idx_tr[i] = ray_idx_sim[Rtr_idx]
 
         if plot:
@@ -197,7 +201,7 @@ def r_trapp(loadpath, snap):
             ax1.set_xlabel(r'$R [R_{\rm a}]$')
             ax1.set_ylabel(r'$t [t_{\rm fb}]$')
             ax1.set_yscale('log')
-            ax1.set_xlim(-.1, 4)
+            ax1.set_xlim(-.1, 2.5)
             ax1.set_ylim(1e-3, 1e3)
             ax1.legend(fontsize = 14, loc = 'lower right')
             plt.suptitle(f'Snap {snap}, observer {i}', fontsize = 16)
@@ -211,6 +215,7 @@ def r_trapp(loadpath, snap):
         'den_tr': den_tr,
         'Temp_tr': Temp_tr,
         'Vr_tr': Vr_tr,
+        'V': V_tr,
         'idx_tr': idx_tr,
     }
 
@@ -227,38 +232,60 @@ for snap in snaps:
     if alice:
         loadpath = f'{pre}/snap_{snap}'
     else:
+        test_idx = [0, 103, 120, 150, 180, 191]
         if snap != 318:
             continue
         loadpath = f'{pre}/{snap}'
 
     r_tr = r_trapp(loadpath, snap)
+    # np.savez(f"{pre_saving}/Rtrap_tests/{check}_Rtr{snap}_NOunique.npz", **r_tr)
 
-    if alice:
+    if save:
         np.savez(f"{pre_saving}/trap/{check}_Rtr{snap}.npz", **r_tr)
 
-    if plot:
-        photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
-        xph, yph, zph = photo[0], photo[1], photo[2]
-        rph = np.sqrt(xph**2 + yph**2 + zph**2)
+#%%
+if plot:
+    photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
+    xph, yph, zph = photo[0], photo[1], photo[2]
+    rph = np.sqrt(xph**2 + yph**2 + zph**2)
+    rph = rph[test_idx]
 
-        dataRtr = np.load("r_trapp.npz")
-        x_tr_i, y_tr_i, z_tr_i, idx_tr = \
-            dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['idx_tr']
-        R_tr_i = np.sqrt(x_tr_i**2 + y_tr_i**2 + z_tr_i**2)
+    dataRtrNOun = np.load(f"{pre_saving}/Rtrap_tests/{check}_Rtr{snap}_NOunique.npz")
+    x_tr_i_NOun, y_tr_i_NOun, z_tr_i_NOun = \
+        dataRtrNOun['x_tr'], dataRtrNOun['y_tr'], dataRtrNOun['z_tr']
+    R_tr_i_NOun = np.sqrt(x_tr_i_NOun**2 + y_tr_i_NOun**2 + z_tr_i_NOun**2)
+    R_tr_i_NOun = R_tr_i_NOun[test_idx]
 
-        idx_tr = np.array([int(idx_tr[i]) for i in range(len(idx_tr))])
-        # where_zero = np.where(idx_tr == 0)[0]
-        loadpath = f'{pre}/{snap}'
-        data = make_tree(loadpath, snap)
-        X, Y, Z, Den = data.X, data.Y, data.Z, data.Den
-        cut = Den > 1e-19
-        X, Y, Z = make_slices([X, Y, Z], cut)
-        x_sim, y_sim, z_sim, den_sim = X[idx_tr], Y[idx_tr], Z[idx_tr]
+    dataRtr = np.load(f"{pre_saving}/Rtrap_tests/{check}_Rtr{snap}.npz")
+    x_tr_i, y_tr_i, z_tr_i, idx_tr = \
+        dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['idx_tr']
+    R_tr_i = np.sqrt(x_tr_i**2 + y_tr_i**2 + z_tr_i**2)
+    R_tr_i = R_tr_i[test_idx]
 
-        plt.plot(x_tr_i/x_sim, label = 'x')
-        plt.plot(y_tr_i/y_sim, label = 'y')
-        plt.plot(z_tr_i/z_sim, label = 'z')
-        plt.legend()
+    plt.figure(figsize = (8, 6))
+    plt.axvline(R_tr_i_NOun[4]/apo, label = r'$R_{\rm tr}$ without unique/sort', c = 'b')
+    plt.axvline(R_tr_i[4]/apo, label = r'$R_{\rm tr}$ with unique/sort', ls = '--', c = 'C1')
+    plt.axvline(rph[4]/apo, label = r'$R_{\rm ph}$', c = 'k')
+    plt.legend(fontsize = 16)
+    plt.xlim(0, 2.5)
+    plt.xlabel(r'$R [R_{\rm a}]$')
+    plt.title(f'Snap {snap}, observer {test_idx[1]}')
+
+
+    # to check that the indices are correct are correct
+    # idx_tr = np.array([int(idx_tr[i]) for i in range(len(idx_tr))])
+    ## where_zero = np.where(idx_tr == 0)[0]
+    # loadpath = f'{pre}/{snap}'
+    # data = make_tree(loadpath, snap)
+    # X, Y, Z, Den = data.X, data.Y, data.Z, data.Den
+    # cut = Den > 1e-19   
+    # X, Y, Z = make_slices([X, Y, Z], cut)
+    # x_sim, y_sim, z_sim = X[idx_tr], Y[idx_tr], Z[idx_tr]
+
+    # plt.scatter(np.arange(len(x_tr_i)), x_tr_i/x_sim, label = 'x')
+    # plt.scatter(np.arange(len(y_tr_i)), y_tr_i/y_sim, label = 'y')
+    # plt.scatter(np.arange(len(z_tr_i)), z_tr_i/z_sim, label = 'z')
+    # plt.legend()
 
 
 #%%

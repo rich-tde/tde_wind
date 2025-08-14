@@ -41,10 +41,11 @@ apo = things['apo']
 
 data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
 snaps, tfb, Lum = data[:, 0], data[:, 1], data[:, 2]
-snaps, Lum, tfb = sort_list([snaps, Lum, tfb], tfb)
+snaps, Lum, tfb = sort_list([snaps, Lum, tfb], tfb) 
 snaps = snaps.astype(int)
-dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}cutDen.txt')
-tfbdiss, LDiss = dataDiss[0], dataDiss[2] * prel.en_converter/prel.tsol_cgs 
+dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_NewAMR.csv', delimiter=',', dtype=float)
+tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3]
+LDiss = LDiss * prel.en_converter/prel.tsol_cgs # [erg/s]
 
 time_theory = tfb[210:-1]
 Lum_theory = 5e41*time_theory**(-5/3)
