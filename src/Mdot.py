@@ -36,7 +36,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'NewAMR'
-where_to_measure = 'Rph' # 'Rtr' or 'Rph' or pick an arbitrary values
+where_to_measure = 'Rtr' # 'Rtr' or 'Rph' or pick an arbitrary values
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]

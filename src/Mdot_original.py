@@ -32,7 +32,6 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'NewAMR'
-cond_selection = 'Rph' # if 'B' you put the extra condition on the Bernouilli coeff to select cells
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
@@ -171,11 +170,8 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     Vwind_pos = np.transpose(np.array(Vwind_pos))
     Vwind_neg = np.transpose(np.array(Vwind_neg))
 
-    with open(f'{abspath}/data/{folder}/wind/Mdot_{check}_{cond_selection}pos.txt','w') as file:
-        if cond_selection == 'B':
-            file.write(f'# Distinguish using Bernouilli criterion \n#t/tfb \n')
-        else:
-            file.write(f'# t/tfb \n')
+    with open(f'{abspath}/data/{folder}/wind/Mdot_{check}_pos.txt','w') as file:
+        file.write(f'# t/tfb \n')
         file.write(f' '.join(map(str, tfb_kept)) + '\n')
         file.write(f'# Mdot_f \n')
         file.write(f' '.join(map(str, mfall)) + '\n')
@@ -197,11 +193,8 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         file.write(f' '.join(map(str, Vwind_pos[3])) + '\n')
         file.close()
     
-    with open(f'{abspath}/data/{folder}/wind/Mdot_{check}_{cond_selection}neg.txt','w') as file:
-        if cond_selection == 'B':
-            file.write(f'# Distinguish using Bernouilli criterion and X > a_mb \n#t/tfb \n')
-        else:
-            file.write(f'# t/tfb \n')
+    with open(f'{abspath}/data/{folder}/wind/Mdot_{check}_neg.txt','w') as file:
+        file.write(f'# t/tfb \n')
         file.write(f' '.join(map(str, tfb_kept)) + '\n')
         file.write(f'# Mdot_wind at {radii_names[0]}\n')
         file.write(f' '.join(map(str, mwind_neg[0])) + '\n')
