@@ -14,9 +14,6 @@ else:
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-import healpy as hp
-import csv
-import os
 import Utilities.prelude as prel
 import src.orbits as orb
 from Utilities.operators import make_tree, to_spherical_components
@@ -35,6 +32,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'NewAMR'
+cond_selection = 'B' # if 'B' you put the extra condition on the Bernouilli coeff to select cells
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
@@ -51,8 +49,8 @@ norm_dMdE = things['E_mb']
 t_fb_days_cgs = things['t_fb_days'] * 24 * 3600 # in seconds
 max_Mdot = mstar*prel.Msol_cgs/(3*t_fb_days_cgs) # in code units
 
-# radii = np.array([Rt, 0.5*amin, amin])
-# radii_names = [f'Rt', f'0.5 a_mb', f'a_mb']
+radii = np.array([Rt, 0.5*amin, amin])
+radii_names = [f'Rt', f'0.5 a_mb', f'a_mb']
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
 Medd = Ledd/(0.1*prel.c_cgs**2)
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
@@ -77,13 +75,12 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/wind/dMdE_{check}.txt')[0] # distribution just after the disruption
     bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
    
-    # define the observers and find their corresponding angles (they're radius is 1)
-    observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) #shape: (3, 192)
-    observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
-    r_obs = np.sqrt(observers_xyz[:, 0]**2 + observers_xyz[:, 1]**2 + observers_xyz[:, 2]**2)
-    long_obs = np.arctan2(observers_xyz[:, 1], observers_xyz[:, 0])          
-    lat_obs = np.arccos(observers_xyz[:, 2] / r_obs)
-
+    mfall = []
+    mwind_pos = []
+    Vwind_pos = []
+    mwind_neg = []
+    Vwind_neg = []
+    tfb_kept = []
     for i, snap in enumerate(snaps):
         print(snap, flush=True)
         if alice:
@@ -100,8 +97,9 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             print(f'You overcome the maximum negative bin ({max_bin_negative*norm_dMdE}). You required {energy}')
             continue
 
+        tfb_kept.append(tfb[i])
         dMdE_t = dMdE_distr_tokeep[i_bin]
-        mfall = orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t)
+        mfall.append(orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t))
 
         data = make_tree(path, snap, energy = True)
         X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den = \
@@ -119,91 +117,106 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         lat = np.arccos(Z / Rsph)
         v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
         # Positive velocity (and unbound)
-        cond = np.logical_and(v_rad >= 0, np.logical_and(bern > 0, X > amin))
-        X_pos, Y_pos, Z_pos, Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
-            make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell], cond)
+        if cond_selection == 'B':
+            cond = np.logical_and(v_rad >= 0, np.logical_and(bern > 0, X > amin))
+        elif cond_selection == '':
+            cond = v_rad >= 0  
+        X_pos, Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
+            make_slices([X, Den, Rsph, v_rad, dim_cell], cond)
         if Den_pos.size == 0:
             print(f'no positive', flush=True)
-            mwind_pos = 0
-            Vwind_pos = 0
+            mwind_pos.append(np.zeros(len(radii)))
+            Vwind_pos.append(np.zeros(len(radii)))
         else:
-            Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos  # there should be a pi factor here, but you put it later
-            # for each observer pixel p, take the cells near its trapping radius
-            data_tr = np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz')
-            x_tr, y_tr, z_tr = data_tr['x_tr'], data_tr['y_tr'], data_tr['z_tr']
-            r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-
-            # assign each (positive, unbound) cell to the nearest HEALPix observer direction
-            ux_pos, uy_pos, uz_pos = X_pos / Rsph_pos, Y_pos / Rsph_pos, Z_pos / Rsph_pos
-            ipix_pos = hp.vec2pix(prel.NSIDE, ux_pos, uy_pos, uz_pos)
-
-            n_obs = len(r_tr_all)
-            Mdot_pos_casted = np.zeros(n_obs)
-            v_rad_pos_casted = np.zeros(n_obs)
-
-            for p in range(n_obs):
-                r_tr = r_tr_all[p]
-                if not np.isfinite(r_tr) or r_tr <= 0:
-                    continue
-                mask_p = ipix_pos == p
-                if not np.any(mask_p):
-                    continue
-                # cells close to the trapping radius along this observer
-                near = np.abs(Rsph_pos[mask_p] - r_tr) < dim_cell_pos[mask_p]
-                if not np.any(near):
-                    continue
-
-                Mdot_pos_casted[p] = np.mean(Mdot_pos[mask_p][near])
-                v_rad_pos_casted[p] = np.mean(v_rad_pos[mask_p][near])
-
-            mwind_pos = np.sum(Mdot_pos_casted) * np.pi
-            Vwind_pos = np.mean(v_rad_pos_casted)
-            
+            Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos # there should be a pi factor here, but you put it later
+            Mdot_pos_casted = np.zeros(len(radii))
+            v_rad_pos_casted = np.zeros(len(radii))
+            # print('Mdot_pos: ')
+            for j, r in enumerate(radii):
+                selected_pos = np.abs(Rsph_pos - r) < dim_cell_pos
+                if Mdot_pos[selected_pos].size == 0:
+                    Mdot_pos_casted[j] = 0
+                    v_rad_pos_casted[j] = 0
+                else:
+                    Mdot_pos_casted[j] = np.sum(Mdot_pos[selected_pos]) * np.pi 
+                    v_rad_pos_casted[j] = np.mean(v_rad_pos[selected_pos])
+                    # print('sum of circles/sphere you want: ', np.pi*np.sum(dim_cell_pos[selected_pos]**2)/(4*np.pi*r**2))
+            mwind_pos.append(Mdot_pos_casted)
+            Vwind_pos.append(v_rad_pos_casted)
         # Negative velocity (and bound)
-        cond = np.logical_and(v_rad < 0, bern <= 0)
-        X_neg, Y_neg, Z_neg, Den_neg, Rsph_neg, v_rad_neg, dim_cell_neg = \
-            make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell], cond)
+        if cond_selection == 'B':
+            cond = np.logical_and(v_rad < 0, bern <= 0)
+        elif cond_selection == '':
+            cond = v_rad < 0
+        X_neg, Den_neg, Rsph_neg, v_rad_neg, dim_cell_neg = \
+            make_slices([X, Den, Rsph, v_rad, dim_cell], cond)
         if Den_neg.size == 0:
             print(f'no bern negative: {bern}', flush=True)
-            mwind_neg = 0
-            Vwind_neg = 0
+            mwind_neg.append(np.zeros(len(radii)))
+            Vwind_neg.append(np.zeros(len(radii)))
         else:
-            Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg  # there should be a pi factor here, but you put it later
-            # reuse trapping radii per observer for this snapshot
-            data_tr = np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz')
-            x_tr, y_tr, z_tr = data_tr['x_tr'], data_tr['y_tr'], data_tr['z_tr']
-            r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+            Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg # there should be a pi factor here, but you put it later
+            Mdot_neg_casted = np.zeros(len(radii))
+            v_rad_neg_casted = np.zeros(len(radii))
+            # print('Mdot_neg: ')
+            for j, r in enumerate(radii):
+                selected_neg = np.abs(Rsph_neg - r) < dim_cell_neg
+                if Mdot_neg[selected_neg].size == 0:
+                    Mdot_neg_casted[j] = 0
+                    v_rad_neg_casted[j] = 0
+                else:
+                    Mdot_neg_casted[j] = np.sum(Mdot_neg[selected_neg]) * np.pi #4 *  * radii**2
+                    v_rad_neg_casted[j] = np.mean(v_rad_neg[selected_neg])
+                    # print('sum of circles/sphere you want: ', np.pi*np.sum(dim_cell_neg[selected_neg]**2)/(4*np.pi*r**2))
+            mwind_neg.append(Mdot_neg_casted)
+            Vwind_neg.append(v_rad_neg_casted)
 
-            ux_neg, uy_neg, uz_neg = X_neg / Rsph_neg, Y_neg / Rsph_neg, Z_neg / Rsph_neg
-            ipix_neg = hp.vec2pix(prel.NSIDE, ux_neg, uy_neg, uz_neg)
+    mwind_pos = np.transpose(np.array(mwind_pos)) # shape pass from len(snap) x len(radii) to len(radii) x len(snap)
+    mwind_neg = np.transpose(np.array(mwind_neg))
+    Vwind_pos = np.transpose(np.array(Vwind_pos))
+    Vwind_neg = np.transpose(np.array(Vwind_neg))
 
-            n_obs = len(r_tr_all)
-            Mdot_neg_casted = np.zeros(n_obs)
-            v_rad_neg_casted = np.zeros(n_obs)
-
-            for p in range(n_obs):
-                r_tr = r_tr_all[p]
-                if not np.isfinite(r_tr) or r_tr <= 0:
-                    continue
-                mask_p = ipix_neg == p
-                if not np.any(mask_p):
-                    continue
-                near = np.abs(Rsph_neg[mask_p] - r_tr) < dim_cell_neg[mask_p]
-                if not np.any(near):
-                    continue
-                Mdot_neg_casted[p] = np.mean(Mdot_neg[mask_p][near])
-                v_rad_neg_casted[p] = np.mean(v_rad_neg[mask_p][near])
-
-            mwind_neg = np.sum(Mdot_neg_casted) * np.pi
-            Vwind_neg = np.mean(v_rad_neg_casted)
+    with open(f'{abspath}/data/{folder}/wind/Mdot_{check}_{cond_selection}pos.txt','w') as file:
+        if cond_selection == 'B':
+            file.write(f'# Distinguish using Bernouilli criterion \n#t/tfb \n')
+        else:
+            file.write(f'# t/tfb \n')
+        file.write(f' '.join(map(str, tfb_kept)) + '\n')
+        file.write(f'# Mdot_f \n')
+        file.write(f' '.join(map(str, mfall)) + '\n')
+        file.write(f'# Mdot_wind at {radii_names[0]}\n')
+        file.write(f' '.join(map(str, mwind_pos[0])) + '\n')
+        file.write(f'# Mdot_wind at {radii_names[1]}\n')
+        file.write(f' '.join(map(str, mwind_pos[1])) + '\n')
+        file.write(f'# Mdot_wind at {radii_names[2]}\n')
+        file.write(f' '.join(map(str, mwind_pos[2])) + '\n')
+        file.write(f'# v_wind at {radii_names[0]}\n')
+        file.write(f' '.join(map(str, Vwind_pos[0])) + '\n')
+        file.write(f'# v_wind at {radii_names[1]}\n')
+        file.write(f' '.join(map(str, Vwind_pos[1])) + '\n')
+        file.write(f'# v_wind at {radii_names[2]}\n')
+        file.write(f' '.join(map(str, Vwind_pos[2])) + '\n')
+        file.close()
     
-        csv_path = f'{abspath}/data/{folder}/wind/Mdot_{check}.csv'
-        data = [tfb[i], mfall, mwind_pos, Vwind_pos, mwind_neg, Vwind_neg]
-        with open(csv_path, 'a', newline='') as file:
-            writer = csv.writer(file)
-            if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                writer.writerow(['tfb', 'Mdot_fb', 'Mdot_wind_pos', 'Vwind_pos', 'Mdot_wind_neg', 'Vwind_neg'])
-            writer.writerow(data)
+    with open(f'{abspath}/data/{folder}/wind/Mdot_{check}_{cond_selection}neg.txt','w') as file:
+        if cond_selection == 'B':
+            file.write(f'# Distinguish using Bernouilli criterion and X > a_mb \n#t/tfb \n')
+        else:
+            file.write(f'# t/tfb \n')
+        file.write(f' '.join(map(str, tfb_kept)) + '\n')
+        file.write(f'# Mdot_wind at {radii_names[0]}\n')
+        file.write(f' '.join(map(str, mwind_neg[0])) + '\n')
+        file.write(f'# Mdot_wind at {radii_names[1]}\n')
+        file.write(f' '.join(map(str, mwind_neg[1])) + '\n')
+        file.write(f'# Mdot_wind at {radii_names[2]}\n')
+        file.write(f' '.join(map(str, mwind_neg[2])) + '\n')
+        file.write(f'# v_wind at {radii_names[0]}\n')
+        file.write(f' '.join(map(str, Vwind_neg[0])) + '\n')
+        file.write(f'# v_wind at {radii_names[1]}\n')
+        file.write(f' '.join(map(str, Vwind_neg[1])) + '\n')
+        file.write(f'# v_wind at {radii_names[2]}\n')
+        file.write(f' '.join(map(str, Vwind_neg[2])) + '\n')
+        file.close()
 
 if plot:
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'

@@ -160,6 +160,7 @@ else:
         plt.xlim(0.8*R0/apo, np.max(radii)/apo)
         # plt.ylim(0.054, 1.7)
         plt.savefig(f'{abspath}/Figs/paper/ecc{which_cut}{check}.pdf', bbox_inches='tight')
+        plt.show()
 
     if error: # compare resolutions
         import matplotlib.gridspec as gridspec

@@ -28,7 +28,6 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-cut = 'cutden' # '' or 'cutCoord' or 'cutDenCoord'
 
 tfallback = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2) #[days]
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
@@ -59,7 +58,7 @@ def eta_from_R(Mbh, R_sh, const_G, const_c):
 time_array_yr = np.linspace(1e-1,2, 100) # yr
 time_yr_cgs = time_array_yr * 365 * 24 * 3600 # converted to seconds
 
-checks = ['LowRes', '', 'HiRes' ]
+checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR' ]
 checkslegend = ['Low', 'Fid', 'High']
 colorslegend = ['C1', 'yellowgreen', 'darkviolet']
 
@@ -76,24 +75,25 @@ Eradtot_all = []
 LDiss_all = []
 
 for j, check in enumerate(checks):
+    print(check)
     # Load data
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-    datadays = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}_days.txt')
+    datadays = np.loadtxt(f'{abspath}data/{folder}/wind/dMdE_{check}_days.txt')
     snaps, tfb = datadays[0], datadays[1]
     tfb_cgs = tfb * tfallback_cgs #converted to seconds
-    bins = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}_bins.txt')
+    bins = np.loadtxt(f'{abspath}data/{folder}/wind/dMdE_{check}_bins.txt')
     mid_points = (bins[:-1]+bins[1:])* norm_dMdE/2  # get rid of the normalization
     # bins_cgs = bins * (prel.en_converter/prel.Msol_cgs) #  and convert to CGS (they are bins in SPECIFIC orbital energy)
-    dMdE_distr = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}.txt')[0] # distribution just after the disruption
+    dMdE_distr = np.loadtxt(f'{abspath}data/{folder}/wind/dMdE_{check}.txt')[0] # distribution just after the disruption
     bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
     dataLum = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{check}_red.csv', delimiter=',', dtype=float)
     snapsLum, tfbLum, Lum = dataLum[:, 0], dataLum[:, 1], dataLum[:, 2] 
-    dataDiss = np.loadtxt(f'{abspath}data/{folder}/Rdiss_{check}{cut}.txt')
     tfbLum, Lum, snapsLum = sort_list([tfbLum, Lum, snapsLum], snapsLum) # becuase Lum data are not ordered
-    timeRDiss, RDiss = dataDiss[0], dataDiss[1]
-    if check == 'LowRes':
-        timeRDiss = np.concatenate([timeRDiss[:127], timeRDiss[129:]])
-        RDiss = np.concatenate([RDiss[:127], RDiss[129:]])
+    dataDiss = np.loadtxt(f'{abspath}data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float)
+    timeRDiss, RDiss = dataDiss[:,1], dataDiss[:,2]
+    # if check == 'LowRes':
+    #     timeRDiss = np.concatenate([timeRDiss[:127], timeRDiss[129:]])
+    #     RDiss = np.concatenate([RDiss[:127], RDiss[129:]])
 
     timeRDiss_all.append(timeRDiss)
     RDiss_all.append(RDiss)
@@ -103,7 +103,7 @@ for j, check in enumerate(checks):
     R_sh = np.zeros(len(tfb_cgs))
     eta_sh_diss = np.zeros(len(tfb_cgs))
     R_shDiss = np.zeros(len(tfb_cgs))
-    if check == '':
+    if check == 'NewAMR':
         R_ph = np.zeros(len(tfb_cgs))
         R_tr = np.zeros(len(tfb_cgs))
 
@@ -127,18 +127,17 @@ for j, check in enumerate(checks):
         eta_sh[i] = efficiency_shock(Lum_t, mdot_cgs, prel.c_cgs) # [CGS]
         R_sh[i] = R_shock(Mbh_cgs, eta_sh[i], prel.G_cgs, prel.c_cgs) # [CGS]
 
-        if check == '': # compute the other special radii
+        if check == 'NewAMR': # compute the other special radii
             snapR = int(snaps[i])
-            xph, yph, zph, _, _, _, _, _, _, _ = \
-                np.loadtxt(f'{abspath}/data/{folder}/photo/_photo{snapR}.txt')
+            photo = \
+                np.loadtxt(f'{abspath}/data/{folder}/photo/NewAMR_photo{snapR}.txt')
+            xph, yph, zph = photo[0], photo[1], photo[2]
             r_ph_all = np.sqrt(xph**2 + yph**2 + zph**2)
             R_ph[i] = np.median(r_ph_all)
 
             data_tr= \
-                np.loadtxt(f'{abspath}/data/{folder}/trap/{check}_Rtr{snapR}.txt')
-            # put # in front of the first line of the file and rewite it
-            # data_tr = np.loadtxt(f'{abspath}/data/{folder}/trap/_trap{snapR}.txt')
-            x_tr, y_tr, z_tr = data_tr[0], data_tr[1], data_tr[2]
+                np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snapR}.npz')
+            x_tr, y_tr, z_tr = data_tr['x_tr'], data_tr['y_tr'], data_tr['z_tr']
 
             r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
             R_tr[i] = np.median(r_tr_all)
@@ -202,12 +201,11 @@ for ax in [ax1, ax2]:
 ax1.legend(fontsize = 16, loc = 'upper right')
 
 plt.tight_layout()
-plt.savefig(f'{abspath}/Figs/paper/Reta{cut}conv.pdf', bbox_inches = 'tight')
-plt.savefig(f'{abspath}/Figs/multiple/Reta{cut}conv.png', bbox_inches = 'tight')
+# plt.savefig(f'{abspath}/Figs/paper/Reta{cut}conv.pdf', bbox_inches = 'tight')
 
 
 # %% compare with other speecial radii
-fig, ax1 = plt.subplots(1, 1, figsize=(10, 6))
+fig, ax1 = plt.subplots(1, 1, figsize=(9, 6))
 
 ax1.plot(tfb_all[1], R_sh_all[1]/apo, color = colorslegend[1], label = r'$R_{\rm sh}$')
 ax1.plot(timeRDiss_all[1], RDiss_all[1]/apo, color = 'forestgreen', label = r'$R_{\rm diss}$')
@@ -252,6 +250,15 @@ for ax in [ax1, ax2]:
 ax1.legend(fontsize = 16, loc = 'upper right')
 
 plt.tight_layout()
-plt.savefig(f'{abspath}/Figs/paper/Reta{cut}.pdf', bbox_inches = 'tight')
+plt.savefig(f'{abspath}/Figs/paper/Reta.pdf', bbox_inches = 'tight')
 
+# %%
+plt.figure(figsize=(9, 6))
+plt.plot(tfb_all[1], eta_shL_all[1], color = colorslegend[1], label = r'$\eta_{\rm sh}$')
+plt.yticks(eta_ticks)
+plt.ylim(etalim_max, etalim_min)
+plt.ylabel(r'$\eta_{\rm sh}$')#, fontsize = 18)
+plt.yscale('log')
+plt.xlim(0, 2)
+plt.grid()
 # %%
