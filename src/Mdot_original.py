@@ -49,8 +49,8 @@ norm_dMdE = things['E_mb']
 t_fb_days_cgs = things['t_fb_days'] * 24 * 3600 # in seconds
 max_Mdot = mstar*prel.Msol_cgs/(3*t_fb_days_cgs) # in code units
 
-radii = np.array([Rt, 0.5*amin, amin])
-radii_names = [f'Rt', f'0.5 a_mb', f'a_mb']
+radii = np.array([Rt, 0.5*amin, amin, 50*Rt])
+radii_names = [f'Rt', f'0.5 a_mb', f'a_mb', f'50 R_t']
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
 Medd = Ledd/(0.1*prel.c_cgs**2)
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
@@ -120,6 +120,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         cond = np.logical_and(v_rad >= 0, np.logical_and(bern > 0, X > -amin))
         X_pos, Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
             make_slices([X, Den, Rsph, v_rad, dim_cell], cond)
+        print(np.min(X_pos), flush=True)
         if Den_pos.size == 0:
             print(f'no positive', flush=True)
             mwind_pos.append(np.zeros(len(radii)))
@@ -184,12 +185,16 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         file.write(f' '.join(map(str, mwind_pos[1])) + '\n')
         file.write(f'# Mdot_wind at {radii_names[2]}\n')
         file.write(f' '.join(map(str, mwind_pos[2])) + '\n')
+        file.write(f'# Mdot_wind at {radii_names[3]}\n')
+        file.write(f' '.join(map(str, mwind_pos[3])) + '\n')
         file.write(f'# v_wind at {radii_names[0]}\n')
         file.write(f' '.join(map(str, Vwind_pos[0])) + '\n')
         file.write(f'# v_wind at {radii_names[1]}\n')
         file.write(f' '.join(map(str, Vwind_pos[1])) + '\n')
         file.write(f'# v_wind at {radii_names[2]}\n')
         file.write(f' '.join(map(str, Vwind_pos[2])) + '\n')
+        file.write(f'# v_wind at {radii_names[3]}\n')
+        file.write(f' '.join(map(str, Vwind_pos[3])) + '\n')
         file.close()
     
     with open(f'{abspath}/data/{folder}/wind/Mdot_{check}_{cond_selection}neg.txt','w') as file:
@@ -204,12 +209,16 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         file.write(f' '.join(map(str, mwind_neg[1])) + '\n')
         file.write(f'# Mdot_wind at {radii_names[2]}\n')
         file.write(f' '.join(map(str, mwind_neg[2])) + '\n')
+        file.write(f'# Mdot_wind at {radii_names[3]}\n')
+        file.write(f' '.join(map(str, mwind_neg[3])) + '\n')
         file.write(f'# v_wind at {radii_names[0]}\n')
         file.write(f' '.join(map(str, Vwind_neg[0])) + '\n')
         file.write(f'# v_wind at {radii_names[1]}\n')
         file.write(f' '.join(map(str, Vwind_neg[1])) + '\n')
         file.write(f'# v_wind at {radii_names[2]}\n')
         file.write(f' '.join(map(str, Vwind_neg[2])) + '\n')
+        file.write(f'# v_wind at {radii_names[3]}\n')
+        file.write(f' '.join(map(str, Vwind_neg[3])) + '\n')
         file.close()
 
 if plot:
