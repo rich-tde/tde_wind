@@ -32,7 +32,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'NewAMR'
-cond_selection = 'B' # if 'B' you put the extra condition on the Bernouilli coeff to select cells
+cond_selection = 'Rph' # if 'B' you put the extra condition on the Bernouilli coeff to select cells
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
@@ -117,10 +117,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         lat = np.arccos(Z / Rsph)
         v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
         # Positive velocity (and unbound)
-        if cond_selection == 'B':
-            cond = np.logical_and(v_rad >= 0, np.logical_and(bern > 0, X > amin))
-        elif cond_selection == '':
-            cond = v_rad >= 0  
+        cond = np.logical_and(v_rad >= 0, np.logical_and(bern > 0, X > -amin))
         X_pos, Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
             make_slices([X, Den, Rsph, v_rad, dim_cell], cond)
         if Den_pos.size == 0:
@@ -144,10 +141,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             mwind_pos.append(Mdot_pos_casted)
             Vwind_pos.append(v_rad_pos_casted)
         # Negative velocity (and bound)
-        if cond_selection == 'B':
-            cond = np.logical_and(v_rad < 0, bern <= 0)
-        elif cond_selection == '':
-            cond = v_rad < 0
+        cond = np.logical_and(v_rad < 0, bern <= 0)
         X_neg, Den_neg, Rsph_neg, v_rad_neg, dim_cell_neg = \
             make_slices([X, Den, Rsph, v_rad, dim_cell], cond)
         if Den_neg.size == 0:
@@ -260,13 +254,16 @@ if plot:
     # fig.savefig(f'{abspath}/Figs/outflow/Mdot_{check}.pdf', bbox_inches = 'tight')
 
     # reproduce LodatoRossi11 Fig.6
-    # plt.figure(figsize = (8,6))
-    # plt.plot(np.abs(mfall/Medd_code), np.abs(f_out_th), c = 'k')
-    # plt.plot(np.abs(mwind_pos_amb/Medd_code), np.abs(mwind_pos_amb/mfall), c = 'orange', label = r'f$_{\rm out}$ (0.5$a_{\rm min})$')
-    # plt.xlim(0, 100)
-    # plt.legend(fontsize = 14)
-    # plt.xlabel(r'$\dot{M}_{\rm f} [\dot{M}_{\rm Edd}]$')
-    # plt.ylabel(r'$f_{\rm out}$')
+    f_out_th = f_out_LodatoRossi(mfall, Medd_code)
+    plt.figure(figsize = (8,6))
+    plt.plot(np.abs(mfall/Medd_code), np.abs(f_out_th), c = 'k', label = 'LodatoRossi11')
+    plt.plot(np.abs(mfall/Medd_code), np.abs(mwind_pos_amb/mfall), c = 'orange', label = r'numerical at $a_{\rm min}$')
+    plt.xlim(0, 100)
+    plt.legend(fontsize = 14)
+    plt.xlabel(r'$\dot{M}_{\rm f} [\dot{M}_{\rm Edd}]$')
+    plt.ylabel(r'$f_{\rm out}$')
+    plt.yscale('log')
+    
 
     # plt.figure(figsize = (8,6))
     # plt.plot(tfb, np.abs(mwind_pos_half_amb/mfall), c = 'orange', label = r'f$_{\rm out}$ (0.5$a_{\rm min})$')

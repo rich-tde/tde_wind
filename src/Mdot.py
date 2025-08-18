@@ -9,7 +9,8 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = False
+    compute = True
+    plot = False
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -35,6 +36,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'NewAMR'
+where_to_measure = 'Rph' # 'Rtr' or 'Rph' or pick an arbitrary values
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
@@ -50,15 +52,16 @@ amin = things['a_mb'] # semimajor axis of the bound orbit
 norm_dMdE = things['E_mb']
 t_fb_days_cgs = things['t_fb_days'] * 24 * 3600 # in seconds
 max_Mdot = mstar*prel.Msol_cgs/(3*t_fb_days_cgs) # in code units
+print(amin)
 
 # radii = np.array([Rt, 0.5*amin, amin])
 # radii_names = [f'Rt', f'0.5 a_mb', f'a_mb']
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
 Medd = Ledd/(0.1*prel.c_cgs**2)
+Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
 convers_kms = prel.Rsol_cgs * 1e-5/prel.tsol_cgs # it's aorund 400
-# print(f'escape velocity at Rt: {v_esc*convers_kms} km/s')
-# print(np.log10(max_Mdot/Medd), 'Mdot max in Eddington units')
+
 
 #
 ## FUNCTIONS
@@ -80,9 +83,22 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     # define the observers and find their corresponding angles (they're radius is 1)
     observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) #shape: (3, 192)
     observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
+    n_obs = len(observers_xyz)
     r_obs = np.sqrt(observers_xyz[:, 0]**2 + observers_xyz[:, 1]**2 + observers_xyz[:, 2]**2)
     long_obs = np.arctan2(observers_xyz[:, 1], observers_xyz[:, 0])          
     lat_obs = np.arccos(observers_xyz[:, 2] / r_obs)
+    
+    if not alice:
+        fig, ax = plt.subplots(1,1,figsize = (8,6))
+        ax.set_xlabel(r'$t [t_{\rm fb}]$')
+        ax.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')
+        ax.set_yscale('log')
+        if where_to_measure == 'Rtr':
+            ax.set_ylim(1e-3, 8e5)
+        else:
+            ax.set_ylim(1e-1, 8e5)
+        ax.grid()
+        fig.suptitle(f'Computed at {where_to_measure}', fontsize = 20)
 
     for i, snap in enumerate(snaps):
         print(snap, flush=True)
@@ -99,10 +115,28 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         if energy-max_bin_negative*norm_dMdE > 0:
             print(f'You overcome the maximum negative bin ({max_bin_negative*norm_dMdE}). You required {energy}')
             continue
-
+            
         dMdE_t = dMdE_distr_tokeep[i_bin]
         mfall = orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t)
 
+        # Load data 
+        if where_to_measure == 'Rtr':
+            data_tr = np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz')
+            x_tr, y_tr, z_tr = data_tr['x_tr'], data_tr['y_tr'], data_tr['z_tr']
+            r_all_tocompare = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+            label_r = r'$r_{\rm tr}$'
+        elif where_to_measure == 'Rph':
+            data_ph = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
+            x_ph, y_ph, z_ph = data_ph[0], data_ph[1], data_ph[2]
+            r_all_tocompare = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
+            label_r = r'$r_{\rm ph}$'      
+        elif where_to_measure == 'amin':
+            r_compare = amin
+            label_r = r'$a_{\rm min}$'      
+        elif where_to_measure == '50Rt':
+            r_compare = 50*Rt
+            label_r = r'$50 R_{\rm t}$'      
+        
         data = make_tree(path, snap, energy = True)
         X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den = \
             data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Press, data.VX, data.VY, data.VZ, data.IE
@@ -120,6 +154,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
         # Positive velocity (and unbound)
         cond = np.logical_and(v_rad >= 0, np.logical_and(bern > 0, X > amin))
+        # cond = np.logical_and(bern > 0, X > amin)
         X_pos, Y_pos, Z_pos, Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
             make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell], cond)
         if Den_pos.size == 0:
@@ -128,39 +163,57 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             Vwind_pos = 0
         else:
             Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos  # there should be a pi factor here, but you put it later
-            # for each observer pixel p, take the cells near its trapping radius
-            data_tr = np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz')
-            x_tr, y_tr, z_tr = data_tr['x_tr'], data_tr['y_tr'], data_tr['z_tr']
-            r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
 
-            # assign each (positive, unbound) cell to the nearest HEALPix observer direction
-            ux_pos, uy_pos, uz_pos = X_pos / Rsph_pos, Y_pos / Rsph_pos, Z_pos / Rsph_pos
-            ipix_pos = hp.vec2pix(prel.NSIDE, ux_pos, uy_pos, uz_pos)
+            if where_to_measure == 'Rtr' or where_to_measure == 'Rph':
+                # assign each (positive, unbound) cell to the nearest HEALPix observer direction
+                ux_pos, uy_pos, uz_pos = X_pos / Rsph_pos, Y_pos / Rsph_pos, Z_pos / Rsph_pos
+                ipix_pos = hp.vec2pix(prel.NSIDE, ux_pos, uy_pos, uz_pos)
 
-            n_obs = len(r_tr_all)
-            Mdot_pos_casted = np.zeros(n_obs)
-            v_rad_pos_casted = np.zeros(n_obs)
+                Mdot_pos_casted = np.zeros(n_obs)
+                v_rad_pos_casted = np.zeros(n_obs)
 
-            for p in range(n_obs):
-                r_tr = r_tr_all[p]
-                if not np.isfinite(r_tr) or r_tr <= 0:
-                    continue
-                mask_p = ipix_pos == p
-                if not np.any(mask_p):
-                    continue
-                # cells close to the trapping radius along this observer
-                near = np.abs(Rsph_pos[mask_p] - r_tr) < dim_cell_pos[mask_p]
-                if not np.any(near):
-                    continue
+                for p in range(n_obs):
+                    r_compare = r_all_tocompare[p]
+                    if not np.isfinite(r_compare) or r_compare <= 0:
+                        continue
+                    mask_p = ipix_pos == p
+                    if not np.any(mask_p):
+                        continue
+                    # cells close to the trapping radius along this observer
+                    near = np.abs(Rsph_pos[mask_p] - r_compare) < dim_cell_pos[mask_p]
+                    if not np.any(near):
+                        continue
 
-                Mdot_pos_casted[p] = np.mean(Mdot_pos[mask_p][near])
-                v_rad_pos_casted[p] = np.mean(v_rad_pos[mask_p][near])
+                    Mdot_pos_casted[p] = np.mean(Mdot_pos[mask_p][near])
+                    v_rad_pos_casted[p] = np.mean(v_rad_pos[mask_p][near])
 
-            mwind_pos = np.sum(Mdot_pos_casted) * np.pi
-            Vwind_pos = np.mean(v_rad_pos_casted)
+                    if np.logical_and(snap == 318, where_to_measure == 'Rtr'):
+                        fig1, ax1 = plt.subplots(1, 1, figsize = (8,6))
+                        ax1.set_xlabel(r'cell')
+                        ax1.set_ylabel(r'$r [r_{\rm a}]$')
+                        ax1.set_yscale('log')
+                        ax1.scatter(np.arange(len(Rsph_pos[mask_p])), Rsph_pos[mask_p]/apo, s = 2, c = 'k', label = r'r [$B>0, v_r>0, X>a_{\rm min}$]')
+                        # place error bars equal to the cell size
+                        ax1.errorbar(np.arange(len(Rsph_pos[mask_p])), Rsph_pos[mask_p]/apo, yerr = dim_cell_pos[mask_p]/apo, fmt = 'o', color = 'k')
+                        ax1.axhline(r_compare/apo, color = 'r', ls = '--', label = label_r)
+                        ax1.legend(fontsize = 14)
+                        fig1.suptitle(f'Snap {snap}, observer {p}')
+
+                mwind_pos = np.sum(Mdot_pos_casted) * np.pi
+                Vwind_pos = np.mean(v_rad_pos_casted)
+            
+            else:
+                selected_pos = np.abs(Rsph_pos - r_compare) < dim_cell_pos
+                if Mdot_pos[selected_pos].size == 0:
+                    mwind_pos = 0
+                    Vwind_pos = 0
+                else:
+                    mwind_pos = np.sum(Mdot_pos[selected_pos]) * np.pi 
+                    v_rad_pos = np.mean(v_rad_pos[selected_pos])
             
         # Negative velocity (and bound)
         cond = np.logical_and(v_rad < 0, bern <= 0)
+        # cond = bern <= 0
         X_neg, Y_neg, Z_neg, Den_neg, Rsph_neg, v_rad_neg, dim_cell_neg = \
             make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell], cond)
         if Den_neg.size == 0:
@@ -169,55 +222,64 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             Vwind_neg = 0
         else:
             Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg  # there should be a pi factor here, but you put it later
-            # reuse trapping radii per observer for this snapshot
-            data_tr = np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz')
-            x_tr, y_tr, z_tr = data_tr['x_tr'], data_tr['y_tr'], data_tr['z_tr']
-            r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+            
+            if where_to_measure == 'Rtr' or where_to_measure == 'Rph':
+                ux_neg, uy_neg, uz_neg = X_neg / Rsph_neg, Y_neg / Rsph_neg, Z_neg / Rsph_neg
+                ipix_neg = hp.vec2pix(prel.NSIDE, ux_neg, uy_neg, uz_neg)
 
-            ux_neg, uy_neg, uz_neg = X_neg / Rsph_neg, Y_neg / Rsph_neg, Z_neg / Rsph_neg
-            ipix_neg = hp.vec2pix(prel.NSIDE, ux_neg, uy_neg, uz_neg)
+                Mdot_neg_casted = np.zeros(n_obs)
+                v_rad_neg_casted = np.zeros(n_obs)
 
-            n_obs = len(r_tr_all)
-            Mdot_neg_casted = np.zeros(n_obs)
-            v_rad_neg_casted = np.zeros(n_obs)
+                for p in range(n_obs):
+                    r_tr = r_all_tocompare[p]
+                    if not np.isfinite(r_tr) or r_tr <= 0:
+                        continue
+                    mask_p = ipix_neg == p
+                    if not np.any(mask_p):
+                        continue
+                    near = np.abs(Rsph_neg[mask_p] - r_tr) < dim_cell_neg[mask_p]
+                    if not np.any(near):
+                        continue
+                    Mdot_neg_casted[p] = np.mean(Mdot_neg[mask_p][near])
+                    v_rad_neg_casted[p] = np.mean(v_rad_neg[mask_p][near])
 
-            for p in range(n_obs):
-                r_tr = r_tr_all[p]
-                if not np.isfinite(r_tr) or r_tr <= 0:
-                    continue
-                mask_p = ipix_neg == p
-                if not np.any(mask_p):
-                    continue
-                near = np.abs(Rsph_neg[mask_p] - r_tr) < dim_cell_neg[mask_p]
-                if not np.any(near):
-                    continue
-                Mdot_neg_casted[p] = np.mean(Mdot_neg[mask_p][near])
-                v_rad_neg_casted[p] = np.mean(v_rad_neg[mask_p][near])
-
-            mwind_neg = np.sum(Mdot_neg_casted) * np.pi
-            Vwind_neg = np.mean(v_rad_neg_casted)
+                mwind_neg = np.sum(Mdot_neg_casted) * np.pi
+                Vwind_neg = np.mean(v_rad_neg_casted)
+            else:
+                selected_neg = np.abs(Rsph_neg - r_compare) < dim_cell_neg
+                if Mdot_neg[selected_neg].size == 0:
+                    mwind_neg = 0
+                    Vwind_neg = 0
+                else:
+                    mwind_neg = np.sum(Mdot_neg[selected_neg]) * np.pi #4 *  * radii**2
+                    v_rad_neg = np.mean(v_rad_neg[selected_neg])
     
         csv_path = f'{abspath}/data/{folder}/wind/Mdot_{check}.csv'
         data = [tfb[i], mfall, mwind_pos, Vwind_pos, mwind_neg, Vwind_neg]
-        with open(csv_path, 'a', newline='') as file:
-            writer = csv.writer(file)
-            if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                writer.writerow(['tfb', 'Mdot_fb', 'Mdot_wind_pos', 'Vwind_pos', 'Mdot_wind_neg', 'Vwind_neg'])
-            writer.writerow(data)
+        if alice:
+            with open(csv_path, 'a', newline='') as file:
+                writer = csv.writer(file)
+                if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
+                    writer.writerow(['tfb', 'Mdot_fb', 'Mdot_wind_pos', 'Vwind_pos', 'Mdot_wind_neg', 'Vwind_neg'])
+                writer.writerow(data)
+        else:
+            print(mwind_pos/Medd_code)
+            ax.scatter(tfb[i], np.abs(mwind_pos)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$')
+            ax.scatter(tfb[i], np.abs(mwind_neg)/Medd_code,  c = 'forestgreen', label = r'$\dot{M}_{\rm in}$')
+            ax.scatter(tfb[i], np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm fb}$', c = 'k')
+            if i == 0:
+                ax.legend(fontsize = 16)    
+                fig.tight_layout()
 
 if plot:
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
-    tfb, mfall, mwind_Rt, mwind_pos_half_amb, mwind_pos_amb, Vwind_Rt, Vwind_pos_half_amb, Vwind_pos_amb = \
-        np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}_Bpos.txt')
-    tfb_neg, mwind_Rt, mwind_neg_half_amb, mwind_neg_amb, Vwind_Rt, Vwind_half_amb, Vwind_neg_amb = \
-        np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}_Bneg.txt')
-    f_out_th = f_out_LodatoRossi(mfall, Medd_code)
-
+    tfb, mfall, mwind_pos, Vwind_pos, mwind_neg, Vwind_neg = \
+        np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}.csv', delimiter = ',')
+    
     fig, ax1 = plt.subplots(1, 1, figsize = (8,7))
     fig2, ax2 = plt.subplots(1, 1, figsize = (8,7))
-    ax1.plot(tfb, np.abs(mwind_pos_amb)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$ at $a_{\rm mb}$')
-    ax1.plot(tfb_neg, np.abs(mwind_neg_amb)/Medd_code,  c = 'forestgreen', label = r'$\dot{M}_{\rm in}$ at $a_{\rm mb}$')
+    ax1.plot(tfb, np.abs(mwind_pos)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$')
+    ax1.plot(tfb, np.abs(mwind_neg)/Medd_code,  c = 'forestgreen', label = r'$\dot{M}_{\rm in}$')
     ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm fb}$', c = 'k')
     # ax1.axhline(max_Mdot/Medd, ls = '--', c = 'k', label = r'theoretical $\dot{M}_{\rm max}$')
     # ax1.plot(tfb[-35:], 4e5*np.array(tfb[-35:])**(-5/9), ls = 'dotted', c = 'k', label = r'$t^{-5/9}$')
@@ -266,19 +328,15 @@ if plot:
     # plt.ylim(5e-3, 80)
 
     ## Check convergence
-    dataposLow = np.loadtxt(f'{abspath}/data/{folder}LowResNewAMR/wind/Mdot_LowResNewAMR_Bpos.txt')
-    tfbL,  mwind_pos_ambL = dataposLow[0], dataposLow[4]
-    datanegLow = np.loadtxt(f'{abspath}/data/{folder}LowResNewAMR/wind/Mdot_LowResNewAMR_Bneg.txt')
-    mwind_neg_ambL =  datanegLow[3]
-    dataposHi = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/wind/Mdot_HiResNewAMR_Bpos.txt')
-    tfbH,  mwind_pos_ambH = dataposHi[0], dataposHi[4]
-    datanegHi = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/wind/Mdot_HiResNewAMR_Bneg.txt')
-    mwind_neg_ambH = datanegHi[3]
+    tfbL, mfallL, mwind_posL, Vwind_posL, mwind_negL, Vwind_negL = \
+        np.loadtxt(f'{abspath}/data/{folder}LowResNewAMR/wind/Mdot_LowRes.csv')
+    tfbH, mfallH, mwind_posH, Vwind_posH, mwind_negH, Vwind_negH = \
+        np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/wind/Mdot_HiRes.csv')
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16,6))
-    ax1.plot(tfbL, np.abs(mwind_pos_ambL)/Medd_code, c = 'C1', label = r'Low')
-    ax1.plot(tfb, np.abs(mwind_pos_amb)/Medd_code, c = 'yellowgreen', label = r'Fid')
-    ax1.plot(tfbH, np.abs(mwind_pos_ambH)/Medd_code, c = 'darkviolet', label = r'High')
+    ax1.plot(tfbL, np.abs(mwind_posL)/Medd_code, c = 'C1', label = r'Low')
+    ax1.plot(tfb, np.abs(mwind_pos)/Medd_code, c = 'yellowgreen', label = r'Fid')
+    ax1.plot(tfbH, np.abs(mwind_posH)/Medd_code, c = 'darkviolet', label = r'High')
     ax1.set_ylabel(r'$|\dot{M}_{\rm out}| [\dot{M}_{\rm Edd}]$')  
     ax2.plot(tfbL, np.abs(mwind_neg_ambL)/Medd_code, c = 'C1')
     ax2.plot(tfb, np.abs(mwind_neg_amb)/Medd_code, c = 'yellowgreen')

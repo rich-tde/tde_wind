@@ -81,7 +81,7 @@ which_obs = 'axis' # 'arch', 'quadrants', 'axis'
 which_part = 'outflow'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-snap = 162
+snap = 318
 tfb = np.loadtxt(f'{abspath}/TDE/{folder}/{snap}/tfb_{snap}.txt')
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
