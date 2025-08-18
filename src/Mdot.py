@@ -153,7 +153,8 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         lat = np.arccos(Z / Rsph)
         v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
         # Positive velocity (and unbound)
-        cond = np.logical_and(v_rad >= 0, np.logical_and(bern > 0, X > amin))
+        cond = np.logical_and(v_rad >= 0, np.logical_and(bern > 0, X > -amin))
+        print(np.min(X), flush=True)
         # cond = np.logical_and(bern > 0, X > amin)
         X_pos, Y_pos, Z_pos, Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
             make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell], cond)
