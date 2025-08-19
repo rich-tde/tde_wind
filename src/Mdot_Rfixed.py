@@ -159,14 +159,14 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             with open(csv_path, 'a', newline='') as file:
                 writer = csv.writer(file)
                 if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                    header = ['snap ', 'tfb ', 'Mdot_fb ']
+                    header = ['snap', ' tfb', ' Mdot_fb']
                     header += [f' Mdot_wind_pos at {r} ' for r in radii_names]
                     header += [f' v_rad_pos at {r} ' for r in radii_names]
                     header += [f' Mdot_wind_neg at {r} ' for r in radii_names]
                     header += [f' v_rad_neg at {r} ' for r in radii_names]
                     writer.writerow(header)
                 writer.writerow(data_row) 
-        file.close()
+        file.close() 
 
 
 if plot:
