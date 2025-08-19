@@ -250,7 +250,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             with open(csv_path, 'a', newline='') as file:
                 writer = csv.writer(file)
                 if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                    writer.writerow(['snap', ' tfb ', ' Mdot_fb', ' Mdot_wind_pos', ' Vwind_pos', ' Mdot_wind_neg', ' Vwind_neg'])
+                    writer.writerow(['snap', ' tfb', ' Mdot_fb', ' Mdot_wind_pos', ' Vwind_pos', ' Mdot_wind_neg', ' Vwind_neg'])
                 writer.writerow(data)
             file.close()
         else:

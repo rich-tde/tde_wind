@@ -48,8 +48,8 @@ Ecirc = -prel.G*Mbh/(4*Rp)
 
 # Choose what to do
 test_bins = False
-compare_times = True
-movie = False 
+compare_res = True
+movie = True 
 dMdecc = False
 
 if alice:
@@ -132,7 +132,7 @@ if test_bins:
     plt.suptitle(f'Spacing between bins: {spacebins}', fontsize = 16)
     plt.savefig(f'{abspath}Figs/Test/spacing{spacebins}dMdE.png')
 
-if compare_times:
+if compare_res:
     from Utilities.operators import find_ratio
     commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     datadays = np.loadtxt(f'{abspath}data/{commonfolder}NewAMR/wind/dMdE_NewAMR_days.txt')
@@ -197,41 +197,43 @@ if compare_times:
 
 if movie:
     import subprocess
-    check = ''
+    check = 'NewAMR'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-    datadays = np.loadtxt(f'{abspath}data/{folder}/dMdE_days_{check}.txt')
+    datadays = np.loadtxt(f'{abspath}data/{folder}/wind/dMdE_{check}_days.txt')
     snaps, tfb= datadays[0], datadays[1]
-    bins = np.loadtxt(f'{abspath}data/{folder}/dMdE_bins.txt')
-    data = np.loadtxt(f'{abspath}data/{folder}/dMdE_{check}.txt')
+    bins = np.loadtxt(f'{abspath}data/{folder}/wind/dMdE_{check}_bins.txt')
+    data = np.loadtxt(f'{abspath}data/{folder}/wind/dMdE_{check}.txt')
     mid_points = (bins[:-1]+bins[1:])/2
+    plt.figure()
     for i in range(len((data))):
+        if i!=0 and i != np.argmin(np.abs(tfb - 0.2)) and i != np.argmin(np.abs(tfb - 0.3)):
+            continue
         snap = snaps[i]
-        plt.figure()
-        plt.plot(mid_points, data[i], c = 'b', alpha = 0.8, label = 'NO cut')
+        plt.plot(mid_points, data[i], alpha = 0.8, label = f't/tfb = {np.round(tfb[i],2)}')
         plt.xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
         plt.ylabel('dM/dE', fontsize = 16)
         plt.yscale('log')
-        plt.xlim(-6.5,6.5)
+        plt.xlim(-2.5,2.5)
         plt.ylim(9e-7, 1.5e-2)
-        plt.text(-1.5, 1e-2, f't/tfb = {np.round(tfb[i],2)}', fontsize = 14)
-        plt.legend(loc = 'lower center', fontsize = 14)
-        plt.tight_layout()
-        if save:
-            plt.savefig(f'{abspath}Figs/{folder}/dM/snap{int(snap)}.png')
-        plt.close()
+        # plt.text(-1.5, 1e-2, f't/tfb = {np.round(tfb[i],2)}', fontsize = 14)
+    plt.legend(fontsize = 16)
+    plt.tight_layout()
+        # if save:
+        #     plt.savefig(f'{abspath}Figs/{folder}/dM/snap{int(snap)}.png')
+        # plt.close()
     # Make the movie
-    path = f'{abspath}Figs/{folder}/dM/snap'
-    output_path = f'{abspath}Figs/{folder}/dM/moviedMdE_.mp4'
+    # path = f'{abspath}Figs/{folder}/dM/snap'
+    # output_path = f'{abspath}Figs/{folder}/dM/moviedMdE_.mp4'
 
-    start = 100
-    slow_down_factor = 2  # Increase this value to make the video slower
+    # start = 100
+    # slow_down_factor = 2  # Increase this value to make the video slower
 
-    ffmpeg_command = (
-        f'ffmpeg -y -start_number {start} -i {path}%d.png -vf "setpts={slow_down_factor}*PTS" '
-        f'-c:v libx264 -pix_fmt yuv420p {output_path}'
-        )
+    # ffmpeg_command = (
+    #     f'ffmpeg -y -start_number {start} -i {path}%d.png -vf "setpts={slow_down_factor}*PTS" '
+    #     f'-c:v libx264 -pix_fmt yuv420p {output_path}'
+    #     )
 
-    subprocess.run(ffmpeg_command, shell=True)
+    # subprocess.run(ffmpeg_command, shell=True)
         
 if dMdecc:
     checks = ['']#['LowRes','', 'HiRes']
