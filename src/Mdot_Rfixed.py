@@ -14,6 +14,8 @@ else:
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+import csv
+import os
 import Utilities.prelude as prel
 import src.orbits as orb
 from Utilities.operators import make_tree, to_spherical_components
@@ -74,12 +76,6 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/wind/dMdE_{check}.txt')[0] # distribution just after the disruption
     bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
    
-    mfall = []
-    mwind_pos = []
-    Vwind_pos = []
-    mwind_neg = []
-    Vwind_neg = []
-    tfb_kept = []
     for i, snap in enumerate(snaps):
         print(snap, flush=True)
         if alice:
@@ -96,9 +92,8 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             print(f'You overcome the maximum negative bin ({max_bin_negative*norm_dMdE}). You required {energy}')
             continue
 
-        tfb_kept.append(tfb[i])
         dMdE_t = dMdE_distr_tokeep[i_bin]
-        mfall.append(orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t))
+        mfall = orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t)
 
         data = make_tree(path, snap, energy = True)
         X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den = \
@@ -119,114 +114,75 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         cond = np.logical_and(v_rad >= 0, np.logical_and(bern > 0, X > -amin))
         X_pos, Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
             make_slices([X, Den, Rsph, v_rad, dim_cell], cond)
-        print(np.min(X_pos), flush=True)
+        Mdot_pos_casted = np.zeros(len(radii))
+        v_rad_pos_casted = np.zeros(len(radii))
         if Den_pos.size == 0:
             print(f'no positive', flush=True)
-            mwind_pos.append(np.zeros(len(radii)))
-            Vwind_pos.append(np.zeros(len(radii)))
+            continue
         else:
             Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos # there should be a pi factor here, but you put it later
-            Mdot_pos_casted = np.zeros(len(radii))
-            v_rad_pos_casted = np.zeros(len(radii))
             # print('Mdot_pos: ')
             for j, r in enumerate(radii):
                 selected_pos = np.abs(Rsph_pos - r) < dim_cell_pos
                 if Mdot_pos[selected_pos].size == 0:
-                    Mdot_pos_casted[j] = 0
-                    v_rad_pos_casted[j] = 0
+                    continue
                 else:
                     Mdot_pos_casted[j] = np.sum(Mdot_pos[selected_pos]) * np.pi 
                     v_rad_pos_casted[j] = np.mean(v_rad_pos[selected_pos])
                     # print('sum of circles/sphere you want: ', np.pi*np.sum(dim_cell_pos[selected_pos]**2)/(4*np.pi*r**2))
-            mwind_pos.append(Mdot_pos_casted)
-            Vwind_pos.append(v_rad_pos_casted)
         # Negative velocity (and bound)
         cond = np.logical_and(v_rad < 0, bern <= 0)
         X_neg, Den_neg, Rsph_neg, v_rad_neg, dim_cell_neg = \
             make_slices([X, Den, Rsph, v_rad, dim_cell], cond)
+        Mdot_neg_casted = np.zeros(len(radii))
+        v_rad_neg_casted = np.zeros(len(radii))
         if Den_neg.size == 0:
             print(f'no bern negative: {bern}', flush=True)
-            mwind_neg.append(np.zeros(len(radii)))
-            Vwind_neg.append(np.zeros(len(radii)))
+            continue
         else:
             Mdot_neg = dim_cell_neg**2 * Den_neg * v_rad_neg # there should be a pi factor here, but you put it later
-            Mdot_neg_casted = np.zeros(len(radii))
-            v_rad_neg_casted = np.zeros(len(radii))
             # print('Mdot_neg: ')
             for j, r in enumerate(radii):
                 selected_neg = np.abs(Rsph_neg - r) < dim_cell_neg
                 if Mdot_neg[selected_neg].size == 0:
-                    Mdot_neg_casted[j] = 0
-                    v_rad_neg_casted[j] = 0
+                    continue
                 else:
                     Mdot_neg_casted[j] = np.sum(Mdot_neg[selected_neg]) * np.pi #4 *  * radii**2
                     v_rad_neg_casted[j] = np.mean(v_rad_neg[selected_neg])
                     # print('sum of circles/sphere you want: ', np.pi*np.sum(dim_cell_neg[selected_neg]**2)/(4*np.pi*r**2))
-            mwind_neg.append(Mdot_neg_casted)
-            Vwind_neg.append(v_rad_neg_casted)
 
-    mwind_pos = np.transpose(np.array(mwind_pos)) # shape pass from len(snap) x len(radii) to len(radii) x len(snap)
-    mwind_neg = np.transpose(np.array(mwind_neg))
-    Vwind_pos = np.transpose(np.array(Vwind_pos))
-    Vwind_neg = np.transpose(np.array(Vwind_neg))
+        csv_path = f'{abspath}/data/{folder}/wind/Mdot_{check}.csv'
+        data_row = np.concatenate([[snap, tfb[i], mfall], Mdot_pos_casted, v_rad_pos_casted, Mdot_neg_casted, v_rad_neg_casted])
+        
+        if alice:
+            # os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+            with open(csv_path, 'a', newline='') as file:
+                writer = csv.writer(file)
+                if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
+                    header = ['snap', 'tfb', 'Mdot_fb']
+                    header += [f'Mdot_wind_pos at {r}' for r in radii_names]
+                    header += [f'v_rad_pos at {r}' for r in radii_names]
+                    header += [f'Mdot_wind_neg at {r}' for r in radii_names]
+                    header += [f'v_rad_neg at {r}' for r in radii_names]
+                    writer.writerow(header)
+                writer.writerow(data_row) 
+        file.close()
 
-    with open(f'{abspath}/data/{folder}/wind/Mdot_{check}_pos.txt','w') as file:
-        file.write(f'# t/tfb \n')
-        file.write(f' '.join(map(str, tfb_kept)) + '\n')
-        file.write(f'# Mdot_f \n')
-        file.write(f' '.join(map(str, mfall)) + '\n')
-        file.write(f'# Mdot_wind at {radii_names[0]}\n')
-        file.write(f' '.join(map(str, mwind_pos[0])) + '\n')
-        file.write(f'# Mdot_wind at {radii_names[1]}\n')
-        file.write(f' '.join(map(str, mwind_pos[1])) + '\n')
-        file.write(f'# Mdot_wind at {radii_names[2]}\n')
-        file.write(f' '.join(map(str, mwind_pos[2])) + '\n')
-        file.write(f'# Mdot_wind at {radii_names[3]}\n')
-        file.write(f' '.join(map(str, mwind_pos[3])) + '\n')
-        file.write(f'# v_wind at {radii_names[0]}\n')
-        file.write(f' '.join(map(str, Vwind_pos[0])) + '\n')
-        file.write(f'# v_wind at {radii_names[1]}\n')
-        file.write(f' '.join(map(str, Vwind_pos[1])) + '\n')
-        file.write(f'# v_wind at {radii_names[2]}\n')
-        file.write(f' '.join(map(str, Vwind_pos[2])) + '\n')
-        file.write(f'# v_wind at {radii_names[3]}\n')
-        file.write(f' '.join(map(str, Vwind_pos[3])) + '\n')
-        file.close()
-    
-    with open(f'{abspath}/data/{folder}/wind/Mdot_{check}_neg.txt','w') as file:
-        file.write(f'# t/tfb \n')
-        file.write(f' '.join(map(str, tfb_kept)) + '\n')
-        file.write(f'# Mdot_wind at {radii_names[0]}\n')
-        file.write(f' '.join(map(str, mwind_neg[0])) + '\n')
-        file.write(f'# Mdot_wind at {radii_names[1]}\n')
-        file.write(f' '.join(map(str, mwind_neg[1])) + '\n')
-        file.write(f'# Mdot_wind at {radii_names[2]}\n')
-        file.write(f' '.join(map(str, mwind_neg[2])) + '\n')
-        file.write(f'# Mdot_wind at {radii_names[3]}\n')
-        file.write(f' '.join(map(str, mwind_neg[3])) + '\n')
-        file.write(f'# v_wind at {radii_names[0]}\n')
-        file.write(f' '.join(map(str, Vwind_neg[0])) + '\n')
-        file.write(f'# v_wind at {radii_names[1]}\n')
-        file.write(f' '.join(map(str, Vwind_neg[1])) + '\n')
-        file.write(f'# v_wind at {radii_names[2]}\n')
-        file.write(f' '.join(map(str, Vwind_neg[2])) + '\n')
-        file.write(f'# v_wind at {radii_names[3]}\n')
-        file.write(f' '.join(map(str, Vwind_neg[3])) + '\n')
-        file.close()
 
 if plot:
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
-    tfb, mfall, mwind_Rt, mwind_pos_half_amb, mwind_pos_amb, Vwind_Rt, Vwind_pos_half_amb, Vwind_pos_amb = \
-        np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}_Bpos.txt')
-    tfb_neg, mwind_Rt, mwind_neg_half_amb, mwind_neg_amb, Vwind_Rt, Vwind_half_amb, Vwind_neg_amb = \
-        np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}_Bneg.txt')
+    tfb, mfall, mwind_pos, Vwind_pos, mwind_neg, Vwind_neg = \
+        np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}.csv', 
+                   delimiter = ',', 
+                   skiprows=1, 
+                   unpack=True)
     f_out_th = f_out_LodatoRossi(mfall, Medd_code)
 
     fig, ax1 = plt.subplots(1, 1, figsize = (8,7))
     fig2, ax2 = plt.subplots(1, 1, figsize = (8,7))
-    ax1.plot(tfb, np.abs(mwind_pos_amb)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$ at $a_{\rm mb}$')
-    ax1.plot(tfb_neg, np.abs(mwind_neg_amb)/Medd_code,  c = 'forestgreen', label = r'$\dot{M}_{\rm in}$ at $a_{\rm mb}$')
+    ax1.plot(tfb, np.abs(mwind_pos)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$')
+    ax1.plot(tfb_neg, np.abs(mwind_neg)/Medd_code,  c = 'forestgreen', label = r'$\dot{M}_{\rm in}$')
     ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm fb}$', c = 'k')
     # ax1.axhline(max_Mdot/Medd, ls = '--', c = 'k', label = r'theoretical $\dot{M}_{\rm max}$')
     # ax1.plot(tfb[-35:], 4e5*np.array(tfb[-35:])**(-5/9), ls = 'dotted', c = 'k', label = r'$t^{-5/9}$')
@@ -266,7 +222,6 @@ if plot:
     plt.ylabel(r'$f_{\rm out}$')
     plt.yscale('log')
     
-
     # plt.figure(figsize = (8,6))
     # plt.plot(tfb, np.abs(mwind_pos_half_amb/mfall), c = 'orange', label = r'f$_{\rm out}$ (0.5$a_{\rm min})$')
     # plt.plot(tfb, np.abs(mwind_pos_amb/mfall), c = 'purple', label = r'f$_{\rm out}$ (0.7$a_{\rm min})$')
@@ -290,7 +245,7 @@ if plot:
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16,6))
     ax1.plot(tfbL, np.abs(mwind_pos_ambL)/Medd_code, c = 'C1', label = r'Low')
     ax1.plot(tfb, np.abs(mwind_pos_amb)/Medd_code, c = 'yellowgreen', label = r'Fid')
-    ax1.plot(tfbH, np.abs(mwind_pos_ambH)/Medd_code, c = 'darkviolet', label = r'High')
+    ax1.plot(tfbH, np.abs(mwind_pos_ambH)/Medd_code, c = 'darkviolet', label = r'High') 
     ax1.set_ylabel(r'$|\dot{M}_{\rm out}| [\dot{M}_{\rm Edd}]$')  
     ax2.plot(tfbL, np.abs(mwind_neg_ambL)/Medd_code, c = 'C1')
     ax2.plot(tfb, np.abs(mwind_neg_amb)/Medd_code, c = 'yellowgreen')
