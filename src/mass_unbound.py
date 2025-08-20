@@ -57,11 +57,10 @@ if alice:
         pathfold = f'{path}/{folder}/snap_{snap}'
         data = make_tree(pathfold, snap, energy = True)
         X, Y, Z, mass, den, Press, vx, vy, vz, IE_den, Rad_den = \
-        data.X, data.Y, data.Z, data.Mass, data.Den, data.Press, data.VX, data.VY, data.VZ, data.IE, data.Rad
-        IE_spec = IE_den/den
-        cut = np.logical_and(den > 1e-19, np.sqrt(X**2 + Y**2 + Z**2)>Rs)
-        X, Y, Z, mass, den, Press, vx, vy, vz, IE_spec, Rad_den = \
-            make_slices([X, Y, Z, mass, den, Press, vx, vy, vz, IE_spec, Rad_den], cut)
+            data.X, data.Y, data.Z, data.Mass, data.Den, data.Press, data.VX, data.VY, data.VZ, data.IE, data.Rad
+        cut = den > 1e-19
+        X, Y, Z, mass, den, Press, vx, vy, vz, IE_den, Rad_den = \
+            make_slices([X, Y, Z, mass, den, Press, vx, vy, vz, IE_den, Rad_den], cut)
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
         vel = np.sqrt(vx**2 + vy**2 + vz**2)
         orb_en = orb.orbital_energy(Rsph, vel, mass, params, prel.G)
