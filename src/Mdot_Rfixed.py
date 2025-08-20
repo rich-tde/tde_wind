@@ -39,14 +39,13 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 tfallback = things['t_fb_days']
-tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
 Rs = things['Rs']
 Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
 apo = things['apo']
 amin = things['a_mb'] # semimajor axis of the bound orbit
-norm_dMdE = things['E_mb']
+norm_dMdE = things['E_mb'] 
 t_fb_days_cgs = things['t_fb_days'] * 24 * 3600 # in seconds
 max_Mdot = mstar*prel.Msol_cgs/(3*t_fb_days_cgs) # in code units
 
@@ -56,7 +55,7 @@ Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
 Medd = Ledd/(0.1*prel.c_cgs**2)
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
 convers_kms = prel.Rsol_cgs * 1e-5/prel.tsol_cgs # it's aorund 400
-# print(f'escape velocity at Rt: {v_esc*convers_kms} km/s')
+print(f'escape velocity at Rp: {v_esc/prel.csol_cgs} c')
 # print(np.log10(max_Mdot/Medd), 'Mdot max in Eddington units')
 
 #
@@ -66,10 +65,23 @@ def f_out_LodatoRossi(M_fb, M_edd):
     f = 2/np.pi * np.arctan(1/7.5 * (M_fb/M_edd-1))
     return f
 
+def t_edge(params, f_out, f_v):
+    """ Eq.9 in StrubbeQuataert09. Give the time in t_fb """
+    Mbh, Rstar, mstar, beta = params
+    things = orb.get_things_about(params)
+    tfallback = things['t_fb_days']
+    Rs = things['Rs']
+    Rp = things['Rp']
+    t_fb_days_cgs = things['t_fb_days'] * 24 * 3600 # in seconds
+    t_ed = f_out**(3/8) * f_v**(-3/4) * (Mbh * 1e-6)**(5/8) * (Rp/(3*Rs))**(9/8) * mstar**(3/8) * Rstar**(-3/8)
+    
+    return t_ed/tfallback
+
+print(t_edge(params, .1, 1))
 # MAIN
 if compute: # compute dM/dt = dM/dE * dE/dt
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
-    tfb_cgs = tfb * tfallback_cgs #converted to seconds
+    tfb_cgs = tfb * t_fb_days_cgs #converted to seconds
     bins = np.loadtxt(f'{abspath}/data/{folder}/wind/dMdE_{check}_bins.txt')
     max_bin_negative = np.abs(np.min(bins))
     mid_points = (bins[:-1]+bins[1:]) * norm_dMdE/2  # get rid of the normalization
@@ -172,22 +184,53 @@ if compute: # compute dM/dt = dM/dE * dE/dt
 if plot:
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
-    tfb, mfall, mwind_pos, Vwind_pos, mwind_neg, Vwind_neg = \
+    snaps, tfb, mfall, \
+    mwind_pos_Rt, mwind_pos_half_amb, mwind_pos_amb, mwind_pos_50Rt, \
+    Vwind_pos_Rt, Vwind_pos_half_amb, Vwind_pos_amb, Vwind_pos_50Rt, \
+    mwind_neg_Rt, mwind_neg_half_amb, mwind_neg_amb, mwind_neg_50Rt, \
+    Vwind_neg_Rt, Vwind_neg_half_amb, Vwind_neg_amb, Vwind_neg_50Rt = \
         np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}.csv', 
                    delimiter = ',', 
                    skiprows=1, 
                    unpack=True)
     f_out_th = f_out_LodatoRossi(mfall, Medd_code)
+    t_lag = amin*prel.Rsol_cgs / 1e9 #consider 10^4 km/s = 10^9 cm/s 
+    t_lag_fb = t_lag / t_fb_days_cgs
+
+    # compare with other dM/dE
+    # snaps02, tfb02, mfall02, \
+    # mwind_posRt02, mwind_pos_half_amb02, mwind_pos_amb02, mwind_pos_50Rt02, \
+    # Vwind_posRt02, Vwind_pos_half_amb02, Vwind_pos_amb02, Vwind_pos_50Rt02, \
+    # mwind_negRt02, mwind_neg_half_amb02, mwind_neg_amb02, mwind_neg_50Rt02, \
+    # Vwind_negRt02, Vwind_neg_half_amb02, Vwind_neg_amb02, Vwind_neg_50Rt02 = \
+    #     np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}03.csv', 
+    #                delimiter = ',', 
+    #                skiprows=1, 
+    #                unpack=True)
+    # fig, ax1 = plt.subplots(1, 1, figsize = (8,7))
+    # ax1.plot(tfb, np.abs(mwind_pos_amb)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$ at $a_{\rm min}$')
+    # ax1.plot(tfb, np.abs(mwind_neg_amb)/Medd_code,  c = 'forestgreen', label = r'$\dot{M}_{\rm in}$ at $a_{\rm min}$')
+    # ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm fb}$', c = 'k')
+    # ax1.plot(tfb02, np.abs(mwind_pos_amb02)/Medd_code, ls = '--', c = 'b', label = r'$\dot{M}_{\rm w}$ at $a_{\rm min}$')
+    # ax1.plot(tfb02, np.abs(mwind_neg_amb02)/Medd_code, ls = '--',  c = 'yellow', label = r'$\dot{M}_{\rm in}$ at $a_{\rm min}$')
+    # ax1.plot(tfb02, np.abs(mfall02)/Medd_code, ls = '--', label = r'$\dot{M}_{\rm fb}$', c = 'gray')
+    # ax1.set_yscale('log')
+    # ax1.set_ylim(1e-1, 8e5)
+    # ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')    
+    # ax1.legend(fontsize = 18)
+    # ax1.set_xlim(0, 1.7)
+    # ax1.tick_params(axis='both', which='major', width=1, length=7)
+    # ax1.tick_params(axis='both', which='minor', width=.8, length=4)
+    # ax1.grid()
+    # ax1.set_title(r'Wind: $v_r>0, B>0, X>a_{\rm min}$', fontsize = 20)
+    # plt.tight_layout()
+    # fig.savefig(f'{abspath}/Figs/outflow/Mdot_{check}.pdf', bbox_inches = 'tight')
 
     fig, ax1 = plt.subplots(1, 1, figsize = (8,7))
     fig2, ax2 = plt.subplots(1, 1, figsize = (8,7))
-    ax1.plot(tfb, np.abs(mwind_pos)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$')
-    ax1.plot(tfb_neg, np.abs(mwind_neg)/Medd_code,  c = 'forestgreen', label = r'$\dot{M}_{\rm in}$')
+    ax1.plot(tfb[7:], np.abs(mwind_pos_amb[7:])/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$ at $a_{\rm min}$')
+    ax1.plot(tfb, np.abs(mwind_neg_Rt)/Medd_code,  c = 'forestgreen', label = r'$\dot{M}_{\rm in}$ at $R_{\rm t}$')
     ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm fb}$', c = 'k')
-    # ax1.axhline(max_Mdot/Medd, ls = '--', c = 'k', label = r'theoretical $\dot{M}_{\rm max}$')
-    # ax1.plot(tfb[-35:], 4e5*np.array(tfb[-35:])**(-5/9), ls = 'dotted', c = 'k', label = r'$t^{-5/9}$')
-    # ax1.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
-    # ax1.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
     ax1.set_yscale('log')
     ax1.set_ylim(1e-1, 8e5)
     ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')    
@@ -207,65 +250,56 @@ if plot:
         ax.tick_params(axis='both', which='minor', width=.8, length=4)
         ax.set_xlim(0, 1.7)
         ax.grid()
-        ax.set_title(r'Wind: $v_r>0, B>0, X>a_{\rm min}$', fontsize = 20)
+        ax.set_title(r'Wind: $v_r>0, B>0, X>-a_{\rm min}$', fontsize = 20)
     plt.tight_layout()
-    # fig.savefig(f'{abspath}/Figs/outflow/Mdot_{check}.pdf', bbox_inches = 'tight')
+    fig.savefig(f'{abspath}/Figs/paper/Mdot_{check}.pdf', bbox_inches = 'tight')
 
     # reproduce LodatoRossi11 Fig.6
     f_out_th = f_out_LodatoRossi(mfall, Medd_code)
     plt.figure(figsize = (8,6))
     plt.plot(np.abs(mfall/Medd_code), np.abs(f_out_th), c = 'k', label = 'LodatoRossi11')
     plt.plot(np.abs(mfall/Medd_code), np.abs(mwind_pos_amb/mfall), c = 'orange', label = r'numerical at $a_{\rm min}$')
-    plt.xlim(0, 100)
+    # plt.xlim(0, 100)
+    plt.ylim(1e-7, 2)
     plt.legend(fontsize = 14)
     plt.xlabel(r'$\dot{M}_{\rm f} [\dot{M}_{\rm Edd}]$')
     plt.ylabel(r'$f_{\rm out}$')
-    plt.yscale('log')
-    
-    # plt.figure(figsize = (8,6))
-    # plt.plot(tfb, np.abs(mwind_pos_half_amb/mfall), c = 'orange', label = r'f$_{\rm out}$ (0.5$a_{\rm min})$')
-    # plt.plot(tfb, np.abs(mwind_pos_amb/mfall), c = 'purple', label = r'f$_{\rm out}$ (0.7$a_{\rm min})$')
-    # plt.plot(tfb, np.abs(f_out_th), c = 'k', label = 'LodatoRossi11')
-    # plt.legend(fontsize = 14)
-    # plt.xlabel(r't $[t_{\rm fb}]$')
-    # plt.ylabel(r'$f_{\rm out}\equiv \dot{M}_{\rm wind}/\dot{M}_{\rm fb}$')
-    # plt.yscale('log')
-    # plt.ylim(5e-3, 80)
-
+    plt.loglog()
+    plt.grid()
     ## Check convergence
-    dataposLow = np.loadtxt(f'{abspath}/data/{folder}LowResNewAMR/wind/Mdot_LowResNewAMR_Bpos.txt')
-    tfbL,  mwind_pos_ambL = dataposLow[0], dataposLow[4]
-    datanegLow = np.loadtxt(f'{abspath}/data/{folder}LowResNewAMR/wind/Mdot_LowResNewAMR_Bneg.txt')
-    mwind_neg_ambL =  datanegLow[3]
-    dataposHi = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/wind/Mdot_HiResNewAMR_Bpos.txt')
-    tfbH,  mwind_pos_ambH = dataposHi[0], dataposHi[4]
-    datanegHi = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/wind/Mdot_HiResNewAMR_Bneg.txt')
-    mwind_neg_ambH = datanegHi[3]
+    # dataposLow = np.loadtxt(f'{abspath}/data/{folder}LowResNewAMR/wind/Mdot_LowResNewAMR_Bpos.txt')
+    # tfbL,  mwind_pos_ambL = dataposLow[0], dataposLow[4]
+    # datanegLow = np.loadtxt(f'{abspath}/data/{folder}LowResNewAMR/wind/Mdot_LowResNewAMR_Bneg.txt')
+    # mwind_neg_ambL =  datanegLow[3]
+    # dataposHi = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/wind/Mdot_HiResNewAMR_Bpos.txt')
+    # tfbH,  mwind_pos_ambH = dataposHi[0], dataposHi[4]
+    # datanegHi = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/wind/Mdot_HiResNewAMR_Bneg.txt')
+    # mwind_neg_ambH = datanegHi[3]
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16,6))
-    ax1.plot(tfbL, np.abs(mwind_pos_ambL)/Medd_code, c = 'C1', label = r'Low')
-    ax1.plot(tfb, np.abs(mwind_pos_amb)/Medd_code, c = 'yellowgreen', label = r'Fid')
-    ax1.plot(tfbH, np.abs(mwind_pos_ambH)/Medd_code, c = 'darkviolet', label = r'High') 
-    ax1.set_ylabel(r'$|\dot{M}_{\rm out}| [\dot{M}_{\rm Edd}]$')  
-    ax2.plot(tfbL, np.abs(mwind_neg_ambL)/Medd_code, c = 'C1')
-    ax2.plot(tfb, np.abs(mwind_neg_amb)/Medd_code, c = 'yellowgreen')
-    ax2.plot(tfbH, np.abs(mwind_neg_ambH)/Medd_code, c = 'darkviolet')
-    ax2.set_ylabel(r'$|\dot{M}_{\rm in}| [\dot{M}_{\rm Edd}]$')  
-    for ax in (ax1, ax2):
-        ax.set_xlabel(r'$t [t_{\rm fb}]$')
-        ax.legend(fontsize = 18)
-        ax.set_xlim(0, 1.8)
-        # ax.set_xticks(new_ticks)
-        # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-        # ax.set_xticklabels(labels)
-        ax.tick_params(axis='both', which='major', width=0.7, length=7)
-        ax.tick_params(axis='both', which='minor', width=0.5, length=5)
-        ax.set_yscale('log')
-        ax.grid()
-    ax1.set_ylim(1e-1, 1e1)
-    ax2.set_ylim(1e-1, 6e6)
-    ax1.legend(fontsize = 18)
-    plt.tight_layout()
+    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16,6))
+    # ax1.plot(tfbL, np.abs(mwind_pos_ambL)/Medd_code, c = 'C1', label = r'Low')
+    # ax1.plot(tfb, np.abs(mwind_pos_amb)/Medd_code, c = 'yellowgreen', label = r'Fid')
+    # ax1.plot(tfbH, np.abs(mwind_pos_ambH)/Medd_code, c = 'darkviolet', label = r'High') 
+    # ax1.set_ylabel(r'$|\dot{M}_{\rm out}| [\dot{M}_{\rm Edd}]$')  
+    # ax2.plot(tfbL, np.abs(mwind_neg_ambL)/Medd_code, c = 'C1')
+    # ax2.plot(tfb, np.abs(mwind_neg_amb)/Medd_code, c = 'yellowgreen')
+    # ax2.plot(tfbH, np.abs(mwind_neg_ambH)/Medd_code, c = 'darkviolet')
+    # ax2.set_ylabel(r'$|\dot{M}_{\rm in}| [\dot{M}_{\rm Edd}]$')  
+    # for ax in (ax1, ax2):
+    #     ax.set_xlabel(r'$t [t_{\rm fb}]$')
+    #     ax.legend(fontsize = 18)
+    #     ax.set_xlim(0, 1.8)
+    #     # ax.set_xticks(new_ticks)
+    #     # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+    #     # ax.set_xticklabels(labels)
+    #     ax.tick_params(axis='both', which='major', width=0.7, length=7)
+    #     ax.tick_params(axis='both', which='minor', width=0.5, length=5)
+    #     ax.set_yscale('log')
+    #     ax.grid()
+    # ax1.set_ylim(1e-1, 1e1)
+    # ax2.set_ylim(1e-1, 6e6)
+    # ax1.legend(fontsize = 18)
+    # plt.tight_layout()
     # fig.savefig(f'{abspath}/Figs/outflow/Mdot_convergence.pdf', bbox_inches = 'tight')
     
 

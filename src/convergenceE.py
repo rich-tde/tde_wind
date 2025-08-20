@@ -124,32 +124,35 @@ if alice:
 else:
     import matplotlib.pyplot as plt
     commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    _, tfbL = np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/convE_LowResNewAMR_days.txt')
+    snapsL, tfbL = np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/convE_LowResNewAMR_days.txt')
     IEL, OELpos, OELneg,  _ = np.load(f'{abspath}/data/{commonfolder}LowResNewAMR/convE_LowResNewAMR.npy')
+    idx_chosen = np.argmin(np.abs(snapsL - 238))
     _, tfb = np.loadtxt(f'{abspath}/data/{commonfolder}NewAMR/convE_NewAMR_days.txt')
     IE, OEpos, OEneg,   _ = np.load(f'{abspath}/data/{commonfolder}NewAMR/convE_NewAMR.npy')
     _, tfbH = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/convE_HiResNewAMR_days.txt')
     IEH, OEHpos, OEHneg, _ = np.load(f'{abspath}/data/{commonfolder}HiResNewAMR/convE_HiResNewAMR.npy')
 
-    fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize = (22,6))
+    fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize = (24,6))
     ax1.plot(tfbL, prel.en_converter * (OELpos + OELneg), c = 'C1', label = 'Low')
     ax1.plot(tfb, prel.en_converter * (OEpos + OEneg), c = 'yellowgreen', label = 'Fid')
     ax1.plot(tfbH, prel.en_converter * (OEHpos + OEHneg), c = 'darkviolet', label = 'High')
-    ax1.set_ylabel(r'$|$OE$|$ [erg/s]')
+    ax1.set_ylabel(r'OE [erg/s]')
     ax1.set_title(r'Sum')
     ax1.legend(fontsize = 15) 
 
     ax2.plot(tfbL, prel.en_converter * OELpos, c = 'C1', label = 'Low')
     ax2.plot(tfb, prel.en_converter * OEpos, c = 'yellowgreen', label = 'Fid')
     ax2.plot(tfbH, prel.en_converter * OEHpos, c = 'darkviolet', label = 'High')
-    ax2.set_ylabel(r'$|$OE$|$ [erg/s]')
     ax2.set_title(r'Unbound gas')
 
-    ax3.plot(tfbL, prel.en_converter * np.abs(OELneg), c = 'C1', label = 'Low')
-    ax3.plot(tfb, prel.en_converter * np.abs(OEneg), c = 'yellowgreen', label = 'Fid')
-    ax3.plot(tfbH, prel.en_converter * np.abs(OEHneg), c = 'darkviolet', label = 'High')
+    ax3.plot(tfbL, prel.en_converter * OELneg, c = 'C1', label = 'Low')
+    ax3.plot(tfb, prel.en_converter * OEneg, c = 'yellowgreen', label = 'Fid')
+    ax3.plot(tfbH, prel.en_converter * OEHneg, c = 'darkviolet', label = 'High')
+    print(snapsL[idx_chosen])
     ax3.set_title(r'Bound gas')
+
     for ax in (ax1, ax2, ax3):
+        ax.axvline(tfbL[idx_chosen], c = 'k')
         ax.set_xlabel(r'$t [t_{\rm fb}]$')
         # ax.set_yscale('log')
         # ax.set_ylim(1e49, 1.5e49)

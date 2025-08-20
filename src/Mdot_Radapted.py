@@ -272,7 +272,7 @@ if plot:
     fig, ax1 = plt.subplots(1, 1, figsize = (8,7))
     fig2, ax2 = plt.subplots(1, 1, figsize = (8,7))
     ax1.plot(tfb, np.abs(mwind_pos)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$')
-    ax1.plot(tfb, np.abs(mwind_neg)/Medd_code,  c = 'forestgreen', label = r'$\dot{M}_{\rm in}$')
+    # ax1.plot(tfb, np.abs(mwind_neg)/Medd_code,  c = 'forestgreen', label = r'$\dot{M}_{\rm in}$')
     ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm fb}$', c = 'k')
     # ax1.axhline(max_Mdot/Medd, ls = '--', c = 'k', label = r'theoretical $\dot{M}_{\rm max}$')
     # ax1.plot(tfb[-35:], 4e5*np.array(tfb[-35:])**(-5/9), ls = 'dotted', c = 'k', label = r'$t^{-5/9}$')
@@ -297,7 +297,7 @@ if plot:
         ax.tick_params(axis='both', which='minor', width=.8, length=4)
         ax.set_xlim(0, 1.7)
         ax.grid()
-        ax.set_title(r'Wind: $v_r>0, B>0, X>a_{\rm min}$', fontsize = 20)
+        ax.set_title(r'Wind: $v_r>0, B>0, X>-a_{\rm min}$', fontsize = 20)
     plt.tight_layout()
     # fig.savefig(f'{abspath}/Figs/outflow/Mdot_{check}.pdf', bbox_inches = 'tight')
 
