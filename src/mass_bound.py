@@ -62,14 +62,14 @@ if alice:
             make_slices([X, Y, Z, mass, den, Press, vx, vy, vz, IE_spec, Rad_den], cut)
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
         vel = np.sqrt(vx**2 + vy**2 + vz**2)
-        orb_en = orb.orbital_energy(Rsph, vel, mass, prel.G, prel.csol_cgs, Mbh) 
+        orb_en = orb.orbital_energy(Rsph, vel, mass, params, prel.G)
         bern = orb.bern_coeff(Rsph, vel, den, mass, Press, IE_den, Rad_den, params)
         Mass_dynunboundOE = np.sum(mass[orb_en > 0]) #- Mass_dynunboundOE
         # Mass_dynunboundOE_frombound = mstar - np.sum(mass[orb_en < 0]) #- Mass_dynunboundOE_frombound
         Mass_unbound = np.sum(mass[bern > 0]) #- Mass_dynunboundbern
         # Mass_unbound_frombound = mstar - np.sum(mass[bern < 0]) #- Mass_dynunboundbern_frombound
 
-        with open(f'{abspath}/data/{folder}/Mass_unbound{check}.csv','a', newline='') as file:
+        with open(f'{abspath}/data/{folder}/wind/Mass_unbound{check}.csv','a', newline='') as file:
             writer = csv.writer(file)
             if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
                 writer.writerow(['snap', ' tfb', ' Mass unbound (bern > 0)', ' Mass unbound (OE > 0)'])
@@ -80,9 +80,9 @@ if alice:
 if plot:
     # among resolutions
     commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    _, tfbL, M_bernL, M_bernL, M_OEL, = np.loadtxt(f'{abspath}/data/{commonfold}LowRes/Mass_unboundLowResNewAMR.csv', delimiter = ',', skiprows = 1)
-    _, tfb, M_bern, M_bern, M_OE  = np.loadtxt(f'{abspath}/data/{commonfold}/Mass_unboundNewAMR.csv', delimiter = ',', skiprows = 1)
-    _, tfbH, M_bernH, M_bernH, M_OEH = np.loadtxt(f'{abspath}/data/{commonfold}HiRes/Mass_unboundHiResNewAMR.csv', delimiter = ',', skiprows = 1)
+    _, tfbL, M_bernL, M_bernL, M_OEL, = np.loadtxt(f'{abspath}/data/{commonfold}LowRes/wind/Mass_unboundLowResNewAMR.csv', delimiter = ',', skiprows = 1)
+    _, tfb, M_bern, M_bern, M_OE  = np.loadtxt(f'{abspath}/data/{commonfold}/wind/Mass_unboundNewAMR.csv', delimiter = ',', skiprows = 1)
+    _, tfbH, M_bernH, M_bernH, M_OEH = np.loadtxt(f'{abspath}/data/{commonfold}HiRes/wind/Mass_unboundHiResNewAMR.csv', delimiter = ',', skiprows = 1)
     plt.plot(tfb, (M_bernL-M_OEL[0])/mstar, c = 'C1', label = r'$OE>0$')
     plt.plot(tfb, (M_bern-M_OE[0])/mstar,  c = 'yellowgreen', label = r'$B>0$')
     plt.plot(tfb, (M_bernH-M_OEH[0])/mstar, c = 'darkviolet', ls = '--', label = r'$M_\star - (B<0)$')
