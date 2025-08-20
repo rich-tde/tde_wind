@@ -18,6 +18,8 @@ from Utilities.operators import make_tree
 from Utilities.selectors_for_snap import select_snap
 from Utilities.sections import make_slices
 import src.orbits as orb
+import csv
+import os
 
 #
 # PARAMETERS
@@ -69,7 +71,8 @@ if alice:
         Mass_unbound = np.sum(mass[bern > 0]) #- Mass_dynunboundbern
         # Mass_unbound_frombound = mstar - np.sum(mass[bern < 0]) #- Mass_dynunboundbern_frombound
 
-        with open(f'{abspath}/data/{folder}/wind/Mass_unbound{check}.csv','a', newline='') as file:
+        csv_path = f'{abspath}/data/{folder}/wind/Mass_unbound{check}.csv'
+        with open(csv_path,'a', newline='') as file:
             writer = csv.writer(file)
             if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
                 writer.writerow(['snap', ' tfb', ' Mass unbound (bern > 0)', ' Mass unbound (OE > 0)'])
