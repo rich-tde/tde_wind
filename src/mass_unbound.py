@@ -105,22 +105,47 @@ if alice:
 if plot:
     # among resolutions
     commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    _, tfbL, M_bernL, M_OEL = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/wind/Mass_unboundLowResNewAMR.csv', delimiter = ',', skiprows = 1, unpack=True)
-    _, tfb, M_bern, M_OE  = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/wind/Mass_unboundNewAMR.csv', delimiter = ',', skiprows = 1, unpack=True)
-    _, tfbH, M_bernH, M_OEH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/wind/Mass_unboundHiResNewAMR.csv', delimiter = ',', skiprows = 1, unpack=True)
-    plt.plot(tfbL, (M_bernL-M_OEL[0])/mstar, c = 'C1', label = r'Low')
-    plt.plot(tfb, (M_bern-M_OE[0])/mstar,  c = 'yellowgreen', label = r'Fid')
-    plt.plot(tfbH, (M_bernH-M_OEH[0])/mstar, c = 'darkviolet', label = r'High')
-    plt.xlabel(r'$t [t_{\rm fb}]$')
-    plt.ylabel(r'Mass unbound [$M_\star$]')
-    # plt.ylim(0.0001, 0.006)
-    plt.grid()
-    plt.legend(fontsize = 15)
-    plt.yscale('log')
-    plt.tick_params(axis='both', which='major', width=1, length=7)
-    plt.tick_params(axis='both', which='minor', width=.8, length=4)
+    _, tfbL, M_bernL, OE_bernL, M_OEL, OE_OEL = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/wind/Mass_unboundLowResNewAMR.csv', delimiter = ',', skiprows = 1, unpack=True)
+    _, tfb, M_bern, OE_bern, M_OE, OE_OE  = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/wind/Mass_unboundNewAMR.csv', delimiter = ',', skiprows = 1, unpack=True)
+    _, tfbH, M_bernH, OE_bernH, M_OEH, OE_OEH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/wind/Mass_unboundHiResNewAMR.csv', delimiter = ',', skiprows = 1, unpack=True)
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7))
+    ax1.plot(tfbL, (M_bernL-M_OEL[0])/mstar, c = 'C1', label = r'Low')
+    ax1.plot(tfb, (M_bern-M_OE[0])/mstar,  c = 'yellowgreen', label = r'Fid')
+    ax1.plot(tfbH, (M_bernH-M_OEH[0])/mstar, c = 'darkviolet', label = r'High')
+    ax1.set_ylabel(r'Mass [$M_\star$] after disruption')
+    ax1.legend(fontsize = 15)
+    ax1.set_yscale('log')
+    
+    ax2.plot(tfbL, OE_bernL*prel.en_converter, c = 'C1', label = r'Low')
+    ax2.plot(tfb, OE_bern*prel.en_converter,  c = 'yellowgreen', label = r'Fid')
+    ax2.plot(tfbH, OE_bernH*prel.en_converter, c = 'darkviolet', label = r'High')   
+    ax2.set_ylabel(r'Tot orbital energy [erg]')
+    for ax in [ax1, ax2]:
+        ax.set_xlabel(r'$t [t_{\rm fb}]$')
+        ax.grid()
+        ax.tick_params(axis='both', which='major', width=1, length=7)
+        ax.tick_params(axis='both', which='minor', width=.8, length=4)
     # plt.savefig(f'{abspath}/Figs/multiple/Mass_unbound.png', dpi = 300, bbox_inches='tight')
+    plt.suptitle(r'Unbound material')
+    plt.tight_layout()
     plt.show()
+
+
+    datadays = np.loadtxt(f'{abspath}data/{folder}/wind/unbounddMdE_{check}_days.txt')
+    snaps, tfb= datadays[0], datadays[1]
+    bins = np.loadtxt(f'{abspath}data/{folder}/wind/unbounddMdE_{check}_bins.txt')
+    data = np.loadtxt(f'{abspath}data/{folder}/wind/unbounddMdE_{check}.txt')
+    mid_points = (bins[:-1]+bins[1:])/2
+    plt.figure()
+    for i in range(len((data))):
+        if i!=0 and i != -1:
+            continue
+        plt.plot(mid_points, data[i], alpha = 0.8, label = f't/tfb = {np.round(tfb[i],2)}')
+    plt.xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
+    plt.ylabel('dM/dE', fontsize = 16)
+    plt.yscale('log')
+    plt.xlim(0,2.5)
 
 
     

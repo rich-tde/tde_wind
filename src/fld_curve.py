@@ -80,7 +80,7 @@ for idx_s, snap in enumerate(snaps):
     data = make_tree(loadpath, snap, energy = True)
     box = np.load(f'{loadpath}/box_{snap}.npy')
     X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ = \
-        data.X, data.Y, data.Z, data.Temp, data.Den, data.Rad_den, data.Vol, data.VX, data.VY, data.VZ
+        data.X, data.Y, data.Z, data.Temp, data.Den, data.Rad, data.Vol, data.VX, data.VY, data.VZ
 
     denmask = Den > 1e-19
     X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ = \

@@ -93,6 +93,8 @@ apo = things['apo']
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 v_esc_kms = v_esc * conversion_sol_kms
+Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
+Medd = Ledd/(0.1*prel.c_cgs**2)
 
 def choose_observers(observers_xyz, choice):
     """ Choose observers based on the choice string. 
@@ -196,30 +198,35 @@ if alice:
 else:
     path = f'{pre}/{snap}'
 data = make_tree(path, snap, energy = True)
-X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
-    data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Temp, data.Press, data.IE, data.Rad
-dim_cell = Vol**(1/3)
+X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den, Diss_den = \
+    data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Temp, data.Press, data.IE, data.Rad, data.Diss
 cut = Den > 1e-19
-X, Y, Z, dim_cell, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
-    make_slices([X, Y, Z, dim_cell, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den], cut)       
+X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den, Diss_den = \
+    make_slices([X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den, Diss_den], cut)       
 R = np.sqrt(X**2 + Y**2 + Z**2)  
 vel = np.sqrt(VX**2 + VY**2 + VZ**2)  
 bern = orb.bern_coeff(R, vel, Den, Mass, Press, IE_den, Rad_den, params)
+Diss = Diss_den * Vol
 
 xyz = np.array([X, Y, Z]).T
+tree = KDTree(xyz, leaf_size = 50) 
 N_ray = 5_000
 rmax = 10*apo
 r = np.logspace(np.log10(R0), np.log10(rmax), N_ray)
 with open(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}.txt','w') as file:
-        file.close()
+    file.write(f'# radii \n')
+    file.write(f' '.join(map(str, r)) + '\n')
+    file.close()
 
 for j, idx_list in enumerate(indices_sorted):
     print(label_obs[j], flush= True)
 
     d_all = []
     v_rad_all = []
-    
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 10))
+    t_all = []
+    diss_all = []
+    diss_den_all = []    
+    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 10))
     # fig2, ax3 = plt.subplots(1, 1, figsize=(8, 8))
     for idx_i, i in enumerate(idx_list): 
         mu_x = observers_xyz[i][0]
@@ -233,13 +240,11 @@ for j, idx_list in enumerate(indices_sorted):
         del x, y, z
 
         # find the simulation cell corresponding to cells in the wanted ray
-        tree = KDTree(xyz, leaf_size = 50) 
         _, idx = tree.query(xyz2, k=1) #you can do k=4, comment the line afterwards and then do d = np.mean(d, axis=1) and the same for all the quantity. But you doesn't really change since you are averaging already on line of sights
         idx = [ int(idx[i][0]) for i in range(len(idx))]
         idx = np.array(idx)
         # Quantity corresponding to the ray
         d = Den[idx] * prel.den_converter
-        t = T[idx]
         ray_x = X[idx]
         ray_y = Y[idx]
         ray_z = Z[idx]
@@ -248,27 +253,36 @@ for j, idx_list in enumerate(indices_sorted):
         ray_vz = VZ[idx]
         ray_t = T[idx]
         ray_bern = bern[idx]  
+        ray_diss = Diss[idx]
+        ray_diss_den = Diss_den[idx]
         
         v_rad, _, _ = to_spherical_components(ray_vx, ray_vy, ray_vz, lat_obs[i], long_obs[i])
         if which_part == 'outflow':
             d[ray_bern<0] = 0
             v_rad[ray_bern<0] = 0
             ray_t[ray_bern<0] = 0
+            ray_diss[np.logical_or(ray_bern<0, ray_diss <0)] = 0
+            ray_diss_den[np.logical_or(ray_bern<0, ray_diss_den <0)] = 0
         if which_part == 'inflow':
             d[ray_bern>0] = 0
             v_rad[ray_bern>0] = 0
             ray_t[ray_bern>0] = 0
+            ray_diss[np.logical_or(ray_bern>0, ray_diss <0)] = 0
+            ray_diss_den[np.logical_or(ray_bern>0, ray_diss_den <0)] = 0
         d_all.append(d)
         v_rad_all.append(v_rad)
+        t_all.append(ray_t)
+        diss_all.append(ray_diss)
+        diss_den_all.append(ray_diss_den)
 
-        ax1.plot(xyz2[:,0]/apo, xyz2[:,1]/apo, c = colors_obs[j])
-        img1 = ax1.scatter(ray_x/apo, ray_y/apo, c = np.abs(ray_z)/apo, cmap = 'jet', label = 'From simulation', norm = colors.LogNorm(vmin = 8e-3, vmax = 3))
+        # ax1.plot(xyz2[:,0]/apo, xyz2[:,1]/apo, c = colors_obs[j])
+        # img1 = ax1.scatter(ray_x/apo, ray_y/apo, c = np.abs(ray_z)/apo, cmap = 'jet', label = 'From simulation', norm = colors.LogNorm(vmin = 8e-3, vmax = 3))
         # # ax1.legend(fontsize = 18)
-        ax2.plot(ray_x/apo, ray_y/apo, c = 'k', alpha = 0.5)
-        img2 = ax2.scatter(ray_x/apo, ray_y/apo, c = np.abs(v_rad)*conversion_sol_kms, cmap = 'jet', norm = colors.LogNorm(vmin = 1e-1, vmax = 2e4))
+        # ax2.plot(ray_x/apo, ray_y/apo, c = 'k', alpha = 0.5)
+        # img2 = ax2.scatter(ray_x/apo, ray_y/apo, c = np.abs(v_rad)*conversion_sol_kms, cmap = 'jet', norm = colors.LogNorm(vmin = 1e-1, vmax = 2e4))
         # img3 = ax3.scatter(r/apo, d, c = t, s =2, label = f'Obs {i}', cmap = 'jet', norm = colors.LogNorm(vmin = 1e4, vmax = 1e6))
 
-    ax1.set_ylabel(r'Y [$R_{\rm a}$]')
+    # ax1.set_ylabel(r'Y [$R_{\rm a}$]')
     # ax3.set_xlabel(r'R [$R_{\rm a}$]')
     # ax3.set_ylabel(r'$\rho$ [g/cm$^3]$')
     # ax3.set_xlim(1e-2,1)
@@ -277,38 +291,52 @@ for j, idx_list in enumerate(indices_sorted):
     # ax3.legend(fontsize = 18)
     # cbar3 = plt.colorbar(img3)
     # cbar3.set_label(r'$T$ [K]')
-    cbar = plt.colorbar(img1, orientation = 'horizontal')
-    cbar.set_label(r'Z [R$_{\rm a}]$')
-    cbar = plt.colorbar(img2, orientation = 'horizontal')
-    cbar.set_label(r'$|V_r|$ [km/s]')
-    for ax in [ax1, ax2]:
-        ax.set_xlabel(r'X [$R_{\rm a}$]')
-        ax.set_xlim(np.min(ray_x)/apo, 0.5*np.max(ray_x)/apo)
-        ax.set_ylim(np.min(ray_y)/apo, 0.5*np.max(ray_y)/apo)
-    ax1.set_title('Points wanted and selected', fontsize = 18)
-    ax2.set_title('Velocity', fontsize = 18)
-    plt.suptitle(f'Observer {label_obs[j]}, snap {snap}', fontsize = 20)
-    plt.tight_layout()
-    fig.savefig(f'{abspath}/Figs/Test/wind/selectedCells{snap}{which_obs}{which_part}{label_obs[j]}.png', bbox_inches = 'tight')
+    # cbar = plt.colorbar(img1, orientation = 'horizontal')
+    # cbar.set_label(r'Z [R$_{\rm a}]$')
+    # cbar = plt.colorbar(img2, orientation = 'horizontal')
+    # cbar.set_label(r'$|V_r|$ [km/s]')
+    # for ax in [ax1, ax2]:
+    #     ax.set_xlabel(r'X [$R_{\rm a}$]')
+    #     ax.set_xlim(np.min(ray_x)/apo, 0.5*np.max(ray_x)/apo)
+    #     ax.set_ylim(np.min(ray_y)/apo, 0.5*np.max(ray_y)/apo)
+    # ax1.set_title('Points wanted and selected', fontsize = 18)
+    # ax2.set_title('Velocity', fontsize = 18)
+    # plt.suptitle(f'Observer {label_obs[j]}, snap {snap}', fontsize = 20)
+    # plt.tight_layout()
+    # fig.savefig(f'{abspath}/Figs/Test/wind/selectedCells{snap}{which_obs}{which_part}{label_obs[j]}.png', bbox_inches = 'tight')
 
-    if which_part == 'outflow' or which_part == 'inflow':
-        d_all = np.transpose(d_all) # shape: N_ray, N_obs
-        v_rad_all = np.transpose(v_rad_all)
-        d_mean = np.zeros(len(d_all))
-        v_rad_mean = np.zeros(len(v_rad_all))
-        for i_ray in range(len(d_all)):
-            n_nonzero = np.count_nonzero(d_all[i_ray])
-            d_mean[i_ray] = np.sum(d_all[i_ray])/n_nonzero
-            v_rad_mean[i_ray] = np.sum(v_rad_all[i_ray])/n_nonzero
-    else:
-        d_mean = np.mean(d_all, axis=0)
-        v_rad_mean = np.mean(v_rad_all, axis=0)
+    # if which_part == 'outflow' or which_part == 'inflow':
+    #     d_all = np.transpose(d_all) # shape: N_ray, N_obs
+    #     v_rad_all = np.transpose(v_rad_all)
+    #     t_all = np.transpose(t_all)
+    #     diss_all = np.transpose(diss_all)
+    #     diss_den_all = np.transpose(diss_den_all)
+    #     d_mean = np.zeros(len(d_all))
+    #     v_rad_mean = np.zeros(len(v_rad_all))
+    #     t_mean = np.zeros(len(t_all))
+    #     diss_mean = np.zeros(len(diss_all))
+    #     diss_den_mean = np.zeros(len(diss_den_all))
+    #     for i_ray in range(len(d_all)):
+    #         n_nonzero = np.count_nonzero(d_all[i_ray])
+    #         d_mean[i_ray] = np.sum(d_all[i_ray])/n_nonzero
+    #         v_rad_mean[i_ray] = np.sum(v_rad_all[i_ray])/n_nonzero
+    #         t_mean[i_ray] = np.sum(t_all[i_ray])/n_nonzero
+    #         diss_mean[i_ray] = np.sum(diss_all[i_ray])/n_nonzero
+    #         diss_den_mean[i_ray] = np.sum(diss_den_all[i_ray])/n_nonzero
+
+    d_mean = np.mean(d_all, axis=0)
+    v_rad_mean = np.mean(v_rad_all, axis=0)
+    t_mean = np.mean(t_all, axis=0)
+    diss_mean = np.mean(diss_all, axis=0)
+    diss_den_mean = np.mean(diss_den_all, axis=0)
 
     with open(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}.txt','a') as file:
         file.write(f'# Observer latitude: {lat_obs[i]}, longitude: {long_obs[i]}\n')
-        file.write(f' '.join(map(str, r)) + '\n')
         file.write(f' '.join(map(str, d_mean)) + '\n')
         file.write(f' '.join(map(str, v_rad_mean)) + '\n')
+        file.write(f' '.join(map(str, t_mean)) + '\n')
+        file.write(f' '.join(map(str, diss_mean)) + '\n')
+        file.write(f' '.join(map(str, diss_den_mean)) + '\n')
         file.close()
 
 #%%
@@ -316,21 +344,29 @@ x_test = np.arange(1e-3, 1e2)
 y_test2 = 8e-18* (x_test/apo)**(-2)
 y_test3 = 5e-21 * (x_test/apo)**(-3)
 y_test4 = 3.5e-23 * (x_test/apo)**(-4)
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 12))
-# fig1, ax2 = plt.subplots(1, 1, figsize=(8, 7))
-fig2, ax3 = plt.subplots(1, 1, figsize=(8, 7))
 which_part = 'outflow'
-
 profiles = np.loadtxt(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}.txt')
-r_mean, d_mean, v_rad_mean = profiles[0::3], profiles[1::3], profiles[2::3]
+r, d_mean, v_rad_mean, t_mean, diss_mean, diss_den_mean = \
+    profiles[0], profiles[1::5], profiles[2::5], profiles[3::5], profiles[4::5], profiles[5::5]
 
-for i in range(len(r_mean)): #because I'm stupid and I haven't put the observer in a reasonable order
-    r = r_mean[i]
+#%%
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 12))
+fig3, ax3 = plt.subplots(1, 1, figsize=(8, 7))
+fig4, ax4 = plt.subplots(1, 1, figsize=(8, 7))
+fig5, (ax5, ax6) = plt.subplots(1, 2, figsize=(15, 7))
+for i in range(len(d_mean)):
     d = d_mean[i]
     v_rad = v_rad_mean[i]
+    t = t_mean[i]
+    diss = diss_mean[i]
+    diss_den = diss_den_mean[i]
+    Mdot = 4*np.pi*r**2*d*np.abs(v_rad)*prel.Rsol_cgs**3/prel.tsol_cgs
     ax1.plot(r/apo, d, color = colors_obs[i])#, label = f'{label_obs[i]}')# Observer {label_obs[i]} ({indices_sorted[i]})')
     ax2.plot(r/apo, np.abs(v_rad)*prel.Rsol_cgs*1e-5/prel.tsol_cgs, color = colors_obs[i], label = f'{label_obs[i]}')
-    ax3.plot(r/apo, r**2*d*np.abs(v_rad)*prel.Rsol_cgs**3/prel.tsol_cgs, color = colors_obs[i], label = f'{label_obs[i]}')
+    ax3.plot(r/apo, Mdot/Medd, color = colors_obs[i], label = f'{label_obs[i]}')
+    ax4.plot(r/apo, t, color = colors_obs[i], label = f'{label_obs[i]}')
+    ax5.plot(r/apo, diss, color = colors_obs[i], label = f'{label_obs[i]}')
+    ax6.plot(r/apo, diss_den, color = colors_obs[i], label = f'{label_obs[i]}')
 ax1.plot(x_test, y_test2, c = 'gray', ls = 'dashed', label = r'$\rho \propto R^{-2}$')
 # ax1.text(4, 1e-14, r'$\propto R^{-2}$', fontsize = 20, color = 'k', rotation = -20)
 ax1.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto R^{-3}$')
@@ -339,7 +375,7 @@ ax1.plot(x_test, y_test4, c = 'gray', ls = '-.', label = r'$\rho \propto R^{-4}$
 # ax1.text(.1, 9e-9, r'$\propto R^{-4}$', fontsize = 20, color = 'k', rotation = -45)
 xmin = 0.5*Rt/apo
 xmax = 10
-for ax in [ax1, ax2, ax3]:
+for ax in [ax1, ax2, ax3, ax4, ax5, ax6]:
     #put the legend if which_obs != 'all_rotate'. Lt it be outside
     # boxleg = ax.get_position()
     # ax.set_position([boxleg.x0, boxleg.y0, boxleg.width * 0.8, boxleg.height])
@@ -359,12 +395,15 @@ ax1.set_ylim(1e-15, 1e-7)
 ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
 ax2.set_ylim(8e2, 3e4)
 ax2.set_ylabel(r'$|v_r|$ [km/s]')
-ax3.set_ylim(1e18, 5e27)
-ax3.set_ylabel(r'$|v_r| \rho R^2$ [g/s]')
+ax3.set_ylim(1e-1, 1e7)
+ax3.set_ylabel(r'$4\pi|v_r| \rho R^2 \,[\dot{M}_{\rm{Edd}}]$')
+# ax4.set_ylim(1e4, 1e6)
+ax4.set_ylabel(r'$T$ [K]')
+# ax5.set_ylim(1e-11, 1e-5)
+ax5.set_ylabel(r'Diss')
+ax6.set_ylabel(r'Diss den')
 plt.tight_layout()
 fig.savefig(f'{abspath}/Figs/paper/den_prof{snap}{which_obs}{which_part}.pdf', bbox_inches = 'tight')
-# fig1.savefig(f'{abspath}/Figs/outflow/vel_prof{snap}{which_obs}{which_part}.png', bbox_inches = 'tight')
-# fig2.savefig(f'{abspath}/Figs/outflow/vel_prof_rhoR2v{snap}{which_obs}{which_part}.png', bbox_inches = 'tight')
 plt.show()
 
 #%%

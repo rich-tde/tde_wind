@@ -30,8 +30,7 @@ def select_snap(m, check, mstar, rstar, beta, n, compton = 'Compton',  time = Fa
     snapshots = np.arange(20, 348 + 1, step = 1) 
     # select just the ones that actually exist
     if alice:
-        snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/snap_{snap}/CMx_{snap}.npy')]
-        # snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/snap_{snap}/snap_{snap}.h5') or os.path.exists(f'{pre}/snap_{snap}/CMx_{snap}.npy')]
+        snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/snap_{snap}/snap_{snap}.h5') or os.path.exists(f'{pre}/snap_{snap}/CMx_{snap}.npy')]
     else:
         snapshots = [snap for snap in snapshots if os.path.exists(f'{pre}/{snap}/CMx_{snap}.npy')]
     snapshots = np.array(snapshots)
