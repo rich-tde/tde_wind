@@ -1,4 +1,4 @@
-""" If alice: Compute and save the unbound mass.
+""" If alice: Compute and save the unbound mass and orbital energy. Compute also the dMdE.
 If local: plots"""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
@@ -46,11 +46,21 @@ Rs = things['Rs']
 Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
-# apo = things['apo']
+norm = things['E_mb']
 # amin = things['a_mb'] # semimajor axis of the bound orbit
 
 if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
+    bins = np.arange(0, 2, .01) #np.concatenate((bins1, bins2, bins3))
+    with open(f'{abspath}/data/{folder}/wind/unboundMdE_{check}_days.txt','w') as filedays:
+        filedays.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
+        filedays.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+        filedays.close()
+    with open(f'{abspath}/data/{folder}/wind/unboundMdE_{check}_bins.txt','w') as file:
+        file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
+        file.write((' '.join(map(str, bins)) + '\n'))
+        file.close()
+
     # compute the unbound mass for all the snapshots
     for i, snap in enumerate(snaps):
         print(snap, flush = True)
@@ -64,35 +74,51 @@ if alice:
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
         vel = np.sqrt(vx**2 + vy**2 + vz**2)
         orb_en = orb.orbital_energy(Rsph, vel, mass, params, prel.G)
-        bern = orb.bern_coeff(Rsph, vel, den, mass, Press, IE_den, Rad_den, params)
         Mass_dynunboundOE = np.sum(mass[orb_en > 0]) #- Mass_dynunboundOE
+        OE_dynunboundOE = np.sum(orb_en[orb_en > 0])
         # Mass_dynunboundOE_frombound = mstar - np.sum(mass[orb_en < 0]) #- Mass_dynunboundOE_frombound
+        bern = orb.bern_coeff(Rsph, vel, den, mass, Press, IE_den, Rad_den, params)
         Mass_unbound = np.sum(mass[bern > 0]) #- Mass_dynunboundbern
+        OE_unbound = np.sum(orb_en[bern > 0])
         # Mass_unbound_frombound = mstar - np.sum(mass[bern < 0]) #- Mass_dynunboundbern_frombound
 
         csv_path = f'{abspath}/data/{folder}/wind/Mass_unbound{check}.csv'
         with open(csv_path,'a', newline='') as file:
             writer = csv.writer(file)
             if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                writer.writerow(['snap', ' tfb', ' Mass unbound (bern > 0)', ' Mass unbound (OE > 0)'])
-            writer.writerow([snap, tfb[i], Mass_unbound, Mass_dynunboundOE])
+                writer.writerow(['snap', ' tfb', ' Mass unbound (bern > 0)', ' OE unbound (bern > 0)', ' Mass dynunbound (OE > 0)', ' OE dynunbound (OE > 0)'])
+            writer.writerow([snap, tfb[i], Mass_unbound, OE_unbound, Mass_dynunboundOE, OE_dynunboundOE])
+            file.close()
+        
+        # compute dMdE
+        specific_OE = orb_en / mass
+        specOE_norm = specific_OE/norm 
+        mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
+        dm_dE = mass_binned / (np.diff(bins_edges)*norm)
+
+        with open(f'{abspath}/data/{folder}/wind/unbounddMdE_{check}.txt','a') as file:
+            file.write(f'# dM/dE [code units] snap {snap} \n')
+            file.write((' '.join(map(str, dm_dE)) + '\n'))
             file.close()
 
 #%%
 if plot:
     # among resolutions
     commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    _, tfbL, M_bernL, M_bernL, M_OEL, = np.loadtxt(f'{abspath}/data/{commonfold}LowRes/wind/Mass_unboundLowResNewAMR.csv', delimiter = ',', skiprows = 1)
-    _, tfb, M_bern, M_bern, M_OE  = np.loadtxt(f'{abspath}/data/{commonfold}/wind/Mass_unboundNewAMR.csv', delimiter = ',', skiprows = 1)
-    _, tfbH, M_bernH, M_bernH, M_OEH = np.loadtxt(f'{abspath}/data/{commonfold}HiRes/wind/Mass_unboundHiResNewAMR.csv', delimiter = ',', skiprows = 1)
-    plt.plot(tfb, (M_bernL-M_OEL[0])/mstar, c = 'C1', label = r'$OE>0$')
-    plt.plot(tfb, (M_bern-M_OE[0])/mstar,  c = 'yellowgreen', label = r'$B>0$')
-    plt.plot(tfb, (M_bernH-M_OEH[0])/mstar, c = 'darkviolet', ls = '--', label = r'$M_\star - (B<0)$')
+    _, tfbL, M_bernL, M_OEL = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/wind/Mass_unboundLowResNewAMR.csv', delimiter = ',', skiprows = 1, unpack=True)
+    _, tfb, M_bern, M_OE  = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/wind/Mass_unboundNewAMR.csv', delimiter = ',', skiprows = 1, unpack=True)
+    _, tfbH, M_bernH, M_OEH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/wind/Mass_unboundHiResNewAMR.csv', delimiter = ',', skiprows = 1, unpack=True)
+    plt.plot(tfbL, (M_bernL-M_OEL[0])/mstar, c = 'C1', label = r'Low')
+    plt.plot(tfb, (M_bern-M_OE[0])/mstar,  c = 'yellowgreen', label = r'Fid')
+    plt.plot(tfbH, (M_bernH-M_OEH[0])/mstar, c = 'darkviolet', label = r'High')
     plt.xlabel(r'$t [t_{\rm fb}]$')
     plt.ylabel(r'Mass unbound [$M_\star$]')
-    plt.ylim(0.0001, 0.006)
+    # plt.ylim(0.0001, 0.006)
     plt.grid()
     plt.legend(fontsize = 15)
+    plt.yscale('log')
+    plt.tick_params(axis='both', which='major', width=1, length=7)
+    plt.tick_params(axis='both', which='minor', width=.8, length=4)
     # plt.savefig(f'{abspath}/Figs/multiple/Mass_unbound.png', dpi = 300, bbox_inches='tight')
     plt.show()
 

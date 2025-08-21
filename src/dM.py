@@ -80,7 +80,6 @@ if alice:
         X, Y, Z, VX, VY, VZ, Den, mass, Vol = \
             data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Den, data.Mass, data.Vol
         cut = Den > 1e-19
-        dim_cell = Vol**(1/3) 
         X, Y, Z, VX, VY, VZ, mass = \
             sec.make_slices([X, Y, Z, VX, VY, VZ, mass], cut)
         R = np.sqrt(X**2 + Y**2 + Z**2)
