@@ -47,7 +47,7 @@ Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
 norm = things['E_mb']
-# amin = things['a_mb'] # semimajor axis of the bound orbit
+amin = things['a_mb'] # semimajor axis of the bound orbit
 
 if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
@@ -81,13 +81,15 @@ if alice:
         Mass_unbound = np.sum(mass[bern > 0]) #- Mass_dynunboundbern
         OE_unbound = np.sum(orb_en[bern > 0])
         # Mass_unbound_frombound = mstar - np.sum(mass[bern < 0]) #- Mass_dynunboundbern_frombound
+        Mass_unbound_exclAmin = np.sum(mass[np.logical_and(bern > 0, X>-amin)]) #- Mass_dynunboundbern
+        OE_unbound_exclAmin = np.sum(orb_en[np.logical_and(bern > 0, X>-amin)])
 
         csv_path = f'{abspath}/data/{folder}/wind/Mass_unbound{check}.csv'
         with open(csv_path,'a', newline='') as file:
             writer = csv.writer(file)
             if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                writer.writerow(['snap', ' tfb', ' Mass unbound (bern > 0)', ' OE unbound (bern > 0)', ' Mass dynunbound (OE > 0)', ' OE dynunbound (OE > 0)'])
-            writer.writerow([snap, tfb[i], Mass_unbound, OE_unbound, Mass_dynunboundOE, OE_dynunboundOE])
+                writer.writerow(['snap', ' tfb', ' Mass unbound (bern > 0)', ' OE unbound (bern > 0)', ' Mass dynunbound (OE > 0)', ' OE dynunbound (OE > 0)', ' Mass unbound (bern > 0, X>-amin)', ' OE unbound (bern > 0, X>-amin)',])
+            writer.writerow([snap, tfb[i], Mass_unbound, OE_unbound, Mass_dynunboundOE, OE_dynunboundOE, Mass_unbound_exclAmin, OE_unbound_exclAmin])
             file.close()
         
         # compute dMdE
@@ -109,10 +111,30 @@ if plot:
     _, tfb, M_bern, OE_bern, M_OE, OE_OE  = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/wind/Mass_unboundNewAMR.csv', delimiter = ',', skiprows = 1, unpack=True)
     _, tfbH, M_bernH, OE_bernH, M_OEH, OE_OEH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/wind/Mass_unboundHiResNewAMR.csv', delimiter = ',', skiprows = 1, unpack=True)
     
+    # compare dyn with B
+    # fig, ax1 = plt.subplots(1, 1, figsize=(10, 7))
+    # ax1.plot(tfbL, M_bernL/mstar, c = 'C1', label = r'Low with B')
+    # ax1.plot(tfb, M_bern/mstar,  c = 'yellowgreen', label = r'Fid with B')
+    # ax1.plot(tfbH, M_bernH/mstar, c = 'darkviolet', label = r'High with B')
+    # ax1.plot(tfbL, M_OEL/mstar, ls = '--', c = 'r', label = r'Low with B')
+    # ax1.plot(tfb, M_OE/mstar,  ls = '--', c = 'forestgreen', label = r'Fid with B')
+    # ax1.plot(tfbH, M_OEH/mstar, ls = '--', c = 'orchid', label = r'High with B')
+    # ax1.set_ylabel(r'Unbound mass [$M_\star$]')
+    # ax1.legend(fontsize = 15)
+    # ax1.set_yscale('log')
+    # ax1.set_xlabel(r'$t [t_{\rm fb}]$')
+    # ax1.grid()
+    # ax1.tick_params(axis='both', which='major', width=1, length=7)
+    # ax1.tick_params(axis='both', which='minor', width=.8, length=4)
+    # plt.tight_layout()
+    # plt.savefig(f'{abspath}/Figs/Test/Mass_unbound_cond.png', dpi = 300, bbox_inches='tight')
+    print('Relative error Low-Fid', np.max((M_bernL[:len(M_bern)])/(M_bern)))
+    print('Relative error Fid-High', np.max((M_bernH)/(M_bern[:len(M_bernH)])))
+
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7))
-    ax1.plot(tfbL, (M_bernL-M_OEL[0])/mstar, c = 'C1', label = r'Low')
-    ax1.plot(tfb, (M_bern-M_OE[0])/mstar,  c = 'yellowgreen', label = r'Fid')
-    ax1.plot(tfbH, (M_bernH-M_OEH[0])/mstar, c = 'darkviolet', label = r'High')
+    ax1.plot(tfbL, (M_bernL)/mstar, c = 'C1', label = r'Low')
+    ax1.plot(tfb, (M_bern)/mstar,  c = 'yellowgreen', label = r'Fid')
+    ax1.plot(tfbH, (M_bernH)/mstar, c = 'darkviolet', label = r'High')
     ax1.set_ylabel(r'Mass [$M_\star$] after disruption')
     ax1.legend(fontsize = 15)
     ax1.set_yscale('log')
@@ -127,7 +149,7 @@ if plot:
         ax.tick_params(axis='both', which='major', width=1, length=7)
         ax.tick_params(axis='both', which='minor', width=.8, length=4)
     # plt.savefig(f'{abspath}/Figs/multiple/Mass_unbound.png', dpi = 300, bbox_inches='tight')
-    plt.suptitle(r'Unbound material')
+    plt.suptitle(r'Unbound material', fontsize = 16)
     plt.tight_layout()
     plt.show()
 
