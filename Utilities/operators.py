@@ -82,14 +82,28 @@ def draw_line(x_arr, alpha):
     y_arr = np.tan(-alpha) * x_arr
     return y_arr
 
-def to_spherical_components(vec_x, vec_y, vec_z, lat, long):
-    """ Transform the components of a vector from cartesian to spherical coordinates.
-    NB: you need to pass the latitude and longitude (in radians) because 
-    vec_x, vec_y, vec_z are not necessarily postions, thus you can't use them to derive the angless.
-    lat (theta) has to be in [0,pi] and long (phi) in [0, 2pi]."""
-    vec_r = np.sin(lat) * (vec_x * np.cos(long) + vec_y * np.sin(long)) + vec_z * np.cos(lat)
-    vec_theta = np.cos(lat) * (vec_x * np.cos(long) + vec_y * np.sin(long)) - vec_z * np.sin(lat)
-    vec_phi = - vec_x * np.sin(long) + vec_y * np.cos(long)
+def to_spherical_coordinate(x, y, z):
+    """ Transform the components of a vector from cartesian to spherical coordinates with long in [0, 2pi] and lat in [0, pi]."""
+    # Accept both scalars and arrays
+    x = np.asarray(x)
+    y = np.asarray(y)
+    z = np.asarray(z)
+    r = np.sqrt(x**2 + y**2 + z**2)
+    lat = np.arccos(z/r) # in [0, pi]
+    long = np.arctan2(y, x) # in [-pi, pi]. 
+    long = np.where(long < 0, long + 2*np.pi, long)
+    return r, lat, long
+
+def to_spherical_components(vec_x, vec_y, vec_z, x, y, z):
+    """ Transform the components of a vector from cartesian to spherical coordinates."""
+    _, lat, long = to_spherical_coordinate(x, y, z)
+    # Accept both scalars and arrays
+    lat_arr = np.asarray(lat)
+    long_arr = np.asarray(long)
+ 
+    vec_r = np.sin(lat_arr) * (vec_x * np.cos(long_arr) + vec_y * np.sin(long_arr)) + vec_z * np.cos(lat_arr)
+    vec_theta = np.cos(lat_arr) * (vec_x * np.cos(long_arr) + vec_y * np.sin(long_arr)) - vec_z * np.sin(lat_arr)
+    vec_phi = - vec_x * np.sin(long_arr) + vec_y * np.cos(long_arr)
     return vec_r, vec_theta, vec_phi
 
 def J_cart_in_sphere(lat, long):

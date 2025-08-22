@@ -52,11 +52,11 @@ norm = things['E_mb']
 if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
     bins = np.arange(0, 2, .01) #np.concatenate((bins1, bins2, bins3))
-    with open(f'{abspath}/data/{folder}/wind/unboundMdE_{check}_days.txt','w') as filedays:
+    with open(f'{abspath}/data/{folder}/wind/unbounddMdE_{check}_days.txt','w') as filedays:
         filedays.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
         filedays.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
         filedays.close()
-    with open(f'{abspath}/data/{folder}/wind/unboundMdE_{check}_bins.txt','w') as file:
+    with open(f'{abspath}/data/{folder}/wind/unbounddMdE_{check}_bins.txt','w') as file:
         file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
         file.write((' '.join(map(str, bins)) + '\n'))
         file.close()
@@ -132,20 +132,24 @@ if plot:
     plt.show()
 
 
-    datadays = np.loadtxt(f'{abspath}data/{folder}/wind/unbounddMdE_{check}_days.txt')
+    datadays = np.loadtxt(f'{abspath}/data/{folder}/wind/unbounddMdE_{check}_days.txt')
     snaps, tfb= datadays[0], datadays[1]
-    bins = np.loadtxt(f'{abspath}data/{folder}/wind/unbounddMdE_{check}_bins.txt')
-    data = np.loadtxt(f'{abspath}data/{folder}/wind/unbounddMdE_{check}.txt')
+    bins = np.loadtxt(f'{abspath}/data/{folder}/wind/unbounddMdE_{check}_bins.txt')
+    data = np.loadtxt(f'{abspath}/data/{folder}/wind/unbounddMdE_{check}.txt')
     mid_points = (bins[:-1]+bins[1:])/2
     plt.figure()
     for i in range(len((data))):
-        if i!=0 and i != -1:
+        if i!=0 and i !=len(data)-1:
             continue
         plt.plot(mid_points, data[i], alpha = 0.8, label = f't/tfb = {np.round(tfb[i],2)}')
-    plt.xlabel(r'$\log_{10}E/\Delta E$', fontsize = 16)
-    plt.ylabel('dM/dE', fontsize = 16)
+    plt.xlabel(r'$\log_{10}E/\Delta E$')
+    plt.ylabel('dM/dE')
     plt.yscale('log')
+    plt.legend(fontsize = 16)
     plt.xlim(0,2.5)
+    plt.title(f'{check}', fontsize = 16)
+    plt.tight_layout()
+    plt.show()
 
 
     

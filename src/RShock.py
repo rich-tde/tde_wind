@@ -28,6 +28,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
+params = [Mbh, Rstar, mstar, beta]
 
 tfallback = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2) #[days]
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
@@ -51,6 +52,17 @@ def R_shock(Mbh, eta_sh, const_G, const_c):
 def eta_from_R(Mbh, R_sh, const_G, const_c):
     eta = const_G * Mbh / (R_sh * const_c**2)
     return eta
+
+def Rtr_out(params, Mdot, fout, fv):
+    Mbh, Rstar, mstar, beta = params
+    Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
+    Medd = Ledd/(0.1*prel.c_cgs**2)
+    Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  
+    things = orb.get_things_about(params)
+    Rp = things['Rp']
+    Rs = things['Rs']
+    r = 4 * fout/fv * (np.abs(Mdot)/Medd_code) * np.sqrt(Rp/(3*Rs)) * Rs
+    return r
 
 ##
 # MAIN
@@ -205,12 +217,23 @@ plt.tight_layout()
 
 
 # %% compare with other speecial radii
+_, tfb_fall, mfall, \
+_, _, _, _, \
+_, _, _, _, \
+_, _, _, _, \
+_, _, _, _, = \
+    np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}NewAMR/wind/Mdot_NewAMR.csv', 
+                delimiter = ',', 
+                skiprows=1, 
+                unpack=True)
+Rtr_th = Rtr_out(params, mfall, fout=0.1, fv=1)
 fig, ax1 = plt.subplots(1, 1, figsize=(9, 6))
 
 ax1.plot(tfb_all[1], R_sh_all[1]/apo, color = colorslegend[1], label = r'$R_{\rm sh}$')
 ax1.plot(timeRDiss_all[1], RDiss_all[1]/apo, color = 'forestgreen', label = r'$R_{\rm diss}$')
 ax1.plot(tfb_all[1], R_ph/apo, color = 'k', label = r'$R_{\rm ph}$')
 ax1.plot(tfb_all[1], R_tr/apo, color = 'orchid', label = r'$R_{\rm tr}$')
+ax1.plot(tfb_fall, Rtr_th/apo, color = 'darkviolet', ls = '--', label = r'$R_{\rm tr}$ theory')
 
 ax1.axhline(y=Rp/apo, color = 'k', linestyle = 'dotted')
 ax1.text(1.85, .5* Rp/apo, r'$R_{\rm p}$', fontsize = 20, color = 'k')

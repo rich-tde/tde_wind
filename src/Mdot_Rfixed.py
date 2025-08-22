@@ -61,9 +61,31 @@ print(f'escape velocity at Rp: {v_esc/prel.csol_cgs} c')
 #
 ## FUNCTIONS
 #
+def Mpeak_intfb(params):
+    # Mpeak in cgs
+    Mbh, Rstar, mstar, beta = params
+    things = orb.get_things_about(params)
+    tfallback = things['t_fb_days']
+    tfballback_cgs = tfallback * 24 * 3600 # in seconds
+    Mpeak = mstar*prel.Msol_cgs/(3*tfballback_cgs)
+    return Mpeak
+
+def Mdot_theory(params, t_over_tmin):
+    Mpeak = Mpeak_intfb(params)
+    Mdot = Mpeak * (t_over_tmin)**(-5/3)
+    return Mdot
+
 def f_out_LodatoRossi(M_fb, M_edd):
     f = 2/np.pi * np.arctan(1/7.5 * (M_fb/M_edd-1))
     return f
+
+def t_Edd(params):
+    Mbh, Rstar, mstar, beta = params
+    things = orb.get_things_about(params)
+    tfallback = things['t_fb_days']
+    t_ed = 0.1 * (Mbh * 1e-6)**(2/5) * (Rp/(3*Rs))**(6/5) * mstar**(3/5) * Rstar**(-3/5) # years
+    t_ed_days = t_ed * 365 
+    return t_ed_days/tfallback
 
 def t_edge(params, f_out, f_v):
     """ Eq.9 in StrubbeQuataert09. Give the time in t_fb """
@@ -77,7 +99,6 @@ def t_edge(params, f_out, f_v):
     
     return t_ed/tfallback
 
-print(t_edge(params, .1, 1))
 # MAIN
 if compute: # compute dM/dt = dM/dE * dE/dt
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
@@ -193,6 +214,9 @@ if plot:
                    delimiter = ',', 
                    skiprows=1, 
                    unpack=True)
+    tfb_th = np.arange(0, 5, .1)
+    Mpeak = Mpeak_intfb(params)
+    Mdot_th = Mdot_theory(params, tfb_th)
     f_out_th = f_out_LodatoRossi(mfall, Medd_code)
     t_lag = amin*prel.Rsol_cgs / 1e9 #consider 10^4 km/s = 10^9 cm/s 
     t_lag_fb = t_lag / t_fb_days_cgs
@@ -230,13 +254,15 @@ if plot:
     fig2, ax2 = plt.subplots(1, 1, figsize = (8,7))
     ax1.plot(tfb[7:], np.abs(mwind_pos_amb[7:])/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$ at $a_{\rm min}$')
     ax1.plot(tfb, np.abs(mwind_neg_Rt)/Medd_code,  c = 'forestgreen', label = r'$\dot{M}_{\rm in}$ at $R_{\rm t}$')
-    ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm fb}$', c = 'k')
+    # ax1.plot(tfb_th, Mdot_th/Medd, c = 'gray', ls = '--', label = r'$\dot{M}_{\rm fb}$ theory')
+    # ax1.axhline(y = Mpeak/Medd, c = 'k', ls = '--', label = r'$M_{\rm peak}$')
+    ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm fb}$ num', c = 'k')
     ax1.set_yscale('log')
-    ax1.set_ylim(1e-1, 8e5)
+    # ax1.set_ylim(1e-1, 8e5)
     ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')    
-    ax2.plot(tfb, Vwind_pos_amb/v_esc, c = 'dodgerblue', label = r'$v_{\rm w} [B>0]$')
-    ax2.plot(tfb, Vwind_neg_amb/v_esc, c = 'forestgreen', label = r'$v_{\rm in} [B<0]$')
-    ax2.set_ylabel(r'$v_{\rm w} [v_{\rm esc}(R_{\rm p})]$')
+    ax2.plot(tfb, Vwind_pos_amb/prel.csol_cgs, c = 'dodgerblue', label = r'$v_{\rm w} [B>0]$')
+    ax2.plot(tfb, Vwind_neg_amb/prel.csol_cgs, c = 'forestgreen', label = r'$v_{\rm in} [B<0]$')
+    ax2.set_ylabel(r'$v_{\rm w} [c]$')
     original_ticks = ax1.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
     new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))

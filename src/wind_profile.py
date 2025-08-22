@@ -169,8 +169,6 @@ observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,
 obs_indices = np.arange(len(observers_xyz[0]))
 x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
 r_obs = np.sqrt(x_obs**2 + y_obs**2 + z_obs**2)
-long_obs = np.arctan2(y_obs, x_obs)          # Azimuthal angle in radians
-lat_obs = np.arccos(z_obs / r_obs)
 
 indices_sorted, label_obs, colors_obs = choose_observers(observers_xyz, which_obs)
 observers_xyz = np.transpose(observers_xyz) #shape: Nx3
@@ -256,7 +254,7 @@ for j, idx_list in enumerate(indices_sorted):
         ray_diss = Diss[idx]
         ray_diss_den = Diss_den[idx]
         
-        v_rad, _, _ = to_spherical_components(ray_vx, ray_vy, ray_vz, lat_obs[i], long_obs[i])
+        v_rad, _, _ = to_spherical_components(ray_vx, ray_vy, ray_vz, ray_x, ray_y, ray_z)
         if which_part == 'outflow':
             d[ray_bern<0] = 0
             v_rad[ray_bern<0] = 0
@@ -331,7 +329,7 @@ for j, idx_list in enumerate(indices_sorted):
     diss_den_mean = np.mean(diss_den_all, axis=0)
 
     with open(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}.txt','a') as file:
-        file.write(f'# Observer latitude: {lat_obs[i]}, longitude: {long_obs[i]}\n')
+        file.write(f'# Observer {label_obs[j]} \n')
         file.write(f' '.join(map(str, d_mean)) + '\n')
         file.write(f' '.join(map(str, v_rad_mean)) + '\n')
         file.write(f' '.join(map(str, t_mean)) + '\n')
@@ -340,6 +338,7 @@ for j, idx_list in enumerate(indices_sorted):
         file.close()
 
 #%%
+
 x_test = np.arange(1e-3, 1e2)
 y_test2 = 8e-18* (x_test/apo)**(-2)
 y_test3 = 5e-21 * (x_test/apo)**(-3)
@@ -349,7 +348,18 @@ profiles = np.loadtxt(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{w
 r, d_mean, v_rad_mean, t_mean, diss_mean, diss_den_mean = \
     profiles[0], profiles[1::5], profiles[2::5], profiles[3::5], profiles[4::5], profiles[5::5]
 
-#%%
+_, tfb_fall, mfall, \
+mwind_pos_Rt, mwind_pos_half_amb, mwind_pos_amb, mwind_pos_50Rt, \
+Vwind_pos_Rt, Vwind_pos_half_amb, Vwind_pos_amb, Vwind_pos_50Rt, \
+mwind_neg_Rt, mwind_neg_half_amb, mwind_neg_amb, mwind_neg_50Rt, \
+Vwind_neg_Rt, Vwind_neg_half_amb, Vwind_neg_amb, Vwind_neg_50Rt = \
+    np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_{check}.csv', 
+                delimiter = ',', 
+                skiprows=1,  
+                unpack=True)
+find_time = np.argmin(np.abs(tfb_fall-tfb))
+rho_from_dM = mwind_pos_amb[find_time]/(4*np.pi*r**2*Vwind_pos_amb[find_time])
+
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 12))
 fig3, ax3 = plt.subplots(1, 1, figsize=(8, 7))
 fig4, ax4 = plt.subplots(1, 1, figsize=(8, 7))
@@ -367,7 +377,8 @@ for i in range(len(d_mean)):
     ax4.plot(r/apo, t, color = colors_obs[i], label = f'{label_obs[i]}')
     ax5.plot(r/apo, diss, color = colors_obs[i], label = f'{label_obs[i]}')
     ax6.plot(r/apo, diss_den, color = colors_obs[i], label = f'{label_obs[i]}')
-ax1.plot(x_test, y_test2, c = 'gray', ls = 'dashed', label = r'$\rho \propto R^{-2}$')
+ax1.plot(r/apo, rho_from_dM, c = 'gray', ls = '--', label = r'$\rho \propto R^{-2}$') #'From dM/dt')
+# ax1.plot(x_test, y_test2, c = 'gray', ls = 'dashed', label = r'$\rho \propto R^{-2}$')
 # ax1.text(4, 1e-14, r'$\propto R^{-2}$', fontsize = 20, color = 'k', rotation = -20)
 ax1.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto R^{-3}$')
 # ax1.text(.04, 3e-11, r'$\propto R^{-3}$', fontsize = 20, color = 'k', rotation = -32)
