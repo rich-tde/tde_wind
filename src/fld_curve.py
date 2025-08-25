@@ -40,7 +40,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiResNewAMR' # 
+check = 'NewAMR' # 
 
 ## Snapshots stuff
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -69,6 +69,8 @@ apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 eng = matlab.engine.start_matlab()
 Lphoto_all = np.zeros(len(snaps))
 for idx_s, snap in enumerate(snaps):
+    if snap != 162:
+        continue
     print('\n Snapshot: ', snap, '\n', flush=True)
     box = np.zeros(6)
     # Load data -----------------------------------------------------------------
@@ -106,6 +108,8 @@ for idx_s, snap in enumerate(snaps):
     Vxph = np.zeros(num_obs) 
     Vyph = np.zeros(num_obs)
     Vzph = np.zeros(num_obs)
+    Pressph = np.zeros(num_obs)
+    IE_denph = np.zeros(num_obs)
     fluxes = np.zeros(num_obs)
     rph = np.zeros(num_obs) 
     alphaph = np.zeros(num_obs) 
@@ -165,14 +169,16 @@ for idx_s, snap in enumerate(snaps):
         ray_vx = VX[idx]
         ray_vy = VY[idx]
         ray_vz = VZ[idx]
+        ray_press = Press[idx]
+        ray_ie_den = IE_den[idx]
         
         # Interpolate opacity 
         ln_alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
         ln_alpha_rossland = np.array(ln_alpha_rossland)[0]
         underflow_mask = ln_alpha_rossland != 0.0
         idx = np.array(idx)
-        d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, rad_den, volume, ray_vx, ray_vy, ray_vz, idx = \
-            make_slices([d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, rad_den, volume, ray_vx, ray_vy, ray_vz, idx], underflow_mask)
+        d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, rad_den, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx = \
+            make_slices([d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, rad_den, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx], underflow_mask)
         alpha_rossland = np.exp(ln_alpha_rossland) # [1/cm]
         del ln_alpha_rossland
         gc.collect()
@@ -255,6 +261,8 @@ for idx_s, snap in enumerate(snaps):
         Vxph[i] = ray_vx[photosphere]
         Vyph[i] = ray_vy[photosphere]
         Vzph[i] = ray_vz[photosphere]
+        Pressph[i] = ray_press[photosphere]
+        IE_denph[i] = ray_ie_den[photosphere]
         rph[i] = r[photosphere] 
         alphaph[i] = alpha_rossland[photosphere]
         fluxes[i] = Lphoto / (4*np.pi*(r[photosphere]*prel.Rsol_cgs)**2)
@@ -297,12 +305,31 @@ for idx_s, snap in enumerate(snaps):
             f.write('# Vxph\n' + ' '.join(map(str, Vxph)) + '\n')
             f.write('# Vyph\n' + ' '.join(map(str, Vyph)) + '\n')
             f.write('# Vzph\n' + ' '.join(map(str, Vzph)) + '\n')
+            f.write('# Pressph\n' + ' '.join(map(str, Pressph)) + '\n')
+            f.write('# IE_denph\n' + ' '.join(map(str, IE_denph)) + '\n')
             f.write('# alpha CGS\n' + ' '.join(map(str, alphaph)) + '\n')
             f.write('# rph\n' + ' '.join(map(str, rph)) + '\n')
             f.write('# Lph CGS\n' + ' '.join(map(str, Lph)) + '\n')
+            f.write('# indices\n' + ' '.join(map(str, ph_idx)) + '\n')
             f.close()
         
 eng.exit()
 # usage = resource.getrusage(resource.RUSAGE_SELF)
 # print(f"Peak RAM usage: {usage.ru_maxrss / 1024**2:.2f} MB")
+
+#%% test if you save the indices correctly
+if not alice:
+    data_check = make_tree(loadpath, snap, energy = True)
+    X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ = \
+        data_check.X, data_check.Y, data_check.Z, data_check.Temp, data_check.Den, data_check.Rad, data_check.Vol, data_check.VX, data_check.VY, data_check.VZ
+
+    denmask = Den > 1e-19
+    X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ = \
+        make_slices([X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ], denmask)
+    
+    plt.figure()
+    plt.plot(xph/X[ph_idx], c = 'firebrick', label = 'x')
+    plt.plot(yph/Y[ph_idx], c = 'dodgerblue', label = 'y')
+    plt.plot(zph/Z[ph_idx], c = 'royalblue', label = 'z')
+    plt.legend()
 # %%

@@ -27,16 +27,19 @@ mstar = .5
 Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
-snap = '120'
+snap = '238'
 compton = 'Compton'
 
 commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-saving_path = f'Figs/{commonfold}'
-
-Rt = Rstar * (Mbh/mstar)**(1/3)
-R0 = 0.6 * Rt
-Rp =  Rt / beta
-apo = orb.apocentre(Rstar, mstar, Mbh, beta)
+params = [Mbh, Rstar, mstar, beta]
+things = orb.get_things_about(params)
+tfallback = things['t_fb_days']
+Rs = things['Rs']
+Rt = things['Rt']
+Rp = things['Rp']
+R0 = things['R0']
+apo = things['apo']
+amin = things['a_mb']
 
 #%%
 # tvisc = (R0**3/(prel.G*Mbh))**(1/2) * (1/0.1) * (1/0.3)**2
@@ -122,8 +125,6 @@ plt.plot(tfb, median_ph/apo, c = 'forestgreen', label = 'median')
 plt.xlabel(r't [$t_{fb}$]')
 plt.ylabel(r'$\langle R_{ph}\rangle [R_a]$')
 plt.yscale('log')
-plt.axvline(0.53, c = 'k', ls = '--')
-plt.axvline(0.57, c = 'k', ls = '--')
 plt.grid()
 plt.title(f'Fiducial res')
 plt.legend(fontsize = 16)

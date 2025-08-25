@@ -30,13 +30,17 @@ n = 1.5
 compton = 'Compton'
 params = [Mbh, Rstar, mstar, beta]
 
-tfallback = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2) #[days]
-tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
-Rt = Rstar * (Mbh/mstar)**(1/3)
-Rp = Rt/beta
+params = [Mbh, Rstar, mstar, beta]
+things = orb.get_things_about(params)
+Rs = things['Rs']
+Rt = things['Rt']
+Rp = things['Rp']
+R0 = things['R0']
+apo = things['apo']
+amin = things['a_mb']
+t_fb_days_cgs = things['t_fb_days'] * 24 * 3600 # in seconds
 norm_dMdE = Mbh/Rt * (Mbh/Rstar)**(-1/3) # Normalisation (what on the x axis you call \Delta E). It's GM/Rt^2 * Rstar
-apo = orb.apocentre(Rstar, mstar, Mbh, beta) 
-amin = orb.semimajor_axis(Rstar, mstar, Mbh, G=1)
+v_esc = np.sqrt(2*prel.G*Mbh/Rp)
 
 #
 ## FUNCTIONS
@@ -92,7 +96,7 @@ for j, check in enumerate(checks):
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     datadays = np.loadtxt(f'{abspath}data/{folder}/wind/dMdE_{check}_days.txt')
     snaps, tfb = datadays[0], datadays[1]
-    tfb_cgs = tfb * tfallback_cgs #converted to seconds
+    tfb_cgs = tfb * t_fb_days_cgs #converted to seconds
     bins = np.loadtxt(f'{abspath}data/{folder}/wind/dMdE_{check}_bins.txt')
     mid_points = (bins[:-1]+bins[1:])* norm_dMdE/2  # get rid of the normalization
     # bins_cgs = bins * (prel.en_converter/prel.Msol_cgs) #  and convert to CGS (they are bins in SPECIFIC orbital energy)
@@ -227,22 +231,26 @@ _, _, _, _, = \
                 skiprows=1, 
                 unpack=True)
 Rtr_th = Rtr_out(params, mfall, fout=0.1, fv=1)
+Redge = v_esc / prel.tsol_cgs * tfb_fall*t_fb_days_cgs
+print(t_fb_days_cgs)
+print(Redge[np.argmin(np.abs(tfb_fall-1))]/apo)
 fig, ax1 = plt.subplots(1, 1, figsize=(9, 6))
 
-ax1.plot(tfb_all[1], R_sh_all[1]/apo, color = colorslegend[1], label = r'$R_{\rm sh}$')
+# ax1.plot(tfb_all[1], R_sh_all[1]/apo, color = colorslegend[1], label = r'$R_{\rm sh}$')
 ax1.plot(timeRDiss_all[1], RDiss_all[1]/apo, color = 'forestgreen', label = r'$R_{\rm diss}$')
 ax1.plot(tfb_all[1], R_ph/apo, color = 'k', label = r'$R_{\rm ph}$')
 ax1.plot(tfb_all[1], R_tr/apo, color = 'orchid', label = r'$R_{\rm tr}$')
-ax1.plot(tfb_fall, Rtr_th/apo, color = 'darkviolet', ls = '--', label = r'$R_{\rm tr}$ theory')
+ax1.plot(tfb_fall, Redge/apo, color = 'darkviolet', ls = '--', label = r'$v_{\rm esc}(R_p)$t')
+# ax1.plot(tfb_fall, Rtr_th/apo, color = 'darkviolet', ls = '--', label = r'$R_{\rm tr}$ theory')
 
 ax1.axhline(y=Rp/apo, color = 'k', linestyle = 'dotted')
-ax1.text(1.85, .5* Rp/apo, r'$R_{\rm p}$', fontsize = 20, color = 'k')
+ax1.text(1.85, .7* Rp/apo, r'$R_{\rm p}$', fontsize = 20, color = 'k')
 # ax1.axhline(y=apo/apo, color = 'k', linestyle = '--')
 # ax1.text(1.85, .5* apo/apo, r'$R_{\rm a}$', fontsize = 20, color = 'k')
 # ax1.axhline(y=apo/apo, color = 'r', linestyle = 'dotted')
 # ax0.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 18)
 ax1.set_ylabel(r'$R [R_{\rm a}$]')#, fontsize = 18)
-ax1.set_ylim(Rlim_min, Rlim_max)
+# ax1.set_ylim(Rlim_min, Rlim_max)
 # Set primary y-axis ticks
 R_ticks = np.logspace(np.log10(Rlim_min), np.log10(Rlim_max), num=5)
 ax1.set_yticks(R_ticks)
@@ -270,7 +278,7 @@ for ax in [ax1, ax2]:
         ax.tick_params(axis='x', which='major', width=0.7, length=7)
         ax.tick_params(axis='x', which='minor', width=0.5, length=5)
     ax.set_xlim(0, 2)
-ax1.legend(fontsize = 16, loc = 'upper right')
+ax1.legend(fontsize = 15, loc = 'upper right')
 
 plt.tight_layout()
 plt.savefig(f'{abspath}/Figs/paper/Reta.pdf', bbox_inches = 'tight')

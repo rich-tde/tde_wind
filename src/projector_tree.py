@@ -164,10 +164,11 @@ if __name__ == '__main__':
         t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
 
         snaps = np.array(snaps)
-        idx_chosen = np.array([np.argmin(np.abs(snaps-97)),
-                               np.argmin(np.abs(snaps-238)),
-                               np.argmin(np.abs(snaps-318))])
-        snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
+        if how_far == 'big':
+            idx_chosen = np.array([np.argmin(np.abs(snaps-97)),
+                                np.argmin(np.abs(snaps-238)),
+                                np.argmin(np.abs(snaps-318))])
+            snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
         
         with open(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}time_proj.txt', 'w') as f:
             f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')

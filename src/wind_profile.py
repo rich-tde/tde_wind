@@ -90,6 +90,7 @@ Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
 apo = things['apo']
+t_fb_days_cgs = things['t_fb_days'] * 24 * 3600 # in seconds
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 v_esc_kms = v_esc * conversion_sol_kms
@@ -338,7 +339,7 @@ for j, idx_list in enumerate(indices_sorted):
         file.close()
 
 #%%
-
+R_edge = v_esc / prel.tsol_cgs * tfb * t_fb_days_cgs
 x_test = np.arange(1e-3, 1e2)
 y_test2 = 8e-18* (x_test/apo)**(-2)
 y_test3 = 5e-21 * (x_test/apo)**(-3)
@@ -394,6 +395,7 @@ for ax in [ax1, ax2, ax3, ax4, ax5, ax6]:
     ax.axvline(Rp/apo, c = 'k', ls = '--')
     if ax != ax1:
         ax.set_xlabel(r'$R [R_{\rm a}]$')
+    ax.axvline(R_edge/apo,  c = 'k', ls = ':')
     ax.set_xlim(xmin, xmax)
     ax.legend(loc='lower left', fontsize = 14)
     ax.loglog()

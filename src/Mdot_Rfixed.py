@@ -222,34 +222,34 @@ if plot:
     t_lag_fb = t_lag / t_fb_days_cgs
 
     # compare with other dM/dE
-    snaps02, tfb02, mfall02, \
-    mwind_posRt02, mwind_pos_half_amb02, mwind_pos_amb02, mwind_pos_50Rt02, \
-    Vwind_posRt02, Vwind_pos_half_amb02, Vwind_pos_amb02, Vwind_pos_50Rt02, \
-    mwind_negRt02, mwind_neg_half_amb02, mwind_neg_amb02, mwind_neg_50Rt02, \
-    Vwind_negRt02, Vwind_neg_half_amb02, Vwind_neg_amb02, Vwind_neg_50Rt02 = \
-        np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}02.csv', 
-                   delimiter = ',', 
-                   skiprows=1, 
-                   unpack=True)
-    fig, ax1 = plt.subplots(1, 1, figsize = (8,7))
-    ax1.plot(tfb[7:], np.abs(mwind_pos_amb[7:])/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$ at $a_{\rm min}$')
-    ax1.plot(tfb, np.abs(mwind_neg_amb)/Medd_code,  c = 'forestgreen', label = r'$\dot{M}_{\rm in}$ at $a_{\rm min}$')
-    ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm fb}$', c = 'k')
-    ax1.plot(tfb02[7:], np.abs(mwind_pos_amb02[7:])/Medd_code, ls = '--', c = 'b', label = r'$\dot{M}_{\rm w}$ at $a_{\rm min}$')
-    ax1.plot(tfb02, np.abs(mwind_neg_amb02)/Medd_code, ls = '--',  c = 'yellow', label = r'$\dot{M}_{\rm in}$ at $a_{\rm min}$')
-    ax1.plot(tfb02, np.abs(mfall02)/Medd_code, ls = '--', label = r'$\dot{M}_{\rm fb}$', c = 'gray')
-    ax1.set_yscale('log')
-    ax1.set_ylim(1e-1, 8e5)
-    ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')    
-    ax1.legend(fontsize = 18)
-    ax1.set_xlim(0, 1.7)
-    ax1.set_xlabel(r't/t$_{fb}$')
-    ax1.tick_params(axis='both', which='major', width=1, length=7)
-    ax1.tick_params(axis='both', which='minor', width=.8, length=4)
-    ax1.grid()
-    ax1.set_title(r'Dashed lines use dM/dE at t=0.2 t$_{\rm fb}$', fontsize = 20)
-    plt.tight_layout()
-    fig.savefig(f'{abspath}/Figs/Test/wind/Mdot_{check}dMdE02.png', bbox_inches = 'tight')
+    # snaps02, tfb02, mfall02, \
+    # mwind_posRt02, mwind_pos_half_amb02, mwind_pos_amb02, mwind_pos_50Rt02, \
+    # Vwind_posRt02, Vwind_pos_half_amb02, Vwind_pos_amb02, Vwind_pos_50Rt02, \
+    # mwind_negRt02, mwind_neg_half_amb02, mwind_neg_amb02, mwind_neg_50Rt02, \
+    # Vwind_negRt02, Vwind_neg_half_amb02, Vwind_neg_amb02, Vwind_neg_50Rt02 = \
+    #     np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}02.csv', 
+    #                delimiter = ',', 
+    #                skiprows=1, 
+    #                unpack=True)
+    # fig, ax1 = plt.subplots(1, 1, figsize = (8,7))
+    # ax1.plot(tfb[7:], np.abs(mwind_pos_amb[7:])/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$ at $a_{\rm min}$')
+    # ax1.plot(tfb, np.abs(mwind_neg_amb)/Medd_code,  c = 'forestgreen', label = r'$\dot{M}_{\rm in}$ at $a_{\rm min}$')
+    # ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm fb}$', c = 'k')
+    # ax1.plot(tfb02[7:], np.abs(mwind_pos_amb02[7:])/Medd_code, ls = '--', c = 'b', label = r'$\dot{M}_{\rm w}$ at $a_{\rm min}$')
+    # ax1.plot(tfb02, np.abs(mwind_neg_amb02)/Medd_code, ls = '--',  c = 'yellow', label = r'$\dot{M}_{\rm in}$ at $a_{\rm min}$')
+    # ax1.plot(tfb02, np.abs(mfall02)/Medd_code, ls = '--', label = r'$\dot{M}_{\rm fb}$', c = 'gray')
+    # ax1.set_yscale('log')
+    # ax1.set_ylim(1e-1, 8e5)
+    # ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')    
+    # ax1.legend(fontsize = 18)
+    # ax1.set_xlim(0, 1.7)
+    # ax1.set_xlabel(r't/t$_{fb}$')
+    # ax1.tick_params(axis='both', which='major', width=1, length=7)
+    # ax1.tick_params(axis='both', which='minor', width=.8, length=4)
+    # ax1.grid()
+    # ax1.set_title(r'Dashed lines use dM/dE at t=0.2 t$_{\rm fb}$', fontsize = 20)
+    # plt.tight_layout()
+    # fig.savefig(f'{abspath}/Figs/Test/wind/Mdot_{check}dMdE02.png', bbox_inches = 'tight')
 
     fig, ax1 = plt.subplots(1, 1, figsize = (8,7))
     fig2, ax2 = plt.subplots(1, 1, figsize = (8,7))
@@ -261,9 +261,11 @@ if plot:
     ax1.set_yscale('log')
     # ax1.set_ylim(1e-1, 8e5)
     ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')    
-    ax2.plot(tfb, Vwind_pos_amb/prel.csol_cgs, c = 'dodgerblue', label = r'$v_{\rm w} [B>0]$')
-    ax2.plot(tfb, Vwind_neg_amb/prel.csol_cgs, c = 'forestgreen', label = r'$v_{\rm in} [B<0]$')
-    ax2.set_ylabel(r'$v_{\rm w} [c]$')
+    # ax2.plot(tfb, Vwind_pos_amb/prel.csol_cgs, c = 'dodgerblue', label = r'$v_{\rm w}$')
+    # ax2.plot(tfb, Vwind_neg_amb/prel.csol_cgs, c = 'forestgreen', label = r'$v_{\rm in}$')
+    ax2.plot(tfb, Vwind_pos_amb/v_esc, c = 'dodgerblue', label = r'$v_{\rm w}$ at $a_{\rm min}$')
+    ax2.plot(tfb, Vwind_neg_amb/v_esc, c = 'forestgreen', label = r'$v_{\rm in}$ at $a_{\rm min}$')
+    ax2.set_ylabel(r'$<v_{\rm w}> [v_{\rm esc(R_p)}]$')
     original_ticks = ax1.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
     new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
@@ -277,7 +279,7 @@ if plot:
         ax.tick_params(axis='both', which='minor', width=.8, length=4)
         ax.set_xlim(0, 1.7)
         ax.grid()
-        ax.set_title(r'Wind: $v_r>0, B>0, X>-a_{\rm min}$', fontsize = 20)
+        ax.set_title(r'$v_{\rm esc}\approx$'+f'{np.round(v_esc/prel.csol_cgs, 2)}c', fontsize = 20)
     plt.tight_layout()
     fig.savefig(f'{abspath}/Figs/paper/Mdot_{check}.pdf', bbox_inches = 'tight')
 
