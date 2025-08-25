@@ -78,15 +78,15 @@ for idx_s, snap in enumerate(snaps):
         loadpath = f'{pre}/snap_{snap}'
     else:
         loadpath = f'{pre}/{snap}'
-    
+     
     data = make_tree(loadpath, snap, energy = True)
     box = np.load(f'{loadpath}/box_{snap}.npy')
     X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ, Press, IE_den = \
         data.X, data.Y, data.Z, data.Temp, data.Den, data.Rad, data.Vol, data.VX, data.VY, data.VZ, data.Press, data.IE
 
     denmask = Den > 1e-19
-    X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ = \
-        make_slices([X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ], denmask)
+    X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ, Press, IE_den = \
+        make_slices([X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ, Press, IE_den], denmask)
 
     xyz = np.array([X, Y, Z]).T
     R = np.sqrt(X**2 + Y**2 + Z**2)
@@ -319,6 +319,8 @@ eng.exit()
 
 #%% test if you save the indices correctly
 if not alice:
+    snap = 162
+    ph_idx = [int(ph_idx_i) for ph_idx_i in ph_idx]
     data_check = make_tree(loadpath, snap, energy = True)
     X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ = \
         data_check.X, data_check.Y, data_check.Z, data_check.Temp, data_check.Den, data_check.Rad, data_check.Vol, data_check.VX, data_check.VY, data_check.VZ
@@ -329,7 +331,7 @@ if not alice:
     
     plt.figure()
     plt.plot(xph/X[ph_idx], c = 'firebrick', label = 'x')
-    plt.plot(yph/Y[ph_idx], c = 'dodgerblue', label = 'y')
-    plt.plot(zph/Z[ph_idx], c = 'royalblue', label = 'z')
+    plt.plot(yph/Y[ph_idx], ls = '--', c = 'dodgerblue', label = 'y')
+    plt.plot(zph/Z[ph_idx], ls = ':', c = 'royalblue', label = 'z')
     plt.legend()
 # %%

@@ -24,7 +24,7 @@ Rstar = .47
 n = 1.5 
 compton = 'Compton'
 check = 'NewAMR'
-kind_of_plot = 'convergence' # 'moll' or 'cart' or 'ratioE'
+kind_of_plot = 'ratioE' # 'ratioE' or 'convergence'
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 
 params = [Mbh, Rstar, mstar, beta]
@@ -155,7 +155,8 @@ if kind_of_plot == 'convergence':
         PE_ph_specH = -prel.G * Mbh / (rphH-Rs)
         KE_ph_specH = 0.5 * velphH**2
         energyH = KE_ph_specH + PE_ph_specH
-        bern = orb.bern_coeff(rphH, velphH, denphH, masspH, Press, IE_den, Rad_den, params)
+        # massphH = denphH * volphH
+        # bern = orb.bern_coeff(rphH, velphH, denphH, massphH, PressphH, IE_denphH, Rad_denphH, params)
         ratio_unbound_phH_sn = len(energyH[energyH>0]) / len(energyH)
  
         ratio_unbound_phH[j] = ratio_unbound_phH_sn
@@ -176,10 +177,14 @@ for i, snap in enumerate(snaps):
     PE_ph_spec = -prel.G * Mbh / (rph-Rs)
     KE_ph_spec = 0.5 * vel**2
     energy = KE_ph_spec + PE_ph_spec
+    # massph = denph * volph
+    # bern = orb.bern_coeff(rph, vel, denph, massph, Pressph, IE_denph, Rad_denph, params)
     ratio_unbound_ph_sn = len(energy[energy>0]) / len(energy)
 
     # Plot
     if kind_of_plot == 'ratioE': # slides of boundness/unboundness with velocity arrows, (if how_amy==3, also time evolution of velocity)
+        if snap != 162:
+            continue
         ratio_unbound_ph.append(ratio_unbound_ph_sn)
         mean_vel.append(mean_vel_sn)
         percentile16.append(percentile16_sn)
@@ -198,17 +203,17 @@ for i, snap in enumerate(snaps):
         ratio_IO_mid = ie_den_mid / orb_en_den_mid
         orb_en_mid = orb_en_den_mid * dim_mid**3
 
-        data_yz = np.load(f'{abspath}/data/{folder}/slices/x/xRpslice_{snap}.npy')
-        x_yz, y_yz, z_yz, dim_yz, den_yz, temp_yz, ie_den_yz, orb_en_den_yz, Rad_den_yz, VX_yz, VY_yz, VZ_yz =\
-            data_yz[0], data_yz[1], data_yz[2], data_yz[3], data_yz[4], data_yz[5], data_yz[6], data_yz[7], data_yz[8], data_yz[9], data_yz[10], data_yz[11]
-        mass_yz = den_yz * dim_yz**3
-        V_yz = np.sqrt(VX_yz**2 + VY_yz**2 + VZ_yz**2)
-        R_yz = np.sqrt(x_yz**2 + y_yz**2 + z_yz**2)
-        KE = 0.5 * mass_yz * V_yz**2
-        PE = - prel.G * Mbh * mass_yz / R_yz
-        ratioE_yz = KE / np.abs(PE)
-        ratio_IO_yz = ie_den_yz / orb_en_den_yz
-        orb_en_yz = orb_en_den_yz * dim_yz**3
+        # data_yz = np.load(f'{abspath}/data/{folder}/slices/x/xRpslice_{snap}.npy')
+        # x_yz, y_yz, z_yz, dim_yz, den_yz, temp_yz, ie_den_yz, orb_en_den_yz, Rad_den_yz, VX_yz, VY_yz, VZ_yz =\
+        #     data_yz[0], data_yz[1], data_yz[2], data_yz[3], data_yz[4], data_yz[5], data_yz[6], data_yz[7], data_yz[8], data_yz[9], data_yz[10], data_yz[11]
+        # mass_yz = den_yz * dim_yz**3
+        # V_yz = np.sqrt(VX_yz**2 + VY_yz**2 + VZ_yz**2)
+        # R_yz = np.sqrt(x_yz**2 + y_yz**2 + z_yz**2)
+        # KE = 0.5 * mass_yz * V_yz**2
+        # PE = - prel.G * Mbh * mass_yz / R_yz
+        # ratioE_yz = KE / np.abs(PE)
+        # ratio_IO_yz = ie_den_yz / orb_en_den_yz
+        # orb_en_yz = orb_en_den_yz * dim_yz**3
 
         yz_ph = np.abs(xph-Rt) < volph**(1/3)
         yph_yz, zph_yz, Vyph_yz, Vzph_yz, rph_yz = make_slices([yph, zph, Vyph, Vzph, rph], yz_ph)
@@ -250,24 +255,24 @@ for i, snap in enumerate(snaps):
         ax1.set_xlim(-3, 3)
         ax1.set_ylim(-3, 2)
 
-        ax2 = fig.add_subplot(gs[0, 1])
-        # Apply sorting
-        sorted_indices_yz = np.argsort(falselong_ph_yz)  # Sorting by y-coordinate
-        yph_yz_sorted = yph_yz[sorted_indices_yz]
-        zph_yz_sorted = zph_yz[sorted_indices_yz]
-        img = ax2.scatter(y_yz/apo, z_yz/apo, c = np.abs(ratioE_yz), s = 20, cmap = 'coolwarm', norm = colors.LogNorm(vmin = 9.5e-2, vmax = 10))
-        ax2.scatter(yph_yz/apo, zph_yz/apo, facecolor = 'none', s = 60, edgecolors = 'k')
-        ax2.plot(yph_yz_sorted/apo, zph_yz_sorted/apo, c = 'k', alpha = 0.5)
-        # if yph_yz_sorted is not empty, connect the last and first point
-        if len(yph_yz_sorted) > 0:
-            ax2.plot([yph_yz_sorted[-1]/apo, yph_yz_sorted[0]/apo], [zph_yz_sorted[-1]/apo, zph_yz_sorted[0]/apo], c = 'k', alpha = 0.5)
-        ax2.quiver(yph_yz/apo, zph_yz/apo, Vyph_yz/40, Vzph_yz/40, angles='xy', scale_units='xy', scale=0.7, color="k", width=0.003, headwidth = 6)
-        ax2.text(-2.6, -3.2, r'x = R$_{\rm p}$', fontsize = 25)
-        ax2.text(-2.6, 3, f't = {np.round(tfb[i]*t_fall_hour,1)}' + r' hours', color = 'k', fontsize = 26)
-        ax2.set_xlabel(r'Y [$R_{\rm a}$]', fontsize = 25)
-        ax2.set_ylabel(r'Z [$R_{\rm a}$]', fontsize = 25)
-        ax2.set_xlim(-3, 2)
-        ax2.set_ylim(-3.5, 3.5)
+        # ax2 = fig.add_subplot(gs[0, 1])
+        # # Apply sorting
+        # sorted_indices_yz = np.argsort(falselong_ph_yz)  # Sorting by y-coordinate
+        # yph_yz_sorted = yph_yz[sorted_indices_yz]
+        # zph_yz_sorted = zph_yz[sorted_indices_yz]
+        # img = ax2.scatter(y_yz/apo, z_yz/apo, c = np.abs(ratioE_yz), s = 20, cmap = 'coolwarm', norm = colors.LogNorm(vmin = 9.5e-2, vmax = 10))
+        # ax2.scatter(yph_yz/apo, zph_yz/apo, facecolor = 'none', s = 60, edgecolors = 'k')
+        # ax2.plot(yph_yz_sorted/apo, zph_yz_sorted/apo, c = 'k', alpha = 0.5)
+        # # if yph_yz_sorted is not empty, connect the last and first point
+        # if len(yph_yz_sorted) > 0:
+        #     ax2.plot([yph_yz_sorted[-1]/apo, yph_yz_sorted[0]/apo], [zph_yz_sorted[-1]/apo, zph_yz_sorted[0]/apo], c = 'k', alpha = 0.5)
+        # ax2.quiver(yph_yz/apo, zph_yz/apo, Vyph_yz/40, Vzph_yz/40, angles='xy', scale_units='xy', scale=0.7, color="k", width=0.003, headwidth = 6)
+        # ax2.text(-2.6, -3.2, r'x = R$_{\rm p}$', fontsize = 25)
+        # ax2.text(-2.6, 3, f't = {np.round(tfb[i]*t_fall_hour,1)}' + r' hours', color = 'k', fontsize = 26)
+        # ax2.set_xlabel(r'Y [$R_{\rm a}$]', fontsize = 25)
+        # ax2.set_ylabel(r'Z [$R_{\rm a}$]', fontsize = 25)
+        # ax2.set_xlim(-3, 2)
+        # ax2.set_ylim(-3.5, 3.5)
 
         cbar_ax = fig.add_subplot(gs[1, 0:2])  # Colorbar subplot below the first two
         cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
@@ -279,8 +284,8 @@ for i, snap in enumerate(snaps):
         for ax in [ax1, ax2]:
             ax.scatter(0,0, c= 'k', marker = 'x', s=80)
 
-        plt.savefig(f'{imgsaving_folder}/ratioE{check}/E_{snap}.png', bbox_inches='tight')
-        plt.close()
+        # plt.savefig(f'{imgsaving_folder}/ratioE{check}/E_{snap}.png', bbox_inches='tight')
+        # plt.close()
 
     if kind_of_plot == 'convergence':
         ratio_unbound_ph[i] = ratio_unbound_ph_sn
