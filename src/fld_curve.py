@@ -40,7 +40,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'NewAMR' # 
+check = 'HiResNewAMR' # 
 
 ## Snapshots stuff
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -69,8 +69,8 @@ apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 eng = matlab.engine.start_matlab()
 Lphoto_all = np.zeros(len(snaps))
 for idx_s, snap in enumerate(snaps):
-    if snap != 162:
-        continue
+    # if snap != 162:
+    #     continue
     print('\n Snapshot: ', snap, '\n', flush=True)
     box = np.zeros(6)
     # Load data -----------------------------------------------------------------
@@ -81,8 +81,8 @@ for idx_s, snap in enumerate(snaps):
     
     data = make_tree(loadpath, snap, energy = True)
     box = np.load(f'{loadpath}/box_{snap}.npy')
-    X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ = \
-        data.X, data.Y, data.Z, data.Temp, data.Den, data.Rad, data.Vol, data.VX, data.VY, data.VZ
+    X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ, Press, IE_den = \
+        data.X, data.Y, data.Z, data.Temp, data.Den, data.Rad, data.Vol, data.VX, data.VY, data.VZ, data.Press, data.IE
 
     denmask = Den > 1e-19
     X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ = \
