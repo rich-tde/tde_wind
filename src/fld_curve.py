@@ -164,7 +164,7 @@ for idx_s, snap in enumerate(snaps):
         ray_x = X[idx]
         ray_y = Y[idx]
         ray_z = Z[idx]
-        rad_den = Rad_den[idx]
+        ray_radDen = Rad_den[idx]
         volume = Vol[idx]
         ray_vx = VX[idx]
         ray_vy = VY[idx]
@@ -177,8 +177,8 @@ for idx_s, snap in enumerate(snaps):
         ln_alpha_rossland = np.array(ln_alpha_rossland)[0]
         underflow_mask = ln_alpha_rossland != 0.0
         idx = np.array(idx)
-        d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, rad_den, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx = \
-            make_slices([d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, rad_den, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx], underflow_mask)
+        d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx = \
+            make_slices([d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx], underflow_mask)
         alpha_rossland = np.exp(ln_alpha_rossland) # [1/cm]
         del ln_alpha_rossland
         gc.collect()
@@ -227,7 +227,7 @@ for idx_s, snap in enumerate(snaps):
         gc.collect()
 
         # Eq.(28) from Krumholz07.
-        R_lamda = grad / ( prel.Rsol_cgs * alpha_rossland* rad_den) # this is the conversion for /r from the gradient. It's dimensionless
+        R_lamda = grad / ( prel.Rsol_cgs * alpha_rossland* ray_radDen) # this is the conversion for /r from the gradient. It's dimensionless
         R_lamda[R_lamda < 1e-10] = 1e-10
         # Eq.(27) from Krumholz07.
         fld_factor = (1/np.tanh(R_lamda) - 1/R_lamda) / R_lamda 
@@ -243,11 +243,11 @@ for idx_s, snap in enumerate(snaps):
             print(f'No photosphere found for observer {i}', flush=True)
             sys.stdout.flush()
             continue
-        Lphoto2 = 4*np.pi * prel.c_cgs*smoothed_flux[photosphere] * prel.Msol_cgs / (prel.tsol_cgs**2) # you have to convert rad_den*r^2/lenght = energy/lenght^2 = mass/time^2
+        Lphoto2 = 4*np.pi * prel.c_cgs*smoothed_flux[photosphere] * prel.Msol_cgs / (prel.tsol_cgs**2) # you have to convert ray_radDen*r^2/lenght = energy/lenght^2 = mass/time^2
         if Lphoto2 < 0:
             Lphoto2 = 1e100 # it means that it will always pick max_length for the negatives
         # free streaming emission
-        max_length = 4*np.pi*(r[photosphere]**2) * prel.c_cgs * rad_den[photosphere] * prel.Msol_cgs * prel.Rsol_cgs / (prel.tsol_cgs**2) #the conversion is for rad_den*r^2 = mass*len/time^2
+        max_length = 4*np.pi*(r[photosphere]**2) * prel.c_cgs * ray_radDen[photosphere] * prel.Msol_cgs * prel.Rsol_cgs / (prel.tsol_cgs**2) #the conversion is for ray_radDen*r^2 = mass*len/time^2
         Lphoto = np.min( [Lphoto2, max_length])
         reds[i] = Lphoto # cgs
         ph_idx[i] = idx[photosphere]
@@ -257,7 +257,7 @@ for idx_s, snap in enumerate(snaps):
         volph[i] = volume[photosphere]
         denph[i] = d[photosphere]
         Tempph[i] = t[photosphere]
-        Rad_denph[i] = rad_den[photosphere]
+        Rad_denph[i] = ray_radDen[photosphere]
         Vxph[i] = ray_vx[photosphere]
         Vyph[i] = ray_vy[photosphere]
         Vzph[i] = ray_vz[photosphere]
@@ -268,7 +268,7 @@ for idx_s, snap in enumerate(snaps):
         fluxes[i] = Lphoto / (4*np.pi*(r[photosphere]*prel.Rsol_cgs)**2)
         Lph[i] = Lphoto 
 
-        del smoothed_flux, R_lamda, fld_factor, rad_den
+        del smoothed_flux, R_lamda, fld_factor, ray_radDen
         gc.collect()
     Lphoto_snap = np.sum(reds)/num_obs # take the mean
     print(Lphoto_snap, flush=True)
