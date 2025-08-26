@@ -24,9 +24,8 @@ Rstar = .47
 n = 1.5 
 compton = 'Compton'
 check = 'NewAMR'
-kind_of_plot = 'ratioE' # 'ratioE' or 'convergence'
+kind_of_plot = 'convergence' # 'ratioE' or 'convergence'
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
-
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 tfallback = things['t_fb_days']
@@ -50,7 +49,7 @@ snaps = np.array([int(snap) for snap in snaps])
 #%% Look at single snap
 singlesnap = 318
 tfb_single = tfb[np.argmin(np.abs(snaps - singlesnap))]
-xph_s, yph_s, zph_s, volph_s, denph_s, Tempph_s, Rad_denph_s, Vxph_s, Vyph_s, Vzph_s, _, _, _ = \
+xph_s, yph_s, zph_s, volph_s, denph_s, Tempph_s, Rad_denph_s, Vxph_s, Vyph_s, Vzph_s, Pressph_s, IE_denph_s, _, _, _, _ = \
     np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{singlesnap}.txt')
 rph_s = np.sqrt(xph_s**2 + yph_s**2 + zph_s**2)
 v_mag_s = np.sqrt(Vxph_s**2 + Vyph_s**2 + Vzph_s**2)
@@ -144,10 +143,17 @@ if kind_of_plot == 'convergence':
     percentile84H = np.zeros(len(tfbH))
 
     for j, snap_sH in enumerate(snapH):
-        xphH, yphH, zphH, volphH, denphH, TempphH, Rad_denphH, VxphH, VyphH, VzphH, _, _, _ = \
+        if snap_sH > 62:
+            continue
+        xphH, yphH, zphH, volphH, denphH, TempphH, Rad_denphH, VxphH, VyphH, VzphH, PressphH, IE_denphH, _, _, _, _ = \
             np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/photo/HiResNewAMR_photo{snap_sH}.txt')
         rphH = np.sqrt(xphH**2 + yphH**2 + zphH**2)
         velphH = np.sqrt(VxphH**2 + VyphH**2 + VzphH**2)
+
+        # data_tr= np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap_sH}.npz')
+        # x_tr, y_tr, z_tr = data_tr['x_tr'], data_tr['y_tr'], data_tr['z_tr']
+
+        # r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
 
         mean_velphH_sn = np.mean(velphH)
         percentile16H_sn = np.percentile(velphH, 16)
@@ -166,7 +172,7 @@ if kind_of_plot == 'convergence':
 
 for i, snap in enumerate(snaps):
     print(snap)
-    xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, _, _, _ = \
+    xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, _, _, _, _ = \
         np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
     rph = np.sqrt(xph**2 + yph**2 + zph**2)
     vel = np.sqrt(Vxph**2 + Vyph**2 + Vzph**2)
@@ -183,7 +189,7 @@ for i, snap in enumerate(snaps):
 
     # Plot
     if kind_of_plot == 'ratioE': # slides of boundness/unboundness with velocity arrows, (if how_amy==3, also time evolution of velocity)
-        if snap != 162:
+        if snap != 50:
             continue
         ratio_unbound_ph.append(ratio_unbound_ph_sn)
         mean_vel.append(mean_vel_sn)
@@ -247,7 +253,7 @@ for i, snap in enumerate(snaps):
         ax1.plot(xph_mid_sorted/apo, yph_mid_sorted/apo, c = 'k', alpha = 0.5)
         # connect the last and first point
         ax1.plot([xph_mid_sorted[-1]/apo, xph_mid_sorted[0]/apo], [yph_mid_sorted[-1]/apo, yph_mid_sorted[0]/apo], c = 'k', alpha = 0.5)
-        ax1.quiver(xph_mid/apo, yph_mid/apo, Vxph[indecesorbital]/40, Vyph[indecesorbital]/40, angles='xy', scale_units='xy', scale=0.7, color="k", width=0.003, headwidth = 6)
+        # ax1.quiver(xph_mid/apo, yph_mid/apo, Vxph[indecesorbital]/40, Vyph[indecesorbital]/40, angles='xy', scale_units='xy', scale=0.7, color="k", width=0.003, headwidth = 6)
         ax1.text(-2.6, -2.8, r'z = 0', fontsize = 25)
         ax1.text(-2.6, 1.65, f't = {np.round(tfb[i],2)}' + r' t$_{\rm fb}$', color = 'k', fontsize = 26)
         ax1.set_xlabel(r'X [$R_{\rm a}$]', fontsize = 25)
@@ -308,7 +314,7 @@ if kind_of_plot == 'convergence': # only evolution of velocity/boundness in Fid 
     plt.plot(tfbH, percentile84H * conversion_sol_kms * 1e-4, c = 'darkviolet', alpha = 0.1, linestyle = '--')
     plt.fill_between(tfbH, percentile16H * conversion_sol_kms * 1e-4, percentile84H * conversion_sol_kms * 1e-4, color = 'darkviolet', alpha = 0.1)
     plt.grid()
-    plt.xlabel(r'$t_{\rm fb}$')
+    plt.xlabel(r'$t [t_{\rm fb}]$')
     plt.ylabel(r'Mean velocity [$10^4$ km/s] ')
     plt.ylim(-0.01, 2)
     plt.xlim(-0.09, 1.8)

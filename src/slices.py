@@ -32,17 +32,18 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'NewAMR' # 'LowRes' or 'HiRes'
-Rt = Rstar * (Mbh/mstar)**(1/3)
-Rp =  Rt / beta
-coord_to_cut = 'z' # 'x', 'y', 'z'
-cut_chosen = 0
+check = 'HiResNewAMR' # 'LowRes' or 'HiRes'
+
+params = [Mbh, Rstar, mstar, beta]
+things = orb.get_things_about(params)
+Rs = things['Rs']
+Rt = things['Rt']
+Rp = things['Rp']
+apo = things['apo']
+coord_to_cut = 'x' # 'x', 'y', 'z'
+cut_chosen = Rp
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-Mbh = 10**m
-Rs = 2*prel.G*Mbh / prel.csol_cgs**2
-R0 = 0.6 * Rt
-apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 if cut_chosen == Rp:
     cut_name = 'Rp'
 else:
@@ -83,10 +84,10 @@ for idx, snap in enumerate(snaps):
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
 
         data = make_tree(path, snap, energy = True)
-        X, Y, Z, vol, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den = \
-            data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Temp, data.IE, data.Rad, data.VX, data.VY, data.VZ, data.Diss
+        X, Y, Z, vol, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, IE_den, Press = \
+            data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Temp, data.IE, data.Rad, data.VX, data.VY, data.VZ, data.Diss, data.IE, data.Press
         Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
-        dim_cell = (3/(4*np.pi) * vol)**(1/3)
+        dim_cell = vol**(1/3)
         if coord_to_cut == 'x':
             cutcoord = X
         elif coord_to_cut == 'y':
@@ -100,11 +101,11 @@ for idx, snap in enumerate(snaps):
         cut = np.logical_and(density_cut, coordinate_cut)
         # x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut = \
         #     sec.make_slices([X, Y, Z, dim_cell, den, data.Temp, ie_den, orb_en_den, Rad_den], cut)
-        x_cut, y_cut, z_cut, dim_cut, mass_cut, den_cut, temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut = \
-            sec.make_slices([X, Y, Z, dim_cell, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den], cut)
+        x_cut, y_cut, z_cut, dim_cut, mass_cut, den_cut, temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut, IE_den_cut, Press_cut = \
+            sec.make_slices([X, Y, Z, dim_cell, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, IE_den, Press], cut)
         
         np.save(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy',\
-                 [x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut])
+                 [x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut, IE_den_cut, Press_cut])
         
     else:
         # you are not in alice
@@ -115,8 +116,8 @@ for idx, snap in enumerate(snaps):
 
         # load the data
         data = np.load(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy', allow_pickle=True)
-        x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid, VX_mid, VY_mid, VZ_mid, Diss_den_mid =\
-            data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12]
+        x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid, VX_mid, VY_mid, VZ_mid, Diss_den_mid, IE_den_mid, Press_mid =\
+            data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14]
 
         if npanels == 3:
             orb_en_onmass_mid = np.abs(orb_en_den_mid/den_mid) * prel.en_converter / prel.Msol_cgs

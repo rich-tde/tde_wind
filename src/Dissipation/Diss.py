@@ -30,8 +30,8 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-check = 'NewAMR'
-do_cut = 'NOcut' # '' or 'NOcut'
+check = 'HiResNewAMR'
+do_cut = '' # '' or 'NOcut'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 print(f'we are in {check}', flush=True)
