@@ -66,7 +66,7 @@ if alice:
 
         data = [snap, tfb, Rdiss_pos, Ldisstot_pos, Rdiss_neg, Ldisstot_neg]
         with open(f'{abspath}/data/{folder}/Rdiss_{check}{do_cut}.csv','a', newline='') as file:
-            writer = csv.writer(file)
+            writer = csv.writer(file)           
             writer.writerow(data)
         file.close()
 

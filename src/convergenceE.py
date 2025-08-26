@@ -16,6 +16,7 @@ from Utilities.operators import make_tree
 import Utilities.sections as sec
 import src.orbits as orb
 import Utilities.prelude as prel
+import csv
 
 #
 ## PARAMETERS STAR AND BH
@@ -69,11 +70,11 @@ if alice:
         tot_Rad = np.sum(Rad)
 
         data_E = [snap, tfb[i], tot_ie, tot_orb_en_pos, tot_orb_en_neg, tot_Rad]
-        with open(f'{abspath}/data/{folder}/convE_{check}_days.txt', 'a', newline='') as file:
+        with open(f'{abspath}/data/{folder}/convE_{check}.txt', 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(data_E)
         file.close()
-        
+
         # consider the small box for the cut in coordinates
         # if thresh == 'cutCoord':
         #     box = np.load(f'{path}/box_{snap}.npy')
@@ -111,13 +112,9 @@ if alice:
 else:
     import matplotlib.pyplot as plt
     commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    snapsL, tfbL = np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/convE_LowResNewAMR_days.txt')
-    IEL, OELpos, OELneg,  _ = np.load(f'{abspath}/data/{commonfolder}LowResNewAMR/convE_LowResNewAMR.npy')
-    idx_chosen = np.argmin(np.abs(snapsL - 238))
-    _, tfb = np.loadtxt(f'{abspath}/data/{commonfolder}NewAMR/convE_NewAMR_days.txt')
-    IE, OEpos, OEneg,   _ = np.load(f'{abspath}/data/{commonfolder}NewAMR/convE_NewAMR.npy')
-    _, tfbH = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/convE_HiResNewAMR_days.txt')
-    IEH, OEHpos, OEHneg, _ = np.load(f'{abspath}/data/{commonfolder}HiResNewAMR/convE_HiResNewAMR.npy')
+    snapsL, tfbL, IEL, OELpos, OELneg, _ = np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/convE_LowResNewAMR.csv', delimiter=',', dtype=float)
+    snaps, tfb, IE, OEpos, OEneg, _ = np.loadtxt(f'{abspath}/data/{commonfolder}NewAMR/convE_NewAMR.csv', delimiter=',', dtype=float)
+    snapsH, tfbH, IEH, OEHpos, OEHneg, _ = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/convE_HiResNewAMR.csv', delimiter=',', dtype=float)
 
     fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize = (24,6))
     ax1.plot(tfbL, prel.en_converter * (OELpos + OELneg), c = 'C1', label = 'Low')
