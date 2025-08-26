@@ -34,7 +34,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiResNewAMR' 
+check = 'NewAMR' 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 pre_saving = f'{abspath}/data/{folder}'
@@ -133,9 +133,9 @@ def r_trapp(loadpath, snap):
         # ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r = \
         #     sort_list([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r], ray_r)
         idx = np.array(idx)
-        long_ph_s = np.arctan2(ray_y, ray_x)          # Azimuthal angle in radians
-        lat_ph_s = np.arccos(ray_z/ ray_r) 
-        v_rad, _, _= to_spherical_components(ray_vx, ray_vy, ray_vz, lat_ph_s, long_ph_s)
+        # long_ph_s = np.arctan2(ray_y, ray_x)          # Azimuthal angle in radians
+        # lat_ph_s = np.arccos(ray_z/ ray_r) 
+        v_rad, _, _ = to_spherical_components(ray_vx, ray_vy, ray_vz, ray_x, ray_y, ray_z)
         vel = np.sqrt(ray_vx**2 + ray_vy**2 + ray_vz**2)
 
         # Interpolate ----------------------------------------------------------
