@@ -27,7 +27,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'NewAMR' 
+check = 'HiResNewAMR' 
 # thresh = '' # '' or 'cutCoord'
 
 #%%
@@ -43,17 +43,6 @@ apo = things['apo']
 
 if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
-
-    tot_ie = np.zeros(len(snaps))
-    tot_orb_en_pos = np.zeros(len(snaps))
-    tot_orb_en_neg = np.zeros(len(snaps))
-    tot_Rad = np.zeros(len(snaps))
-    # if thresh == 'cutCoord':
-    #     tot_ie_thres = np.zeros(len(snaps))
-    #     tot_orb_en_thres_pos = np.zeros(len(snaps))
-    #     tot_orb_en_thres_neg = np.zeros(len(snaps))
-    #     tot_Rad_thres = np.zeros(len(snaps))
-    #     missingMass = np.zeros(len(snaps))
 
     for i,snap in enumerate(snaps):
         print(snap, flush=False)
@@ -74,11 +63,17 @@ if alice:
         ie_cut = ie_den_cut * vol_cut
 
         # total energies with only the cut in density (not in radiation)
-        tot_ie[i] = np.sum(ie_cut)
-        tot_orb_en_pos[i] = np.sum(orb_en_cut[orb_en_cut > 0])
-        tot_orb_en_neg[i] = np.sum(orb_en_cut[orb_en_cut < 0])
-        tot_Rad[i] = np.sum(Rad)
+        tot_ie = np.sum(ie_cut)
+        tot_orb_en_pos = np.sum(orb_en_cut[orb_en_cut > 0])
+        tot_orb_en_neg = np.sum(orb_en_cut[orb_en_cut < 0])
+        tot_Rad = np.sum(Rad)
 
+        data_E = [snap, tfb[i], tot_ie, tot_orb_en_pos, tot_orb_en_neg, tot_Rad]
+        with open(f'{abspath}/data/{folder}/convE_{check}_days.txt', 'a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(data_E)
+        file.close()
+        
         # consider the small box for the cut in coordinates
         # if thresh == 'cutCoord':
         #     box = np.load(f'{path}/box_{snap}.npy')
@@ -112,14 +107,6 @@ if alice:
     # if thresh == 'cutCoord':
     #     print("ratio mass_box/mass_all: ", missingMass, flush = True)
     #     np.save(f'{abspath}/data/{folder}/convE_{check}_thresh.npy', [tot_ie_thres, tot_orb_en_thres_pos, tot_orb_en_thres_neg, tot_Rad_thres])
-
-    np.save(f'{abspath}/data/{folder}/convE_{check}.npy', [tot_ie, tot_orb_en_pos, tot_orb_en_neg, tot_Rad])
-    with open(f'{abspath}/data/{folder}/convE_{check}_days.txt', 'w') as file:
-            # file.write(f'# In convE_{check}_thresh you find internal, orbital (pos and neg) and radiation energy [NO denisty/specific] inside the biggest box enclosed in the three simulation volumes and cut in density.\n')
-            file.write(f'# In convE_{check} only cut in density.')
-            file.write(f'# {folder} \n' + ' '.join(map(str, snaps)) + '\n')
-            file.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-            file.close()
 
 else:
     import matplotlib.pyplot as plt
