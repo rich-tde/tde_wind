@@ -82,5 +82,6 @@ if __name__ == '__main__':
     # it's the same converting from cgs ans SI ... of course lol
     tsol_SI = np.sqrt(Rsol_SI**3 / (Msol_SI*G_SI )) # Follows from G = 1
     csol_SI = c_SI / (Rsol_SI/tsol_SI)
-    print(csol_cgs/csol_SI)
-    print(tsol_cgs/tsol_SI)
+    # print(csol_cgs/csol_SI)
+    # print(tsol_cgs/tsol_SI)
+    print(np.sqrt(8*Kb_cgs/(np.pi*m_p_cgs)))

@@ -112,9 +112,12 @@ if alice:
 else:
     import matplotlib.pyplot as plt
     commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    snapsL, tfbL, IEL, OELpos, OELneg, _ = np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/convE_LowResNewAMR.csv', delimiter=',', dtype=float)
-    snaps, tfb, IE, OEpos, OEneg, _ = np.loadtxt(f'{abspath}/data/{commonfolder}NewAMR/convE_NewAMR.csv', delimiter=',', dtype=float)
-    snapsH, tfbH, IEH, OEHpos, OEHneg, _ = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/convE_HiResNewAMR.csv', delimiter=',', dtype=float)
+    dataL = np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/convE_LowResNewAMR.csv', delimiter=',', dtype=float)
+    snapsL, tfbL, IEL, OELpos, OELneg = dataL[:, 0], dataL[:, 1], dataL[:, 2], dataL[:, 3], dataL[:, 4]
+    data = np.loadtxt(f'{abspath}/data/{commonfolder}NewAMR/convE_NewAMR.csv', delimiter=',', dtype=float)
+    snaps, tfb, IE, OEpos, OEneg = data[:, 0], data[:, 1], data[:, 2], data[:, 3], data[:, 4]
+    dataH = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/convE_HiResNewAMR.csv', delimiter=',', dtype=float)
+    snapsH, tfbH, IEH, OEHpos, OEHneg = dataH[:, 0], dataH[:, 1], dataH[:, 2], dataH[:, 3], dataH[:, 4]
 
     fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize = (24,6))
     ax1.plot(tfbL, prel.en_converter * (OELpos + OELneg), c = 'C1', label = 'Low')
@@ -132,11 +135,9 @@ else:
     ax3.plot(tfbL, prel.en_converter * OELneg, c = 'C1', label = 'Low')
     ax3.plot(tfb, prel.en_converter * OEneg, c = 'yellowgreen', label = 'Fid')
     ax3.plot(tfbH, prel.en_converter * OEHneg, c = 'darkviolet', label = 'High')
-    print(snapsL[idx_chosen])
     ax3.set_title(r'Bound gas')
 
     for ax in (ax1, ax2, ax3):
-        ax.axvline(tfbL[idx_chosen], c = 'k')
         ax.set_xlabel(r'$t [t_{\rm fb}]$')
         # ax.set_yscale('log')
         # ax.set_ylim(1e49, 1.5e49)

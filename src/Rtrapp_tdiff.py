@@ -7,6 +7,7 @@ if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
     save = True
 else:
+    import k3match
     abspath = '/Users/paolamartire/shocks'
     save = False
 
@@ -181,8 +182,8 @@ def r_trapp(loadpath, snap):
             xph, yph, zph = photo[0], photo[1], photo[2]
             rph = np.sqrt(xph**2 + yph**2 + zph**2)
 
-            tdyn_single = ray_r / np.abs(v_rad) * prel.tsol_cgs
-            tdiff_single = los * ray_r * prel.Rsol_cgs / prel.c_cgs
+            tdyn_single = ray_r / np.abs(v_rad) * prel.tsol_cgs # cgs
+            tdiff_single = los * ray_r * prel.Rsol_cgs / prel.c_cgs # cgs
 
             fig, ax1 = plt.subplots(1,1,figsize = (8,6))
             ax1.plot(ray_r/apo, tdyn_single/tfallback_cgs, c = 'k', label = r'$t_{\rm dyn}=R/v_R$')
@@ -232,11 +233,40 @@ for snap in snaps:
     if alice:
         loadpath = f'{pre}/snap_{snap}'
         print(snap, flush=True)
-    else:
-        test_idx = [0, 103, 120, 150, 180, 191]
+    else: 
         if snap != 318:
             continue
         loadpath = f'{pre}/{snap}'
+        observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
+        x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
+        wanted_obs = [(1,0,0), 
+            (0,1,0),
+            (-1,0,0),
+            (0,-1,0),
+            (0,0,1),
+            (0,0,-1)]
+        label_obs = ['x+', 'y+', 'x-', 'y-','z+','z-']
+        dot_prod = np.dot(wanted_obs, observers_xyz)
+        test_idx = np.argmax(dot_prod, axis=1)
+        # test_idx = np.zeros(len(wanted_obs))
+        # for i, obs_sel in enumerate(wanted_obs):   
+        #     _, indices_dist, dist = k3match.cartesian(obs_sel[0], obs_sel[1], obs_sel[2], x_obs, y_obs, z_obs, 1)
+        #     indices_dist, dist = sort_list([indices_dist, dist], dist)
+        #     test_idx[i] = indices_dist[0]
+        label_obs = np.asarray(label_obs)
+        test_idx = np.asarray(test_idx)
+        label_obs, test_idx = sort_list([label_obs, test_idx], test_idx)
+        # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+        # for j, idx_list in enumerate(test_idx):
+        #     ax1.scatter(x_obs[idx_list], y_obs[idx_list], s = 50, c = colors_obs[j], label = label_obs[j])
+        #     ax2.scatter(x_obs[idx_list], z_obs[idx_list], s = 50, c = colors_obs[j], label = label_obs[j])
+        # for ax in [ax1, ax2]:
+        #     ax.set_xlabel(r'$X$')
+        #     ax.set_xlim(-1.5, 1.5)
+        #     ax.set_ylim(-1.5, 1.5)
+        #     ax.legend()
+
+        # test_idx = [0, 103, 120, 150, 180, 191]
 
     r_tr = r_trapp(loadpath, snap)
     # np.savez(f"{pre_saving}/Rtrap_tests/{check}_Rtr{snap}_NOunique.npz", **r_tr)

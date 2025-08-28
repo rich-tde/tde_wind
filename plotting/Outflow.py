@@ -143,7 +143,7 @@ if kind_of_plot == 'convergence':
     percentile84H = np.zeros(len(tfbH))
 
     for j, snap_sH in enumerate(snapH):
-        if snap_sH > 62:
+        if snap_sH in [65, 66]:
             continue
         xphH, yphH, zphH, volphH, denphH, TempphH, Rad_denphH, VxphH, VyphH, VzphH, PressphH, IE_denphH, _, _, _, _ = \
             np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/photo/HiResNewAMR_photo{snap_sH}.txt')
@@ -158,12 +158,12 @@ if kind_of_plot == 'convergence':
         mean_velphH_sn = np.mean(velphH)
         percentile16H_sn = np.percentile(velphH, 16)
         percentile84H_sn = np.percentile(velphH, 84)
-        PE_ph_specH = -prel.G * Mbh / (rphH-Rs)
-        KE_ph_specH = 0.5 * velphH**2
-        energyH = KE_ph_specH + PE_ph_specH
-        # massphH = denphH * volphH
-        # bern = orb.bern_coeff(rphH, velphH, denphH, massphH, PressphH, IE_denphH, Rad_denphH, params)
-        ratio_unbound_phH_sn = len(energyH[energyH>0]) / len(energyH)
+        # PE_ph_specH = -prel.G * Mbh / (rphH-Rs)
+        # KE_ph_specH = 0.5 * velphH**2
+        # energyH = KE_ph_specH + PE_ph_specH
+        massphH = denphH * volphH
+        bernH = orb.bern_coeff(rphH, velphH, denphH, massphH, PressphH, IE_denphH, Rad_denphH, params)
+        ratio_unbound_phH_sn = len(bernH[bernH>0]) / len(bernH)
  
         ratio_unbound_phH[j] = ratio_unbound_phH_sn
         mean_velphH[j] = mean_velphH_sn
@@ -171,7 +171,6 @@ if kind_of_plot == 'convergence':
         percentile84H[j] = percentile84H_sn
 
 for i, snap in enumerate(snaps):
-    print(snap)
     xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, _, _, _, _ = \
         np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
     rph = np.sqrt(xph**2 + yph**2 + zph**2)
@@ -180,12 +179,13 @@ for i, snap in enumerate(snaps):
     mean_vel_sn = np.mean(vel)
     percentile16_sn = np.percentile(vel, 16)
     percentile84_sn = np.percentile(vel, 84)
-    PE_ph_spec = -prel.G * Mbh / (rph-Rs)
-    KE_ph_spec = 0.5 * vel**2
-    energy = KE_ph_spec + PE_ph_spec
-    # massph = denph * volph
-    # bern = orb.bern_coeff(rph, vel, denph, massph, Pressph, IE_denph, Rad_denph, params)
-    ratio_unbound_ph_sn = len(energy[energy>0]) / len(energy)
+    # PE_ph_spec = -prel.G * Mbh / (rph-Rs)
+    # KE_ph_spec = 0.5 * vel**2
+    # energy = KE_ph_spec + PE_ph_spec
+    # ratio_unbound_ph_sn = len(energy[energy>0]) / len(energy)
+    massph = denph * volph
+    bern = orb.bern_coeff(rph, vel, denph, massph, Pressph, IE_denph, Rad_denph, params)
+    ratio_unbound_ph_sn = len(bern[bern>0]) / len(bern)
 
     # Plot
     if kind_of_plot == 'ratioE': # slides of boundness/unboundness with velocity arrows, (if how_amy==3, also time evolution of velocity)
@@ -300,19 +300,19 @@ for i, snap in enumerate(snaps):
         percentile84[i] = percentile84_sn
 
 if kind_of_plot == 'convergence': # only evolution of velocity/boundness in Fid and High res
-    plt.figure(figsize=(12,6))
-    img = plt.scatter(tfb, mean_vel * conversion_sol_kms * 1e-4, c = ratio_unbound_ph, s = 10, vmin = 0, vmax = 0.75)
+    plt.figure(figsize=(14,6))
+    img = plt.scatter(tfb, mean_vel * conversion_sol_kms * 1e-4, c = ratio_unbound_ph, s = 20, vmin = 0, vmax = 0.75)
     plt.text(1.5, 0.6, f'Fid', fontsize = 25)
-    plt.scatter(tfbH, mean_velphH * conversion_sol_kms * 1e-4, c = ratio_unbound_phH, s = 10, vmin = 0, vmax = 0.75, marker = 's')
-    plt.text(1, 0.45, f'High', fontsize = 25)
+    # plt.scatter(tfbH, mean_velphH * conversion_sol_kms * 1e-4, c = ratio_unbound_phH, s = 20, vmin = 0, vmax = 0.75, marker = 's')
+    # plt.text(1, 0.45, f'High', fontsize = 25)
     cbar = plt.colorbar(img)
     cbar.set_label('unbound/tot')
     plt.plot(tfb, percentile16 * conversion_sol_kms * 1e-4, c = 'yellowgreen', alpha = 0.1, linestyle = '--')
     plt.plot(tfb, percentile84 * conversion_sol_kms * 1e-4, c = 'yellowgreen', alpha = 0.1, linestyle = '--')
     plt.fill_between(tfb, percentile16 * conversion_sol_kms * 1e-4, percentile84 * conversion_sol_kms * 1e-4, color = 'yellowgreen', alpha = 0.1)
-    plt.plot(tfbH, percentile16H * conversion_sol_kms * 1e-4, c = 'darkviolet', alpha = 0.1, linestyle = '--')
-    plt.plot(tfbH, percentile84H * conversion_sol_kms * 1e-4, c = 'darkviolet', alpha = 0.1, linestyle = '--')
-    plt.fill_between(tfbH, percentile16H * conversion_sol_kms * 1e-4, percentile84H * conversion_sol_kms * 1e-4, color = 'darkviolet', alpha = 0.1)
+    # plt.plot(tfbH, percentile16H * conversion_sol_kms * 1e-4, c = 'darkviolet', alpha = 0.1, linestyle = '--')
+    # plt.plot(tfbH, percentile84H * conversion_sol_kms * 1e-4, c = 'darkviolet', alpha = 0.1, linestyle = '--')
+    # plt.fill_between(tfbH, percentile16H * conversion_sol_kms * 1e-4, percentile84H * conversion_sol_kms * 1e-4, color = 'darkviolet', alpha = 0.1)
     plt.grid()
     plt.xlabel(r'$t [t_{\rm fb}]$')
     plt.ylabel(r'Mean velocity [$10^4$ km/s] ')
@@ -320,6 +320,7 @@ if kind_of_plot == 'convergence': # only evolution of velocity/boundness in Fid 
     plt.xlim(-0.09, 1.8)
     plt.title(f'Photospheric cells', fontsize = 20)
     plt.tight_layout()
+    # plt.legend(fontsize = 16)
     # plt.savefig(f'{imgsaving_folder}/all_conv.png')
     plt.show()
 

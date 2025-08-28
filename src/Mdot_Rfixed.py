@@ -255,7 +255,7 @@ if plot:
     fig2, ax2 = plt.subplots(1, 1, figsize = (8,7))
     ax1.plot(tfb[7:], np.abs(mwind_pos_amb[7:])/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$ at $a_{\rm min}$')
     ax1.plot(tfb, np.abs(mwind_neg_Rt)/Medd_code,  c = 'forestgreen', label = r'$\dot{M}_{\rm in}$ at $R_{\rm t}$')
-    # ax1.plot(tfb_th, Mdot_th/Medd, c = 'gray', ls = '--', label = r'$\dot{M}_{\rm fb}$ theory')
+    ax1.plot(tfb_th, Mdot_th/Medd, c = 'gray', ls = '--', label = r'$\dot{M}_{\rm fb}$ theory')
     # ax1.axhline(y = Mpeak/Medd, c = 'k', ls = '--', label = r'$M_{\rm peak}$')
     ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm fb}$ num', c = 'k')
     ax1.set_yscale('log')
