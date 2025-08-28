@@ -142,7 +142,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         bern = orb_en/Mass + IE_spec + Press/Den
         long = np.arctan2(Y, X)          # Azimuthal angle in radians
         lat = np.arccos(Z / Rsph)
-        v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
+        v_rad, _, _ = to_spherical_components(VX, VY, VZ, X, Y, Z)
         # Positive velocity (and unbound)
         cond = np.logical_and(v_rad >= 0, np.logical_and(bern > 0, X > -amin))
         X_pos, Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
@@ -214,7 +214,7 @@ if plot:
                    delimiter = ',', 
                    skiprows=1, 
                    unpack=True)
-    tfb_th = np.arange(0, 5, .1)
+    tfb_th = np.arange(0, 2, .1)
     Mpeak = Mpeak_intfb(params)
     Mdot_th = Mdot_theory(params, tfb_th)
     f_out_th = f_out_LodatoRossi(mfall, Medd_code)
@@ -255,11 +255,11 @@ if plot:
     fig2, ax2 = plt.subplots(1, 1, figsize = (8,7))
     ax1.plot(tfb[7:], np.abs(mwind_pos_amb[7:])/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$ at $a_{\rm min}$')
     ax1.plot(tfb, np.abs(mwind_neg_Rt)/Medd_code,  c = 'forestgreen', label = r'$\dot{M}_{\rm in}$ at $R_{\rm t}$')
-    ax1.plot(tfb_th, Mdot_th/Medd, c = 'gray', ls = '--', label = r'$\dot{M}_{\rm fb}$ theory')
-    # ax1.axhline(y = Mpeak/Medd, c = 'k', ls = '--', label = r'$M_{\rm peak}$')
+    # ax1.plot(tfb_th, Mdot_th/Medd, c = 'gray', ls = '--', label = r'$\dot{M}_{\rm fb, theory} = \dot{M}_{\rm peak}(t/t_{\rm fb})^{-5/3}$')
+    # ax1.axhline(Mpeak/Medd, c = 'deepskyblue', ls = ':', label = r'$\dot{M}_{\rm peak}=M_\star/3t_{\rm fb}$')
     ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm fb}$ num', c = 'k')
     ax1.set_yscale('log')
-    # ax1.set_ylim(1e-1, 8e5)
+    ax1.set_ylim(1e-1, 2e5)
     ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')    
     # ax2.plot(tfb, Vwind_pos_amb/prel.csol_cgs, c = 'dodgerblue', label = r'$v_{\rm w}$')
     # ax2.plot(tfb, Vwind_neg_amb/prel.csol_cgs, c = 'forestgreen', label = r'$v_{\rm in}$')
@@ -279,7 +279,7 @@ if plot:
         ax.tick_params(axis='both', which='minor', width=.8, length=4)
         ax.set_xlim(0, 1.7)
         ax.grid()
-        ax.set_title(r'$v_{\rm esc}\approx$'+f'{np.round(v_esc/prel.csol_cgs, 2)}c', fontsize = 20)
+    ax2.set_title(r'$v_{\rm esc}\approx$'+f'{np.round(v_esc/prel.csol_cgs, 2)}c', fontsize = 20)
     plt.tight_layout()
     fig.savefig(f'{abspath}/Figs/paper/Mdot_{check}.pdf', bbox_inches = 'tight')
 
