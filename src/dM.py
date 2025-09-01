@@ -166,7 +166,7 @@ if not alice:
             ratio_L[j] = find_ratio(data_fin[j], dataL_fin[j])
             ratio_H[j] = find_ratio(data_fin[j], dataH_fin[j])
         
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
         ax1.plot(mid_points, data[0], c = 'k', alpha = 0.5)#, label = r't = 0')
         ax1.plot(mid_points, dataL_fin, c = 'C1', label = f'Low')            
         ax1.plot(mid_points, data_fin, c = 'yellowgreen', label = f'Middle')
@@ -183,11 +183,11 @@ if not alice:
         ax1.set_ylim(2e-6, 2e-2)
         ax2.set_xlabel(r'$\varepsilon/\Delta\varepsilon$')
         ax2.set_ylabel(r'$\kappa$')
-        original_ticksy = ax2.get_yticks()
-        midpointsy = (original_ticksy[:-1] + original_ticksy[1:]) / 2
-        new_ticksy = np.sort(np.concatenate((original_ticksy, midpointsy)))
-        ax2.set_yticks(new_ticksy)
-        ax2.set_ylim(0.9, 2)
+        # original_ticksy = ax2.get_yticks()
+        # midpointsy = (original_ticksy[:-1] + original_ticksy[1:]) / 2
+        # new_ticksy = np.sort(np.concatenate((original_ticksy, midpointsy)))
+        # ax2.set_yticks(new_ticksy)
+        ax2.set_ylim(0.9, 3)
         for ax in (ax1, ax2):
             ax.set_xlim(-2.5,2)
         # put the legend outside the plot
@@ -444,10 +444,4 @@ if not alice:
     #             plt.savefig(f'Figs/{folder}/threshold_time{np.round(tfb,1)}.png')
     #         plt.show()
     # # %%
-    Mdot_kep = mstar/(3*t_fb_days/365) * (1+tfb)**(-5/3)
-    plt.figure()
-    plt.plot(tfb, np.abs(Mdot_kep))
-    plt.yscale('log')
-    plt.show() 
-    # %%
-    
+ 

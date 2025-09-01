@@ -163,21 +163,17 @@ def choose_observers(observers_xyz, choice):
         colors_obs = ['k', 'green', 'orange', 'b', 'r']
     
     if choice == 'focus_axis': # 3D cartesian axis
-        # wanted_obs = [(1,0,0), 
-        #             (0,1,0),  
-        #             (-1,0,0),
-        #             (0,-1,0),
-        #             (0,0,1),
-        #             (0,0,-1)]
         wanted_obs = [(1,0,0), 
+                    (0,1,0),  
+                    (-1,0,0),
+                    (0,-1,0),
                     (0,0,1),
                     (0,0,-1)]
+
         tree_obs = KDTree(observers_xyz.T) # shape is N,3
         _, indices_sorted = tree_obs.query(np.array(wanted_obs), k=4) # shape: (len(wanted_obs),k)
-        # label_obs = ['x+', 'y+', 'x-', 'y-', 'z+', 'z-']
-        label_obs = ['x+', 'z+', 'z-']
-        # colors_obs = ['r', 'plum', 'seagreen', 'sienna', 'dodgerblue', 'C1']
-        colors_obs = ['r', 'deepskyblue', 'C1']
+        label_obs = ['x+', 'y+', 'x-', 'y-', 'z+', 'z-']
+        colors_obs = ['r', 'plum', 'seagreen', 'sienna', 'dodgerblue', 'C1']
     
     if choice == 'quadrants ': # 8 3d-quadrants 
         # Cartesian view    

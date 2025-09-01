@@ -16,13 +16,13 @@ import gc
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-import scipy.integrate as sci
+from scipy.integrate import cumulative_trapezoid
 import healpy as hp
 import matlab.engine
 from sklearn.neighbors import KDTree
 from src.Opacity.linextrapolator import opacity_linear, opacity_extrap
 import Utilities.prelude as prel
-from Utilities.operators import make_tree, sort_list, to_spherical_components
+from Utilities.operators import make_tree, sort_list, to_spherical_components, choose_observers
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
 import src.orbits as orb
@@ -123,7 +123,6 @@ def r_trapp(loadpath, snap):
         ray_x = X[idx]
         ray_y = Y[idx]
         ray_z = Z[idx]
-        ray_r = r #np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) 
         t = T[idx]
         d = Den[idx] * prel.den_converter
         ray_vol = Vol[idx]
@@ -131,34 +130,65 @@ def r_trapp(loadpath, snap):
         ray_vy = VY[idx]
         ray_vz = VZ[idx]
         ray_idx_sim = idx_sim[idx]
+        ray_r = r #np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) 
         # ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r = \
         #     sort_list([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r], ray_r)
         idx = np.array(idx)
-        # long_ph_s = np.arctan2(ray_y, ray_x)          # Azimuthal angle in radians
-        # lat_ph_s = np.arccos(ray_z/ ray_r) 
         v_rad, _, _ = to_spherical_components(ray_vx, ray_vy, ray_vz, ray_x, ray_y, ray_z)
         vel = np.sqrt(ray_vx**2 + ray_vy**2 + ray_vz**2)
 
         # Interpolate ----------------------------------------------------------
-        sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
-        sigma_rossland = np.array(sigma_rossland)[0]
-        underflow_mask = sigma_rossland != 0.0
-        ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, sigma_rossland, idx = \
-            make_slices([ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, sigma_rossland, idx], underflow_mask)
-        sigma_rossland_eval = np.exp(sigma_rossland) # [1/cm]
-        del sigma_rossland
+        alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
+        alpha_rossland = np.array(alpha_rossland)[0]
+        underflow_mask = alpha_rossland != 0.0
+        ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, alpha_rossland, idx = \
+            make_slices([ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, alpha_rossland, idx], underflow_mask)
+        alpha_rossland_eval = np.exp(alpha_rossland) # [1/cm]
+        del alpha_rossland
         gc.collect()
 
         # Optical Depth
         ray_fuT = np.flipud(ray_r)
-        kappa_rossland_fuT = np.flipud(sigma_rossland_eval) 
-        # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
-        los = - np.flipud(sci.cumulative_trapezoid(kappa_rossland_fuT, ray_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_z. YOu integrate in the z direction
-        los_zero = los != 0
-        ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, sigma_rossland_eval, los, idx = \
-            make_slices([ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, sigma_rossland_eval, los, idx], los_zero)
-        c_tau = prel.csol_cgs/los # c/tau [code units]
+        alpha_rossland_fuT = np.flipud(alpha_rossland_eval) 
+        # compute the optical depth from outside in: tau = - int alpha dr. Then reverse the order to have it from the inside to out, so can query.
+        tau = - np.flipud(cumulative_trapezoid(alpha_rossland_fuT, ray_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_r. 
+        tau_zero = tau != 0
+        ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, alpha_rossland_eval, tau, idx = \
+            make_slices([ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, alpha_rossland_eval, tau, idx], tau_zero)
+        c_tau = prel.csol_cgs/tau # code units, since tau is adimensional
 
+        if plot:
+            photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
+            xph, yph, zph = photo[0], photo[1], photo[2]
+            rph = np.sqrt(xph**2 + yph**2 + zph**2)
+
+            tdyn_single = ray_r / np.abs(v_rad) * prel.tsol_cgs # cgs
+            tdiff_single = tau * ray_r * prel.Rsol_cgs / prel.c_cgs # cgs
+
+            fig, ax1 = plt.subplots(1,1,figsize = (8,6))
+            ax1.plot(ray_r/apo, tdyn_single/tfallback_cgs, c = 'k', label = r'$t_{\rm dyn}=R/v_R$')
+            # add a twin y axis to show v_rad 
+            # ax2 = ax1.twinx()
+            # ax2.plot(ray_r/apo, v_rad, c = 'r')
+            # ax2.set_ylabel(r'$v_R$ [cm/s]', fontsize = 20, c = 'r')
+            # ax2.tick_params(axis='y', labelcolor='r')
+            # ax2.set_yscale('log')                
+            img = ax1.scatter(ray_r/apo, tdiff_single/tfallback_cgs, c = tau, cmap = 'turbo', s = 10, norm = colors.LogNorm(5e-1, 1e2)) #np.percentile(tau, 5), np.percentile(tau, 95)))
+            cbar = plt.colorbar(img)#, orientation = 'horizontal')
+            cbar.set_label(r'$\tau$', fontsize = 20)
+            ax1.axvline(Rt/apo, c = 'k', linestyle = '-.', label = r'$R_{\rm t}$')
+            # ax1.axvline(rph[i]/apo, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
+            ax1.set_xlabel(r'$R [R_{\rm a}]$')
+            ax1.set_ylabel(r'$t [t_{\rm fb}]$')
+            ax1.loglog()    
+            ax1.set_xlim(R0/apo, rph[i]/apo)
+            ax1.set_ylim(1e-3, 1e-1)
+            ax1.tick_params(axis='both', which='major', length=8, width=1.2)
+            ax1.tick_params(axis='both', which='minor', length=5, width=1)
+            ax1.legend(fontsize = 14)
+            plt.suptitle(f'Snap {snap}, observer {i} from R0 to its photosphere', fontsize = 16)
+            plt.tight_layout()
+        
         # select the inner part, where tau big --> c/tau < v
         Rtr_idx_all = np.where(c_tau/np.abs(v_rad)<1)[0]
         if len(Rtr_idx_all) == 0:
@@ -176,37 +206,10 @@ def r_trapp(loadpath, snap):
         Vr_tr[i] = v_rad[Rtr_idx]
         V_tr[i] = vel[Rtr_idx]
         idx_tr[i] = ray_idx_sim[Rtr_idx]
-
+        
         if plot:
-            photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
-            xph, yph, zph = photo[0], photo[1], photo[2]
-            rph = np.sqrt(xph**2 + yph**2 + zph**2)
-
-            tdyn_single = ray_r / np.abs(v_rad) * prel.tsol_cgs # cgs
-            tdiff_single = los * ray_r * prel.Rsol_cgs / prel.c_cgs # cgs
-
-            fig, ax1 = plt.subplots(1,1,figsize = (8,6))
-            ax1.plot(ray_r/apo, tdyn_single/tfallback_cgs, c = 'k', label = r'$t_{\rm dyn}=R/v_R$')
-            # add a twin y axis to show v_rad 
-            # ax2 = ax1.twinx()
-            # ax2.plot(ray_r/apo, v_rad, c = 'r')
-            # ax2.set_ylabel(r'$v_R$ [cm/s]', fontsize = 20, c = 'r')
-            # ax2.tick_params(axis='y', labelcolor='r')
-            # ax2.set_yscale('log')                
-            img = ax1.scatter(ray_r/apo, tdiff_single/tfallback_cgs, c = los, cmap = 'turbo', s = 10, label = r'$t_{\rm diff}=\tau R/c$', norm = colors.LogNorm(1e1, 1e5))# np.percentile(los, 5), np.percentile(los, 95)))
-            cbar = plt.colorbar(img)#, orientation = 'horizontal')
-            cbar.set_label(r'$\tau$', fontsize = 20)
-            ax1.axvline(Rt/apo, c = 'k', linestyle = '-.', label = r'$R_{\rm t}$')
             ax1.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
-            ax1.axvline(rph[i]/apo, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
-            ax1.set_xlabel(r'$R [R_{\rm a}]$')
-            ax1.set_ylabel(r'$t [t_{\rm fb}]$')
-            ax1.set_yscale('log')
-            ax1.set_xlim(-.1, 2.5)
-            ax1.set_ylim(1e-3, 1e3)
-            ax1.legend(fontsize = 14, loc = 'lower right')
-            plt.suptitle(f'Snap {snap}, observer {i}', fontsize = 16)
-            plt.tight_layout()
+            ax1.legend(fontsize = 14)
 
     r_trapp = {
         'x_tr': x_tr,
@@ -234,39 +237,12 @@ for snap in snaps:
         loadpath = f'{pre}/snap_{snap}'
         print(snap, flush=True)
     else: 
-        if snap != 318:
+        if snap != 238:
             continue
         loadpath = f'{pre}/{snap}'
         observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
-        x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
-        wanted_obs = [(1,0,0), 
-            (0,1,0),
-            (-1,0,0),
-            (0,-1,0),
-            (0,0,1),
-            (0,0,-1)]
-        label_obs = ['x+', 'y+', 'x-', 'y-','z+','z-']
-        dot_prod = np.dot(wanted_obs, observers_xyz)
-        test_idx = np.argmax(dot_prod, axis=1)
-        # test_idx = np.zeros(len(wanted_obs))
-        # for i, obs_sel in enumerate(wanted_obs):   
-        #     _, indices_dist, dist = k3match.cartesian(obs_sel[0], obs_sel[1], obs_sel[2], x_obs, y_obs, z_obs, 1)
-        #     indices_dist, dist = sort_list([indices_dist, dist], dist)
-        #     test_idx[i] = indices_dist[0]
-        label_obs = np.asarray(label_obs)
-        test_idx = np.asarray(test_idx)
-        label_obs, test_idx = sort_list([label_obs, test_idx], test_idx)
-        # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
-        # for j, idx_list in enumerate(test_idx):
-        #     ax1.scatter(x_obs[idx_list], y_obs[idx_list], s = 50, c = colors_obs[j], label = label_obs[j])
-        #     ax2.scatter(x_obs[idx_list], z_obs[idx_list], s = 50, c = colors_obs[j], label = label_obs[j])
-        # for ax in [ax1, ax2]:
-        #     ax.set_xlabel(r'$X$')
-        #     ax.set_xlim(-1.5, 1.5)
-        #     ax.set_ylim(-1.5, 1.5)
-        #     ax.legend()
-
-        # test_idx = [0, 103, 120, 150, 180, 191]
+        indices_sorted, label_obs, colors_obs = choose_observers(observers_xyz, 'focus_axis')
+        test_idx = indices_sorted[:,0]
 
     r_tr = r_trapp(loadpath, snap)
     # np.savez(f"{pre_saving}/Rtrap_tests/{check}_Rtr{snap}_NOunique.npz", **r_tr)

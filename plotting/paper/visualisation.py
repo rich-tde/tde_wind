@@ -30,7 +30,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'NewAMR'
+check = 'HiResNewAMR'
 choosen_snaps = np.array([97, 238, 318])
 save = True
 
@@ -240,12 +240,14 @@ overview = False
 if talk:
     from Utilities.operators import sort_list
     data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
-    snaps, Lum, tfb = split_data_red('NewAMR')
-    # dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_NewAMRcutDen.txt')
-    # tfbdiss, LDiss = dataDiss[0], dataDiss[2] * prel.en_converter/prel.tsol_cgs 
+    snaps, Lum, tfb = split_data_red(check)
+    dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float)
+    tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3]
+    LDiss = LDiss * prel.en_converter/prel.tsol_cgs # [erg/s]
+    
     for i, snap in enumerate(snaps):
-        if snap not in np.arange(96,97):
-            continue
+        # if snap != 236:
+        #     continue
         print(snap)
         x_denproj = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denxarray.npy')
         y_denproj = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denyarray.npy')
@@ -260,7 +262,7 @@ if talk:
 
         fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize = (40,15), gridspec_kw={'width_ratios': [1, 1, 0.8]})
         ax3.scatter(tfb[:i+1], Lum[:i+1], c = 'k', s = 18, label = r'L$_{\rm FLD}$')
-        # ax3.plot(tfbdiss[:i+1], LDiss[:i+1], ls = '--', c = 'k', label = r'L$_{\rm diss}$')
+        ax3.plot(tfbdiss[:i+1], LDiss[:i+1], ls = '--', c = 'k', label = r'L$_{\rm diss}$')
         ax3.set_xlabel(r't $[t_{\rm fb}]$')
         ax3.set_ylabel(r'L [erg/s]')
         ax3.set_yscale('log')
@@ -281,15 +283,15 @@ if talk:
         cbar.set_label(r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$')
         ax2.text(-1.15, 0.4, f't = {np.round(tfb[i]*t_fall_hour,1)}' + r' hours', color = 'white', fontsize = 28)
         for ax in [ax1, ax2]:
-            ax.contour(xcfr_grid[0], ycfr_grid[0], cfr_grid[0], levels=[0], colors='white')
+            # ax.contour(xcfr_grid[0], ycfr_grid[0], cfr_grid[0], levels=[0], colors='white')
             ax.scatter(0,0,c= 'k', marker = 'x', s=80)
             ax.set_xlim(-1.2,0.1)
             ax.set_ylim(-0.5,0.5)
             ax.set_xlabel(r'X [$R_{\rm a}$]')
         
         plt.tight_layout()
-        # plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/denproj_diss{snap}.png')
-        # plt.close()
+        plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/denproj_diss{snap}.png')
+        plt.close()
 
 if overview:
     t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)

@@ -138,10 +138,10 @@ if __name__ == '__main__':
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = 'NewAMR'
+    check = 'HiResNewAMR'
     compton = 'Compton'
     what_to_grid = 'Den'
-    how_far = 'big' # 'big' for big grid, '' for small grid
+    how_far = '' # 'big' for big grid, '' for small grid
     save_fig = False
 
     params = [Mbh, Rstar, mstar, beta]

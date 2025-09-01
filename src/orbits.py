@@ -22,13 +22,40 @@ def make_cfr(R, x0=0, y0=0):
     return xcfr, ycfr, cfr
 
 def keplerian_energy(Mbh, G, t):
-    # specific orbital energy of a Keplerian orbit
+    """ specific orbital energy of a Keplerian orbit
+    Parameters
+    ----------
+    Mbh : float
+        Black hole mass in solar masses
+    G : float
+        Gravitational constant
+    t : float
+        Time in code units, NOT in fallback time
+    Returns
+    -------
+    energy : float
+        Specific orbital energy of a Keplerian orbit in code units
+    """
     energy = (np.pi * G * Mbh / (np.sqrt(2) * t))**(2/3)
     return energy
 
 def Mdot_fb(Mbh, G, t, dmdE):
-    """ Mass fallback rate according to Keplers law for t and dM/dE from numerical simualtion data.
-    Eq.26 in Rossi+20"""
+    """ Mass fallback rate according to Keplers law (Eq.26 in Rossi+20)
+    Parameters
+    ----------
+    Mbh : float
+        Black hole mass in solar masses
+    G : float
+        Gravitational constant
+    t : float
+        Time in code units, NOT in fallback time
+    dmdE : float
+        dM/dE from numerical simulation data
+    Returns
+    -------
+    Mdot : float
+        Mass fallback rate in code units
+    """
     Mdot = -2/3 * dmdE * (np.pi * G * Mbh / np.sqrt(2))**(2/3) * t**(-5/3)
     return Mdot
 

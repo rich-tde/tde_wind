@@ -27,7 +27,6 @@ from Utilities.sections import make_slices
 #%%
 m = 4
 Mbh = 10**4
-Mbh_cgs = Mbh * prel.Msol_cgs
 beta = 1
 mstar = .5
 Rstar = .47
@@ -140,8 +139,6 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         V = np.sqrt(VX**2 + VY**2 + VZ**2)
         orb_en = orb.orbital_energy(Rsph, V, Mass, params, prel.G) 
         bern = orb_en/Mass + IE_spec + Press/Den
-        long = np.arctan2(Y, X)          # Azimuthal angle in radians
-        lat = np.arccos(Z / Rsph)
         v_rad, _, _ = to_spherical_components(VX, VY, VZ, X, Y, Z)
         # Positive velocity (and unbound)
         cond = np.logical_and(v_rad >= 0, np.logical_and(bern > 0, X > -amin))
