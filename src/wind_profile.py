@@ -179,10 +179,11 @@ for j, idx_list in enumerate(indices_sorted):
 #%%
 # R_edge = v_esc / prel.tsol_cgs * tfb * t_fb_days_cgs
 x_test = np.arange(1e-2, 10)
-y_test23 = 7e4*(x_test)**(-2/3)
-y_test2 = 4e-13* (x_test)**(-2)
-y_testplus2 = 1e2* (x_test)**(2)
-y_test3 = 1e-12 * (x_test)**(-3)
+y_test1 = 6.5e4* (x_test)**(-1)
+y_test23 = 6.5e4*(x_test)**(-2/3)
+y_test2 = 1.5e-12* (x_test)**(-2)
+y_testplus2 = 3.5e3* (x_test)**(2)
+y_test3 = 8e-11 * (x_test)**(-3)
 which_part = 'outflow'
 profiles = np.loadtxt(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}.txt')
 r, d_mean, v_rad_mean, t_mean, rad_den_mean = \
@@ -206,7 +207,7 @@ fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(24, 6))
 figT, axT = plt.subplots(1, 1, figsize=(10, 7))
 figL, axL = plt.subplots(1, 1, figsize=(10, 7))
 for i in range(len(d_mean)):
-    if i not in [0, 2]:
+    if i not in [1,3]:
         continue
     r_normalizer = apo if normalize_by == 'apo' else r_tr_mean[i]
 
@@ -233,7 +234,8 @@ ax2.axhline(v_esc_kms, c = 'gray', ls = 'dotted', label = r'$v_{\rm esc} (R_p)$'
 ax1.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto R^{-3}$')
 ax2.plot(x_test, y_testplus2, c = 'gray', ls = 'dotted', label = r'$v_r \propto R^{2}$')
 axT.plot(x_test, y_test23, c = 'gray', ls = 'dashed', label = r'$T \propto R^{-2/3}$')
-axL.plot(x_test, 8e-6*y_test23, c = 'gray', ls = 'dashed', label = r'$L \propto R^{-2/3}$')
+axT.plot(x_test, y_test1, c = 'gray', ls = ':', label = r'$T \propto R^{-1}$')
+axL.plot(x_test, 1e-5*y_test23, c = 'gray', ls = 'dashed', label = r'$L \propto R^{-2/3}$')
 
 for ax in [ax1, ax2, ax3, axT, axL]:
     #put the legend if which_obs != 'all_rotate'. Lt it be outside
@@ -254,7 +256,7 @@ ax1.set_ylim(1e-15, 1e-9)
 ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
 ax2.set_ylim(8e2, 2e4)
 ax2.set_ylabel(r'$v_r$ [km/s]')
-ax3.set_ylim(1e-1, 1e3)
+ax3.set_ylim(1e-1, 5e3)
 ax3.set_ylabel(r'$4\pi v_r \rho R^2 \,[\dot{M}_{\rm{Edd}}]$')
 axT.set_ylim(1e4, 1e6)
 axT.set_ylabel(r'$T$ [K]')
@@ -262,9 +264,9 @@ axL.set_ylabel(r'$L [L_{\rm Edd}]$')
 axL.set_ylim(2e-2, 2e1)
 fig.suptitle(f't = {np.round(tfb,2)}' + r't$_{\rm fb}$', fontsize = 20)
 fig.tight_layout()
-fig.savefig(f'{abspath}/Figs/next_meeting/den_prof{snap}{which_part}X.png', bbox_inches = 'tight')
-figT.savefig(f'{abspath}/Figs/next_meeting/T{snap}{which_part}X.png', bbox_inches = 'tight')
-figL.savefig(f'{abspath}/Figs/next_meeting/L{snap}{which_part}X.png', bbox_inches = 'tight')
+fig.savefig(f'{abspath}/Figs/next_meeting/den_prof{snap}{which_part}XZ.png', bbox_inches = 'tight')
+figT.savefig(f'{abspath}/Figs/next_meeting/T{snap}{which_part}XZ.png', bbox_inches = 'tight')
+figL.savefig(f'{abspath}/Figs/next_meeting/L{snap}{which_part}XZ.png', bbox_inches = 'tight')
 plt.show()
 
 #%% find eta = mfall(t_fb-t_dyn)/Mwind(tfb)

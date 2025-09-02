@@ -70,7 +70,7 @@ if alice:
         tot_Rad = np.sum(Rad)
 
         data_E = [snap, tfb[i], tot_ie, tot_orb_en_pos, tot_orb_en_neg, tot_Rad]
-        with open(f'{abspath}/data/{folder}/convE_{check}.txt', 'a', newline='') as file:
+        with open(f'{abspath}/data/{folder}/convE_{check}.csv', 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(data_E)
         file.close()

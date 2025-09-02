@@ -66,11 +66,11 @@ def r_trapp(loadpath, snap):
 
     data = make_tree(loadpath, snap, energy = True)
     box = np.load(f'{loadpath}/box_{snap}.npy')
-    X, Y, Z, T, Den, Vol, VX, VY, VZ = \
-        data.X, data.Y, data.Z, data.Temp, data.Den, data.Vol, data.VX, data.VY, data.VZ
+    X, Y, Z, T, Den, Vol, VX, VY, VZ, Press, IE_den, Rad_den = \
+        data.X, data.Y, data.Z, data.Temp, data.Den, data.Vol, data.VX, data.VY, data.VZ, data.Press, data.IE, data.Rad
     denmask = Den > 1e-19
-    X, Y, Z, T, Den, Vol, VX, VY, VZ = \
-        make_slices([X, Y, Z, T, Den, Vol, VX, VY, VZ], denmask)
+    X, Y, Z, T, Den, Vol, VX, VY, VZ, Press, IE_den, Rad_den = \
+        make_slices([X, Y, Z, T, Den, Vol, VX, VY, VZ, Press, IE_den, Rad_den], denmask)
     idx_sim = np.arange(len(X))
     xyz = np.array([X, Y, Z]).T
     N_ray = 5000
@@ -83,6 +83,9 @@ def r_trapp(loadpath, snap):
     Temp_tr = np.zeros(len(observers_xyz))
     Vr_tr = np.zeros(len(observers_xyz))
     V_tr = np.zeros(len(observers_xyz))
+    P_tr = np.zeros(len(observers_xyz))
+    IEden_tr = np.zeros(len(observers_xyz))
+    Rad_den_tr = np.zeros(len(observers_xyz))
     idx_tr = np.zeros(len(observers_xyz))
 
     for i in range(len(observers_xyz)):
@@ -131,6 +134,9 @@ def r_trapp(loadpath, snap):
         ray_vz = VZ[idx]
         ray_idx_sim = idx_sim[idx]
         ray_r = r #np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) 
+        ray_P = Press[idx]
+        ray_ieDen = IE_den[idx]
+        ray_radDen = Rad_den[idx]
         # ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r = \
         #     sort_list([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r], ray_r)
         idx = np.array(idx)
@@ -141,8 +147,8 @@ def r_trapp(loadpath, snap):
         alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
         alpha_rossland = np.array(alpha_rossland)[0]
         underflow_mask = alpha_rossland != 0.0
-        ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, alpha_rossland, idx = \
-            make_slices([ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, alpha_rossland, idx], underflow_mask)
+        ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, alpha_rossland, ray_P, ray_ieDen, ray_radDen, idx = \
+            make_slices([ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, alpha_rossland, ray_P, ray_ieDen, ray_radDen, idx], underflow_mask)
         alpha_rossland_eval = np.exp(alpha_rossland) # [1/cm]
         del alpha_rossland
         gc.collect()
@@ -153,8 +159,8 @@ def r_trapp(loadpath, snap):
         # compute the optical depth from outside in: tau = - int alpha dr. Then reverse the order to have it from the inside to out, so can query.
         tau = - np.flipud(cumulative_trapezoid(alpha_rossland_fuT, ray_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_r. 
         tau_zero = tau != 0
-        ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, alpha_rossland_eval, tau, idx = \
-            make_slices([ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, alpha_rossland_eval, tau, idx], tau_zero)
+        ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, alpha_rossland_eval, tau, ray_P, ray_ieDen, ray_radDen, idx = \
+            make_slices([ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, alpha_rossland_eval, tau, ray_P, ray_ieDen, ray_radDen, idx], tau_zero)
         c_tau = prel.csol_cgs/tau # code units, since tau is adimensional
 
         if plot:
@@ -205,6 +211,9 @@ def r_trapp(loadpath, snap):
         Temp_tr[i] = t[Rtr_idx]
         Vr_tr[i] = v_rad[Rtr_idx]
         V_tr[i] = vel[Rtr_idx]
+        P_tr[i] = ray_P[Rtr_idx]
+        IEden_tr[i] = ray_ieDen[Rtr_idx]
+        Rad_den_tr[i] = ray_radDen[Rtr_idx]
         idx_tr[i] = ray_idx_sim[Rtr_idx]
         
         if plot:
@@ -220,6 +229,9 @@ def r_trapp(loadpath, snap):
         'Temp_tr': Temp_tr,
         'Vr_tr': Vr_tr,
         'V': V_tr,
+        'P_tr': P_tr,
+        'IE_den_tr': IEden_tr,
+        'Rad_den_tr': Rad_den_tr,
         'idx_tr': idx_tr,
     }
 
@@ -241,7 +253,7 @@ for snap in snaps:
             continue
         loadpath = f'{pre}/{snap}'
         observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
-        indices_sorted, label_obs, colors_obs = choose_observers(observers_xyz, 'focus_axis')
+        indices_sorted, label_obs, colors_obs = choose_observers(observers_xyz, 'arch')
         test_idx = indices_sorted[:,0]
 
     r_tr = r_trapp(loadpath, snap)

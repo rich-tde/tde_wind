@@ -174,5 +174,5 @@ for i, snap in enumerate(snaps):
     np.savetxt(f'{prepath}/tfb_{snap}.txt', [tfb])
 
     del box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy
-    print('Done')
+print('Done')
                 
