@@ -241,13 +241,13 @@ if talk:
     from Utilities.operators import sort_list
     data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
     snaps, Lum, tfb = split_data_red(check)
-    dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float)
+    dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows = 1)
     tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3]
     LDiss = LDiss * prel.en_converter/prel.tsol_cgs # [erg/s]
     
     for i, snap in enumerate(snaps):
-        # if snap != 236:
-        #     continue
+        if snap < 70:
+            continue
         print(snap)
         x_denproj = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denxarray.npy')
         y_denproj = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denyarray.npy')

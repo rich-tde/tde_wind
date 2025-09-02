@@ -143,8 +143,6 @@ if kind_of_plot == 'convergence':
     percentile84H = np.zeros(len(tfbH))
 
     for j, snap_sH in enumerate(snapH):
-        if snap_sH in [65, 66]:
-            continue
         xphH, yphH, zphH, volphH, denphH, TempphH, Rad_denphH, VxphH, VyphH, VzphH, PressphH, IE_denphH, _, _, _, _ = \
             np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/photo/HiResNewAMR_photo{snap_sH}.txt')
         rphH = np.sqrt(xphH**2 + yphH**2 + zphH**2)

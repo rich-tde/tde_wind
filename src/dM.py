@@ -151,7 +151,7 @@ if not alice:
         snapsL, tfbL = datadaysL[0], datadaysL[1]
         dataL = np.loadtxt(f'{abspath}data/{commonfolder}LowResNewAMR/wind/dMdE_LowResNewAMR.txt')
 
-        final_time = 1
+        final_time = 0.05
         idx_snap = np.argmin(np.abs(tfb - final_time))
         idx_snapH = np.argmin(np.abs(tfbH - final_time))
         idx_snapL = np.argmin(np.abs(tfbL - final_time))
@@ -193,6 +193,8 @@ if not alice:
         # put the legend outside the plot
         # ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
         # ax2.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
+        plt.suptitle(f't/tfb = {final_time}', fontsize = 16)
+        plt.tight_layout()
         if save:
             plt.savefig(f'{abspath}Figs/multiple/dMdE_times_equalbins.pdf', bbox_inches='tight')
         plt.show()

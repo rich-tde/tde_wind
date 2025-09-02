@@ -32,7 +32,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'NewAMR'
+check = 'HiResNewAMR'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
@@ -277,7 +277,8 @@ if plot:
         ax.set_xlim(0, 1.7)
         ax.grid()
     ax2.set_title(r'$v_{\rm esc}\approx$'+f'{np.round(v_esc/prel.csol_cgs, 2)}c', fontsize = 20)
-    plt.tight_layout()
+    ax1.set_title(f'{check}', fontsize = 20)
+    fig.tight_layout()
     fig.savefig(f'{abspath}/Figs/paper/Mdot_{check}.pdf', bbox_inches = 'tight')
 
     # reproduce LodatoRossi11 Fig.6

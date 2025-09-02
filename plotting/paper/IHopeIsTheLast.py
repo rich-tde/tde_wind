@@ -111,11 +111,11 @@ if __name__ == '__main__':
     mean_phH, median_phH, percentile16H, percentile84H = statistics_photo(snapH, 'HiResNewAMR')
 
     # Dissipation (positive sign, which is the one of pericenter)
-    dataDissL = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/Rdiss_LowResNewAMR.csv', delimiter=',', dtype=float)
+    dataDissL = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/Rdiss_LowResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     tfbdissL, LDissL = dataDissL[:,1], dataDissL[:,3] *  prel.en_converter/prel.tsol_cgs
-    dataDiss = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/Rdiss_NewAMR.csv', delimiter=',', dtype=float)
+    dataDiss = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/Rdiss_NewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs
-    dataDissH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float)
+    dataDissH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     tfbdissH, LDissH = dataDissH[:,1], dataDissH[:,3] *  prel.en_converter/prel.tsol_cgs
 
     # dataDissOld = np.loadtxt(f'{abspath}/data/opacity_tests/{commonfold}/Rdiss_cutDen.txt')
@@ -133,14 +133,12 @@ if __name__ == '__main__':
     # Luminosity
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
     ax1.plot(tfbL, LumL, c = 'C1', label = 'Low')
-    # ax1.plot(tfbdissL, LDissL, ls = '--', c = 'C1')
+    ax1.plot(tfbdissL, LDissL, ls = '--', c = 'C1')
     ax1.plot(tfb, Lum, c = 'yellowgreen', label = 'Fid')
-    # ax1.plot(tfbdiss, LDiss, ls = '--', c = 'yellowgreen')
-    # ax1.plot(tfbdissOld, LDissOld, ls = '--', c = 'forestgreen', label = 'Old')
+    ax1.plot(tfbdiss, LDiss, ls = '--', c = 'yellowgreen')
     ax1.plot(tfbH, LumH, c = 'darkviolet', label = 'High')
-    # ax1.plot(tfbdissH, LDissH, ls = '--', c = 'darkviolet')
+    ax1.plot(tfbdissH, LDissH, ls = '--', c = 'darkviolet')
 
-    ax1.axhline(y=Ledd, c = 'k', linestyle = '-.', linewidth = 2)
     ax1.axhline(y=Ledd, c = 'k', linestyle = '-.', linewidth = 2)
     ax1.text(0.1, 1.4*Ledd, r'$L_{\rm Edd}$', fontsize = 20)
     ax1.set_ylabel(r'Luminosity [erg/s]')
@@ -325,20 +323,15 @@ if __name__ == '__main__':
 
     #%% OE and IE
     # Load data
-    col_ie, col_orb_en_pos, col_orb_en_neg, col_rad = \
-        np.load(f'{abspath}/data/{commonfold}NewAMR/convE_NewAMR.npy') #shape (3, len(tfb), len(radii))
-    col_orb_en = col_orb_en_pos + col_orb_en_neg
-    _, tfb_oe = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/convE_NewAMR_days.txt')
-
-    col_ieL, col_orb_en_posL, col_orb_en_negL, col_radL = \
-        np.load(f'{abspath}/data/{commonfold}LowResNewAMR/convE_LowResNewAMR.npy') #shape (3, len(tfb), len(radii))
+    dataL = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/convE_LowResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
+    tfb_oeL, col_ieL, col_orb_en_posL, col_orb_en_negL, col_radL = dataL[:, 1], dataL[:, 2], dataL[:, 3], dataL[:, 4], dataL[:, 5]
     col_orb_enL = col_orb_en_posL + col_orb_en_negL
-    _, tfb_oeL = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/convE_LowResNewAMR_days.txt')
-
-    col_ieH, col_orb_en_posH, col_orb_en_negH, col_radH = \
-        np.load(f'{abspath}/data/{commonfold}HiResNewAMR/convE_HiResNewAMR.npy')
+    data = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/convE_NewAMR.csv', delimiter=',', dtype=float, skiprows=1)
+    tfb_oe, col_ie, col_orb_en_pos, col_orb_en_neg, col_rad = data[:, 1], data[:, 2], data[:, 3], data[:, 4], data[:, 5]
+    col_orb_en = col_orb_en_pos + col_orb_en_neg
+    dataH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/convE_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
+    tfb_oeH, col_ieH, col_orb_en_posH, col_orb_en_negH, col_radH = dataH[:, 1], dataH[:, 2], dataH[:, 3], dataH[:, 4], dataH[:, 5]
     col_orb_enH = col_orb_en_posH + col_orb_en_negH
-    _, tfb_oeH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/convE_HiResNewAMR_days.txt')
 
     # relative differences 
     tfb_ratio_orbL, ratio_orbL = ratio_BigOverSmall(tfb_oe, col_orb_en, tfb_oeL, col_orb_enL)
@@ -402,33 +395,24 @@ if __name__ == '__main__':
 
 
     # %% all three energies
-    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(25, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-    ax1.plot(tfb_oeL, col_orb_enL*prel.en_converter*1e-47, label = r'Low', c = 'darkorange')
-    ax1.plot(tfb_oe, col_orb_en*prel.en_converter*1e-47, label = r'Fid', c = 'yellowgreen')
-    ax1.plot(tfb_oeH, col_orb_enH*prel.en_converter*1e-47, label = r'High', c = 'darkviolet')
-    ax1.set_ylabel(r'Energy')#, fontsize = 18)
-    ax1.set_title(r'Orbital energy $[10^{47}$ erg]', fontsize = 27)
+    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(40, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
+    ax1.plot(tfb_oeL, np.abs(col_orb_enL)*prel.en_converter, label = r'Low', c = 'darkorange')
+    ax1.plot(tfb_oe, np.abs(col_orb_en)*prel.en_converter, label = r'Fid', c = 'yellowgreen')
+    ax1.plot(tfb_oeH, np.abs(col_orb_enH)*prel.en_converter, label = r'High', c = 'darkviolet')
+    ax1.set_ylabel(r'Energy [erg]')#, fontsize = 18)
+    ax1.set_title(r'$|$Orbital energy$|$', fontsize = 27)
     ax1.legend(fontsize = 15)
-    ax1.set_yscale('symlog')
-    ax1.set_yticks(np.arange(-9, -5))
-    ax1.set_yticklabels(['-9', '-8', '-7', '-6'])
-    ax1.set_ylim(-9.8, -7)
-    # ax1.set_yscale('log')
-    # ax1.set_yticks(np.arange(6, 10))
-    # ax1.set_yticklabels(['6', '7', '8', '9'])
+    ax1.set_ylim(7e47, 1.1e48)
 
-    ax2.plot(tfb_oeL, col_ieL*prel.en_converter*1e-46, label = r'Low', c = 'darkorange')
-    ax2.plot(tfb_oe, col_ie*prel.en_converter*1e-46, label = r'Fid', c = 'yellowgreen')
-    ax2.plot(tfb_oeH, col_ieH*prel.en_converter*1e-46, label = r'High', c = 'darkviolet')
-    ax2.set_title(r'Internal energy [$10^{46}$ erg]', fontsize = 27)
-    ax2.set_yscale('log')
-    ax2.set_yticks(np.arange(1,5))
-    ax2.set_yticklabels(['1', '2', '3', '4'])
+    ax2.plot(tfb_oeL, col_ieL*prel.en_converter, label = r'Low', c = 'darkorange')
+    ax2.plot(tfb_oe, col_ie*prel.en_converter, label = r'Fid', c = 'yellowgreen')
+    ax2.plot(tfb_oeH, col_ieH*prel.en_converter, label = r'High', c = 'darkviolet')
+    ax2.set_title(r'Internal energy', fontsize = 27)
 
     ax3.plot(tfb_oeL, col_radL*prel.en_converter, label = r'Low', c = 'darkorange')
     ax3.plot(tfb_oe, col_rad*prel.en_converter, label = r'Fid', c = 'yellowgreen')
     ax3.plot(tfb_oeH, col_radH*prel.en_converter, label = r'High', c = 'darkviolet')
-    ax3.set_title(r'Radiation energy [erg]', fontsize = 27)
+    ax3.set_title(r'Radiation energy', fontsize = 27)
     ax3.set_yscale('log')
 
     ax4.plot(tfb_ratio_orbL, ratio_orbL, linewidth = 2.5, c = 'darkorange',  label = r'Low and Fid',)
@@ -468,24 +452,24 @@ if __name__ == '__main__':
         ax.grid()
         ax.set_xlim(.05, 1.7) 
         if ax in [ax4, ax5, ax6]:
-            ax.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 18)
+            ax.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 18
+        else:
+            ax.set_yscale('log')
     plt.tight_layout()
     plt.savefig(f'{abspath}/Figs/paper/OeIeRad.pdf', bbox_inches='tight')
     # %% bound unbound
     fig, ((ax1, ax2), (ax4, ax5)) = plt.subplots(2, 2, figsize=(18, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-    ax1.plot(tfb_oeL, col_orb_en_negL*prel.en_converter*1e-48, label = r'Low', c = 'darkorange')
-    ax1.plot(tfb_oe, col_orb_en_neg*prel.en_converter*1e-48, label = r'Fid', c = 'yellowgreen')
-    ax1.plot(tfb_oeH, col_orb_en_negH*prel.en_converter*1e-48, label = r'High', c = 'darkviolet')
-    ax1.set_ylabel(r'Orbital Energy [$10^{48}$ erg]')#, fontsize = 18)
+    ax1.plot(tfb_oeL, col_orb_en_negL*prel.en_converter*1e-49, label = r'Low', c = 'darkorange')
+    ax1.plot(tfb_oe, col_orb_en_neg*prel.en_converter*1e-49, label = r'Fid', c = 'yellowgreen')
+    ax1.plot(tfb_oeH, col_orb_en_negH*prel.en_converter*1e-49, label = r'High', c = 'darkviolet')
+    ax1.set_ylabel(r'Orbital Energy [$10^{49}$ erg]')#, fontsize = 18)
     ax1.set_title(r'Bound material ', fontsize = 27)
     ax1.legend(fontsize = 15)
-    ax1.set_ylim(-13, -12)
 
-    ax2.plot(tfb_oeL, col_orb_en_posL*prel.en_converter*1e-48, label = r'Low', c = 'darkorange')
-    ax2.plot(tfb_oe, col_orb_en_pos*prel.en_converter*1e-48, label = r'Fid', c = 'yellowgreen')
-    ax2.plot(tfb_oeH, col_orb_en_posH*prel.en_converter*1e-48, label = r'High', c = 'darkviolet')
+    ax2.plot(tfb_oeL, col_orb_en_posL*prel.en_converter*1e-49, label = r'Low', c = 'darkorange')
+    ax2.plot(tfb_oe, col_orb_en_pos*prel.en_converter*1e-49, label = r'Fid', c = 'yellowgreen')
+    ax2.plot(tfb_oeH, col_orb_en_posH*prel.en_converter*1e-49, label = r'High', c = 'darkviolet')
     ax2.set_title(r'Unbound material', fontsize = 27)
-    ax2.set_ylim(11, 12)
 
     tfb_ratio_orbnegL, ratio_orbnegL = ratio_BigOverSmall(tfb_oe, col_orb_en_neg, tfb_oeL, col_orb_en_negL)
     tfb_ratio_orbnegH, ratio_orbnegH = ratio_BigOverSmall(tfb_oe, col_orb_en_neg, tfb_oeH, col_orb_en_negH)
@@ -497,13 +481,13 @@ if __name__ == '__main__':
     ax4.plot(tfb_ratio_orbnegH, ratio_orbnegH,  label = r'Fid and High', linewidth = 2, c = 'darkviolet')
     ax4.plot(tfb_ratio_orbnegH, ratio_orbnegH, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
     ax4.set_ylabel(r'$\mathcal{R}$', fontsize = 26)
-    ax4.set_ylim(.99, 1.05)
+    # ax4.set_ylim(.99, 1.05)
 
     ax5.plot(tfb_ratio_orbnegL, ratio_orbposL, label = r'Low and Fid', linewidth = 2, c = 'darkorange')
     ax5.plot(tfb_ratio_orbnegL, ratio_orbposL, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
     ax5.plot(tfb_ratio_orbnegH, ratio_orbposH, label = r'Fid and High', linewidth = 2, c = 'darkviolet')
     ax5.plot(tfb_ratio_orbnegH, ratio_orbposH, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
-    ax5.set_ylim(.99, 1.05)
+    # ax5.set_ylim(.99, 1.05)
     
     original_ticks = ax1.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2

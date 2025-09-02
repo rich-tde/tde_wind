@@ -126,9 +126,13 @@ rtr_obs_time = np.zeros((len(tfb), len(indices_axis)))
 # alpha_obs_time = np.zeros((len(tfb), len(indices_axis)))
 flux_obs_time = np.zeros((len(tfb), len(indices_axis)))
 for i, snapi in enumerate(snaps):
+        if i!=0:
+                continue
         xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, alphaph, _, Lumph, _ = \
                 np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snapi}.txt')
         dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snapi}.npz")
+        for key in dataRtr.items():
+            print(key)
         fluxph = fluxes[i]
         dim = volph**(1/3)
         rph = np.sqrt(xph**2 + yph**2 + zph**2)

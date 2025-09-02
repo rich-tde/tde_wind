@@ -70,8 +70,12 @@ if alice:
         tot_Rad = np.sum(Rad)
 
         data_E = [snap, tfb[i], tot_ie, tot_orb_en_pos, tot_orb_en_neg, tot_Rad]
-        with open(f'{abspath}/data/{folder}/convE_{check}.csv', 'a', newline='') as file:
+        csv_path = f'{abspath}/data/{folder}/convE_{check}.csv'
+        with open(csv_path, 'a', newline='') as file:
             writer = csv.writer(file)
+            if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
+                header = ['snap', ' tfb', ' tot_ie', ' tot_orb_en_pos', ' tot_orb_en_neg', ' tot_Rad']
+                writer.writerow(header)
             writer.writerow(data_E)
         file.close()
 
@@ -112,11 +116,11 @@ if alice:
 else:
     import matplotlib.pyplot as plt
     commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    dataL = np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/convE_LowResNewAMR.csv', delimiter=',', dtype=float)
+    dataL = np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/convE_LowResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     snapsL, tfbL, IEL, OELpos, OELneg = dataL[:, 0], dataL[:, 1], dataL[:, 2], dataL[:, 3], dataL[:, 4]
-    data = np.loadtxt(f'{abspath}/data/{commonfolder}NewAMR/convE_NewAMR.csv', delimiter=',', dtype=float)
+    data = np.loadtxt(f'{abspath}/data/{commonfolder}NewAMR/convE_NewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     snaps, tfb, IE, OEpos, OEneg = data[:, 0], data[:, 1], data[:, 2], data[:, 3], data[:, 4]
-    dataH = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/convE_HiResNewAMR.csv', delimiter=',', dtype=float)
+    dataH = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/convE_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     snapsH, tfbH, IEH, OEHpos, OEHneg = dataH[:, 0], dataH[:, 1], dataH[:, 2], dataH[:, 3], dataH[:, 4]
 
     fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize = (24,6))

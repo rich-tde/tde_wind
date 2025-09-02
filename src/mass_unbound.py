@@ -88,7 +88,7 @@ if alice:
         with open(csv_path,'a', newline='') as file:
             writer = csv.writer(file)
             if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                writer.writerow(['snap', ' tfb', ' Mass unbound (bern > 0)', ' OE unbound (bern > 0)', ' Mass dynunbound (OE > 0)', ' OE dynunbound (OE > 0)', ' Mass unbound (bern > 0, X>-amin)', ' OE unbound (bern > 0, X>-amin)',])
+                writer.writerow(['snap', ' tfb', ' Mass unbound (bern > 0)', ' OE unbound (bern > 0)', ' Mass dynunbound (OE > 0)', ' OE dynunbound (OE > 0)', ' Mass unbound (bern > 0, X>-amin)', ' OE unbound (bern > 0, X>-amin)'])
             writer.writerow([snap, tfb[i], Mass_unbound, OE_unbound, Mass_dynunboundOE, OE_dynunboundOE, Mass_unbound_exclAmin, OE_unbound_exclAmin])
             file.close()
         
@@ -107,9 +107,9 @@ if alice:
 if plot:
     # among resolutions
     commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    _, tfbL, M_bernL, OE_bernL, M_OEL, OE_OEL = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/wind/Mass_unboundLowResNewAMR.csv', delimiter = ',', skiprows = 1, unpack=True)
-    _, tfb, M_bern, OE_bern, M_OE, OE_OE  = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/wind/Mass_unboundNewAMR.csv', delimiter = ',', skiprows = 1, unpack=True)
-    _, tfbH, M_bernH, OE_bernH, M_OEH, OE_OEH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/wind/Mass_unboundHiResNewAMR.csv', delimiter = ',', skiprows = 1, unpack=True)
+    _, tfbL, M_bernL, OE_bernL, M_OEL, OE_OEL, M_bernL_exclAmin, OE_bernL_exclAmin = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/wind/Mass_unboundLowResNewAMR.csv', delimiter = ',', skiprows = 1, unpack=True)
+    _, tfb, M_bern, OE_bern, M_OE, OE_OE, M_bern_exclAmin, OE_bern_exclAmin  = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/wind/Mass_unboundNewAMR.csv', delimiter = ',', skiprows = 1, unpack=True)
+    _, tfbH, M_bernH, OE_bernH, M_OEH, OE_OEH, M_bernH_exclAmin, OE_bernH_exclAmin = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/wind/Mass_unboundHiResNewAMR.csv', delimiter = ',', skiprows = 1, unpack=True)
     
     # compare dyn with B
     # fig, ax1 = plt.subplots(1, 1, figsize=(10, 7))
@@ -132,22 +132,23 @@ if plot:
     print('Relative error Fid-High', np.max((M_bernH)/(M_bern[:len(M_bernH)])))
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7))
-    ax1.plot(tfbL, (M_bernL)/mstar, c = 'C1', label = r'Low')
-    ax1.plot(tfb, (M_bern)/mstar,  c = 'yellowgreen', label = r'Fid')
-    ax1.plot(tfbH, (M_bernH)/mstar, c = 'darkviolet', label = r'High')
+    ax1.plot(tfbL, (M_bernL-M_OEL[0])/mstar, c = 'C1', label = r'Low')
+    ax1.plot(tfb, (M_bern-M_OE[0])/mstar,  c = 'yellowgreen', label = r'Fid')
+    ax1.plot(tfbH, (M_bernH-M_OEH[0])/mstar, c = 'darkviolet', label = r'High')
     ax1.set_ylabel(r'Mass [$M_\star$] after disruption')
     ax1.legend(fontsize = 15)
-    ax1.set_yscale('log')
+    ax2.set_title(r'Material in all the simulation volume') 
     
-    ax2.plot(tfbL, OE_bernL*prel.en_converter, c = 'C1', label = r'Low')
-    ax2.plot(tfb, OE_bern*prel.en_converter,  c = 'yellowgreen', label = r'Fid')
-    ax2.plot(tfbH, OE_bernH*prel.en_converter, c = 'darkviolet', label = r'High')   
-    ax2.set_ylabel(r'Tot orbital energy [erg]')
+    ax2.plot(tfbL, M_bernL_exclAmin/mstar, c = 'C1', label = r'Low')
+    ax2.plot(tfb, M_bern_exclAmin/mstar,  c = 'yellowgreen', label = r'Fid')
+    ax2.plot(tfbH, M_bernH_exclAmin/mstar, c = 'darkviolet', label = r'High')  
+    ax2.set_title(r'Material with $X>-a_{\rm min}$') 
     for ax in [ax1, ax2]:
         ax.set_xlabel(r'$t [t_{\rm fb}]$')
         ax.grid()
         ax.tick_params(axis='both', which='major', width=1, length=7)
         ax.tick_params(axis='both', which='minor', width=.8, length=4)
+        ax.set_yscale('log')
     # plt.savefig(f'{abspath}/Figs/multiple/Mass_unbound.png', dpi = 300, bbox_inches='tight')
     plt.suptitle(r'Unbound material', fontsize = 16)
     plt.tight_layout()

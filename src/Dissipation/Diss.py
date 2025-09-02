@@ -65,8 +65,12 @@ if alice:
         Rdiss_neg = np.sum(Rsph[Ediss_den < 0] * Ediss[Ediss_den < 0]) / np.sum(Ediss[Ediss_den < 0])
 
         data = [snap, tfb, Rdiss_pos, Ldisstot_pos, Rdiss_neg, Ldisstot_neg]
-        with open(f'{abspath}/data/{folder}/Rdiss_{check}{do_cut}.csv','a', newline='') as file:
+        csv_path = f'{abspath}/data/{folder}/Rdiss_{check}{do_cut}.csv'
+        with open(csv_path,'a', newline='') as file:
             writer = csv.writer(file)           
+            if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
+                header = ['snap', ' tfb', ' Rdiss_pos', ' Ldisstot_pos', ' Rdiss_neg', ' Ldisstot_neg']
+                writer.writerow(header)
             writer.writerow(data)
         file.close()
 
