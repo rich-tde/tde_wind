@@ -36,7 +36,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'NewAMR' 
-which_part = '' # 'outflow' or ''
+which_part = 'outflow' # 'outflow' or ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 pre_saving = f'{abspath}/data/{folder}'
@@ -69,16 +69,17 @@ def r_trapp(loadpath, snap):
     box = np.load(f'{loadpath}/box_{snap}.npy')
     X, Y, Z, T, Den, Vol, VX, VY, VZ, Press, IE_den, Rad_den = \
         data.X, data.Y, data.Z, data.Temp, data.Den, data.Vol, data.VX, data.VY, data.VZ, data.Press, data.IE, data.Rad
+    v_rad, _, _ = to_spherical_components(VX, VY, VZ, X, Y, Z)
+    vel = np.sqrt(VX**2 + VY**2 + VZ**2)
     if which_part == 'outflow':
         R = np.sqrt(X**2 + Y**2 + Z**2)
-        vel = np.sqrt(VX**2 + VY**2 + VZ**2)
         mass = Den * Vol
         bern = orb.bern_coeff(R, vel, Den, mass, Press, IE_den, Rad_den, params)
-        mask = np.logical_and(Den > 1e-19, bern > 0) 
-    elif which_part == '':
+        mask = np.logical_and(Den > 1e-19, np.logical_and(bern > 0, v_rad >= 0)) 
+    elif which_part == '': 
         mask = Den > 1e-19
-    X, Y, Z, T, Den, Vol, VX, VY, VZ, Press, IE_den, Rad_den = \
-        make_slices([X, Y, Z, T, Den, Vol, VX, VY, VZ, Press, IE_den, Rad_den], mask)
+    X, Y, Z, T, Den, Vol, vel, v_rad, Press, IE_den, Rad_den = \
+        make_slices([X, Y, Z, T, Den, Vol, vel, v_rad, Press, IE_den, Rad_den], mask)
     idx_sim = np.arange(len(X))
     xyz = np.array([X, Y, Z]).T
     N_ray = 5000
@@ -126,38 +127,46 @@ def r_trapp(loadpath, snap):
         z = r*mu_z
 
         xyz2 = np.array([x, y, z]).T
+        radii2 = np.sqrt(x**2 + y**2 + z**2)
+        # width = 2*np.diff(radii2)
+        # width = np.append(width, width[-1])
         del x, y, z
 
         tree = KDTree(xyz, leaf_size=50)
-        _, idx = tree.query(xyz2, k=1)
+        dist, idx = tree.query(xyz2, k=1)
+        dist = np.concatenate(dist)
         idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
+        # pick them just if near enough
+        idx = idx[dist < radii2] 
+        ray_r = r[dist < radii2] #np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) 
+
+        # idx = tree.query_radius(xyz2, radii2)
+        # print(len(idx))
+        # idx = np.concatenate(idx)
+        
         # idx = np.unique(idx)
         ray_x = X[idx]
         ray_y = Y[idx]
         ray_z = Z[idx]
-        t = T[idx]
-        d = Den[idx] * prel.den_converter
+        ray_t = T[idx]
+        ray_d = Den[idx] * prel.den_converter
         ray_vol = Vol[idx]
-        ray_vx = VX[idx]
-        ray_vy = VY[idx]
-        ray_vz = VZ[idx]
+        ray_V = vel[idx]
+        ray_vr = v_rad[idx]
         ray_idx_sim = idx_sim[idx]
-        ray_r = r #np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) 
         ray_P = Press[idx]
         ray_ieDen = IE_den[idx]
         ray_radDen = Rad_den[idx]
         # ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r = \
         #     sort_list([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r], ray_r)
         idx = np.array(idx)
-        v_rad, _, _ = to_spherical_components(ray_vx, ray_vy, ray_vz, ray_x, ray_y, ray_z)
-        vel = np.sqrt(ray_vx**2 + ray_vy**2 + ray_vz**2)
 
         # Interpolate ----------------------------------------------------------
-        alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
+        alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(ray_t), np.log(ray_d), 'linear', 0)
         alpha_rossland = np.array(alpha_rossland)[0]
         underflow_mask = alpha_rossland != 0.0
-        ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, alpha_rossland, ray_P, ray_ieDen, ray_radDen, idx = \
-            make_slices([ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, alpha_rossland, ray_P, ray_ieDen, ray_radDen, idx], underflow_mask)
+        ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, ray_idx_sim, alpha_rossland, ray_P, ray_ieDen, ray_radDen, idx = \
+            make_slices([ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, ray_idx_sim, alpha_rossland, ray_P, ray_ieDen, ray_radDen, idx], underflow_mask)
         alpha_rossland_eval = np.exp(alpha_rossland) # [1/cm]
         del alpha_rossland
         gc.collect()
@@ -168,8 +177,8 @@ def r_trapp(loadpath, snap):
         # compute the optical depth from outside in: tau = - int alpha dr. Then reverse the order to have it from the inside to out, so can query.
         tau = - np.flipud(cumulative_trapezoid(alpha_rossland_fuT, ray_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_r. 
         tau_zero = tau != 0
-        ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, alpha_rossland_eval, tau, ray_P, ray_ieDen, ray_radDen, idx = \
-            make_slices([ray_x, ray_y, ray_z, ray_r, t, d, ray_vol, v_rad, vel, ray_idx_sim, alpha_rossland_eval, tau, ray_P, ray_ieDen, ray_radDen, idx], tau_zero)
+        ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, ray_idx_sim, alpha_rossland_eval, tau, ray_P, ray_ieDen, ray_radDen, idx = \
+            make_slices([ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, ray_idx_sim, alpha_rossland_eval, tau, ray_P, ray_ieDen, ray_radDen, idx], tau_zero)
         c_tau = prel.csol_cgs/tau # code units, since tau is adimensional
 
         if plot:
@@ -177,14 +186,14 @@ def r_trapp(loadpath, snap):
             xph, yph, zph = photo[0], photo[1], photo[2]
             rph = np.sqrt(xph**2 + yph**2 + zph**2)
 
-            tdyn_single = ray_r / np.abs(v_rad) * prel.tsol_cgs # cgs
+            tdyn_single = ray_r / np.abs(ray_vr) * prel.tsol_cgs # cgs
             tdiff_single = tau * ray_r * prel.Rsol_cgs / prel.c_cgs # cgs
 
             fig, ax1 = plt.subplots(1,1,figsize = (8,6))
             ax1.plot(ray_r/apo, tdyn_single/tfallback_cgs, c = 'k', label = r'$t_{\rm dyn}=R/v_R$')
-            # add a twin y axis to show v_rad 
+            # add a twin y axis to show ray_vr 
             # ax2 = ax1.twinx()
-            # ax2.plot(ray_r/apo, v_rad, c = 'r')
+            # ax2.plot(ray_r/apo, ray_vr, c = 'r')
             # ax2.set_ylabel(r'$v_R$ [cm/s]', fontsize = 20, c = 'r')
             # ax2.tick_params(axis='y', labelcolor='r')
             # ax2.set_yscale('log')                
@@ -205,7 +214,7 @@ def r_trapp(loadpath, snap):
             plt.tight_layout()
         
         # select the inner part, where tau big --> c/tau < v
-        Rtr_idx_all = np.where(c_tau/np.abs(v_rad)<1)[0]
+        Rtr_idx_all = np.where(c_tau/np.abs(ray_vr)<1)[0]
         if len(Rtr_idx_all) == 0:
             print(f'No Rtr found anywhere for obs {i}', flush=False)
             sys.stdout.flush()
@@ -217,10 +226,10 @@ def r_trapp(loadpath, snap):
         y_tr[i] = ray_y[Rtr_idx]
         z_tr[i] = ray_z[Rtr_idx]
         vol_tr[i] = ray_vol[Rtr_idx]
-        den_tr[i] = d[Rtr_idx]/prel.den_converter
-        Temp_tr[i] = t[Rtr_idx]
-        Vr_tr[i] = v_rad[Rtr_idx]
-        V_tr[i] = vel[Rtr_idx]
+        den_tr[i] = ray_d[Rtr_idx]/prel.den_converter
+        Temp_tr[i] = ray_t[Rtr_idx]
+        Vr_tr[i] = ray_vr[Rtr_idx]
+        V_tr[i] = ray_V[Rtr_idx]
         P_tr[i] = ray_P[Rtr_idx]
         IEden_tr[i] = ray_ieDen[Rtr_idx]
         Rad_den_tr[i] = ray_radDen[Rtr_idx]
@@ -275,38 +284,37 @@ for snap in snaps:
         label_obs, colors_obs, test_idx = sort_list([label_obs, colors_obs, test_idx], test_idx)
 
     r_tr = r_trapp(loadpath, snap)
-    # np.savez(f"{pre_saving}/Rtrap_tests/{check}_Rtr{snap}_NOunique.npz", **r_tr)
 
     if save:
         np.savez(f"{pre_saving}/trap/{check}_Rtr{snap}.npz", **r_tr)
 
 #%%
-if plot:
-    photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
-    xph, yph, zph = photo[0], photo[1], photo[2]
-    rph = np.sqrt(xph**2 + yph**2 + zph**2)
-    rph = rph[test_idx]
+# if plot:
+#     photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
+#     xph, yph, zph = photo[0], photo[1], photo[2]
+#     rph = np.sqrt(xph**2 + yph**2 + zph**2)
+#     rph = rph[test_idx]
 
-    dataRtrNOun = np.load(f"{pre_saving}/Rtrap_tests/{check}_Rtr{snap}_NOunique.npz")
-    x_tr_i_NOun, y_tr_i_NOun, z_tr_i_NOun = \
-        dataRtrNOun['x_tr'], dataRtrNOun['y_tr'], dataRtrNOun['z_tr']
-    R_tr_i_NOun = np.sqrt(x_tr_i_NOun**2 + y_tr_i_NOun**2 + z_tr_i_NOun**2)
-    R_tr_i_NOun = R_tr_i_NOun[test_idx]
+#     dataRtrNOun = np.load(f"{pre_saving}/Rtrap_tests/{check}_Rtr{snap}_NOunique.npz")
+#     x_tr_i_NOun, y_tr_i_NOun, z_tr_i_NOun = \
+#         dataRtrNOun['x_tr'], dataRtrNOun['y_tr'], dataRtrNOun['z_tr']
+#     R_tr_i_NOun = np.sqrt(x_tr_i_NOun**2 + y_tr_i_NOun**2 + z_tr_i_NOun**2)
+#     R_tr_i_NOun = R_tr_i_NOun[test_idx]
 
-    dataRtr = np.load(f"{pre_saving}/Rtrap_tests/{check}_Rtr{snap}.npz")
-    x_tr_i, y_tr_i, z_tr_i, idx_tr = \
-        dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['idx_tr']
-    R_tr_i = np.sqrt(x_tr_i**2 + y_tr_i**2 + z_tr_i**2)
-    R_tr_i = R_tr_i[test_idx]
+#     dataRtr = np.load(f"{pre_saving}/Rtrap_tests/{check}_Rtr{snap}.npz")
+#     x_tr_i, y_tr_i, z_tr_i, idx_tr = \
+#         dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['idx_tr']
+#     R_tr_i = np.sqrt(x_tr_i**2 + y_tr_i**2 + z_tr_i**2)
+#     R_tr_i = R_tr_i[test_idx]
 
-    plt.figure(figsize = (8, 6))
-    plt.axvline(R_tr_i_NOun[4]/apo, label = r'$R_{\rm tr}$ without unique/sort', c = 'b')
-    plt.axvline(R_tr_i[4]/apo, label = r'$R_{\rm tr}$ with unique/sort', ls = '--', c = 'C1')
-    plt.axvline(rph[4]/apo, label = r'$R_{\rm ph}$', c = 'k')
-    plt.legend(fontsize = 16)
-    plt.xlim(0, 2.5)
-    plt.xlabel(r'$R [R_{\rm a}]$')
-    plt.title(f'Snap {snap}, observer {test_idx[1]}')
+#     plt.figure(figsize = (8, 6))
+#     plt.axvline(R_tr_i_NOun[4]/apo, label = r'$R_{\rm tr}$ without unique/sort', c = 'b')
+#     plt.axvline(R_tr_i[4]/apo, label = r'$R_{\rm tr}$ with unique/sort', ls = '--', c = 'C1')
+#     plt.axvline(rph[4]/apo, label = r'$R_{\rm ph}$', c = 'k')
+#     plt.legend(fontsize = 16)
+#     plt.xlim(0, 2.5)
+#     plt.xlabel(r'$R [R_{\rm a}]$')
+#     plt.title(f'Snap {snap}, observer {test_idx[1]}')
 
 
     # to check that the indices are correct are correct

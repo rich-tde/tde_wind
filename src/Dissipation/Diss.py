@@ -18,6 +18,7 @@ from Utilities.sections import make_slices
 from Utilities.selectors_for_snap import select_snap
 import Utilities.sections as sec
 import csv
+import os
 
 ##
 # PARAMETERS
