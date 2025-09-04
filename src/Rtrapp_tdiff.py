@@ -136,8 +136,12 @@ def r_trapp(loadpath, snap):
         dist, idx = tree.query(xyz2, k=1)
         dist = np.concatenate(dist)
         idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
-        # pick them just if near enough
+        # pick them just if near enough 
         idx = idx[dist < radii2] 
+        if len(idx) == 0:
+            print(f'No points found along the direction of observer {i}', flush=True)
+            count_i += 1
+            continue
         ray_r = r[dist < radii2] #np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) 
 
         # idx = tree.query_radius(xyz2, radii2)
@@ -217,7 +221,6 @@ def r_trapp(loadpath, snap):
         Rtr_idx_all = np.where(c_tau/np.abs(ray_vr)<1)[0]
         if len(Rtr_idx_all) == 0:
             print(f'No Rtr found anywhere for obs {i}', flush=False)
-            sys.stdout.flush()
             count_i += 1
             continue
         # take the one most outside 
