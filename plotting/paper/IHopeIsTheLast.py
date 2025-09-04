@@ -395,14 +395,14 @@ if __name__ == '__main__':
 
 
     # %% all three energies
-    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(40, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
+    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(25, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
     ax1.plot(tfb_oeL, np.abs(col_orb_enL)*prel.en_converter, label = r'Low', c = 'darkorange')
     ax1.plot(tfb_oe, np.abs(col_orb_en)*prel.en_converter, label = r'Fid', c = 'yellowgreen')
     ax1.plot(tfb_oeH, np.abs(col_orb_enH)*prel.en_converter, label = r'High', c = 'darkviolet')
     ax1.set_ylabel(r'Energy [erg]')#, fontsize = 18)
     ax1.set_title(r'$|$Orbital energy$|$', fontsize = 27)
     ax1.legend(fontsize = 15)
-    ax1.set_ylim(7e47, 1.1e48)
+    ax1.set_ylim(7e47, 1e48)
 
     ax2.plot(tfb_oeL, col_ieL*prel.en_converter, label = r'Low', c = 'darkorange')
     ax2.plot(tfb_oe, col_ie*prel.en_converter, label = r'Fid', c = 'yellowgreen')

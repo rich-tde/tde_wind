@@ -9,10 +9,10 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'NewAMR'
+check = 'HiResNewAMR'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-start = 81
+start = 21
 slow_down_factor = 2  # Increase this value to make the video slower
 
 # Get the height of the first image to calculate the scale

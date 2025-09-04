@@ -207,10 +207,11 @@ fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(24, 6))
 figT, axT = plt.subplots(1, 1, figsize=(10, 7))
 figL, axL = plt.subplots(1, 1, figsize=(10, 7))
 for i in range(len(d_mean)):
-    if i not in [1,3]:
-        continue
+    # if i not in [1,3]:
+    #     continue
     r_normalizer = apo if normalize_by == 'apo' else r_tr_mean[i]
-
+    print(label_obs[i],r_tr_mean[i]/Rp )
+    
     d = d_mean[i]
     v_rad = v_rad_mean[i] 
     t = t_mean[i]
@@ -226,7 +227,7 @@ for i in range(len(d_mean)):
     axL.plot(r/r_normalizer, L/Ledd, color = colors_obs[i], label = f'{label_obs[i]}')
 
     for ax in [ax1, ax2, ax3, axT, axL]:
-        ax.axvline(rph_mean[i]/r_normalizer, c = colors_obs[i], ls = '--', label = r'$R_{\rm ph}$ ' + f'{label_obs[i]}')
+        ax.axvline(rph_mean[i]/r_normalizer, c = colors_obs[i], ls = '--')#, label = r'$R_{\rm ph}$ ' + f'{label_obs[i]}')
 # ax1.plot(r/apo, rho_from_dM, c = 'gray', ls = '--', label = r'$\rho \propto R^{-2}$') #'From dM/dt')
 ax1.plot(x_test, y_test2, c = 'gray', ls = 'dashed', label = r'$\rho \propto R^{-2}$')
 # ax1.text(4, 1e-14, r'$\propto R^{-2}$', fontsize = 20, color = 'k', rotation = -20)
@@ -264,9 +265,9 @@ axL.set_ylabel(r'$L [L_{\rm Edd}]$')
 axL.set_ylim(2e-2, 2e1)
 fig.suptitle(f't = {np.round(tfb,2)}' + r't$_{\rm fb}$', fontsize = 20)
 fig.tight_layout()
-fig.savefig(f'{abspath}/Figs/next_meeting/den_prof{snap}{which_part}XZ.png', bbox_inches = 'tight')
-figT.savefig(f'{abspath}/Figs/next_meeting/T{snap}{which_part}XZ.png', bbox_inches = 'tight')
-figL.savefig(f'{abspath}/Figs/next_meeting/L{snap}{which_part}XZ.png', bbox_inches = 'tight')
+fig.savefig(f'{abspath}/Figs/next_meeting/den_prof{snap}{which_part}arch.png', bbox_inches = 'tight')
+figT.savefig(f'{abspath}/Figs/next_meeting/T{snap}{which_part}arch.png', bbox_inches = 'tight')
+figL.savefig(f'{abspath}/Figs/next_meeting/L{snap}{which_part}arch.png', bbox_inches = 'tight')
 plt.show()
 
 #%% find eta = mfall(t_fb-t_dyn)/Mwind(tfb)
@@ -298,7 +299,7 @@ ax.tick_params(axis='both', which='major', length=8, width=1.2)
 ax.set_ylabel(r'$\eta = |\dot{M}_{\rm w}/\dot{M}_{\rm fb}|$')
 ax.legend(fontsize = 14)
 ax.set_yscale('log')
-ax.set_ylim(1e-4, 1e-2)
+# ax.set_ylim(1e-4, 1e-2)
 ax.grid()
 fig.tight_layout()
 plt.show()

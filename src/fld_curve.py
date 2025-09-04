@@ -248,8 +248,7 @@ for idx_s, snap in enumerate(snaps):
             Lphoto2 = 1e100 # it means that it will always pick max_length for the negatives
         # free streaming emission
         max_length = 4*np.pi*(r[photosphere]**2) * prel.c_cgs * ray_radDen[photosphere] * prel.Msol_cgs * prel.Rsol_cgs / (prel.tsol_cgs**2) #the conversion is for ray_radDen*r^2 = mass*len/time^2
-        Lphoto = np.min( [Lphoto2, max_length])
-        reds[i] = Lphoto # cgs
+        Lphoto = np.min( [Lphoto2, max_length]) #that's usually Lphoto2
         ph_idx[i] = idx[photosphere]
         xph[i] = ray_x[photosphere]
         yph[i] = ray_y[photosphere]
@@ -270,7 +269,7 @@ for idx_s, snap in enumerate(snaps):
 
         del smoothed_flux, R_lamda, fld_factor, ray_radDen
         gc.collect()
-    Lphoto_snap = np.sum(reds)/num_obs # take the mean
+    Lphoto_snap = np.mean(Lph) # take the mean
     print(Lphoto_snap, flush=True)
     sys.stdout.flush()
 

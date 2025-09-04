@@ -25,6 +25,7 @@ n = 1.5
 compton = 'Compton'
 check = 'NewAMR'
 kind_of_plot = 'convergence' # 'ratioE' or 'convergence'
+which_radius = 'trap' # trap or photo
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -125,7 +126,7 @@ if kind_of_plot == 'ratioE':
     indecesorbital = np.concatenate(np.where(latitude_moll==0))
 
 if kind_of_plot == 'convergence':
-    ratio_unbound_ph = np.zeros(len(snaps))
+    ratio_unbound = np.zeros(len(snaps))
     mean_vel = np.zeros(len(snaps))
     percentile16 = np.zeros(len(snaps))
     percentile84 = np.zeros(len(snaps))
@@ -133,63 +134,68 @@ if kind_of_plot == 'convergence':
     timeH = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/wind/dMdE_HiResNewAMR_days.txt')
     snapH, tfbH = timeH[0], timeH[1]
     snapH = np.array([int(snap) for snap in snapH])
-    ratio_unbound_ph = np.zeros(len(snaps))
+    ratio_unbound = np.zeros(len(snaps))
     mean_vel = np.zeros(len(snaps))
     percentile16 = np.zeros(len(snaps))
     percentile84 = np.zeros(len(snaps))
-    ratio_unbound_phH = np.zeros(len(tfbH))
-    mean_velphH = np.zeros(len(tfbH))
+    ratio_unboundH = np.zeros(len(tfbH))
+    mean_velH = np.zeros(len(tfbH))
     percentile16H = np.zeros(len(tfbH))
     percentile84H = np.zeros(len(tfbH))
 
     for j, snap_sH in enumerate(snapH):
-        xphH, yphH, zphH, volphH, denphH, TempphH, Rad_denphH, VxphH, VyphH, VzphH, PressphH, IE_denphH, _, _, _, _ = \
-            np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/photo/HiResNewAMR_photo{snap_sH}.txt')
-        rphH = np.sqrt(xphH**2 + yphH**2 + zphH**2)
-        velphH = np.sqrt(VxphH**2 + VyphH**2 + VzphH**2)
-
-        # data_tr= np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap_sH}.npz')
-        # x_tr, y_tr, z_tr = data_tr['x_tr'], data_tr['y_tr'], data_tr['z_tr']
-
-        # r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-
-        mean_velphH_sn = np.mean(velphH)
-        percentile16H_sn = np.percentile(velphH, 16)
-        percentile84H_sn = np.percentile(velphH, 84)
-        # PE_ph_specH = -prel.G * Mbh / (rphH-Rs)
-        # KE_ph_specH = 0.5 * velphH**2
-        # energyH = KE_ph_specH + PE_ph_specH
-        massphH = denphH * volphH
-        bernH = orb.bern_coeff(rphH, velphH, denphH, massphH, PressphH, IE_denphH, Rad_denphH, params)
-        ratio_unbound_phH_sn = len(bernH[bernH>0]) / len(bernH)
+        if which_radius == 'photo':
+            xH, yH, zH, volH, denH, TempH, Rad_denH, VxH, VyH, VzH, PressH, IE_denH, _, _, _, _ = \
+                np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/photo/HiResNewAMR_photo{snap_sH}.txt')
+            rH = np.sqrt(xH**2 + yH**2 + zH**2)
+            velH = np.sqrt(VxH**2 + VyH**2 + VzH**2)
+            massH = denH * volH
+            bernH = orb.bern_coeff(rH, velH, denH, massH, PressH, IE_denH, Rad_denH, params)
+            cond = bernH>0
+        
+        elif which_radius == 'trap':
+            dataH= np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap_sH}.npz')
+            xH, yH, zH, velH, denH, volH = dataH['x_tr'], dataH['y_tr'], dataH['z_tr'], dataH['V'], dataH['den_tr'], dataH['vol_tr']
+            rH = np.sqrt(xH**2 + yH**2 + zH**2)
+            massH = denH * volH
+            energyH = orb.orbital_energy(rH, velH, massH, params, prel.G)
+            cond = energyH>0 
  
-        ratio_unbound_phH[j] = ratio_unbound_phH_sn
-        mean_velphH[j] = mean_velphH_sn
-        percentile16H[j] = percentile16H_sn
-        percentile84H[j] = percentile84H_sn
+        ratio_unboundH[j] = len(xH[np.logical_and(cond, rH!=0)]) / len(xH)
+        mean_velH[j] = np.mean(velH)
+        percentile16H[j] = np.percentile(velH, 16)
+        percentile84H[j] = np.percentile(velH, 84)
 
+#%%
 for i, snap in enumerate(snaps):
-    xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, _, _, _, _ = \
-        np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
-    rph = np.sqrt(xph**2 + yph**2 + zph**2)
-    vel = np.sqrt(Vxph**2 + Vyph**2 + Vzph**2)
+    if which_radius == 'photo':
+        x, y, z, vol, den, Temp, Rad_den, Vx, Vy, Vz, Press, IE_den, _, _, _, _ = \
+            np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
+        r = np.sqrt(x**2 + y**2 + z**2)
+        vel = np.sqrt(Vx**2 + Vy**2 + Vz**2)
+        mass = den * vol  
+        bern = orb.bern_coeff(r, vel, den, mass, Press, IE_den, Rad_den, params)
+        cond = bern>0
 
+    elif which_radius == 'trap':
+        data= np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz')
+        x, y, z, vel, den, vol = data['x_tr'], data['y_tr'], data['z_tr'], data['V'], data['den_tr'], data['vol_tr']
+        r = np.sqrt(x**2 + y**2 + z**2)
+        mass = den * vol
+        energy = orb.orbital_energy(r, vel, mass, params, prel.G)
+        cond = energy>0 
+
+    # ratio_unbound_sn = len(x[np.logical_and(cond, r!=0)]) / len(x[r!=0])
+    ratio_unbound_sn = len(x[np.logical_and(cond, r!=0)]) / len(x)
     mean_vel_sn = np.mean(vel)
     percentile16_sn = np.percentile(vel, 16)
     percentile84_sn = np.percentile(vel, 84)
-    # PE_ph_spec = -prel.G * Mbh / (rph-Rs)
-    # KE_ph_spec = 0.5 * vel**2
-    # energy = KE_ph_spec + PE_ph_spec
-    # ratio_unbound_ph_sn = len(energy[energy>0]) / len(energy)
-    massph = denph * volph
-    bern = orb.bern_coeff(rph, vel, denph, massph, Pressph, IE_denph, Rad_denph, params)
-    ratio_unbound_ph_sn = len(bern[bern>0]) / len(bern)
 
     # Plot
     if kind_of_plot == 'ratioE': # slides of boundness/unboundness with velocity arrows, (if how_amy==3, also time evolution of velocity)
         if snap != 50:
             continue
-        ratio_unbound_ph.append(ratio_unbound_ph_sn)
+        ratio_unbound.append(ratio_unbound_sn)
         mean_vel.append(mean_vel_sn)
         percentile16.append(percentile16_sn)
         percentile84.append(percentile84_sn)
@@ -292,16 +298,17 @@ for i, snap in enumerate(snaps):
         # plt.close()
 
     if kind_of_plot == 'convergence':
-        ratio_unbound_ph[i] = ratio_unbound_ph_sn
+        ratio_unbound[i] = ratio_unbound_sn
         mean_vel[i] = mean_vel_sn
         percentile16[i] = percentile16_sn
         percentile84[i] = percentile84_sn
 
 if kind_of_plot == 'convergence': # only evolution of velocity/boundness in Fid and High res
     plt.figure(figsize=(14,6))
-    img = plt.scatter(tfb, mean_vel * conversion_sol_kms * 1e-4, c = ratio_unbound_ph, s = 20, vmin = 0, vmax = 0.75)
-    plt.text(1.5, 0.6, f'Fid', fontsize = 25)
-    # plt.scatter(tfbH, mean_velphH * conversion_sol_kms * 1e-4, c = ratio_unbound_phH, s = 20, vmin = 0, vmax = 0.75, marker = 's')
+    print(ratio_unbound[-1])
+    img = plt.scatter(tfb, mean_vel * conversion_sol_kms * 1e-4, c = ratio_unbound, s = 20, vmin = 0, vmax = 0.75)
+    # plt.text(1.5, 0.6, f'Fid', fontsize = 25)
+    # plt.scatter(tfbH, mean_velH * conversion_sol_kms * 1e-4, c = ratio_unboundH, s = 20, vmin = 0, vmax = 0.75, marker = 's')
     # plt.text(1, 0.45, f'High', fontsize = 25)
     cbar = plt.colorbar(img)
     cbar.set_label('unbound/tot')
@@ -316,7 +323,10 @@ if kind_of_plot == 'convergence': # only evolution of velocity/boundness in Fid 
     plt.ylabel(r'Mean velocity [$10^4$ km/s] ')
     plt.ylim(-0.01, 2)
     plt.xlim(-0.09, 1.8)
-    plt.title(f'Photospheric cells', fontsize = 20)
+    if which_radius == 'photo':
+        plt.title(f'Photospheric radius', fontsize = 20)
+    elif which_radius == 'trap':
+        plt.title(f'Trapping radius', fontsize = 20)
     plt.tight_layout()
     # plt.legend(fontsize = 16)
     # plt.savefig(f'{imgsaving_folder}/all_conv.png')

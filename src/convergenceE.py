@@ -17,6 +17,7 @@ import Utilities.sections as sec
 import src.orbits as orb
 import Utilities.prelude as prel
 import csv
+import os
 
 #
 ## PARAMETERS STAR AND BH
@@ -123,22 +124,38 @@ else:
     dataH = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/convE_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     snapsH, tfbH, IEH, OEHpos, OEHneg = dataH[:, 0], dataH[:, 1], dataH[:, 2], dataH[:, 3], dataH[:, 4]
 
+    dataLout = np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/convEoutsideR0_LowResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
+    snapsLout, tfbLout, IELout, OELposout, OELnegout = dataLout[:, 0], dataLout[:, 1], dataLout[:, 2], dataLout[:, 3], dataLout[:, 4]
+    dataout = np.loadtxt(f'{abspath}/data/{commonfolder}NewAMR/convEoutsideR0_NewAMR.csv', delimiter=',', dtype=float, skiprows=1)
+    snapsout, tfbout, IEout, OEposout, OEnegout = dataout[:, 0], dataout[:, 1], dataout[:, 2], dataout[:, 3], dataout[:, 4]
+    dataHout = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/convEoutsideR0_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
+    snapsHout, tfbHout, IEHout, OEHposout, OEHnegout = dataHout[:, 0], dataHout[:, 1], dataHout[:, 2], dataHout[:, 3], dataHout[:, 4]
+     
     fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize = (24,6))
     ax1.plot(tfbL, prel.en_converter * (OELpos + OELneg), c = 'C1', label = 'Low')
+    ax1.plot(tfbLout, prel.en_converter * (OELposout + OELnegout), c = 'C1', ls = '--', label = 'Low outside R0')
     ax1.plot(tfb, prel.en_converter * (OEpos + OEneg), c = 'yellowgreen', label = 'Fid')
+    ax1.plot(tfbout, prel.en_converter * (OEposout + OEnegout), c = 'yellowgreen', ls = '--')
     ax1.plot(tfbH, prel.en_converter * (OEHpos + OEHneg), c = 'darkviolet', label = 'High')
+    ax1.plot(tfbHout, prel.en_converter * (OEHposout + OEHnegout), c = 'darkviolet', ls = '--')
     ax1.set_ylabel(r'OE [erg/s]')
     ax1.set_title(r'Sum')
     ax1.legend(fontsize = 15) 
 
     ax2.plot(tfbL, prel.en_converter * OELpos, c = 'C1', label = 'Low')
+    ax2.plot(tfbLout, prel.en_converter * OELposout, c = 'C1', ls = '--', label = 'Low')
     ax2.plot(tfb, prel.en_converter * OEpos, c = 'yellowgreen', label = 'Fid')
+    ax2.plot(tfbout, prel.en_converter * OEposout, c = 'yellowgreen', ls = '--')
     ax2.plot(tfbH, prel.en_converter * OEHpos, c = 'darkviolet', label = 'High')
+    ax2.plot(tfbHout, prel.en_converter * OEHposout, c = 'darkviolet', ls = '--')
     ax2.set_title(r'Unbound gas')
 
     ax3.plot(tfbL, prel.en_converter * OELneg, c = 'C1', label = 'Low')
+    ax3.plot(tfbLout, prel.en_converter * OELnegout, c = 'C1', ls = '--', label = 'Low')
     ax3.plot(tfb, prel.en_converter * OEneg, c = 'yellowgreen', label = 'Fid')
+    ax3.plot(tfbout, prel.en_converter * OEnegout, c = 'yellowgreen', ls = '--')
     ax3.plot(tfbH, prel.en_converter * OEHneg, c = 'darkviolet', label = 'High')
+    ax3.plot(tfbHout, prel.en_converter * OEHnegout, c = 'darkviolet', ls = '--')
     ax3.set_title(r'Bound gas')
 
     for ax in (ax1, ax2, ax3):
@@ -147,6 +164,5 @@ else:
         # ax.set_ylim(1e49, 1.5e49)
         ax.grid()
     plt.tight_layout()
-
 
 # %%

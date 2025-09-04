@@ -27,7 +27,7 @@ from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
 import src.orbits as orb
 
-# Choose parameters -----------------------------------------------------------------
+#%% Choose parameters -----------------------------------------------------------------
 m = 4
 Mbh = 10**m
 beta = 1
@@ -36,6 +36,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'NewAMR' 
+which_part = '' # 'outflow' or ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 pre_saving = f'{abspath}/data/{folder}'
@@ -68,9 +69,16 @@ def r_trapp(loadpath, snap):
     box = np.load(f'{loadpath}/box_{snap}.npy')
     X, Y, Z, T, Den, Vol, VX, VY, VZ, Press, IE_den, Rad_den = \
         data.X, data.Y, data.Z, data.Temp, data.Den, data.Vol, data.VX, data.VY, data.VZ, data.Press, data.IE, data.Rad
-    denmask = Den > 1e-19
+    if which_part == 'outflow':
+        R = np.sqrt(X**2 + Y**2 + Z**2)
+        vel = np.sqrt(VX**2 + VY**2 + VZ**2)
+        mass = Den * Vol
+        bern = orb.bern_coeff(R, vel, Den, mass, Press, IE_den, Rad_den, params)
+        mask = np.logical_and(Den > 1e-19, bern > 0) 
+    elif which_part == '':
+        mask = Den > 1e-19
     X, Y, Z, T, Den, Vol, VX, VY, VZ, Press, IE_den, Rad_den = \
-        make_slices([X, Y, Z, T, Den, Vol, VX, VY, VZ, Press, IE_den, Rad_den], denmask)
+        make_slices([X, Y, Z, T, Den, Vol, VX, VY, VZ, Press, IE_den, Rad_den], mask)
     idx_sim = np.arange(len(X))
     xyz = np.array([X, Y, Z]).T
     N_ray = 5000
@@ -88,6 +96,7 @@ def r_trapp(loadpath, snap):
     Rad_den_tr = np.zeros(len(observers_xyz))
     idx_tr = np.zeros(len(observers_xyz))
 
+    count_i = 0
     for i in range(len(observers_xyz)):
         if not alice:
             if i not in test_idx:
@@ -188,11 +197,11 @@ def r_trapp(loadpath, snap):
             ax1.set_ylabel(r'$t [t_{\rm fb}]$')
             ax1.loglog()    
             ax1.set_xlim(R0/apo, rph[i]/apo)
-            ax1.set_ylim(1e-3, 1e-1)
+            ax1.set_ylim(1e-4, 20)
             ax1.tick_params(axis='both', which='major', length=8, width=1.2)
             ax1.tick_params(axis='both', which='minor', length=5, width=1)
             ax1.legend(fontsize = 14)
-            plt.suptitle(f'Snap {snap}, observer {i} from R0 to its photosphere', fontsize = 16)
+            plt.suptitle(f'Snap {snap}, observer {label_obs[count_i]} (number {i}) from R0 to its photosphere', fontsize = 16)
             plt.tight_layout()
         
         # select the inner part, where tau big --> c/tau < v
@@ -200,6 +209,7 @@ def r_trapp(loadpath, snap):
         if len(Rtr_idx_all) == 0:
             print(f'No Rtr found anywhere for obs {i}', flush=False)
             sys.stdout.flush()
+            count_i += 1
             continue
         # take the one most outside 
         Rtr_idx = Rtr_idx_all[-1]
@@ -215,11 +225,14 @@ def r_trapp(loadpath, snap):
         IEden_tr[i] = ray_ieDen[Rtr_idx]
         Rad_den_tr[i] = ray_radDen[Rtr_idx]
         idx_tr[i] = ray_idx_sim[Rtr_idx]
-        
+
         if plot:
             ax1.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
             ax1.legend(fontsize = 14)
-
+            plt.savefig(f'{abspath}/Figs/next_meeting/tdiff_{which_part}{snap}{label_obs[count_i]}.png')
+        
+        count_i += 1
+ 
     r_trapp = {
         'x_tr': x_tr,
         'y_tr': y_tr,
@@ -249,12 +262,17 @@ for snap in snaps:
         loadpath = f'{pre}/snap_{snap}'
         print(snap, flush=True)
     else: 
-        if snap != 238:
+        if snap != 318:
             continue
         loadpath = f'{pre}/{snap}'
         observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
         indices_sorted, label_obs, colors_obs = choose_observers(observers_xyz, 'arch')
         test_idx = indices_sorted[:,0]
+        # take just the first one for each direction
+        label_obs = np.array(label_obs)
+        colors_obs = np.array(colors_obs)
+        test_idx = np.array(test_idx)
+        label_obs, colors_obs, test_idx = sort_list([label_obs, colors_obs, test_idx], test_idx)
 
     r_tr = r_trapp(loadpath, snap)
     # np.savez(f"{pre_saving}/Rtrap_tests/{check}_Rtr{snap}_NOunique.npz", **r_tr)
