@@ -145,6 +145,7 @@ def r_trapp(loadpath, snap):
         # pick them just if near enough and iterate
         check_dist = np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) <= 1.1*radii2
         idx = idx[check_dist]
+        ray_r = r[check_dist]
 
         ray_x = X[idx]
         ray_y = Y[idx]
