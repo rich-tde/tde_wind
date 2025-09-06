@@ -26,6 +26,8 @@ compton = 'Compton'
 check = 'NewAMR'
 kind_of_plot = 'convergence' # 'ratioE' or 'convergence'
 which_radius = 'trap' # trap or photo
+singlesnap = 318
+
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -40,7 +42,6 @@ amin = things['a_mb']
 commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 t_fb_days_cgs = things['t_fb_days'] * 24 * 3600 # in seconds
-# t_fall_hour = t_fall * 24
 
 # Load data
 time = np.loadtxt(f'{abspath}/data/{folder}/wind/dMdE_{check}_days.txt')
@@ -48,7 +49,6 @@ snaps, tfb = time[0], time[1]
 snaps = np.array([int(snap) for snap in snaps])
 
 #%% Look at single snap
-singlesnap = 318
 tfb_single = tfb[np.argmin(np.abs(snaps - singlesnap))]
 xph_s, yph_s, zph_s, volph_s, denph_s, Tempph_s, Rad_denph_s, Vxph_s, Vyph_s, Vzph_s, Pressph_s, IE_denph_s, _, _, _, _ = \
     np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{singlesnap}.txt')
@@ -65,137 +65,76 @@ v_rad_ph_s_kms = v_rad_ph_s * prel.Rsol_cgs*1e-5/prel.tsol_cgs
 v_theta_ph_s_kms = v_theta_ph_s * prel.Rsol_cgs*1e-5/prel.tsol_cgs
 v_phi_s_kms = v_phi_s * prel.Rsol_cgs*1e-5/prel.tsol_cgs
 v_mag_s_kms = v_mag_s * prel.Rsol_cgs*1e-5/prel.tsol_cgs
-vrho_cgs = v_rad_ph_s * denph_s * prel.Msol_cgs/ (prel.tsol_cgs * prel.Rsol_cgs**2)
-ysqrt = np.sqrt(apo/rph_s)
-y2 = (rph_s/apo)**(-2)
-y3 = (rph_s/apo)**(-3)
-y4 = (rph_s/apo)**(-4)
-
-#%% Plot density
-plt.figure()
-plt.scatter(rph_s/apo, denph_s*prel.den_converter, c = 'royalblue', label = 'photosphere')
-plt.plot(rph_s/apo, 1e-11*y2, c = 'k', linestyle = 'dotted', label = r'$\propto R^{-2}$')
-plt.plot(rph_s/apo, 1e-11*y3, c = 'k', linestyle = 'dashed', label = r'$\propto R^{-3}$')
-plt.plot(rph_s/apo, 1e-11*y4, c = 'k', linestyle = 'dashdot', label = r'$\propto R^{-4}$')
-# plt.ylim(1e-14, 5e-11)
-plt.xlabel(r'R [R$_a$]')
-plt.ylabel(r'$\rho$ [g/cm$^3$]')
-plt.loglog()
-plt.title(f'Photosphere, t: {np.round(tfb_single,2)}' + r' t$_{{\rm fb}}$', fontsize = 18)
-plt.grid()
-plt.legend(fontsize = 12)
-plt.tight_layout()
-# plt.savefig(f'{imgsaving_folder}/denph_{singlesnap}.png')
 
 # Plot velocity and radial velocity
-img, (ax1, ax2) = plt.subplots(1,2, figsize = (12, 5))
-ax1.plot(rph_s/apo, np.abs(v_rad_ph_s_kms)*1e-3, c = 'firebrick', label = r'V$_r$')
-ax1.plot(rph_s/apo, np.abs(v_theta_ph_s_kms)*1e-3, c = 'dodgerblue', label = r'V$_\theta$')
-ax1.plot(rph_s/apo, np.abs(v_phi_s_kms)*1e-3, c = 'forestgreen', label = r'V$_\phi$')
-ax1.plot(rph_s/apo, v_mag_s_kms*1e-3, c = 'orange', label = r'$||V||$', linestyle = '--')
-ax1.plot(rph_s/apo, 10*ysqrt, c = 'k', linestyle = 'dotted', label = r'$\propto R^{-1/2}$')
-ax1.set_ylabel(r'$|v| [10^3 $km/s]')
-ax2.scatter(rph_s[vrho_cgs>=0]/apo, np.abs(vrho_cgs[vrho_cgs>0]), c = 'forestgreen', s = 7, label = r'+$\hat{r}$')
-ax2.scatter(rph_s[vrho_cgs<0]/apo, np.abs(vrho_cgs[vrho_cgs<0]), c = 'firebrick', s = 7, label = r'-$\hat{r}$')
-ax2.plot(rph_s/apo, 1e-3*y2, c = 'k', linestyle = 'dotted')
-ax2.set_ylabel(r'$v_r\rho$ [gcm$^{-2}s^{-1}$]')
-ax2.text(np.max(rph_s/apo)-1, 4e-6, r'$\propto R^{-2}$', fontsize = 15)
-for ax in [ax1, ax2]:
-    ax.legend(fontsize = 12)
-    ax.set_yscale('log')
-    ax.grid()
-    ax.set_xlabel(r'R [R$_a$]')
-plt.suptitle(r'Photosphere in spherical $(r,\theta,\phi)$ components,' + f' t: {np.round(tfb_single,2)}' + r' t$_{{\rm fb}}$', fontsize = 18)
+img, ax1 = plt.subplots(1, figsize = (9, 5))
+ax1.plot(rph_s/apo, np.abs(v_rad_ph_s/v_mag_s), c = 'firebrick', label = r'v$_r$')
+ax1.plot(rph_s/apo, np.abs(v_theta_ph_s/v_mag_s), c = 'dodgerblue', label = r'v$_\theta$')
+ax1.plot(rph_s/apo, np.abs(v_phi_s/v_mag_s), c = 'forestgreen', label = r'v$_\phi$')
+ax1.set_ylabel(r'$|v_i/v_{\rm tot}|$')
+ax1.legend(fontsize = 12)
+ax1.set_yscale('log')
+ax1.grid()
+ax1.set_xlabel(r'R$_{\rm ph} [R_a$]')
+ax1.set_title(f't = {np.round(tfb_single, 2)}' + r' t$_{\rm fb}$', fontsize = 15)
 plt.tight_layout()
 # plt.savefig(f'{imgsaving_folder}/velph_{singlesnap}.png')
 #%% Evolution in time (bound, unboud, velocity and dispersion)
-if kind_of_plot == 'ratioE':
-    ratio_unbound_ph = []
-    mean_vel = []
-    percentile16 = []
-    percentile84 = []
-    # HEALPIX
-    observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
-    observers_xyz = np.array(observers_xyz).T
-    x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
-    r = np.sqrt(x**2 + y**2 + z**2)   # Radius (should be 1 for unit vectors)
-    theta = np.arctan2(y, x)          # Azimuthal angle in radians
-    phi = np.arccos(z / r)            # Elevation angle in radians
-    longitude_moll = theta              
-    latitude_moll = np.pi / 2 - phi 
-    indecesorbital = np.concatenate(np.where(latitude_moll==0))
-
 if kind_of_plot == 'convergence':
-    ratio_unbound = np.zeros(len(snaps))
     mean_vel = np.zeros(len(snaps))
     percentile16 = np.zeros(len(snaps))
     percentile84 = np.zeros(len(snaps))
 
     timeH = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/wind/dMdE_HiResNewAMR_days.txt')
-    snapH, tfbH = timeH[0], timeH[1]
-    snapH = np.array([int(snap) for snap in snapH])
-    ratio_unbound = np.zeros(len(snaps))
-    mean_vel = np.zeros(len(snaps))
-    percentile16 = np.zeros(len(snaps))
-    percentile84 = np.zeros(len(snaps))
-    ratio_unboundH = np.zeros(len(tfbH))
-    mean_velH = np.zeros(len(tfbH))
-    percentile16H = np.zeros(len(tfbH))
-    percentile84H = np.zeros(len(tfbH))
+    snapsH, tfbH = timeH[0], timeH[1]
+    snapsH = np.array([int(snap) for snap in snapsH])
+    mean_velH = np.zeros(len(snapsH))
+    percentile16H = np.zeros(len(snapsH))
+    percentile84H = np.zeros(len(snapsH))
 
-    for j, snap_sH in enumerate(snapH):
+    for j, snap_sH in enumerate(snapsH):
         if which_radius == 'photo':
-            xH, yH, zH, volH, denH, TempH, Rad_denH, VxH, VyH, VzH, PressH, IE_denH, _, _, _, _ = \
+            xH, yH, zH, volH, denH, TempH, _, VxH, VyH, VzH, _, _, _, _, _, _ = \
                 np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/photo/HiResNewAMR_photo{snap_sH}.txt')
             rH = np.sqrt(xH**2 + yH**2 + zH**2)
             velH = np.sqrt(VxH**2 + VyH**2 + VzH**2)
-            massH = denH * volH
-            bernH = orb.bern_coeff(rH, velH, denH, massH, PressH, IE_denH, Rad_denH, params)
-            cond = bernH>0
         
         elif which_radius == 'trap':
-            dataH= np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap_sH}.npz')
-            xH, yH, zH, velH, denH, volH = dataH['x_tr'], dataH['y_tr'], dataH['z_tr'], dataH['V'], dataH['den_tr'], dataH['vol_tr']
+            dataH= np.load(f'{abspath}/data/{commonfolder}HiResNewAMR/trap/HiResNewAMR_Rtr{snap_sH}.npz')
+            xH, yH, zH, velH, denH, volH = \
+                dataH['x_tr'], dataH['y_tr'], dataH['z_tr'], dataH['V'], dataH['den_tr'], dataH['vol_tr']
             rH = np.sqrt(xH**2 + yH**2 + zH**2)
-            massH = denH * volH
-            energyH = orb.orbital_energy(rH, velH, massH, params, prel.G)
-            cond = energyH>0 
  
-        ratio_unboundH[j] = len(xH[np.logical_and(cond, rH!=0)]) / len(xH)
         mean_velH[j] = np.mean(velH)
         percentile16H[j] = np.percentile(velH, 16)
         percentile84H[j] = np.percentile(velH, 84)
 
+if kind_of_plot == 'ratioE':
+    mean_vel = []
+    percentile16 = []
+    percentile84 = []
 #%%
 for i, snap in enumerate(snaps):
     if which_radius == 'photo':
-        x, y, z, vol, den, Temp, Rad_den, Vx, Vy, Vz, Press, IE_den, _, _, _, _ = \
+        x, y, z, vol, den, Temp, _, Vx, Vy, Vz, _, _, _, _, _, _ = \
             np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
         r = np.sqrt(x**2 + y**2 + z**2)
         vel = np.sqrt(Vx**2 + Vy**2 + Vz**2)
-        mass = den * vol  
-        bern = orb.bern_coeff(r, vel, den, mass, Press, IE_den, Rad_den, params)
-        cond = bern>0
 
     elif which_radius == 'trap':
         data= np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz')
-        x, y, z, vel, den, vol = data['x_tr'], data['y_tr'], data['z_tr'], data['V'], data['den_tr'], data['vol_tr']
+        x, y, z, vel, den, vol = \
+            data['x_tr'], data['y_tr'], data['z_tr'], data['V'], data['den_tr'], data['vol_tr']
         r = np.sqrt(x**2 + y**2 + z**2)
-        mass = den * vol
-        energy = orb.orbital_energy(r, vel, mass, params, prel.G)
-        cond = energy>0 
 
-    # ratio_unbound_sn = len(x[np.logical_and(cond, r!=0)]) / len(x[r!=0])
-    ratio_unbound_sn = len(x[np.logical_and(cond, r!=0)]) / len(x)
     mean_vel_sn = np.mean(vel)
-    percentile16_sn = np.percentile(vel, 16)
+    percentile16_sn = np.percentile(vel, 16) 
     percentile84_sn = np.percentile(vel, 84)
 
     # Plot
     if kind_of_plot == 'ratioE': # slides of boundness/unboundness with velocity arrows, (if how_amy==3, also time evolution of velocity)
         if snap != 50:
             continue
-        ratio_unbound.append(ratio_unbound_sn)
         mean_vel.append(mean_vel_sn)
         percentile16.append(percentile16_sn)
         percentile84.append(percentile84_sn)
@@ -306,18 +245,18 @@ for i, snap in enumerate(snaps):
 if kind_of_plot == 'convergence': # only evolution of velocity/boundness in Fid and High res
     plt.figure(figsize=(14,6))
     print(ratio_unbound[-1])
-    img = plt.scatter(tfb, mean_vel * conversion_sol_kms * 1e-4, c = ratio_unbound, s = 20, vmin = 0, vmax = 0.75)
+    img = plt.scatter(tfb, mean_vel * conversion_sol_kms * 1e-4, c = ratio_unbound, s = 20, vmin = 0, vmax = 1)
     # plt.text(1.5, 0.6, f'Fid', fontsize = 25)
-    # plt.scatter(tfbH, mean_velH * conversion_sol_kms * 1e-4, c = ratio_unboundH, s = 20, vmin = 0, vmax = 0.75, marker = 's')
+    plt.scatter(tfbH, mean_velH * conversion_sol_kms * 1e-4, c = ratio_unboundH, s = 20, vmin = 0, vmax = 1, marker = 's')
     # plt.text(1, 0.45, f'High', fontsize = 25)
     cbar = plt.colorbar(img)
     cbar.set_label('unbound/tot')
     plt.plot(tfb, percentile16 * conversion_sol_kms * 1e-4, c = 'yellowgreen', alpha = 0.1, linestyle = '--')
     plt.plot(tfb, percentile84 * conversion_sol_kms * 1e-4, c = 'yellowgreen', alpha = 0.1, linestyle = '--')
     plt.fill_between(tfb, percentile16 * conversion_sol_kms * 1e-4, percentile84 * conversion_sol_kms * 1e-4, color = 'yellowgreen', alpha = 0.1)
-    # plt.plot(tfbH, percentile16H * conversion_sol_kms * 1e-4, c = 'darkviolet', alpha = 0.1, linestyle = '--')
-    # plt.plot(tfbH, percentile84H * conversion_sol_kms * 1e-4, c = 'darkviolet', alpha = 0.1, linestyle = '--')
-    # plt.fill_between(tfbH, percentile16H * conversion_sol_kms * 1e-4, percentile84H * conversion_sol_kms * 1e-4, color = 'darkviolet', alpha = 0.1)
+    plt.plot(tfbH, percentile16H * conversion_sol_kms * 1e-4, c = 'darkviolet', alpha = 0.1, linestyle = '--')
+    plt.plot(tfbH, percentile84H * conversion_sol_kms * 1e-4, c = 'darkviolet', alpha = 0.1, linestyle = '--')
+    plt.fill_between(tfbH, percentile16H * conversion_sol_kms * 1e-4, percentile84H * conversion_sol_kms * 1e-4, color = 'darkviolet', alpha = 0.1)
     plt.grid()
     plt.xlabel(r'$t [t_{\rm fb}]$')
     plt.ylabel(r'Mean velocity [$10^4$ km/s] ')

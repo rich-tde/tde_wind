@@ -162,19 +162,42 @@ def choose_observers(observers_xyz, choice):
         label_obs = ['x+', '45', 'z+', '135', 'x-']
         colors_obs = ['k', 'green', 'orange', 'b', 'r']
     
+    if choice == 'hemispheres': 
+        wanted_obs = [(1,0,0), 
+                    (-1,0,0),
+                    (0,1,0),  
+                    (0,-1,0),
+                    (0,0,1),
+                    (0,0,-1),
+                    (1/np.sqrt(2), 0 , 1/np.sqrt(2)),
+                    (1/np.sqrt(2), 0 , -1/np.sqrt(2)),
+                    (-1/np.sqrt(2), 0 , 1/np.sqrt(2)),
+                    (-1/np.sqrt(2), 0 , -1/np.sqrt(2))] 
+
+        tree_obs = KDTree(observers_xyz.T) # shape is N,3
+        _, indices_sorted = tree_obs.query(np.array(wanted_obs), k=4) # shape: (len(wanted_obs),k)
+        label_obs = ['x', '-x', 'y', '-y', 'z', '-z', 'xz', 'x-z', '-xz', '-x-z']
+        # colors_obs = ['r', 'firebrick', 'plum', 'darkviolet', 'orange', 'sienna', 'palegreen', 'forestgreen', 'dodgerblue', 'b'] # colors for \pm z
+        colors_obs = ['r', 'firebrick', 'plum', 'darkviolet', 'orange', 'sienna', 'yellowgreen', 'deepskyblue', 'forestgreen', 'b']
+
+        lines_obs = ['solid', 'dashed', 'solid', 'dashed', 'solid', 'dashed', 'solid', 'dashed', 'solid', 'dashed']
+        # label_obs = ['x', 'y', 'z', 'xz', '-xz']
+        # colors_obs = ['k', 'plum', 'orange', 'forestgreen', 'b']
+
     if choice == 'focus_axis': # 3D cartesian axis
         wanted_obs = [(1,0,0), 
                     (0,1,0),  
                     (-1,0,0),
                     (0,-1,0),
                     (0,0,1),
-                    (0,0,-1)]
+                    (0,0,-1)] 
 
         tree_obs = KDTree(observers_xyz.T) # shape is N,3
         _, indices_sorted = tree_obs.query(np.array(wanted_obs), k=4) # shape: (len(wanted_obs),k)
         label_obs = ['x+', 'y+', 'x-', 'y-', 'z+', 'z-']
-        colors_obs = ['r', 'plum', 'seagreen', 'sienna', 'dodgerblue', 'C1']
-    
+        colors_obs = ['k', 'plum', 'r', 'sienna', 'orange', 'dodgerblue']
+        lines_obs = ['solid', 'solid', 'solid', 'solid', 'solid', 'solid']
+        
     if choice == 'quadrants ': # 8 3d-quadrants 
         # Cartesian view    
         indices1 = obs_indices[np.logical_and(z_obs>=0, np.logical_and(x_obs >= 0, y_obs >= 0))]
@@ -190,7 +213,7 @@ def choose_observers(observers_xyz, choice):
                     '+x+y-z', '-x+y-z', '-x-y-z', '+x-y-z',]
         colors_obs = plt.cm.rainbow(np.linspace(0, 1, len(indices_sorted)))
 
-    if choice == 'axis': # centered on the cartesian axes
+    if choice == 'chunky_axis': # centered on the cartesian axes
         indices1 = obs_indices[np.logical_and(np.abs(z_obs) < np.abs(x_obs), np.logical_and(x_obs < 0, np.abs(y_obs) < np.abs(x_obs)))]
         indices2 = obs_indices[np.logical_and(np.abs(z_obs) < np.abs(x_obs), np.logical_and(x_obs >= 0, np.abs(y_obs) < x_obs))]
         indices3 = obs_indices[np.logical_and(np.abs(z_obs) < np.abs(y_obs), np.logical_and(y_obs < 0, np.abs(y_obs) > np.abs(x_obs)))]
@@ -202,10 +225,11 @@ def choose_observers(observers_xyz, choice):
         indices_sorted = [indices1, indices2, indices3, indices4, indices5, indices6]#, indices7, indices8]
         colors_obs = plt.cm.rainbow(np.linspace(0, 1, len(indices_sorted)))
         label_obs = ['-x','+x', '-y', '+y', '-z', '+z']
+        lines_obs = ['solid', 'solid', 'solid', 'solid', 'solid', 'solid']
     
     if plot:
         import matplotlib.pyplot as plt
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 5))
         for j, idx_list in enumerate(indices_sorted):
             ax1.scatter(x_obs[idx_list], y_obs[idx_list], s = 50, c = colors_obs[j], label = label_obs[j])
             ax2.scatter(x_obs[idx_list], z_obs[idx_list], s = 50, c = colors_obs[j], label = label_obs[j])
@@ -216,11 +240,13 @@ def choose_observers(observers_xyz, choice):
         ax1.set_ylabel(r'$Y$')
         ax2.set_ylabel(r'$Z$')
         plt.suptitle(f'Selected observers', fontsize=15)
-        ax1.legend(fontsize = 12)
+        # ax1.legend(fontsize = 12)
+        # put the legend outside
+        plt.legend(fontsize = 12, loc='upper right', bbox_to_anchor=(1.5, 1), ncol=1)
         plt.tight_layout()
         plt.show()
 
-    return indices_sorted, label_obs, colors_obs
+    return indices_sorted, label_obs, colors_obs, lines_obs
 
 def sort_list(list_passive, leading_list, unique = False):
     """Sort list_passive based on the order of leading_list. 

@@ -35,7 +35,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'NewAMR' 
+check = 'HiResNewAMR' 
 which_part = 'outflow' # 'outflow' or ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -82,6 +82,7 @@ def r_trapp(loadpath, snap):
         make_slices([X, Y, Z, T, Den, Vol, vel, v_rad, Press, IE_den, Rad_den], mask)
     idx_sim = np.arange(len(X))
     xyz = np.array([X, Y, Z]).T
+    tree = KDTree(xyz, leaf_size=50)
     N_ray = 5000
 
     x_tr = np.zeros(len(observers_xyz))
@@ -128,27 +129,23 @@ def r_trapp(loadpath, snap):
 
         xyz2 = np.array([x, y, z]).T
         radii2 = np.sqrt(x**2 + y**2 + z**2)
-        # width = 2*np.diff(radii2)
-        # width = np.append(width, width[-1])
         del x, y, z
 
-        tree = KDTree(xyz, leaf_size=50)
         dist, idx = tree.query(xyz2, k=1)
         dist = np.concatenate(dist)
         idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
-        # pick them just if near enough 
-        idx = idx[dist < radii2] 
-        if len(idx) == 0:
-            print(f'No points found along the direction of observer {i}', flush=True)
-            count_i += 1
-            continue
-        ray_r = r[dist < radii2] #np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) 
 
         # idx = tree.query_radius(xyz2, radii2)
         # print(len(idx))
         # idx = np.concatenate(idx)
-        
         # idx = np.unique(idx)
+        ray_x = X[idx]
+        ray_y = Y[idx]
+        ray_z = Z[idx]
+        # pick them just if near enough and iterate
+        check_dist = np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) <= 1.1*radii2
+        idx = idx[check_dist]
+
         ray_x = X[idx]
         ray_y = Y[idx]
         ray_z = Z[idx]

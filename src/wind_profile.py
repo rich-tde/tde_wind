@@ -59,7 +59,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'NewAMR' 
-which_obs = 'arch' # 'arch', 'quadrants', 'axis'
+which_obs = 'hemispheres' # 'arch', 'quadrants', 'axis'
 which_part = 'outflow'
 snap = 318
 
@@ -86,7 +86,7 @@ tfb = np.loadtxt(f'{abspath}/TDE/{folder}/{snap}/tfb_{snap}.txt')
 observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
 x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
 r_obs = np.sqrt(x_obs**2 + y_obs**2 + z_obs**2)
-indices_sorted, label_obs, colors_obs = choose_observers(observers_xyz, which_obs)
+indices_sorted, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, which_obs)
 observers_xyz = np.transpose(observers_xyz) #shape: Nx3
 
 #%% Load data -----------------------------------------------------------------
@@ -95,32 +95,42 @@ if alice:
     path = f'{pre}/snap_{snap}'
 else:
     path = f'{pre}/{snap}'
+ph_data = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
+xph, yph, zph = ph_data[0], ph_data[1], ph_data[2]
+rph = np.sqrt(xph**2 + yph**2 + zph**2)
+rph = rph[indices_sorted]
+rph_mean = np.mean(rph, axis=1)
+
 data = make_tree(path, snap, energy = True)
 X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
     data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Temp, data.Press, data.IE, data.Rad
 cut = Den > 1e-19
-X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
-    make_slices([X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den], cut)       
 R = np.sqrt(X**2 + Y**2 + Z**2)  
 vel = np.sqrt(VX**2 + VY**2 + VZ**2)  
+V_r, _, _ = to_spherical_components(VX, VY, VZ, X, Y, Z)
 bern = orb.bern_coeff(R, vel, Den, Mass, Press, IE_den, Rad_den, params)
+
+if which_part == 'outflow':
+    cut = np.logical_and(Den > 1e-19, np.logical_and(bern > 0, V_r >= 0)) 
+if which_part == 'inflow':
+    cut = np.logical_and(Den > 1e-19, np.logical_and(bern < 0, V_r < 0)) 
+X, Y, Z, Vol, Den, Mass, VX, VY, VZ, V_r, T, Press, IE_den, Rad_den = \
+    make_slices([X, Y, Z, Vol, Den, Mass, VX, VY, VZ, V_r, T, Press, IE_den, Rad_den], cut)       
+
 
 xyz = np.array([X, Y, Z]).T
 tree = KDTree(xyz, leaf_size = 50) 
 N_ray = 5_000
 rmax = 10*apo
-r = np.logspace(np.log10(Rt), np.log10(rmax), N_ray)
-with open(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}.txt','w') as file:
-    file.write(f'# radii \n')
-    file.write(f' '.join(map(str, r)) + '\n')
-    file.close()
 
+all_outflows = {}
 for j, idx_list in enumerate(indices_sorted):
     print(label_obs[j], flush= True)
     d_all = []
     v_rad_all = []
     t_all = []
     rad_den_all = []    
+    r = np.logspace(np.log10(Rt), np.log10(rph_mean[j]), N_ray)
     for i in idx_list: # i in [0, 192]: pick the line of sight that you'll use for the mean of the chosen direction
         mu_x = observers_xyz[i][0]
         mu_y = observers_xyz[i][1]
@@ -130,71 +140,82 @@ for j, idx_list in enumerate(indices_sorted):
         y = r*mu_y
         z = r*mu_z
         xyz2 = np.array([x, y, z]).T
+        radii2 = np.sqrt(x**2 + y**2 + z**2)
         del x, y, z
 
+
         # ray tracing along observer i 
-        _, idx = tree.query(xyz2, k=1) #you can do k=4, comment the line afterwards and then do d = np.mean(d, axis=1) and the same for all the quantity. But you doesn't really change since you are averaging already on line of sights
-        idx = [ int(idx[i][0]) for i in range(len(idx))]
-        idx = np.array(idx)
+        dist, idx = tree.query(xyz2, k=1) #you can do k=4, comment the line afterwards and then do d = np.mean(d, axis=1) and the same for all the quantity. But you doesn't really change since you are averaging already on line of sights
+        idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
+        dist = np.concatenate(dist)
+        
         # Quantity corresponding to the ray
-        d = Den[idx] * prel.den_converter
         ray_x = X[idx]
         ray_y = Y[idx]
         ray_z = Z[idx]
-        ray_vx = VX[idx]
-        ray_vy = VY[idx]
-        ray_vz = VZ[idx]
+        d = Den[idx] 
         ray_t = T[idx]
-        ray_bern = bern[idx]  
         ray_rad_den = Rad_den[idx]
+        ray_V_r = V_r[idx]
         
-        v_rad, _, _ = to_spherical_components(ray_vx, ray_vy, ray_vz, ray_x, ray_y, ray_z)
-        if which_part == 'outflow':
-            discard = np.logical_or(ray_bern < 0, v_rad < 0)
-        if which_part == 'inflow':
-            discard = np.logical_or(ray_bern > 0, v_rad > 0)
-        d[discard] = 0
-        v_rad[discard] = 0
-        ray_t[discard] = 0
-        ray_rad_den[discard] = 0
+        # pick them just if near enough 
+        check_dist = np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) <= 1.1*radii2
+        # if len(idx) == 0:
+        #     print(f'No outflowing points found along the direction of observer {i}', flush=True)
+        #     continue
+        d[~check_dist] = 0 
+        ray_V_r[~check_dist] = 0
+        ray_t[~check_dist] = 0
+        ray_rad_den[~check_dist] = 0
+
         # store
         d_all.append(d)
-        v_rad_all.append(v_rad)
+        v_rad_all.append(ray_V_r)
         t_all.append(ray_t)
         rad_den_all.append(ray_rad_den)
 
     # all the list are of shape (len(idx_list), N_ray)
+    # if len(d_all) != 0:
     d_mean = np.mean(d_all, axis=0) # shape: (N_ray,)
     v_rad_mean = np.mean(v_rad_all, axis=0)
     t_mean = np.mean(t_all, axis=0)
     rad_den_mean = np.mean(rad_den_all, axis=0)
 
-    with open(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}.txt','a') as file:
-        file.write(f'# Observer {label_obs[j]}. NB: only density is in CGS \n')
-        file.write(f' '.join(map(str, d_mean)) + '\n')
-        file.write(f' '.join(map(str, v_rad_mean)) + '\n')
-        file.write(f' '.join(map(str, t_mean)) + '\n')
-        file.write(f' '.join(map(str, rad_den_mean)) + '\n')
-        file.close()
+    outflow = {
+        'r': r,
+        'd_mean': d_mean,
+        'v_rad_mean': v_rad_mean,
+        't_mean': t_mean,
+        'rad_den_mean': rad_den_mean
+    }
+    key = f"{label_obs[j]}"
+    all_outflows[key] = outflow   # dict of dicts
+
+
+    # with open(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}.txt','a') as file:
+    #     file.write(f'# Observer {label_obs[j]}. NB: only density is in CGS \n')
+    #     file.write(f'# radii \n')
+    #     file.write(f' '.join(map(str, d_mean)) + '\n')
+    #     file.write(f' '.join(map(str, v_rad_mean)) + '\n')
+    #     file.write(f' '.join(map(str, t_mean)) + '\n')
+    #     file.write(f' '.join(map(str, rad_den_mean)) + '\n')
+    #     file.close()
+out_path = f"{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}.npy"
+np.save(out_path, all_outflows, allow_pickle=True)
 #%%
 # R_edge = v_esc / prel.tsol_cgs * tfb * t_fb_days_cgs
 x_test = np.arange(1e-2, 10)
+y_testplus1 = 6e3* (x_test)
 y_test1 = 6.5e4* (x_test)**(-1)
-y_test23 = 6.5e4*(x_test)**(-2/3)
-y_test2 = 1.5e-12* (x_test)**(-2)
-y_testplus2 = 3.5e3* (x_test)**(2)
-y_test3 = 8e-11 * (x_test)**(-3)
+y_test02 = 5e3* (x_test)**(-0.2)
+y_test08 = 5e-12* (x_test)**(-0.8)
+y_test23 = 5.5e4*(x_test)**(-2/3)
+y_test2 = 3e-13* (x_test)**(-2)
+y_testplus2 = 3.5e4* (x_test)**(2)
+y_test3 = 3e-12 * (x_test)**(-3)
 which_part = 'outflow'
-profiles = np.loadtxt(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}.txt')
-r, d_mean, v_rad_mean, t_mean, rad_den_mean = \
-    profiles[0], profiles[1::4], profiles[2::4], profiles[3::4], profiles[4::4]
+profiles = np.load(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}.npy', allow_pickle=True).item()
 
-ph_data = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
-xph, yph, zph = ph_data[0], ph_data[1], ph_data[2]
-rph = np.sqrt(xph**2 + yph**2 + zph**2)
-rph = rph[indices_sorted]
-rph_mean = np.mean(rph, axis=1)
-        
 # find the average trapping radius for the directions chosen
 dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz")
 x_tr, y_tr, z_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr']
@@ -202,72 +223,77 @@ r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
 r_tr = r_tr[indices_sorted]
 r_tr_mean = np.mean(r_tr, axis=1) 
 
-normalize_by = ''
-fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(24, 6))
+normalize_by = 'apo'
+fig, (axMdot, axV, axd) = plt.subplots(1, 3, figsize=(24, 6)) 
 figT, axT = plt.subplots(1, 1, figsize=(10, 7))
 figL, axL = plt.subplots(1, 1, figsize=(10, 7))
-for i in range(len(d_mean)):
-    # if i not in [1,3]:
-    #     continue
+
+for i, lab in enumerate(profiles.keys()):
+    if lab not in ['xz', '-xz', 'x-z', '-x-z']:
+        continue
+        
     r_normalizer = apo if normalize_by == 'apo' else r_tr_mean[i]
-    print(label_obs[i],r_tr_mean[i]/Rp )
-    
-    d = d_mean[i]
-    v_rad = v_rad_mean[i] 
-    t = t_mean[i]
-    rad_den = rad_den_mean[i]
-    L = 4 *np.pi * r**2 * rad_den * v_rad * prel.en_converter / prel.tsol_cgs
+    print(lab, f'Rtr/Rp: {r_tr_mean[i]/Rp}')
+
+    r_plot = profiles[lab]['r']
+    d = profiles[lab]['d_mean'] * prel.den_converter
+    v_rad = profiles[lab]['v_rad_mean'] 
+    t = profiles[lab]['t_mean']
+    rad_den = profiles[lab]['rad_den_mean']
+    L = 4 *np.pi * r_plot**2 * rad_den * v_rad * prel.en_converter / prel.tsol_cgs
     # L = 4/3 * np.pi * r**2 * v_rad * prel.Rsol_cgs**3/prel.tsol_cgs * t**4 * prel.alpha_cgs 
-    Mdot = 4 * np.pi * r**2 * np.abs(v_rad) * prel.Rsol_cgs**3/prel.tsol_cgs * d
+    Mdot = 4 * np.pi * r_plot**2 * np.abs(v_rad) * prel.Rsol_cgs**3/prel.tsol_cgs * d
 
-    ax1.plot(r/r_normalizer, d, color = colors_obs[i])#, label = f'{label_obs[i]}')# Observer {label_obs[i]} ({indices_sorted[i]})')
-    ax2.plot(r/r_normalizer, v_rad*prel.Rsol_cgs*1e-5/prel.tsol_cgs, color = colors_obs[i], label = f'{label_obs[i]}')
-    ax3.plot(r/r_normalizer, Mdot/Medd, color = colors_obs[i], label = f'{label_obs[i]}')
-    axT.plot(r/r_normalizer, t, color = colors_obs[i], label = f'{label_obs[i]}')
-    axL.plot(r/r_normalizer, L/Ledd, color = colors_obs[i], label = f'{label_obs[i]}')
+    axd.plot(r_plot/r_normalizer, d, color = colors_obs[i], ls = lines_obs[i] )#, label = f'{lab}')# Observer {lab} ({indices_sorted[i]})')
+    axV.plot(r_plot/r_normalizer, v_rad*prel.Rsol_cgs*1e-5/prel.tsol_cgs, color = colors_obs[i], ls = lines_obs[i], label = f'{lab}')
+    axMdot.plot(r_plot/r_normalizer, Mdot/Medd, color = colors_obs[i], ls = lines_obs[i], label = f'{lab}')
+    axT.plot(r_plot/r_normalizer, t, color = colors_obs[i], ls = lines_obs[i], label = f'{lab}')
+    axL.plot(r_plot/r_normalizer, L/Ledd, color = colors_obs[i], ls = lines_obs[i], label = f'{lab}')
 
-    for ax in [ax1, ax2, ax3, axT, axL]:
-        ax.axvline(rph_mean[i]/r_normalizer, c = colors_obs[i], ls = '--')#, label = r'$R_{\rm ph}$ ' + f'{label_obs[i]}')
-# ax1.plot(r/apo, rho_from_dM, c = 'gray', ls = '--', label = r'$\rho \propto R^{-2}$') #'From dM/dt')
-ax1.plot(x_test, y_test2, c = 'gray', ls = 'dashed', label = r'$\rho \propto R^{-2}$')
-# ax1.text(4, 1e-14, r'$\propto R^{-2}$', fontsize = 20, color = 'k', rotation = -20)
-ax2.axhline(v_esc_kms, c = 'gray', ls = 'dotted', label = r'$v_{\rm esc} (R_p)$')
-ax1.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto R^{-3}$')
-ax2.plot(x_test, y_testplus2, c = 'gray', ls = 'dotted', label = r'$v_r \propto R^{2}$')
+    # for ax in [axd, axV, axMdot, axT, axL]:
+    #     ax.axvline(rph_mean[i]/r_normalizer, c = colors_obs[i], ls = '--')#, label = r'$R_{\rm ph}$ ' + f'{label_obs[i]}')
+# axMdot.plot(x_test, y_testplus1, c = 'gray', ls = 'dotted', label = r'$\dot{M} \propto R$')
+# axd.plot(r/apo, rho_from_dM, c = 'gray', ls = '--', label = r'$\rho \propto R^{-2}$') #'From dM/dt')
+axd.plot(x_test, y_test2, c = 'gray', ls = ':', label = r'$\rho \propto R^{-2}$')
+# axd.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto R^{-3}$') 
+# axd.plot(x_test, y_test08, c = 'gray', ls = 'dashed', label = r'$v_r \propto R^{-0.8}$')
+axV.axhline(v_esc_kms, c = 'gray', ls = 'dotted', label = r'$v_{\rm esc} (R_p)$')
+# axV.plot(x_test, y_test02, c = 'gray', ls = 'dashed', label = r'$v_r \propto R^{-0.2}$')
+# axV.plot(x_test, 2.5*y_testplus1, c = 'gray', ls = '-.', label = r'$v_r \propto R$')
 axT.plot(x_test, y_test23, c = 'gray', ls = 'dashed', label = r'$T \propto R^{-2/3}$')
-axT.plot(x_test, y_test1, c = 'gray', ls = ':', label = r'$T \propto R^{-1}$')
+# axT.plot(x_test, y_test1, c = 'gray', ls = ':', label = r'$T \propto R^{-1}$')
 axL.plot(x_test, 1e-5*y_test23, c = 'gray', ls = 'dashed', label = r'$L \propto R^{-2/3}$')
 
-for ax in [ax1, ax2, ax3, axT, axL]:
+for ax in [axd, axV, axMdot, axT, axL]:
     #put the legend if which_obs != 'all_rotate'. Lt it be outside
     # boxleg = ax.get_position()
     # ax.set_position([boxleg.x0, boxleg.y0, boxleg.width * 0.8, boxleg.height])
     # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 12)
     # ax.axvline(Rp/apo, c = 'k', ls = '--')
-    ax.set_xlabel(r'$R [R_{\rm a}]$' if normalize_by == 'apo' else r'$R [R_{\rm tr}]$')
+    ax.set_xlabel(r'$r [r_{\rm a}]$' if normalize_by == 'apo' else r'$r [r_{\rm tr}]$')
     # ax.axvline(R_edge/apo,  c = 'k', ls = ':')
-    ax.set_xlim(4e-2, 10)
+    ax.set_xlim(4e-2, 5)
     ax.legend(fontsize = 14)
     ax.loglog()
     ax.tick_params(axis='both', which='minor', size=4)
     ax.tick_params(axis='both', which='major', size=6)
     ax.grid()
 
-ax1.set_ylim(1e-15, 1e-9)
-ax1.set_ylabel(r'$\rho$ [g/cm$^3]$')
-ax2.set_ylim(8e2, 2e4)
-ax2.set_ylabel(r'$v_r$ [km/s]')
-ax3.set_ylim(1e-1, 5e3)
-ax3.set_ylabel(r'$4\pi v_r \rho R^2 \,[\dot{M}_{\rm{Edd}}]$')
+axd.set_ylim(1e-15, 1e-9)
+axd.set_ylabel(r'$\rho$ [g/cm$^3]$')
+axV.set_ylim(8e2, 2e4)
+axV.set_ylabel(r'$v_r$ [km/s]')
+axMdot.set_ylim(1e-1, 5e3)
+axMdot.set_ylabel(r'$4\pi v_r \rho r^2 \,[\dot{M}_{\rm{Edd}}]$')
 axT.set_ylim(1e4, 1e6)
 axT.set_ylabel(r'$T$ [K]')
 axL.set_ylabel(r'$L [L_{\rm Edd}]$')
 axL.set_ylim(2e-2, 2e1)
 fig.suptitle(f't = {np.round(tfb,2)}' + r't$_{\rm fb}$', fontsize = 20)
 fig.tight_layout()
-fig.savefig(f'{abspath}/Figs/next_meeting/den_prof{snap}{which_part}arch.png', bbox_inches = 'tight')
-figT.savefig(f'{abspath}/Figs/next_meeting/T{snap}{which_part}arch.png', bbox_inches = 'tight')
-figL.savefig(f'{abspath}/Figs/next_meeting/L{snap}{which_part}arch.png', bbox_inches = 'tight')
+fig.savefig(f'{abspath}/Figs/next_meeting/den_prof{snap}{which_part}XZ.png', bbox_inches = 'tight')
+figT.savefig(f'{abspath}/Figs/next_meeting/T{snap}{which_part}XZ.png', bbox_inches = 'tight')
+figL.savefig(f'{abspath}/Figs/next_meeting/L{snap}{which_part}XZ.png', bbox_inches = 'tight')
 plt.show()
 
 #%% find eta = mfall(t_fb-t_dyn)/Mwind(tfb)
@@ -281,11 +307,16 @@ Vwind_neg_Rt, Vwind_neg_half_amb, Vwind_neg_amb, Vwind_neg_50Rt = \
                 skiprows=1,  
                 unpack=True)
 fig, ax = plt.subplots(1, 1, figsize=(10, 7))
-for i, r_tr in enumerate(r_tr_mean):
-    d = d_mean[i]
-    v_rad = v_rad_mean[i]
-    d_tr = d[np.argmin(np.abs(r-r_tr))]
-    v_rad_tr = v_rad[np.argmin(np.abs(r-r_tr))]
+for i, lab in enumerate(profiles.keys()):
+    if lab not in ['z', '-z']:
+        continue
+    r_tr = r_tr_mean[i]
+    r_plot = profiles[lab]['r']
+    d = profiles[lab]['d_mean']
+    v_rad = profiles[lab]['v_rad_mean']
+    d_tr = d[np.argmin(np.abs(r_plot-r_tr))]
+    v_rad_tr = v_rad[np.argmin(np.abs(r_plot-r_tr))]
+
     Mdot = 4 * np.pi * r_tr**2 * d_tr/prel.den_converter * np.abs(v_rad_tr) 
     t_dyn = (r_tr/v_rad_tr)*prel.tsol_cgs/t_fb_days_cgs # you want it in t_fb
     print('t_dyn/t_fb', t_dyn)
@@ -293,15 +324,17 @@ for i, r_tr in enumerate(r_tr_mean):
     find_time = np.argmin(np.abs(tfb_fall-tfb_adjusted))
     eta = np.abs(Mdot/mfall[find_time])
     ax.scatter(r_tr/apo, eta, color = colors_obs[i], s = 80, label = f'{label_obs[i]}')
-ax.set_xlabel(r'$R_{\rm tr} [R_{\rm a}]$')
+ax.set_xlabel(r'$r_{\rm tr} [r_{\rm a}]$')
 ax.tick_params(axis='both', which='minor', length=5, width=1)
 ax.tick_params(axis='both', which='major', length=8, width=1.2)
 ax.set_ylabel(r'$\eta = |\dot{M}_{\rm w}/\dot{M}_{\rm fb}|$')
 ax.legend(fontsize = 14)
 ax.set_yscale('log')
-# ax.set_ylim(1e-4, 1e-2)
+ax.set_xlim(0, 3.5)
+ax.set_ylim(2e-4, 1e-1)
 ax.grid()
 fig.tight_layout()
+fig.savefig(f'{abspath}/Figs/next_meeting/eta{snap}{which_part}Z.png', bbox_inches = 'tight')
 plt.show()
 
 
