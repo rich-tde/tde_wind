@@ -35,7 +35,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiResNewAMR' 
+check = 'NewAMR' 
 which_part = 'outflow' # 'outflow' or ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -135,15 +135,9 @@ def r_trapp(loadpath, snap):
         dist = np.concatenate(dist)
         idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
 
-        # idx = tree.query_radius(xyz2, radii2)
-        # print(len(idx))
-        # idx = np.concatenate(idx)
-        # idx = np.unique(idx)
-        ray_x = X[idx]
-        ray_y = Y[idx]
-        ray_z = Z[idx]
         # pick them just if near enough and iterate
-        check_dist = np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) <= 1.1*radii2
+        r_sim = np.sqrt(X[idx]**2 + Y[idx]**2 + Z[idx]**2)
+        check_dist = np.abs(r_sim - radii2) < Vol[idx]**(1/3)
         idx = idx[check_dist]
         ray_r = r[check_dist]
 
@@ -155,13 +149,28 @@ def r_trapp(loadpath, snap):
         ray_vol = Vol[idx]
         ray_V = vel[idx]
         ray_vr = v_rad[idx]
-        ray_idx_sim = idx_sim[idx]
+        ray_idx_sim = idx_sim[idx] 
         ray_P = Press[idx]
         ray_ieDen = IE_den[idx]
         ray_radDen = Rad_den[idx]
         # ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r = \
         #     sort_list([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r], ray_r)
         idx = np.array(idx)
+
+        # check which points your are taking
+        if plot:
+            plt.figure()
+            x_plot = xyz2[:,0]
+            y_plot = xyz2[:,1]
+            z_plot = xyz2[:,2]
+            plt.plot(x_plot[check_dist]/apo, y_plot[check_dist]/apo, c = 'k')
+            img = plt.scatter(ray_x/apo, ray_y/apo, c = np.abs(z_plot[check_dist]/ray_z), s = 8, cmap = 'rainbow', norm = colors.LogNorm(vmin = 5e-1, vmax = 5))
+            plt.colorbar(img, label = r'$|z_{\rm wanted}/z_{\rm sim}|$')
+            plt.xlim(-8, 8)
+            plt.ylim(-8, 8)
+            plt.xlabel(r'$x/R_{\rm a}$')
+            plt.ylabel(r'$y/R_{\rm a}$')
+            # plt.loglog()
 
         # Interpolate ----------------------------------------------------------
         alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(ray_t), np.log(ray_d), 'linear', 0)
@@ -276,7 +285,7 @@ for snap in snaps:
             continue
         loadpath = f'{pre}/{snap}'
         observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
-        indices_sorted, label_obs, colors_obs = choose_observers(observers_xyz, 'arch')
+        indices_sorted, label_obs, colors_obs, _ = choose_observers(observers_xyz, 'hemispheres')
         test_idx = indices_sorted[:,0]
         # take just the first one for each direction
         label_obs = np.array(label_obs)

@@ -117,7 +117,6 @@ if which_part == 'inflow':
 X, Y, Z, Vol, Den, Mass, VX, VY, VZ, V_r, T, Press, IE_den, Rad_den = \
     make_slices([X, Y, Z, Vol, Den, Mass, VX, VY, VZ, V_r, T, Press, IE_den, Rad_den], cut)       
 
-
 xyz = np.array([X, Y, Z]).T
 tree = KDTree(xyz, leaf_size = 50) 
 N_ray = 5_000
@@ -143,33 +142,27 @@ for j, idx_list in enumerate(indices_sorted):
         radii2 = np.sqrt(x**2 + y**2 + z**2)
         del x, y, z
 
-
         # ray tracing along observer i 
         dist, idx = tree.query(xyz2, k=1) #you can do k=4, comment the line afterwards and then do d = np.mean(d, axis=1) and the same for all the quantity. But you doesn't really change since you are averaging already on line of sights
         idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
         dist = np.concatenate(dist)
         
         # Quantity corresponding to the ray
-        ray_x = X[idx]
-        ray_y = Y[idx]
-        ray_z = Z[idx]
         d = Den[idx] 
         ray_t = T[idx]
         ray_rad_den = Rad_den[idx]
         ray_V_r = V_r[idx]
         
         # pick them just if near enough 
-        check_dist = np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) <= 1.1*radii2
-        # if len(idx) == 0:
-        #     print(f'No outflowing points found along the direction of observer {i}', flush=True)
-        #     continue
+        r_sim = np.sqrt(X[idx]**2 + Y[idx]**2 + Z[idx]**2)
+        check_dist = np.abs(r_sim - radii2) < Vol[idx]**(1/3)
         d[~check_dist] = 0 
         ray_V_r[~check_dist] = 0
         ray_t[~check_dist] = 0
-        ray_rad_den[~check_dist] = 0
+        ray_rad_den[~check_dist] = 0 
 
         # store
-        d_all.append(d)
+        d_all.append(d) 
         v_rad_all.append(ray_V_r)
         t_all.append(ray_t)
         rad_den_all.append(ray_rad_den)
@@ -191,15 +184,6 @@ for j, idx_list in enumerate(indices_sorted):
     key = f"{label_obs[j]}"
     all_outflows[key] = outflow   # dict of dicts
 
-
-    # with open(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}.txt','a') as file:
-    #     file.write(f'# Observer {label_obs[j]}. NB: only density is in CGS \n')
-    #     file.write(f'# radii \n')
-    #     file.write(f' '.join(map(str, d_mean)) + '\n')
-    #     file.write(f' '.join(map(str, v_rad_mean)) + '\n')
-    #     file.write(f' '.join(map(str, t_mean)) + '\n')
-    #     file.write(f' '.join(map(str, rad_den_mean)) + '\n')
-    #     file.close()
 out_path = f"{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}.npy"
 np.save(out_path, all_outflows, allow_pickle=True)
 #%%
@@ -209,7 +193,7 @@ y_testplus1 = 6e3* (x_test)
 y_test1 = 6.5e4* (x_test)**(-1)
 y_test02 = 5e3* (x_test)**(-0.2)
 y_test08 = 5e-12* (x_test)**(-0.8)
-y_test23 = 5.5e4*(x_test)**(-2/3)
+y_test23 = 6e4*(x_test)**(-2/3)
 y_test2 = 3e-13* (x_test)**(-2)
 y_testplus2 = 3.5e4* (x_test)**(2)
 y_test3 = 3e-12 * (x_test)**(-3)
@@ -223,13 +207,13 @@ r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
 r_tr = r_tr[indices_sorted]
 r_tr_mean = np.mean(r_tr, axis=1) 
 
-normalize_by = 'apo'
+normalize_by = ''
 fig, (axMdot, axV, axd) = plt.subplots(1, 3, figsize=(24, 6)) 
 figT, axT = plt.subplots(1, 1, figsize=(10, 7))
 figL, axL = plt.subplots(1, 1, figsize=(10, 7))
 
 for i, lab in enumerate(profiles.keys()):
-    if lab not in ['xz', '-xz', 'x-z', '-x-z']:
+    if lab not in ['z', '-z']:
         continue
         
     r_normalizer = apo if normalize_by == 'apo' else r_tr_mean[i]
@@ -291,9 +275,9 @@ axL.set_ylabel(r'$L [L_{\rm Edd}]$')
 axL.set_ylim(2e-2, 2e1)
 fig.suptitle(f't = {np.round(tfb,2)}' + r't$_{\rm fb}$', fontsize = 20)
 fig.tight_layout()
-fig.savefig(f'{abspath}/Figs/next_meeting/den_prof{snap}{which_part}XZ.png', bbox_inches = 'tight')
-figT.savefig(f'{abspath}/Figs/next_meeting/T{snap}{which_part}XZ.png', bbox_inches = 'tight')
-figL.savefig(f'{abspath}/Figs/next_meeting/L{snap}{which_part}XZ.png', bbox_inches = 'tight')
+fig.savefig(f'{abspath}/Figs/next_meeting/den_prof{snap}{which_part}Z.png', bbox_inches = 'tight')
+figT.savefig(f'{abspath}/Figs/next_meeting/T{snap}{which_part}Z.png', bbox_inches = 'tight')
+figL.savefig(f'{abspath}/Figs/next_meeting/L{snap}{which_part}Z.png', bbox_inches = 'tight')
 plt.show()
 
 #%% find eta = mfall(t_fb-t_dyn)/Mwind(tfb)
