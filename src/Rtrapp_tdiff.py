@@ -160,6 +160,11 @@ def r_trapp(loadpath, snap):
         #     sort_list([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r], ray_r)
         idx = np.array(idx)
 
+        if len(idx) == 0:
+            print(f'No points found for observer {i}', flush=True)
+            count_i += 1
+            continue
+
         # check which points your are taking
         if plot:
             plt.figure()
