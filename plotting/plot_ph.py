@@ -157,19 +157,24 @@ for i, snapi in enumerate(snaps):
                 # alpha_obs_time[i, j] = np.mean(alphaph[observer])
                 flux_obs_time[i, j] = np.mean(fluxph[observer])
 
+normalize_by = 'apo'
 fig, ((ax1, ax2), (ax3, ax5)) = plt.subplots(2, 2, figsize=(20, 15))
 figf, ax6 = plt.subplots(1, 1, figsize=(10, 7))
 figTr, axTr = plt.subplots(1, 1, figsize=(10, 7))
 for i, observer in enumerate(indices_axis):
-        # if label_axis[i] not in ['z', '-z']:
+        # if label_axis[i] not in ['z', 'x', 'xz', '-xz', 'y']:
         #     continue
+        print(f'{label_axis[i]}: Rtr/Rp = {rtr_obs_time[-1, i]/Rp}')
         ax1.plot(tfb, rph_obs_time[:, i]/apo, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         ax2.plot(tfb, den_obs_time[:, i]*prel.den_converter, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         ax3.plot(tfb, T_obs_time[:, i], label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         # ax4.plot(tfb, alpha_obs_time[:, i], label = label_axis[i], c = colors_axis[i])
         ax5.plot(tfb, Lum_obs_time[:, i]/Ledd, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         ax6.plot(tfb, flux_obs_time[:, i], label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
-        axTr.plot(tfb, rtr_obs_time[:, i]/rph_obs_time[:, i], label = label_axis[i], c = colors_axis[i])
+        if normalize_by == 'apo':
+                axTr.plot(tfb, rtr_obs_time[:, i]/apo, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
+        else: 
+                axTr.plot(tfb, rtr_obs_time[:, i]/rph_obs_time[:, i], label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
 ax1.axhline(Rp/apo, color = 'gray', linestyle = '-.', label = r'R$_{\rm p}$')
 # ax1.axhline(R0/apo, color = 'gray', linestyle = ':', label = r'R$_0$')
 # ax1.plot(tfb, mean_rph/apo, c = 'gray', ls = '--', label = 'mean')
@@ -187,8 +192,13 @@ ax5.set_ylim(1e-2, 5)
 ax5.legend(fontsize = 16)
 ax6.set_ylabel(r'$\langle$ Flux$_{\rm ph}\rangle$ [erg/s cm$^2$]')
 ax6.legend(fontsize = 16)
-axTr.set_ylabel(r'$\langle R_{\rm tr}\rangle / \langle R_{\rm ph}\rangle$')
-axTr.set_ylim(1e-1, 1.1)
+if normalize_by == 'apo':
+        axTr.axhline(Rp/apo, color = 'gray', linestyle = '-.', label = r'R$_{\rm p}$')
+        axTr.set_ylabel(r'$\langle R_{\rm tr}\rangle / \langle R_{\rm a}\rangle$')
+        axTr.set_ylim(1e-2, 10)
+else:
+        axTr.set_ylabel(r'$\langle R_{\rm tr}\rangle / \langle R_{\rm ph}\rangle$')
+        axTr.set_ylim(1e-1, 1.1)
 axTr.legend(fontsize = 16)
 for ax in [ax1, ax2, ax3, ax5, ax6, axTr]:
         ax.set_xlabel(r't [$t_{\rm fb}$]')
@@ -196,9 +206,12 @@ for ax in [ax1, ax2, ax3, ax5, ax6, axTr]:
         ax.tick_params(axis='both', which='minor', width=1, length=7, color = 'k')
         ax.grid()
         ax.set_yscale('log')
-fig.suptitle(f'{check}', fontsize = 30)
+fig.suptitle(f'{check}', fontsize = 30) 
+figTr.suptitle(f'{check}', fontsize = 30)
 fig.tight_layout()
+figTr.tight_layout()
 fig.savefig(f'{abspath}/Figs/next_meeting/photo_profile.png')
+figTr.savefig(f'{abspath}/Figs/next_meeting/trap_profile_{normalize_by}.png')
 
 #%% 3D plot at the chosen snap
 idx_snap = -1

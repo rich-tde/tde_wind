@@ -80,10 +80,14 @@ def r_trapp(loadpath, snap):
         mask = Den > 1e-19
     X, Y, Z, T, Den, Vol, vel, v_rad, Press, IE_den, Rad_den = \
         make_slices([X, Y, Z, T, Den, Vol, vel, v_rad, Press, IE_den, Rad_den], mask)
-    idx_sim = np.arange(len(X))
     xyz = np.array([X, Y, Z]).T
     tree = KDTree(xyz, leaf_size=50)
     N_ray = 5000
+
+    xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, _, _, _, _ = \
+        np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
+    denph/= prel.den_converter #it was saved in cgs
+    rph = np.sqrt(xph**2 + yph**2 + zph**2)
 
     x_tr = np.zeros(len(observers_xyz))
     y_tr = np.zeros(len(observers_xyz))
@@ -96,7 +100,6 @@ def r_trapp(loadpath, snap):
     P_tr = np.zeros(len(observers_xyz))
     IEden_tr = np.zeros(len(observers_xyz))
     Rad_den_tr = np.zeros(len(observers_xyz))
-    idx_tr = np.zeros(len(observers_xyz))
 
     count_i = 0
     for i in range(len(observers_xyz)):
@@ -128,7 +131,7 @@ def r_trapp(loadpath, snap):
         z = r*mu_z
 
         xyz2 = np.array([x, y, z]).T
-        radii2 = np.sqrt(x**2 + y**2 + z**2)
+        # radii2 = np.sqrt(x**2 + y**2 + z**2)
         del x, y, z
 
         dist, idx = tree.query(xyz2, k=1)
@@ -136,11 +139,12 @@ def r_trapp(loadpath, snap):
         idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
 
         # pick them just if near enough and iterate
-        r_sim = np.sqrt(X[idx]**2 + Y[idx]**2 + Z[idx]**2)
-        check_dist = np.abs(r_sim - radii2) < Vol[idx]**(1/3)
+        # r_sim = np.sqrt(X[idx]**2 + Y[idx]**2 + Z[idx]**2)
+        # check_dist = np.abs(r_sim - radii2) < Vol[idx]**(1/3)
+        check_dist = dist <= Vol[idx]**(1/3)
         idx = idx[check_dist]
         ray_r = r[check_dist]
-
+ 
         ray_x = X[idx]
         ray_y = Y[idx]
         ray_z = Z[idx]
@@ -149,7 +153,6 @@ def r_trapp(loadpath, snap):
         ray_vol = Vol[idx]
         ray_V = vel[idx]
         ray_vr = v_rad[idx]
-        ray_idx_sim = idx_sim[idx] 
         ray_P = Press[idx]
         ray_ieDen = IE_den[idx]
         ray_radDen = Rad_den[idx]
@@ -170,14 +173,14 @@ def r_trapp(loadpath, snap):
             plt.ylim(-8, 8)
             plt.xlabel(r'$x/R_{\rm a}$')
             plt.ylabel(r'$y/R_{\rm a}$')
-            # plt.loglog()
+            plt.title(label_obs[count_i])
 
         # Interpolate ----------------------------------------------------------
         alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(ray_t), np.log(ray_d), 'linear', 0)
         alpha_rossland = np.array(alpha_rossland)[0]
         underflow_mask = alpha_rossland != 0.0
-        ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, ray_idx_sim, alpha_rossland, ray_P, ray_ieDen, ray_radDen, idx = \
-            make_slices([ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, ray_idx_sim, alpha_rossland, ray_P, ray_ieDen, ray_radDen, idx], underflow_mask)
+        ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, alpha_rossland, ray_P, ray_ieDen, ray_radDen, idx = \
+            make_slices([ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, alpha_rossland, ray_P, ray_ieDen, ray_radDen, idx], underflow_mask)
         alpha_rossland_eval = np.exp(alpha_rossland) # [1/cm]
         del alpha_rossland
         gc.collect()
@@ -188,15 +191,11 @@ def r_trapp(loadpath, snap):
         # compute the optical depth from outside in: tau = - int alpha dr. Then reverse the order to have it from the inside to out, so can query.
         tau = - np.flipud(cumulative_trapezoid(alpha_rossland_fuT, ray_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_r. 
         tau_zero = tau != 0
-        ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, ray_idx_sim, alpha_rossland_eval, tau, ray_P, ray_ieDen, ray_radDen, idx = \
-            make_slices([ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, ray_idx_sim, alpha_rossland_eval, tau, ray_P, ray_ieDen, ray_radDen, idx], tau_zero)
+        ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, alpha_rossland_eval, tau, ray_P, ray_ieDen, ray_radDen, idx = \
+            make_slices([ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, alpha_rossland_eval, tau, ray_P, ray_ieDen, ray_radDen, idx], tau_zero)
         c_tau = prel.csol_cgs/tau # code units, since tau is adimensional
 
         if plot:
-            photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
-            xph, yph, zph = photo[0], photo[1], photo[2]
-            rph = np.sqrt(xph**2 + yph**2 + zph**2)
-
             tdyn_single = ray_r / np.abs(ray_vr) * prel.tsol_cgs # cgs
             tdiff_single = tau * ray_r * prel.Rsol_cgs / prel.c_cgs # cgs
 
@@ -216,39 +215,62 @@ def r_trapp(loadpath, snap):
             ax1.set_xlabel(r'$R [R_{\rm a}]$')
             ax1.set_ylabel(r'$t [t_{\rm fb}]$')
             ax1.loglog()    
-            ax1.set_xlim(R0/apo, rph[i]/apo)
-            ax1.set_ylim(1e-4, 20)
+            ax1.set_xlim(R0/apo, 5)
+            # ax1.set_ylim(1e-4, 20)
             ax1.tick_params(axis='both', which='major', length=8, width=1.2)
             ax1.tick_params(axis='both', which='minor', length=5, width=1)
             ax1.legend(fontsize = 14)
             plt.suptitle(f'Snap {snap}, observer {label_obs[count_i]} (number {i}) from R0 to its photosphere', fontsize = 16)
             plt.tight_layout()
         
-        # select the inner part, where tau big --> c/tau < v
+        # select the inner part, where tau big --> c/tau < v (i.e. tdyn<tdiff)
         Rtr_idx_all = np.where(c_tau/np.abs(ray_vr)<1)[0]
         if len(Rtr_idx_all) == 0:
-            print(f'No Rtr found anywhere for obs {i}', flush=False)
-            count_i += 1
-            continue
+            # print(f'No Rtr found anywhere for obs {i}', flush=False)
+            Rtr_idx = 0
+            print(f'For obs {i}, tdiff < tdyn always, so I pick the first wind cell')
         # take the one most outside 
-        Rtr_idx = Rtr_idx_all[-1]
-        x_tr[i] = ray_x[Rtr_idx]
-        y_tr[i] = ray_y[Rtr_idx]
-        z_tr[i] = ray_z[Rtr_idx]
-        vol_tr[i] = ray_vol[Rtr_idx]
-        den_tr[i] = ray_d[Rtr_idx]/prel.den_converter
-        Temp_tr[i] = ray_t[Rtr_idx]
-        Vr_tr[i] = ray_vr[Rtr_idx]
-        V_tr[i] = ray_V[Rtr_idx]
-        P_tr[i] = ray_P[Rtr_idx]
-        IEden_tr[i] = ray_ieDen[Rtr_idx]
-        Rad_den_tr[i] = ray_radDen[Rtr_idx]
-        idx_tr[i] = ray_idx_sim[Rtr_idx]
+        else:
+            Rtr_idx = Rtr_idx_all[-1] +1 # so if you have a gap, it takes the next point
 
-        if plot:
-            ax1.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
-            ax1.legend(fontsize = 14)
-            plt.savefig(f'{abspath}/Figs/next_meeting/tdiff_{which_part}{snap}{label_obs[count_i]}.png')
+        if ray_r[Rtr_idx]/rph[i] > 1:
+            v_rad_ph, _, _ = to_spherical_components(Vxph[i], Vyph[i], Vzph[i], xph[i], yph[i], zph[i])
+            V_ph = np.sqrt(Vxph[i]**2 + Vyph[i]**2 + Vzph[i]**2)
+            mass_ph = denph[i] * volph[i] 
+            bern_ph = orb.bern_coeff(rph[i], V_ph, denph[i], mass_ph, Pressph[i], IE_denph[i], Rad_denph[i], params)
+            if np.logical_and(bern_ph > 0, v_rad_ph >= 0):
+                x_tr[i], y_tr[i], z_tr[i], vol_tr[i], den_tr[i], Temp_tr[i], Vr_tr[i], V_tr[i], P_tr[i], IEden_tr[i], Rad_den_tr[i] = \
+                    xph[i], yph[i], zph[i], volph[i], denph[i], Tempph[i], v_rad_ph, V_ph, Pressph[i], IE_denph[i], Rad_denph[i]
+                print(f'For obs {i}, big gap in time comparison. Rtr is outside Rph, so I take it')
+                if plot:
+                    ax1.axvline(rph[i]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
+                    ax1.legend(fontsize = 14)
+                    plt.savefig(f'{abspath}/Figs/next_meeting/tdiff_{which_part}{snap}{label_obs[count_i]}.png')
+            else:
+                print(f'For obs {i}, big gap in time comparison. Rtr is outside Rph and Rph is not outflowing. I skip.')
+                count_i += 1
+                if plot:
+                    ax1.legend(fontsize = 14)
+                    plt.savefig(f'{abspath}/Figs/next_meeting/tdiff_{which_part}{snap}{label_obs[count_i]}.png')
+                continue
+        else:
+            x_tr[i] = ray_x[Rtr_idx]
+            y_tr[i] = ray_y[Rtr_idx]
+            z_tr[i] = ray_z[Rtr_idx]
+            vol_tr[i] = ray_vol[Rtr_idx]
+            den_tr[i] = ray_d[Rtr_idx]/prel.den_converter # so is in code units
+            Temp_tr[i] = ray_t[Rtr_idx]
+            Vr_tr[i] = ray_vr[Rtr_idx]
+            V_tr[i] = ray_V[Rtr_idx]
+            P_tr[i] = ray_P[Rtr_idx]
+            IEden_tr[i] = ray_ieDen[Rtr_idx]
+            Rad_den_tr[i] = ray_radDen[Rtr_idx]
+            print(label_obs[count_i], ray_r[Rtr_idx]/rph[i])
+            if plot:
+                ax1.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
+                ax1.axvline(rph[i]/apo, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
+                ax1.legend(fontsize = 14)
+                plt.savefig(f'{abspath}/Figs/next_meeting/tdiff_{which_part}{snap}{label_obs[count_i]}.png')
         
         count_i += 1
  
@@ -264,7 +286,6 @@ def r_trapp(loadpath, snap):
         'P_tr': P_tr,
         'IE_den_tr': IEden_tr,
         'Rad_den_tr': Rad_den_tr,
-        'idx_tr': idx_tr,
     }
 
     return r_trapp
@@ -292,7 +313,6 @@ for snap in snaps:
         colors_obs = np.array(colors_obs)
         test_idx = np.array(test_idx)
         label_obs, colors_obs, test_idx = sort_list([label_obs, colors_obs, test_idx], test_idx)
-
     r_tr = r_trapp(loadpath, snap)
 
     if save:
