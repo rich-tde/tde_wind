@@ -265,8 +265,8 @@ def r_trapp(loadpath, snap):
             P_tr[i] = ray_P[Rtr_idx]
             IEden_tr[i] = ray_ieDen[Rtr_idx]
             Rad_den_tr[i] = ray_radDen[Rtr_idx]
-            print(label_obs[count_i], ray_r[Rtr_idx]/rph[i])
             if plot:
+                print(label_obs[count_i], ray_r[Rtr_idx]/rph[i])
                 ax1.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
                 ax1.axvline(rph[i]/apo, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
                 ax1.legend(fontsize = 14)
