@@ -171,10 +171,11 @@ for i, observer in enumerate(indices_axis):
         # ax4.plot(tfb, alpha_obs_time[:, i], label = label_axis[i], c = colors_axis[i])
         ax5.plot(tfb, Lum_obs_time[:, i]/Ledd, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         ax6.plot(tfb, flux_obs_time[:, i], label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
-        if normalize_by == 'apo':
-                axTr.plot(tfb, rtr_obs_time[:, i]/apo, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
-        else: 
-                axTr.plot(tfb, rtr_obs_time[:, i]/rph_obs_time[:, i], label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
+        if label_axis[i] not in ['y', '-y']:
+                if normalize_by == 'apo':
+                        axTr.plot(tfb, rtr_obs_time[:, i]/apo, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
+                else: 
+                        axTr.plot(tfb, rtr_obs_time[:, i]/rph_obs_time[:, i], label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
 ax1.axhline(Rp/apo, color = 'gray', linestyle = '-.', label = r'R$_{\rm p}$')
 # ax1.axhline(R0/apo, color = 'gray', linestyle = ':', label = r'R$_0$')
 # ax1.plot(tfb, mean_rph/apo, c = 'gray', ls = '--', label = 'mean')
@@ -195,7 +196,7 @@ ax6.legend(fontsize = 16)
 if normalize_by == 'apo':
         axTr.axhline(Rp/apo, color = 'gray', linestyle = '-.', label = r'R$_{\rm p}$')
         axTr.set_ylabel(r'$\langle R_{\rm tr}\rangle / \langle R_{\rm a}\rangle$')
-        axTr.set_ylim(1e-2, 10)
+        axTr.set_ylim(2e-2, 10)
 else:
         axTr.set_ylabel(r'$\langle R_{\rm tr}\rangle / \langle R_{\rm ph}\rangle$')
         axTr.set_ylim(1e-1, 1.1)
@@ -210,8 +211,8 @@ fig.suptitle(f'{check}', fontsize = 30)
 figTr.suptitle(f'{check}', fontsize = 30)
 fig.tight_layout()
 figTr.tight_layout()
-fig.savefig(f'{abspath}/Figs/next_meeting/photo_profile.png')
-figTr.savefig(f'{abspath}/Figs/next_meeting/trap_profile_{normalize_by}.png')
+fig.savefig(f'{abspath}/Figs/next_meeting/{check}/photo_profile.png')
+figTr.savefig(f'{abspath}/Figs/next_meeting/{check}/trap_profile_{normalize_by}.png')
 
 #%% 3D plot at the chosen snap
 idx_snap = -1
@@ -271,11 +272,22 @@ ax3d.text(0, 0, lim, r"$z/R_{\rm a}$", size=20)
 plt.tight_layout()
 plt.show(block=True)
 
-
+#%%
+plt.figure(figsize = (10, 7))
+to_plot = [0, 6, 4, 8]
+for i, idx_toplot in enumerate(to_plot):
+        plt.scatter(i+1, Lum_obs_time[-1, idx_toplot]/Ledd, label = label_axis[idx_toplot], c = colors_axis[idx_toplot], ls = lines_axis[idx_toplot], s = 100)
+plt.legend(fontsize = 16)
+plt.ylabel(r'$L_{\rm ph}/L_{\rm Edd}$')
+plt.xticks([])
+plt.yscale('log')
+plt.tick_params(axis='y', which='major', width=1.2, length=9, color = 'k')
+plt.tick_params(axis='y', which='minor', width=1, length=7, color = 'k')
+plt.show(block=True)
 
 # #%% compare with other resolutions
 # pvalue 
-# statL = np.zeros(len(tfbL))
+# statL = np.zeros(len(tfbL)) 
 # pvalueL = np.zeros(len(tfbL))
 # for i, snapi in enumerate(snapsL):
 #         # LowRes data

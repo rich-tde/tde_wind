@@ -125,7 +125,7 @@ def r_trapp(loadpath, snap):
             rmax = min(rmax, box[2] / mu_z)
         else:
             rmax = min(rmax, box[5] / mu_z)
-        r = np.logspace(-0.25, np.log10(rmax), N_ray)
+        r = np.logspace(np.log10(Rt), np.log10(rmax), N_ray)
         x = r*mu_x
         y = r*mu_y
         z = r*mu_z
@@ -139,11 +139,16 @@ def r_trapp(loadpath, snap):
         idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
 
         # pick them just if near enough and iterate
-        # r_sim = np.sqrt(X[idx]**2 + Y[idx]**2 + Z[idx]**2)
         # check_dist = np.abs(r_sim - radii2) < Vol[idx]**(1/3)
-        check_dist = dist <= Vol[idx]**(1/3)
+        r_sim = np.sqrt(X[idx]**2 + Y[idx]**2 + Z[idx]**2)
+        check_dist = np.logical_and(dist <= Vol[idx]**(1/3), r_sim >= Rt)
         idx = idx[check_dist]
         ray_r = r[check_dist]
+
+        if len(idx) <= 1:
+            print(f'No points found for observer {i}', flush=True)
+            count_i += 1
+            continue
  
         ray_x = X[idx]
         ray_y = Y[idx]
@@ -160,10 +165,6 @@ def r_trapp(loadpath, snap):
         #     sort_list([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r], ray_r)
         idx = np.array(idx)
 
-        if len(idx) == 0:
-            print(f'No points found for observer {i}', flush=True)
-            count_i += 1
-            continue
 
         # check which points your are taking
         if plot:
@@ -191,9 +192,12 @@ def r_trapp(loadpath, snap):
         gc.collect()
 
         # Optical Depth
+        # compute the optical depth from outside in: tau = - int alpha dr. Then reverse the order to have it from the inside to out, so can query.
+        # you deleted some cells, but you anyway have to integrate from the beginning, so you should set the inside part equal to the initial radius
+        # ray_r_forInt = np.copy(ray_r)
+        # ray_r_forInt[0] = 0
         ray_fuT = np.flipud(ray_r)
         alpha_rossland_fuT = np.flipud(alpha_rossland_eval) 
-        # compute the optical depth from outside in: tau = - int alpha dr. Then reverse the order to have it from the inside to out, so can query.
         tau = - np.flipud(cumulative_trapezoid(alpha_rossland_fuT, ray_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_r. 
         tau_zero = tau != 0
         ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, alpha_rossland_eval, tau, ray_P, ray_ieDen, ray_radDen, idx = \
@@ -216,16 +220,15 @@ def r_trapp(loadpath, snap):
             cbar = plt.colorbar(img)#, orientation = 'horizontal')
             cbar.set_label(r'$\tau$', fontsize = 20)
             ax1.axvline(Rt/apo, c = 'k', linestyle = '-.', label = r'$R_{\rm t}$')
-            # ax1.axvline(rph[i]/apo, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
             ax1.set_xlabel(r'$R [R_{\rm a}]$')
             ax1.set_ylabel(r'$t [t_{\rm fb}]$')
             ax1.loglog()    
-            ax1.set_xlim(R0/apo, 5)
-            # ax1.set_ylim(1e-4, 20)
+            # ax1.set_xlim(R0/apo, 1.2*rph[i]/apo)
+            ax1.set_ylim(1e-5, 8)
             ax1.tick_params(axis='both', which='major', length=8, width=1.2)
             ax1.tick_params(axis='both', which='minor', length=5, width=1)
             ax1.legend(fontsize = 14)
-            plt.suptitle(f'Snap {snap}, observer {label_obs[count_i]} (number {i}) from R0 to its photosphere', fontsize = 16)
+            plt.suptitle(f'Snap {snap}, observer {label_obs[count_i]} (number {i})', fontsize = 16)
             plt.tight_layout()
         
         # select the inner part, where tau big --> c/tau < v (i.e. tdyn<tdiff)
@@ -238,7 +241,7 @@ def r_trapp(loadpath, snap):
         else:
             Rtr_idx = Rtr_idx_all[-1] +1 # so if you have a gap, it takes the next point
 
-        if ray_r[Rtr_idx]/rph[i] > 1:
+        if ray_r[Rtr_idx]/rph[i] >= 1:
             v_rad_ph, _, _ = to_spherical_components(Vxph[i], Vyph[i], Vzph[i], xph[i], yph[i], zph[i])
             V_ph = np.sqrt(Vxph[i]**2 + Vyph[i]**2 + Vzph[i]**2)
             mass_ph = denph[i] * volph[i] 
@@ -246,13 +249,13 @@ def r_trapp(loadpath, snap):
             if np.logical_and(bern_ph > 0, v_rad_ph >= 0):
                 x_tr[i], y_tr[i], z_tr[i], vol_tr[i], den_tr[i], Temp_tr[i], Vr_tr[i], V_tr[i], P_tr[i], IEden_tr[i], Rad_den_tr[i] = \
                     xph[i], yph[i], zph[i], volph[i], denph[i], Tempph[i], v_rad_ph, V_ph, Pressph[i], IE_denph[i], Rad_denph[i]
-                print(f'For obs {i}, big gap in time comparison. Rtr is outside Rph, so I take it')
+                print(f'For obs {i}, Rtr is outside Rph, so I take the latter')
                 if plot:
                     ax1.axvline(rph[i]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
                     ax1.legend(fontsize = 14)
                     plt.savefig(f'{abspath}/Figs/next_meeting/tdiff_{which_part}{snap}{label_obs[count_i]}.png')
             else:
-                print(f'For obs {i}, big gap in time comparison. Rtr is outside Rph and Rph is not outflowing. I skip.')
+                print(f'For obs {i}, Rtr is outside Rph and Rph is not outflowing. I skip.')
                 count_i += 1
                 if plot:
                     ax1.legend(fontsize = 14)
@@ -275,7 +278,7 @@ def r_trapp(loadpath, snap):
                 ax1.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
                 ax1.axvline(rph[i]/apo, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
                 ax1.legend(fontsize = 14)
-                plt.savefig(f'{abspath}/Figs/next_meeting/tdiff_{which_part}{snap}{label_obs[count_i]}.png')
+                plt.savefig(f'{abspath}/Figs/next_meeting/{check}/tdiff_{which_part}{snap}{label_obs[count_i]}.png')
         
         count_i += 1
  
@@ -365,7 +368,7 @@ for snap in snaps:
     # plt.scatter(np.arange(len(x_tr_i)), x_tr_i/x_sim, label = 'x')
     # plt.scatter(np.arange(len(y_tr_i)), y_tr_i/y_sim, label = 'y')
     # plt.scatter(np.arange(len(z_tr_i)), z_tr_i/z_sim, label = 'z')
-    # plt.legend()
+    # plt.legend() 
 
 
 #%%
