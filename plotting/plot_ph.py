@@ -173,6 +173,7 @@ for i, observer in enumerate(indices_axis):
         ax6.plot(tfb, flux_obs_time[:, i], label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         if label_axis[i] not in ['y', '-y']:
                 if normalize_by == 'apo':
+                        print(rtr_obs_time[-1, i]/apo)
                         axTr.plot(tfb, rtr_obs_time[:, i]/apo, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
                 else: 
                         axTr.plot(tfb, rtr_obs_time[:, i]/rph_obs_time[:, i], label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])

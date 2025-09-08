@@ -154,8 +154,8 @@ for j, idx_list in enumerate(indices_sorted):
         ray_V_r = V_r[idx]
         
         # pick them just if near enough 
-        # r_sim = np.sqrt(X[idx]**2 + Y[idx]**2 + Z[idx]**2)
-        check_dist = dist <= Vol[idx]**(1/3)
+        r_sim = np.sqrt(X[idx]**2 + Y[idx]**2 + Z[idx]**2)
+        check_dist = dist <= Vol[idx]**(1/3) #np.logical_and(dist <= Vol[idx]**(1/3), r_sim >= Rt)
         d[~check_dist] = 0 
         ray_t[~check_dist] = 0
         ray_rad_den[~check_dist] = 0 
@@ -216,15 +216,15 @@ np.save(out_path, all_outflows, allow_pickle=True)
 #%%
 # R_edge = v_esc / prel.tsol_cgs * tfb * t_fb_days_cgs
 x_test = np.arange(1e-2, 10)
-y_testplus1 = 5.2e3* (x_test)
-y_test1 = 2.5e5* (x_test)**(-1)
+y_testplus1 = 3.5e3* (x_test)
+y_test1 = 8e4* (x_test)**(-1)
 y_test12 = 0.75*(x_test)**(-0.5)
 y_test02 = 5e3* (x_test)**(-0.2)
 y_test08 = 4.2e-12* (x_test)**(-0.8)
 y_test23 = 4.5e4*(x_test)**(-2/3)
 y_test2 = 3e-13* (x_test)**(-2)
 y_testplus2 = 2.5e3* (x_test)**(2)
-y_test3 = 2e-12 * (x_test)**(-3)
+y_test3 = 6.5e-13 * (x_test)**(-3)
 which_part = 'outflow'
 profiles = np.load(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}.npy', allow_pickle=True).item()
 
@@ -242,11 +242,15 @@ figT, axT = plt.subplots(1, 1, figsize=(10, 7))
 figL, axL = plt.subplots(1, 1, figsize=(10, 7))
 
 for i, lab in enumerate(profiles.keys()):
-    if lab not in ['z', '-z']:
+    if lab not in ['x', '-x']:
         continue
         
     r_normalizer = apo if normalize_by == 'apo' else r_tr_mean[i]
-    print(lab, f'Rtr/Rp: {r_tr_mean[i]/Rp}')
+    if normalize_by == 'apo':
+        for ax in [axMdot, axV, axd, axT, axL]:
+            ax.axvline(Rp/apo, c = 'gray', ls = '--')
+            print(Rp/apo)
+    print(lab, f'Rtr/Rph: {r_tr_mean[i]/rph_mean[i]}')
 
     r_plot = profiles[lab]['r'] 
     d = profiles[lab]['d_mean'] * prel.den_converter
@@ -265,20 +269,20 @@ for i, lab in enumerate(profiles.keys()):
 
     # for ax in [axd, axV, axMdot, axT, axL]:
     #     ax.axvline(rph_mean[i]/r_normalizer, c = colors_obs[i], ls = '--')#, label = r'$r_{\rm ph}$ ' + f'{label_obs[i]}')
-axMdot.plot(x_test, y_testplus1, c = 'gray', ls = 'dotted', label = r'$\dot{M} \propto r$')
+# axMdot.plot(x_test, y_testplus1, c = 'gray', ls = 'dotted', label = r'$\dot{M} \propto r$')
 # axd.plot(r/apo, rho_from_dM, c = 'gray', ls = '--', label = r'$\rho \propto R^{-2}$') #'From dM/dt')
 # axd.plot(x_test, y_test2, c = 'gray', ls = ':', label = r'$\rho \propto r^{-2}$')
 axd.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto r^{-3}$') 
-axd.plot(x_test, y_test08, c = 'gray', ls = 'dashed', label = r'$v_r \propto r^{-0.8}$')
+# axd.plot(x_test, y_test08, c = 'gray', ls = 'dashed', label = r'$v_r \propto r^{-0.8}$')
 axV.axhline(v_esc_kms, c = 'gray', ls = 'dotted', label = r'$v_{\rm esc} (r_p)$')
-axV.plot(x_test, y_test02, c = 'gray', ls = 'dashed', label = r'$v_r \propto r^{-0.2}$')
-axV.plot(x_test, 3*y_testplus1, c = 'gray', ls = '-.', label = r'$v_r \propto r$')
+# axV.plot(x_test, y_test02, c = 'gray', ls = 'dashed', label = r'$v_r \propto  r^{-0.2}$')
+axV.plot(x_test, 2.9*y_testplus1, c = 'gray', ls = '-.', label = r'$v_r \propto r$')
 # axV.plot(x_test, 2.5*y_testplus2, c = 'gray', ls = '--', label = r'$v_r \propto r^2$')
-axT.plot(x_test, y_test23, c = 'gray', ls = 'dashed', label = r'$T \propto r^{-2/3}$')
+# axT.plot(x_test, y_test23, c = 'gray', ls = 'dashed', label = r'$T \propto r^{-2/3}$')
 axT.plot(x_test, y_test1, c = 'gray', ls = ':', label = r'$T \propto r^{-1}$')
-axL.plot(x_test, 1.3e-5*y_test23, c = 'gray', ls = 'dashed', label = r'$L \propto r^{-2/3}$')
-axL.plot(x_test, 4e-6*y_test1, c = 'gray', ls = ':', label = r'$L \propto r^{-1}$')
-axL.plot(x_test, y_test12, c = 'gray', ls = ':', label = r'$L \propto r^{-0.5}$')
+# axL.plot(x_test, 5e-6*y_test23, c = 'gray', ls = 'dashed', label = r'$L \propto r^{-2/3}$')
+axL.plot(x_test, 3e-6*y_test1, c = 'gray', ls = ':', label = r'$L \propto r^{-1}$')
+# axL.plot(x_test, y_test12, c = 'gray', ls = ':', label = r'$L \propto r^{-0.5}$')
 
 for ax in [axd, axV, axMdot, axT, axL]:
     #put the legend if which_obs != 'all_rotate'. Lt it be outside
@@ -288,18 +292,18 @@ for ax in [axd, axV, axMdot, axT, axL]:
     # ax.axvline(Rp/apo, c = 'k', ls = '--')
     ax.set_xlabel(r'$r [r_{\rm a}]$' if normalize_by == 'apo' else r'$r [r_{\rm tr}]$')
     # ax.axvline(R_edge/apo,  c = 'k', ls = ':')
-    # ax.set_xlim(4e-2, 5)
+    ax.set_xlim(2e-1, 5)
     ax.legend(fontsize = 14)
     ax.loglog()
-    ax.tick_params(axis='both', which='minor', size=4)
-    ax.tick_params(axis='both', which='major', size=6)
+    ax.tick_params(axis='both', which='minor', length=6, width=1)
+    ax.tick_params(axis='both', which='major', length=8, width=1.2)
     ax.grid()
 
 axMdot.set_ylim(1, 5e3)
 axMdot.set_ylabel(r'$4\pi v_r \rho r^2 \,[\dot{M}_{\rm{Edd}}]$')
-axd.set_ylim(1e-14, 1e-8)
+axd.set_ylim(1e-14, 1e-10)
 axd.set_ylabel(r'$\rho$ [g/cm$^3]$')
-axV.set_ylim(8e2, 2e4)
+axV.set_ylim(1e3, 3e4)
 axV.set_ylabel(r'$v_r$ [km/s]')
 axT.set_ylim(1e4, 1e6)
 axT.set_ylabel(r'$T$ [K]')
@@ -307,9 +311,9 @@ axL.set_ylabel(r'$L [L_{\rm Edd}]$')
 axL.set_ylim(2e-2, 2e1)
 fig.suptitle(f't = {np.round(tfb,2)}' + r't$_{\rm fb}$', fontsize = 20)
 fig.tight_layout()
-fig.savefig(f'{abspath}/Figs/next_meeting/{check}/den_prof{snap}{which_part}Z.png', bbox_inches = 'tight')
-figT.savefig(f'{abspath}/Figs/next_meeting/{check}/T{snap}{which_part}Z.png', bbox_inches = 'tight')
-figL.savefig(f'{abspath}/Figs/next_meeting/{check}/L{snap}{which_part}Z.png', bbox_inches = 'tight')
+fig.savefig(f'{abspath}/Figs/next_meeting/{check}/den_prof{snap}{which_part}X.png', bbox_inches = 'tight')
+figT.savefig(f'{abspath}/Figs/next_meeting/{check}/T{snap}{which_part}X.png', bbox_inches = 'tight')
+figL.savefig(f'{abspath}/Figs/next_meeting/{check}/L{snap}{which_part}X.png', bbox_inches = 'tight')
 plt.show()
 
 #%% find eta = mfall(t_fb-t_dyn)/Mwind(tfb)
@@ -324,8 +328,8 @@ Vwind_neg_Rt, Vwind_neg_half_amb, Vwind_neg_amb, Vwind_neg_50Rt = \
                 unpack=True)
 fig, ax = plt.subplots(1, 1, figsize=(10, 7))
 for i, lab in enumerate(profiles.keys()):
-    # if lab not in ['z', '-z']:
-    #     continue
+    if lab in ['y', '-y']:
+        continue
     r_tr = r_tr_mean[i]
     r_plot = profiles[lab]['r']
     d = profiles[lab]['d_mean']
@@ -345,12 +349,11 @@ ax.tick_params(axis='both', which='minor', length=5, width=1)
 ax.tick_params(axis='both', which='major', length=8, width=1.2)
 ax.set_ylabel(r'$\eta = |\dot{M}_{\rm w}/\dot{M}_{\rm fb}|$')
 ax.legend(fontsize = 14)
-ax.set_yscale('log')
-ax.set_xlim(1e-2, 2.5)
-ax.set_xscale('log')
+ax.loglog()
+ax.set_xlim(Rp/apo, 3)
 ax.set_ylim(1e-6, 1e-1)
-ax.axvline(Rp/apo, c = 'k', ls = '--')
-ax.text(1.05*Rp/apo, 2e-2, r'$r_{\rm p}$', fontsize = 20)
+# ax.axvline(Rp/apo, c = 'k', ls = '--')
+# ax.text(1.05*Rp/apo, 2e-2, r'$r_{\rm p}$', fontsize = 20)
 ax.grid()
 fig.tight_layout()
 fig.savefig(f'{abspath}/Figs/next_meeting/{check}/eta{snap}{which_part}.png', bbox_inches = 'tight')
