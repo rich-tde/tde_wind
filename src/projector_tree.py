@@ -40,6 +40,14 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
     # R0 = 0.6 * Rt
     apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
+    if how_far == 'nozzle':
+        x_start = -3*Rt
+        x_stop = 3*Rt
+        y_start = -3*Rt 
+        y_stop = 3*Rt
+        z_start = -2*apo 
+        z_stop = 2*apo 
+
     if how_far == 'big':
         x_start = -6*apo
         x_stop = 2.5*apo
@@ -141,7 +149,7 @@ if __name__ == '__main__':
     check = 'HiResNewAMR'
     compton = 'Compton'
     what_to_grid = 'Den'
-    how_far = '' # 'big' for big grid, '' for small grid
+    how_far = 'nozzle' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
     save_fig = False
 
     params = [Mbh, Rstar, mstar, beta]
@@ -176,6 +184,8 @@ if __name__ == '__main__':
             f.close()
             
         for snap in snaps:
+            if snap != 60:
+                continue
             print(snap, flush=True)
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'

@@ -137,6 +137,7 @@ rtr_obs_time = np.zeros((len(tfb), len(indices_axis)))
 # alpha_obs_time = np.zeros((len(tfb), len(indices_axis)))
 flux_obs_time = np.zeros((len(tfb), len(indices_axis)))
 
+normalize_by = 'apo'
 for i, snapi in enumerate(snaps):
         xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, alphaph, _, Lumph, _ = \
                 np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snapi}.txt')
@@ -149,34 +150,46 @@ for i, snapi in enumerate(snaps):
         dim = volph**(1/3)
         rph = np.sqrt(xph**2 + yph**2 + zph**2)
         for j, observer in enumerate(indices_axis):
-                rph_obs_time[i, j] = np.mean(rph[observer])    
-                rtr_obs_time[i, j] = np.mean(rtr[observer])   
+                rph_obs_time[i, j] = np.divide(
+                                np.sum(rph[observer]),
+                                np.count_nonzero(rph[observer]),
+                                out=np.zeros_like(np.sum(rph[observer]), dtype=float),
+                                where=np.count_nonzero(rph[observer]) != 0)
                 den_obs_time[i, j] = np.mean(denph[observer])
                 T_obs_time[i, j] = np.mean(Tempph[observer])
                 Lum_obs_time[i, j] = np.mean(Lumph[observer]) 
                 # alpha_obs_time[i, j] = np.mean(alphaph[observer])
                 flux_obs_time[i, j] = np.mean(fluxph[observer])
 
-normalize_by = 'apo'
+                if normalize_by == 'apo': 
+                        rtr_obs_time[i, j] = np.divide(
+                                np.sum(rtr[observer]/apo),
+                                np.count_nonzero(rtr[observer]),
+                                out=np.zeros_like(np.sum(rtr[observer]), dtype=float),
+                                where=np.count_nonzero(rtr[observer]) != 0)
+                else:
+                        rtr_obs_time[i, j] = np.divide(
+                                np.sum(rtr[observer]/rph[observer]),
+                                np.count_nonzero(rtr[observer]),
+                                out=np.zeros_like(np.sum(rtr[observer]), dtype=float),
+                                where=np.count_nonzero(rtr[observer]) != 0)
+
 fig, ((ax1, ax2), (ax3, ax5)) = plt.subplots(2, 2, figsize=(20, 15))
 figf, ax6 = plt.subplots(1, 1, figsize=(10, 7))
 figTr, axTr = plt.subplots(1, 1, figsize=(10, 7))
 for i, observer in enumerate(indices_axis):
+        if normalize_by == 'apo': 
+                print(f'final Rtr/apo {label_axis[i]}: ',rtr_obs_time[-1, i])
         # if label_axis[i] not in ['z', 'x', 'xz', '-xz', 'y']:
         #     continue
-        print(f'{label_axis[i]}: Rtr/Rp = {rtr_obs_time[-1, i]/Rp}')
         ax1.plot(tfb, rph_obs_time[:, i]/apo, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         ax2.plot(tfb, den_obs_time[:, i]*prel.den_converter, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         ax3.plot(tfb, T_obs_time[:, i], label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         # ax4.plot(tfb, alpha_obs_time[:, i], label = label_axis[i], c = colors_axis[i])
         ax5.plot(tfb, Lum_obs_time[:, i]/Ledd, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         ax6.plot(tfb, flux_obs_time[:, i], label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
-        if label_axis[i] not in ['y', '-y']:
-                if normalize_by == 'apo':
-                        print(rtr_obs_time[-1, i]/apo)
-                        axTr.plot(tfb, rtr_obs_time[:, i]/apo, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
-                else: 
-                        axTr.plot(tfb, rtr_obs_time[:, i]/rph_obs_time[:, i], label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
+        if label_axis[i] not in ['y']:
+                axTr.plot(tfb, rtr_obs_time[:, i], label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
 ax1.axhline(Rp/apo, color = 'gray', linestyle = '-.', label = r'R$_{\rm p}$')
 # ax1.axhline(R0/apo, color = 'gray', linestyle = ':', label = r'R$_0$')
 # ax1.plot(tfb, mean_rph/apo, c = 'gray', ls = '--', label = 'mean')

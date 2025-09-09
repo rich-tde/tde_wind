@@ -25,7 +25,7 @@ n = 1.5
 compton = 'Compton'
 check = 'NewAMR'
 kind_of_plot = 'convergence' # 'ratioE' or 'convergence'
-which_radius = 'trap' # trap or photo
+which_radius = 'photo' # trap or photo
 singlesnap = 318
 
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs

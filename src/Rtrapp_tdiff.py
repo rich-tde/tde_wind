@@ -170,14 +170,23 @@ def r_trapp(loadpath, snap):
             x_plot = xyz2[:,0]
             y_plot = xyz2[:,1]
             z_plot = xyz2[:,2]
-            plt.plot(x_plot[check_dist]/apo, y_plot[check_dist]/apo, c = 'k')
-            img = plt.scatter(ray_x/apo, ray_y/apo, c = np.abs(z_plot[check_dist]/ray_z), s = 8, cmap = 'rainbow', norm = colors.LogNorm(vmin = 5e-1, vmax = 5))
-            plt.colorbar(img, label = r'$|z_{\rm wanted}/z_{\rm sim}|$')
-            plt.xlim(-8, 8)
-            plt.ylim(-8, 8)
-            plt.xlabel(r'$x/R_{\rm a}$')
-            plt.ylabel(r'$y/R_{\rm a}$')
-            plt.title(label_obs[count_i])
+            if label_obs[count_i] in ['z', '-z']:
+                plt.plot(x_plot[check_dist]/apo, z_plot[check_dist]/apo, c = 'k', label = 'wanted')
+                img = plt.scatter(ray_x/apo, ray_z/apo, c = np.abs(y_plot[check_dist]/ray_y), s = 8, cmap = 'rainbow', norm = colors.LogNorm(vmin = 5e-1, vmax = 5), label = 'sim')
+                plt.colorbar(img, label = r'$|y_{\rm wanted}/y_{\rm sim}|$')
+                plt.xlabel(r'$x/R_{\rm a}$')
+                plt.ylabel(r'$z/R_{\rm a}$')
+            else:
+                plt.plot(x_plot[check_dist]/apo, y_plot[check_dist]/apo, c = 'k', label = 'wanted')
+                img = plt.scatter(ray_x/apo, ray_y/apo, c = np.abs(z_plot[check_dist]/ray_z), s = 8, cmap = 'rainbow', norm = colors.LogNorm(vmin = 5e-1, vmax = 5), label = 'sim')
+                plt.colorbar(img, label = r'$|z_{\rm wanted}/z_{\rm sim}|$')
+                plt.xlabel(r'$x/R_{\rm a}$')
+                plt.ylabel(r'$y/R_{\rm a}$')
+            # plt.xlim(-8, 8)
+            # plt.ylim(-8, 8)
+            plt.legend(fontsize = 16)
+            plt.title(label_obs[count_i], fontsize = 16)
+            plt.tight_layout()
 
         # Interpolate ----------------------------------------------------------
         alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(ray_t), np.log(ray_d), 'linear', 0)
@@ -191,9 +200,6 @@ def r_trapp(loadpath, snap):
 
         # Optical Depth
         # compute the optical depth from outside in: tau = - int alpha dr. Then reverse the order to have it from the inside to out, so can query.
-        # you deleted some cells, but you anyway have to integrate from the beginning, so you should set the inside part equal to the initial radius
-        # ray_r_forInt = np.copy(ray_r)
-        # ray_r_forInt[0] = 0
         ray_fuT = np.flipud(ray_r)
         alpha_rossland_fuT = np.flipud(alpha_rossland_eval) 
         tau = - np.flipud(cumulative_trapezoid(alpha_rossland_fuT, ray_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for ray_r. 
@@ -221,7 +227,7 @@ def r_trapp(loadpath, snap):
             ax1.set_xlabel(r'$R [R_{\rm a}]$')
             ax1.set_ylabel(r'$t [t_{\rm fb}]$')
             ax1.loglog()    
-            ax1.set_xlim(R0/apo, 1.2*rph[i]/apo)
+            # ax1.set_xlim(R0/apo, 1.2*rph[i]/apo)
             # ax1.set_ylim(1e-5, 8)
             ax1.tick_params(axis='both', which='major', length=8, width=1.2)
             ax1.tick_params(axis='both', which='minor', length=5, width=1)
@@ -230,13 +236,18 @@ def r_trapp(loadpath, snap):
             plt.tight_layout()
         
         # select the inner part, where tau big --> c/tau < v (i.e. tdyn<tdiff)
-        Rtr_idx_all = np.where(c_tau/np.abs(ray_vr)<1)[0]
+        Rtr_idx_all = np.where(c_tau/np.abs(ray_vr)<=1)[0]
         if len(Rtr_idx_all) == 0:
             count_i += 1
             print(f'For obs {i}, tdiff < tdyn always, no Rtr', flush=True)
             continue
         else: # take the one most outside 
-            Rtr_idx = Rtr_idx_all[-1] + 1 # so if you have a gap, it takes the next point
+            Rtr_idx = Rtr_idx_all[-1] # so if you have a gap, it takes the next point
+
+        # check you don't have a huge gap
+        if ray_vol[Rtr_idx+1]/ray_vol[Rtr_idx] > 10:
+            count_i += 1
+            continue
 
         if ray_r[Rtr_idx]/rph[i] >= 1:
             print(f'For obs {i}, Rtr is outside Rph, so I take the latter', flush=True)

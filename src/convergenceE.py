@@ -18,6 +18,7 @@ import src.orbits as orb
 import Utilities.prelude as prel
 import csv
 import os
+import gc
 
 #
 ## PARAMETERS STAR AND BH
@@ -79,6 +80,11 @@ if alice:
                 writer.writerow(header)
             writer.writerow(data_E)
         file.close()
+
+        del X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den
+        del X_cut, Y_cut, Z_cut, VX_cut, VY_cut, VZ_cut, mass_cut, vol_cut, den_cut, ie_den_cut
+        del Rsph_cut, vel_cut, orb_en_cut, ie_cut, Rad
+        gc.collect()    
 
         # consider the small box for the cut in coordinates
         # if thresh == 'cutCoord':

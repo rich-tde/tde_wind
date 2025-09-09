@@ -17,8 +17,9 @@ import colorcet
 import src.orbits as orb
 import Utilities.prelude as prel
 from Utilities.sections import make_slices
-from Utilities.time_extractor import days_since_distruption
-from Utilities.operators import from_cylindric, to_spherical_components, make_tree
+from Utilities.operators import from_cylindric, to_spherical_components
+from plotting.paper.IHopeIsTheLast import split_data_red
+import Utilities.prelude as prel
 
 ##
 # PARAMETERS
@@ -32,11 +33,9 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
 choosen_snaps = np.array([97, 238, 318])
-save = True
+save = False
 
-t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
-t_fall_hour = t_fall * 24
-
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 Rs = things['Rs']
@@ -46,11 +45,10 @@ R0 = things['R0']
 apo = things['apo']
 a_mb = things['a_mb']
 e_mb = things['ecc_mb']
+t_fall = things['t_fb_days']
+t_fall_hour = t_fall * 24
 
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
-
-
-#%% make cfr
+# make cfr
 radii_grid = [Rt/apo, a_mb/apo, 1] #*apo 
 styles = ['dashed', 'solid', 'solid']
 xcfr_grid, ycfr_grid, cfr_grid = [], [], []
@@ -65,7 +63,7 @@ r_arr_ell = orb.keplerian_orbit(theta_arr, a_mb, Rp, ecc=e_mb)
 x_arr_ell, y_arr_ell = from_cylindric(theta_arr, r_arr_ell)
 r_arr_par = orb.keplerian_orbit(theta_arr, a_mb, Rp, ecc=1)
 x_arr_par, y_arr_par = from_cylindric(theta_arr, r_arr_par)
-precession_angle = orb.precession_angle(Rstar, mstar, Mbh, beta, c = prel.csol_cgs, G=1)
+# precession_angle = orb.precession_angle(Rstar, mstar, Mbh, beta, c = prel.csol_cgs, G=1)
 # x_arr_rot, y_arr_rot = rotate_coordinate(x_arr_ell, y_arr_ell, precession_angle)
 
 # HEALPIX
@@ -185,68 +183,74 @@ if save:
 plt.show() 
 
 #%% ORBITAL ENERGY AND a
-time_slice = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/slices/z/z0_time.txt')
-snaps_slice, tfb_slice = time_slice[0], time_slice[1]
-idx = np.argmin(np.abs(snaps_slice-snap))
-tfb_single = tfb_slice[idx]
-zslice = np.load(f'/Users/paolamartire/shocks/data/{folder}/slices/z/z0slice_{snap}.npy')
-x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid =\
-    zslice[0], zslice[1], zslice[2], zslice[3], zslice[4], zslice[5], zslice[6], zslice[7], zslice[8]
-orb_en_spec = orb_en_den_mid / den_mid
-orb_en_spec_cgs = orb_en_spec * prel.en_converter / prel.Msol_cgs
-orb_en_mid = orb_en_den_mid * dim_mid**3
-orb_en_mid_cgs = orb_en_mid * prel.en_converter
-a_mid = prel.G * Mbh / (2*np.abs(orb_en_spec))
-vminoe_spec_cgs = 4e15 #4e40
-vmaxoe_spec_cgs = 1e18 #9e42
-vminoe_spec = vminoe_spec_cgs / (prel.en_converter / prel.Msol_cgs)
-vmaxoe_spec = vmaxoe_spec_cgs / (prel.en_converter / prel.Msol_cgs)
-vmina = prel.G * Mbh / (2*vmaxoe_spec) # vmaxoe is energy NOT specific
-vmaxa = prel.G * Mbh / (2*vminoe_spec)
-vminoe = orb_en_mid_cgs[np.argmin((np.abs(orb_en_spec_cgs-vminoe_spec_cgs)))] 
-vmaxoe = orb_en_mid_cgs[np.argmin((np.abs(orb_en_spec_cgs-vmaxoe_spec_cgs)))]
+# time_slice = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/slices/z/z0_time.txt')
+# snaps_slice, tfb_slice = time_slice[0], time_slice[1]
+# idx = np.argmin(np.abs(snaps_slice-snap))
+# tfb_single = tfb_slice[idx]
+# zslice = np.load(f'/Users/paolamartire/shocks/data/{folder}/slices/z/z0slice_{snap}.npy')
+# x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid =\
+#     zslice[0], zslice[1], zslice[2], zslice[3], zslice[4], zslice[5], zslice[6], zslice[7], zslice[8]
+# orb_en_spec = orb_en_den_mid / den_mid
+# orb_en_spec_cgs = orb_en_spec * prel.en_converter / prel.Msol_cgs
+# orb_en_mid = orb_en_den_mid * dim_mid**3
+# orb_en_mid_cgs = orb_en_mid * prel.en_converter
+# a_mid = prel.G * Mbh / (2*np.abs(orb_en_spec))
+# vminoe_spec_cgs = 4e15 #4e40
+# vmaxoe_spec_cgs = 1e18 #9e42
+# vminoe_spec = vminoe_spec_cgs / (prel.en_converter / prel.Msol_cgs)
+# vmaxoe_spec = vmaxoe_spec_cgs / (prel.en_converter / prel.Msol_cgs)
+# vmina = prel.G * Mbh / (2*vmaxoe_spec) # vmaxoe is energy NOT specific
+# vmaxa = prel.G * Mbh / (2*vminoe_spec)
+# vminoe = orb_en_mid_cgs[np.argmin((np.abs(orb_en_spec_cgs-vminoe_spec_cgs)))] 
+# vmaxoe = orb_en_mid_cgs[np.argmin((np.abs(orb_en_spec_cgs-vmaxoe_spec_cgs)))]
 
-#%%
-img, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))
-img = ax1.scatter(x_mid/apo, y_mid/apo, c = np.abs(orb_en_spec_cgs)/DeltaE_cgs, cmap = 'spring', s = 2,
-                    norm = colors.LogNorm(vmin = vminoe_spec_cgs/DeltaE_cgs, vmax = vmaxoe_spec_cgs/DeltaE_cgs))
-cb = plt.colorbar(img)
-cb.set_label(r'$|$ Specific orbital energy$| [\Delta E$]', fontsize = 22)
-ax1.set_ylabel(r'$Y/R_{\rm a}$',)# fontsize = 22)
+# img, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))
+# img = ax1.scatter(x_mid/apo, y_mid/apo, c = np.abs(orb_en_spec_cgs)/DeltaE_cgs, cmap = 'spring', s = 2,
+#                     norm = colors.LogNorm(vmin = vminoe_spec_cgs/DeltaE_cgs, vmax = vmaxoe_spec_cgs/DeltaE_cgs))
+# cb = plt.colorbar(img)
+# cb.set_label(r'$|$ Specific orbital energy$| [\Delta E$]', fontsize = 22)
+# ax1.set_ylabel(r'$Y/R_{\rm a}$',)# fontsize = 22)
 
-img = ax2.scatter(x_mid/apo, y_mid/apo, c = a_mid/a_mb, cmap = 'winter', s = 2,
-                    norm = colors.LogNorm(vmin = vmina/a_mb, vmax = vmaxa/a_mb))
-cb = plt.colorbar(img)
-cb.set_label(r'Semi-major axis $[a_{\rm mb}$]', fontsize = 22)
-ax2.set_ylabel(r'$Y/R_{\rm a}$')#, fontsize = 22)
-ax2.set_xlabel(r'$X/R_{\rm a}$')#, fontsize = 22)
-for ax in [ax1, ax2]:
-    ax.set_xlim(-1.2, 40/apo)
-    ax.set_ylim(-0.4, 0.4)
-    for j in range(len(radii_grid)):
-        ax.contour(xcfr_grid[j], ycfr_grid[j], cfr_grid[j], [0], colors = 'k', linestyle = styles[j], alpha = 0.5)
+# img = ax2.scatter(x_mid/apo, y_mid/apo, c = a_mid/a_mb, cmap = 'winter', s = 2,
+#                     norm = colors.LogNorm(vmin = vmina/a_mb, vmax = vmaxa/a_mb))
+# cb = plt.colorbar(img)
+# cb.set_label(r'Semi-major axis $[a_{\rm mb}$]', fontsize = 22)
+# ax2.set_ylabel(r'$Y/R_{\rm a}$')#, fontsize = 22)
+# ax2.set_xlabel(r'$X/R_{\rm a}$')#, fontsize = 22)
+# for ax in [ax1, ax2]:
+#     ax.set_xlim(-1.2, 40/apo)
+#     ax.set_ylim(-0.4, 0.4)
+#     for j in range(len(radii_grid)):
+#         ax.contour(xcfr_grid[j], ycfr_grid[j], cfr_grid[j], [0], colors = 'k', linestyle = styles[j], alpha = 0.5)
 
-plt.suptitle( f't = {np.round(tfb_slice[idx],2)}' + r' $t_{\rm fb}$', fontsize = 18)
-plt.tight_layout()
-if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/OE_a{snap}.png')
-plt.show()
+# plt.suptitle( f't = {np.round(tfb_slice[idx],2)}' + r' $t_{\rm fb}$', fontsize = 18)
+# plt.tight_layout()
+# # if save:
+# #     plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/OE_a{snap}.png')
+# plt.show()
 
 # %%
-from plotting.paper.IHopeIsTheLast import split_data_red
-talk = True
+proj_movie = True
 overview = False
 
-if talk:
-    from Utilities.operators import sort_list
+if proj_movie:
+    n_panels = 2    
     data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
     snaps, Lum, tfb = split_data_red(check)
     dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows = 1)
     tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3]
     LDiss = LDiss * prel.en_converter/prel.tsol_cgs # [erg/s]
-    
+
+    if n_panels == 2:
+        median_ph = np.zeros(len(snaps))
+        for i, snap in enumerate(snaps):
+            photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
+            x_ph, y_ph, z_ph, vol_ph = photo[0], photo[1], photo[2], photo[3]
+            r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
+            median_ph[i] = np.median(r_ph)
+
     for i, snap in enumerate(snaps):
-        if snap < 70:
+        if snap != 80:
             continue
         print(snap)
         x_denproj = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denxarray.npy')
@@ -260,37 +264,64 @@ if talk:
         flat_diss_cgs_plot[np.isnan(flat_diss_cgs_plot)] = 1
         flat_diss_cgs_plot[flat_diss_cgs_plot == 0] = 1
 
-        fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize = (40,15), gridspec_kw={'width_ratios': [1, 1, 0.8]})
-        ax3.scatter(tfb[:i+1], Lum[:i+1], c = 'k', s = 18, label = r'L$_{\rm FLD}$')
-        ax3.plot(tfbdiss[:i+1], LDiss[:i+1], ls = '--', c = 'k', label = r'L$_{\rm diss}$')
-        ax3.set_xlabel(r't $[t_{\rm fb}]$')
-        ax3.set_ylabel(r'L [erg/s]')
-        ax3.set_yscale('log')
-        ax3.set_xlim(0.06, 1.75)
-        ax3.set_ylim(1e37, 8e42)
-        ax3.legend(fontsize = 25)
-    
-        img = ax1.pcolormesh(x_denproj/apo, y_denproj/apo, flat_den_cgs.T, cmap = 'plasma', \
-                          norm = colors.LogNorm(vmin = 1e2, vmax = 5e7))
-        cbar = plt.colorbar(img, orientation = 'horizontal', pad = 0.15)
-        cbar.set_label(r'Column density [g cm$^{-2}$]')
-        ax1.set_ylabel(r'Y [$R_{\rm a}$]')
-        ax1.text(-1.15, 0.4, f't = {np.round(tfb[i],2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 28)
-
-        img = ax2.pcolormesh(x_denproj/apo, y_denproj/apo, flat_diss_cgs.T, \
-                          cmap = 'viridis', norm = colors.LogNorm(vmin = 1e14, vmax = 1e19))
-        cbar = plt.colorbar(img, orientation = 'horizontal', pad = 0.15)
-        cbar.set_label(r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$')
-        ax2.text(-1.15, 0.4, f't = {np.round(tfb[i]*t_fall_hour,1)}' + r' hours', color = 'white', fontsize = 28)
-        for ax in [ax1, ax2]:
-            # ax.contour(xcfr_grid[0], ycfr_grid[0], cfr_grid[0], levels=[0], colors='white')
-            ax.scatter(0,0,c= 'k', marker = 'x', s=80)
-            ax.set_xlim(-1.2,0.1)
-            ax.set_ylim(-0.5,0.5)
-            ax.set_xlabel(r'X [$R_{\rm a}$]')
+        if n_panels == 3:
+            fig, (axd, axDiss, axLC) = plt.subplots(1,3, figsize = (40,16), gridspec_kw={'width_ratios': [1, 1, 0.8]})
+            img = axDiss.pcolormesh(x_denproj/apo, y_denproj/apo, flat_diss_cgs.T, \
+                            cmap = 'viridis', norm = colors.LogNorm(vmin = 1e14, vmax = 1e19))
+            cbar = plt.colorbar(img, orientation = 'horizontal', pad = 0.15)
+            cbar.set_label(r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$')
+            axLC.plot(tfbdiss[:i+1], LDiss[:i+1], ls = '--', c = 'k', label = r'L$_{\rm diss}$')
+            axLC.set_ylim(1e38, 8e42)
         
-        plt.tight_layout()
-        plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection/denproj_diss{snap}.png')
+        elif n_panels == 2:
+            fig, (axd, axLC) = plt.subplots(1,2, figsize = (35,15), constrained_layout=True)
+            axLC.set_ylim(1e38, 2e42)
+        
+        img = axd.pcolormesh(x_denproj/apo, y_denproj/apo, flat_den_cgs.T, cmap = 'plasma', \
+                          norm = colors.LogNorm(vmin = 1e2, vmax = 5e7))
+        cbar = plt.colorbar(img, orientation = 'horizontal', pad = 0.03 if n_panels == 2 else 0.1)
+        cbar.set_label(r'Column density [g cm$^{-2}$]', fontsize = 45)
+        cbar.ax.tick_params(axis='both', labelsize=45, width = 1.5, length = 12, pad = 10)
+        axd.set_ylabel(r'Y [$R_{\rm a}$]', fontsize = 45 if n_panels == 2 else 25)
+        axd.tick_params(axis='both', which='major', width = 1.5, length = 12, color = 'white')
+        axd.text(-1.15, 0.42, f't = {np.round(tfb[i],2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 45 if n_panels == 2 else 25)
+
+        if n_panels == 2:
+            imgLC = axLC.scatter(tfb[:i+1], Lum[:i+1], s = 45, c = median_ph[:i+1]/apo, norm = colors.LogNorm(vmin = 1e-1, vmax = 5))
+        else: 
+            imgLC = axLC.scatter(tfb[:i+1], Lum[:i+1], s = 25, label = r'L$_{\rm FLD}$', c = 'k')
+        axLC.set_xlabel(r't $[t_{\rm fb}]$', fontsize = 45 if n_panels == 2 else 25)
+        axLC.set_ylabel(r'L [erg/s]', fontsize = 45 if n_panels == 2 else 25)
+        axLC.set_yscale('log')
+        axLC.set_xlim(0.06, 1.5)
+        axLC.text(0.2, 9e41, f't = {np.round(tfb[i]*t_fall_hour,1)}' + r' hours', fontsize = 45 if n_panels == 2 else 25)
+        axLC.tick_params(axis='both', which='major', width = 1.5, length = 14)
+        axLC.tick_params(axis='y', which='minor', width = 1, length = 10)
+        
+        if n_panels == 3:
+            for ax in [axd, axDiss]:
+                ax.contour(xcfr_grid[0], ycfr_grid[0], cfr_grid[0], levels=[0], colors='white')
+                ax.scatter(0,0,c= 'white', marker = 'x', s=80)
+                ax.set_xlim(-1.2,0.1)
+                ax.set_ylim(-0.5,0.5)
+                ax.set_xlabel(r'X [$R_{\rm a}$]', fontsize = 25)
+            axLC.legend(fontsize = 25)
+            fig.tight_layout()
+            fig.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection3/denproj_diss{snap}.png')
+        elif n_panels == 2:
+            cbar = plt.colorbar(imgLC, orientation = 'horizontal', pad = 0.03)
+            cbar.set_label(r'Median $R_{\rm ph}$ [$R_{\rm a}$]', fontsize = 45)
+            cbar.ax.tick_params(axis='both', labelsize=45, width = 1.5, length = 12, pad = 10)
+            axd.contour(xcfr_grid[0], ycfr_grid[0], cfr_grid[0], levels=[0], colors='white')
+            axd.scatter(0,0,c= 'white', marker = 'x', s = 100)
+            axd.set_xlim(-1.2,0.1)
+            axd.set_ylim(-0.5,0.5)
+            axd.set_xlabel(r'X [$R_{\rm a}$]', fontsize = 45)
+            for ax in [axd, axLC]:
+                ax.tick_params(axis='both', labelsize=45) 
+            fig.set_constrained_layout_pads(wspace=0.05)
+            fig.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection2/denproj_{snap}.png')
+        
         plt.close()
 
 if overview:
@@ -299,8 +330,8 @@ if overview:
     time = np.loadtxt(f'{abspath}/data/{folder}/slices/z/z0_time.txt')
     snaps, tfb_all = time[0], time[1]
     snaps = np.array([int(snap) for snap in snaps])
-    snap = 164
-    for snap in [122, 164]:
+    snap_overview = [122, 164]
+    for snap in snap_overview:
         tfb = tfb_all[np.argmin(np.abs(snaps-snap))]
         data_mid = np.load(f'{abspath}/data/{folder}/slices/z/z0slice_{snap}.npy')
         x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut =\

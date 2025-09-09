@@ -61,7 +61,7 @@ compton = 'Compton'
 check = 'NewAMR' 
 which_obs = 'hemispheres' # 'arch', 'quadrants', 'axis'
 which_part = 'outflow'
-snap = 266
+snap = 318
 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -155,7 +155,7 @@ for j, idx_list in enumerate(indices_sorted):
         
         # pick them just if near enough 
         r_sim = np.sqrt(X[idx]**2 + Y[idx]**2 + Z[idx]**2)
-        check_dist = dist <= Vol[idx]**(1/3) #np.logical_and(dist <= Vol[idx]**(1/3), r_sim >= Rt)
+        check_dist = np.logical_and(dist <= Vol[idx]**(1/3), r_sim >= Rt)
         d[~check_dist] = 0 
         ray_t[~check_dist] = 0
         ray_rad_den[~check_dist] = 0 
