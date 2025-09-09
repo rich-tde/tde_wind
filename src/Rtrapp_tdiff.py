@@ -164,8 +164,6 @@ def r_trapp(loadpath, snap):
         # ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r = \
         #     sort_list([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r], ray_r)
         idx = np.array(idx)
-        del X, Y, Z, T, Den, Vol, vel, v_rad, Press, IE_den, Rad_den
-        gc.collect()
 
         # check which points your are taking
         if plot:
@@ -301,14 +299,14 @@ def r_trapp(loadpath, snap):
         'z_tr': z_tr,
         'vol_tr': vol_tr,
         'den_tr': den_tr, 
-        'Temp_tr': Temp_tr,
+        'Temp_tr': Temp_tr, 
         'Vr_tr': Vr_tr,
         'V': V_tr,
         'P_tr': P_tr,
         'IE_den_tr': IEden_tr,
         'Rad_den_tr': Rad_den_tr,
     }
-    del ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, ray_P, ray_ieDen, ray_radDen
+    del X, Y, Z, T, Den, Vol, vel, v_rad, Press, IE_den, Rad_den, ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, ray_P, ray_ieDen, ray_radDen
     gc.collect()
 
     return r_trapp
