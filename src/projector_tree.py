@@ -55,14 +55,18 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         y_stop = 3*apo
         z_start = -2*apo 
         z_stop = 2*apo 
+
     else:
         x_start = -1.2*apo #-7*apo
         x_stop = 0.2*apo #2.5*apo
-        y_start = - 0.5*apo #-4*apo 
+        y_start = -0.5*apo #-4*apo 
         y_stop = 0.5*apo  #3*apo
         z_start = -2*Rt #-2*apo 
         z_stop = 2*Rt #2*apo 
-
+        # x_num = 800
+        # y_num = 600
+        # z_num = 100
+    
     xs = np.linspace(x_start, x_stop, num = x_num)
     ys = np.linspace(y_start, y_stop, num = y_num)
     zs = np.linspace(z_start, z_stop, z_num) #simulator units
@@ -149,7 +153,7 @@ if __name__ == '__main__':
     check = 'HiResNewAMR'
     compton = 'Compton'
     what_to_grid = 'Den'
-    how_far = 'nozzle' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
+    how_far = '' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
     save_fig = False
 
     params = [Mbh, Rstar, mstar, beta]
@@ -192,7 +196,7 @@ if __name__ == '__main__':
             else:
                 path = f'{prepath}/TDE/{folder}/{snap}'
             
-            _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100, how_far = how_far)
+            _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=600, z_num = 100, how_far = how_far)
             flat_q = projector(grid_q, x_radii, y_radii, z_radii)
             np.save(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}proj{snap}.npy', flat_q)
                 
@@ -204,35 +208,13 @@ if __name__ == '__main__':
         import src.orbits as orb
         from plotting.paper.IHopeIsTheLast import split_data_red
         from Utilities.operators import from_cylindric
-        snap = 318
+        snap = 60
         what_to_grid = 'Den' #['tau_scatt', 'tau_ross', 'Den']
         sign = '' # '' for positive, '_neg' for negative
+        how_far = ''
 
-        snaps, Lum, tfb = split_data_red('NewAMR')
+        snaps, Lum, tfb = split_data_red(check)
         tfb_single = tfb[np.argmin(np.abs(snap-snaps))]
-
-        # geometric thigns
-        observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
-        observers_xyz = np.array(observers_xyz).T
-        x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
-        r = np.sqrt(x**2 + y**2 + z**2)   # Radius (should be 1 for unit vectors)
-        theta = np.arctan2(y, x)          # Azimuthal angle in radians
-        phi = np.arccos(z / r)            # Elevation angle in radians
-        longitude_moll = theta              
-        latitude_moll = np.pi / 2 - phi 
-        indecesorbital = np.concatenate(np.where(latitude_moll==0))
-        first_idx, last_idx = np.min(indecesorbital), np.max(indecesorbital)
-        radii_grid = [Rt/apo, a_mb/apo, 1] #*apo 
-        xcfr_grid, ycfr_grid, cfr_grid = [], [], []
-        for i, radius_grid in enumerate(radii_grid):
-            xcr, ycr, cr = orb.make_cfr(radius_grid)
-            xcfr_grid.append(xcr)
-            ycfr_grid.append(ycr)
-            cfr_grid.append(cr)
-
-        theta_arr = np.arange(0, 2*np.pi, 0.01)
-        r_arr_ell = orb.keplerian_orbit(theta_arr, a_mb, Rp, ecc=e_mb)
-        x_arr_ell, y_arr_ell = from_cylindric(theta_arr, r_arr_ell)
         
         fig, ax = plt.subplots(1, 1, figsize = (14,7))
         flat_q = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}proj{snap}{sign}.npy')
@@ -246,7 +228,7 @@ if __name__ == '__main__':
         if how_far == 'big':
             ax.set_xlim(-6, 2.5)
             ax.set_ylim(-3, 2)
-        else:
+        elif how_far == '':
             ax.set_xlim(-1.2, 0.1)
             ax.set_ylim(-0.4, 0.4)
         if what_to_grid == 'Den':

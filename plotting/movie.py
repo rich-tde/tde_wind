@@ -13,7 +13,7 @@ check = 'HiResNewAMR'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 start = 21
-slow_down_factor = 2  # Increase this value to make the video slower
+slow_down_factor = 4 # Increase this value to make the video slower
 
 # Get the height of the first image to calculate the scale
 def get_image_size(image_path):
@@ -27,10 +27,10 @@ def get_image_size(image_path):
     return width, height
 
 # For Denproj
-how_many = 3
-path = f'{abspath}/Figs/{folder}/projection/denproj_diss%d.png' #{folder}/projection/denproj%d.png'
-output_path = f'{abspath}/Figs/{folder}/projection/denproj_diss{how_many}{check}.mp4' #{folder}/movie_proj{check}.mp4'
-first_image_path = f'{abspath}/Figs/{folder}/projection/denproj_diss{start}.png' #{folder}/projection/denproj{start}.png'
+# how_many = 2
+# path = f'{abspath}/Figs/{folder}/projection{how_many}/denproj_%d.png' 
+# output_path = f'{abspath}/Figs/{folder}/projection{how_many}/denproj_{how_many}{check}.mp4'
+# first_image_path = f'{abspath}/Figs/{folder}/projection{how_many}/denproj_{start}.png'
 
 # For Slices 
 # path = f'{abspath}/Figs/{folder}/slices/Panel6Slice%d.png' 
@@ -43,9 +43,9 @@ first_image_path = f'{abspath}/Figs/{folder}/projection/denproj_diss{start}.png'
 # first_image_path = f'{abspath}/Figs/{folder}/testOpac/{check}_TestOpac{start}.png'
 
 # For outflow
-# path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/{how_many}/E_%d.png' 
-# output_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/{how_many}/collectionE{how_many}.mp4'
-# first_image_path = f'{abspath}/Figs/EddingtonEnvelope/ratioE/{how_many}/E_{start}.png'
+path = f'{abspath}/Figs/{folder}/Outflow/B_slice_%d.png' 
+output_path = f'{abspath}/Figs/{folder}/Outflow/B_{check}.mp4'
+first_image_path = f'{abspath}/Figs/{folder}/Outflow/B_slice_{start}.png'
 
 width, height = get_image_size(first_image_path)
 

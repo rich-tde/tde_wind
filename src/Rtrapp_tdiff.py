@@ -100,6 +100,7 @@ def r_trapp(loadpath, snap):
     P_tr = np.zeros(len(observers_xyz))
     IEden_tr = np.zeros(len(observers_xyz))
     Rad_den_tr = np.zeros(len(observers_xyz))
+    M_dot_tr = np.zeros(len(observers_xyz))
 
     count_i = 0
     for i in range(len(observers_xyz)):
@@ -163,6 +164,8 @@ def r_trapp(loadpath, snap):
         # ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r = \
         #     sort_list([ray_x, ray_y, ray_z, t, d, ray_vol, ray_vx, ray_vy, ray_vz, idx, ray_idx_sim, ray_r], ray_r)
         idx = np.array(idx)
+        del X, Y, Z, T, Den, Vol, vel, v_rad, Press, IE_den, Rad_den
+        gc.collect()
 
         # check which points your are taking
         if plot:
@@ -244,13 +247,14 @@ def r_trapp(loadpath, snap):
         else: # take the one most outside 
             Rtr_idx = Rtr_idx_all[-1] # so if you have a gap, it takes the next point
 
-        # check you don't have a huge gap
-        if ray_vol[Rtr_idx+1]/ray_vol[Rtr_idx] > 10:
+        # check you don't have a huge gap, otherwise it's just numerics: you don't really have 2 regimes
+        if ray_vol[Rtr_idx+1]/ray_vol[Rtr_idx] > 1e3:
             count_i += 1
+            print(f'For obs {i}, huge gap, so I skip, vol ratio: {int(ray_vol[Rtr_idx+1]/ray_vol[Rtr_idx])}', flush=True)
             continue
 
         if ray_r[Rtr_idx]/rph[i] >= 1:
-            print(f'For obs {i}, Rtr is outside Rph, so I take the latter', flush=True)
+            print(f'For obs {i}, Rtr is outside Rph, so I skip', flush=True)
             count_i += 1
             continue
             # v_rad_ph, _, _ = to_spherical_components(Vxph[i], Vyph[i], Vzph[i], xph[i], yph[i], zph[i])
@@ -281,6 +285,7 @@ def r_trapp(loadpath, snap):
         P_tr[i] = ray_P[Rtr_idx]
         IEden_tr[i] = ray_ieDen[Rtr_idx]
         Rad_den_tr[i] = ray_radDen[Rtr_idx]
+        # M_dot_tr[i] = 4 * np.pi * ray_r[Rtr_idx]**2 * np.abs(Vr_tr[i]) * prel.Rsol_cgs**3/prel.tsol_cgs * den_tr[i] # den is already in cgs
         if plot:
             print(label_obs[count_i], ray_r[Rtr_idx]/rph[i])
             ax1.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
@@ -295,7 +300,7 @@ def r_trapp(loadpath, snap):
         'y_tr': y_tr,
         'z_tr': z_tr,
         'vol_tr': vol_tr,
-        'den_tr': den_tr,
+        'den_tr': den_tr, 
         'Temp_tr': Temp_tr,
         'Vr_tr': Vr_tr,
         'V': V_tr,
@@ -303,6 +308,8 @@ def r_trapp(loadpath, snap):
         'IE_den_tr': IEden_tr,
         'Rad_den_tr': Rad_den_tr,
     }
+    del ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, ray_P, ray_ieDen, ray_radDen
+    gc.collect()
 
     return r_trapp
 

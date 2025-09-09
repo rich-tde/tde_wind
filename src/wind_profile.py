@@ -101,6 +101,12 @@ rph = np.sqrt(xph**2 + yph**2 + zph**2)
 rph = rph[indices_sorted]
 rph_mean = np.mean(rph, axis=1)
 
+dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz")
+x_tr, y_tr, z_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr']
+r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+r_tr = r_tr[indices_sorted]
+r_tr_mean = np.mean(r_tr, axis=1)
+
 data = make_tree(path, snap, energy = True)
 X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
     data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Temp, data.Press, data.IE, data.Rad
@@ -129,6 +135,7 @@ for j, idx_list in enumerate(indices_sorted):
     v_rad_all = []
     t_all = []
     rad_den_all = []    
+    Mdot_all = []
     r = np.logspace(np.log10(Rt), np.log10(rph_mean[j]), N_ray)
     for i in idx_list: # i in [0, 192]: pick the line of sight that you'll use for the mean of the chosen direction
         mu_x = observers_xyz[i][0]
@@ -160,12 +167,14 @@ for j, idx_list in enumerate(indices_sorted):
         ray_t[~check_dist] = 0
         ray_rad_den[~check_dist] = 0 
         ray_V_r[~check_dist] = 0
+        ray_Mdot = 4 * np.pi * r_sim**2 * np.abs(ray_V_r) * d 
 
         # store
         d_all.append(d) 
         v_rad_all.append(ray_V_r)
         t_all.append(ray_t)
         rad_den_all.append(ray_rad_den)
+        Mdot_all.append(ray_Mdot)
 
     # all the list are of shape (len(idx_list), N_ray)
     # d_mean = np.mean(d_all, axis=0) # shape: (N_ray,)
@@ -201,12 +210,20 @@ for j, idx_list in enumerate(indices_sorted):
         where=np.count_nonzero(rad_den_all, axis=0) != 0
     )
 
+    Mdot_mean = np.divide(
+        np.sum(Mdot_all, axis=0),
+        np.count_nonzero(Mdot_all, axis=0),
+        out=np.zeros_like(np.sum(Mdot_all, axis=0), dtype=float),
+        where=np.count_nonzero(Mdot_all, axis=0) != 0
+    )
+
     outflow = {
         'r': r,
         'd_mean': d_mean,
         'v_rad_mean': v_rad_mean,
         't_mean': t_mean,
-        'rad_den_mean': rad_den_mean
+        'rad_den_mean': rad_den_mean,
+        'Mdot_mean': Mdot_mean
     }
     key = f"{label_obs[j]}"
     all_outflows[key] = outflow   # dict of dicts
@@ -228,15 +245,7 @@ y_test3 = 6.5e-13 * (x_test)**(-3)
 which_part = 'outflow'
 profiles = np.load(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}.npy', allow_pickle=True).item()
 
-# find the average trapping radius for the directions chosen
-dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz")
-x_tr, y_tr, z_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr']
-r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-r_tr = r_tr[indices_sorted]
-r_tr_mean = np.mean(r_tr, axis=1) 
-
-
-normalize_by = ''
+normalize_by = 'apo'
 fig, (axMdot, axV, axd) = plt.subplots(1, 3, figsize=(24, 6)) 
 figT, axT = plt.subplots(1, 1, figsize=(10, 7))
 figL, axL = plt.subplots(1, 1, figsize=(10, 7))
@@ -271,17 +280,17 @@ for i, lab in enumerate(profiles.keys()):
     #     ax.axvline(rph_mean[i]/r_normalizer, c = colors_obs[i], ls = '--')#, label = r'$r_{\rm ph}$ ' + f'{label_obs[i]}')
 # axMdot.plot(x_test, y_testplus1, c = 'gray', ls = 'dotted', label = r'$\dot{M} \propto r$')
 # axd.plot(r/apo, rho_from_dM, c = 'gray', ls = '--', label = r'$\rho \propto R^{-2}$') #'From dM/dt')
-# axd.plot(x_test, y_test2, c = 'gray', ls = ':', label = r'$\rho \propto r^{-2}$')
-axd.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto r^{-3}$') 
+axd.plot(x_test, y_test2, c = 'gray', ls = ':', label = r'$\rho \propto r^{-2}$')
+# axd.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto r^{-3}$') 
 # axd.plot(x_test, y_test08, c = 'gray', ls = 'dashed', label = r'$v_r \propto r^{-0.8}$')
 axV.axhline(v_esc_kms, c = 'gray', ls = 'dotted', label = r'$v_{\rm esc} (r_p)$')
 # axV.plot(x_test, y_test02, c = 'gray', ls = 'dashed', label = r'$v_r \propto  r^{-0.2}$')
-axV.plot(x_test, 2.9*y_testplus1, c = 'gray', ls = '-.', label = r'$v_r \propto r$')
+# axV.plot(x_test, 2.9*y_testplus1, c = 'gray', ls = '-.', label = r'$v_r \propto r$')
 # axV.plot(x_test, 2.5*y_testplus2, c = 'gray', ls = '--', label = r'$v_r \propto r^2$')
-# axT.plot(x_test, y_test23, c = 'gray', ls = 'dashed', label = r'$T \propto r^{-2/3}$')
-axT.plot(x_test, y_test1, c = 'gray', ls = ':', label = r'$T \propto r^{-1}$')
-# axL.plot(x_test, 5e-6*y_test23, c = 'gray', ls = 'dashed', label = r'$L \propto r^{-2/3}$')
-axL.plot(x_test, 3e-6*y_test1, c = 'gray', ls = ':', label = r'$L \propto r^{-1}$')
+axT.plot(x_test, y_test23, c = 'gray', ls = 'dashed', label = r'$T \propto r^{-2/3}$')
+# axT.plot(x_test, y_test1, c = 'gray', ls = ':', label = r'$T \propto r^{-1}$')
+axL.plot(x_test,1.5e-5*y_test23, c = 'gray', ls = 'dashed', label = r'$L \propto r^{-2/3}$')
+# axL.plot(x_test, 3e-6*y_test1, c = 'gray', ls = ':', label = r'$L \propto r^{-1}$')
 # axL.plot(x_test, y_test12, c = 'gray', ls = ':', label = r'$L \propto r^{-0.5}$')
 
 for ax in [axd, axV, axMdot, axT, axL]:
@@ -292,14 +301,14 @@ for ax in [axd, axV, axMdot, axT, axL]:
     # ax.axvline(Rp/apo, c = 'k', ls = '--')
     ax.set_xlabel(r'$r [r_{\rm a}]$' if normalize_by == 'apo' else r'$r [r_{\rm tr}]$')
     # ax.axvline(R_edge/apo,  c = 'k', ls = ':')
-    ax.set_xlim(2e-1, 5)
-    ax.legend(fontsize = 14)
+    ax.set_xlim(9e-2, 1.01)
+    ax.legend(fontsize = 20)
     ax.loglog()
     ax.tick_params(axis='both', which='minor', length=6, width=1)
     ax.tick_params(axis='both', which='major', length=8, width=1.2)
     ax.grid()
 
-axMdot.set_ylim(1, 5e3)
+axMdot.set_ylim(5, 1e3)
 axMdot.set_ylabel(r'$4\pi v_r \rho r^2 \,[\dot{M}_{\rm{Edd}}]$')
 axd.set_ylim(1e-14, 1e-10)
 axd.set_ylabel(r'$\rho$ [g/cm$^3]$')
@@ -308,7 +317,7 @@ axV.set_ylabel(r'$v_r$ [km/s]')
 axT.set_ylim(1e4, 1e6)
 axT.set_ylabel(r'$T$ [K]')
 axL.set_ylabel(r'$L [L_{\rm Edd}]$')
-axL.set_ylim(2e-2, 2e1)
+axL.set_ylim(9e-2, 2e1)
 fig.suptitle(f't = {np.round(tfb,2)}' + r't$_{\rm fb}$', fontsize = 20)
 fig.tight_layout()
 fig.savefig(f'{abspath}/Figs/next_meeting/{check}/den_prof{snap}{which_part}X.png', bbox_inches = 'tight')

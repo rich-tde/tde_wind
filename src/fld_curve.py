@@ -269,6 +269,7 @@ for idx_s, snap in enumerate(snaps):
 
         del smoothed_flux, R_lamda, fld_factor, ray_radDen
         gc.collect()
+
     Lphoto_snap = np.mean(Lph) # take the mean
     print(Lphoto_snap, flush=True)
     sys.stdout.flush()
@@ -311,6 +312,9 @@ for idx_s, snap in enumerate(snaps):
             f.write('# Lph CGS\n' + ' '.join(map(str, Lph)) + '\n')
             f.write('# indices\n' + ' '.join(map(str, ph_idx)) + '\n')
             f.close()
+            
+    del xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, rph, alphaph, Lph, ph_idx
+    gc.collect()
         
 eng.exit()
 # usage = resource.getrusage(resource.RUSAGE_SELF)
