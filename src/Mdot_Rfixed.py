@@ -32,13 +32,14 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiResNewAMR'
+check = 'NewAMR'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 tfallback = things['t_fb_days']
 Rs = things['Rs']
+Rg = things['Rg']
 Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
@@ -50,7 +51,7 @@ max_Mdot = mstar*prel.Msol_cgs/(3*t_fb_days_cgs) # in code units
 
 radii = np.array([Rt, 0.5*amin, amin, 50*Rt])
 radii_names = [f'Rt', f'0.5 a_mb', f'a_mb', f'50 R_t']
-Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
+Ledd = 4*np.pi*Rg*prel.Rsol_cgs*prel.c_cgs**3/0.34 #1.26e38 * Mbh # [erg/s] Mbh is in solar masses
 Medd = Ledd/(0.1*prel.c_cgs**2)
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
 convers_kms = prel.Rsol_cgs * 1e-5/prel.tsol_cgs # it's aorund 400

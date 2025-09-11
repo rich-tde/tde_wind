@@ -197,7 +197,24 @@ def choose_observers(observers_xyz, choice):
         label_obs = ['x+', 'y+', 'x-', 'y-', 'z+', 'z-']
         colors_obs = ['k', 'plum', 'r', 'sienna', 'orange', 'dodgerblue']
         lines_obs = ['solid', 'solid', 'solid', 'solid', 'solid', 'solid']
-        
+    
+    if choice == 'dark_bright_z':
+        indices_sorted = []
+        all_idx_obs = np.arange(len(observers_xyz.T))
+        wanted_z_obs = [(0,0,1), (0,0,-1)]
+        tree_obs = KDTree(observers_xyz.T) 
+        _, indices_z = tree_obs.query(np.array(wanted_z_obs), k=4) 
+        remaining_idx_obs = all_idx_obs[~np.isin(all_idx_obs, np.concatenate(indices_z))]
+        indices_bright = remaining_idx_obs[x_obs[remaining_idx_obs] > 0]
+        indices_dark = remaining_idx_obs[x_obs[remaining_idx_obs] < 0]
+        indices_sorted.append(indices_bright)
+        indices_sorted.append(indices_dark)
+        indices_sorted.append(indices_z[0])
+        indices_sorted.append(indices_z[1])
+        label_obs = ['x+', 'x-', 'z+', 'z-']
+        colors_obs = ['deepskyblue', 'forestgreen', 'orange', 'sienna']
+        lines_obs = ['solid', 'dashed', 'solid', 'dashed']
+
     if choice == 'quadrants ': # 8 3d-quadrants 
         # Cartesian view    
         indices1 = obs_indices[np.logical_and(z_obs>=0, np.logical_and(x_obs >= 0, y_obs >= 0))]
@@ -224,7 +241,7 @@ def choose_observers(observers_xyz, choice):
 
         indices_sorted = [indices1, indices2, indices3, indices4, indices5, indices6]#, indices7, indices8]
         colors_obs = plt.cm.rainbow(np.linspace(0, 1, len(indices_sorted)))
-        label_obs = ['-x','+x', '-y', '+y', '-z', '+z']
+        label_obs = ['-x','+x', '-y', '+y', 'z-', 'z+']
         lines_obs = ['solid', 'solid', 'solid', 'solid', 'solid', 'solid']
     
     if plot:

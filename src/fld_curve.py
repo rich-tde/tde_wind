@@ -10,6 +10,8 @@ if alice:
 else:
     abspath = '/Users/paolamartire/shocks'
     save = False
+    import matplotlib.pyplot as plt
+    import matplotlib.colors as colors
 
 import gc
 import warnings
@@ -28,7 +30,6 @@ from scipy.ndimage import uniform_filter1d
 import Utilities.prelude as prel
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
-import matplotlib.pyplot as plt
 import src.orbits as orb
 from Utilities.operators import make_tree
 
@@ -40,7 +41,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiResNewAMR' # 
+check = 'NewAMR' # 
 
 ## Snapshots stuff
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -69,8 +70,8 @@ apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 eng = matlab.engine.start_matlab()
 Lphoto_all = np.zeros(len(snaps))
 for idx_s, snap in enumerate(snaps):
-    # if snap != 162:
-    #     continue
+    if snap != 162:
+        continue
     print('\n Snapshot: ', snap, '\n', flush=True)
     box = np.zeros(6)
     # Load data -----------------------------------------------------------------
@@ -266,6 +267,25 @@ for idx_s, snap in enumerate(snaps):
         alphaph[i] = alpha_rossland[photosphere]
         fluxes[i] = Lphoto / (4*np.pi*(r[photosphere]*prel.Rsol_cgs)**2)
         Lph[i] = Lphoto 
+         
+        if plot:
+            kappa = alpha_rossland/d
+            plt.figure(figsize = (10, 6))
+            img = plt.scatter(r/apo, kappa, c = los, s = 10, norm = colors.LogNorm(vmin = 1e-1, vmax = 5), cmap = 'rainbow')
+            cb = plt.colorbar(img)
+            cb.set_label(r'$\tau$', fontsize = 16)
+            plt.axvline(rph[i]/apo, c = 'firebrick', ls = '--')
+            # plt.xlim(0.1*rph[i]/apo, 2*rph[i]/apo)
+            plt.loglog()
+            plt.xlabel(r'$R/R_{\rm a}$')
+            plt.ylabel(r'$\kappa$ [cm$^2$/g]')
+            plt.ylim(1e-2, 10) 
+            plt.grid()
+            plt.tight_layout() 
+            plt.tick_params(axis='both', which='major',length=10, width=1.5)
+            plt.tick_params(axis='both', which='minor',length=5, width=1)
+            plt.savefig(f'{abspath}/Figs/{folder}/Test/{snap}/alphai_{snap}_{i}.png')
+            plt.close()
 
         del smoothed_flux, R_lamda, fld_factor, ray_radDen
         gc.collect()
@@ -321,20 +341,20 @@ eng.exit()
 # print(f"Peak RAM usage: {usage.ru_maxrss / 1024**2:.2f} MB")
 
 #%% test if you save the indices correctly
-if not alice:
-    snap = 162
-    ph_idx = [int(ph_idx_i) for ph_idx_i in ph_idx]
-    data_check = make_tree(loadpath, snap, energy = True)
-    X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ = \
-        data_check.X, data_check.Y, data_check.Z, data_check.Temp, data_check.Den, data_check.Rad, data_check.Vol, data_check.VX, data_check.VY, data_check.VZ
+# if not alice:
+#     snap = 162
+#     ph_idx = [int(ph_idx_i) for ph_idx_i in ph_idx]
+#     data_check = make_tree(loadpath, snap, energy = True)
+#     X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ = \
+#         data_check.X, data_check.Y, data_check.Z, data_check.Temp, data_check.Den, data_check.Rad, data_check.Vol, data_check.VX, data_check.VY, data_check.VZ
 
-    denmask = Den > 1e-19
-    X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ = \
-        make_slices([X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ], denmask)
+#     denmask = Den > 1e-19
+#     X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ = \
+#         make_slices([X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ], denmask)
     
-    plt.figure()
-    plt.plot(xph/X[ph_idx], c = 'firebrick', label = 'x')
-    plt.plot(yph/Y[ph_idx], ls = '--', c = 'dodgerblue', label = 'y')
-    plt.plot(zph/Z[ph_idx], ls = ':', c = 'royalblue', label = 'z')
-    plt.legend()
+#     plt.figure()
+#     plt.plot(xph/X[ph_idx], c = 'firebrick', label = 'x')
+#     plt.plot(yph/Y[ph_idx], ls = '--', c = 'dodgerblue', label = 'y')
+#     plt.plot(zph/Z[ph_idx], ls = ':', c = 'royalblue', label = 'z')
+#     plt.legend()
 # %%

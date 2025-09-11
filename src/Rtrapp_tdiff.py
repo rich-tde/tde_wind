@@ -339,6 +339,21 @@ for snap in snaps:
     if save:
         np.savez(f"{pre_saving}/trap/{check}_Rtr{snap}.npz", **r_tr)
 
+    if plot:
+        x_tr, y_tr, z_tr , den_tr, Vr_tr = r_tr['x_tr'], r_tr['y_tr'], r_tr['z_tr'], r_tr['den_tr'], r_tr['Vr_tr']
+        radius_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+        Mdot_w = 4 * np.pi * radius_tr**2 * np.abs(Vr_tr) * den_tr
+        Mdot_w_cgs = Mdot_w * prel.Msol_cgs/prel.tsol_cgs
+        plt.figure(figsize = (8, 6))
+        plt.plot(radius_tr/apo, Mdot_w_cgs/Medd)
+        plt.xlabel(r'$R [R_{\rm a}]$')
+        plt.ylabel(r'$\dot{M}$ [M$_{\odot}$/s]')
+        plt.title(f'Snap {snap}')
+        plt.grid()
+        plt.tight_layout()
+        
+
+
 #%%
 # if plot:
 #     photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')

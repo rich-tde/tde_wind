@@ -68,8 +68,8 @@ def keplerian_orbit(theta, a, Rp, ecc=1, toflip = False):
     radius = p / (1 + ecc * np.cos(theta))
     return radius
 
-def bern_coeff(Rsph, vel, den, mass, Press, IE_den, Rad_den, params):
-    orb_en = orbital_energy(Rsph, vel, mass, params, prel.G) 
+def bern_coeff(Rsph, vel, den, mass, Press, IE_den, Rad_den, params, G = prel.G):
+    orb_en = orbital_energy(Rsph, vel, mass, params, G) 
     orb_en_spec = orb_en/mass
     IE_spec = IE_den / den
     Press_spec = (Rad_den/3 + Press) / den

@@ -9,15 +9,12 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.gridspec as gridspec
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from matplotlib.patches import ConnectionPatch
 import healpy as hp
-import astropy.coordinates as coord
 from astropy import units as u
-import colorcet
 import src.orbits as orb
 import Utilities.prelude as prel
 from Utilities.sections import make_slices
-from Utilities.operators import from_cylindric, to_spherical_components
+from Utilities.operators import from_cylindric, sort_list
 from plotting.paper.IHopeIsTheLast import split_data_red
 import Utilities.prelude as prel
 
@@ -31,7 +28,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiResNewAMR'
+check = 'NewAMR'
 choosen_snaps = np.array([97, 238, 318])
 save = False
 
@@ -39,6 +36,7 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 Rs = things['Rs']
+Rg = things['Rg']
 Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
@@ -48,6 +46,8 @@ e_mb = things['ecc_mb']
 t_fall = things['t_fb_days']
 t_fall_hour = t_fall * 24
 Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
+Ledd_k = 4*np.pi*Rg*prel.Rsol_cgs*prel.c_cgs**3/1.2
+print(Ledd, Ledd_k)
 
 # make cfr
 radii_grid = [Rt/apo, a_mb/apo, 1] #*apo 
@@ -242,29 +242,47 @@ if proj_movie:
     tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3]
     LDiss = LDiss * prel.en_converter/prel.tsol_cgs # [erg/s]
 
+    # flux_data = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}_phidx_fluxes.txt')
+    # snaps_ph, tfb_ph, allindices_ph = flux_data[:, 0].astype(int), flux_data[:, 1], flux_data[:, 2:]
+    # flux_test = np.zeros(len(snaps_ph))
+    # fluxes = []
+    # for i, snap in enumerate(snaps_ph):
+    #     selected_lines = np.concatenate(np.where(snaps_ph == snap))
+    #     # eliminate the even rows (photosphere indices) of allindices_ph
+    #     _, selected_fluxes = selected_lines[0], selected_lines[1]
+    #     fluxes.append(allindices_ph[selected_fluxes])
+    #     flux_test[i] = np.sum(allindices_ph[selected_fluxes])
+    # fluxes = np.array(fluxes)
+    # tfb_ph, fluxes, snaps_ph = sort_list([tfb_ph, fluxes, snaps_ph], snaps_ph, unique=True)
+
     if n_panels == 2:
         median_ph = np.zeros(len(snaps))
 
     for i, snap in enumerate(snaps):
+        print(snap)
         photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
-        xph, yph, zph, volph = photo[0], photo[1], photo[2], photo[3]
+        xph, yph, zph, volph, denph, alphaph = photo[0], photo[1], photo[2], photo[3], photo[4], photo[-4]
+        # k = alphaph/denph
         r_ph = np.sqrt(xph**2 + yph**2 + zph**2)
         median_ph[i] = np.median(r_ph)
-        # if snap != 87:
+        # if snap != 179:
         #     continue
-        print(snap)
+        # print(k)
+        # k_mean = 1/np.mean(1/k)
+        # print(f'1/mean(1/k) {k_mean}, median k {np.median(k)}')
         x_denproj = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denxarray.npy')
         y_denproj = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denyarray.npy')
         flat_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denproj{snap}.npy')
         flat_den_cgs = flat_den * prel.den_converter * prel.Rsol_cgs # [g/cm2]
-        flat_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Dissproj{snap}.npy')
-        flat_diss_cgs = flat_diss * prel.en_den_converter * prel.Rsol_cgs / prel.tsol_cgs# [erg/s/cm2]
-        # make =1 the nan values so they disappera with logcolor
-        flat_diss_cgs_plot = flat_diss_cgs
-        flat_diss_cgs_plot[np.isnan(flat_diss_cgs_plot)] = 1
-        flat_diss_cgs_plot[flat_diss_cgs_plot == 0] = 1
 
         if n_panels == 3:
+            flat_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Dissproj{snap}.npy')
+            flat_diss_cgs = flat_diss * prel.en_den_converter * prel.Rsol_cgs / prel.tsol_cgs# [erg/s/cm2]
+            # make =1 the nan values so they disappera with logcolor
+            flat_diss_cgs_plot = flat_diss_cgs
+            flat_diss_cgs_plot[np.isnan(flat_diss_cgs_plot)] = 1
+            flat_diss_cgs_plot[flat_diss_cgs_plot == 0] = 1
+
             fig, (axd, axDiss, axLC) = plt.subplots(1,3, figsize = (40,16), gridspec_kw={'width_ratios': [1, 1, 0.8]})
             img = axDiss.pcolormesh(x_denproj/apo, y_denproj/apo, flat_diss_cgs.T, \
                             cmap = 'viridis', norm = colors.LogNorm(vmin = 1e14, vmax = 1e19))
@@ -274,11 +292,11 @@ if proj_movie:
             axLC.set_ylim(1e38, 8e42)
         
         elif n_panels == 2:
-            fig, (axd, axLC) = plt.subplots(1,2, figsize = (35,15), constrained_layout=True)
+            fig, (axd, axLC) = plt.subplots(1,2, figsize = (38,15), constrained_layout=True)
             axLC.set_ylim(1e38, 2e42)
         
         img = axd.pcolormesh(x_denproj/apo, y_denproj/apo, flat_den_cgs.T, cmap = 'plasma', \
-                          norm = colors.LogNorm(vmin = 1e2, vmax = 5e7))
+                          norm = colors.LogNorm(vmin = 1, vmax = 5e7))
         cbar = plt.colorbar(img, orientation = 'horizontal', pad = 0.03 if n_panels == 2 else 0.1)
         cbar.set_label(r'Column density [g cm$^{-2}$]', fontsize = 45)
         axd.plot(xph[indecesorbital]/apo, yph[indecesorbital]/apo, c = 'white', markersize = 10, marker = 'H', label = r'$R_{\rm ph}$')
@@ -288,7 +306,7 @@ if proj_movie:
         cbar.ax.tick_params(which='minor',  width = 1.2, length = 9, pad = 10)
         axd.set_ylabel(r'Y [$R_{\rm a}$]', fontsize = 45 if n_panels == 2 else 25)
         axd.tick_params(axis='both', which='major', width = 1.5, length = 12, color = 'white')
-        axd.text(-1.15, 0.4, f't = {np.round(tfb[i],2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 45 if n_panels == 2 else 25)
+        axd.text(-1.7, 0.8, f't = {np.round(tfb[i],2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 45 if n_panels == 2 else 25)
 
         if n_panels == 2:  
             imgLC = axLC.scatter(tfb[:i+1], Lum[:i+1], s = 55, c = median_ph[:i+1]/apo, vmin = .1, vmax = 1, cmap = 'rainbow')
@@ -308,12 +326,12 @@ if proj_movie:
             for ax in [axd, axDiss]:
                 ax.contour(xcfr_grid[0], ycfr_grid[0], cfr_grid[0], levels=[0], colors='white')
                 ax.scatter(0,0,c= 'white', marker = 'x', s=80)
-                ax.set_xlim(-1.2,0.1)
-                ax.set_ylim(-0.5,0.5)
+                # ax.set_xlim(-1.2,0.1)
+                # ax.set_ylim(-0.5,0.5)
                 ax.set_xlabel(r'X [$R_{\rm a}$]', fontsize = 25)
             axLC.legend(fontsize = 25)
             fig.tight_layout()
-            fig.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection3/denproj_diss{snap}.png')
+            # fig.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection3/denproj_diss{snap}.png')
         elif n_panels == 2:
             cbar = plt.colorbar(imgLC, orientation = 'horizontal', pad = 0.03)
             cbar.set_label(r'Median $R_{\rm ph}$ [$R_{\rm a}$]', fontsize = 45)
@@ -321,8 +339,8 @@ if proj_movie:
             cbar.ax.tick_params(which='minor',  width = 1.2, length = 9, pad = 10)
             axd.contour(xcfr_grid[0], ycfr_grid[0], cfr_grid[0], levels=[0], colors='white')
             axd.scatter(0,0,c= 'white', marker = 'x', s = 100)
-            axd.set_xlim(-1.2,0.1)
-            axd.set_ylim(-0.5,0.5)
+            axd.set_xlim(-2, 1.5)
+            axd.set_ylim(-.99, .99)
             axd.set_xlabel(r'X [$R_{\rm a}$]', fontsize = 45)
             for ax in [axd, axLC]:
                 ax.tick_params(axis='both', labelsize=45) 

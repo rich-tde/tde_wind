@@ -28,6 +28,7 @@ n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
 check ='NewAMR'
+which_obs = 'dark_bright_z'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
@@ -48,7 +49,7 @@ Ledd = 1.26e38 * Mbh
 
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
 observers_xyz = np.array(observers_xyz)
-indices_axis, label_axis, colors_axis, lines_axis = choose_observers(observers_xyz, 'hemispheres')
+indices_axis, label_axis, colors_axis, lines_axis = choose_observers(observers_xyz, which_obs)
 observers_xyz = observers_xyz.T
 # HEALPIX
 x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
@@ -95,11 +96,11 @@ fluxes = np.array(fluxes)
 tfb, fluxes, snaps = sort_list([tfb, fluxes, snaps], snaps, unique=True)
 
 mean_rph = np.zeros(len(tfb))
+mean_rph_nonZero = np.zeros(len(tfb))
 mean_rph_weig = np.zeros(len(tfb))
 gmean_ph = np.zeros(len(tfb))
 median_ph = np.zeros(len(tfb))
-size_at_median = np.zeros(len(tfb))
-mean_size = np.zeros(len(tfb))
+median_rph_nonZero = np.zeros(len(tfb))
 percentile16 = np.zeros(len(tfb))
 percentile84 = np.zeros(len(tfb))
 
@@ -109,23 +110,26 @@ for i, snapi in enumerate(snaps):
         dim_i = vol_i**(1/3)
         rph_i = np.sqrt(xph_i**2 + yph_i**2 + zph_i**2)
         mean_rph[i] = np.mean(rph_i)
+        # mean_rph_nonZero[i] = np.mean(rph_i[rph_i!=0])
         mean_rph_weig[i] = np.sum(rph_i*fluxes[i])/np.sum(fluxes[i])
         gmean_ph[i] = gmean(rph_i)
         median_ph[i] = np.median(rph_i)
-        idx_median = np.argmin(np.abs(rph_i - median_ph[i]))
-        size_at_median[i] = dim_i[idx_median]
-        mean_size[i] = np.mean(dim_i)
+        # median_rph_nonZero[i] = np.median(rph_i[rph_i!=0])
         percentile16[i] = np.percentile(rph_i, 16)
         percentile84[i] = np.percentile(rph_i, 84)
+
 plt.figure(figsize = (10, 7))
 plt.plot(tfb, mean_rph/apo, c = 'k', label = 'mean')
+# plt.plot(tfb, mean_rph_nonZero/apo, c = 'gray', ls = '--', label = 'mean non zero elements')
 plt.plot(tfb, mean_rph_weig/apo, c = 'firebrick', label = 'weighted by flux')
 plt.plot(tfb, gmean_ph/apo, c = 'deepskyblue', label = 'geometric mean')
 plt.plot(tfb, median_ph/apo, c = 'forestgreen', label = 'median')
+# plt.plot(tfb, median_rph_nonZero/apo, c = 'yellowgreen', ls = '--', label = 'median non zero elements')
 plt.xlabel(r't [$t_{fb}$]')
 plt.ylabel(r'$\langle R_{ph}\rangle [R_a]$')
 plt.yscale('log')
 plt.ylim(1e-2, 10)
+plt.xlim(0.4, 1.6)
 plt.grid()
 plt.legend(fontsize = 16)
 #%% 
@@ -137,7 +141,11 @@ rtr_obs_time = np.zeros((len(tfb), len(indices_axis)))
 # alpha_obs_time = np.zeros((len(tfb), len(indices_axis)))
 flux_obs_time = np.zeros((len(tfb), len(indices_axis)))
 
-normalize_by = 'apo'
+normalize_by = 'Rp'
+if normalize_by == 'Rp':
+        norm = Rp
+else:
+        norm = apo
 for i, snapi in enumerate(snaps):
         xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, alphaph, _, Lumph, _ = \
                 np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snapi}.txt')
@@ -150,153 +158,169 @@ for i, snapi in enumerate(snaps):
         dim = volph**(1/3)
         rph = np.sqrt(xph**2 + yph**2 + zph**2)
         for j, observer in enumerate(indices_axis):
-                rph_obs_time[i, j] = np.divide(
-                                np.sum(rph[observer]),
-                                np.count_nonzero(rph[observer]),
-                                out=np.zeros_like(np.sum(rph[observer]), dtype=float),
-                                where=np.count_nonzero(rph[observer]) != 0)
-                den_obs_time[i, j] = np.mean(denph[observer])
-                T_obs_time[i, j] = np.mean(Tempph[observer])
-                Lum_obs_time[i, j] = np.mean(Lumph[observer]) 
-                # alpha_obs_time[i, j] = np.mean(alphaph[observer])
-                flux_obs_time[i, j] = np.mean(fluxph[observer])
+                # nonzero_mask = rph[observer] != 0
+                rph_obs_time[i, j] = np.median(rph[observer])
+                den_obs_time[i, j] = np.median(denph[observer])
+                T_obs_time[i, j] = np.median(Tempph[observer])
+                Lum_obs_time[i, j] = np.median(Lumph[observer])
+                # alpha_obs_time[i, j] = np.median(alphaph[observer])
+                flux_obs_time[i, j] = np.median(fluxph[observer])
+                # rtr_obs_time[i, j] = np.median(rtr[observer])
+                 
+                # nonzero_mask = rtr[observer] != 0
+                rtr_obs_time[i, j] = np.median(rtr[observer])
 
-                if normalize_by == 'apo': 
-                        rtr_obs_time[i, j] = np.divide(
-                                np.sum(rtr[observer]/apo),
-                                np.count_nonzero(rtr[observer]),
-                                out=np.zeros_like(np.sum(rtr[observer]), dtype=float),
-                                where=np.count_nonzero(rtr[observer]) != 0)
-                else:
-                        rtr_obs_time[i, j] = np.divide(
-                                np.sum(rtr[observer]/rph[observer]),
-                                np.count_nonzero(rtr[observer]),
-                                out=np.zeros_like(np.sum(rtr[observer]), dtype=float),
-                                where=np.count_nonzero(rtr[observer]) != 0)
-
-fig, ((ax1, ax2), (ax3, ax5)) = plt.subplots(2, 2, figsize=(20, 15))
+fig, (ax1, ax5) = plt.subplots(1, 2, figsize=(25, 7))
+fig2, (ax2, ax3) = plt.subplots(1, 2, figsize=(20, 7))
 figf, ax6 = plt.subplots(1, 1, figsize=(10, 7))
 figTr, axTr = plt.subplots(1, 1, figsize=(10, 7))
 for i, observer in enumerate(indices_axis):
-        if normalize_by == 'apo': 
-                print(f'final Rtr/apo {label_axis[i]}: ',rtr_obs_time[-1, i])
-        # if label_axis[i] not in ['z', 'x', 'xz', '-xz', 'y']:
+        # if label_axis[i] in ['z-', 'z+']:
+        #         Lum_to_plot = Lum_obs_time[135:, i]
+        #         tfb_to_plot = tfb[135:]
+        # else:
+        Lum_to_plot = Lum_obs_time[:, i]
+        tfb_to_plot = tfb
+        # if label_axis[i] not in ['x+', 'z-', 'z+']:
         #     continue
-        ax1.plot(tfb, rph_obs_time[:, i]/apo, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
+        if normalize_by == 'apo': 
+                print(f'final Rtr/apo {label_axis[i]}: ',rtr_obs_time[-1, i]/norm)
+        ax1.plot(tfb, rph_obs_time[:, i]/norm, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         ax2.plot(tfb, den_obs_time[:, i]*prel.den_converter, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         ax3.plot(tfb, T_obs_time[:, i], label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         # ax4.plot(tfb, alpha_obs_time[:, i], label = label_axis[i], c = colors_axis[i])
-        ax5.plot(tfb, Lum_obs_time[:, i]/Ledd, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
+        ax5.plot(tfb_to_plot, Lum_to_plot/Ledd, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         ax6.plot(tfb, flux_obs_time[:, i], label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         if label_axis[i] not in ['y']:
-                axTr.plot(tfb, rtr_obs_time[:, i], label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
-ax1.axhline(Rp/apo, color = 'gray', linestyle = '-.', label = r'R$_{\rm p}$')
+                axTr.plot(tfb, rtr_obs_time[:, i]/norm, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
 # ax1.axhline(R0/apo, color = 'gray', linestyle = ':', label = r'R$_0$')
 # ax1.plot(tfb, mean_rph/apo, c = 'gray', ls = '--', label = 'mean')
 # ax1.plot(tfb, median_ph/apo, c = 'gray', ls = ':', label = 'median')
+if normalize_by == 'Rp':
+        ax1.set_ylabel(r'median R$_{\rm ph}[R_{\rm p}$]')
+        ax1.set_ylim(1, 1e2)
+if normalize_by == 'apo':
+        ax1.axhline(Rp/norm, color = 'gray', linestyle = '-.', label = r'R$_{\rm p}$')
+        ax1.set_ylabel(r'median R$_{\rm ph}[R_{\rm a}$]')
+        ax1.set_ylim(1e-2, 10)
 ax1.legend(fontsize = 16)
-ax1.set_ylabel(r'$\langle R_{\rm ph}\rangle [R_{\rm a}]$')
-ax1.set_ylim(1e-2, 10)
-ax2.set_ylabel(r'$\langle \rho_{\rm ph}\rangle$ [g/cm$^3$]')
+ax2.set_ylabel(r'median $\rho_{\rm ph}$[g/cm$^3$]')
 ax2.set_ylim(1e-14, 5e-9)
-ax3.set_ylabel(r'$\langle T_{\rm ph}\rangle$ [K]')
+ax3.set_ylabel(r'median T$_{\rm ph}$[K]')
 ax3.set_ylim(5e3, 1e10)
-ax5.set_ylabel(r'$\langle L_{\rm ph}\rangle [L_{\rm Edd}]$')
+ax3.legend(fontsize = 16)
+ax5.set_ylabel(r'median L$_{\rm ph}[L_{\rm Edd}]$')
 ax5.axhline(y = 1.26e42, color = 'gray', linestyle = '--')
 ax5.set_ylim(1e-2, 5)
-ax5.legend(fontsize = 16)
-ax6.set_ylabel(r'$\langle$ Flux$_{\rm ph}\rangle$ [erg/s cm$^2$]')
+ax6.set_ylabel(r'median Flux$_{\rm ph}$ [erg/s cm$^2$]')
 ax6.legend(fontsize = 16)
 if normalize_by == 'apo':
         axTr.axhline(Rp/apo, color = 'gray', linestyle = '-.', label = r'R$_{\rm p}$')
-        axTr.set_ylabel(r'$\langle R_{\rm tr}\rangle / \langle R_{\rm a}\rangle$')
-        axTr.set_ylim(2e-2, 10)
-else:
-        axTr.set_ylabel(r'$\langle R_{\rm tr}\rangle / \langle R_{\rm ph}\rangle$')
-        axTr.set_ylim(1e-1, 1.1)
+        axTr.set_ylabel(r'$R_{\rm tr} [R_{\rm a}]$')
+        # axTr.set_ylim(2e-2, 10)
+if normalize_by == 'Rp':
+        axTr.set_ylabel(r'$R_{\rm tr} [R_{\rm p}]$')
+        axTr.set_ylim(1e-1, 1e2)
 axTr.legend(fontsize = 16)
+# original_ticks = ax1.get_xticks()
+# middle_tick = (original_ticks[:-1] + original_ticks[1:]) / 2
+# new_ticks = np.concatenate((original_ticks, middle_tick))
+# ticks_label = [f'{np.round(tick,2)}' if tick in original_ticks else "" for tick in new_ticks]
 for ax in [ax1, ax2, ax3, ax5, ax6, axTr]:
+        # ax.set_xticks(new_ticks)
+        # ax.set_xticklabels(ticks_label)
+        ax.set_xlim(0.4, 1.6)
         ax.set_xlabel(r't [$t_{\rm fb}$]')
         ax.tick_params(axis='both', which='major', width=1.2, length=9, color = 'k')
         ax.tick_params(axis='both', which='minor', width=1, length=7, color = 'k')
         ax.grid()
         ax.set_yscale('log')
 fig.suptitle(f'{check}', fontsize = 30) 
-figTr.suptitle(f'{check}', fontsize = 30)
-fig.tight_layout()
-figTr.tight_layout()
-fig.savefig(f'{abspath}/Figs/next_meeting/{check}/photo_profile.png')
-figTr.savefig(f'{abspath}/Figs/next_meeting/{check}/trap_profile_{normalize_by}.png')
+fig2.suptitle(f'{check}', fontsize = 30)
+# fig.tight_layout()
+fig.subplots_adjust(wspace = 0.2)
+fig2.tight_layout()
+fig.savefig(f'{abspath}/Figs/next_meeting/{check}/photo_RL_{which_obs}_median.png')
+fig2.savefig(f'{abspath}/Figs/next_meeting/{check}/photo_Trho_{which_obs}.png')
+figTr.savefig(f'{abspath}/Figs/next_meeting/{check}/trap_profile_{normalize_by}_{which_obs}_median.png')
 
 #%% 3D plot at the chosen snap
-idx_snap = -1
-xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, alphaph, _, Lumph, _ = \
-        np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snaps[idx_snap]}.txt')
-x_sel = xph[indices_axis[:,0]]
-y_sel = yph[indices_axis[:,0]]
-z_sel = zph[indices_axis[:,0]]
-# z=0 plane
-x_z0 = np.linspace(-5, 2, 60)
-y_z0 = np.linspace(-2, 2, 60)
-X_z0, Y_z0 = np.meshgrid(x_z0, y_z0)
-Z_z0 = np.zeros_like(X_z0)
+if which_obs != 'dark_bright_z':
+        idx_snap = -1
+        xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, alphaph, _, Lumph, _ = \
+                np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snaps[idx_snap]}.txt')
+        x_sel = xph[indices_axis[:,0]]
+        y_sel = yph[indices_axis[:,0]]
+        z_sel = zph[indices_axis[:,0]]
+        # z=0 plane
+        x_z0 = np.linspace(-5, 2, 60)
+        y_z0 = np.linspace(-2, 2, 60)
+        X_z0, Y_z0 = np.meshgrid(x_z0, y_z0)
+        Z_z0 = np.zeros_like(X_z0)
 
-# 3d scatter plot
-fig3d = plt.figure(figsize=(15, 15))
-ax3d = fig3d.add_subplot(projection='3d')
-ax3d.scatter(x_sel/apo, y_sel/apo, z_sel/apo, c = colors_axis, s = 100)
+        # 3d scatter plot
+        fig3d = plt.figure(figsize=(15, 15))
+        ax3d = fig3d.add_subplot(projection='3d')
+        ax3d.scatter(x_sel/apo, y_sel/apo, z_sel/apo, c = colors_axis, s = 100)
 
-# ax3d.set_xlabel(r'$x/R_{\rm a}$')
-# ax3d.set_ylabel(r'$y/R_{\rm a}$')
-# ax3d.set_zlabel(r'$z/R_{\rm a}$')
-# plane at z=0
-ax3d.plot_surface(X_z0, Y_z0, Z_z0, color= 'gray', linewidth=0, antialiased=True, alpha=0.1)
-ax3d.set_xlim(-5, 2)
-ax3d.set_ylim(-2.1, 2.1)
-ax3d.set_zlim(-2.1, 2.1)
+        # ax3d.set_xlabel(r'$x/R_{\rm a}$')
+        # ax3d.set_ylabel(r'$y/R_{\rm a}$')
+        # ax3d.set_zlabel(r'$z/R_{\rm a}$')
+        # plane at z=0
+        ax3d.plot_surface(X_z0, Y_z0, Z_z0, color= 'gray', linewidth=0, antialiased=True, alpha=0.1)
+        ax3d.set_xlim(-5, 2)
+        ax3d.set_ylim(-2.1, 2.1)
+        ax3d.set_zlim(-2.1, 2.1)
 
-# Hide the 3D box
-# ax3d.set_axis_off()
+        # Hide the 3D box
+        # ax3d.set_axis_off()
 
-# Set axis limits
-lim = 2
-ax3d.set_xlim(-6, lim)
-ax3d.set_ylim(-lim, lim)
-ax3d.set_zlim(-lim, lim)
-ax3d.set_box_aspect([1, 1, 1])  # equal aspect ratio
+        # Set axis limits
+        lim = 2
+        ax3d.set_xlim(-6, lim)
+        ax3d.set_ylim(-lim, lim)
+        ax3d.set_zlim(-lim, lim)
+        ax3d.set_box_aspect([1, 1, 1])  # equal aspect ratio
 
-# Draw custom Cartesian axes
-# X-axis (line + arrow only on +X)
-ax3d.plot([-6, lim], [0, 0], [0, 0], color="k")
-ax3d.quiver(0,0,0, lim,0,0, color="k", arrow_length_ratio=0.05)
+        # Draw custom Cartesian axes
+        # X-axis (line + arrow only on +X)
+        ax3d.plot([-6, lim], [0, 0], [0, 0], color="k")
+        ax3d.quiver(0,0,0, lim,0,0, color="k", arrow_length_ratio=0.05)
 
-# Y-axis (line + arrow only on +Y)
-ax3d.plot([0, 0], [-lim, lim], [0, 0], color="k")
-ax3d.quiver(0,0,0, 0,lim,0, color="k", arrow_length_ratio=0.05)
+        # Y-axis (line + arrow only on +Y)
+        ax3d.plot([0, 0], [-lim, lim], [0, 0], color="k")
+        ax3d.quiver(0,0,0, 0,lim,0, color="k", arrow_length_ratio=0.05)
 
-# Z-axis (line + arrow only on +Z)
-ax3d.plot([0, 0], [0, 0], [-lim, lim], color="k")
-ax3d.quiver(0,0,0, 0,0,lim, color="k", arrow_length_ratio=0.05)
+        # Z-axis (line + arrow only on +Z)
+        ax3d.plot([0, 0], [0, 0], [-lim, lim], color="k")
+        ax3d.quiver(0,0,0, 0,0,lim, color="k", arrow_length_ratio=0.05)
 
-# Add axis labels at positive tips
-ax3d.text(lim, 0, 0, r"$x/R_{\rm a}$", size=20)
-ax3d.text(0, lim, 0, r"$y/R_{\rm a}$", size=20)
-ax3d.text(0, 0, lim, r"$z/R_{\rm a}$", size=20)
+        # Add axis labels at positive tips
+        ax3d.text(lim, 0, 0, r"$x/R_{\rm a}$", size=20)
+        ax3d.text(0, lim, 0, r"$y/R_{\rm a}$", size=20)
+        ax3d.text(0, 0, lim, r"$z/R_{\rm a}$", size=20)
 
-plt.tight_layout()
-plt.show(block=True)
+        plt.tight_layout()
 
 #%%
+idx_snap = -1 #np.argmin(np.abs(snaps - 266))
 plt.figure(figsize = (10, 7))
-to_plot = [0, 6, 4, 8]
+# o order them as you want
+if which_obs == 'hemispheres':
+    to_plot = [0, 6, 4, 8]
+elif which_obs == 'dark_bright_z':
+    to_plot = [0, 2, 3, 1]
 for i, idx_toplot in enumerate(to_plot):
-        plt.scatter(i+1, Lum_obs_time[-1, idx_toplot]/Ledd, label = label_axis[idx_toplot], c = colors_axis[idx_toplot], ls = lines_axis[idx_toplot], s = 100)
+        plt.scatter(i+1, Lum_obs_time[idx_snap, idx_toplot]/Ledd, label = label_axis[idx_toplot], c = colors_axis[idx_toplot], ls = lines_axis[idx_toplot], s = 100)
 plt.legend(fontsize = 16)
 plt.ylabel(r'$L_{\rm ph}/L_{\rm Edd}$')
 plt.xticks([])
-plt.yscale('log')
+plt.yscale('log') 
+plt.ylim(1e-2, 3)
+plt.grid()
 plt.tick_params(axis='y', which='major', width=1.2, length=9, color = 'k')
 plt.tick_params(axis='y', which='minor', width=1, length=7, color = 'k')
+plt.title(f't = {np.round(tfb[idx_snap], 2)}' + r' t$_{\rm fb}$', fontsize = 16)
 plt.show(block=True)
 
 # #%% compare with other resolutions
@@ -312,5 +336,17 @@ plt.show(block=True)
 #                 print('Less than R0:', rph_i[rph_i<R0])
 #         # ksL = ks_2samp(rph_i, rph_iFid, alternative='two-sided')
 #         # statL[i], pvalueL[i] = ksL.statistic, ksL.pvalue
+
+# %% check opacity
+xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, alphaph, _, Lumph, _ = \
+        np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo318.txt')
+kappaph = alphaph/denph
+kappa_invmean = 1/np.mean(1/kappaph)
+kappa_bins = np.arange(0, 5, .5)
+plt.hist(kappaph, bins = kappa_bins, color = 'forestgreen', alpha = .5)
+plt.xlabel(r'$\kappa_{\rm ph}$ [cm$^2$/g]')
+plt.ylabel('N')
+plt.title(r'1/$<1/\kappa_{\rm ph}$:' + f'{np.round(kappa_invmean, 2)}')
+plt.show(block=True)
 
 # %%

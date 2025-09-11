@@ -57,15 +57,15 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         z_stop = 2*apo 
 
     else:
-        x_start = -1.2*apo #-7*apo
-        x_stop = 0.2*apo #2.5*apo
-        y_start = -0.5*apo #-4*apo 
-        y_stop = 0.5*apo  #3*apo
-        z_start = -2*Rt #-2*apo 
-        z_stop = 2*Rt #2*apo 
-        # x_num = 800
-        # y_num = 600
-        # z_num = 100
+        x_start = -3*apo #-7*apo
+        x_stop = 2*apo #2.5*apo
+        y_start = -2*apo #-4*apo 
+        y_stop = 2*apo  #3*apo
+        z_start = -0.8*Rt #-2*apo 
+        z_stop = 0.8*Rt #2*apo  
+        # x_num = 500
+        # y_num = 250
+        # z_num = 200
     
     xs = np.linspace(x_start, x_stop, num = x_num)
     ys = np.linspace(y_start, y_stop, num = y_num)
@@ -150,7 +150,7 @@ if __name__ == '__main__':
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = 'HiResNewAMR'
+    check = 'NewAMR'
     compton = 'Compton'
     what_to_grid = 'Den'
     how_far = '' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
@@ -196,7 +196,7 @@ if __name__ == '__main__':
             else:
                 path = f'{prepath}/TDE/{folder}/{snap}'
             
-            _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=600, z_num = 100, how_far = how_far)
+            _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100, how_far = how_far)
             flat_q = projector(grid_q, x_radii, y_radii, z_radii)
             np.save(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}proj{snap}.npy', flat_q)
                 
@@ -208,15 +208,15 @@ if __name__ == '__main__':
         import src.orbits as orb
         from plotting.paper.IHopeIsTheLast import split_data_red
         from Utilities.operators import from_cylindric
-        snap = 60
+        snap = 318
         what_to_grid = 'Den' #['tau_scatt', 'tau_ross', 'Den']
         sign = '' # '' for positive, '_neg' for negative
-        how_far = ''
+        how_far = 'big'
 
         snaps, Lum, tfb = split_data_red(check)
-        tfb_single = tfb[np.argmin(np.abs(snap-snaps))]
+        tfb_single = tfb[np.argmin(np.abs(snap-snaps))] 
         
-        fig, ax = plt.subplots(1, 1, figsize = (14,7))
+        fig, ax = plt.subplots(1, 1, figsize = (10,7))
         flat_q = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}proj{snap}{sign}.npy')
         x_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}xarray.npy')
         y_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}yarray.npy')
@@ -228,12 +228,12 @@ if __name__ == '__main__':
         if how_far == 'big':
             ax.set_xlim(-6, 2.5)
             ax.set_ylim(-3, 2)
-        elif how_far == '':
-            ax.set_xlim(-1.2, 0.1)
-            ax.set_ylim(-0.4, 0.4)
+        # elif how_far == '':
+        #     ax.set_xlim(-1.2, 0.1)
+        #     ax.set_ylim(-0.4, 0.4)
         if what_to_grid == 'Den':
             flat_q *= prel.Msol_cgs/prel.Rsol_cgs**2
-            vmin = 1e2
+            vmin = 1
             vmax = 9e7
             cbar_label = r'Column density [g/cm$^2$]'
             cmap = 'plasma'
@@ -246,20 +246,20 @@ if __name__ == '__main__':
             
         img = ax.pcolormesh(x_radii/apo, y_radii/apo, np.abs(flat_q).T, cmap = cmap,
                             norm = colors.LogNorm(vmin = vmin, vmax = vmax))
-        cb = plt.colorbar(img)
+        # cb = plt.colorbar(img)
         # ax.plot(xph[indecesorbital]/apo, yph[indecesorbital]/apo, c = 'white', markersize = 5, marker = 'H', label = r'$R_{\rm ph}$')
         # just to connect the first and last 
         # ax.plot([xph[first_idx]/apo, xph[last_idx]/apo], [yph[first_idx]/apo, yph[last_idx]/apo], c = 'white', markersize = 1, marker = 'H')
         cb.set_label(cbar_label)
-        ax.set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
-        ax.set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
+        # ax.set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
+        # ax.set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
         ax.scatter(0, 0, color = 'k', edgecolors = 'orange', s = 40)
         # ax.plot(x_arr_ell/apo, y_arr_ell/apo, c= 'white', linestyle = 'dashed', alpha = 0.7)
         # for j in range(len(radii_grid)):
         #     ax.contour(xcfr_grid[j]/apo, ycfr_grid[j]/apo, cfr_grid[j]/apo, levels=[0], colors='white')
             
         plt.tight_layout()
-        ax.set_title(f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$, res: ' + f'{check}', color = 'k', fontsize = 25)
+        # ax.set_title(f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$, res: ' + f'{check}', color = 'k', fontsize = 25)
         # plt.savefig(f'{prepath}/Figs/Test/{folder}/projection/{what_to_grid}{faraway}proj{snap}{sign}.png', dpi = 300)
         plt.show()
 # %%
