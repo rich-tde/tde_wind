@@ -188,8 +188,8 @@ if __name__ == '__main__':
             f.close()
             
         for snap in snaps:
-            if snap != 60:
-                continue
+            # if snap != 60:
+            #     continue
             print(snap, flush=True)
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
@@ -208,10 +208,10 @@ if __name__ == '__main__':
         import src.orbits as orb
         from plotting.paper.IHopeIsTheLast import split_data_red
         from Utilities.operators import from_cylindric
-        snap = 318
+        snap = 314
         what_to_grid = 'Den' #['tau_scatt', 'tau_ross', 'Den']
         sign = '' # '' for positive, '_neg' for negative
-        how_far = 'big'
+        how_far = ''
 
         snaps, Lum, tfb = split_data_red(check)
         tfb_single = tfb[np.argmin(np.abs(snap-snaps))] 
@@ -246,7 +246,7 @@ if __name__ == '__main__':
             
         img = ax.pcolormesh(x_radii/apo, y_radii/apo, np.abs(flat_q).T, cmap = cmap,
                             norm = colors.LogNorm(vmin = vmin, vmax = vmax))
-        # cb = plt.colorbar(img)
+        cb = plt.colorbar(img)
         # ax.plot(xph[indecesorbital]/apo, yph[indecesorbital]/apo, c = 'white', markersize = 5, marker = 'H', label = r'$R_{\rm ph}$')
         # just to connect the first and last 
         # ax.plot([xph[first_idx]/apo, xph[last_idx]/apo], [yph[first_idx]/apo, yph[last_idx]/apo], c = 'white', markersize = 1, marker = 'H')

@@ -25,7 +25,7 @@ Rstar = .47
 n = 1.5 
 compton = 'Compton'
 check = 'NewAMR'
-kind_of_plot = 'convergence' # 'ratioE' or 'convergence' or 'velocity_components' or 'time_evolution'
+kind_of_plot = 'time_evolution' # 'ratioE' or 'convergence' or 'velocity_components' or 'time_evolution'
 
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 params = [Mbh, Rstar, mstar, beta]
@@ -111,10 +111,11 @@ for i, snap in enumerate(snaps):
     r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
     vel_ph = np.sqrt(Vx_ph**2 + Vy_ph**2 + Vz_ph**2)
     mass_ph = den_ph * vol_ph
-    bern_ph = orb.bern_coeff(r_ph, vel_ph, den_ph, mass_ph, Press_ph, IE_den_ph, Rad_den_ph, params)
- 
+
+    oe_ph = orb.orbital_energy(r_ph, vel_ph, mass_ph, params, prel.G)
+    # bern_ph = orb.bern_coeff(r_ph, vel_ph, den_ph, mass_ph, Press_ph, IE_den_ph, Rad_den_ph, params)
     mean_vel[i] = np.mean(vel_ph)
-    ratio_unbound_ph[i] = len(bern_ph[np.logical_and(bern_ph>=0, r_ph!=0)]) / len(bern_ph[r_ph!=0])  
+    ratio_unbound_ph[i] = len(oe_ph[np.logical_and(oe_ph>=0, r_ph!=0)]) / len(oe_ph)  
     median_rph[i] = np.median(r_ph)
     percentile16[i] = np.percentile(r_ph, 16) 
     percentile84[i] = np.percentile(r_ph, 84)
@@ -226,7 +227,7 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergence': # only evo
     # cbar.set_label(r'mean velocity [v$_{\rm esc} (r_{\rm p})$]')
     ax.set_xlim(-0.09, 1.8)
     ax.set_xlabel(r'$t [t_{\rm fb}]$')
-    ax.set_ylabel('f')
+    ax.set_ylabel(r'f$\equiv N_{\rm ph, unb}/N_{\rm ph, tot}$')
     # plt.title(f'Photospheric cells', fontsize = 20)
     plt.tight_layout()
     plt.grid() 
@@ -246,13 +247,14 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergence': # only evo
                 np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/photo/LowResNewAMR_photo{snap_sH}.txt')
             r_phL = np.sqrt(x_phL**2 + y_phL**2 + z_phL**2)
             vel_phL = np.sqrt(Vx_phL**2 + Vy_phL**2 + Vz_phL**2)
-            mass_phL = den_phL * vol_phL
-            bern_phL = orb.bern_coeff(r_phL, vel_phL, den_phL, mass_phL, Press_phL, IE_den_phL, Rad_den_phL, params)
-            
             mean_velL[j] = np.mean(vel_phL)
             percentile16L[j] = np.percentile(vel_phL, 16)
             percentile84L[j] = np.percentile(vel_phL, 84)
-            ratio_unbound_phL[j] = len(bern_phL[np.logical_and(bern_phL>=0, r_phL!=0)]) / len(bern_phL[r_phL!=0])
+
+            mass_phL = den_phL * vol_phL
+            oe_L = orb.orbital_energy(r_phL, vel_phL, mass_phL, params, prel.G)
+            # bern_phL = orb.bern_coeff(r_phL, vel_phL, den_phL, mass_phL, Press_phL, IE_den_phL, Rad_den_phL, params)
+            ratio_unbound_phL[j] = len(oe_L[np.logical_and(oe_L>=0, r_phL!=0)]) / len(oe_L)
 
         dataH = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/HiResNewAMR_red.csv', delimiter=',', dtype=float)
         snapsH, tfbH = dataH[:, 0], dataH[:, 1]
@@ -268,24 +270,25 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergence': # only evo
                 np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/photo/HiResNewAMR_photo{snap_sH}.txt')
             r_phH = np.sqrt(x_phH**2 + y_phH**2 + z_phH**2)
             vel_phH = np.sqrt(Vx_phH**2 + Vy_phH**2 + Vz_phH**2)
-            mass_phH = den_phH * vol_phH
-            bern_phH = orb.bern_coeff(r_phH, vel_phH, den_phH, mass_phH, Press_phH, IE_den_phH, Rad_den_phH, params)
-            
             mean_velH[j] = np.mean(vel_phH)
             percentile16H[j] = np.percentile(vel_phH, 16)
             percentile84H[j] = np.percentile(vel_phH, 84)
-            ratio_unbound_phH[j] = len(bern_phH[np.logical_and(bern_phH>=0, r_phH!=0)]) / len(bern_phH)
+
+            mass_phH = den_phH * vol_phH
+            oe_H = orb.orbital_energy(r_phH, vel_phH, mass_phH, params, prel.G)
+            # bern_phH = orb.bern_coeff(r_phH, vel_phH, den_phH, mass_phH, Press_phH, IE_den_phH, Rad_den_phH, params)
+            ratio_unbound_phH[j] = len(oe_H[np.logical_and(oe_H>=0, r_phH!=0)]) / len(oe_H)
  
-            if snap_sH == 53: #53
-                fig50, ax50 = plt.subplots()
-                ax50.scatter(x_phH[bern_phH>0]/apo, r_phH[bern_phH>0]/apo, c = 'r', s = 10, label = 'Unbound')
-                ax50.scatter(x_phH[bern_phH<0]/apo, r_phH[bern_phH<0]/apo, c = 'b', s = 10, label = 'Bound')
-                ax50.set_title(f'f = {np.round(ratio_unbound_phH[j],2)}, t = {np.round(tfbH[j],2)}' + r't$_{\rm fb}$')
-                ax50.set_xlabel(r'x$_{\rm ph}/R_a$')
-                ax50.set_ylabel(r'r$_{\rm ph}/R_a$')
-                ax50.set_yscale('log')
-                ax50.legend()
-                fig50.savefig(f'{abspath}/Figs/next_meeting/bern_phHiRes_{snap_sH}.png')
+            # if snap_sH == 53: #53
+            #     fig50, ax50 = plt.subplots()
+            #     ax50.scatter(x_phH[bern_phH>0]/apo, r_phH[bern_phH>0]/apo, c = 'r', s = 10, label = 'Unbound')
+            #     ax50.scatter(x_phH[bern_phH<0]/apo, r_phH[bern_phH<0]/apo, c = 'b', s = 10, label = 'Bound')
+            #     ax50.set_title(f'f = {np.round(ratio_unbound_phH[j],2)}, t = {np.round(tfbH[j],2)}' + r't$_{\rm fb}$')
+            #     ax50.set_xlabel(r'x$_{\rm ph}/R_a$')
+            #     ax50.set_ylabel(r'r$_{\rm ph}/R_a$')
+            #     ax50.set_yscale('log')
+            #     ax50.legend()
+            #     fig50.savefig(f'{abspath}/Figs/next_meeting/bern_phHiRes_{snap_sH}.png')
                 
 
         ax.plot(tfbL, ratio_unbound_phL, c = 'C1', label = 'Low')
@@ -295,11 +298,14 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergence': # only evo
         # plt.fill_between(tfbH, percentile16H * conversion_sol_kms * 1e-4, percentile84H * conversion_sol_kms * 1e-4, color = 'darkviolet', alpha = 0.1)
         ax.plot(tfbH, ratio_unbound_phH, c = 'darkviolet', label = 'High') #c = mean_velH/v_esc, s = 20, vmin = 0.2, vmax = 1)
         # plt.axvline(tfbH[np.argmin(np.abs(tfbH-0.5))], c = 'k', linestyle = '--')
-        print(snapsH[np.argmin(np.abs(tfbH-0.5))])
         fig.legend(fontsize = 16)
+        fig.suptitle(f'Convergence with OE', fontsize = 20)
+        fig.tight_layout()
         fig.savefig(f'{abspath}/Figs/next_meeting/f_conv.png')
         # plt.savefig(f'{abspath}/Figs/next_meeting/velPh_conv.png')
     else:
+        fig.suptitle(f'Boundness with OE', fontsize = 20)
+        fig.tight_layout()
         fig.savefig(f'{abspath}/Figs/next_meeting/f{check}.png')
 
 # %%
