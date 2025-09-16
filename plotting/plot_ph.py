@@ -4,17 +4,11 @@ import sys
 sys.path.append(abspath)
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
 from src import orbits as orb
-import matplotlib.colors as colors
-from matplotlib import cm
 import Utilities.prelude as prel
 import healpy as hp
 from scipy.stats import gmean
-from Utilities.basic_units import radians
-from Utilities.operators import find_ratio, sort_list, choose_observers
-from plotting.paper.IHopeIsTheLast import ratio_BigOverSmall
-matplotlib.rcParams['figure.dpi'] = 150
+from Utilities.operators import sort_list, choose_observers
 
 #%%
 # first_eq = 88 # observer eq. plane
@@ -33,26 +27,91 @@ which_obs = 'dark_bright_z'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
-tfallback = things['t_fb_days']
 Rs = things['Rs']
+Rg = things['Rg']
 Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
 apo = things['apo']
 amin = things['a_mb']
-Ledd = 1.26e38 * Mbh
+tfallback = things['t_fb_days']
+t_fb_days_cgs = tfallback * 24 * 3600 # in seconds
+
+# HEALPIX
+observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
+observers_xyz = np.array(observers_xyz)
+indices_axis, label_axis, colors_axis, lines_axis = choose_observers(observers_xyz, which_obs)
+observers_xyz = observers_xyz.T
+x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
+
+ph_data = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}_phidx_fluxes.txt')
+snaps, tfb, allindices_ph = ph_data[:, 0].astype(int), ph_data[:, 1], ph_data[:, 2:]
+flux_test = np.zeros(len(snaps))
+fluxes = []
+for i, snap in enumerate(snaps):
+        selected_lines = np.concatenate(np.where(snaps == snap))
+        # eliminate the even rows (photosphere indices) of allindices_ph
+        _, selected_fluxes = selected_lines[0], selected_lines[1]
+        fluxes.append(allindices_ph[selected_fluxes])
+        flux_test[i] = np.sum(allindices_ph[selected_fluxes])
+fluxes = np.array(fluxes)
+tfb, fluxes, snaps = sort_list([tfb, fluxes, snaps], snaps, unique=True)
+
+# Eddington luminosity
+# Opacity
+last_snap, last_tfb = snaps[-1], tfb[-1]
+xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, alphaph, _, Lumph, _ = \
+        np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{last_snap}.txt')
+kappaph = alphaph/denph
+kappa = 1/np.mean(1/kappaph)
+# Rtr and eta
+dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{last_snap}.npz")
+x_tr, y_tr, z_tr, den_tr, Vr_tr = \
+        dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr']
+r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+Mdot_tr = 4 * np.pi * r_tr**2 * den_tr * np.abs(Vr_tr)
+r_tr_median = np.zeros(len(indices_axis))
+Mdot_median = np.zeros(len(indices_axis))
+den_tr_median = np.zeros(len(indices_axis))
+Vr_tr_median = np.zeros(len(indices_axis))      
+for i in range(len(indices_axis)):
+    nonzero = r_tr[indices_axis[i]][r_tr[indices_axis[i]] != 0]
+    r_tr_median[i] = np.median(nonzero)
+    nonzero = Vr_tr[indices_axis[i]][Vr_tr[indices_axis[i]] != 0]
+    Vr_tr_median[i] = np.median(nonzero)
+    nonzero = den_tr[indices_axis[i]][den_tr[indices_axis[i]] != 0]
+    den_tr_median[i] = np.median(nonzero)
+    nonzero = Mdot_tr[indices_axis[i]][Mdot_tr[indices_axis[i]] != 0]
+    Mdot_median[i] = np.median(nonzero)
+#%%
+data_wind = np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_{check}.csv',  
+                delimiter = ',', 
+                skiprows=1,  
+                unpack=True)
+tfb_fall, mfall = data_wind[1], data_wind[2]
+
+eta_axis = np.zeros(len(indices_axis))
+for i in range(len(indices_axis)):
+    r_tr = r_tr_median[i]
+    v_rad_tr = Vr_tr_median[i]
+    t_dyn = (r_tr/v_rad_tr)*prel.tsol_cgs/t_fb_days_cgs # you want it in t_fb
+    tfb_adjusted = last_tfb - t_dyn
+    find_time = np.argmin(np.abs(tfb_fall-tfb_adjusted))
+    eta_axis[i] = np.abs(Mdot_median[i]/mfall[find_time])
+    print(f'{label_axis[i]}: {np.round(mfall[find_time]/prel.tsol_cgs*3600*24*365, 2)} M_sol/yr')
+
+eta = np.median(eta_axis)
+print(f'From snap  {snaps[-1]}: kappa = {kappa}, eta = {eta}')
+Ledd_sol, Medd_sol = orb.Edd(Mbh, kappa/(prel.Rsol_cgs**2/prel.Msol_cgs), eta, prel.csol_cgs, prel.G)
+Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
+Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
+print(f'From snap{snaps[-1]}: Ledd = {Ledd_cgs}, Medd = {Medd_cgs}')
 
 #%%
 # tvisc = (R0**3/(prel.G*Mbh))**(1/2) * (1/0.1) * (1/0.3)**2
 # tvisc_days = tvisc*prel.tsol_cgs/(3660*24)
 # print(tvisc_days)
 
-observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
-observers_xyz = np.array(observers_xyz)
-indices_axis, label_axis, colors_axis, lines_axis = choose_observers(observers_xyz, which_obs)
-observers_xyz = observers_xyz.T
-# HEALPIX
-x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
 # r = np.sqrt(x**2 + y**2 + z**2)   # Radius (should be 1 for unit vectors)
 # theta = np.arctan2(y, x)          # Azimuthal angle in radians
 # phi = np.arccos(z / r)            # Elevation angle in radians
@@ -82,19 +141,6 @@ x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
 # plt.show()
 
 #%% NB DATA ARE NOT SORTED
-ph_data = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/{check}_phidx_fluxes.txt')
-snaps, tfb, allindices_ph = ph_data[:, 0].astype(int), ph_data[:, 1], ph_data[:, 2:]
-flux_test = np.zeros(len(snaps))
-fluxes = []
-for i, snap in enumerate(snaps):
-        selected_lines = np.concatenate(np.where(snaps == snap))
-        # eliminate the even rows (photosphere indices) of allindices_ph
-        _, selected_fluxes = selected_lines[0], selected_lines[1]
-        fluxes.append(allindices_ph[selected_fluxes])
-        flux_test[i] = np.sum(allindices_ph[selected_fluxes])
-fluxes = np.array(fluxes)
-tfb, fluxes, snaps = sort_list([tfb, fluxes, snaps], snaps, unique=True)
-
 mean_rph = np.zeros(len(tfb))
 mean_rph_nonZero = np.zeros(len(tfb))
 mean_rph_weig = np.zeros(len(tfb))
@@ -141,9 +187,9 @@ rtr_obs_time = np.zeros((len(tfb), len(indices_axis)))
 # alpha_obs_time = np.zeros((len(tfb), len(indices_axis)))
 flux_obs_time = np.zeros((len(tfb), len(indices_axis)))
 
-normalize_by = 'Rp'
-if normalize_by == 'Rp':
-        norm = Rp
+normalize_by = 'Rt'
+if normalize_by == 'Rt':
+        norm = Rt
 else:
         norm = apo
 for i, snapi in enumerate(snaps):
@@ -152,6 +198,7 @@ for i, snapi in enumerate(snaps):
         dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snapi}.npz")
         x_tr, y_tr, z_tr = \
             dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr']
+        
         rtr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
 
         fluxph = fluxes[i]
@@ -167,8 +214,8 @@ for i, snapi in enumerate(snaps):
                 flux_obs_time[i, j] = np.median(fluxph[observer])
                 # rtr_obs_time[i, j] = np.median(rtr[observer])
                  
-                # nonzero_mask = rtr[observer] != 0
-                rtr_obs_time[i, j] = np.median(rtr[observer])
+                nonzero_mask = rtr[observer] != 0
+                rtr_obs_time[i, j] = np.median(rtr[observer][nonzero_mask])
 
 fig, (ax1, ax5) = plt.subplots(1, 2, figsize=(25, 7))
 fig2, (ax2, ax3) = plt.subplots(1, 2, figsize=(20, 7))
@@ -189,15 +236,15 @@ for i, observer in enumerate(indices_axis):
         ax2.plot(tfb, den_obs_time[:, i]*prel.den_converter, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         ax3.plot(tfb, T_obs_time[:, i], label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         # ax4.plot(tfb, alpha_obs_time[:, i], label = label_axis[i], c = colors_axis[i])
-        ax5.plot(tfb_to_plot, Lum_to_plot/Ledd, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
+        ax5.plot(tfb_to_plot, Lum_to_plot/Ledd_cgs, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         ax6.plot(tfb, flux_obs_time[:, i], label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
         if label_axis[i] not in ['y']:
                 axTr.plot(tfb, rtr_obs_time[:, i]/norm, label = label_axis[i], c = colors_axis[i], ls = lines_axis[i])
 # ax1.axhline(R0/apo, color = 'gray', linestyle = ':', label = r'R$_0$')
 # ax1.plot(tfb, mean_rph/apo, c = 'gray', ls = '--', label = 'mean')
 # ax1.plot(tfb, median_ph/apo, c = 'gray', ls = ':', label = 'median')
-if normalize_by == 'Rp':
-        ax1.set_ylabel(r'median R$_{\rm ph}[R_{\rm p}$]')
+if normalize_by == 'Rt':
+        ax1.set_ylabel(r'median non-zero R$_{\rm ph}[R_{\rm t}$]')
         ax1.set_ylim(1, 1e2)
 if normalize_by == 'apo':
         ax1.axhline(Rp/norm, color = 'gray', linestyle = '-.', label = r'R$_{\rm p}$')
@@ -218,9 +265,9 @@ if normalize_by == 'apo':
         axTr.axhline(Rp/apo, color = 'gray', linestyle = '-.', label = r'R$_{\rm p}$')
         axTr.set_ylabel(r'$R_{\rm tr} [R_{\rm a}]$')
         # axTr.set_ylim(2e-2, 10)
-if normalize_by == 'Rp':
-        axTr.set_ylabel(r'$R_{\rm tr} [R_{\rm p}]$')
-        axTr.set_ylim(1e-1, 1e2)
+if normalize_by == 'Rt':
+        axTr.set_ylabel(r'$R_{\rm tr} [R_{\rm t}]$')
+        axTr.set_ylim(1, 1e2)
 axTr.legend(fontsize = 16)
 # original_ticks = ax1.get_xticks()
 # middle_tick = (original_ticks[:-1] + original_ticks[1:]) / 2
@@ -229,7 +276,7 @@ axTr.legend(fontsize = 16)
 for ax in [ax1, ax2, ax3, ax5, ax6, axTr]:
         # ax.set_xticks(new_ticks)
         # ax.set_xticklabels(ticks_label)
-        ax.set_xlim(0.4, 1.6)
+        ax.set_xlim(0.62, 1.6)
         ax.set_xlabel(r't [$t_{\rm fb}$]')
         ax.tick_params(axis='both', which='major', width=1.2, length=9, color = 'k')
         ax.tick_params(axis='both', which='minor', width=1, length=7, color = 'k')
@@ -304,24 +351,45 @@ if which_obs != 'dark_bright_z':
 
 #%%
 idx_snap = -1 #np.argmin(np.abs(snaps - 266))
-plt.figure(figsize = (10, 7))
-# o order them as you want
-if which_obs == 'hemispheres':
-    to_plot = [0, 6, 4, 8]
-elif which_obs == 'dark_bright_z':
-    to_plot = [0, 2, 3, 1]
-for i, idx_toplot in enumerate(to_plot):
-        plt.scatter(i+1, Lum_obs_time[idx_snap, idx_toplot]/Ledd, label = label_axis[idx_toplot], c = colors_axis[idx_toplot], ls = lines_axis[idx_toplot], s = 100)
-plt.legend(fontsize = 16)
-plt.ylabel(r'$L_{\rm ph}/L_{\rm Edd}$')
-plt.xticks([])
-plt.yscale('log') 
-plt.ylim(1e-2, 3)
-plt.grid()
-plt.tick_params(axis='y', which='major', width=1.2, length=9, color = 'k')
-plt.tick_params(axis='y', which='minor', width=1, length=7, color = 'k')
-plt.title(f't = {np.round(tfb[idx_snap], 2)}' + r' t$_{\rm fb}$', fontsize = 16)
-plt.show(block=True)
+Lum_last = Lum_obs_time[idx_snap]
+x_ticks_label = []
+x_ticks = np.zeros(len(label_axis))
+sizes = np.ones(len(label_axis))*200
+for i, lab in enumerate(label_axis):
+        if lab == 'x+':
+                x_ticks_label.append(r'$0$')
+                x_ticks[i] = 0
+        elif lab == 'x-':
+                x_ticks_label.append(r'$\pi$')
+                x_ticks[i] = np.pi
+        elif lab == 'z+':
+                x_ticks_label.append(r'$\pi/2$')
+                x_ticks[i] = np.pi/2
+        elif lab == 'z-':
+                x_ticks_label.append(r'$\pi/2$')
+                x_ticks[i] = np.pi/2
+                sizes[i] = 150
+
+fig, (ax1, ax2) = plt.subplots(2,1, figsize = (10, 10))
+for i in range(len(label_axis)):
+        ax1.scatter(x_ticks[i], Lum_last[i]/Ledd_cgs, c = colors_axis[i], s = sizes[i])
+        ax2.scatter(x_ticks[i], Mdot_median[i]/Medd_sol, c = colors_axis[i], s = sizes[i])
+ax1.legend(fontsize = 16)
+ax2.set_xlabel(r'$\phi$')
+ax1.set_ylabel(r'$L_{\rm ph} [L_{\rm Edd}]$')
+ax2.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm Edd}]$')
+ax1.set_ylim(8e-2, 3)
+ax2.set_ylim(1e1, 2e2)
+for ax in [ax1, ax2]:
+        ax.grid()
+        ax.set_yscale('log') 
+        ax.tick_params(axis='y', which='major', width=1.2, length=9, color = 'k')
+        ax.tick_params(axis='y', which='minor', width=1, length=7, color = 'k')
+        ax.set_xticks(x_ticks)
+        ax.set_xticklabels(x_ticks_label) 
+# ax1.set_title(f't = {np.round(tfb[idx_snap], 2)}' + r' t$_{\rm fb}$', fontsize = 16)
+fig.tight_layout()
+fig.savefig(f'{abspath}/Figs/next_meeting/{check}/LumMdot_{which_obs}{snaps[idx_snap]}.png', bbox_inches = 'tight')
 
 # #%% compare with other resolutions
 # pvalue 
@@ -338,15 +406,3 @@ plt.show(block=True)
 #         # statL[i], pvalueL[i] = ksL.statistic, ksL.pvalue
 
 # %% check opacity
-xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, alphaph, _, Lumph, _ = \
-        np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo318.txt')
-kappaph = alphaph/denph
-kappa_invmean = 1/np.mean(1/kappaph)
-kappa_bins = np.arange(0, 5, .5)
-plt.hist(kappaph, bins = kappa_bins, color = 'forestgreen', alpha = .5)
-plt.xlabel(r'$\kappa_{\rm ph}$ [cm$^2$/g]')
-plt.ylabel('N')
-plt.title(r'1/$<1/\kappa_{\rm ph}$:' + f'{np.round(kappa_invmean, 2)}')
-plt.show(block=True)
-
-# %%

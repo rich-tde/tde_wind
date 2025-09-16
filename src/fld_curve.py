@@ -41,7 +41,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'NewAMR' # 
+check = 'HiResNewAMR' # 
 
 ## Snapshots stuff
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -70,8 +70,6 @@ apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 eng = matlab.engine.start_matlab()
 Lphoto_all = np.zeros(len(snaps))
 for idx_s, snap in enumerate(snaps):
-    if snap != 162:
-        continue
     print('\n Snapshot: ', snap, '\n', flush=True)
     box = np.zeros(6)
     # Load data -----------------------------------------------------------------

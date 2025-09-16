@@ -28,18 +28,21 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-tfallback = 2.5777261297507925 * 24 * 3600 #2.5 days
-Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
-Rt = Rstar * (Mbh/mstar)**(1/3)
-apo = orb.apocentre(Rstar, mstar, Mbh, beta)
+
+params = [Mbh, Rstar, mstar, beta]
+things = orb.get_things_about(params)
+Rs = things['Rs']
+Rt = things['Rt']
+Rp = things['Rp']
+R0 = things['R0']
+apo = things['apo']
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.25/(prel.Rsol_cgs**2/prel.Msol_cgs), 0.004, prel.csol_cgs, prel.G)
+Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
+Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 #
 # FUNCTIONS
 ##
-def L_Edd_k(k): # cgs
-    L_e = 1.38*1e42 * (0.34/k)
-    return L_e
-
 def split_data_red(check):
     """Split the data in the file into two lists: time and luminosity."""
     if check in ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']:
@@ -132,15 +135,15 @@ if __name__ == '__main__':
     ######## Plot #######
     # Luminosity
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-    ax1.plot(tfbL, LumL, c = 'C1', label = 'Low')
+    ax1.plot(tfbL, LumL, c = 'C1', label = 'Low Res')
     # ax1.plot(tfbdissL, LDissL, ls = '--', c = 'C1')
     ax1.plot(tfb, Lum, c = 'yellowgreen', label = 'Fid')
     # ax1.plot(tfbdiss, LDiss, ls = '--', c = 'yellowgreen')
     ax1.plot(tfbH, LumH, c = 'darkviolet', label = 'High')
     # ax1.plot(tfbdissH, LDissH, ls = '--', c = 'darkviolet')
 
-    ax1.axhline(y=Ledd, c = 'k', linestyle = '-.', linewidth = 2)
-    ax1.text(0.1, 1.4*Ledd, r'$L_{\rm Edd}$', fontsize = 20)
+    ax1.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
+    ax1.text(0.1, 1.4*Ledd_cgs, r'$L_{\rm Edd}$', fontsize = 20)
     ax1.set_ylabel(r'Luminosity [erg/s]')
 
     original_ticks = ax1.get_yticks()
@@ -193,25 +196,25 @@ if __name__ == '__main__':
 
     # Photosphere
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-    ax1.plot(tfbL, median_phL/apo, c = 'C1', label = 'Low')
-    ax1.plot(tfbL, percentile84L/apo, c = 'C1', alpha = 0.4, linestyle = '--')
-    ax1.plot(tfbL, percentile16L/apo, c = 'C1', alpha = 0.4, linestyle = '--')
-    ax1.fill_between(tfbL, percentile16L/apo, percentile84L/apo, color = 'C1', alpha = 0.4)
+    ax1.plot(tfbL, median_phL/Rt, c = 'C1', label = 'Low')
+    ax1.plot(tfbL, percentile84L/Rt, c = 'C1', alpha = 0.4, linestyle = '--')
+    ax1.plot(tfbL, percentile16L/Rt, c = 'C1', alpha = 0.4, linestyle = '--')
+    ax1.fill_between(tfbL, percentile16L/Rt, percentile84L/Rt, color = 'C1', alpha = 0.4)
     # Fid
-    ax1.plot(tfb, median_ph/apo, c = 'yellowgreen', label = 'Fid')
-    ax1.plot(tfb, percentile84/apo, c = 'yellowgreen', alpha = 0.3, linestyle = '--')
-    ax1.plot(tfb, percentile16/apo, c = 'yellowgreen', alpha = 0.3, linestyle = '--')
-    ax1.fill_between(tfb, percentile16/apo, percentile84/apo, color = 'yellowgreen', alpha = 0.3)
+    ax1.plot(tfb, median_ph/Rt, c = 'yellowgreen', label = 'Fid')
+    ax1.plot(tfb, percentile84/Rt, c = 'yellowgreen', alpha = 0.3, linestyle = '--')
+    ax1.plot(tfb, percentile16/Rt, c = 'yellowgreen', alpha = 0.3, linestyle = '--')
+    ax1.fill_between(tfb, percentile16/Rt, percentile84/Rt, color = 'yellowgreen', alpha = 0.3)
     # High
-    ax1.plot(tfbH, median_phH/apo, c = 'darkviolet', label = 'High')
-    ax1.plot(tfbH, percentile84H/apo, c = 'darkviolet', alpha = 0.2, linestyle = '--')
-    ax1.plot(tfbH, percentile16H/apo, c = 'darkviolet', alpha = 0.2, linestyle = '--')
-    ax1.fill_between(tfbH, percentile16H/apo, percentile84H/apo, color = 'darkviolet', alpha = 0.2)
-    ax1.axhline(Rt/apo, c = 'k', linestyle = '--', linewidth = 2)
-    ax1.text(1.5, 1.2*Rt/apo, r'$R_{\rm t}$', fontsize = 18)
-    ax1.set_ylim(1e-2, 8)
+    ax1.plot(tfbH, median_phH/Rt, c = 'darkviolet', label = 'High')
+    ax1.plot(tfbH, percentile84H/Rt, c = 'darkviolet', alpha = 0.2, linestyle = '--')
+    ax1.plot(tfbH, percentile16H/Rt, c = 'darkviolet', alpha = 0.2, linestyle = '--')
+    ax1.fill_between(tfbH, percentile16H/Rt, percentile84H/Rt, color = 'darkviolet', alpha = 0.2)
+    ax1.axhline(apo/Rt, c = 'k', linestyle = '--', linewidth = 2)
+    ax1.text(0.1, 0.7*apo/Rt, r'$R_{\rm a}$', fontsize = 18)
+    ax1.set_ylim(1, 250)
     ax1.set_yscale('log')
-    ax1.set_ylabel(r'median $R_{\rm ph} [R_{\rm a}]$')
+    ax1.set_ylabel(r'median $R_{\rm ph} [R_{\rm t}]$')
     ax1.legend(fontsize = 18)
     ax1.tick_params(axis='y', which='major', width = 1.5, length = 5, color = 'k')
     ax1.tick_params(axis='y', which='minor', width = 1, length = 3, color = 'k')

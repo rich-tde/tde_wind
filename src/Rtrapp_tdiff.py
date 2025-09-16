@@ -228,7 +228,7 @@ def r_trapp(loadpath, snap):
             ax1.set_xlabel(r'$R [R_{\rm a}]$')
             ax1.set_ylabel(r'$t [t_{\rm fb}]$')
             ax1.loglog()    
-            # ax1.set_xlim(R0/apo, 1.2*rph[i]/apo)
+            ax1.set_xlim(R0/apo, 1.2*rph[i]/apo)
             # ax1.set_ylim(1e-5, 8)
             ax1.tick_params(axis='both', which='major', length=8, width=1.2)
             ax1.tick_params(axis='both', which='minor', length=5, width=1)
@@ -328,7 +328,7 @@ for snap in snaps:
         loadpath = f'{pre}/{snap}'
         observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
         indices_sorted, label_obs, colors_obs, _ = choose_observers(observers_xyz, 'hemispheres')
-        test_idx = indices_sorted[:,0]
+        test_idx = indices_sorted[:,1]
         # take just the first one for each direction
         label_obs = np.array(label_obs)
         colors_obs = np.array(colors_obs)
@@ -351,8 +351,7 @@ for snap in snaps:
         plt.title(f'Snap {snap}')
         plt.grid()
         plt.tight_layout()
-        
-
+    
 
 #%%
 # if plot:

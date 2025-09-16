@@ -188,12 +188,12 @@ if __name__ == '__main__':
             f.close()
             
         for snap in snaps:
-            # if snap != 60:
+            # if snap != 150:
             #     continue
             print(snap, flush=True)
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-            else:
+            else: 
                 path = f'{prepath}/TDE/{folder}/{snap}'
             
             _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100, how_far = how_far)
@@ -208,7 +208,7 @@ if __name__ == '__main__':
         import src.orbits as orb
         from plotting.paper.IHopeIsTheLast import split_data_red
         from Utilities.operators import from_cylindric
-        snap = 314
+        snap = 318
         what_to_grid = 'Den' #['tau_scatt', 'tau_ross', 'Den']
         sign = '' # '' for positive, '_neg' for negative
         how_far = ''

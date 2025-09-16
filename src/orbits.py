@@ -125,6 +125,12 @@ def energy_mb(Rstar, mstar, Mbh, G):
     En = G * Mbh * Rstar / Rt**2
     return En
 
+def Edd(Mbh, kappa, eta, c, G):
+    Rg = R_grav(Mbh, c, G)
+    Ledd = 4 * np.pi * Rg * c**3 / kappa #1.26e38 * Mbh [erg/s], Mbh is in solar masses
+    Medd = Ledd / (eta * c**2)
+    return Ledd, Medd
+
 def get_things_about(params, c = prel.csol_cgs, G = prel.G):
     Mbh, Rstar, mstar, beta = params
     Rg = R_grav(Mbh, c, G)

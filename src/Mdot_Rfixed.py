@@ -51,12 +51,12 @@ max_Mdot = mstar*prel.Msol_cgs/(3*t_fb_days_cgs) # in code units
 
 radii = np.array([Rt, 0.5*amin, amin, 50*Rt])
 radii_names = [f'Rt', f'0.5 a_mb', f'a_mb', f'50 R_t']
-Ledd = 4*np.pi*Rg*prel.Rsol_cgs*prel.c_cgs**3/0.34 #1.26e38 * Mbh # [erg/s] Mbh is in solar masses
-Medd = Ledd/(0.1*prel.c_cgs**2)
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 0.34/(prel.Rsol_cgs**2/prel.Msol_cgs), 0.1, prel.csol_cgs, prel.G)
+Ledd = Ledd_sol * prel.en_converter/prel.tsol_cgs
+Medd = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
 convers_kms = prel.Rsol_cgs * 1e-5/prel.tsol_cgs # it's aorund 400
 print(f'escape velocity at Rp: {v_esc/prel.csol_cgs} c')
-# print(np.log10(max_Mdot/Medd), 'Mdot max in Eddington units')
 
 #
 ## FUNCTIONS
