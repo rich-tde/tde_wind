@@ -25,7 +25,7 @@ Rstar = .47
 n = 1.5 
 compton = 'Compton'
 check = 'NewAMR'
-kind_of_plot = 'ratioE' # 'ratioE' or 'convergence' or 'velocity_components' or 'time_evolution'
+kind_of_plot = 'convergencebern' # 'ratioE' or 'convergenceOE' or 'convergencebern' or 'velocity_components' or 'time_evolution'
 
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 params = [Mbh, Rstar, mstar, beta]
@@ -105,7 +105,7 @@ xlim_min, xlim_max = -55, 55
 ylim_min, ylim_max = -55, 55
 scale_v = 40
 for i, snap in enumerate(snaps):
-    print(snap)
+    # print(snap)
     x_ph, y_ph, z_ph, vol_ph, den_ph, Temp_ph, Rad_den_ph, Vx_ph, Vy_ph, Vz_ph, Press_ph, IE_den_ph, _, _, _, _ = \
         np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
     r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
@@ -113,9 +113,14 @@ for i, snap in enumerate(snaps):
     mass_ph = den_ph * vol_ph
 
     oe_ph = orb.orbital_energy(r_ph, vel_ph, mass_ph, params, prel.G)
-    # bern_ph = orb.bern_coeff(r_ph, vel_ph, den_ph, mass_ph, Press_ph, IE_den_ph, Rad_den_ph, params)
+    bern_ph = orb.bern_coeff(r_ph, vel_ph, den_ph, mass_ph, Press_ph, IE_den_ph, Rad_den_ph, params)
     mean_vel[i] = np.mean(vel_ph)
-    ratio_unbound_ph[i] = len(oe_ph[np.logical_and(oe_ph>=0, r_ph!=0)]) / len(oe_ph)  
+    if kind_of_plot == 'convergenceOE':
+        ratio_unbound_ph[i] = len(oe_ph[np.logical_and(oe_ph>=0, r_ph!=0)]) / len(oe_ph)  
+        for_title = 'OE'
+    elif kind_of_plot == 'convergencebern':
+        ratio_unbound_ph[i] = len(bern_ph[np.logical_and(bern_ph>=0, r_ph!=0)]) / len(bern_ph)
+        for_title = 'bern coefficient'
     median_rph[i] = np.median(r_ph)
     percentile16[i] = np.percentile(r_ph, 16) 
     percentile84[i] = np.percentile(r_ph, 84)
@@ -215,9 +220,9 @@ for i, snap in enumerate(snaps):
                 ax.scatter(0,0, c= 'k', marker = 'x', s=100)
 
         plt.savefig(f'{abspath}/Figs/{folder}/Outflow/B_slice_{snap}.png', bbox_inches='tight')
-        plt.close()
+        plt.close() 
 
-if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergence': # only evolution of velocity/boundness in Fid and High res
+if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergenceOE' or kind_of_plot == 'convergencebern': # only evolution of velocity/boundness in Fid and High res
     fig, ax = plt.subplots(1, 1, figsize=(10,6))
     # img = plt.scatter(tfb, mean_vel * conversion_sol_kms * 1e-4, c = ratio_unbound_ph, s = 20, vmin = 0, vmax = 0.8, label = 'Fid')
     # cbar = plt.colorbar(img)
@@ -237,7 +242,7 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergence': # only evo
     # plt.title(f'Photospheric cells', fontsize = 20)
     ax.grid() 
     
-    if kind_of_plot == 'convergence':
+    if kind_of_plot == 'convergenceOE' or kind_of_plot == 'convergencebern':
         dataL = np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/LowResNewAMR_red.csv', delimiter=',', dtype=float)
         snapsL, tfbL = dataL[:, 0], dataL[:, 1]
         snapsL = np.array([int(snap) for snap in snapsL])
@@ -258,8 +263,11 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergence': # only evo
 
             mass_phL = den_phL * vol_phL
             oe_L = orb.orbital_energy(r_phL, vel_phL, mass_phL, params, prel.G)
-            # bern_phL = orb.bern_coeff(r_phL, vel_phL, den_phL, mass_phL, Press_phL, IE_den_phL, Rad_den_phL, params)
-            ratio_unbound_phL[j] = len(oe_L[np.logical_and(oe_L>=0, r_phL!=0)]) / len(oe_L)
+            bern_phL = orb.bern_coeff(r_phL, vel_phL, den_phL, mass_phL, Press_phL, IE_den_phL, Rad_den_phL, params)
+            if kind_of_plot == 'convergenceOE':
+                ratio_unbound_phL[j] = len(oe_L[np.logical_and(oe_L>=0, r_phL!=0)]) / len(oe_L)
+            elif kind_of_plot == 'convergencebern':
+                ratio_unbound_phL[j] = len(bern_phL[np.logical_and(bern_phL>=0, r_phL!=0)]) / len(bern_phL)
 
         dataH = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/HiResNewAMR_red.csv', delimiter=',', dtype=float)
         snapsH, tfbH = dataH[:, 0], dataH[:, 1]
@@ -281,8 +289,11 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergence': # only evo
 
             mass_phH = den_phH * vol_phH
             oe_H = orb.orbital_energy(r_phH, vel_phH, mass_phH, params, prel.G)
-            # bern_phH = orb.bern_coeff(r_phH, vel_phH, den_phH, mass_phH, Press_phH, IE_den_phH, Rad_den_phH, params)
-            ratio_unbound_phH[j] = len(oe_H[np.logical_and(oe_H>=0, r_phH!=0)]) / len(oe_H)
+            bern_phH = orb.bern_coeff(r_phH, vel_phH, den_phH, mass_phH, Press_phH, IE_den_phH, Rad_den_phH, params)
+            if kind_of_plot == 'convergenceOE':
+                ratio_unbound_phH[j] = len(oe_H[np.logical_and(oe_H>=0, r_phH!=0)]) / len(oe_H)
+            elif kind_of_plot == 'convergencebern':
+                ratio_unbound_phH[j] = len(bern_phH[np.logical_and(bern_phH>=0, r_phH!=0)]) / len(bern_phH)
  
             # if snap_sH == 53: #53
             #     fig50, ax50 = plt.subplots()
@@ -304,12 +315,12 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergence': # only evo
         ax.plot(tfbH, ratio_unbound_phH, c = 'darkviolet', label = 'High') #c = mean_velH/v_esc, s = 20, vmin = 0.2, vmax = 1)
         # plt.axvline(tfbH[np.argmin(np.abs(tfbH-0.5))], c = 'k', linestyle = '--')
         ax.legend(fontsize = 16, loc = 'lower right')
-        fig.suptitle(f'Convergence with OE', fontsize = 20)
+        fig.suptitle(f'Convergence with {for_title}', fontsize = 20)
         fig.tight_layout()
         fig.savefig(f'{abspath}/Figs/next_meeting/f_conv.png')
         # plt.savefig(f'{abspath}/Figs/next_meeting/velPh_conv.png')
     else:
-        fig.suptitle(f'Boundness with OE', fontsize = 20)
+        fig.suptitle(f'Boundness with {for_title}', fontsize = 20)
         fig.tight_layout()
         fig.savefig(f'{abspath}/Figs/next_meeting/f{check}.png')
 

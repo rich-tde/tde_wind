@@ -55,7 +55,7 @@ movie = False
 dMdecc = False
 
 if alice:
-    check = 'NewAMR'
+    check = 'HiResNewAMR'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     print(f'Check: {check}', flush=True)
 

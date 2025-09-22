@@ -81,7 +81,10 @@ def ratio_BigOverSmall(tfb1, Lum1, tfb2, Lum2):
         # Calculate the ratio of luminosities
         ratio.append(find_ratio(shorter_Lum[i], longer_Lum[idx]))
         time_ratio.append(time)
-    return time_ratio, ratio
+    time_ratio = np.array(time_ratio)
+    ratio = np.array(ratio)
+    rel_err = (ratio - 1)*100
+    return time_ratio, ratio, rel_err
 
 def statistics_photo(snaps, check):
     """Calculate the statistics of the photosphere for a given set of snapshots."""
@@ -121,29 +124,17 @@ if __name__ == '__main__':
     dataDissH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     tfbdissH, LDissH = dataDissH[:,1], dataDissH[:,3] *  prel.en_converter/prel.tsol_cgs
 
-    # dataDissOld = np.loadtxt(f'{abspath}/data/opacity_tests/{commonfold}/Rdiss_cutDen.txt')
-    # tfbdissOld, LDissOld = dataDissOld[0], dataDissOld[2] * prel.en_converter/prel.tsol_cgs 
-
-    ######## Energy density 
-    # Rad_den_R_snapL = np.load(f'{abspath}/data/{commonfold}LowRes/LowRes267_Radden.npy')
-    # r_arrL = np.load(f'{abspath}/data/{commonfold}LowRes/LowRes267_R_Radden.npy')
-    # Rad_den_R_snap = np.load(f'{abspath}/data/{commonfold}/267_Radden.npy')
-    # r_arr = np.load(f'{abspath}/data/{commonfold}/267_R_Radden.npy') # it's the same for all resolutions
-    # Rad_den_R_snapH = np.load(f'{abspath}/data/{commonfold}HiRes/HiRes267_Radden.npy')
-    # r_arrH = np.load(f'{abspath}/data/{commonfold}HiRes/HiRes267_R_Radden.npy')
-
     ######## Plot #######
     # Luminosity
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-    ax1.plot(tfbL, LumL, c = 'C1', label = 'Low Res')
-    # ax1.plot(tfbdissL, LDissL, ls = '--', c = 'C1')
-    ax1.plot(tfb, Lum, c = 'yellowgreen', label = 'Fid')
-    # ax1.plot(tfbdiss, LDiss, ls = '--', c = 'yellowgreen')
-    ax1.plot(tfbH, LumH, c = 'darkviolet', label = 'High')
-    # ax1.plot(tfbdissH, LDissH, ls = '--', c = 'darkviolet')
-
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
     ax1.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
-    ax1.text(0.1, 1.4*Ledd_cgs, r'$L_{\rm Edd}$', fontsize = 20)
+    ax1.text(0.9*np.max(tfbL), 0.5*Ledd_cgs, r'$L_{\rm Edd}$', fontsize = 20)
+    ax1.plot(tfbL, LumL, c = 'C1', label = 'Low Res')
+    ax1.plot(tfbdissL, LDissL, ls = '--', c = 'C1')
+    ax1.plot(tfb, Lum, c = 'yellowgreen', label = 'Fid')
+    ax1.plot(tfbdiss, LDiss, ls = '--', c = 'yellowgreen')
+    ax1.plot(tfbH, LumH, c = 'darkviolet', label = 'High')
+    ax1.plot(tfbdissH, LDissH, ls = '--', c = 'darkviolet')
     ax1.set_ylabel(r'Luminosity [erg/s]')
 
     original_ticks = ax1.get_yticks()
@@ -152,50 +143,67 @@ if __name__ == '__main__':
     ax1.set_yticks(new_ticks)
     labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
     ax1.set_yticklabels(labels)
-    ax1.tick_params(axis='y', which='major', width = 1.5, length = 5, color = 'k')
-    ax1.tick_params(axis='y', which='minor', width = 1, length = 3, color = 'k')
     ax1.set_yscale('log')
-    ax1.set_ylim(1e37, 8e42)
+    ax1.set_ylim(7e37, 9e42)
     ax1.grid()
     ax1.legend(fontsize = 18, loc = 'lower right')
 
-    tfb_ratioDiss, ratioDiss  = ratio_BigOverSmall(tfbdiss, LDiss, tfbdissL, LDissL)
+    ax2perc = ax2.twinx()
+    # tfb_ratioDiss, ratioDiss  = ratio_BigOverSmall(tfbdiss, LDiss, tfbdissL, LDissL)
     # ax2.plot(tfb_ratioDiss, ratioDiss, linewidth = 2, color = 'C1', ls = '--')
-    tfb_ratioL, ratioL  = ratio_BigOverSmall(tfb, Lum, tfbL, LumL)
+    tfb_ratioL, ratioL, rel_errL  = ratio_BigOverSmall(tfb, Lum, tfbL, LumL)
     ax2.plot(tfb_ratioL, ratioL, linewidth = 2, color = 'yellowgreen')
-    ax2.plot(tfb_ratioL, ratioL, linewidth = 2, color = 'C1', linestyle = (0, (5, 10)), label = 'Low,Fid')
-    tfb_ratioDissH, ratioDissH  = ratio_BigOverSmall(tfbdissH, LDissH, tfbdiss, LDiss)
+    ax2perc.plot(tfb_ratioL, rel_errL, linewidth = 2, color = 'C1', linestyle = (0, (5, 10)), label = 'Low,Fid')
+    # tfb_ratioDissH, ratioDissH  = ratio_BigOverSmall(tfbdissH, LDissH, tfbdiss, LDiss)
     # ax2.plot(tfb_ratioDissH, ratioDissH, linewidth = 2, color = 'darkviolet', ls = '--')
-    tfb_ratioH, ratioH  = ratio_BigOverSmall(tfb, Lum, tfbH, LumH)
+    tfb_ratioH, ratioH, rel_errH  = ratio_BigOverSmall(tfb, Lum, tfbH, LumH)
     ax2.plot(tfb_ratioH, ratioH, linewidth = 2, color = 'yellowgreen')
     ax2.plot(tfb_ratioH, ratioH, linewidth = 2, color = 'darkviolet', linestyle = (0, (5, 10)), label = 'Fid,High')
-    ax2.set_ylim(.8, 15)
-    ax2.set_yscale('log')
-    ax2.tick_params(axis='y', which='major', width = 1.5, length = 5, color = 'k')
-    ax2.tick_params(axis='y', which='minor', width = 1, length = 3, color = 'k')
-    ax2.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 20)
-    ax2.set_ylabel(r'max(L$_1$, L$_2$) / min(L$_1$, L$_2$)', fontsize = 20)#r'$\mathcal{R}$ Luminosity')#, fontsize = 20)
+    ax2.set_ylim(.8, 3)
+    # ax2.set_yscale('log')
+    
+    # Set up the primary y-axis (ax2) ticks and labels
+    ax2.set_xlabel(r'$t [t_{\rm fb}]$')
+    ax2.set_ylabel(r'$\mathcal{R}$', labelpad = 25) # Luminosity')
     ax2.grid()
-    ax2.tick_params(axis='y', which='minor', length = 3)
-    ax2.tick_params(axis='y', which='major', length = 5)
+    
+    # Set up the secondary y-axis (ax2perc) to match the primary y-axis
+    yticks = ax2.get_yticks()
+    rel_err_ticks = (yticks - 1) * 100
+    ax2perc.set_yticks(rel_err_ticks)
+    ax2perc.set_yticklabels([f'{x:.0f}\%' for x in rel_err_ticks])
+    ax2perc.set_ylim((ax2.get_ylim()[0] - 1) * 100, (ax2.get_ylim()[1] - 1) * 100)
+    ax2perc.set_ylabel('Relative error')
 
-    # Get the existing ticks on the x-axis
     original_ticks = ax2.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
     new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    for ax in [ax1, ax2]:
+    for ax in [ax1, ax2, ax2perc]:
         ax.set_xticks(new_ticks)
-        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-        ax.set_xticklabels(labels)
-        ax.tick_params(axis='x', which='major', width=0.7, length=7)
-        ax.tick_params(axis='x', which='minor', width=0.7, length=5)
-        ax.set_xlim(0, np.max(tfbL))
+        # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+        # ax.set_xticklabels(labels)
+        ax.tick_params(axis='both', which='major', width=1.2, length=7)
+        ax.tick_params(axis='both', which='minor', width=0.9, length=5)
+        ax.set_xlim(0, np.max(tfbH))
+        if ax != ax1:
+            original_ticks_y = ax.get_yticks()
+            midpoints_y = (original_ticks_y[:-1] + original_ticks_y[1:]) / 2
+            new_ticks_y = np.sort(np.concatenate((original_ticks_y, midpoints_y)))
+            ax.set_yticks(new_ticks_y)
+            if ax == ax2perc:
+                ax.set_yticklabels([f'{x:.0f}\%' if x in original_ticks_y else "" for x in new_ticks_y])
+            else:
+                labels = [str(np.round(tick,2)) if tick in original_ticks_y else "" for tick in new_ticks_y]       
+                ax.set_yticklabels(labels)
+    # repeat the limits or it gets crazy in the grid
+    ax2.set_ylim(.8, 3)        
+    ax2perc.set_ylim((ax2.get_ylim()[0] - 1) * 100, (ax2.get_ylim()[1] - 1) * 100)
     ax1.legend(fontsize = 18, loc = 'lower right')
     plt.tight_layout()
     plt.savefig(f'{abspath}/Figs/paper/fld.pdf', bbox_inches='tight')
 
     # Photosphere
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
     ax1.plot(tfbL, median_phL/Rt, c = 'C1', label = 'Low')
     ax1.plot(tfbL, percentile84L/Rt, c = 'C1', alpha = 0.4, linestyle = '--')
     ax1.plot(tfbL, percentile16L/Rt, c = 'C1', alpha = 0.4, linestyle = '--')
@@ -216,32 +224,49 @@ if __name__ == '__main__':
     ax1.set_yscale('log')
     ax1.set_ylabel(r'median $R_{\rm ph} [R_{\rm t}]$')
     ax1.legend(fontsize = 18)
-    ax1.tick_params(axis='y', which='major', width = 1.5, length = 5, color = 'k')
-    ax1.tick_params(axis='y', which='minor', width = 1, length = 3, color = 'k')
 
-    tfb_ratioL_Rph, ratio_medianRphL = ratio_BigOverSmall(tfb, median_ph, tfbL, median_phL)
+    ax2perc = ax2.twinx()
+    tfb_ratioL_Rph, ratio_medianRphL, rel_errphL = ratio_BigOverSmall(tfb, median_ph, tfbL, median_phL)
     ax2.plot(tfb_ratioL_Rph, ratio_medianRphL, linewidth = 2, color = 'yellowgreen')
     ax2.plot(tfb_ratioL_Rph, ratio_medianRphL, linestyle = (0, (5, 10)), linewidth = 2, color = 'C1')
-    tfb_ratioH_Rph, ratio_medianRphH = ratio_BigOverSmall(tfb, median_ph, tfbH, median_phH)
+    tfb_ratioH_Rph, ratio_medianRphH, rel_errphH = ratio_BigOverSmall(tfb, median_ph, tfbH, median_phH)
     ax2.plot(tfb_ratioH_Rph, ratio_medianRphH, linewidth = 2, color = 'yellowgreen')
     ax2.plot(tfb_ratioH_Rph, ratio_medianRphH, linestyle = (0, (5, 10)), linewidth = 2, color = 'darkviolet')
     ax2.set_xlabel(r't [$t_{\rm fb}$]') 
-    ax2.set_ylabel(r'max/min($R_{\rm ph}$$_1$, $R_{\rm ph}$$_2$)', fontsize = 20)
-    # original_ticksy = ax2.get_yticks()
-    # midpointsy = (original_ticksy[:-1] + original_ticksy[1:]) / 2
-    # new_ticksy = np.sort(np.concatenate((original_ticksy, midpointsy)))
-    # ax2.set_yticks(new_ticksy)
-    ax2.set_ylim(.8, 3.5)
+    ax2.set_ylabel(r'$\mathcal{R}$', fontsize = 20)
+    ax2perc.set_ylabel('Relative error', fontsize = 20)
+    ax2.set_ylim(.8, 2.5)
+
+    yticks = ax2.get_yticks()
+    rel_err_ticks = (yticks - 1) * 100
+    ax2perc.set_yticks(rel_err_ticks)
+    ax2perc.set_yticklabels([f'{x:.0f}\%' for x in rel_err_ticks])
+    ax2perc.set_ylim((ax2.get_ylim()[0] - 1) * 100, (ax2.get_ylim()[1] - 1) * 100)
+    ax2perc.set_ylabel('Relative error')
 
     original_ticks = ax2.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
     new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    for ax in [ax1, ax2]:
+    for ax in [ax1, ax2, ax2perc]:
         ax.set_xticks(new_ticks)
-        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-        ax.set_xticklabels(labels)
+        # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+        # ax.set_xticklabels(labels)
         ax.grid()
-        ax.set_xlim(0.01, np.max(tfbL))
+        ax.set_xlim(0.01, np.max(tfbH))
+        ax.tick_params(axis='both', which='major', width=1.2, length=7)
+        ax.tick_params(axis='both', which='minor', width=0.9, length=5)
+        if ax != ax1:
+            original_ticks_y = ax.get_yticks()
+            midpoints_y = (original_ticks_y[:-1] + original_ticks_y[1:]) / 2
+            new_ticks_y = np.sort(np.concatenate((original_ticks_y, midpoints_y)))
+            ax.set_yticks(new_ticks_y)
+            if ax == ax2perc:
+                ax.set_yticklabels([f'{x:.0f}\%' if x in original_ticks_y else "" for x in new_ticks_y])
+            else:
+                labels = [str(np.round(tick,2)) if tick in original_ticks_y else "" for tick in new_ticks_y]       
+                ax.set_yticklabels(labels)
+    ax2.set_ylim(.8, 2.5)
+    ax2perc.set_ylim((ax2.get_ylim()[0] - 1) * 100, (ax2.get_ylim()[1] - 1) * 100)
     ax2.set_xlabel(r't [$t_{fb}$]')
     plt.tight_layout()
     plt.savefig(f'{abspath}/Figs/paper/Rph_ratio.pdf', bbox_inches='tight')
@@ -342,23 +367,23 @@ if __name__ == '__main__':
     col_orb_enH = col_orb_en_posH + col_orb_en_negH
 
     # relative differences 
-    tfb_ratio_orbL, ratio_orbL = ratio_BigOverSmall(tfb_oe, col_orb_en, tfb_oeL, col_orb_enL)
-    _, ratio_ieL = ratio_BigOverSmall(tfb_oe, col_ie, tfb_oeL, col_ieL)
-    _, ratio_radL = ratio_BigOverSmall(tfb_oe, col_rad, tfb_oeL, col_radL)
+    tfb_ratio_orbL, ratio_orbL, rel_err_orbL = ratio_BigOverSmall(tfb_oe, col_orb_en, tfb_oeL, col_orb_enL)
+    _, ratio_ieL, rel_err_ieL = ratio_BigOverSmall(tfb_oe, col_ie, tfb_oeL, col_ieL)
+    _, ratio_radL, rel_err_radL = ratio_BigOverSmall(tfb_oe, col_rad, tfb_oeL, col_radL)
 
     # relative difference 
-    tfb_ratio_orbH, ratio_orbH = ratio_BigOverSmall(tfb_oe, col_orb_en, tfb_oeH, col_orb_enH)
-    _, ratio_ieH = ratio_BigOverSmall(tfb_oe, col_ie, tfb_oeH, col_ieH)
-    _, ratio_radH = ratio_BigOverSmall(tfb_oe, col_rad, tfb_oeH, col_radH)
+    tfb_ratio_orbH, ratio_orbH, rel_err_orbH = ratio_BigOverSmall(tfb_oe, col_orb_en, tfb_oeH, col_orb_enH)
+    _, ratio_ieH, rel_err_ieH = ratio_BigOverSmall(tfb_oe, col_ie, tfb_oeH, col_ieH)
+    _, ratio_radH, rel_err_radH = ratio_BigOverSmall(tfb_oe, col_rad, tfb_oeH, col_radH)
 
     # Plot OE and IE
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(14, 7), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(18, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
     ax1.plot(tfb_oeL, col_orb_enL*prel.en_converter * 1e-47, label = r'Low', c = 'darkorange')
     ax1.plot(tfb_oe, col_orb_en*prel.en_converter * 1e-47, label = r'Fid', c = 'yellowgreen')
     ax1.plot(tfb_oeH, col_orb_enH*prel.en_converter * 1e-47, label = r'High', c = 'darkviolet')
     ax1.set_ylabel(r'Orbital energy $[10^{47}$ erg]', fontsize = 23) 
     ax1.legend(fontsize = 15)
-    ax1.set_ylim(-10, -7)
+    ax1.set_ylim(-11, -7)
 
     ax2.plot(tfb_oeL, col_ieL*prel.en_converter * 1e-46, label = r'Low', c = 'darkorange')
     ax2.plot(tfb_oe, col_ie*prel.en_converter * 1e-46, label = r'Fid', c = 'yellowgreen')
@@ -371,7 +396,13 @@ if __name__ == '__main__':
     ax3.plot(tfb_ratio_orbH, ratio_orbH,linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
     ax3.set_ylabel(r'$\mathcal{R}$') # orbital energy', fontsize = 22)
     # ax3.set_ylabel(r'$\mathcal{R}$ orbital energy', fontsize = 22)
-    ax3.set_ylim(.95, 1.1)
+    original_ticksy = ax3.get_yticks()
+    midpointsy = (original_ticksy[:-1] + original_ticksy[1:]) / 2
+    new_ticksy = np.sort(np.concatenate((original_ticksy, midpointsy)))
+    ax3.set_yticks(new_ticksy)
+    labelsy = [str(np.round(tick,2)) if tick in original_ticksy else "" for tick in new_ticksy]
+    ax3.set_yticklabels(labelsy)
+    ax3.set_ylim(.99, 1.1)
 
     ax4.plot(tfb_ratio_orbL, ratio_ieL, label = r'Low and Fid', linewidth = 2, c = 'darkorange')
     ax4.plot(tfb_ratio_orbL, ratio_ieL, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
@@ -383,21 +414,21 @@ if __name__ == '__main__':
     midpointsy = (original_ticksy[:-1] + original_ticksy[1:]) / 2
     new_ticksy = np.sort(np.concatenate((original_ticksy, midpointsy)))
     ax4.set_yticks(new_ticksy)
-    ax4.set_ylim(.95, 1.3)
+    labelsy = [str(np.round(tick,2)) if tick in original_ticksy else "" for tick in new_ticksy]
+    ax4.set_yticklabels(labelsy)
+    ax4.set_ylim(.99, 1.3)
 
     original_ticks = ax1.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
     new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
     for ax in [ax1, ax2, ax3, ax4]:
         ax.set_xticks(new_ticks)
-        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-        ax.set_xticklabels(labels)
+        # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+        # ax.set_xticklabels(labels)
         if ax in [ax3, ax4]:
-            ax.set_xlabel(r'$t [t_{\rm fb}]$', fontsize = 18)
-        # else:
-        #     ax.set_yscale('log')
+            ax.set_xlabel(r'$t [t_{\rm fb}]$')
         ax.grid()
-        ax.set_xlim(.05, 1.7) 
+        ax.set_xlim(.05, 1.8) 
     plt.tight_layout()
     plt.savefig(f'{abspath}/Figs/paper/OeIe.pdf', bbox_inches='tight')
 
@@ -479,31 +510,33 @@ if __name__ == '__main__':
     ax2.plot(tfb_oeH, col_orb_en_posH*prel.en_converter*1e-49, label = r'High', c = 'darkviolet')
     ax2.set_title(r'Unbound material', fontsize = 27)
 
-    tfb_ratio_orbnegL, ratio_orbnegL = ratio_BigOverSmall(tfb_oe, col_orb_en_neg, tfb_oeL, col_orb_en_negL)
-    tfb_ratio_orbnegH, ratio_orbnegH = ratio_BigOverSmall(tfb_oe, col_orb_en_neg, tfb_oeH, col_orb_en_negH)
-    _, ratio_orbposL = ratio_BigOverSmall(tfb_oe, col_orb_en_pos, tfb_oeL, col_orb_en_posL)
-    _, ratio_orbposH = ratio_BigOverSmall(tfb_oe, col_orb_en_pos, tfb_oeH, col_orb_en_posH)
+    tfb_ratio_orbnegL, ratio_orbnegL, rel_err_orbnegL = ratio_BigOverSmall(tfb_oe, col_orb_en_neg, tfb_oeL, col_orb_en_negL)
+    tfb_ratio_orbnegH, ratio_orbnegH, rel_err_orbnegH = ratio_BigOverSmall(tfb_oe, col_orb_en_neg, tfb_oeH, col_orb_en_negH)
+    _, ratio_orbposL, rel_err_orbposL = ratio_BigOverSmall(tfb_oe, col_orb_en_pos, tfb_oeL, col_orb_en_posL)
+    _, ratio_orbposH, rel_err_orbposH = ratio_BigOverSmall(tfb_oe, col_orb_en_pos, tfb_oeH, col_orb_en_posH)
 
     ax4.plot(tfb_ratio_orbnegL, ratio_orbnegL, linewidth = 2.5, c = 'darkorange',  label = r'Low and Fid',)
     ax4.plot(tfb_ratio_orbnegL, ratio_orbnegL, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
     ax4.plot(tfb_ratio_orbnegH, ratio_orbnegH,  label = r'Fid and High', linewidth = 2, c = 'darkviolet')
     ax4.plot(tfb_ratio_orbnegH, ratio_orbnegH, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
     ax4.set_ylabel(r'$\mathcal{R}$', fontsize = 26)
-    # ax4.set_ylim(.99, 1.05)
+    ax4.set_ylim(1, 1.01)
 
     ax5.plot(tfb_ratio_orbnegL, ratio_orbposL, label = r'Low and Fid', linewidth = 2, c = 'darkorange')
     ax5.plot(tfb_ratio_orbnegL, ratio_orbposL, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
     ax5.plot(tfb_ratio_orbnegH, ratio_orbposH, label = r'Fid and High', linewidth = 2, c = 'darkviolet')
     ax5.plot(tfb_ratio_orbnegH, ratio_orbposH, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
-    # ax5.set_ylim(.99, 1.05)
+    ax5.set_ylim(1, 1.01)
     
     original_ticks = ax1.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
     new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
     for ax in [ax1, ax2, ax4, ax5]:
         ax.set_xticks(new_ticks)
+        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+        ax.set_xticklabels(labels)
         ax.grid()
-        ax.set_xlim(.05, 1.7) 
+        ax.set_xlim(.05, 1.8) 
         if ax in [ax4, ax5]:
             ax.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 18)
     plt.tight_layout()

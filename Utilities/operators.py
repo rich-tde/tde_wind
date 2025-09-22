@@ -282,8 +282,9 @@ def find_ratio(L1, L2):
     if type(L1) == list or type(L1) == np.ndarray: 
         L1 = np.array(L1)
         L2 = np.array(L2)
-        ratio = np.zeros(len(L1))
-        for i in range(len(L1)):
+        n = min(len(L1), len(L2))
+        ratio = np.zeros(n)
+        for i in range(n):
             ratio[i] = max(np.abs(L1[i]), np.abs(L2[i]))/min(np.abs(L1[i]), np.abs(L2[i]))
     else:
         ratio = max(np.abs(L1), np.abs(L2))/min(np.abs(L1), np.abs(L2))
