@@ -246,7 +246,7 @@ for snap in snaps:
     x_tr, y_tr, z_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr']
     r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
     r_tr_median = np.zeros(len(indices_sorted))
-    for i in range(len(indices_sorted)): 
+    for i in range(len(indices_sorted)):  
         nonzero = r_tr[indices_sorted[i]] != 0
         if nonzero.any():
             print(f'{label_obs[i]}: no Rtr in {np.sum(~nonzero)/len(r_tr[indices_sorted[i]])*100:.2f}%')
