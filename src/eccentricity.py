@@ -18,7 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Utilities.prelude
 import matplotlib.colors as colors
-from Utilities.operators import make_tree, single_branch
+from Utilities.operators import make_tree, single_branch, find_ratio
 import Utilities.sections as sec
 import src.orbits as orb
 from Utilities.selectors_for_snap import select_snap
@@ -34,7 +34,7 @@ mstar = .5
 Rstar = .47
 n = 1.5 
 compton = 'Compton'
-check = 'NewAMR' # '' or 'LowRes' or 'HiRes' 
+check = 'HiResNewAMR' # '' or 'LowRes' or 'HiRes' 
 save = False
 which_cut = 'high' #if 'high' cut density at 1e-12, if '' cut density at 1e-19
 
@@ -186,17 +186,17 @@ else:
         medianL = np.zeros(len(ecc))
         for i, time in enumerate(tfb):
             idx = np.argmin(np.abs(tfbL - time))
-            rel_diff_time_i = ecc[i]/eccL[idx] #find_ratio(eccL[i], ecc[idx]) 
+            rel_diff_time_i = find_ratio(eccL[idx], ecc[i]) 
             rel_diff_time_i[eccL[idx] == 0] = 0 
             rel_diffL.append(rel_diff_time_i)
             medianL[i] = np.median(rel_diff_time_i)
 
         rel_diffH = []
-        medianH = np.zeros(len(eccH))
-        for i, time in enumerate(tfbH):
-            idx = np.argmin(np.abs(tfb - time))
-            rel_diff_time_i =  eccH[i]/ecc[idx] #find_ratio(ecc[idx], eccH[i])
-            rel_diff_time_i[ecc[idx] == 0] = 0
+        medianH = np.zeros(len(ecc))
+        for i, time in enumerate(tfb):
+            idx = np.argmin(np.abs(tfbH - time))
+            rel_diff_time_i =  find_ratio(eccH[idx], ecc[i])
+            rel_diff_time_i[ecc[i] == 0] = 0
             rel_diffH.append(rel_diff_time_i)
             medianH[i] =  np.median(rel_diff_time_i)
 
@@ -214,7 +214,7 @@ else:
         ax1.set_xlabel(r'$R [R_{\rm a}]$')
         ax1.set_ylabel(r'$t [t_{\rm fb}]$')
 
-        img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'Greens', vmin = vmin, vmax = vmax, rasterized = True)
+        img = ax2.pcolormesh(radii/apo, tfb, rel_diffH, cmap = 'Greens', vmin = vmin, vmax = vmax, rasterized = True)
         ax2.set_xscale('log')
         ax2.text(0.35, 0.88*np.max(tfb), r'$e_{\rm High}/e_{\rm Fid}$', fontsize = 30, color = 'k')
         ax2.set_xlabel(r'$R [R_{\rm a}]$')
@@ -241,10 +241,10 @@ else:
         plt.tight_layout
 
         fig, ax3 = plt.subplots(1,1,figsize=(9, 5))
-        ax3.plot(tfb, np.abs(1-medianL), linewidth = 4, c = 'darkorange', label = 'Fid/Low')
-        ax3.plot(tfb, np.abs(1-medianL), c = 'yellowgreen', linewidth = 4, linestyle = (0, (5, 10)))
-        ax3.plot(tfbH, np.abs(1-medianH), c = 'darkviolet', linewidth = 4, label = 'High/Fid')
-        ax3.plot(tfbH, np.abs(1-medianH), c = 'yellowgreen', linewidth = 4,linestyle = (0, (5, 10)),)
+        ax3.plot(tfb, np.abs(1-medianL), c = 'darkorange', label = 'Fid/Low')
+        ax3.plot(tfb, np.abs(1-medianL), c = 'yellowgreen', linestyle = (0, (5, 10)))
+        ax3.plot(tfb, np.abs(1-medianH), c = 'darkviolet', label = 'High/Fid')
+        ax3.plot(tfb, np.abs(1-medianH), c = 'yellowgreen',linestyle = (0, (5, 10)),)
         # ax3.text(0.4, 1, 'Fid vs High', fontsize = 27, color = 'k')
         original_ticks = ax3.get_xticks()
         mid_ticks = (original_ticks[1:] + original_ticks[:-1]) / 2
@@ -253,7 +253,7 @@ else:
         labels = [f'{tick:.1f}' if tick in original_ticks else '' for tick in all_ticks]
         ax3.set_xticks(all_ticks)
         ax3.set_xticklabels(labels, fontsize=25)
-        ax3.set_xlim(0.08, 1.1)
+        ax3.set_xlim(0.08, 1.8)
         ax3.set_ylim(-0.01, 0.08)
         ax3.set_ylabel(r'$|$1 - ratio eccentricity$|$')
         ax3.grid()
