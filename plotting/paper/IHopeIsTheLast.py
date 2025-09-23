@@ -111,8 +111,7 @@ if __name__ == '__main__':
     snapL, LumL, tfbL = split_data_red('LowResNewAMR')
     snap, Lum, tfb = split_data_red('NewAMR')
     snapH, LumH, tfbH = split_data_red('HiResNewAMR')
-    print(tfb[np.argmin(np.abs(tfb-1.5280))])
-    print(LumH[np.argmax(LumH)])
+
     # Rph 
     mean_phL, median_phL, percentile16L, percentile84L = statistics_photo(snapL, 'LowResNewAMR')
     mean_ph, median_ph, percentile16, percentile84 = statistics_photo(snap, 'NewAMR')
