@@ -246,14 +246,14 @@ for snap in snaps:
     x_tr, y_tr, z_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr']
     r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
     r_tr_median = np.zeros(len(indices_sorted))
-    for i in range(len(indices_sorted)):
+    for i in range(len(indices_sorted)): 
         nonzero = r_tr[indices_sorted[i]] != 0
-        if len(nonzero) != 0:
+        if nonzero.any():
             print(f'{label_obs[i]}: no Rtr in {np.sum(~nonzero)/len(r_tr[indices_sorted[i]])*100:.2f}%')
             r_tr_median[i] = np.median(r_tr[indices_sorted[i]][nonzero])
         rph_median[i] = np.median(rph[indices_sorted[i]])
         Lum_ph_mean[i] = np.mean(Lum_ph[indices_sorted[i]]) # in this case we do the mean since it's what we do for the FLD
-
+ 
     if plot: 
         fig, (ax1, ax2) = plt.subplots(1, 2)
         for i, idx_list in enumerate(indices_sorted):
