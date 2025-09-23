@@ -217,12 +217,13 @@ else:
     snaps = [275]
 
 for snap in snaps:
+    print(snap, flush=True)
     if alice:
         path = f'{pre}/snap_{snap}'
     else:
         path = f'{pre}/{snap}'
     # Load data
-    tfb = np.loadtxt(f'{abspath}/TDE/{folder}/{snap}/tfb_{snap}.txt') 
+    tfb = np.loadtxt(f'{path}/tfb_{snap}.txt') 
     _, tfb_fall, mfall, \
     mwind_pos_Rt, mwind_pos_half_amb, mwind_pos_amb, mwind_pos_50Rt, \
     Vwind_pos_Rt, Vwind_pos_half_amb, Vwind_pos_amb, Vwind_pos_50Rt, \
