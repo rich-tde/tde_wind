@@ -110,7 +110,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         V = np.sqrt(VX**2 + VY**2 + VZ**2)
         orb_en = orb.orbital_energy(Rsph, V, Mass, params, prel.G) 
         bern = orb_en/Mass + IE_spec + Press/Den
-        v_rad, _, _ = to_spherical_components(VX, VY, VZ, lat, long)
+        v_rad, _, _ = to_spherical_components(VX, VY, VZ, X, Y, Z)
         # Positive velocity (and unbound)
         cond = np.logical_and(v_rad >= 0, bern > 0)
         X_pos, Y_pos, Z_pos, Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
@@ -155,7 +155,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
 if plot:
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     snap, tfb, mfall, mwind_pos, Vwind_pos, mwind_neg, Vwind_neg = \
-        np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}{where_to_measure}.csv', 
+        np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}Rtr.csv', 
                    delimiter = ',', 
                    skiprows=1, 
                    unpack=True)
