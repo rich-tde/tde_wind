@@ -93,15 +93,15 @@ if alice:
             file.close()
         
         # compute dMdE
-        specific_OE = orb_en / mass
-        specOE_norm = specific_OE/norm 
-        mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
-        dm_dE = mass_binned / (np.diff(bins_edges)*norm)
+        # specific_OE = orb_en / mass
+        # specOE_norm = specific_OE/norm 
+        # mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
+        # dm_dE = mass_binned / (np.diff(bins_edges)*norm)
 
-        with open(f'{abspath}/data/{folder}/wind/unbounddMdE_{check}.txt','a') as file:
-            file.write(f'# dM/dE [code units] snap {snap} \n')
-            file.write((' '.join(map(str, dm_dE)) + '\n'))
-            file.close()
+        # with open(f'{abspath}/data/{folder}/wind/unbounddMdE_{check}.txt','a') as file:
+        #     file.write(f'# dM/dE [code units] snap {snap} \n')
+        #     file.write((' '.join(map(str, dm_dE)) + '\n'))
+        #     file.close()
 
 #%%
 if plot:
@@ -132,23 +132,33 @@ if plot:
     print('Relative error Fid-High', np.max((M_bernH)/(M_bern[:len(M_bernH)])))
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7))
-    ax1.plot(tfbL, (M_bernL-M_OEL[0])/mstar, c = 'C1', label = r'Low')
-    ax1.plot(tfb, (M_bern-M_OE[0])/mstar,  c = 'yellowgreen', label = r'Fid')
-    ax1.plot(tfbH, (M_bernH-M_OEH[0])/mstar, c = 'darkviolet', label = r'High')
-    ax1.set_ylabel(r'Mass [$M_\star$] after disruption')
-    ax1.legend(fontsize = 15)
+    # ax1.plot(tfbL, (M_bernL-M_OEL[0])/mstar, c = 'C1', label = r'Low')
+    # ax1.plot(tfb, (M_bern-M_OE[0])/mstar,  c = 'yellowgreen', label = r'Fid')
+    # ax1.plot(tfbH, (M_bernH-M_OEH[0])/mstar, c = 'darkviolet', label = r'High')
+    # ax1.set_ylabel(r'Mass [$M_\star$] after disruption')
+    ax1.plot(tfbL, M_bernL/mstar, c = 'C1', label = r'Low')
+    ax1.plot(tfb, M_bern/mstar,  c = 'yellowgreen', label = r'Fid')
+    ax1.plot(tfbH, M_bernH/mstar, c = 'darkviolet', label = r'High')
+    ax1.set_ylabel(r'Unbound mass [$M_\star$]')
+    ax1.legend(fontsize = 15) 
     ax2.set_title(r'Material in all the simulation volume') 
+    ax1.set_title(r'All volume', fontsize = 16) 
     
     ax2.plot(tfbL, M_bernL_exclAmin/mstar, c = 'C1', label = r'Low')
     ax2.plot(tfb, M_bern_exclAmin/mstar,  c = 'yellowgreen', label = r'Fid')
     ax2.plot(tfbH, M_bernH_exclAmin/mstar, c = 'darkviolet', label = r'High')  
-    ax2.set_title(r'Material with $X>-a_{\rm min}$') 
+    ax2.set_title(r'Material with $X>-a_{\rm min}$', fontsize = 16) 
+    ax2.set_yscale('log')
+    original_xticks = ax1.get_xticks()
+    middle_ticks = (original_xticks[1:]+original_xticks[:-1])/2
+    ticks = np.concatenate((original_xticks, middle_ticks))
     for ax in [ax1, ax2]:
+        ax.set_xticks(ticks)
         ax.set_xlabel(r'$t [t_{\rm fb}]$')
         ax.grid()
         ax.tick_params(axis='both', which='major', width=1, length=7)
         ax.tick_params(axis='both', which='minor', width=.8, length=4)
-        ax.set_yscale('log')
+        ax.set_xlim(0,1.8)
     # plt.savefig(f'{abspath}/Figs/multiple/Mass_unbound.png', dpi = 300, bbox_inches='tight')
     plt.suptitle(r'Unbound material', fontsize = 16)
     plt.tight_layout()

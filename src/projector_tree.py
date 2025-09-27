@@ -150,7 +150,7 @@ if __name__ == '__main__':
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = 'NewAMR'
+    check = 'HiResNewAMR'
     compton = 'Compton'
     what_to_grid = 'Den'
     how_far = '' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
@@ -177,9 +177,9 @@ if __name__ == '__main__':
 
         snaps = np.array(snaps)
         if how_far == 'big':
-            idx_chosen = np.array([np.argmin(np.abs(snaps-97)),
-                                np.argmin(np.abs(snaps-238)),
-                                np.argmin(np.abs(snaps-318))])
+            idx_chosen = np.array([0,
+                                np.argmin(np.abs(tfb-1)),
+                                np.argmax(tfb)])
             snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
         
         with open(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}time_proj.txt', 'w') as f:

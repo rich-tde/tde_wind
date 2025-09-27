@@ -24,7 +24,7 @@ mstar = .5
 Rstar = .47
 n = 1.5 
 compton = 'Compton'
-check = 'NewAMR'
+check = 'HiResNewAMR'
 kind_of_plot = 'convergencebern' # 'ratioE' or 'convergenceOE' or 'convergencebern' or 'velocity_components' or 'time_evolution'
 
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
@@ -223,7 +223,7 @@ for i, snap in enumerate(snaps):
         plt.close() 
 
 if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergenceOE' or kind_of_plot == 'convergencebern': # only evolution of velocity/boundness in Fid and High res
-    fig, ax = plt.subplots(1, 1, figsize=(10,6))
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
     # img = plt.scatter(tfb, mean_vel * conversion_sol_kms * 1e-4, c = ratio_unbound_ph, s = 20, vmin = 0, vmax = 0.8, label = 'Fid')
     # cbar = plt.colorbar(img)
     # cbar.set_label('unbound/tot')
@@ -233,7 +233,6 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergenceOE' or kind_o
     # plt.ylabel(r'Mean velocity [$10^4$ km/s] ')
     # plt.ylim(-0.01, 2)
 
-    ax.plot(tfb, ratio_unbound_ph, c = 'yellowgreen', label = 'Fid') #c = mean_vel/v_esc, s = 20, vmin = 0.2, vmax = 1)
     # cbar = plt.colorbar(img)
     # cbar.set_label(r'mean velocity [v$_{\rm esc} (r_{\rm p})$]')
     ax.set_xlim(-0.09, 1.8)
@@ -269,31 +268,31 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergenceOE' or kind_o
             elif kind_of_plot == 'convergencebern':
                 ratio_unbound_phL[j] = len(bern_phL[np.logical_and(bern_phL>=0, r_phL!=0)]) / len(bern_phL)
 
-        dataH = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/HiResNewAMR_red.csv', delimiter=',', dtype=float)
-        snapsH, tfbH = dataH[:, 0], dataH[:, 1]
-        snapsH = np.array([int(snap) for snap in snapsH])
-        snapsH, tfbH = sort_list([snapsH, tfbH], snapsH)
-        mean_velH = np.zeros(len(snapsH))
-        percentile16H = np.zeros(len(snapsH))
-        percentile84H = np.zeros(len(snapsH))
-        ratio_unbound_phH = np.zeros(len(snapsH))
+        dataM = np.loadtxt(f'{abspath}/data/{commonfolder}NewAMR/NewAMR_red.csv', delimiter=',', dtype=float)
+        snapsM, tfbM = dataM[:, 0], dataM[:, 1]
+        snapsM = np.array([int(snap) for snap in snapsM])
+        snapsM, tfbM = sort_list([snapsM, tfbM], snapsM)
+        mean_velM = np.zeros(len(snapsM))
+        percentile16M = np.zeros(len(snapsM))
+        percentile84M = np.zeros(len(snapsM))
+        ratio_unbound_phM = np.zeros(len(snapsM))
 
-        for j, snap_sH in enumerate(snapsH):
-            x_phH, y_phH, z_phH, vol_phH, den_phH, Temp_phH, Rad_den_phH, Vx_phH, Vy_phH, Vz_phH, Press_phH, IE_den_phH, _, _, _, _ = \
-                np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/photo/HiResNewAMR_photo{snap_sH}.txt')
-            r_phH = np.sqrt(x_phH**2 + y_phH**2 + z_phH**2)
-            vel_phH = np.sqrt(Vx_phH**2 + Vy_phH**2 + Vz_phH**2)
-            mean_velH[j] = np.mean(vel_phH)
-            percentile16H[j] = np.percentile(vel_phH, 16)
-            percentile84H[j] = np.percentile(vel_phH, 84)
+        for j, snap_sM in enumerate(snapsM):
+            x_phM, y_phM, z_phM, vol_phM, den_phM, Temp_phM, Rad_den_phM, Vx_phM, Vy_phM, Vz_phM, Press_phM, IE_den_phM, _, _, _, _ = \
+                np.loadtxt(f'{abspath}/data/{commonfolder}NewAMR/photo/NewAMR_photo{snap_sM}.txt')
+            r_phM = np.sqrt(x_phM**2 + y_phM**2 + z_phM**2)
+            vel_phM = np.sqrt(Vx_phM**2 + Vy_phM**2 + Vz_phM**2)
+            mean_velM[j] = np.mean(vel_phM)
+            percentile16M[j] = np.percentile(vel_phM, 16)
+            percentile84M[j] = np.percentile(vel_phM, 84)
 
-            mass_phH = den_phH * vol_phH
-            oe_H = orb.orbital_energy(r_phH, vel_phH, mass_phH, params, prel.G)
-            bern_phH = orb.bern_coeff(r_phH, vel_phH, den_phH, mass_phH, Press_phH, IE_den_phH, Rad_den_phH, params)
+            mass_phM = den_phM * vol_phM
+            oe_M = orb.orbital_energy(r_phM, vel_phM, mass_phM, params, prel.G)
+            bern_phM = orb.bern_coeff(r_phM, vel_phM, den_phM, mass_phM, Press_phM, IE_den_phM, Rad_den_phM, params)
             if kind_of_plot == 'convergenceOE':
-                ratio_unbound_phH[j] = len(oe_H[np.logical_and(oe_H>=0, r_phH!=0)]) / len(oe_H)
+                ratio_unbound_phM[j] = len(oe_M[np.logical_and(oe_M>=0, r_phM!=0)]) / len(oe_M)
             elif kind_of_plot == 'convergencebern':
-                ratio_unbound_phH[j] = len(bern_phH[np.logical_and(bern_phH>=0, r_phH!=0)]) / len(bern_phH)
+                ratio_unbound_phM[j] = len(bern_phM[np.logical_and(bern_phM>=0, r_phM!=0)]) / len(bern_phM)
  
             # if snap_sH == 53: #53
             #     fig50, ax50 = plt.subplots()
@@ -312,16 +311,13 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergenceOE' or kind_o
         # plt.plot(tfbH, percentile16H * conversion_sol_kms * 1e-4, c = 'darkviolet', alpha = 0.1, linestyle = '--')
         # plt.plot(tfbH, percentile84H * conversion_sol_kms * 1e-4, c = 'darkviolet', alpha = 0.1, linestyle = '--')
         # plt.fill_between(tfbH, percentile16H * conversion_sol_kms * 1e-4, percentile84H * conversion_sol_kms * 1e-4, color = 'darkviolet', alpha = 0.1)
-        ax.plot(tfbH, ratio_unbound_phH, c = 'darkviolet', label = 'High') #c = mean_velH/v_esc, s = 20, vmin = 0.2, vmax = 1)
-        # plt.axvline(tfbH[np.argmin(np.abs(tfbH-0.5))], c = 'k', linestyle = '--')
-        ax.legend(fontsize = 16, loc = 'lower right')
-        fig.suptitle(f'Convergence with {for_title}', fontsize = 20)
-        fig.tight_layout()
-        fig.savefig(f'{abspath}/Figs/next_meeting/f_conv.png')
+        ax.plot(tfbM, ratio_unbound_phM, c = 'yellowgreen', label = 'Middle') #c = mean_velH/v_esc, s = 20, vmin = 0.2, vmax = 1)
         # plt.savefig(f'{abspath}/Figs/next_meeting/velPh_conv.png')
-    else:
-        fig.suptitle(f'Boundness with {for_title}', fontsize = 20)
+        ax.plot(tfb, ratio_unbound_ph, c = 'darkviolet', label = 'High') #c = mean_vel/v_esc, s = 20, vmin = 0.2, vmax = 1)
+        # fig.suptitle(f'Convergence with {for_title}', fontsize = 20)
+        ax.legend(fontsize = 16, loc = 'lower right')
+        ax.set_xlim(0, 1.8)
         fig.tight_layout()
-        fig.savefig(f'{abspath}/Figs/next_meeting/f{check}.png')
+        fig.savefig(f'{abspath}/Figs/paper/f_conv.pdf')
 
 # %%

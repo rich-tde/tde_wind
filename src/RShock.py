@@ -102,11 +102,11 @@ for j, check in enumerate(checks):
     # bins_cgs = bins * (prel.en_converter/prel.Msol_cgs) #  and convert to CGS (they are bins in SPECIFIC orbital energy)
     dMdE_distr = np.loadtxt(f'{abspath}data/{folder}/wind/dMdE_{check}.txt')[0] # distribution just after the disruption
     bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
-    dataLum = np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}/{check}_red.csv', delimiter=',', dtype=float)
+    dataLum = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
     snapsLum, tfbLum, Lum = dataLum[:, 0], dataLum[:, 1], dataLum[:, 2] 
     tfbLum, Lum, snapsLum = sort_list([tfbLum, Lum, snapsLum], snapsLum) # becuase Lum data are not ordered
-    dataDiss = np.loadtxt(f'{abspath}data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float)
-    timeRDiss, RDiss = dataDiss[:,1], dataDiss[:,2]
+    dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
+    timeRDiss, RDiss = dataDiss[:,1], dataDiss[:,2] 
     # if check == 'LowRes':
     #     timeRDiss = np.concatenate([timeRDiss[:127], timeRDiss[129:]])
     #     RDiss = np.concatenate([RDiss[:127], RDiss[129:]])
@@ -119,11 +119,11 @@ for j, check in enumerate(checks):
     R_sh = np.zeros(len(tfb_cgs))
     eta_sh_diss = np.zeros(len(tfb_cgs))
     R_shDiss = np.zeros(len(tfb_cgs))
-    if check == 'NewAMR':
+    if check == 'HiResNewAMR':
         R_ph = np.zeros(len(tfb_cgs))
         R_tr = np.zeros(len(tfb_cgs))
 
-    # compute Rshock and eta_shock in the simualtion time range
+    # compute Rshock and eta_shock in the simulation time range
     for i, t in enumerate(tfb_cgs):
         # convert to code units
         tsol = t / prel.tsol_cgs
@@ -143,10 +143,10 @@ for j, check in enumerate(checks):
         eta_sh[i] = efficiency_shock(Lum_t, mdot_cgs, prel.c_cgs) # [CGS]
         R_sh[i] = R_shock(Mbh_cgs, eta_sh[i], prel.G_cgs, prel.c_cgs) # [CGS]
 
-        if check == 'NewAMR': # compute the other special radii
+        if check == 'HiResNewAMR': # compute the other special radii
             snapR = int(snaps[i])
             photo = \
-                np.loadtxt(f'{abspath}/data/{folder}/photo/NewAMR_photo{snapR}.txt')
+                np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snapR}.txt')
             xph, yph, zph = photo[0], photo[1], photo[2]
             r_ph_all = np.sqrt(xph**2 + yph**2 + zph**2)
             R_ph[i] = np.median(r_ph_all)
@@ -156,8 +156,7 @@ for j, check in enumerate(checks):
             x_tr, y_tr, z_tr = data_tr['x_tr'], data_tr['y_tr'], data_tr['z_tr']
 
             r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-            R_tr[i] = np.median(r_tr_all)
-            
+            R_tr[i] = np.median(r_tr_all[r_tr_all!=0])
  
     nan = np.isnan(R_sh)
     R_sh = R_sh[~nan]
@@ -167,25 +166,17 @@ for j, check in enumerate(checks):
     eta_shL_all.append(eta_sh)    
     R_sh_all.append(R_sh/(prel.Rsol_cgs))
 
-Rlim_min = 1e11/(apo*prel.Rsol_cgs)
-Rlim_max = 1e16/(apo*prel.Rsol_cgs) 
+Rlim_min = 7e11/(Rp*prel.Rsol_cgs)
+Rlim_max = 1e16/(Rp*prel.Rsol_cgs) 
 #
 fig, ax1 = plt.subplots(1, 1, figsize=(10, 6))
 for i, check in enumerate(checks):
-    if i == 2: # just for the label
-        ax1.plot(tfb_all[i], R_sh_all[i]/apo, color = colorslegend[i], label = r'$R_{\rm sh}$')
-        ax1.plot(timeRDiss_all[i], RDiss_all[i]/apo, linestyle = '--', color = colorslegend[i], label = r'$R_{\rm diss}$')
-    else:
-        ax1.plot(tfb_all[i], R_sh_all[i]/apo, color = colorslegend[i])
-        ax1.plot(timeRDiss_all[i], RDiss_all[i]/apo, linestyle = '--', color = colorslegend[i])
+    ax1.plot(tfb_all[i], R_sh_all[i]/Rp, color = colorslegend[i], label = r'$R_{\rm sh}$' if i==2 else None)
+    ax1.plot(timeRDiss_all[i], RDiss_all[i]/Rp, linestyle = '--', color = colorslegend[i], label = r'$R_{\rm diss}$' if i==2 else None)
 
-ax1.axhline(y=Rp/apo, color = 'k', linestyle = 'dotted')
-ax1.text(1.85, .5* Rp/apo, r'$R_{\rm p}$', fontsize = 20, color = 'k')
-ax1.axhline(y=amin/apo, color = 'k', linestyle = '--')
-ax1.text(1.85, .5* amin/apo, r'$a_{\rm mb}$', fontsize = 20, color = 'k')
-# ax1.axhline(y=apo/apo, color = 'r', linestyle = 'dotted')
-# ax0.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 18)
-ax1.set_ylabel(r'$R [R_{\rm a}$]')#, fontsize = 18)
+ax1.axhline(y=amin/Rp, color = 'k', linestyle = 'dotted')
+ax1.text(1.85, .5* amin/Rp, r'$a_{\rm mb}$', fontsize = 20, color = 'k')
+ax1.set_ylabel(r'$R [R_{\rm p}$]')#, fontsize = 18)
 ax1.set_ylim(Rlim_min, Rlim_max)
 # Set primary y-axis ticks
 R_ticks = np.logspace(np.log10(Rlim_min), np.log10(Rlim_max), num=5)
@@ -193,9 +184,9 @@ ax1.set_yticks(R_ticks)
 ax1.set_yticklabels([f"$10^{{{int(np.log10(tick))}}}$" for tick in R_ticks])
 
 ax2 = ax1.twinx()
-eta_ticks = eta_from_R(Mbh_cgs, R_ticks[::-1]*apo*prel.Rsol_cgs, prel.G_cgs, prel.c_cgs)
-etalim_min = eta_from_R(Mbh_cgs, Rlim_max*apo*prel.Rsol_cgs, prel.G_cgs, prel.c_cgs)
-etalim_max = eta_from_R(Mbh_cgs, Rlim_min*apo*prel.Rsol_cgs, prel.G_cgs, prel.c_cgs)
+eta_ticks = eta_from_R(Mbh_cgs, R_ticks[::-1]*Rp*prel.Rsol_cgs, prel.G_cgs, prel.c_cgs)
+etalim_min = eta_from_R(Mbh_cgs, Rlim_max*Rp*prel.Rsol_cgs, prel.G_cgs, prel.c_cgs)
+etalim_max = eta_from_R(Mbh_cgs, Rlim_min*Rp*prel.Rsol_cgs, prel.G_cgs, prel.c_cgs)
 ax2.set_yticks(eta_ticks)
 ax2.set_ylim(etalim_max, etalim_min)
 ax2.set_ylabel(r'$\eta_{\rm sh}$')#, fontsize = 18)
@@ -209,8 +200,8 @@ for ax in [ax1, ax2]:
     if ax!=ax2:
         ax.grid()
         ax.set_xticks(new_ticks)
-        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-        ax.set_xticklabels(labels)
+        # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+        # ax.set_xticklabels(labels)
         ax.tick_params(axis='x', which='major', width=0.7, length=7)
         ax.tick_params(axis='x', which='minor', width=0.5, length=5)
     ax.set_xlim(0, 2)
@@ -226,40 +217,38 @@ _, _, _, _, \
 _, _, _, _, \
 _, _, _, _, \
 _, _, _, _, = \
-    np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}NewAMR/wind/Mdot_NewAMR.csv', 
+    np.loadtxt(f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiResNewAMR/wind/Mdot_HiResNewAMR.csv', 
                 delimiter = ',', 
                 skiprows=1, 
                 unpack=True)
 Rtr_th = Rtr_out(params, mfall, fout=0.1, fv=1)
 Redge = v_esc / prel.tsol_cgs * tfb_fall*t_fb_days_cgs
-print(t_fb_days_cgs)
-print(Redge[np.argmin(np.abs(tfb_fall-1))]/apo)
-fig, ax1 = plt.subplots(1, 1, figsize=(9, 6))
 
-# ax1.plot(tfb_all[1], R_sh_all[1]/apo, color = colorslegend[1], label = r'$R_{\rm sh}$')
-ax1.plot(timeRDiss_all[1], RDiss_all[1]/apo, color = 'forestgreen', label = r'$R_{\rm diss}$')
-ax1.plot(tfb_all[1], R_ph/apo, color = 'k', label = r'$R_{\rm ph}$')
-ax1.plot(tfb_all[1], R_tr/apo, color = 'orchid', label = r'$R_{\rm tr}$')
-ax1.plot(tfb_fall, Redge/apo, color = 'darkviolet', ls = '--', label = r'$v_{\rm esc}(R_p)$t')
-# ax1.plot(tfb_fall, Rtr_th/apo, color = 'darkviolet', ls = '--', label = r'$R_{\rm tr}$ theory')
+fig, ax1 = plt.subplots(1, 1, figsize=(10, 6))
+ax1.plot(tfb_all[2], R_sh_all[2]/Rp, color = 'navy', label = r'$R_{\rm sh}$')
+ax1.plot(timeRDiss_all[2], RDiss_all[2]/Rp, color = 'deepskyblue', label = r'$R_{\rm diss}$')
+ax1.plot(tfb_all[2], R_ph/Rp, color = colorslegend[2], label = r'$R_{\rm ph}$')
+ax1.plot(tfb_all[2], R_tr/Rp, color = 'orchid', label = r'$R_{\rm tr}$')
+# ax1.plot(tfb_fall, Redge/Rp, color = 'darkviolet', ls = '--', label = r'$v_{\rm esc}(R_p)$t')
+# ax1.plot(tfb_fall, Rtr_th/Rp, color = 'darkviolet', ls = '--', label = r'$R_{\rm tr}$ theory')
 
-ax1.axhline(y=Rp/apo, color = 'k', linestyle = 'dotted')
-ax1.text(1.85, .7* Rp/apo, r'$R_{\rm p}$', fontsize = 20, color = 'k')
-# ax1.axhline(y=apo/apo, color = 'k', linestyle = '--')
-# ax1.text(1.85, .5* apo/apo, r'$R_{\rm a}$', fontsize = 20, color = 'k')
-# ax1.axhline(y=apo/apo, color = 'r', linestyle = 'dotted')
+ax1.axhline(y=amin/Rp, color = 'k', linestyle = 'dotted')
+ax1.text(1.65, 1.2* amin/Rp, r'$a_{\rm mb}$', fontsize = 20, color = 'k')
+# ax1.axhline(y=Rp/Rp, color = 'k', linestyle = '--')
+# ax1.text(1.85, .5* Rp/Rp, r'$R_{\rm a}$', fontsize = 20, color = 'k')
+# ax1.axhline(y=Rp/Rp, color = 'r', linestyle = 'dotted')
 # ax0.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 18)
-ax1.set_ylabel(r'$R [R_{\rm a}$]')#, fontsize = 18)
-# ax1.set_ylim(Rlim_min, Rlim_max)
+ax1.set_ylabel(r'$R [R_{\rm p}$]')#, fontsize = 18)
+ax1.set_ylim(Rlim_min, Rlim_max)
 # Set primary y-axis ticks
 R_ticks = np.logspace(np.log10(Rlim_min), np.log10(Rlim_max), num=5)
 ax1.set_yticks(R_ticks)
 ax1.set_yticklabels([f"$10^{{{int(np.log10(tick))}}}$" for tick in R_ticks])
 
 ax2 = ax1.twinx()
-eta_ticks = eta_from_R(Mbh_cgs, R_ticks[::-1]*apo*prel.Rsol_cgs, prel.G_cgs, prel.c_cgs)
-etalim_min = eta_from_R(Mbh_cgs, Rlim_max*apo*prel.Rsol_cgs, prel.G_cgs, prel.c_cgs)
-etalim_max = eta_from_R(Mbh_cgs, Rlim_min*apo*prel.Rsol_cgs, prel.G_cgs, prel.c_cgs)
+eta_ticks = eta_from_R(Mbh_cgs, R_ticks[::-1]*Rp*prel.Rsol_cgs, prel.G_cgs, prel.c_cgs)
+etalim_min = eta_from_R(Mbh_cgs, Rlim_max*Rp*prel.Rsol_cgs, prel.G_cgs, prel.c_cgs)
+etalim_max = eta_from_R(Mbh_cgs, Rlim_min*Rp*prel.Rsol_cgs, prel.G_cgs, prel.c_cgs)
 ax2.set_yticks(eta_ticks)
 ax2.set_ylim(etalim_max, etalim_min)
 ax2.set_ylabel(r'$\eta_{\rm sh}$')#, fontsize = 18)
@@ -273,11 +262,11 @@ for ax in [ax1, ax2]:
     if ax!=ax2:
         ax.grid()
         ax.set_xticks(new_ticks)
-        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-        ax.set_xticklabels(labels)
-        ax.tick_params(axis='x', which='major', width=0.7, length=7)
-        ax.tick_params(axis='x', which='minor', width=0.5, length=5)
-    ax.set_xlim(0, 2)
+        # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+        # ax.set_xticklabels(labels)
+    ax.tick_params(axis='both', which='major', width=1.1, length=9)
+    ax.tick_params(axis='both', which='minor', width=1, length=6)
+    ax.set_xlim(0.01, 1.8)
 ax1.legend(fontsize = 15, loc = 'upper right')
 
 plt.tight_layout()
@@ -285,7 +274,7 @@ plt.savefig(f'{abspath}/Figs/paper/Reta.pdf', bbox_inches = 'tight')
 
 # %%
 plt.figure(figsize=(9, 6))
-plt.plot(tfb_all[1], eta_shL_all[1], color = colorslegend[1], label = r'$\eta_{\rm sh}$')
+plt.plot(tfb_all[2], eta_shL_all[2], color = colorslegend[2], label = r'$\eta_{\rm sh}$')
 plt.yticks(eta_ticks)
 plt.ylim(etalim_max, etalim_min)
 plt.ylabel(r'$\eta_{\rm sh}$')#, fontsize = 18)

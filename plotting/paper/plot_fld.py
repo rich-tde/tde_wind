@@ -27,10 +27,10 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'NewAMR'
-tfallback = 2.5777261297507925 * 24 * 3600 #2.5 days
-Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
-apocenter = orb.apocentre(Rstar, mstar, Mbh, beta)
+check = 'HiResNewAMR'
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.25/(prel.Rsol_cgs**2/prel.Msol_cgs), 0.004, prel.csol_cgs, prel.G)
+Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
+Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -41,11 +41,10 @@ apo = things['apo']
 
 data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
 snaps, tfb, Lum = data[:, 0], data[:, 1], data[:, 2]
-snaps, Lum, tfb = sort_list([snaps, Lum, tfb], tfb) 
+snaps, Lum, tfb = sort_list([snaps, Lum, tfb], tfb, unique=True) 
 snaps = snaps.astype(int)
-dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_NewAMR.csv', delimiter=',', dtype=float)
-tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3]
-LDiss = LDiss * prel.en_converter/prel.tsol_cgs # [erg/s]
+dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
+tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs
 
 time_theory = tfb[210:-1]
 Lum_theory = 5e41*time_theory**(-5/3)
@@ -72,13 +71,15 @@ for i, snap in enumerate(snaps):
 
 #%%
 fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-img = ax.scatter(tfb, Lum, s = 12, c = medianRph/apocenter, cmap = 'viridis', norm = colors.LogNorm(
-                 vmin = 1e-2, vmax = 2))
+img = ax.scatter(tfb, Lum, s = 12, c = medianRph/Rt, cmap = 'viridis', norm = colors.LogNorm(
+                 vmin = 1, vmax = 7e1))
 cbar = fig.colorbar(img)
-cbar.set_label(r'median $R_{\rm ph} [R_{\rm a}]$')#, fontsize = 20)
+cbar.set_label(r'median $R_{\rm ph} [R_{\rm t}]$')#, fontsize = 20)
+cbar.ax.tick_params(which='major', length = 5)
+cbar.ax.tick_params(which='minor', length = 3)
 ax.plot(tfbdiss, LDiss, '--', c= 'gray')
-ax.axhline(y=Ledd, c = 'k', linestyle = '-.', linewidth = 2)
-ax.text(0.1, 1.4*Ledd, r'$L_{\rm Edd}$', fontsize = 20)
+ax.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
+ax.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd}$', fontsize = 20)
 # ax.plot(time_theory, Lum_theory, c = 'k', linestyle = 'dotted', linewidth = 1)
 # ax.text(1.4, 9e40, r'$L\propto t^{-5/3}$', fontsize = 20)
 ax.set_yscale('log')
@@ -91,9 +92,9 @@ midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
 ax.set_xticks(new_ticks)
 labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-ax.set_xticklabels(labels)
-ax.tick_params(axis='y', which='major', width = 1.5, length = 5, color = 'k')
-ax.tick_params(axis='y', which='minor', width = 1, length = 3, color = 'k')
+# ax.set_xticklabels(labels)
+ax.tick_params(axis='both', which='major', width = 1.2, length = 8, color = 'k')
+ax.tick_params(axis='y', which='minor', width = 1, length = 5, color = 'k')
 ax.set_xlim(np.min(tfb), np.max(tfb))
 plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld.pdf', bbox_inches='tight')
 

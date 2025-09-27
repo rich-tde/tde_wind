@@ -28,9 +28,9 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'NewAMR'
-choosen_snaps = np.array([97, 238, 318])
-save = False
+check = 'HiResNewAMR'
+choosen_snaps = np.array([21, 76, 118])
+save = True
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
 params = [Mbh, Rstar, mstar, beta]
@@ -158,7 +158,10 @@ for i, snap in enumerate(choosen_snaps):
     for j in range(len(radii_grid)):
         ax.contour(xcfr_grid[j], ycfr_grid[j], cfr_grid[j], levels=[0], colors='white', alpha = 0.5)
     
-    ax.text(-5.5, 1.35, f't = {np.round(tfb[idx],2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 16)
+    if i == 1:
+        ax.text(-5.5, 1.35, f't = {np.round(tfb[idx],1)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 16)
+    else:
+        ax.text(-5.5, 1.35, f't = {np.round(tfb[idx],2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 16)
     ax.set_ylabel(r'$Y [R_{\rm a}]$')#, fontsize = 20)
     ax.tick_params(axis='x', which='major', width = .7, length = 7, color = 'white')
     ax.tick_params(axis='y', which='major', width = .7, length = 7, color = 'white')
@@ -166,9 +169,9 @@ for i, snap in enumerate(choosen_snaps):
     ax.set_ylim(-3, 2)
     
     if i == 2:
-        ax.text(Rt/apo + 0.05, 0, r'$R_{\rm t}$', color = 'white', fontsize = 14)
-        ax.text(a_mb/apo + 0.05, 0, r'$a_{\rm mb}$', color = 'white', fontsize =14)
-        ax.text(1 + 0.05, 0, r'$R_{\rm a}$', color = 'white', fontsize =14)
+        ax.text(Rt/apo + 0.04, 0.1, r'$R_{\rm t}$', color = 'white', fontsize = 14)
+        ax.text(a_mb/apo + 0.04, 0.2, r'$a_{\rm mb}$', color = 'white', fontsize =14)
+        ax.text(1 + 0.01, 0.3, r'$R_{\rm a}$', color = 'white', fontsize =14)
 
 # Create a colorbar that spans the first two subplots
 cbar_ax = fig.add_subplot(gs[0:3, 1])  # Colorbar subplot below the first two
