@@ -53,9 +53,9 @@ norm_dMdE = things['E_mb']
 t_fb_days_cgs = things['t_fb_days'] * 24 * 3600 # in seconds
 max_Mdot = mstar*prel.Msol_cgs/(3*t_fb_days_cgs) # in code units
 
-Ledd = 1.26e38 * Mbh # [erg/s] Mbh is in solar masses
-Medd = Ledd/(0.1*prel.c_cgs**2)
-Medd_code = Medd * prel.tsol_cgs / prel.Msol_cgs  # [g/s]
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.49/(prel.Rsol_cgs**2/prel.Msol_cgs), 0.006, prel.csol_cgs, prel.G)
+Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
+Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
 convers_kms = prel.Rsol_cgs * 1e-5/prel.tsol_cgs # it's aorund 400
 
@@ -117,79 +117,79 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell], cond)
         if Den_pos.size == 0:
             print(f'no positive', flush=True)
-            mwind_pos = 0
-            Vwind_pos = 0
-            continue
+            data = [snap, tfb[i], mfall, 0, 0, 0, 0]
 
-        Mdot_pos = dim_cell_pos**2 * Den_pos * v_rad_pos  # there should be a pi factor here, but you put it later
-        xyz = np.array([X_pos, Y_pos, Z_pos]).T # shape: (N_pos, 3)
-        tree = KDTree(xyz, leaf_size = 50) 
-        N_ray = 5_000
+        else: 
+            Mdot_dimCell = np.pi * dim_cell_pos**2 * Den_pos * v_rad_pos  
+            Mdot_R = 4 * np.pi * r_tr**2 * Den_pos * v_rad_pos 
+            xyz = np.array([X_pos, Y_pos, Z_pos]).T # shape: (N_pos, 3)
+            tree = KDTree(xyz, leaf_size = 50) 
+            N_ray = 5_000
 
-        xyz_obs = r_tr * observers_xyz
-        dist, idx = tree.query(xyz_obs, k=1) 
-        dist = np.concatenate(dist)
-        idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
+            xyz_obs = r_tr * observers_xyz
+            dist, idx = tree.query(xyz_obs, k=1) 
+            dist = np.concatenate(dist)
+            idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
+            
+            # Quantity corresponding to the ray
+            Mdot_dimCell_casted = Mdot_dimCell[idx] 
+            Mdot_R_casted = Mdot_R[idx]
+            v_rad_pos_casted = v_rad_pos[idx]
+            r_sim = np.sqrt(X_pos[idx]**2 + Y_pos[idx]**2 + Z_pos[idx]**2)
+            check_dist = np.logical_and(dist <= dim_cell_pos[idx], r_sim >= Rt)
+            Mdot_dimCell_casted[~check_dist] = 0 
+            Mdot_R_casted[~check_dist] = 0
+            v_rad_pos_casted[~check_dist] = 0
+
+            mwind_dimCell = np.sum(Mdot_dimCell_casted)
+            mwind_R = np.mean(Mdot_R_casted)
+            mwind_R_nonzero = np.mean(Mdot_R_casted[Mdot_R_casted!=0])
+            Vwind = np.mean(v_rad_pos_casted)
         
-        # Quantity corresponding to the ray
-        Mdot_pos_casted = Mdot_pos[idx] 
-        v_rad_pos_casted = v_rad_pos[idx]
-        r_sim = np.sqrt(X_pos[idx]**2 + Y_pos[idx]**2 + Z_pos[idx]**2)
-        check_dist = np.logical_and(dist <= dim_cell_pos[idx], r_sim >= Rt)
-        Mdot_pos_casted[~check_dist] = 0 
-        v_rad_pos_casted[~check_dist] = 0
+            data = [snap, tfb[i], mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind]
 
-        mwind_pos = np.sum(Mdot_pos_casted) * np.pi
-        Vwind_pos = np.mean(v_rad_pos_casted)
-    
-        csv_path = f'{abspath}/data/{folder}/wind/Mdot_{check}{where_to_measure}.csv'
-        data = [snap, tfb[i], mfall, mwind_pos, Vwind_pos]
+        csv_path = f'{abspath}/data/{folder}/wind/Mdot_{check}Rtr.csv'
         if alice:
             with open(csv_path, 'a', newline='') as file:
                 writer = csv.writer(file)
                 if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                    writer.writerow(['snap', ' tfb', ' Mdot_fb', ' Mdot_wind_pos', ' Vwind_pos'])
+                    writer.writerow(['snap', ' tfb', ' Mdot_fb', ' Mw with dimCell', 'Mw with Rtr', 'Mw with Rtr (nonzero)', ' Vwind'])
                 writer.writerow(data)
             file.close()
 
 if plot:
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    snap, tfb, mfall, mwind_pos, Vwind_pos, mwind_neg, Vwind_neg = \
+    snap, tfb, mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind = \
         np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}Rtr.csv', 
                    delimiter = ',', 
                    skiprows=1, 
                    unpack=True)
     
-    fig, ax1 = plt.subplots(1, 1, figsize = (8,7))
-    fig2, ax2 = plt.subplots(1, 1, figsize = (8,7))
-    ax1.plot(tfb, np.abs(mwind_pos)/Medd_code, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$')
-    # ax1.plot(tfb, np.abs(mwind_neg)/Medd_code,  c = 'forestgreen', label = r'$\dot{M}_{\rm in}$')
-    ax1.plot(tfb, np.abs(mfall)/Medd_code, label = r'$\dot{M}_{\rm fb}$', c = 'k')
-    # ax1.axhline(max_Mdot/Medd, ls = '--', c = 'k', label = r'theoretical $\dot{M}_{\rm max}$')
-    # ax1.plot(tfb[-35:], 4e5*np.array(tfb[-35:])**(-5/9), ls = 'dotted', c = 'k', label = r'$t^{-5/9}$')
-    # ax1.axvline(tfb[np.argmax(np.abs(mfall)/Medd_code)], c = 'k', linestyle = 'dotted')
-    # ax1.text(tfb[np.argmax(np.abs(mfall)/Medd_code)]+0.01, 0.1, r'$t_{\dot{M}_{\rm peak}}$', fontsize = 20, rotation = 90)
+    fig, ax1 = plt.subplots(1, 1, figsize = (9, 6))
+    fig2, ax2 = plt.subplots(1, 1, figsize = (9, 6))
+    ax1.plot(tfb, np.abs(mwind_dimCell)/Medd_sol, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$')
+    ax1.plot(tfb, np.abs(mfall)/Medd_sol, label = r'$\dot{M}_{\rm fb}$', c = 'k')
     ax1.set_yscale('log')
-    ax1.set_ylim(1e-1, 8e5)
-    ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')    
-    ax2.plot(tfb, Vwind_pos/v_esc, c = 'dodgerblue', label = r'$v_{\rm w} [B>0]$')
-    ax2.plot(tfb, Vwind_neg/v_esc, c = 'forestgreen', label = r'$v_{\rm in} [B<0]$')
+    ax1.set_ylim(1e-1, 5e4)
+    ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')   
+    ax1.legend(fontsize = 18)
+
+    ax2.plot(tfb, Vwind/v_esc, c = 'dodgerblue')
     ax2.set_ylabel(r'$v_{\rm w} [v_{\rm esc}(R_{\rm p})]$')
     original_ticks = ax1.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
     new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+    # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
     for ax in (ax1, ax2):
         ax.set_xlabel(r'$t [t_{\rm fb}]$')
-        ax.legend(fontsize = 18)
         ax.set_xticks(new_ticks)
-        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-        ax.set_xticklabels(labels)
+        # ax.set_xticklabels(labels)
         ax.tick_params(axis='both', which='major', width=1, length=7)
         ax.tick_params(axis='both', which='minor', width=.8, length=4)
-        ax.set_xlim(0, 1.7)
+        ax.set_xlim(0, 1.8)
         ax.grid()
-        ax.set_title(r'Wind: $v_r>0, B>0, X>-a_{\rm min}$', fontsize = 20)
-    plt.tight_layout()
+    fig.tight_layout()
+    fig2.tight_layout()
     # fig.savefig(f'{abspath}/Figs/outflow/Mdot_{check}.pdf', bbox_inches = 'tight')
 
 

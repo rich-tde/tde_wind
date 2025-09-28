@@ -194,6 +194,7 @@ for ax in [axTr_total, axL_total, axMdot_total]:
     ax.set_xlim(0, 1.8) 
     ax.set_yscale('log')
     ax.legend(fontsize = 16)
+    ax.set_title(r'Averaging over non-zero $r_{\rm tr}$', fontsize = 16)
 
 axL_total.set_ylim(1e-1, 5)
 axMdot_total.set_ylim(5, 5e3)

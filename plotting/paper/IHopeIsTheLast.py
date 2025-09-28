@@ -36,9 +36,9 @@ Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
 apo = things['apo']
-Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.25/(prel.Rsol_cgs**2/prel.Msol_cgs), 0.004, prel.csol_cgs, prel.G)
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.49/(prel.Rsol_cgs**2/prel.Msol_cgs), 0.006, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
-Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
+Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
 commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 #
 # FUNCTIONS
@@ -191,14 +191,13 @@ if __name__ == '__main__':
             midpoints_y = (original_ticks_y[:-1] + original_ticks_y[1:]) / 2
             new_ticks_y = np.sort(np.concatenate((original_ticks_y, midpoints_y)))
             ax.set_yticks(new_ticks_y)
-            if ax == ax2perc:
-                ax.set_yticklabels([f'{x:.0f}\%' if x in original_ticks_y else "" for x in new_ticks_y])
-            else:
-                labels = [str(np.round(tick,2)) if tick in original_ticks_y else "" for tick in new_ticks_y]       
-                ax.set_yticklabels(labels)
-    # repeat the limits or it gets crazy in the grid
+            # if ax == ax2perc:
+            #     ax.set_yticklabels([f'{x:.0f}\%' if x in original_ticks_y else "" for x in new_ticks_y])
+            labels = [str(np.round(tick,2)) if tick in original_ticks_y else "" for tick in new_ticks_y]       
+            ax.set_yticklabels(labels)
+    # repeat the limits or it gets crazy in  the grid
     ax2.set_ylim(.8, 3)        
-    ax2perc.set_ylim((ax2.get_ylim()[0] - 1) * 100, (ax2.get_ylim()[1] - 1) * 100)
+    # ax2perc.set_ylim((ax2.get_ylim()[0] - 1) * 100, (ax2.get_ylim()[1] - 1) * 100)
     ax1.legend(fontsize = 18, loc = 'lower right')
     plt.tight_layout()
     plt.savefig(f'{abspath}/Figs/paper/fld.pdf', bbox_inches='tight')
@@ -261,11 +260,10 @@ if __name__ == '__main__':
             midpoints_y = (original_ticks_y[:-1] + original_ticks_y[1:]) / 2
             new_ticks_y = np.sort(np.concatenate((original_ticks_y, midpoints_y)))
             ax.set_yticks(new_ticks_y)
-            if ax == ax2perc:
-                ax.set_yticklabels([f'{x:.0f}\%' if x in original_ticks_y else "" for x in new_ticks_y])
-            else:
-                labels = [str(np.round(tick,2)) if tick in original_ticks_y else "" for tick in new_ticks_y]       
-                ax.set_yticklabels(labels)
+            # if ax == ax2perc:
+            #     ax.set_yticklabels([f'{x:.0f}\%' if x in original_ticks_y else "" for x in new_ticks_y])
+            labels = [str(np.round(tick,2)) if tick in original_ticks_y else "" for tick in new_ticks_y]       
+            ax.set_yticklabels(labels)
     ax2.set_ylim(.8, 2.5)
     # ax2perc.set_ylim((ax2.get_ylim()[0] - 1) * 100, (ax2.get_ylim()[1] - 1) * 100)
     ax2.set_xlabel(r't [$t_{fb}$]')
@@ -540,10 +538,10 @@ if __name__ == '__main__':
     original_ticks = ax1.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
     new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+    # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
     for ax in [ax1, ax2, ax3, ax4, ax5, ax6]:
         ax.set_xticks(new_ticks)
-        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-        ax.set_xticklabels(labels)
+        # ax.set_xticklabels(labels)
         ax.grid()
         ax.set_xlim(.05, 1.8) 
         if ax in [ax4, ax5, ax6]:

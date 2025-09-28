@@ -28,7 +28,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
-Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.25/(prel.Rsol_cgs**2/prel.Msol_cgs), 0.004, prel.csol_cgs, prel.G)
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.49/(prel.Rsol_cgs**2/prel.Msol_cgs), 0.006, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -95,7 +95,7 @@ labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in ne
 # ax.set_xticklabels(labels)
 ax.tick_params(axis='both', which='major', width = 1.2, length = 8, color = 'k')
 ax.tick_params(axis='y', which='minor', width = 1, length = 5, color = 'k')
-ax.set_xlim(np.min(tfb), np.max(tfb))
+ax.set_xlim(np.min(tfb), 1.8)
 plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld.pdf', bbox_inches='tight')
 
 # %%
