@@ -316,7 +316,7 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergenceOE' or kind_o
         ax.plot(tfb, ratio_unbound_ph, c = 'darkviolet', label = 'High') #c = mean_vel/v_esc, s = 20, vmin = 0.2, vmax = 1)
         # fig.suptitle(f'Convergence with {for_title}', fontsize = 20)
         ax.legend(fontsize = 16, loc = 'lower right')
-        ax.set_xlim(0, 1.8)
+        ax.set_xlim(np.min(tfb), np.max(tfb))
         fig.tight_layout()
         fig.savefig(f'{abspath}/Figs/paper/f_conv.pdf')
 

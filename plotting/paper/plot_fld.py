@@ -93,9 +93,9 @@ new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
 ax.set_xticks(new_ticks)
 labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
 # ax.set_xticklabels(labels)
-ax.tick_params(axis='both', which='major', width = 1.2, length = 8, color = 'k')
+ax.tick_params(axis='both', which='major', width = 1.2, length = 9, color = 'k')
 ax.tick_params(axis='y', which='minor', width = 1, length = 5, color = 'k')
-ax.set_xlim(np.min(tfb), 1.8)
+ax.set_xlim(np.min(tfb), np.max(tfb))
 plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld.pdf', bbox_inches='tight')
 
 # %%

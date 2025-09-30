@@ -213,7 +213,7 @@ def choose_observers(observers_xyz, choice):
         indices_sorted.append(indices_z[1])
         label_obs = [r'$+\hat{\textbf{x}}$', r'$-\hat{\textbf{x}}$', r'$+\hat{\textbf{z}}$', r'$-\hat{\textbf{z}}$']
         colors_obs = ['deepskyblue', 'forestgreen', 'orange', 'sienna']
-        lines_obs = ['dashed', 'solid', 'dotted', 'dashdotted']
+        lines_obs = ['dashed', 'solid', 'dotted', 'dashed']
 
     if choice == 'quadrants ': # 8 3d-quadrants 
         # Cartesian view    

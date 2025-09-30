@@ -153,8 +153,8 @@ def radial_profiles(loadpath, snap, which_part, indices_sorted):
             d_col = np.transpose(d_all)[i]
             rad_den_col = np.transpose(rad_den_all)[i]
             Mdot_col = np.transpose(Mdot_all)[i]
-            nonzero = t_col[t_col != 0]
-            t_mean.append(np.median(nonzero) if nonzero.size > 0 else 0)
+            nonzero = t_col#[t_col != 0]
+            t_mean.append(np.mean(nonzero) if nonzero.size > 0 else 0)
             nonzero = v_rad_col[v_rad_col != 0]
             v_rad_mean.append(np.median(nonzero) if nonzero.size > 0 else 0)
             nonzero = d_col[d_col != 0]
@@ -413,7 +413,7 @@ for snap in snaps:
         axd.set_ylabel(r'$\rho$ [g/cm$^3]$', fontsize = 28)
         axV.set_ylim(2e3, 5e4)
         axV.set_ylabel(r'$v_r$ [km/s]', fontsize = 28)
-        axT.set_ylim(4e4, 1e6)
+        axT.set_ylim(1e4, 1e6)
         axT.set_ylabel(r'$T$ [K]', fontsize = 28)
         axL.set_ylabel(r'$L [L_{\rm Edd}]$', fontsize = 28)
         axL.set_ylim(2e-1, 2e1)
