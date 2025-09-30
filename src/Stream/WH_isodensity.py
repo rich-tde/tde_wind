@@ -343,7 +343,7 @@ def follow_the_stream_isodensity(x_data, y_data, z_data, dim_data, density_data,
 
 if __name__ == '__main__':
     theta_lim =  np.pi
-    step = 0.02
+    step = np.round((2*theta_lim)/200, 3)
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_arr = Ryan_sampler(theta_init)
     # from Utilities.operators import to_cylindric
@@ -352,7 +352,7 @@ if __name__ == '__main__':
     # e = orb.e_mb(Rstar, mstar, Mbh, beta) 
     # N = 200    # number of points
     # theta_arr = generate_uniform_ellipse_points(a, e, N)
-    idx_forplot = 4
+    # idx_forplot = 4
     print(f'We are in folder {folder}', flush=True)
     
     path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -384,7 +384,7 @@ if __name__ == '__main__':
             stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
             print('Load stream from file', flush=True)
         except FileNotFoundError:
-            from WH_spatial import find_transverse_com
+            from com_stream import find_transverse_com
             print('Stream not found, computing it', flush=True)
             x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, Rstar)
             stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
@@ -402,7 +402,7 @@ if __name__ == '__main__':
         if save:
             with open(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt','w') as file:
                 # if file exist, save theta and date of execution
-                file.write(f'# theta, done on {datetime.now()} \n')
+                file.write(f'# theta \n')
                 file.write((' '.join(map(str, theta_wh)) + '\n'))
                 file.write(f'# Width \n')
                 file.write((' '.join(map(str, w_params[0])) + '\n'))
