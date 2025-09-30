@@ -31,6 +31,7 @@ n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
 check = 'HiResNewAMR' 
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 @numba.njit
 def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
