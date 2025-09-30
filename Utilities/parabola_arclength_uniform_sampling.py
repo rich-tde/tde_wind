@@ -1,88 +1,93 @@
+import sys
+sys.path.append('/Users/paolamartire/shocks')
 import numpy as np
-import scipy.integrate
-import scipy.optimize
+from scipy import integrate, optimize
 import matplotlib.pyplot as plt
-from Utilities.operators import to_cylindric
+from Utilities.operators import from_cylindric, sort_list
 
-def compute_semi_minor_axis(a, e):
-    """Compute semi-minor axis from semi-major axis and eccentricity."""
-    if not (0 <= e < 1):
-        raise ValueError("Eccentricity must be in [0, 1).")
-    return a * np.sqrt(1 - e**2)
+# def compute_semi_major_axis(Rp, e):
+#     """Compute semi-major axis from pericenter Rp and eccentricity e."""
+#     if not (0 <= e < 1):
+#         raise ValueError("Eccentricity must be in [0, 1).")
+#     return Rp / (1 - e)
 
+def r_of_f(f, a, e):
+    """Radius at true anomaly f (focus at origin)."""
+    return a * (1 - e**2) / (1 + e * np.cos(f))
 
-def ds_dt(t, a, b):
-    """Differential arclength function for an ellipse parameterized by t."""
-    return np.sqrt((a * np.sin(t))**2 + (b * np.cos(t))**2)
+def dr_df(f, a, e):
+    """Derivative dr/df."""
+    return a * (1 - e**2) * (e * np.sin(f)) / (1 + e * np.cos(f))**2
 
+def ds_df(f, a, e):
+    """Differential arclength ds/df for orbit parameterized by true anomaly f."""
+    r = r_of_f(f, a, e)
+    dr = dr_df(f, a, e)
+    return np.sqrt(dr**2 + r**2)
 
-def total_arclength(a, b):
-    """Compute the total arclength of the ellipse."""
-    result, _ = scipy.integrate.quad(lambda t: ds_dt(t, a, b), 0, 2 * np.pi)
-    return result
+def total_arclength(a, e):
+    """Total orbit arclength for f in [0, 2π]."""
+    val, _ = integrate.quad(lambda ff: ds_df(ff, a, e), 0, 2*np.pi, limit=400)
+    return val
 
+def arclength_to_f(S_target, a, e, S_total):
+    """Find true anomaly f such that arc length from 0 to f equals S_target."""
+    def residual(f):
+        val, _ = integrate.quad(lambda ff: ds_df(ff, a, e), 0, f, limit=200)
+        return val - S_target
+    return optimize.brentq(residual, 0, 2*np.pi)
 
-def arclength_to_t(S_target, a, b, s_max):
-    """Find parameter t such that arclength from 0 to t equals S_target."""
-    def f(t):
-        result, _ = scipy.integrate.quad(lambda t_: ds_dt(t_, a, b), 0, t)
-        return result - S_target
-
-    return scipy.optimize.root_scalar(f, bracket=[0, 2 * np.pi], method='brentq').root
-
-
-def generate_uniform_ellipse_points(a, e, N=100, cart = False):
+def generate_uniform_keplerian_points(e, G, N=200, cart=False, method="interp"):
     """
-    Generate N equally spaced points (in arclength) along an ellipse
-    defined by semi-major axis a and eccentricity e.
+    Generate N equally spaced points (in arclength) along a Keplerian ellipse.
 
-    Returns:
-        x_values, y_values: Numpy arrays of x and y coordinates
+    Parameters
+    ----------
+    Rp : float
+        Pericenter distance.
+    e : float
+        Eccentricity (0 <= e < 1).
+    N : int
+        Number of points to generate.
+    cart : bool
+        If True, return x and y coordinates. If False, return f and r arrays.
+    method : str
+        'interp' (fast) or 'root' (slow but accurate).
+
+    Returns
+    -------
+    If cart=True:
+        x_values, y_values : arrays
+    If cart=False:
+        f_values, r_values : arrays
     """
-    b = compute_semi_minor_axis(a, e)
-    s_max = total_arclength(a, b)
-    S_values = np.linspace(0, s_max, N)
+    a = orb.semimajor_axis(Rstar, mstar, Mbh, G) #compute_semi_major_axis(Rp, e)
+    S_total = total_arclength(a, e)
 
-    t_values = np.array([arclength_to_t(S, a, b, s_max) for S in S_values])
-    x_values = a * np.cos(t_values)
-    y_values = b * np.sin(t_values)
+    S_values = np.linspace(0, S_total, N, endpoint=False)
+
+    if method == "root":
+        f_values = np.array([arclength_to_f(S, a, e, S_total) for S in S_values])
+    else:
+        # fast interpolation method
+        M = 20000
+        f_grid = np.linspace(0, 2*np.pi, M)
+        ds_vals = ds_df(f_grid, a, e)
+        dS = np.cumsum(0.5 * (ds_vals[:-1] + ds_vals[1:]) * (f_grid[1]-f_grid[0]))
+        S_grid = np.concatenate(([0.0], dS))
+        f_values = np.interp(S_values, S_grid, f_grid)
+
+    # convert to [-π, π)
+    f_values = (f_values + np.pi) % (2*np.pi) - np.pi
+
+    r_values = r_of_f(f_values, a, e)
+    r_values, f_values = sort_list([r_values, f_values], f_values)
+    x_values, y_values = from_cylindric(f_values, r_values)
 
     if cart:
         return x_values, y_values
     else:
-        theta_values, _ = to_cylindric(x_values, y_values)
-        theta_values = np.sort(theta_values)
-        return theta_values
-
-
-def plot_ellipse(x_values, y_values, a=None, e=None, title=None):
-    """
-    Plot ellipse points with aspect ratio 1.
-    """
-    x_ryan, y_ryan = from_cylindric(theta_ryan, r_ryan)
-
-    plt.figure(figsize=(10, 10))
-    plt.plot(x_values, y_values, '.', markersize = 1, label='Ellipse Points')
-    plt.plot(x_ryan, y_ryan, 'r.', markersize = 1, label='Ryan Points')
-
-    plt.gca().set_aspect('equal', adjustable='box')
-    if title:
-        plt.title(title)
-    elif a is not None and e is not None:
-        plt.title(f"Ellipse with a={a}, e={e}")
-    plt.grid(True)
-    plt.show()
-
-
-def verify_spacing(x_values, y_values):
-    """
-    Print min, max, mean spacing between consecutive points.
-    """
-    distances = np.sqrt(np.diff(x_values)**2 + np.diff(y_values)**2)
-    print(f"Min distance: {distances.min():.5f}")
-    print(f"Max distance: {distances.max():.5f}")
-    print(f"Mean distance: {distances.mean():.5f}")
-    return distances
+        return f_values, r_values
 
 if __name__ == "__main__":
     import prelude as prel
@@ -94,27 +99,43 @@ if __name__ == "__main__":
     mstar = .5
     Rstar = .47
     n = 1.5
-    Rt = Rstar * (Mbh/mstar)**(1/3)
-    Rp =  Rt / beta
-
-    a = orb.semimajor_axis(Rstar, mstar, Mbh, prel.G)
-    e = orb.e_mb(Rstar, mstar, Mbh, beta) 
-    N = 200    # number of points
-    x, y = generate_uniform_ellipse_points(a, e, N)
-    plot_ellipse(x, y, a, e)
-    verify_spacing(x, y)
+    params = [Mbh, Rstar, mstar, beta]
+    things = orb.get_things_about(params)
+    e = things['ecc_mb']
+    a = things['a_mb']
+    Rp = things['Rp']
+    Ra = things['apo']
 
     # my sample
     theta_lim =  np.pi
-    step = 0.03
+    step = np.round((2*np.pi)/200,3)
+    print(step)
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_ryan = Ryan_sampler(theta_init)
     r_ryan = orb.keplerian_orbit(theta_ryan, a, Rp, e)
+    x_ryan, y_ryan = from_cylindric(theta_ryan, r_ryan)
+
+    N = 200    # number of points
+    # Cartesian coordinates
+    x, y = generate_uniform_keplerian_points(e, prel.G, N, cart=True)
+    plt.figure(figsize=(10, 5))
+    plt.scatter(x_ryan, y_ryan, s = 1, label='Ryan Points', c = 'b')
+    # plt.scatter(x, y, s = 2, label='Ellipse Points', c = 'r')
+    # plt.xlim(-20,20)
+    # plt.ylim(-20,20)
+    plt.legend()
+    plt.show()
+    
+    # Polar (true anomaly, radius)
+    theta_ellip, r = generate_uniform_keplerian_points(e, prel.G, N, cart=False)
 
     # look at the angles
-    theta_ellip, _ = to_cylindric(x,y)
     plt.figure(figsize=(10, 5))
-    plt.plot(np.sort(theta_ellip), '.', markersize=1, label='Ellipse Points')
-    plt.plot(np.sort(theta_ryan), 'r.', markersize=1, label='Ryan Points')
+    img = plt.scatter(np.arange(N), theta_ellip, s = 2, label='Ellipse Points', c = x, cmap = 'rainbow', vmin = -330, vmax = 20)
+    plt.colorbar(img, label = 'X') 
+    plt.scatter(np.arange(len(theta_ryan)), theta_ryan, s = 2, c = 'k', label='Ryan Points')
+    plt.ylabel(r'$\theta$')
+    plt.xlabel('Index')
+    plt.axhline(np.pi/2, c = 'k', ls = '--')
     plt.legend()
     plt.show()

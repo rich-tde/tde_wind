@@ -290,7 +290,7 @@ if what == 'single_snap_behavior' or what == 'section':
 if what == 'max_compr':
     checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
     colors_checks = ['C1', 'yellowgreen', 'darkviolet']
-    names_checks = ['Low', 'Fid', 'High']
+    names_checks = ['Low', 'Middle', 'High']
     markers_checks = ['x', 'o', 's']
     ratio_of_pi = 2
     vmin_ang = -np.pi/8
@@ -298,29 +298,21 @@ if what == 'max_compr':
 
     # to look how the expansion/compression changes with time
     fig, (ax1, ax2) = plt.subplots(2,1, figsize = (10,10))
-    ax1.set_ylabel(r'$\Delta (\alpha-\pi$/' + f'{ratio_of_pi}) /' + r'$\Delta (\alpha+\pi$/' + f'{ratio_of_pi})')
-    ax2.set_ylabel(r'H ($\alpha-\pi$/' + f'{ratio_of_pi}) /' + r'H($\alpha+\pi$/' + f'{ratio_of_pi})')
-    for ax in [ax1, ax2]:
-        ax.axhline(y=1, color='grey', linestyle = '--')
-        ax.set_yscale('log')
-        ax.grid()
-    ax2.set_xlabel(r't [t$_{\rm fb}$]')
+    ax1.set_ylabel(r'$\Delta (\alpha+\pi$/' + f'{ratio_of_pi}) /' + r'$\Delta (\alpha-\pi$/' + f'{ratio_of_pi})')
+    ax2.set_ylabel(r'H ($\alpha+\pi$/' + f'{ratio_of_pi}) /' + r'H($\alpha-\pi$/' + f'{ratio_of_pi})')
+    
 
     # to plot where is the maximum compression
     fig_compr, ax1_compr = plt.subplots(1,1, figsize = (12,7))
-    ax1_compr.set_xlabel(r't/t$_{\rm fb}$')
     ax1_compr.set_ylabel(r'H$_{\rm min} [R_\star]$')
-    ax1_compr.grid()
 
     for j, check in enumerate(checks):
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         snaps, Lum, tfbs = split_data_red(check)
-        len_arr = len(snaps[tfbs< 1.05])
         snaps, Lum, tfbs = snaps[:len_arr], Lum[:len_arr], tfbs[:len_arr]
-        print(snaps[np.argmin(np.abs(tfbs-.1))])
 
-        before_after_width = []
-        before_after_h = []
+        after_before_width = []
+        after_before_h = []
         tfb_befaft = []
         theta_compr = np.zeros(len(snaps))
         height_compr = np.zeros(len(snaps))
@@ -330,6 +322,8 @@ if what == 'max_compr':
 
         for i, tfb in enumerate(tfbs):
             snap = snaps[i]
+            if np.logical_and(snap > 57, check == 'HiResNewAMR'):    
+                continue
             path = f'{abspath}/TDE/{folder}/{snap}'
             wh = np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
             theta_wh, width, N_width, height, N_height = wh[0], wh[1], wh[2], wh[3], wh[4]
@@ -344,17 +338,15 @@ if what == 'max_compr':
 
             idx_before = np.argmin(np.abs(theta_wh - theta_inc)) 
             idx_after = np.argmin(np.abs(theta_wh - theta_out))
-            if snap == 98:
-                print(theta_compr[i])
 
             if theta_inc < -np.pi or theta_inc > 0:
                 continue
-            before_after_width.append(width[idx_before] / width[idx_after])
-            before_after_h.append(height[idx_before] / height[idx_after])
+            after_before_width.append(width[idx_after]/ width[idx_before])
+            after_before_h.append(height[idx_after]/ height[idx_before])
             tfb_befaft.append(tfb)
         
-        ax1.plot(tfb_befaft, before_after_width, c = colors_checks[j], label = names_checks[j])
-        ax2.plot(tfb_befaft, before_after_h, c = colors_checks[j])
+        ax1.plot(tfb_befaft, after_before_width, c = colors_checks[j], label = names_checks[j])
+        ax2.plot(tfb_befaft, after_before_h, c = colors_checks[j])
     
         img_compr = ax1_compr.scatter(tfbs, height_compr/Rstar, c = theta_compr, marker = markers_checks[j], label = names_checks[j], vmin = vmin_ang, vmax = vmax_ang, cmap = 'rainbow', s = 50)
     
@@ -365,6 +357,15 @@ if what == 'max_compr':
     cbar.set_ticks(ticks)
     cbar.ax.yaxis.set_major_formatter(FuncFormatter(format_pi_frac))
     ax1_compr.legend(fontsize = 18)
-    ax1_compr.axvline(0.1, c = 'k', ls = '--')
     ax1.legend(fontsize = 18)
+    for ax in [ax1, ax2, ax1_compr]:
+        ax.tick_params(which = 'major', length = 10)
+        ax.tick_params(which = 'minor', length = 5)
+        ax.set_xlabel(r't [t$_{\rm fb}$]')
+        ax.grid()
+        if ax in [ax1, ax2]:
+            ax.axhline(y=1, color='grey', linestyle = '--')
+            ax.set_yscale('log')
+            ax.set_ylim(1e-1, 5)
+        
 

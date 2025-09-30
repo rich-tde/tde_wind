@@ -1,4 +1,4 @@
-""" Compute Mdot fallback and wind"""
+""" Compute Mdot fallback and wind across a symmetrical (eventually fixed) surface"""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 
@@ -166,19 +166,19 @@ if compute: # compute dM/dt = dM/dE * dE/dt
 if plot:
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     snap, tfb, mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind, Vwind_nonzero = \
-        np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}Rtr{statist}.csv', 
+        np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}05amin{statist}.csv', 
                    delimiter = ',', 
                    skiprows=1, 
                    unpack=True)
     
     fig, ax1 = plt.subplots(1, 1, figsize = (9, 6))
     fig2, ax2 = plt.subplots(1, 1, figsize = (9, 6))
-    ax1.plot(tfb, np.abs(mwind_dimCell)/Medd_sol, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$')
-    ax1.plot(tfb, np.abs(mwind_R)/Medd_sol, c = 'orange', label = r'$\dot{M}_{\rm w}^{\rm Rtr}$')
-    ax1.plot(tfb, np.abs(mwind_R_nonzero)/Medd_sol, c = 'green', label = r'$\dot{M}_{\rm w}^{\rm Rtr} (\neq 0)$')
+    ax1.plot(tfb, np.abs(mwind_dimCell)/Medd_sol, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$ dim cell')
+    ax1.plot(tfb, np.abs(mwind_R)/Medd_sol, c = 'orange', label = r'$\dot{M}_{\rm w}$ at  $r={\rm 0.5a_{\rm min}}$')
+    ax1.plot(tfb, np.abs(mwind_R_nonzero)/Medd_sol, c = 'green', label = r'$\dot{M}_{\rm w}$ at  $r={\rm 0.5a_{\rm min}}$ (nonzero)')
     # ax1.plot(tfb, np.abs(mfall)/Medd_sol, label = r'$\dot{M}_{\rm fb}$', c = 'k')
     ax1.set_yscale('log')
-    ax1.set_ylim(1e-1, 5e4)
+    ax1.set_ylim(1e-1, 5e3)
     ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')   
     ax1.legend(fontsize = 18)
 
@@ -196,9 +196,11 @@ if plot:
         ax.tick_params(axis='both', which='minor', width=.8, length=4)
         ax.set_xlim(0, 1.8)
         ax.grid()
+        ax.set_title(f'Using {statist}', fontsize = 18)
     fig.tight_layout()
     fig2.tight_layout()
-    # fig.savefig(f'{abspath}/Figs/outflow/Mdot_{check}.pdf', bbox_inches = 'tight')
+    fig.savefig(f'{abspath}/Figs/next_meeting/Mdot_{check}{statist}05amin.pdf', bbox_inches = 'tight')
 
 
     
+# %%

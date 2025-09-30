@@ -37,7 +37,7 @@ amin = things['a_mb']
 tfallback = things['t_fb_days']
 t_fb_days_cgs = tfallback * 24 * 3600 # in seconds
 
-# Pick observers
+#%% Pick observers
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
 observers_xyz = np.array(observers_xyz)
 indices_axis, label_axis, colors_axis, lines_axis = choose_observers(observers_xyz, which_obs)
@@ -46,8 +46,9 @@ x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
 
 Rtr_all = []
 Lph_all = []
+Temp_ph_all = []
 Mdot_all = []
-T_all = []
+Temp_tr_all = []
 figTr, axTr = plt.subplots(1, 1, figsize=(10, 6))
 figL, (axL, axTph) = plt.subplots(1, 2, figsize=(18, 6))
 figMdot, (axMdot, axTtr) = plt.subplots(1, 2, figsize=(18, 6))
@@ -76,12 +77,16 @@ for c, check in reversed(list(enumerate(checks))):
         eta_axis = np.zeros((len(indices_axis), len(snaps)))
         Lum_ph_mean = np.zeros((len(indices_axis), len(snaps)))
         Temp_ph_mean = np.zeros((len(indices_axis), len(snaps)))
+        # (all) angle-integrated quantities
+        Temp_ph_snap = np.zeros(len(snaps))
         r_tr_snap = np.zeros(len(snaps))
+        Temp_tr_snap = np.zeros(len(snaps))
         Mdot_snap = np.zeros(len(snaps))
         for s, snap in enumerate(snaps): 
                 tfb = tfbs[s]
                 dataph = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
                 Temp_ph, RadDen_ph, Lum_ph = dataph[5], dataph[6], dataph[-2]
+                Temp_ph_snap[s] = np.mean(Temp_ph)
                 RadDen_ph *= prel.en_den_converter
                 dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz")
                 x_tr, y_tr, z_tr, den_tr, Vr_tr, Temp_tr, Rad_den_tr = \
@@ -89,6 +94,7 @@ for c, check in reversed(list(enumerate(checks))):
                 Rad_den_tr *= prel.en_den_converter
                 r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
                 r_tr_snap[s] = np.mean(r_tr)
+                Temp_tr_snap[s] = np.mean(Temp_tr)
                 Mdot_tr = 4 * np.pi * r_tr**2 * den_tr * np.abs(Vr_tr)
                 Mdot_snap[s] = np.mean(Mdot_tr)
                 for i, observer in enumerate(indices_axis):
@@ -107,7 +113,9 @@ for c, check in reversed(list(enumerate(checks))):
                         tfb_adjusted = tfb - t_dyn
                         find_time = np.argmin(np.abs(tfb_fall-tfb_adjusted))
                         eta_axis[i][s] = np.abs(Mdot_mean[i][s]/mfall[find_time])
+        Temp_ph_all.append(Temp_ph_snap)
         Rtr_all.append(r_tr_snap)
+        Temp_tr_all.append(Temp_tr_snap)
         Mdot_all.append(Mdot_snap)
 
         # Eddington luminosity
@@ -135,7 +143,8 @@ for c, check in reversed(list(enumerate(checks))):
                         axMdot.plot(tfbs, Mdot_mean[i]/Medd_sol, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
                         # axMdot.scatter(tfbs[idx_maxLum], Mdot_mean[i][idx_maxLum]/Medd_sol, c = colors_res[c], s = 85, marker = 'X')
                         axC.plot(tfbs, (r_tr_mean[i]*prel.Rsol_cgs*Temp_tr_mean[i]**2)**2/Ledd_cgs, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
-        
+
+axTr.axhline(amin/Rt, c = 'k', ls = '--', label = r'$a_{\rm mb}$')        
 axTr.set_ylabel(r'$r_{\rm tr} [r_{\rm t}]$')
 axL.set_ylabel(r'$L_{\rm ph} [L_{\rm Edd}]$')
 axC.set_ylabel(r'$r_{\rm tr}^2 T_{\rm tr}^4 [L_{\rm Edd}]$')
@@ -183,28 +192,32 @@ figMdot.savefig(f'{abspath}/Figs/next_meeting/Mdot_res.png')
 
 
 #%% TOTAL
-figTr_total, axTr_total = plt.subplots(1, 1, figsize=(10, 6))
-figL_total, axL_total = plt.subplots(1, 1, figsize=(10, 6))
-figMdot_total, axMdot_total = plt.subplots(1, 1, figsize=(10, 6))
+figRTr_total, axRTr_total = plt.subplots(1, 1, figsize=(10, 6))
+figL_total, (axL_total, axTph_total) = plt.subplots(1, 2, figsize=(18, 6))
+figMdot_total, (axMdot_total, axTtr_total) = plt.subplots(1, 2, figsize=(18, 6))
 for i, check in enumerate(checks):
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
         snaps, tfbs, Lums = data[:, 0], data[:, 1], data[:, 2]
         tfbs, snaps, Lums = sort_list([tfbs, snaps, Lums], snaps, unique=True)
         idx_maxLum = np.argmax(Lums)
-        axTr_total.plot(tfbs, Rtr_all[i]/Rp, c = colors_res[i], label = checkslegend[i])
-        axTr_total.scatter(tfbs[idx_maxLum], Rtr_all[i][idx_maxLum]/Rp, c = colors_res[i], s = 95, marker = 'X')
+        axRTr_total.plot(tfbs, Rtr_all[i]/Rp, c = colors_res[i], label = checkslegend[i])
+        # axRTr_total.scatter(tfbs[idx_maxLum], Rtr_all[i][idx_maxLum]/Rp, c = colors_res[i], s = 95, marker = 'X')
         axL_total.plot(tfbs, Lph_all[i]/Ledd_cgs, c = colors_res[i], label = checkslegend[i])
+        axTph_total.plot(tfbs, Temp_ph_all[i]/Rp, c = colors_res[i], label = checkslegend[i])
         axMdot_total.plot(tfbs, Mdot_all[i]/Medd_sol, c = colors_res[i], label = checkslegend[i])
-        axMdot_total.scatter(tfbs[idx_maxLum], Mdot_all[i][idx_maxLum]/Medd_sol, c = colors_res[i], s = 95, marker = 'X')
+        # axMdot_total.scatter(tfbs[idx_maxLum], Mdot_all[i][idx_maxLum]/Medd_sol, c = colors_res[i], s = 95, marker = 'X')
+        axTtr_total.plot(tfbs, Temp_tr_all[i]/Rp, c = colors_res[i], label = checkslegend[i])
 
-axTr_total.set_ylabel(r'$r_{\rm tr} [r_{\rm t}]$')
+axRTr_total.set_ylabel(r'$r_{\rm tr} [r_{\rm t}]$')
 axL_total.set_ylabel(r'$L_{\rm ph} [L_{\rm Edd}]$')
+axTph_total.set_ylabel(r'$T_{\rm ph} [K]$')
 axMdot_total.set_ylabel(r'$\dot{M}_{\rm w}(R_{\rm tr}) [\dot{M}_{\rm Edd}]$')
+axTtr_total.set_ylabel(r'$T_{\rm tr} [K]$')
 original_ticks = axL_total.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-for ax in [axTr_total, axL_total, axMdot_total]:
+for ax in [axRTr_total, axL_total, axMdot_total, axTtr_total, axTph_total]:
     ax.set_xlabel(r't [$t_{\rm fb}$]')
     ax.set_xticks(new_ticks)
     ax.tick_params(axis='both', which='major', width=1.2, length=9, color = 'k')
@@ -216,17 +229,19 @@ for ax in [axTr_total, axL_total, axMdot_total]:
 
 axL_total.set_ylim(1e-1, 5)
 axMdot_total.set_ylim(5, 5e3)
-axTr_total.set_ylim(1, 80)
-figTr_total.savefig(f'{abspath}/Figs/next_meeting/Rtr_totalNon0.png')
+axRTr_total.set_ylim(1, 80) 
+axTtr_total.set_ylim(9e2, 5e4)
+axTph_total.set_ylim(9e2, 5e4)
+figRTr_total.savefig(f'{abspath}/Figs/next_meeting/Rtr_total.png')
 figL_total.savefig(f'{abspath}/Figs/next_meeting/L_total.png')
-figMdot_total.savefig(f'{abspath}/Figs/next_meeting/Mdot_totalNon0.png')
+figMdot_total.savefig(f'{abspath}/Figs/next_meeting/Mdot_total.png')
 
 # %% High res, different ways to compute Mdot
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiResNewAMR'
 data = np.loadtxt(f'{abspath}/data/{folder}/HiResNewAMR_red.csv', delimiter=',', dtype=float)
 snaps, tfb_LH = data[:, 0], data[:, 1]
 tfb_LH, snaps = sort_list([tfb_LH, snaps], snaps, unique=True)
-snap, tfb_fallH, mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind = \
+snap, tfb_fallH, mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind, Vwind_nonzer = \
 np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_HiResNewAMRRtr.csv', 
                 delimiter = ',', 
                 skiprows=1, 

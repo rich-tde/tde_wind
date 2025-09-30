@@ -1,4 +1,4 @@
-""" Find density and (radial velocity) profiles for different lines of sight. NB: observers have to be noramlized to 1. """
+""" Find density and (radial velocity) profiles for different lines of sight."""
 # from Mdot_Rfixed import Medd_code
 import sys
 sys.path.append('/Users/paolamartire/shocks')
@@ -12,7 +12,7 @@ else:
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
     import matplotlib.cm as cm
-    compute = False
+    compute = True
 
 import numpy as np
 from sklearn.neighbors import KDTree
@@ -108,8 +108,8 @@ def radial_profiles(loadpath, snap, which_part, indices_sorted):
             
             # Quantity corresponding to the ray
             d = Den[idx] 
-            ray_t = T[idx]
             ray_rad_den = Rad_den[idx]
+            ray_t = (ray_rad_den*prel.en_den_converter/prel.alpha_cgs)**(1/4) #T[idx]
             ray_V_r = V_r[idx]
             
             # pick them just if near enough, otherwise set to 0 (easier for saving, insted of discard them)
@@ -153,7 +153,7 @@ def radial_profiles(loadpath, snap, which_part, indices_sorted):
             d_col = np.transpose(d_all)[i]
             rad_den_col = np.transpose(rad_den_all)[i]
             Mdot_col = np.transpose(Mdot_all)[i]
-            nonzero = t_col#[t_col != 0]
+            nonzero = t_col[t_col != 0]
             t_mean.append(np.mean(nonzero) if nonzero.size > 0 else 0)
             nonzero = v_rad_col[v_rad_col != 0]
             v_rad_mean.append(np.median(nonzero) if nonzero.size > 0 else 0)
@@ -216,7 +216,7 @@ observers_xyz = np.transpose(observers_xyz) #shape: Nx3
 if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 else:
-    snaps = [118]
+    snaps = [123]
 
 
 for snap in snaps:

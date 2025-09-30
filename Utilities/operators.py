@@ -115,7 +115,7 @@ def J_cart_in_sphere(lat, long):
 def Ryan_sampler(theta_arr):
     """ Function to sample the angle in the orbital plane so that you have more points also at apocenter."""
     # theta_shift = np.pi * np.sin(theta_arr/2)
-    theta_shift =  np.pi * np.tanh(2*theta_arr/np.pi) / np.tanh(2)
+    theta_shift =  np.pi * np.tanh(0.5*theta_arr/np.pi) / np.tanh(0.5)
     return theta_shift
 
 def find_step(theta_arr, i):
@@ -290,30 +290,6 @@ def find_ratio(L1, L2):
         ratio = max(np.abs(L1), np.abs(L2))/min(np.abs(L1), np.abs(L2))
     return ratio
 
-# def median_array(points, window_size=7):
-#     n = len(points)
-#     half_window = window_size // 2
-#     medians = np.copy(points)
-#     if half_window != 0:
-#         for i in range(half_window, n-half_window): #I don't care of the first/last points
-#             window = points[i-half_window:i+window_size]
-#             median = np.median(window)
-#             medians[i]= median
-#     return np.array(medians)
-
-# def average_array(values, w, window_size=7):
-#     """ Compute the weighted average of the values in a window of size window_size."""
-#     n = len(values)
-#     half_window = window_size // 2
-#     averages = np.copy(values) 
-#     if half_window != 0:
-#         for i in range(half_window, n-half_window): #I don't care of the first/last points
-#             window = values[i-half_window:i+window_size]
-#             distances = np.abs(w[i-half_window:i+window_size]-w[i])
-#             weights = np.power(distances,2)
-#             average = np.average(window, weights = weights)
-#             averages[i]= average
-#     return np.array(averages)
 class data_snap:
     # create a class to be used in make_tree so that it gives just one output.
     def __init__(self, sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, time, IE = None, Rad =None, Diss = None, Entropy = None):
