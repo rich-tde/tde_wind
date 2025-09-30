@@ -352,7 +352,7 @@ if __name__ == '__main__':
     # e = orb.e_mb(Rstar, mstar, Mbh, beta) 
     # N = 200    # number of points
     # theta_arr = generate_uniform_ellipse_points(a, e, N)
-    # idx_forplot = 4
+    idx_forplot = 4
     print(f'We are in folder {folder}', flush=True)
     
     path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -384,7 +384,7 @@ if __name__ == '__main__':
             stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
             print('Load stream from file', flush=True)
         except FileNotFoundError:
-            from com_stream import find_transverse_com
+            from src.Stream.com_stream import find_transverse_com
             print('Stream not found, computing it', flush=True)
             x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, Rstar)
             stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
