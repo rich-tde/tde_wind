@@ -63,7 +63,7 @@ def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
     condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
     # to be sure that you have points in the plane
     while len(mass_plane[condition]) == 0:
-        print(f'No points found since the beginning, inside C= {np.round(C,2)}. I double C.', flush = True)
+        # print(f'No points found since the beginning, inside C= {np.round(C,2)}. I double C.', flush = True)
         C *= 2
         condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
     mass = mass_plane[condition]
@@ -71,17 +71,18 @@ def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
     while True:
         # expand the boundaries 
         step = 2*np.mean(dim_plane[condition]) 
-        C += step
+        C += step 
         condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
         # Check that you add new points
-        if len(mass_plane[condition]) == len(mass):
-            print(f'No new points added, increase C adding {np.round(step,2)} to {np.round(C,2)}', flush = True)
+        # if len(mass_plane[condition]) == len(mass):
+            # print(f'No new points added, increase C adding {np.round(step,2)} to {np.round(C,2)}', flush = True)
             # C += step
-        else:
+            
+        if len(mass_plane[condition]) != len(mass):
             tocheck = r_plane[condition]-R0
             if tocheck.any()<0:
                 C -= step
-                print('overcome R0, I stop', flush = True)
+                # print('overcome R0, I stop', flush = True)
                 break
             mass = mass_plane[condition]
             new_mass = np.sum(mass) 

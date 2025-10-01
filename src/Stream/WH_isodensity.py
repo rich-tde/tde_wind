@@ -387,7 +387,7 @@ if __name__ == '__main__':
         except FileNotFoundError:
             from src.Stream.com_stream import find_transverse_com
             print('Stream not found, computing it', flush=True)
-            x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, Rstar)
+            x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, Rstar)
             stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
             if save:
                 np.save(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', stream)
@@ -399,7 +399,7 @@ if __name__ == '__main__':
                             [stats['ncells_h'] for stats in contour_stats]])
         indeces_boundary = np.array([stats['indeces_boundary'] for stats in contour_stats])
         indeces_enclosed = np.array(indeces_enclosed, dtype=object)
-        
+
         del X, Y, Z, Den, Mass, dim_cell
         gc.collect()
 
