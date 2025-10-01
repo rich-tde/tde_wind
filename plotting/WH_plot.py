@@ -309,6 +309,8 @@ if what == 'max_compr':
     for j, check in enumerate(checks):
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         snaps, Lum, tfbs = split_data_red(check)
+        len_arr = np.argmin(np.abs(tfbs - 1.2))
+        print(check, snaps[len_arr])
         snaps, Lum, tfbs = snaps[:len_arr], Lum[:len_arr], tfbs[:len_arr]
 
         after_before_width = []
@@ -322,8 +324,6 @@ if what == 'max_compr':
 
         for i, tfb in enumerate(tfbs):
             snap = snaps[i]
-            if np.logical_and(snap > 57, check == 'HiResNewAMR'):    
-                continue
             path = f'{abspath}/TDE/{folder}/{snap}'
             wh = np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
             theta_wh, width, N_width, height, N_height = wh[0], wh[1], wh[2], wh[3], wh[4]

@@ -17,7 +17,7 @@ else:
 import numpy as np
 import numba
 from scipy.optimize import brentq
-
+import gc
 import Utilities.prelude as prel
 import Utilities.sections as sec
 import src.orbits as orb
@@ -379,6 +379,7 @@ if __name__ == '__main__':
         X, Y, Z, Den, Mass, Vol = \
             sec.make_slices([X, Y, Z, Den, Mass, Vol], cutden)
         dim_cell = Vol**(1/3) 
+        del Vol
 
         try:
             stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
@@ -398,6 +399,9 @@ if __name__ == '__main__':
                             [stats['ncells_h'] for stats in contour_stats]])
         indeces_boundary = np.array([stats['indeces_boundary'] for stats in contour_stats])
         indeces_enclosed = np.array(indeces_enclosed, dtype=object)
+        
+        del X, Y, Z, Den, Mass, dim_cell
+        gc.collect()
 
         if save:
             with open(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt','w') as file:
