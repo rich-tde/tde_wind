@@ -25,7 +25,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-what = 'max_compr' # 'section' or 'comparison' or 'max_compr' or 'single_snap_behavior' 
+what = 'section' # 'section' or 'comparison' or 'max_compr' or 'single_snap_behavior' 
 
 Mbh = 10**m
 Rs = 2*prel.G*Mbh / prel.csol_cgs**2
@@ -142,7 +142,7 @@ if what == 'single_snap_behavior' or what == 'section':
     if what == 'single_snap_behavior':
         # Plot stream (zoom out and in on theorbital plane) 
         fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,6), width_ratios= [1.2, .5])
-        for ax in [ax1, ax2]:
+        for ax in [ax1, ax2]: 
             img =ax.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 1e-6))
             ax.plot(x_stream[:-70]/apo, y_stream[:-70]/apo, c = 'k')
             ax.plot(x_stream[-30:]/apo, y_stream[-30:]/apo, c = 'k')
@@ -187,13 +187,14 @@ if what == 'single_snap_behavior' or what == 'section':
 
     if what == 'section':
         q_color = 'Mass'
-        idx = 164 #np.argmin(height) #np.argmin(np.abs(theta_arr + 3*np.pi/4)) # find the index of the theta closest to 1.5
+        idx = np.argmin(height) #np.argmin(np.abs(theta_arr + 3*np.pi/4)) # find the index of the theta closest to 1.5
         chosentheta = theta_wh[idx]
-        thetabefore = theta_wh[np.argmin(height)] - np.pi/2
-        thetaafter = theta_wh[np.argmin(height)] + np.pi/2
+        thetabefore = chosentheta - np.pi/2
+        thetaafter = chosentheta + np.pi/2
         x_arr = np.arange(-.1, 1.1, .1)
         y_arr_chosentheta = draw_line(x_arr, chosentheta)
-        y_arr_thetaafterbefore = draw_line(x_arr, thetabefore)
+        y_before = draw_line(x_arr, thetabefore)
+        y_after = draw_line(x_arr, thetaafter)
 
         indeces = np.arange(len(X))
         # find in the simulaion the boundary and the points inside
@@ -206,13 +207,15 @@ if what == 'single_snap_behavior' or what == 'section':
         condition_thresh = np.logical_and(np.abs(x_T_plane) < thresh_cm[idx], np.abs(z_plane) < thresh_cm[idx])
         x_sec, x_T_sec, y_sec, z_sec, dim_sec, den_sec, mass_sec = \
             sec.make_slices([x_plane, x_T_plane, y_plane, z_plane, dim_plane, den_plane, mass_plane], condition_thresh)
-        stream_cells_T = np.logical_and(x_T_sec >= x_T_low, x_T_sec <= x_T_up)
-        stream_cells_Z = np.logical_and(z_sec >= z_low, z_sec <= z_up)
-        stream_cells = np.logical_and(stream_cells_T, stream_cells_Z)
-
+        # stream_cells_T = np.logical_and(x_T_sec >= x_T_low, x_T_sec <= x_T_up)
+        # stream_cells_Z = np.logical_and(z_sec >= z_low, z_sec <= z_up)
+        # stream_cells = np.logical_and(stream_cells_T, stream_cells_Z)
+        # print(f'Mass cells betwwen +-T, no limit in Z: {int(100*np.sum(mass_sec[stream_cells_T]) / np.sum(mass_sec))}% of total mass in the plane (below section threshold)')
+        # print(f'Mass cells betwwen +-Z, no limit in T: {int(100*np.sum(mass_sec[stream_cells_Z]) / np.sum(mass_sec))}% of total mass in the plane (below section threshold)')
+        enclosed_cells = np.load(f'{abspath}/data/{folder}/WH/indeces_enclosed_{check}{snap}.npy', allow_pickle=True)
+        stream_cells = enclosed_cells[idx]
+        
         print('Mass in the stream/mass section: ', np.sum(mass_sec[stream_cells])/np.sum(mass_sec))
-        print(f'Mass cells betwwen +-T, no limit in Z: {int(100*np.sum(mass_sec[stream_cells_T]) / np.sum(mass_sec))}% of total mass in the plane (below section threshold)')
-        print(f'Mass cells betwwen +-Z, no limit in T: {int(100*np.sum(mass_sec[stream_cells_Z]) / np.sum(mass_sec))}% of total mass in the plane (below section threshold)')
 
         if q_color == 'Mass':
             q_points = Mass_midplane
@@ -223,8 +226,8 @@ if what == 'single_snap_behavior' or what == 'section':
             q_plane = den_plane * prel.den_converter
             q_sec = den_sec * prel.den_converter
 
-        fig, ((ax0, ax1), (ax2, ax3)) = plt.subplots(2,2,figsize = (18,14))
-        img = ax0.scatter(X_midplane/apo, Y_midplane/apo, c = q_points, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = np.percentile(q_points, 10), vmax = np.percentile(q_points, 40)))
+        fig, ((ax0, ax1), (ax2, ax3)) = plt.subplots(2,2,figsize = (20,14))
+        img = ax0.scatter(X_midplane/apo, Y_midplane/apo, c = q_points, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = np.percentile(q_points, 20), vmax = np.percentile(q_points, 95)))
         cbar = plt.colorbar(img, ax=ax0)
         if q_color == 'Mass':
             cbar.set_label(r'Mass [$M_\odot$]') 
@@ -233,19 +236,20 @@ if what == 'single_snap_behavior' or what == 'section':
         ax0.plot(x_stream/apo, y_stream/apo, c = 'k', ls = ':')
         ax0.scatter(x_low_width/apo, y_low_width/apo, c = 'k', s = 5)
         ax0.scatter(x_up_width/apo, y_up_width/apo, c = 'k', s = 5)
-        ax0.plot(x_arr, y_arr_chosentheta, c = 'b', label = r'$\alpha$')
-        ax0.plot(x_arr, y_arr_thetaafterbefore, c = 'r', label = r'$\alpha \pm \pi/2$')
+        ax0.plot(x_arr, y_arr_chosentheta, c = 'k', label = r'$\alpha$')
+        ax0.plot(x_arr, y_before, c = 'r', label = r'$\alpha \pm \pi/2$')
+        # ax0.plot(x_arr, y_after, c = 'b', label = r'$\alpha + \pi/2$')
         ax0.set_xlim(-1, 0.1)
-        ax0.set_ylim(-.25, .25)
+        ax0.set_ylim(-.3, .3)
         ax0.set_xlabel(r'X [$R_{\rm a}$]')
         ax0.set_ylabel(r'Y [$R_{\rm a}$]')
         ax0.legend(fontsize = 16, loc = 'upper left')
         
         img = ax1.scatter(x_T_plane, z_plane, c = q_plane, s = 20, cmap = 'rainbow', norm = colors.LogNorm(vmin = np.percentile(q_plane, 50), vmax = np.max(q_plane)))
         cbar = plt.colorbar(img)
-        img = ax1.scatter(x_T_sec[stream_cells], z_sec[stream_cells], c = q_sec[stream_cells], s = 40, edgecolor = 'k', cmap = 'rainbow', norm = colors.LogNorm(vmin = np.percentile(q_sec, 50), vmax = np.max(q_sec)))
+        # img = ax1.scatter(x_T_sec[stream_cells], z_sec[stream_cells], c = q_sec[stream_cells], s = 40, edgecolor = 'k', cmap = 'rainbow', norm = colors.LogNorm(vmin = np.percentile(q_sec, 50), vmax = np.max(q_sec)))
         cbar.set_label(r'Mass [$M_\odot$]')
-        ax1.set_xlabel(r'T [$R_\odot$]')
+        ax1.set_xlabel(r'N [$R_\odot$]')
         ax1.set_ylabel(r'Z [$R_\odot$]')
         ax1.axvline(x=x_T_low, color='grey', linestyle = '--')
         ax1.axvline(x=x_T_up, color='grey', linestyle = '--')
@@ -275,13 +279,13 @@ if what == 'single_snap_behavior' or what == 'section':
         ax2.axvline(x = x_T_low, color='grey', linestyle = '--', label = 'Stream width')
         ax2.axvline(x = x_T_up, color='grey', linestyle = '--')
         ax2.set_ylabel(r'Mass [$M_\odot$]')
-        ax2.set_xlabel(r'T [$R_\odot$]')
+        ax2.set_xlabel(r'N [$R_\odot$]')
         ax2.axvline(0, c = 'k')
 
         img = ax3.scatter(x_T_sec, den_sec, s = 20, c = z_sec, cmap = 'viridis', norm = colors.LogNorm(vmin = 1e-1, vmax = 10))
         cbar = plt.colorbar(img, ax=ax3)
         cbar.set_label(r'Z [$R_\odot$]')
-        ax3.set_xlabel(r'T [$R_\odot$]')
+        ax3.set_xlabel(r'N [$R_\odot$]')
         ax3.set_ylabel(r'Density [$M_\odot/R_\odot^3$]')
 
         plt.suptitle(r'$\alpha$ = ' + f'{np.round(theta_wh[idx], 2)}, {check}, t =  {np.round(tfb_single,2)}' + r' $t_{\rm fb}$, number cells $\Delta$ = ' + f'{N_width[idx]}, H = {N_height[idx]}', fontsize = 25)
@@ -307,11 +311,13 @@ if what == 'max_compr':
     ax1_compr.set_ylabel(r'H$_{\rm min} [R_\star]$')
 
     for j, check in enumerate(checks):
+        # if check != 'HiResNewAMR':
+        #     continue
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         snaps, Lum, tfbs = split_data_red(check)
-        len_arr = np.argmin(np.abs(tfbs - 1.2))
-        print(check, snaps[len_arr])
-        snaps, Lum, tfbs = snaps[:len_arr], Lum[:len_arr], tfbs[:len_arr]
+        # len_arr = np.argmin(np.abs(tfbs - 1.2))
+        # print(check, snaps[len_arr])
+        # snaps, Lum, tfbs = snaps[:len_arr], Lum[:len_arr], tfbs[:len_arr]
 
         after_before_width = []
         after_before_h = []
@@ -357,11 +363,17 @@ if what == 'max_compr':
     cbar.set_ticks(ticks)
     cbar.ax.yaxis.set_major_formatter(FuncFormatter(format_pi_frac))
     ax1_compr.legend(fontsize = 18)
+    # ax1_compr.set_ylim(0,1)
     ax1.legend(fontsize = 18)
+    ax2.set_xlabel(r't [t$_{\rm fb}$]')
+    original_ticks = ax1.get_xticks()
+    mid_ticks = (original_ticks[1:] + original_ticks[:-1]) / 2
+    new_ticks = np.concatenate((original_ticks, mid_ticks))
     for ax in [ax1, ax2, ax1_compr]:
+        ax.set_xticks(new_ticks)
         ax.tick_params(which = 'major', length = 10)
         ax.tick_params(which = 'minor', length = 5)
-        ax.set_xlabel(r't [t$_{\rm fb}$]')
+        ax.set_xlim(0.01, 1.8)
         ax.grid()
         if ax in [ax1, ax2]:
             ax.axhline(y=1, color='grey', linestyle = '--')

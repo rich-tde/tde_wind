@@ -77,7 +77,7 @@ def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
         # if len(mass_plane[condition]) == len(mass):
             # print(f'No new points added, increase C adding {np.round(step,2)} to {np.round(C,2)}', flush = True)
             # C += step
-            
+
         if len(mass_plane[condition]) != len(mass):
             tocheck = r_plane[condition]-R0
             if tocheck.any()<0:
@@ -137,7 +137,7 @@ def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R
 
     return x_max, y_max, z_max    
 
-def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, theta_arr, Rstar, all_iterations = False):
+def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, theta_arr, all_iterations = False):
     """ Find the centres of mass that defines the stream.
     Parameters
     ----------
@@ -162,7 +162,7 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         x_stream_rad, y_stream_rad, z_stream_rad : array
             X, Y, Z coordinates of the radial maximum points of the stream.
     """ 
-    global R0, apo, Rt
+    global R0, apo, Rt, Rstar
     # Cut a bit the data at the first step of everything for computational reasons
     cutting = np.logical_and(np.abs(z_data) < apo, np.abs(y_data) < 2 * apo)
     x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut = \
@@ -275,7 +275,7 @@ if __name__ == '__main__':
             R = np.sqrt(X**2 + Y**2 + Z**2)
             THETA, RADIUS_cyl = to_cylindric(X, Y)
             dim_cell = Vol**(1/3) 
-            x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, params, Rstar)
+            x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr)
             stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
 
             np.save(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', stream)

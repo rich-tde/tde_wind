@@ -15,7 +15,6 @@ else:
     save = False
 
 import numpy as np
-import numba
 from scipy.optimize import brentq
 import gc
 import Utilities.prelude as prel
@@ -34,7 +33,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
-check = 'HiResNewAMR'
+check = 'NewAMR'
 compton = 'Compton'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
@@ -74,7 +73,7 @@ def bound_mass_density(density_threshold, density_data, mass_data, m_thres):
     total_mass = np.sum(mass)
     return total_mass - m_thres
 
-def find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_data, mass_data, stream, idx, params, mass_percentage):
+def find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_data, mass_data, stream, idx, mass_percentage):
     """
     Find the boundaries using isodensity contours for a single theta.
     
@@ -86,8 +85,6 @@ def find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_
         Stream data containing: theta, x, y, z coordinates, threshold for cutting the plane.
     idx : int
         Index of the theta in the stream to consider.
-    params : list
-        List of parameters [Mbh, Rstar, mstar, beta].
     mass_percentage : float
         Target mass percentage to enclose.
         
@@ -98,11 +95,9 @@ def find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_
     indeces_enclosed : array
         Indices of points inside the isodensity contour.
     contour_stats : dict
-        Dictionary containing statistics about the contour.
+        Dictionary containing statistics about the contour. 
     """
-    Mbh, Rstar, mstar, beta = params
-    Rt = orb.tidal_radius(Rstar, mstar, Mbh)
-    R0 = 0.6 * (Rt / beta)
+    global Rt, R0, Rstar
     indeces = np.arange(len(x_data))
     theta_arr, x_stream, y_stream, z_stream, thresh_stream = stream[0], stream[1], stream[2], stream[3], stream[4]
     thresh = thresh_stream[idx]
@@ -110,7 +105,7 @@ def find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_
     condition_T, x_Tplane, _ = sec.transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, Rstar, just_plane=True)
     x_plane, y_plane, z_plane, dim_plane, density_plane, mass_plane, indeces_plane = \
         sec.make_slices([x_data, y_data, z_data, dim_data, density_data, mass_data, indeces], condition_T)
-    # Apply the same threshold used to find the stream
+    # Apply the same threshold used to find the stream (even if the plane is slightly different)
     condition_x = np.abs(x_Tplane) < thresh
     condition_z = np.abs(z_plane) < thresh
     condition = condition_x & condition_z
@@ -119,7 +114,7 @@ def find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_
     
     r_spherical_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
     if np.min(r_spherical_plane) < R0:
-        print(f'The threshold to cut the TZ plane in width is too broad: you overcome R0 at angle #{theta_arr[idx]} of the stream')
+        print(f'The threshold to cut the TZ plane in width is too broad: you overcome R0 at angle {theta_arr[idx]} of the stream')
     
     # Calculate target mass
     total_mass = np.sum(mass_plane)
@@ -129,12 +124,12 @@ def find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_
     min_density = np.min(density_plane)
     max_density = np.max(density_plane)
     # Use a slightly higher minimum to ensure we don't include all points
-    density_range_min = min_density #+ 0.001 * (max_density - min_density)
+    # density_range_min = min_density + 0.001 * (max_density - min_density)
     
     try:
         # Find the density threshold that encloses the target mass
         density_threshold = brentq(bound_mass_density, 
-                                 density_range_min, max_density,
+                                 min_density, max_density,
                                  args=(density_plane, mass_plane, mass_to_reach))
         
         # Get condition for points inside the contour
@@ -165,7 +160,7 @@ def find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_
         contour_stats = {
             'density_threshold': density_threshold,
             'xT_bounds': [xT_min, xT_max],
-            'width': width,
+            'width': width, # you can delete it
             'ncells_w': ncells_w,
             'z_bounds': [z_min, z_max],
             'height': height,
@@ -185,7 +180,7 @@ def find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_
         
     except ValueError as e:
         print(f"Error finding isodensity contour at theta {np.round(theta_arr[idx], 2)} rad: {e}")
-        return None, None, None, None
+        return None, None, None
 
 def plot_isodensity_results(x_plane, x_Tplane, y_plane, z_plane, mass_plane, dim_plane,
                            condition_enclosed, contour_stats, 
@@ -292,7 +287,7 @@ def plot_isodensity_results(x_plane, x_Tplane, y_plane, z_plane, mass_plane, dim
     plt.suptitle(rf'$\theta$ = {np.round(theta_val, 2)} rad', fontsize=16)
     plt.show()
 
-def follow_the_stream_isodensity(x_data, y_data, z_data, dim_data, density_data, mass_data, stream, params, mass_percentage=0.8):
+def follow_the_stream_isodensity(x_data, y_data, z_data, dim_data, density_data, mass_data, stream, mass_percentage=0.8):
     """
     Find isodensity contour boundaries all along the stream.
     
@@ -302,8 +297,6 @@ def follow_the_stream_isodensity(x_data, y_data, z_data, dim_data, density_data,
         Simulation data arrays.
     stream : array
         Stream data containing: theta, x, y, z coordinates, threshold.
-    params : list
-        List of parameters [Mbh, Rstar, mstar, beta].
     mass_percentage : float
         Target mass percentage to enclose (default 0.8 for 80%).
         
@@ -328,7 +321,7 @@ def follow_the_stream_isodensity(x_data, y_data, z_data, dim_data, density_data,
     
     for i in range(len(theta_arr)):
         density_threshold, indeces_enclosed_i, contour_stats_i = \
-            find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_data, mass_data, stream, i, params, mass_percentage)
+            find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_data, mass_data, stream, i, mass_percentage)
         
         if density_threshold is None:
             print(f'Skipping theta {np.round(theta_arr[i],2)} due to ValueError in boundary finding.', flush=True)
@@ -346,12 +339,6 @@ if __name__ == '__main__':
     step = np.round((2*theta_lim)/200, 3)
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_arr = Ryan_sampler(theta_init)
-    # from Utilities.operators import to_cylindric
-    # from Utilities.parabola_arclength_uniform_sampling import generate_uniform_ellipse_points
-    # a = orb.semimajor_axis(Rstar, mstar, Mbh, prel.G)
-    # e = orb.e_mb(Rstar, mstar, Mbh, beta) 
-    # N = 200    # number of points
-    # theta_arr = generate_uniform_ellipse_points(a, e, N)
     idx_forplot = 4
     print(f'We are in folder {folder}', flush=True)
     
@@ -359,51 +346,47 @@ if __name__ == '__main__':
     
     if alice:
         snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
-    else: 
-        snaps = [123]
-        # theta_arr = theta_arr[160:170]  # Take every second element for better performance
-    
-    for i, snap in enumerate(snaps):
-        print(f'Snap {snap}', flush = True)
 
-        path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
-        if alice:
-            path = f'{path}/snap_{snap}'
-        else:
-            path = f'{path}/{snap}'
+        for i, snap in enumerate(snaps):
+            print(f'Snap {snap}', flush = True)
 
-        data = make_tree(path, snap, energy = False)
-        X, Y, Z, Den, Mass, Vol = \
-            data.X, data.Y, data.Z, data.Den, data.Mass, data.Vol
-        cutden = Den >1e-19
-        X, Y, Z, Den, Mass, Vol = \
-            sec.make_slices([X, Y, Z, Den, Mass, Vol], cutden)
-        dim_cell = Vol**(1/3) 
-        del Vol
+            path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
+            if alice:
+                path = f'{path}/snap_{snap}'
+            else:
+                path = f'{path}/{snap}'
 
-        try:
-            stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
-            print('Load stream from file', flush=True)
-        except FileNotFoundError:
-            from src.Stream.com_stream import find_transverse_com
-            print('Stream not found, computing it', flush=True)
-            x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr, Rstar)
-            stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
-            if save:
-                np.save(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', stream)
-        
-        theta_wh, density_thresholds, indeces_enclosed, contour_stats = follow_the_stream_isodensity(X, Y, Z, dim_cell, Den, Mass, stream, params = params)
-        w_params = np.array([[stats['width'] for stats in contour_stats],
-                            [stats['ncells_w'] for stats in contour_stats]])
-        h_params = np.array([[stats['height'] for stats in contour_stats],
-                            [stats['ncells_h'] for stats in contour_stats]])
-        indeces_boundary = np.array([stats['indeces_boundary'] for stats in contour_stats])
-        indeces_enclosed = np.array(indeces_enclosed, dtype=object)
+            data = make_tree(path, snap, energy = False)
+            X, Y, Z, Den, Mass, Vol = \
+                data.X, data.Y, data.Z, data.Den, data.Mass, data.Vol
+            cutden = Den >1e-19
+            X, Y, Z, Den, Mass, Vol = \
+                sec.make_slices([X, Y, Z, Den, Mass, Vol], cutden)
+            dim_cell = Vol**(1/3) 
+            del Vol
 
-        del X, Y, Z, Den, Mass, dim_cell
-        gc.collect()
+            try:
+                stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
+                print('Load stream from file', flush=True)
+            except FileNotFoundError:
+                from src.Stream.com_stream import find_transverse_com
+                print('Stream not found, computing it', flush=True)
+                x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr)
+                stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
+                if save:
+                    np.save(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', stream)
+            
+            theta_wh, density_thresholds, indeces_enclosed, contour_stats = follow_the_stream_isodensity(X, Y, Z, dim_cell, Den, Mass, stream)
+            w_params = np.array([[stats['width'] for stats in contour_stats],
+                                [stats['ncells_w'] for stats in contour_stats]])
+            h_params = np.array([[stats['height'] for stats in contour_stats],
+                                [stats['ncells_h'] for stats in contour_stats]])
+            indeces_boundary = np.array([stats['indeces_boundary'] for stats in contour_stats])
+            indeces_enclosed = np.array(indeces_enclosed, dtype=object)
 
-        if save:
+            del X, Y, Z, Den, Mass, dim_cell
+            gc.collect()
+
             with open(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt','w') as file:
                 # if file exist, save theta and date of execution
                 file.write(f'# theta \n')
@@ -419,66 +402,36 @@ if __name__ == '__main__':
             np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{check}{snap}.npy', indeces_boundary)
             np.save(f'{abspath}/data/{folder}/WH/enclosed/indeces_enclosed_{check}{snap}.npy', indeces_enclosed, allow_pickle=True)
 
-        if not alice:
-            # Plotting results
-            fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(18, 9))
-            ax1.plot(theta_wh * radians, w_params[0], c='dodgerblue')
-            ax3.scatter(theta_wh * radians, w_params[1], c='dodgerblue')
-            ax2.plot(theta_wh * radians, h_params[0], c='orange')
-            ax4.scatter(theta_wh * radians, h_params[1], c='orange')
-            ax1.set_ylabel(r'Width [$R_\odot$]')
-            ax3.set_ylabel(r'N cells')
-            ax2.set_ylabel(r'Height [$R_\odot$]')
-            ax1.set_ylim(1.1, 10)
-            ax2.set_ylim(.2, 10)
-            ax3.set_ylim(5, 20)    
-            ax4.set_ylim(0.9, 10)
-            for ax in [ax1, ax2, ax3, ax4]:
-                ax.set_yscale('log')
-                ax.set_xlabel(r'$\theta$')
-                ax.set_xlim(-2.5, 2.5)
-                ax.tick_params(axis='both', which='major', length = 8, width = 1.2)
-                ax.tick_params(axis='both', which='minor', length = 4, width = 1)
-            plt.tight_layout()
-        
-# if not alice:
-#     snap = snaps[0]
-#     tfb = np.loadtxt(f'{abspath}/TDE/{folder}/{snap}/tfb_{snap}.txt')
-#     theta_wh_sp, width_sp, N_width_sp, height_sp, N_height_sp = \
-#         np.loadtxt(f'{abspath}/data/{folder}/WH/spatial/wh_{check}{snap}.txt')
-#     theta_wh_iso, width_iso, N_width_iso, height_iso, N_height_iso = \
-#         np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
+    if plot: 
+        snap = 238
+        dataLum = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
+        snaps, tfbs = dataLum[:, 0], dataLum[:, 1]
+
+        theta_wh, width, N_width, height, N_height = \
+            np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
+        # Plotting results
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 9))
+        ax1.plot(theta_wh * radians, width, c='yellowgreen')
+        ax3.scatter(theta_wh * radians, N_width, c='yellowgreen')
+        ax2.plot(theta_wh * radians, height, c='yellowgreen')
+        ax4.scatter(theta_wh * radians, N_height, c='yellowgreen')
+        ax1.set_ylabel(r'Width [$R_\odot$]')
+        ax3.set_ylabel(r'N cells')
+        ax2.set_ylabel(r'Height [$R_\odot$]')
+        ax1.set_ylim(1, 15)
+        ax2.set_ylim(.1, 10)
+        ax3.set_ylim(4, 40)    
+        ax4.set_ylim(0.9, 35)
+        for ax in [ax1, ax2, ax3, ax4]:
+            ax.set_yscale('log')
+            ax.set_xlabel(r'$\theta$')
+            ax.set_xlim(-2.5, 2.5)
+            ax.tick_params(axis='both', which='major', length = 10, width = 1.2)
+            ax.tick_params(axis='both', which='minor', length = 8, width = 1)
+            ax.grid()
+        plt.suptitle(f't = {np.round(tfbs[snaps==snap][0],2)} ' + r't$_{\rm fb}$', fontsize=16)
+        plt.tight_layout()
     
-#     fig, (ax1, ax2) = plt.subplots(1,2,figsize=(15, 5))
-#     figC, (ax3, ax4) = plt.subplots(1,2,figsize=(15, 5))
-#     ax1.plot(theta_wh_iso*radians, width_iso, c = 'dodgerblue', label = 'isodensity (80\% mass enclosed)')
-#     ax1.plot(theta_wh_sp*radians, width_sp, c = 'k', label = 'spatial (\"80\%\" mass enclosed)')
-#     ax1.legend(fontsize = 16)
-#     ax1.set_ylabel(r'Width [$R_\odot$]')
-#     ax1.set_ylim(1.1, 10)
-
-#     ax2.plot(theta_wh_iso*radians, height_iso, c = 'dodgerblue')
-#     ax2.plot(theta_wh_sp*radians, height_sp, c = 'k')
-#     ax2.set_ylabel(r'Height [$R_\odot$]')
-#     ax2.set_ylim(.2, 10)
-
-#     ax3.scatter(theta_wh_iso*radians, N_width_iso, c = 'dodgerblue', label = 'isodensity (80\% mass enclosed)')
-#     ax3.scatter(theta_wh_sp*radians, N_width_sp, c = 'k', label = 'spatial (\"80\%\" mass enclosed)')
-#     ax3.legend(fontsize = 16)
-#     ax3.set_ylabel(r'N cells width')
-#     ax3.set_ylim(5, 20)    
-#     ax4.scatter(theta_wh_iso*radians, N_height_iso, c = 'dodgerblue')
-#     ax4.scatter(theta_wh_sp*radians, N_height_sp, c = 'k')
-#     ax4.set_ylabel(r'N cells height')
-#     ax4.set_ylim(0.9, 10)
-#     for ax in [ax1, ax2, ax3, ax4]:
-#         ax.set_yscale('log')
-#         ax.set_xlabel(r'$\theta$')
-#         ax.set_xlim(-2.5, 2.5)
-#         ax.tick_params(axis='both', which='major', length = 8, width = 1.2)
-#         ax.tick_params(axis='both', which='minor', length = 4, width = 1)
-#     plt.suptitle(f'Width and height with different root-finder conditions at t = {np.round(tfb,2)} ' + r't$_{\rm fb}$', fontsize = 16)
-#     plt.tight_layout()
 
 
 

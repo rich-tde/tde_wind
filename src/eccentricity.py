@@ -139,11 +139,12 @@ else:
         tfb_data= np.loadtxt(f'{path}/Ecc_{which_cut}_{check}_days.txt')
         snap, tfb = tfb_data[0], tfb_data[1]
         radii = np.load(f'{path}/EccRadii_{which_cut}_{check}.npy')
-        
+        # for i in range(len(tfb)):  
+        #     print(f'min ecc in {check} outside R0: {np.min(ecc[i][radii>R0])}')
         # Plot
-        plt.figure(figsize=(8,7))
+        plt.figure(figsize=(8,7))   
         # set to white the 0 values so they are white in the plot
-        ecc[ecc == 0] = np.nan
+        ecc[ecc == 0] = np.nan 
         img = plt.pcolormesh(radii/apo, tfb, ecc, vmin = 0.5, vmax = .95, cmap = 'viridis', rasterized = True)#cmocean.cm.balance)
         cb = plt.colorbar(img)
         cb.ax.tick_params(labelsize=25)

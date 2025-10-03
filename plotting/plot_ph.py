@@ -21,9 +21,9 @@ n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
 which_obs = 'dark_bright_z'
-checks = ['NewAMR', 'HiResNewAMR']
-checkslegend = ['Middle', 'High']
-colors_res = ['yellowgreen','darkviolet']
+checks = ['HiResNewAMR', 'NewAMR']
+checkslegend = ['High', 'Middle']
+colors_res = ['darkviolet', 'yellowgreen']
 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -44,16 +44,16 @@ indices_axis, label_axis, colors_axis, lines_axis = choose_observers(observers_x
 observers_xyz = observers_xyz.T
 x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
 
-Rtr_all = []
+Rph_all = []
 Lph_all = []
 Temp_ph_all = []
+Rtr_all = []
 Mdot_all = []
 Temp_tr_all = []
 figTr, axTr = plt.subplots(1, 1, figsize=(10, 6))
-figL, (axL, axTph) = plt.subplots(1, 2, figsize=(18, 6))
-figMdot, (axMdot, axTtr) = plt.subplots(1, 2, figsize=(18, 6))
-figC, axC = plt.subplots(1, 1, figsize=(10, 6))
-for c, check in reversed(list(enumerate(checks))):
+figL, (axL, axTph, axC2) = plt.subplots(1, 3, figsize=(27, 6))
+figMdot, (axMdot, axTtr, axC) = plt.subplots(1, 3, figsize=(27, 6))
+for c, check in enumerate(checks):
         print(check)
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
@@ -75,9 +75,11 @@ for c, check in reversed(list(enumerate(checks))):
         Vr_tr_mean = np.zeros((len(indices_axis), len(snaps)))  
         Temp_tr_mean = np.zeros((len(indices_axis), len(snaps)))    
         eta_axis = np.zeros((len(indices_axis), len(snaps)))
+        r_ph_mean = np.zeros((len(indices_axis), len(snaps)))
         Lum_ph_mean = np.zeros((len(indices_axis), len(snaps)))
         Temp_ph_mean = np.zeros((len(indices_axis), len(snaps)))
         # (all) angle-integrated quantities
+        r_ph_snap = np.zeros(len(snaps))
         Temp_ph_snap = np.zeros(len(snaps))
         r_tr_snap = np.zeros(len(snaps))
         Temp_tr_snap = np.zeros(len(snaps))
@@ -85,28 +87,31 @@ for c, check in reversed(list(enumerate(checks))):
         for s, snap in enumerate(snaps): 
                 tfb = tfbs[s]
                 dataph = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
-                Temp_ph, RadDen_ph, Lum_ph = dataph[5], dataph[6], dataph[-2]
-                Temp_ph_snap[s] = np.mean(Temp_ph)
-                RadDen_ph *= prel.en_den_converter
-                dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz")
+                xph, yph, zph, Temp_ph, RadDen_ph, Lum_ph = dataph[0], dataph[1], dataph[2], dataph[5], dataph[6], dataph[-2]
+                r_ph = np.sqrt(xph**2 + yph**2 + zph**2)
+                Temprad_ph = (RadDen_ph*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
+                r_ph_snap[s] = np.mean(r_ph)
+                Temp_ph_snap[s] = np.mean(Temprad_ph)
+                dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz") 
                 x_tr, y_tr, z_tr, den_tr, Vr_tr, Temp_tr, Rad_den_tr = \
                         dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['Temp_tr'], dataRtr['Rad_den_tr'] 
-                Rad_den_tr *= prel.en_den_converter
                 r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+                Temprad_tr = (Rad_den_tr*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
                 r_tr_snap[s] = np.mean(r_tr)
-                Temp_tr_snap[s] = np.mean(Temp_tr)
+                Temp_tr_snap[s] = np.mean(Temprad_tr)
                 Mdot_tr = 4 * np.pi * r_tr**2 * den_tr * np.abs(Vr_tr)
                 Mdot_snap[s] = np.mean(Mdot_tr)
                 for i, observer in enumerate(indices_axis):
                         Lum_ph_mean[i][s] = np.mean(Lum_ph[observer])   
-                        Temp_ph_mean[i][s] = np.mean((RadDen_ph[observer]/prel.alpha_cgs)**(1/4))                    
+                        Temp_ph_mean[i][s] = np.mean(Temprad_ph[observer])                    
                         # nonzero = r_tr[observer] != 0 
                         # if np.logical_and(check == 'HiResNewAMR', np.round(tfb,2)>1):
                         #         print(f'{np.round(tfb,2)}, {label_axis[i]}: percentage non zero Rtr/total = {int(len(nonzero[nonzero==True])/len(nonzero)*100)}%')
                         r_tr_mean[i][s] = np.mean(r_tr[observer])
+                        r_ph_mean[i][s] = np.mean(r_ph[observer])
                         Vr_tr_mean[i][s] = np.mean(Vr_tr[observer])
                         den_tr_mean[i][s] = np.mean(den_tr[observer])
-                        Temp_tr_mean[i][s] = np.mean((Rad_den_tr[observer]/prel.alpha_cgs)**(1/4))
+                        Temp_tr_mean[i][s] = np.mean(Temprad_tr[observer])
                         Mdot_mean[i][s] = np.mean(Mdot_tr[observer])
 
                         t_dyn = (r_tr_mean[i][s]/Vr_tr_mean[i][s])*prel.tsol_cgs/t_fb_days_cgs # you want it in t_fb
@@ -117,6 +122,7 @@ for c, check in reversed(list(enumerate(checks))):
         Rtr_all.append(r_tr_snap)
         Temp_tr_all.append(Temp_tr_snap)
         Mdot_all.append(Mdot_snap)
+        Rph_all.append(r_ph_snap)
 
         # Eddington luminosity
         if check == 'HiResNewAMR':
@@ -143,18 +149,20 @@ for c, check in reversed(list(enumerate(checks))):
                         axMdot.plot(tfbs, Mdot_mean[i]/Medd_sol, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
                         # axMdot.scatter(tfbs[idx_maxLum], Mdot_mean[i][idx_maxLum]/Medd_sol, c = colors_res[c], s = 85, marker = 'X')
                         axC.plot(tfbs, (r_tr_mean[i]*prel.Rsol_cgs*Temp_tr_mean[i]**2)**2/Ledd_cgs, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
+                        axC2.plot(tfbs, (r_ph_mean[i]*prel.Rsol_cgs*Temp_ph_mean[i]**2)**2/Ledd_cgs, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
 
 axTr.axhline(amin/Rt, c = 'k', ls = '--', label = r'$a_{\rm mb}$')        
 axTr.set_ylabel(r'$r_{\rm tr} [r_{\rm t}]$')
 axL.set_ylabel(r'$L_{\rm ph} [L_{\rm Edd}]$')
 axC.set_ylabel(r'$r_{\rm tr}^2 T_{\rm tr}^4 [L_{\rm Edd}]$')
+axC2.set_ylabel(r'$r_{\rm ph}^2 T_{\rm ph}^4 [L_{\rm Edd}]$')
 axMdot.set_ylabel(r'$\dot{M}_{\rm w} (R_{\rm tr}) [\dot{M}_{\rm Edd}]$')
 axTtr.set_ylabel(r'$T_{\rm tr} [K]$')
 axTph.set_ylabel(r'$T_{\rm ph} [K]$')
 original_ticks = axTr.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-for ax in [axTr, axL, axMdot, axTtr, axTph, axC]:
+for ax in [axTr, axL, axMdot, axTtr, axTph, axC, axC2]:
     ax.set_xlabel(r't [$t_{\rm fb}$]')
     ax.set_xticks(new_ticks)
     ax.tick_params(axis='both', which='major', width=1.2, length=9, color = 'k')
@@ -169,6 +177,7 @@ axTr.set_ylim(1, 100)
 axTtr.set_ylim(9e2, 5e4)
 axL.set_ylim(1e-1, 11)
 axC.set_ylim(1, 1e5)
+axC2.set_ylim(1, 1e5)
 axTph.set_ylim(9e2, 5e4)
 axMdot.set_ylim(5, 5e3)
 figTr.savefig(f'{abspath}/Figs/next_meeting/Rtr_res.png')
@@ -195,7 +204,7 @@ figMdot.savefig(f'{abspath}/Figs/next_meeting/Mdot_res.png')
 figRTr_total, axRTr_total = plt.subplots(1, 1, figsize=(10, 6))
 figL_total, (axL_total, axTph_total) = plt.subplots(1, 2, figsize=(18, 6))
 figMdot_total, (axMdot_total, axTtr_total) = plt.subplots(1, 2, figsize=(18, 6))
-for i, check in enumerate(checks):
+for i, check in (enumerate(checks)):
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
         snaps, tfbs, Lums = data[:, 0], data[:, 1], data[:, 2]
