@@ -162,7 +162,7 @@ for i, snap in enumerate(choosen_snaps):
         ax.text(-5.5, 1.35, f't = {np.round(tfb[idx],1)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 16)
     else:
         ax.text(-5.5, 1.35, f't = {np.round(tfb[idx],2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 16)
-    ax.set_ylabel(r'$Y [R_{\rm a}]$')#, fontsize = 20)
+    ax.set_ylabel(r'$Y [r_{\rm a}]$')#, fontsize = 20)
     ax.tick_params(axis='x', which='major', width = .7, length = 7, color = 'white')
     ax.tick_params(axis='y', which='major', width = .7, length = 7, color = 'white')
     ax.set_xlim(-6, 2.5)
@@ -179,7 +179,7 @@ cb = fig.colorbar(img, cax=cbar_ax, orientation='vertical')
 cb.ax.tick_params(which='major',length = 5)
 cb.ax.tick_params(which='minor',length = 3)
 cb.set_label(r'Column density [g/cm$^2$]', fontsize = 20)
-ax.set_xlabel(r'$X [R_{\rm a}]$')#, fontsize = 20)
+ax.set_xlabel(r'$X [r_{\rm a}]$')#, fontsize = 20)
 plt.tight_layout()
 
 if save:

@@ -46,6 +46,7 @@ x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
 
 Rph_all = []
 Lph_all = []
+approxL_ph_all = []
 Temp_ph_all = []
 Rtr_all = []
 Mdot_all = []
@@ -81,6 +82,7 @@ for c, check in enumerate(checks):
         # (all) angle-integrated quantities
         r_ph_snap = np.zeros(len(snaps))
         Temp_ph_snap = np.zeros(len(snaps))
+        approxL_ph_snap = np.zeros(len(snaps))
         r_tr_snap = np.zeros(len(snaps))
         Temp_tr_snap = np.zeros(len(snaps))
         Mdot_snap = np.zeros(len(snaps))
@@ -91,14 +93,15 @@ for c, check in enumerate(checks):
                 r_ph = np.sqrt(xph**2 + yph**2 + zph**2)
                 Temprad_ph = (RadDen_ph*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
                 r_ph_snap[s] = np.mean(r_ph)
-                Temp_ph_snap[s] = np.mean(Temprad_ph)
+                Temp_ph_snap[s] = np.mean(Temprad_ph) #np.mean(Temp_ph) #
+                approxL_ph_snap[s] = np.mean(r_ph*prel.Rsol_cgs * Temprad_ph**2)**2
                 dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz") 
                 x_tr, y_tr, z_tr, den_tr, Vr_tr, Temp_tr, Rad_den_tr = \
                         dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['Temp_tr'], dataRtr['Rad_den_tr'] 
                 r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
                 Temprad_tr = (Rad_den_tr*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
                 r_tr_snap[s] = np.mean(r_tr)
-                Temp_tr_snap[s] = np.mean(Temprad_tr)
+                Temp_tr_snap[s] = np.mean(Temprad_tr) #np.mean(Temp_tr)
                 Mdot_tr = 4 * np.pi * r_tr**2 * den_tr * np.abs(Vr_tr)
                 Mdot_snap[s] = np.mean(Mdot_tr)
                 for i, observer in enumerate(indices_axis):
@@ -123,6 +126,7 @@ for c, check in enumerate(checks):
         Temp_tr_all.append(Temp_tr_snap)
         Mdot_all.append(Mdot_snap)
         Rph_all.append(r_ph_snap)
+        approxL_ph_all.append(approxL_ph_snap)
 
         # Eddington luminosity
         if check == 'HiResNewAMR':
@@ -141,6 +145,7 @@ for c, check in enumerate(checks):
         for i, observer in enumerate(indices_axis):
                 if label_axis[i] not in [r'$-\hat{\textbf{z}}$']:
                         axTr.plot(tfbs, r_tr_mean[i]/Rt, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
+                        # axTr.plot(tfbs, r_ph_mean[i]/Rt, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
                         axTtr.plot(tfbs, Temp_tr_mean[i]/Rp, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
                         # axTr.scatter(tfbs[idx_maxLum], r_tr_mean[i][idx_maxLum]/Rt, c = colors_res[c], s = 85, marker = 'X')
                         axL.plot(tfbs, Lum_ph_mean[i]/Ledd_cgs, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
@@ -202,7 +207,7 @@ figMdot.savefig(f'{abspath}/Figs/next_meeting/Mdot_res.png')
 
 #%% TOTAL
 figRTr_total, axRTr_total = plt.subplots(1, 1, figsize=(10, 6))
-figL_total, (axL_total, axTph_total) = plt.subplots(1, 2, figsize=(18, 6))
+figL_total, (axL_total, axTph_total, axapproxL_total) = plt.subplots(1, 3, figsize=(30, 6))
 figMdot_total, (axMdot_total, axTtr_total) = plt.subplots(1, 2, figsize=(18, 6))
 for i, check in (enumerate(checks)):
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -211,22 +216,25 @@ for i, check in (enumerate(checks)):
         tfbs, snaps, Lums = sort_list([tfbs, snaps, Lums], snaps, unique=True)
         idx_maxLum = np.argmax(Lums)
         axRTr_total.plot(tfbs, Rtr_all[i]/Rp, c = colors_res[i], label = checkslegend[i])
+        # axRTr_total.plot(tfbs, Rph_all[i]/Rp, c = colors_res[i], ls = '--', label = r'$r_{\rm ph}$')
         # axRTr_total.scatter(tfbs[idx_maxLum], Rtr_all[i][idx_maxLum]/Rp, c = colors_res[i], s = 95, marker = 'X')
         axL_total.plot(tfbs, Lph_all[i]/Ledd_cgs, c = colors_res[i], label = checkslegend[i])
+        axapproxL_total.plot(tfbs, approxL_ph_all[i]/Ledd_cgs, c = colors_res[i], label = checkslegend[i])
         axTph_total.plot(tfbs, Temp_ph_all[i]/Rp, c = colors_res[i], label = checkslegend[i])
         axMdot_total.plot(tfbs, Mdot_all[i]/Medd_sol, c = colors_res[i], label = checkslegend[i])
         # axMdot_total.scatter(tfbs[idx_maxLum], Mdot_all[i][idx_maxLum]/Medd_sol, c = colors_res[i], s = 95, marker = 'X')
-        axTtr_total.plot(tfbs, Temp_tr_all[i]/Rp, c = colors_res[i], label = checkslegend[i])
+        axTtr_total.plot(tfbs, Temp_tr_all[i]/Rp, c = colors_res[i], label = checkslegend[i]) 
 
 axRTr_total.set_ylabel(r'$r_{\rm tr} [r_{\rm t}]$')
 axL_total.set_ylabel(r'$L_{\rm ph} [L_{\rm Edd}]$')
+axapproxL_total.set_ylabel(r'$r_{\rm ph}^2 T_{\rm ph}^4 [L_{\rm Edd}]$')
 axTph_total.set_ylabel(r'$T_{\rm ph} [K]$')
 axMdot_total.set_ylabel(r'$\dot{M}_{\rm w}(R_{\rm tr}) [\dot{M}_{\rm Edd}]$')
 axTtr_total.set_ylabel(r'$T_{\rm tr} [K]$')
 original_ticks = axL_total.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-for ax in [axRTr_total, axL_total, axMdot_total, axTtr_total, axTph_total]:
+for ax in [axRTr_total, axL_total, axMdot_total, axTtr_total, axTph_total, axapproxL_total]:
     ax.set_xlabel(r't [$t_{\rm fb}$]')
     ax.set_xticks(new_ticks)
     ax.tick_params(axis='both', which='major', width=1.2, length=9, color = 'k')
@@ -237,6 +245,7 @@ for ax in [axRTr_total, axL_total, axMdot_total, axTtr_total, axTph_total]:
     ax.legend(fontsize = 16)
 
 axL_total.set_ylim(1e-1, 5)
+axapproxL_total.set_ylim(1e-1, 1e4)
 axMdot_total.set_ylim(5, 5e3)
 axRTr_total.set_ylim(1, 80) 
 axTtr_total.set_ylim(9e2, 5e4)

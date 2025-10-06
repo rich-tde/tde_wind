@@ -128,10 +128,10 @@ def radial_profiles(loadpath, snap, which_part, indices_sorted):
             rad_den_all.append(ray_rad_den)
             Mdot_all.append(ray_Mdot)
 
-            if np.logical_and(r_tr[i] == 0, len(d[check_dist]) > 0):
-                pick_amin = np.argmin(np.abs(r_sim[check_dist]-amin))
-                Mdot_Rfixed = 4 * np.pi * (r_sim[check_dist][pick_amin])**2 * np.abs(ray_V_r[check_dist][pick_amin]) * d[check_dist][pick_amin] 
-                print(f'No Rtr for {i}, Mw/Medd: {np.round(Mdot_Rfixed/Medd_sol, 3)} at r = {np.round(r_sim[check_dist][pick_amin]/amin, 2)} amin')
+            # if np.logical_and(r_tr[i] == 0, len(d[check_dist]) > 0):
+            #     pick_amin = np.argmin(np.abs(r_sim[check_dist]-amin))
+            #     Mdot_Rfixed = 4 * np.pi * (r_sim[check_dist][pick_amin])**2 * np.abs(ray_V_r[check_dist][pick_amin]) * d[check_dist][pick_amin] 
+            #     print(f'No Rtr for {i}, Mw/Medd: {np.round(Mdot_Rfixed/Medd_sol, 3)} at r = {np.round(r_sim[check_dist][pick_amin]/amin, 2)} amin')
 
         # all the list are of shape (len(idx_list), N_ray)
 
@@ -153,16 +153,16 @@ def radial_profiles(loadpath, snap, which_part, indices_sorted):
             d_col = np.transpose(d_all)[i]
             rad_den_col = np.transpose(rad_den_all)[i]
             Mdot_col = np.transpose(Mdot_all)[i]
-            nonzero = t_col[t_col != 0]
-            t_mean.append(np.mean(nonzero) if nonzero.size > 0 else 0)
-            nonzero = v_rad_col[v_rad_col != 0]
-            v_rad_mean.append(np.median(nonzero) if nonzero.size > 0 else 0)
-            nonzero = d_col[d_col != 0]
-            d_mean.append(np.median(nonzero) if nonzero.size > 0 else 0)
-            nonzero = rad_den_col[rad_den_col != 0]
-            rad_den_mean.append(np.median(nonzero) if nonzero.size > 0 else 0)
-            nonzero = Mdot_col[Mdot_col != 0]
-            Mdot_mean.append(np.median(nonzero) if nonzero.size > 0 else 0)
+            # nonzero = t_col[t_col != 0]
+            t_mean.append(np.mean(t_col) if t_col.size > 0 else 0)
+            # nonzero = v_rad_col[v_rad_col != 0]
+            v_rad_mean.append(np.mean(v_rad_col) if v_rad_col.size > 0 else 0)
+            # nonzero = d_col[d_col != 0]
+            d_mean.append(np.mean(d_col) if d_col.size > 0 else 0)
+            # nonzero = rad_den_col[rad_den_col != 0] 
+            rad_den_mean.append(np.mean(rad_den_col) if rad_den_col.size > 0 else 0)
+            # nonzero = Mdot_col[Mdot_col != 0]
+            Mdot_mean.append(np.mean(Mdot_col) if Mdot_col.size > 0 else 0)
         t_mean = np.array(t_mean)
         v_rad_mean = np.array(v_rad_mean)
         d_mean = np.array(d_mean)
@@ -202,7 +202,7 @@ t_fb_sol = t_fb_days_cgs/prel.tsol_cgs
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 v_esc_kms = v_esc * conversion_sol_kms
-Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.25/(prel.Rsol_cgs**2/prel.Msol_cgs), 0.004, prel.csol_cgs, prel.G)
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.49/(prel.Rsol_cgs**2/prel.Msol_cgs), 0.014, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 
@@ -341,7 +341,7 @@ for snap in snaps:
         y_test02 = 5e3* (x_test)**(-0.2)
         y_test08 = 4.2e-12* (x_test)**(-0.8)
         y_test23 = 5e5*(x_test)**(-2/3)
-        y_test2 = 1.2e-10* (x_test)**(-2)
+        y_test2 = 2e-10* (x_test)**(-2)
         y_testplus2 = 2.5e3* (x_test)**(2)
         y_test3 = 6.5e-13 * (x_test)**(-3)
 
@@ -377,16 +377,16 @@ for snap in snaps:
             # for ax in [axd, axV, axMdot, axT, axL]:
         # axMdot.plot(x_test, y_testplus1, c = 'gray', ls = 'dotted', label = r'$\dot{M} \propto r$')
         # axd.plot(r/apo, rho_from_dM, c = 'gray', ls = '--', label = r'$\rho \propto R^{-2}$') #'From dM/dt')
-        axd.plot(x_test, y_test2, c = 'gray', ls = 'dashed', label = r'$\rho \propto r^{-2}$')
+        axd.plot(x_test, y_test2, c = 'k', ls = 'dashed', label = r'$\rho \propto r^{-2}$')
         # axd.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto r^{-3}$') 
         # axd.plot(x_test, y_test08, c = 'gray', ls = 'dashed', label = r'$v_r \propto r^{-0.8}$')
-        axV.axhline(v_esc_kms, c = 'gray', ls = 'dashed', label = r'$v_{\rm esc} (r_p)$')
+        axV.axhline(v_esc_kms, c = 'k', ls = 'dashed', label = r'$v_{\rm esc} (r_p)$')
         # axV.plot(x_test, y_test02, c = 'gray', ls = 'dashed', label = r'$v_r \propto  r^{-0.2}$')
         # axV.plot(x_test, 2.9*y_testplus1, c = 'gray', ls = '-.', label = r'$v_r \propto r$')
         # axV.plot(x_test, 2.5*y_testplus2, c = 'gray', ls = '--', label = r'$v_r \propto r^2$')
-        axT.plot(x_test, y_test23, c = 'gray', ls = 'dashed', label = r'$T \propto r^{-2/3}$')
+        axT.plot(x_test, y_test23, c = 'k', ls = 'dashed', label = r'$T \propto r^{-2/3}$')
         # axT.plot(x_test, y_test1, c = 'gray', ls = ':', label = r'$T \propto r^{-1}$')
-        axL.plot(x_test,3e-5*y_test23, c = 'gray', ls = 'dashed', label = r'$L \propto r^{-2/3}$')
+        axL.plot(x_test,3e-5*y_test23, c = 'k', ls = 'dashed', label = r'$L \propto r^{-2/3}$')
         # axL.plot(x_test, 3e-6*y_test1, c = 'gray', ls = ':', label = r'$L \propto r^{-1}$')
         # axL.plot(x_test, y_test12, c = 'gray', ls = ':', label = r'$L \propto r^{-0.5}$')
 
@@ -407,13 +407,13 @@ for snap in snaps:
                 ax.legend(fontsize = 20) 
             ax.grid()
 
-        axMdot.set_ylim(1e-4, 1e-1)
+        axMdot.set_ylim(1e-4, 1e1)
         axMdot.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm fb}]$', fontsize = 28) 
-        axd.set_ylim(1e-14, 5e-10)
+        axd.set_ylim(1e-13, 5e-10)
         axd.set_ylabel(r'$\rho$ [g/cm$^3]$', fontsize = 28)
-        axV.set_ylim(2e3, 5e4)
+        axV.set_ylim(1e3, 3e4)
         axV.set_ylabel(r'$v_r$ [km/s]', fontsize = 28)
-        axT.set_ylim(1e4, 1e6)
+        axT.set_ylim(1e4, 7e5)
         axT.set_ylabel(r'$T$ [K]', fontsize = 28)
         axL.set_ylabel(r'$L [L_{\rm Edd}]$', fontsize = 28)
         axL.set_ylim(2e-1, 2e1)

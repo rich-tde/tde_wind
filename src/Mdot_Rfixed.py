@@ -54,7 +54,7 @@ norm_dMdE = things['E_mb']
 t_fb_days_cgs = things['t_fb_days'] * 24 * 3600 # in seconds
 max_Mdot = mstar*prel.Msol_cgs/(3*t_fb_days_cgs) # in code units
 
-Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.49/(prel.Rsol_cgs**2/prel.Msol_cgs), 0.006, prel.csol_cgs, prel.G)
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.49/(prel.Rsol_cgs**2/prel.Msol_cgs), 0.014, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
@@ -171,14 +171,15 @@ if plot:
                    skiprows=1, 
                    unpack=True)
     
-    fig, ax1 = plt.subplots(1, 1, figsize = (9, 6))
-    fig2, ax2 = plt.subplots(1, 1, figsize = (9, 6))
-    ax1.plot(tfb, np.abs(mwind_dimCell)/Medd_sol, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$ dim cell')
-    ax1.plot(tfb, np.abs(mwind_R)/Medd_sol, c = 'orange', label = r'$\dot{M}_{\rm w}$ at  $r={\rm 0.5a_{\rm min}}$')
-    ax1.plot(tfb, np.abs(mwind_R_nonzero)/Medd_sol, c = 'green', label = r'$\dot{M}_{\rm w}$ at  $r={\rm 0.5a_{\rm min}}$ (nonzero)')
+    fig, ax1 = plt.subplots(1, 1, figsize = (8, 6))
+    fig2, ax2 = plt.subplots(1, 1, figsize = (8, 6))
+    ax1.plot(tfb, np.abs(mfall)/Medd_sol, c = 'k', label = r'$\dot{M}_{\rm fb}$')
+    # ax1.plot(tfb, np.abs(mwind_dimCell)/Medd_sol, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$ dim cell')
+    ax1.plot(tfb, np.abs(mwind_R)/Medd_sol, c = 'orange', label = r'$\dot{M}_{\rm w}$ with  $r={\rm 0.5a_{\rm min}}$')
+    # ax1.plot(tfb, np.abs(mwind_R_nonzero)/Medd_sol, c = 'green', label = r'$\dot{M}_{\rm w}$ at  $r={\rm 0.5a_{\rm min}}$ (nonzero)')
     # ax1.plot(tfb, np.abs(mfall)/Medd_sol, label = r'$\dot{M}_{\rm fb}$', c = 'k')
     ax1.set_yscale('log')
-    ax1.set_ylim(1e-1, 5e3)
+    ax1.set_ylim(1e-1, 5e5)
     ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')   
     ax1.legend(fontsize = 18)
 

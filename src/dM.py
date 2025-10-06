@@ -151,7 +151,13 @@ if not alice:
         snapsL, tfbL = datadaysL[0], datadaysL[1]
         dataL = np.loadtxt(f'{abspath}data/{commonfolder}LowResNewAMR/wind/dMdE_LowResNewAMR.txt')
 
-        final_time = 0.05
+        final_time = np.max(tfb)
+        final_time_cgs = final_time * t_fb_days_cgs #converted to seconds
+    
+        tsol = final_time_cgs / prel.tsol_cgs # convert to code units
+        # Find the energy of the element at time t
+        energy = orb.keplerian_energy(Mbh, prel.G, tsol)
+        print(f'Energy at time {final_time} tfb: {np.round(energy/norm, 2)} deltaE')
         idx_snap = np.argmin(np.abs(tfb - final_time))
         idx_snapH = np.argmin(np.abs(tfbH - final_time))
         idx_snapL = np.argmin(np.abs(tfbL - final_time))
@@ -190,13 +196,14 @@ if not alice:
         ax2.set_ylim(0.9, 3)
         for ax in (ax1, ax2):
             ax.set_xlim(-2.5,2)
-        # put the legend outside the plot
+            ax.tick_params(axis='both', which='major', width = 1.2, length = 9, color = 'k')
+            ax.tick_params(axis='y', which='minor', width = 1, length = 5, color = 'k')
+        # put the legend outside the plo
         # ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
         # ax2.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 14)
-        plt.suptitle(f't/tfb = {final_time}', fontsize = 16)
+        # plt.suptitle(f't/tfb = {final_time}', fontsize = 16)
         plt.tight_layout()
-        if save:
-            plt.savefig(f'{abspath}Figs/multiple/dMdE_times_equalbins.pdf', bbox_inches='tight')
+        plt.savefig(f'{abspath}Figs/paper/dMdE.pdf', bbox_inches='tight')
         plt.show()
 
     if movie:
