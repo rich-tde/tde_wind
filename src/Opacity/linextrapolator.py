@@ -277,6 +277,7 @@ if __name__ == '__main__':
     pl_tab = np.exp(ln_planck_tab)
     min_T, max_T = np.min(T__tab), np.max(T__tab)
     min_Rho, max_Rho = np.min(Rho__tab), np.max(Rho__tab)
+    print(min_T, max_T, min_Rho, max_Rho)
     kappa_ross_tab = []
     for i in range(len(T__tab)):
         kappa_ross_tab.append(ross_tab[i, :]/Rho__tab)

@@ -151,7 +151,7 @@ if not alice:
         snapsL, tfbL = datadaysL[0], datadaysL[1]
         dataL = np.loadtxt(f'{abspath}data/{commonfolder}LowResNewAMR/wind/dMdE_LowResNewAMR.txt')
 
-        final_time = np.max(tfb)
+        final_time = 1 #np.max(tfb)
         final_time_cgs = final_time * t_fb_days_cgs #converted to seconds
     
         tsol = final_time_cgs / prel.tsol_cgs # convert to code units

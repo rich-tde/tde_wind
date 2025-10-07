@@ -50,11 +50,15 @@ time_theory = tfb[210:-1]
 Lum_theory = 5e41*time_theory**(-5/3)
 
 medianRph = np.zeros(len(snaps))
+medianTemprad_ph = np.zeros(len(snaps))
 for i, snap in enumerate(snaps):
     photo = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
     xph, yph, zph = photo[0], photo[1], photo[2]
+    RadDen_ph = photo[6]
+    Temprad_ph = (RadDen_ph*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
     rph = np.sqrt(xph**2 + yph**2 + zph**2)
     medianRph[i] = np.median(rph)
+    medianTemprad_ph[i] = np.median(Temprad_ph)
 #     # Find the energy of the element at time t
 #     energy = orb.keplerian_energy(Mbh, prel.G, tsol)
 #     # Find the bin that corresponds to the energy of the element and its dMdE (in CGS)
@@ -98,4 +102,39 @@ ax.tick_params(axis='y', which='minor', width = 1, length = 5, color = 'k')
 ax.set_xlim(np.min(tfb), np.max(tfb))
 plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld.pdf', bbox_inches='tight')
 
+# %%
+fig, (axR, axL) = plt.subplots(1, 2, figsize=(18, 6))
+axR.plot(tfb, medianRph/Rt, c = 'k')
+
+axR.set_ylabel(r'median $r_{\rm ph} [r_{\rm t}]$')#, fontsize = 20)
+
+# img = axL.scatter(tfb, Lum, s = 12, c = medianRph/Rt, cmap = 'viridis', norm = colors.LogNorm(
+#                  vmin = 1, vmax = 7e1))
+img = axL.scatter(tfb, Lum, s = 12, c = medianTemprad_ph*1e-4, cmap = 'viridis', vmin = 1, vmax = 5)
+cbar = fig.colorbar(img)
+cbar.set_label(r'median $T_{\rm ph} [10^4 K]$')#, fontsize = 20)
+cbar.ax.tick_params(which='major', length = 5)
+cbar.ax.tick_params(which='minor', length = 3)
+axL.plot(tfbdiss, LDiss, '--', c= 'gray')
+axL.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
+axL.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd}$', fontsize = 20)
+# ax.plot(time_theory, Lum_theory, c = 'k', linestyle = 'dotted', linewidth = 1)
+# ax.text(1.4, 9e40, r'$L\propto t^{-5/3}$', fontsize = 20)
+original_ticks = axR.get_xticks()
+midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+for ax in [axR, axL]:
+    ax.set_yscale('log')
+    ax.set_xticks(new_ticks)
+    ax.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 20)
+    ax.grid()
+    # ax.set_xticklabels(labels)
+    ax.tick_params(axis='both', which='major', width = 1.2, length = 9, color = 'k')
+    ax.tick_params(axis='y', which='minor', width = 1, length = 5, color = 'k')
+    ax.set_xlim(np.min(tfb), np.max(tfb))
+axR.set_ylim(1, 7e1)
+axL.set_ylabel(r'Luminosity [erg/s]')#, fontsize = 20)
+axL.set_ylim(9e37, 8e42)
+plt.tight_layout()
 # %%

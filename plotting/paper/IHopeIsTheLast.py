@@ -185,7 +185,7 @@ if __name__ == '__main__':
         # ax.set_xticklabels(labels)
         ax.tick_params(axis='both', which='major', width=1.2, length=7)
         ax.tick_params(axis='both', which='minor', width=0.9, length=5)
-        ax.set_xlim(np.min(tfbH), np.max(tfbH))
+        ax.set_xlim(np.min(tfbH), np.max(tfb))
         if ax != ax1:
             original_ticks_y = ax.get_yticks()
             midpoints_y = (original_ticks_y[:-1] + original_ticks_y[1:]) / 2
@@ -252,7 +252,7 @@ if __name__ == '__main__':
         # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
         # ax.set_xticklabels(labels)
         ax.grid()
-        ax.set_xlim(np.min(tfbH), np.max(tfbH))
+        ax.set_xlim(np.min(tfbH), np.max(tfb))
         ax.tick_params(axis='both', which='major', width=1.2, length=7)
         ax.tick_params(axis='both', which='minor', width=0.9, length=5)
         if ax != ax1:
@@ -431,7 +431,7 @@ if __name__ == '__main__':
         if ax in [ax3, ax4]:
             ax.set_xlabel(r'$t [t_{\rm fb}]$')
         ax.grid()
-        ax.set_xlim(np.min(tfbH), np.max(tfbH))
+        ax.set_xlim(np.min(tfbH), np.max(tfb))
     plt.tight_layout()
     # plt.savefig(f'{abspath}/Figs/paper/OeIe.pdf', bbox_inches='tight')
 
@@ -491,7 +491,7 @@ if __name__ == '__main__':
         ax.set_xticks(new_ticks)
         # ax.set_xticklabels(labels)
         ax.grid()
-        ax.set_xlim(np.min(tfbH), np.max(tfbH)) 
+        ax.set_xlim(np.min(tfbH), np.max(tfb)) 
         if ax == ax6:
             ax.set_yscale('log')
         if ax in [ax4, ax5, ax6]:
@@ -543,7 +543,7 @@ if __name__ == '__main__':
         ax.set_xticks(new_ticks)
         # ax.set_xticklabels(labels)
         ax.grid()
-        ax.set_xlim(np.min(tfbH), np.max(tfbH)) 
+        ax.set_xlim(np.min(tfbH), np.max(tfb)) 
         if ax in [ax4, ax5, ax6]:
             ax.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 18)
     plt.tight_layout()
