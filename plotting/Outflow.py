@@ -251,9 +251,9 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergenceOE' or kind_o
         percentile84L = np.zeros(len(snapsL))
         ratio_unbound_phL = np.zeros(len(snapsL))
 
-        for j, snap_sH in enumerate(snapsL):
+        for j, snap_sL in enumerate(snapsL):
             x_phL, y_phL, z_phL, vol_phL, den_phL, Temp_phL, Rad_den_phL, Vx_phL, Vy_phL, Vz_phL, Press_phL, IE_den_phL, _, _, _, _ = \
-                np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/photo/LowResNewAMR_photo{snap_sH}.txt')
+                np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/photo/LowResNewAMR_photo{snap_sL}.txt')
             r_phL = np.sqrt(x_phL**2 + y_phL**2 + z_phL**2)
             vel_phL = np.sqrt(Vx_phL**2 + Vy_phL**2 + Vz_phL**2)
             mean_velL[j] = np.mean(vel_phL)

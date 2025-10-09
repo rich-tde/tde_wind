@@ -16,9 +16,9 @@ Kb_cgs = 1.380649e-16 #[gcm^2/s^2K]
 alpha_cgs = 7.5646 * 10**(-15) # radiation density [erg/cm^3K^4]
 sigma_T_cgs = 6.6524e-25 #[cm^2] thomson cross section
 G_cgs = 6.6743e-8 # cgs
-Rsol_cgs = 6.957e10 # [cm]
+Rsol_cgs = 6.957e10 # [cm] # 7e10
 Rsol_AU = 0.00465 # [AU]
-Msol_cgs = 1.989e33 # [g]
+Msol_cgs = 1.989e33 # [g] #2e33
 ev_toK = 11604.505 # [K/eV] conversion factor from eV to K
 ev_to_erg = 1.602176634e-12 # conversion factor from eV to erg
 
@@ -33,7 +33,7 @@ G = 1
 solarR_to_au = 215
 
 # Converters
-tsol_cgs = np.sqrt(Rsol_cgs**3 / (Msol_cgs*G_cgs )) # ~1593. Follows from G = 1. To pass from code units to cgs, you multiply by tsol_cgs
+tsol_cgs = np.sqrt(Rsol_cgs**3 / (Msol_cgs*G_cgs )) # ~1593 (Jay: 1603). Follows from G = 1. To pass from code units to cgs, you multiply by tsol_cgs
 csol_cgs = c_cgs / (Rsol_cgs/tsol_cgs) # c in code units
 den_converter = Msol_cgs / Rsol_cgs**3
 en_den_converter = Msol_cgs / (Rsol_cgs  * tsol_cgs**2 ) # Energy Density converter

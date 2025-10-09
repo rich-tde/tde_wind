@@ -15,10 +15,11 @@ import numpy as np
 import os
 import csv
 import Utilities.prelude as prel
-from Utilities.operators import make_tree, calc_deriv
+from Utilities.operators import make_tree
 from Utilities.selectors_for_snap import select_snap
 from Utilities.sections import make_slices
 import src.orbits as orb
+from Utilities.operators import find_ratio
 
 ##
 # PARAMETERS
@@ -91,62 +92,100 @@ if alice:
     file.close() 
 
 else:
-    checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
-    checklab = ['Low', 'Middle', 'High']
-    colorcheck = ['C1', 'yellowgreen', 'darkviolet']
-    commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+    to_plot = 'single_res' # 'compare_res', 'single_res'
 
-    # Plot mass and dissipation rate enclosed in a sphere of radius Rcheck: 
-    fig1, ((axM1, axMerr1), (axDiss1, axDisserr1)) = plt.subplots(2,2, figsize = (16,14)) 
-    fig2, ((axM2, axMerr2), (axDiss2, axDisserr2)) = plt.subplots(2,2, figsize = (16,14)) 
-    fig3, ((axM3, axMerr3), (axDiss3, axDisserr3)) = plt.subplots(2,2, figsize = (16,14)) 
-    for i, check in enumerate(checks):
+    if to_plot == 'compare_res':
+        checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
+        checklab = ['Low', 'Middle', 'High']
+        colorcheck = ['C1', 'yellowgreen', 'darkviolet']
+        commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+
+        # Plot mass and dissipation rate enclosed in a sphere of radius Rcheck: 
+        fig1, (axM1, axDiss1) = plt.subplots(1,2, figsize = (18,6)) 
+        fig2, (axM2, axDiss2) = plt.subplots(1,2, figsize = (18,6)) 
+        fig3, (axM3, axDiss3) = plt.subplots(1,2, figsize = (18,6)) 
+        for i, check in enumerate(checks):
+            # load and covert
+            data = np.loadtxt(f'{abspath}/data/{commonfolder}{check}/{check}Mass_encl.csv', comments="#", delimiter=',', skiprows = 1)
+            tfb = data[:, 1]
+            Mass_enclR0 = data[:, 2]
+            Mass_enclRt = data[:, 3]
+            Mass_encla_mb = data[:, 4]
+            Diss_pos_enclR0 = data[:, 5] * prel.en_converter/prel.tsol_cgs
+            Diss_pos_enclRt = data[:, 6] * prel.en_converter/prel.tsol_cgs
+            Diss_pos_encla_mb = data[:, 7] * prel.en_converter/prel.tsol_cgs
+            
+            axM1.plot(tfb, Mass_enclR0/mstar, c = colorcheck[i], label = checklab[i])
+            axM2.plot(tfb, Mass_enclRt/mstar, c = colorcheck[i], label = checklab[i])
+            axM3.plot(tfb, Mass_encla_mb/mstar, c = colorcheck[i], label = checklab[i])
+            
+            axDiss1.plot(tfb, Diss_pos_enclR0, c = colorcheck[i])
+            axDiss2.plot(tfb, Diss_pos_enclRt, c = colorcheck[i])
+            axDiss3.plot(tfb, Diss_pos_encla_mb, c = colorcheck[i])
+
+        original_ticks = axM1.get_xticks()
+        midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+        new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+        for ax in [axM1, axM2, axM3, axMerr1, axMerr2, axMerr3, axDiss1, axDiss2, axDiss3, axDisserr1, axDisserr2, axDisserr3]:
+            ax.set_xticks(new_ticks)
+            ax.tick_params(axis='both', which='major', length=7, width=1)
+            ax.tick_params(axis='both', which='minor', length=4, width=1)
+            ax.set_xlim(0.01, 2.5)
+            ax.set_xlabel(r't [t$_{\rm fb}$]')  
+            ax.grid()
+            if ax in [axM1, axM2, axM3]:
+                ax.set_ylim(1e-6, 1e-1)
+                ax.set_ylabel(r'Mass enclosed $[M_\star]$')
+                ax.legend(fontsize = 16)
+            if ax in [axDiss1, axDiss2, axDiss3]:
+                ax.set_ylim(1e38, 2e43)
+                ax.set_ylabel(r'Dissipation rate enclosed [erg/s]')
+            ax.set_yscale('log')
+
+        fig1.tight_layout()
+        fig2.tight_layout()
+        fig3.tight_layout()
+        fig1.savefig(f'{abspath}/Figs/paper/Maccr_encl.pdf', bbox_inches='tight')
+
+    if to_plot == 'single_res':
+        check = 'NewAMR'
+        Rcheck = np.array([R0, Rt, a_mb])
+        labelcheck = [r'$R_0$', r'$R_t$', r'$a_{\rm mb}$']
+        colorcheck = ['magenta', 'darkviolet', 'k']
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+
+        # Plot mass and dissipation rate enclosed in a sphere of radius Rcheck: 
+        fig , (axM, axDiss) = plt.subplots(1, 2, figsize = (24,8)) 
         # load and covert
-        data = np.loadtxt(f'{abspath}/data/{folder}/{check}Mass_encl.csv', comments="#")
-        tfb = data[:, 1]
-        Mass_enclR0 = data[:, 2]
-        Mass_enclRt = data[:, 3]
-        Mass_encla_mb = data[:, 4]
-        Diss_pos_enclR0 = data[:, 5] * prel.en_converter/prel.tsol_cgs
-        Diss_pos_enclRt = data[:, 6] * prel.en_converter/prel.tsol_cgs
-        Diss_pos_encla_mb = data[:, 7] * prel.en_converter/prel.tsol_cgs
-        
-        axM1.plot(tfb, Mass_enclR0/mstar, c = colorcheck[i], label = checklab[i])
-        axM2.plot(tfb, Mass_enclRt/mstar, c = colorcheck[i], label = checklab[i])
-        axM3.plot(tfb, Mass_encla_mb/mstar, c = colorcheck[i], label = checklab[i])
-        
-        axDiss1.plot(tfb, Diss_pos_enclR0, c = colorcheck[i])
-        axDiss2.plot(tfb, Diss_pos_enclRt, c = colorcheck[i])
-        axDiss3.plot(tfb, Diss_pos_encla_mb, c = colorcheck[i])
+        dataencl = np.loadtxt(f'{abspath}/data/{folder}/{check}Mass_encl.csv', delimiter=',', skiprows = 1)
+        tfb_encl = dataencl[:, 1]
+        Mass_encl = dataencl[:, 2:5]
+        Diss_pos_encl = dataencl[:, 5:8] * prel.en_converter/prel.tsol_cgs
+        dataall = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows = 1)
+        tfb_all, Ldisstot_pos, Ldisstot_neg = dataall[:,1], dataall[:,3], dataall[:,5]
+        Ldisstot_pos *= prel.en_converter/prel.tsol_cgs
+        Ldisstot_neg *= prel.en_converter/prel.tsol_cgs
+    
+        for j in range(3):
+            axM.plot(tfb_encl, Mass_encl[:,j]/mstar, c = colorcheck[j], label = labelcheck[j])
+            axDiss.plot(tfb_encl, Diss_pos_encl[:,j], c = colorcheck[j], label = labelcheck[j])
 
-    ax1.set_ylabel(r'Mass enclosed $[M_\star]$')
-    axDiss1.set_ylabel(r'Dissipation rate enclosed [erg/s]')
-    ax2.legend(fontsize = 20)
-    axDiss2.legend(fontsize = 20)
-    ax1.set_title(f'Low Res', fontsize = 20)
-    ax2.set_title(f'Fid Res', fontsize = 20)
-    original_ticks = ax1.get_xticks()
-    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    # y 
-    original_ticks_y = ax1.get_yticks()
-    midpoints_y = (original_ticks_y[:-1] + original_ticks_y[1:]) / 2
-    new_ticks_y = np.sort(np.concatenate((original_ticks_y, midpoints_y)))
-    for a in [ax1, ax2, axDiss1, axDiss2]:
-        a.set_xticks(new_ticks)
-        a.tick_params(axis='both', which='major', length=7, width=1)
-        a.tick_params(axis='both', which='minor', length=4, width=1)
-        a.grid()
-        # a.axvline(tfb[136], c = 'k', ls = '--', linewidth = 2, label = r'$t_{\rm fb}$')
-        # print(tfb[136], tfb[137])
-        a.set_xlim(0.01, 1.8)
-        if a in [ax1, ax2]:
-            a.set_yticks(new_ticks_y)
-            a.set_ylim(1e-9, 9e-2)
-        else:
-            a.set_ylim(2e37, 1e43)
-        a.set_yscale('log')
-
-    fig.suptitle(f'New AMR runs', fontsize = 25)
-    fig.tight_layout()
-    fig.savefig(f'{abspath}/Figs/Test/MazeOfRuns/sink/massDiss_encl.png', bbox_inches='tight')
+        axDiss.plot(tfb_all, Ldisstot_pos, c = 'gray', ls = '--', label = 'Total')
+        axM.legend(fontsize = 16)
+        axM.set_ylabel(r'Mass enclosed $[M_\star]$')
+        axM.set_ylim(1e-6, 1e-1)
+        axDiss.set_ylabel(r'Dissipation rate enclosed [erg/s]')
+        axDiss.set_ylim(1e38, 2e43)
+        original_ticks = axM.get_xticks()
+        midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+        new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+        labels = [f'{t:.2f}' if t in original_ticks else '' for t in new_ticks]
+        for ax in [axM, axDiss]:
+            ax.set_xticks(new_ticks)
+            ax.set_xticklabels(labels)
+            ax.tick_params(axis='both', which='major', length=7, width=1)
+            ax.tick_params(axis='both', which='minor', length=4, width=1)
+            ax.set_xlim(0.01, 2.5)
+            ax.grid()
+            ax.set_yscale('log')
+            ax.set_xlabel(r't [t$_{\rm fb}$]')  

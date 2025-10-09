@@ -144,7 +144,7 @@ if __name__ == '__main__':
     labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
     ax1.set_yticklabels(labels)
     ax1.set_yscale('log')
-    ax1.set_ylim(7e37, 9e42)
+    ax1.set_ylim(7e37, 7e43)
     ax1.grid()
     ax1.legend(fontsize = 18, loc = 'lower right')
 

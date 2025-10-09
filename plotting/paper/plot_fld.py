@@ -11,7 +11,6 @@ else:
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.collections import LineCollection
 import Utilities.prelude as prel
 import matplotlib.colors as colors
 from Utilities.operators import sort_list
@@ -51,27 +50,21 @@ Lum_theory = 5e41*time_theory**(-5/3)
 
 medianRph = np.zeros(len(snaps))
 medianTemprad_ph = np.zeros(len(snaps))
+f_ph = np.zeros(len(snaps))
 for i, snap in enumerate(snaps):
-    photo = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
-    xph, yph, zph = photo[0], photo[1], photo[2]
-    RadDen_ph = photo[6]
+    x_ph, y_ph, z_ph, vol_ph, den_ph, Temp_ph, RadDen_ph, Vx_ph, Vy_ph, Vz_ph, Press_ph, IE_den_ph, _, _, _, _ = \
+        np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
     Temprad_ph = (RadDen_ph*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
-    rph = np.sqrt(xph**2 + yph**2 + zph**2)
-    medianRph[i] = np.median(rph)
-    medianTemprad_ph[i] = np.median(Temprad_ph)
-#     # Find the energy of the element at time t
-#     energy = orb.keplerian_energy(Mbh, prel.G, tsol)
-#     # Find the bin that corresponds to the energy of the element and its dMdE (in CGS)
-#     i_bin = np.argmin(np.abs(energy-np.abs(bins_tokeep))) # just to be sure that you match the data
-#     dMdE_t = dMdE_distr_tokeep[i_bin]
-#     mdot = orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t)
-#     mfall = mdot # code units
-#     mdot_cgs[i] = mdot * prel.Msol_cgs / prel.tsol_cgs # [g/s]
-#     Lacc[i] = 0.1 * np.abs(mdot_cgs[i]) * prel.c_cgs**2
+    r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
+    vel_ph = np.sqrt(Vx_ph**2 + Vy_ph**2 + Vz_ph**2)
+    mass_ph = den_ph * vol_ph
+    oe_ph = orb.orbital_energy(r_ph, vel_ph, mass_ph, params, prel.G)
+    bern_ph = orb.bern_coeff(r_ph, vel_ph, den_ph, mass_ph, Press_ph, IE_den_ph, RadDen_ph, params)
+    cond_un = bern_ph>=0 # oe_ph>=0
+    f_ph[i] = len(oe_ph[np.logical_and(cond_un, r_ph!=0)]) / len(r_ph)  
 
-# ph_data = np.loadtxt(f'{abspath}/data/{folder}/photo_stat.txt')
-# tfbRph, Rph = ph_data[0], ph_data[1]
-# tfbRph, Rph = sort_list([tfbRph, Rph], tfbRph)
+    medianRph[i] = np.median(r_ph)
+    medianTemprad_ph[i] = np.median(Temprad_ph)
 
 #%%
 fig, ax = plt.subplots(1, 1, figsize=(10, 6))
@@ -100,18 +93,21 @@ labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in ne
 ax.tick_params(axis='both', which='major', width = 1.2, length = 9, color = 'k')
 ax.tick_params(axis='y', which='minor', width = 1, length = 5, color = 'k')
 ax.set_xlim(np.min(tfb), np.max(tfb))
-plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld.pdf', bbox_inches='tight')
+# plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld.pdf', bbox_inches='tight')
 
 # %%
-fig, (axR, axL) = plt.subplots(1, 2, figsize=(18, 6))
-axR.plot(tfb, medianRph/Rt, c = 'k')
-
-axR.set_ylabel(r'median $r_{\rm ph} [r_{\rm t}]$')#, fontsize = 20)
+fig, (axR, axL) = plt.subplots(1, 2, figsize=(16, 7))
+img = axR.scatter(tfb, medianRph/Rt, c = f_ph, s = 12, cmap = 'viridis', vmin = 0, vmax = 1)
+cbar = fig.colorbar(img, orientation = 'horizontal')
+cbar.set_label(r'f = $N_{\rm ph, unbound}/N_{\rm obs}$')
+cbar.ax.tick_params(which='major', length = 5)
+cbar.ax.tick_params(which='minor', length = 3) 
+axR.set_ylabel(r'median $r_{\rm ph} [r_{\rm t}]$')
 
 # img = axL.scatter(tfb, Lum, s = 12, c = medianRph/Rt, cmap = 'viridis', norm = colors.LogNorm(
 #                  vmin = 1, vmax = 7e1))
 img = axL.scatter(tfb, Lum, s = 12, c = medianTemprad_ph*1e-4, cmap = 'viridis', vmin = 1, vmax = 5)
-cbar = fig.colorbar(img)
+cbar = fig.colorbar(img, orientation = 'horizontal')
 cbar.set_label(r'median $T_{\rm ph} [10^4 K]$')#, fontsize = 20)
 cbar.ax.tick_params(which='major', length = 5)
 cbar.ax.tick_params(which='minor', length = 3)
@@ -137,4 +133,5 @@ axR.set_ylim(1, 7e1)
 axL.set_ylabel(r'Luminosity [erg/s]')#, fontsize = 20)
 axL.set_ylim(9e37, 8e42)
 plt.tight_layout()
+plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld.pdf', bbox_inches='tight')
 # %%

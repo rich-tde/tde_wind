@@ -3,16 +3,14 @@ Find different kind of orbits (and their derivatives) for TDEs.
 Identify the stream using the centre of mass.
 Measure the width and the height of the stream.
 """
+abspath = '/Users/paolamartire/shocks'
 import sys
-sys.path.insert(0,'/Users/paolamartire/shocks/')
+sys.path.append(abspath)
 import numpy as np
-import numba
 import Utilities.prelude as prel
 import matplotlib.pyplot as plt
-from scipy.optimize import brentq
 from scipy.integrate import odeint
 from scipy.integrate import trapezoid
-from Utilities.sections import transverse_plane, make_slices, radial_plane
 
 def make_cfr(R, x0=0, y0=0):
     x = np.linspace(-R, R, 100)
@@ -59,7 +57,7 @@ def Mdot_fb(Mbh, G, t, dmdE):
     Mdot = -2/3 * dmdE * (np.pi * G * Mbh / np.sqrt(2))**(2/3) * t**(-5/3)
     return Mdot
 
-def keplerian_orbit(theta, a, Rp, ecc=1, toflip = False):
+def keplerian_orbit(theta, a, Rp, ecc=1):
     # Don't care of the sign of theta, since you have the cos
     if ecc == 1:
         p = 2 * Rp
@@ -238,11 +236,10 @@ def deriv_an_orbit(theta, a, Rp, ecc, choose):
 def deriv_maxima(theta_arr, x_orbit, y_orbit):
     # Find the idx where the orbit starts to decrease too much (i.e. the stream is not there anymore)
     idx = len(y_orbit)
-    # for i in range(len(y_orbit)):
-    #     if y_orbit[i] <= y_orbit[i-1] - 5:
-    #         idx = i
-    #         break
-    # theta_arr, x_orbit, y_orbit = theta_arr[:idx], x_orbit[:idx], y_orbit[:idx]
+    for i in range(len(y_orbit)):
+        if np.abs(y_orbit[i]-y_orbit[i-1]) >= 50:
+            idx = i
+            break
     # Find the numerical derivative of r with respect to theta. 
     # Shift theta to start from 0 and compute the arclenght
     theta_shift = theta_arr-theta_arr[0] 
@@ -251,37 +248,38 @@ def deriv_maxima(theta_arr, x_orbit, y_orbit):
 
     return dr_dtheta, idx
 
-def find_arclenght(theta_arr, orbit, params, choose):
+def find_arclenght(theta_arr, orbit, choose, params, c = prel.csol_cgs, G = prel.G):
     """ 
     Compute the arclenght of the orbit
     Parameters
     ----------
     theta_arr : array
         The angles of the orbit
-    orbit : array
+    orbit : 1D or 2D array
         The orbit. 
-        If choose is Keplerian/Witta, it is the radius(thetas). 
-        If choose is Maxima, it is the x and y of the maxima.
-    a, Rp, ecc : float
-        The parameters of the orbit
+        If choose is Keplerian/Witta: radius(thetas). 
+        If choose is stream: x and y of the orbit.
     choose : str
-        The kind of orbit. It can be 'Keplerian', 'Witta', 'Maxima'
+        The kind of orbit. It can be 'Keplerian', 'Witta', 'stream'
+    params : array
+        The parameters of the orbit
     Returns
     -------
     s : array
         The arclenght of the orbit
     """
-    if choose == 'maxima':
+    if choose == 'stream':
         drdtheta, idx = deriv_maxima(theta_arr, orbit[0], orbit[1])
-        r_orbit = np.sqrt(orbit[0][:idx]**2 + orbit[1][:idx]**2)
+        r_orbit = np.sqrt(orbit[0]**2 + orbit[1]**2)
     elif choose == 'Keplerian' or choose == 'Witta':
-        a, Rp, ecc = params[0], params[1], params[2]
+        things = get_things_about(params, c, G)
+        a, Rp, ecc = things['a_mb'], things['Rp'], things['ecc_mb'] # params[0], params[1], params[2] #
         drdtheta = deriv_an_orbit(theta_arr, a, Rp, ecc, choose)
         r_orbit = orbit
         idx = len(r_orbit) # to keep the whole orbit
 
     ds = np.sqrt(r_orbit**2 + drdtheta**2)
-    theta_arr = theta_arr[:idx]-theta_arr[0] # to start from 0
+    theta_arr = theta_arr-theta_arr[0] # to start from 0
     s = np.zeros(len(theta_arr))
     for i in range(len(theta_arr)):
         s[i] = trapezoid(ds[:i+1], theta_arr[:i+1])
@@ -290,71 +288,93 @@ def find_arclenght(theta_arr, orbit, params, choose):
 
 
 if __name__ == '__main__':
-    from Utilities.operators import make_tree, Ryan_sampler
+    from Utilities.operators import make_tree, Ryan_sampler, from_cylindric
     import matplotlib.pyplot as plt
+    import matplotlib.colors as colors
+    from Utilities.sections import make_slices
     
-    G = 1
-    G_SI = 6.6743e-11
-    Msol = 2e30 #1.98847e30 # kg
-    Rsol = 7e8 #6.957e8 m
-    t = np.sqrt(Rsol**3 / (Msol*G_SI ))
-    c = 3e8 / (Rsol/t)
     m = 4
     Mbh = 10**m
     beta = 1
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = ''
+    check = 'NewAMR'
     compton = 'Compton'
 
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    snap = '164'
-    path = f'/Users/paolamartire/shocks/TDE/{folder}{check}/{snap}'
-    Rt = Rstar * (Mbh/mstar)**(1/3)
-    Rp = Rt / beta
-    Ra = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
-    a = Ra/2
-    # params_orb = [Rp, Ra, Mbh, c, G]
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    snap = '238'
+    path = f'{abspath}/TDE/{folder}{check}/{snap}'
+
     params = [Mbh, Rstar, mstar, beta]
-    theta_lim = np.pi
-    step = 0.02
+    things = get_things_about(params)
+    Rt = things['Rt']
+    Rp = things['Rp']
+    apo = things['apo']
+    a_mb = things['a_mb']
+    ecc_mb = things['ecc_mb']
+    t_fb_days = things['t_fb_days']
+    t_fb_days_cgs = t_fb_days * 24 * 3600 
+
+    theta_lim =  np.pi
+    step = np.round((2*theta_lim)/200, 3)
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_arr = Ryan_sampler(theta_init)
-    theta_arr = theta_arr[:250]
-    data = make_tree(path, snap, energy = False)
-    dim_cell = data.Vol**(1/3)
-    cut = data.Den>1e-19
-    X, Y, Z, dim_cell, Den, Mass = \
-        make_slices([data.X, data.Y, data.Z, dim_cell, data.Den, data.Mass], cut)
+
+    # data = make_tree(path, snap, energy = False)
+    # dim_cell = data.Vol**(1/3)
+    # cut = data.Den > 1e-19
+    # X, Y, Z, dim_cell, Den, Mass = \
+    #     make_slices([data.X, data.Y, data.Z, dim_cell, data.Den, data.Mass], cut)
 
     make_stream = False
     make_width = False
-    test_s = False
-    test_orbit = True
+    test_s = True
+    test_orbit = False
 
     if test_s:
-        # x^2+y^2 = 1
-        x = np.cos(theta_arr)
-        y = np.sin(theta_arr)
-        r = np.sqrt(x**2 + y**2)
-        s, idx = find_arclenght(theta_arr, [x, y], params, choose = 'maxima')
         # arclenght of a circle with keplerian
-        r_kep = keplerian_orbit(theta_arr, 1, 1, ecc = 0)
-        x_kep = r_kep * np.cos(theta_arr)
-        y_kep = r_kep * np.sin(theta_arr)
-        s_kep, _ = find_arclenght(theta_arr, r, params = [1, 1, 0], choose = 'Keplerian')
-        fig, (ax1,ax2) = plt.subplots(1,2)
-        ax1.plot(x,y, c = 'r')
-        ax1.plot(x_kep, y_kep, '--')
-        ax2.plot(theta_arr[:idx], s, c = 'r', label = 'maxima')
-        ax2.plot(theta_arr, s_kep, '--', label = 'Keplerian')
-        ax2.legend()
+        r_kep = keplerian_orbit(theta_arr, a_mb, Rp, ecc_mb)
+        x_kep, y_kep = from_cylindric(theta_arr, r_kep)
+        s_kep, _ = find_arclenght(theta_arr, r_kep, choose = 'Keplerian', params = params)
+        s, _ = find_arclenght(theta_arr, [x_kep, y_kep], choose = 'stream', params = params)
+
+        fig, (ax1, ax2) = plt.subplots(1,2, figsize = (12, 5))
+        plt.suptitle('Check with Kepler', fontsize = 18)
+        img = ax1.scatter(x_kep, y_kep, c = theta_arr, s = 5, cmap = 'rainbow', vmin = theta_arr[0], vmax = theta_arr[-1])
+        plt.colorbar(img, label = r'$\theta$') 
+        ax1.set_xlim(-300, 50)
+        ax1.set_ylim(-100, 100)
+        ax1.set_xlabel(r'X [$R_\odot$]')
+        ax1.set_ylabel(r'Y [$R_\odot$]')
+        # ax2.plot(theta_arr[:idx], s, c = 'r', label = 'maxima')
+        ax2.plot(theta_arr, s_kep, c = 'k')
+        ax2.plot(theta_arr, s, c = 'r', ls = '--')
+        ax2.set_xlabel(r'$\theta$')
+        ax2.set_ylabel(r'$s [R_\odot]$')
         ax2.grid()
-        plt.show()
+        plt.tight_layout()      
+
+        idx_chosen = 70
+        theta_arr, x_stream, y_stream, z_stream, thresh_cm = \
+            np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
+        s, idx = find_arclenght(theta_arr, [x_stream, y_stream], choose = 'stream', params = params)
+        fig, (ax1, ax2) = plt.subplots(1,2, figsize = (12, 5))
+        img = ax1.scatter(x_stream[:idx], y_stream[:idx], c = theta_arr[:idx], s = 5, cmap = 'rainbow', vmin = theta_arr[0], vmax = theta_arr[-1])
+        plt.colorbar(img, label = r'$\theta$') 
+        ax1.scatter(x_stream[idx_chosen], y_stream[idx_chosen], c = 'k', s = 50, marker = 'x')
+        ax1.set_xlim(-300, 50)
+        ax1.set_ylim(-100, 100)
+        ax1.set_xlabel(r'X [$R_\odot$]')
+        ax1.set_ylabel(r'Y [$R_\odot$]')
+        ax2.plot(theta_arr[:idx], s[:idx], c = 'r')
+        ax2.scatter(theta_arr[idx_chosen], s[idx_chosen], c = 'k', s = 50, marker = 'x')
+        ax2.set_xlabel(r'$\theta$')
+        ax2.set_ylabel(r'$s [R_\odot]$')
+        ax2.grid()
+        plt.tight_layout()      
     
     if test_orbit:
-        from Utilities.operators import from_cylindric
         r_Witta = Witta_orbit(theta_arr, Rp, Ra, Mbh, c, G)
         x_Witta, y_Witta = from_cylindric(theta_arr, r_Witta)
         r_kepler = keplerian_orbit(theta_arr, a, Rp, ecc = 1)

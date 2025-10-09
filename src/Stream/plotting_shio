@@ -1,0 +1,75 @@
+''' Reproduce Shiokawa205Ffig.2'''
+abspath = '/Users/paolamartire/shocks'
+import sys
+sys.path.append(abspath)
+import numpy as np
+import Utilities.prelude as prel
+import matplotlib.pyplot as plt
+from matplotlib import colors
+from scipy.interpolate import griddata
+import src.orbits as orb
+from Utilities.operators import make_tree
+import Utilities.sections as sec
+
+
+m = 4
+Mbh = 10**m
+beta = 1
+mstar = .5
+Rstar = .47
+n = 1.5
+params = [Mbh, Rstar, mstar, beta]
+check = 'NewAMR'
+compton = 'Compton'
+snap = 238
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+
+things = orb.get_things_about(params)
+Rt = things['Rt']
+R0 = things['R0']
+apo = things['apo'] 
+
+# Load data
+path = f'{abspath}/TDE/{folder}/{snap}'
+data = make_tree(path, snap, energy = False)
+X, Y, Z, Vol, Den, Mass, VX, VY, VZ = \
+    data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.VX, data.VY, data.VZ
+dim_cell = Vol**(1/3)
+cut = Den > 1e-19
+X, Y, Z, dim_cell, Den, Mass, VX, VY, VZ = \
+    sec.make_slices([X, Y, Z, dim_cell, Den, Mass, VX, VY, VZ], cut)
+
+theta_arr, x_stream, y_stream, z_stream, _ = \
+            np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
+s, idx_forcut = orb.find_arclenght(theta_arr, [x_stream, y_stream], choose = 'stream', params = params)
+theta_arr, x_stream, y_stream, z_stream, s = theta_arr[:idx_forcut], x_stream[:idx_forcut], y_stream[:idx_forcut], z_stream[:idx_forcut], s[:idx_forcut]
+
+z_plane = []
+d_plane = []
+for i in range(len(x_stream)):
+    tg_plane = sec.tangent_plane(X, Y, dim_cell, x_stream, y_stream, i)
+    n_plane, _, _ = sec.transverse_plane(X, Y, Z, dim_cell, x_stream, y_stream, z_stream, i, Rstar, just_plane = True)
+    # their intersection should be the vertical plane passing through the COMs
+    plane = np.logical_and(tg_plane, n_plane)
+    z_plane.append(Z[plane])
+    d_plane.append(Den[plane])
+
+# interpolate d on a s, z grid
+grid_z, grid_s = np.meshgrid(np.linspace(-20, 20, 400),
+                             np.linspace(20, 650, 400), indexing='ij')
+
+
+
+#%%
+print(s[np.argmin(np.abs(theta_arr))])
+fig, ax1 = plt.subplots(1,1, figsize = (10, 8))
+for i in range(len(x_stream)-1):
+    s_rep = np.ones(len(z_plane[i])) * s[i] 
+    # s_rep = np.ones(len(z_plane[i])) * theta_arr[i] 
+    img = ax1.scatter(s_rep, z_plane[i], c = d_plane[i], s = 5, cmap = 'rainbow', norm = colors.LogNorm(vmin =1e-12, vmax = 1e-4))
+plt.colorbar(img, label = r'$\rho$') 
+ax1.set_xlim(20, 650)
+ax1.set_ylim(-20, 20)
+ax1.set_xlabel(r's [$R_\odot$]')
+ax1.set_ylabel(r'Z [$R_\odot$]')
+# %%
