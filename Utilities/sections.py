@@ -64,9 +64,7 @@ def rotate_coordinates(x_data, y_data, x_stream, y_stream, idx, z_datas = None):
     Returns:
     x_onplaneall, y_onplaneall: array_like
         X, Y coordinates of the data points in the transverse plane.
-    x_data_trasl, y_data_trasl: array_like
-        X, Y coordinates of the data points after translation to the chosen point.
-    z_data_trasl: array_like, optional
+    z_onplaneall: array_like, optional
         Z coordinates of the data points after translation to the chosen point.
     """ 
     # Find the tg versor at the chosen point and the points orthogonal to it
@@ -80,7 +78,13 @@ def rotate_coordinates(x_data, y_data, x_stream, y_stream, idx, z_datas = None):
     vers_norm = np.array([xRhat[0], xRhat[1]]) 
     x_onplaneall = np.dot(data, vers_norm)
     y_onplaneall = np.dot(data, vers_tg)
-    return x_onplaneall, y_onplaneall
+    if z_datas is not None:
+        z_data = z_datas[0]
+        z_stream = z_datas[1]
+        z_onplaneall = z_data - z_stream[idx]
+        return x_onplaneall, y_onplaneall, z_onplaneall
+    else:
+        return x_onplaneall, y_onplaneall
              
 def transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, rstar, just_plane = True):
     """
@@ -111,10 +115,10 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_str
     x_chosen, y_chosen, z_chosen = x_stream[idx], y_stream[idx], z_stream[idx]
     x_data_trasl = x_data - x_chosen
     y_data_trasl = y_data - y_chosen 
-    z_data_trasl = z_data - z_chosen 
+    # z_data_trasl = z_data - z_chosen 
     # Rotate data
-    x_onplaneall, y_onplaneall = \
-        rotate_coordinates(x_data_trasl, y_data_trasl, x_stream, y_stream, idx)
+    x_onplaneall, y_onplaneall, z_data_trasl = \
+        rotate_coordinates(x_data_trasl, y_data_trasl, x_stream, y_stream, idx, z_datas = [z_data, z_stream])
     condition_tra = np.abs(y_onplaneall) < dim_data 
 
     s = 0.5 * rstar  # so thickess is = R_star as in BonnerotLu22. If you use step_ang: 2*step_ang * r_chosen_mod

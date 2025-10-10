@@ -62,6 +62,9 @@ convers_kms = prel.Rsol_cgs * 1e-5/prel.tsol_cgs # it's aorund 400
 
 # MAIN
 if compute: # compute dM/dt = dM/dE * dE/dt
+    which_r = 0.5*amin # 'Rtr' for radius of the trap, value that you want for a fixed value
+    which_r_title = '05amin'
+
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
     tfb_cgs = tfb * tfallback_cgs #converted to seconds
     bins = np.loadtxt(f'{abspath}/data/{folder}/wind/dMdE_{check}_bins.txt')
@@ -71,8 +74,8 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
    
     # define the observers and find their corresponding angles (they're radius is 1)
-    observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) #shape: (3, 192)
-    observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
+    # observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) #shape: (3, 192)
+    # observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
     
     for i, snap in enumerate(snaps):
         print(snap, flush=True)
@@ -92,12 +95,15 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             
         dMdE_t = dMdE_distr_tokeep[i_bin]
         mfall = orb.Mdot_fb(Mbh, prel.G, tsol, dMdE_t)
-
+ 
         # Load data 
-        data_tr = np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz')
-        x_tr, y_tr, z_tr = data_tr['x_tr'], data_tr['y_tr'], data_tr['z_tr']
-        r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-        r_tr = np.median(r_tr_all[r_tr_all!=0])
+        if which_r == 'Rtr':
+            data_tr = np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz')
+            x_tr, y_tr, z_tr = data_tr['x_tr'], data_tr['y_tr'], data_tr['z_tr']
+            r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+            r_tr = np.median(r_tr_all[r_tr_all!=0])
+        else:
+            r_tr = which_r
 
         data = make_tree(path, snap, energy = True)
         X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
@@ -121,21 +127,20 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         else: 
             Mdot_dimCell = np.pi * dim_cell_pos**2 * Den_pos * v_rad_pos  
             Mdot_R = 4 * np.pi * r_tr**2 * Den_pos * v_rad_pos 
-            xyz = np.array([X_pos, Y_pos, Z_pos]).T # shape: (N_pos, 3)
-            tree = KDTree(xyz, leaf_size = 50) 
-            N_ray = 5_000
-
-            xyz_obs = r_tr * observers_xyz
-            dist, idx = tree.query(xyz_obs, k=1) 
-            dist = np.concatenate(dist)
-            idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
+            # xyz = np.array([X_pos, Y_pos, Z_pos]).T # shape: (N_pos, 3)
+            # tree = KDTree(xyz, leaf_size = 50) 
+            # xyz_obs = r_tr * observers_xyz
+            # dist, idx = tree.query(xyz_obs, k=1) 
+            # dist = np.concatenate(dist)
+            # idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
+            condRtr = np.abs(Rsph_pos-r_tr) < dim_cell_pos
             
             # Quantity corresponding to the ray
-            Mdot_dimCell_casted = Mdot_dimCell[idx] 
-            Mdot_R_casted = Mdot_R[idx]
-            v_rad_pos_casted = v_rad_pos[idx]
-            r_sim = np.sqrt(X_pos[idx]**2 + Y_pos[idx]**2 + Z_pos[idx]**2)
-            check_dist = np.logical_and(dist <= dim_cell_pos[idx], r_sim >= Rt)
+            Mdot_dimCell_casted = Mdot_dimCell[condRtr] 
+            Mdot_R_casted = Mdot_R[condRtr]
+            v_rad_pos_casted = v_rad_pos[condRtr]
+            r_sim = np.sqrt(X_pos[condRtr]**2 + Y_pos[condRtr]**2 + Z_pos[condRtr]**2)
+            check_dist = np.logical_and(dist <= dim_cell_pos[condRtr], r_sim >= Rt)
             Mdot_dimCell_casted[~check_dist] = 0 
             Mdot_R_casted[~check_dist] = 0
             v_rad_pos_casted[~check_dist] = 0

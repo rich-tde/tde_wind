@@ -15,6 +15,7 @@ import Utilities.prelude as prel
 import matplotlib.colors as colors
 from Utilities.operators import sort_list
 from src import orbits as orb
+from plotting.paper.IHopeIsTheLast import statistics_photo
 
 ##
 # PARAMETERS
@@ -48,7 +49,7 @@ tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs
 time_theory = tfb[210:-1]
 Lum_theory = 5e41*time_theory**(-5/3)
 
-medianRph = np.zeros(len(snaps))
+_, medianRph, percentile16, percentile84 = statistics_photo(snaps, check)
 medianTemprad_ph = np.zeros(len(snaps))
 f_ph = np.zeros(len(snaps))
 for i, snap in enumerate(snaps):
@@ -62,8 +63,6 @@ for i, snap in enumerate(snaps):
     bern_ph = orb.bern_coeff(r_ph, vel_ph, den_ph, mass_ph, Press_ph, IE_den_ph, RadDen_ph, params)
     cond_un = bern_ph>=0 # oe_ph>=0
     f_ph[i] = len(oe_ph[np.logical_and(cond_un, r_ph!=0)]) / len(r_ph)  
-
-    medianRph[i] = np.median(r_ph)
     medianTemprad_ph[i] = np.median(Temprad_ph)
 
 #%%
@@ -97,6 +96,8 @@ ax.set_xlim(np.min(tfb), np.max(tfb))
 
 # %%
 fig, (axR, axL) = plt.subplots(1, 2, figsize=(16, 7))
+axR.plot(tfb, percentile84/Rt, c = 'k', alpha = 0.3, linestyle = '--')
+axR.plot(tfb, percentile16/Rt, c = 'k', alpha = 0.3, linestyle = '--')
 img = axR.scatter(tfb, medianRph/Rt, c = f_ph, s = 12, cmap = 'viridis', vmin = 0, vmax = 1)
 cbar = fig.colorbar(img, orientation = 'horizontal')
 cbar.set_label(r'f = $N_{\rm ph, unbound}/N_{\rm obs}$')
