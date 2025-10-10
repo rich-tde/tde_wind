@@ -87,6 +87,8 @@ for c, check in enumerate(checks):
         Temp_tr_snap = np.zeros(len(snaps))
         Mdot_snap = np.zeros(len(snaps))
         for s, snap in enumerate(snaps): 
+                if snap > 318:
+                        continue
                 tfb = tfbs[s]
                 dataph = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
                 xph, yph, zph, Temp_ph, RadDen_ph, Lum_ph = dataph[0], dataph[1], dataph[2], dataph[5], dataph[6], dataph[-2]

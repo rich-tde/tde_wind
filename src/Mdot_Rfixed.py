@@ -140,10 +140,10 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             Mdot_R_casted = Mdot_R[condRtr]
             v_rad_pos_casted = v_rad_pos[condRtr]
             r_sim = np.sqrt(X_pos[condRtr]**2 + Y_pos[condRtr]**2 + Z_pos[condRtr]**2)
-            check_dist = np.logical_and(dist <= dim_cell_pos[condRtr], r_sim >= Rt)
-            Mdot_dimCell_casted[~check_dist] = 0 
-            Mdot_R_casted[~check_dist] = 0
-            v_rad_pos_casted[~check_dist] = 0
+            # check_dist = np.logical_and(dist <= dim_cell_pos[condRtr], r_sim >= Rt)
+            # Mdot_dimCell_casted[~check_dist] = 0 
+            # Mdot_R_casted[~check_dist] = 0
+            # v_rad_pos_casted[~check_dist] = 0
 
             mwind_dimCell = np.sum(Mdot_dimCell_casted)
             if statist == 'mean':
