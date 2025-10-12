@@ -177,10 +177,10 @@ if plot:
                    skiprows=1, 
                    unpack=True)
     
-    fig, ax1 = plt.subplots(1, 1, figsize = (8, 6))
-    fig2, ax2 = plt.subplots(1, 1, figsize = (8, 6))
+    fig, ax1 = plt.subplots(1, 1, figsize = (9, 6))
+    fig2, ax2 = plt.subplots(1, 1, figsize = (9, 6))
     ax1.plot(tfb, np.abs(mfall)/Medd_sol, c = 'k', label = r'$\dot{M}_{\rm fb}$')
-    # ax1.plot(tfb, np.abs(mwind_dimCell)/Medd_sol, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$ dim cell')
+    ax1.plot(tfb, np.abs(mwind_dimCell)/Medd_sol, c = 'dodgerblue', label = r'$\dot{M}_{\rm w}$ dim cell')
     ax1.plot(tfb, np.abs(mwind_R)/Medd_sol, c = 'orange', label = r'$\dot{M}_{\rm w}$ with  $r={\rm 0.5a_{\rm min}}$')
     # ax1.plot(tfb, np.abs(mwind_R_nonzero)/Medd_sol, c = 'green', label = r'$\dot{M}_{\rm w}$ at  $r={\rm 0.5a_{\rm min}}$ (nonzero)')
     # ax1.plot(tfb, np.abs(mfall)/Medd_sol, label = r'$\dot{M}_{\rm fb}$', c = 'k')
