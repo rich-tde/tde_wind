@@ -159,19 +159,20 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         
             data = [snap, tfb[i], mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind, Vwind_nonzero]
 
-        csv_path = f'{abspath}/data/{folder}/wind/Mdot_{check}Rtr{statist}.csv'
+        csv_path = f'{abspath}/data/{folder}/wind/Mdot_{check}{which_r_title}{statist}.csv'
         if alice:
             with open(csv_path, 'a', newline='') as file:
                 writer = csv.writer(file)
                 if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                    writer.writerow(['snap', ' tfb', ' Mdot_fb', ' Mw with dimCell', 'Mw with Rtr', 'Mw with Rtr (nonzero)', 'Vwind', 'Vwind (nonzero)'])
+                    writer.writerow(['snap', ' tfb', ' Mdot_fb', ' Mw with dimCell', f'Mw with {which_r_title}', f'Mw with {which_r_title} (nonzero)', 'Vwind', 'Vwind (nonzero)'])
                 writer.writerow(data)
             file.close()
 
 if plot:
+    which_r_title = '05amin'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     snap, tfb, mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind, Vwind_nonzero = \
-        np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}05amin{statist}.csv', 
+        np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}{which_r_title}{statist}.csv', 
                    delimiter = ',', 
                    skiprows=1, 
                    unpack=True)
