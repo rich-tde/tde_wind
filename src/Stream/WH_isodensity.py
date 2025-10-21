@@ -6,13 +6,13 @@ alice, plot = isalice()
 if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
     from Utilities.selectors_for_snap import select_snap
-    save = True
+    compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
     import matplotlib.pyplot as plt
     from Utilities.basic_units import radians
     import matplotlib.colors as colors
-    save = False
+    compute = True
 
 import numpy as np
 from scipy.optimize import brentq
@@ -21,7 +21,7 @@ import Utilities.prelude as prel
 import Utilities.sections as sec
 import src.orbits as orb
 from Utilities.operators import make_tree, Ryan_sampler
-from Utilities.selectors_for_snap import select_prefix
+from Utilities.selectors_for_snap import select_prefix, select_snap
 
 #%%
 ## Parameters
@@ -170,7 +170,7 @@ def find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_
         } 
         
         # Optional: Create visualization if this is the theta for plotting
-        if np.logical_and(alice == False, idx == idx_forplot):
+        if np.logical_and(alice == False, idx == 4):
             plot_isodensity_results(x_plane, x_Tplane, y_plane, z_plane, mass_plane, dim_plane,
                                     condition_enclosed, contour_stats, 
                                     theta_arr[idx], x_data, y_data, indeces_enclosed, 
@@ -197,7 +197,7 @@ def plot_isodensity_results(x_plane, x_Tplane, y_plane, z_plane, mass_plane, dim
     x_low, x_up  = x_data[idx_x_low], x_data[idx_x_up]
     y_low, y_up  = y_data[idx_x_low], y_data[idx_x_up]
 
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 12))
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
     
     # Plot 1: Mass histogram in T direction
     counts_T, bin_edges_T = np.histogram(x_Tplane, bins=50, weights=mass_plane)
@@ -283,11 +283,12 @@ def plot_isodensity_results(x_plane, x_Tplane, y_plane, z_plane, mass_plane, dim
     ax2.text(0.02, 0.98, stats_text, transform=ax2.transAxes, 
              verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
     
-    plt.tight_layout()
     plt.suptitle(rf'$\theta$ = {np.round(theta_val, 2)} rad', fontsize=16)
+    plt.tight_layout()
+    plt.savefig(f'{abspath}/Figs/next_meeting/WHCont{massperc}_{check}{snap}.png')
     plt.show()
 
-def follow_the_stream_isodensity(x_data, y_data, z_data, dim_data, density_data, mass_data, stream, mass_percentage=0.8):
+def follow_the_stream_isodensity(x_data, y_data, z_data, dim_data, density_data, mass_data, stream, mass_percentage = 0.8):
     """
     Find isodensity contour boundaries all along the stream.
     
@@ -320,6 +321,7 @@ def follow_the_stream_isodensity(x_data, y_data, z_data, dim_data, density_data,
     contour_stats = []
     
     for i in range(len(theta_arr)):
+        print(i)
         density_threshold, indeces_enclosed_i, contour_stats_i = \
             find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_data, mass_data, stream, i, mass_percentage)
         
@@ -339,13 +341,17 @@ if __name__ == '__main__':
     step = np.round((2*theta_lim)/200, 3)
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_arr = Ryan_sampler(theta_init)
-    idx_forplot = 4
+    idx_forplot = np.argmin(np.abs(theta_arr + np.pi/4))
+    massperc = 0.99
     print(f'We are in folder {folder}', flush=True)
     
     path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
     
-    if alice:
-        snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
+    if compute:
+        if alice:
+            snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
+        else: 
+            snaps = [238]
 
         for i, snap in enumerate(snaps):
             print(f'Snap {snap}', flush = True)
@@ -373,10 +379,13 @@ if __name__ == '__main__':
                 print('Stream not found, computing it', flush=True)
                 x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr)
                 stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
-                if save:
+                if alice:
                     np.save(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', stream)
-            
-            theta_wh, density_thresholds, indeces_enclosed, contour_stats = follow_the_stream_isodensity(X, Y, Z, dim_cell, Den, Mass, stream)
+
+            if not alice: # just some computation
+                stream = stream[:, idx_forplot-4:idx_forplot+5]
+
+            theta_wh, density_thresholds, indeces_enclosed, contour_stats = follow_the_stream_isodensity(X, Y, Z, dim_cell, Den, Mass, stream, mass_percentage = massperc)
             w_params = np.array([[stats['width'] for stats in contour_stats],
                                 [stats['ncells_w'] for stats in contour_stats]])
             h_params = np.array([[stats['height'] for stats in contour_stats],
@@ -387,20 +396,21 @@ if __name__ == '__main__':
             del X, Y, Z, Den, Mass, dim_cell
             gc.collect()
 
-            with open(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt','w') as file:
-                # if file exist, save theta and date of execution
-                file.write(f'# theta \n')
-                file.write((' '.join(map(str, theta_wh)) + '\n'))
-                file.write(f'# Width \n')
-                file.write((' '.join(map(str, w_params[0])) + '\n'))
-                file.write(f'# Ncells width\n')
-                file.write((' '.join(map(str, w_params[1])) + '\n'))
-                file.write(f'# Height \n')
-                file.write((' '.join(map(str, h_params[0])) + '\n'))
-                file.write(f'# Ncells height \n')
-                file.write((' '.join(map(str, h_params[1])) + '\n'))
-            np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{check}{snap}.npy', indeces_boundary)
-            np.save(f'{abspath}/data/{folder}/WH/enclosed/indeces_enclosed_{check}{snap}.npy', indeces_enclosed, allow_pickle=True)
+            if alice:
+                with open(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt','w') as file:
+                    # if file exist, save theta and date of execution
+                    file.write(f'# theta \n')
+                    file.write((' '.join(map(str, theta_wh)) + '\n'))
+                    file.write(f'# Width \n')
+                    file.write((' '.join(map(str, w_params[0])) + '\n'))
+                    file.write(f'# Ncells width\n')
+                    file.write((' '.join(map(str, w_params[1])) + '\n'))
+                    file.write(f'# Height \n')
+                    file.write((' '.join(map(str, h_params[0])) + '\n'))
+                    file.write(f'# Ncells height \n')
+                    file.write((' '.join(map(str, h_params[1])) + '\n'))
+                np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{check}{snap}.npy', indeces_boundary)
+                np.save(f'{abspath}/data/{folder}/WH/enclosed/indeces_enclosed_{check}{snap}.npy', indeces_enclosed, allow_pickle=True)
 
     if plot: 
         snap = 238

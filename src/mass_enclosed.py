@@ -47,9 +47,10 @@ apo = things['apo']
 a_mb = things['a_mb']
 t_fb_days = things['t_fb_days']
 t_fb_days_cgs = t_fb_days * 24 * 3600 
+Rcheck = np.array([R0, Rt, a_mb])
+Rchecklab = [r'$R_0$', r'$R_t$', r'$a_{\rm mb}$']
 
 if alice:
-    Rcheck = np.array([R0, Rt, a_mb])
     check = 'NewAMR'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
@@ -126,7 +127,7 @@ else:
         original_ticks = axM1.get_xticks()
         midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
         new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-        for ax in [axM1, axM2, axM3, axMerr1, axMerr2, axMerr3, axDiss1, axDiss2, axDiss3, axDisserr1, axDisserr2, axDisserr3]:
+        for ax in [axM1, axM2, axM3,axDiss1, axDiss2, axDiss3]:
             ax.set_xticks(new_ticks)
             ax.tick_params(axis='both', which='major', length=7, width=1)
             ax.tick_params(axis='both', which='minor', length=4, width=1)
@@ -142,13 +143,16 @@ else:
                 ax.set_ylabel(r'Dissipation rate enclosed [erg/s]')
             ax.set_yscale('log')
 
+        fig1.suptitle(Rchecklab[0], fontsize = 20)
+        fig2.suptitle(Rchecklab[1], fontsize = 20)
+        fig3.suptitle(Rchecklab[2], fontsize = 20)
         fig1.tight_layout()
         fig2.tight_layout()
         fig3.tight_layout()
         fig1.savefig(f'{abspath}/Figs/paper/Maccr_encl.pdf', bbox_inches='tight')
 
     if to_plot == 'single_res':
-        check = 'NewAMR'
+        check = 'HiResNewAMR'
         Rcheck = np.array([R0, Rt, a_mb])
         labelcheck = [r'$R_0$', r'$R_t$', r'$a_{\rm mb}$']
         colorcheck = ['magenta', 'darkviolet', 'k']
@@ -185,7 +189,7 @@ else:
             ax.set_xticklabels(labels)
             ax.tick_params(axis='both', which='major', length=7, width=1)
             ax.tick_params(axis='both', which='minor', length=4, width=1)
-            ax.set_xlim(0.01, 2.5)
+            ax.set_xlim(0.01, np.max(tfb_encl))
             ax.grid()
             ax.set_yscale('log')
             ax.set_xlabel(r't [t$_{\rm fb}$]')  

@@ -1,0 +1,208 @@
+''' Reproduce Shiokawa205Ffig.2'''
+abspath = '/Users/paolamartire/shocks'
+import sys
+
+sys.path.append(abspath)
+import numpy as np
+import Utilities.prelude as prel
+import matplotlib.pyplot as plt
+from matplotlib import colors
+import itertools
+from scipy.interpolate import griddata
+import src.orbits as orb
+from Utilities.operators import make_tree
+import Utilities.sections as sec
+from Utilities.basic_units import radians
+
+#%%
+# PARAMETERS
+#
+m = 4
+Mbh = 10**m
+beta = 1
+mstar = .5
+Rstar = .47
+n = 1.5
+params = [Mbh, Rstar, mstar, beta]
+check = 'NewAMR'
+compton = 'Compton'
+snap = 238
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+
+things = orb.get_things_about(params)
+Rt = things['Rt']
+R0 = things['R0'] 
+apo = things['apo'] 
+
+#%% Load data
+path = f'{abspath}/TDE/{folder}/{snap}'
+data = make_tree(path, snap, energy = True)
+X, Y, Z, Vol, Den, Mass, Temp, VX, VY, VZ, Rad_den, Diss_den= \
+    data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Temp, data.VX, data.VY, data.VZ, data.Rad, data.Diss
+Diss = Diss_den * Vol
+dim_cell = Vol**(1/3)
+cut = Den > 1e-19
+X, Y, Z, dim_cell, Den, Mass, Temp, VX, VY, VZ, Rad_den, Diss= \
+    sec.make_slices([X, Y, Z, dim_cell, Den, Mass, Temp, VX, VY, VZ, Rad_den, Diss], cut)
+
+theta_arr, x_stream, y_stream, z_stream, _ = \
+            np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
+s, idx_forcut = orb.find_arclenght(theta_arr, [x_stream, y_stream], choose = 'stream', params = params)
+theta_arr, x_stream, y_stream, z_stream, s = theta_arr[:idx_forcut], x_stream[:idx_forcut], y_stream[:idx_forcut], z_stream[:idx_forcut], s[:idx_forcut]
+tfb = np.loadtxt(f'{path}/tfb_{snap}.txt')
+#%%
+plt.figure()
+plt.plot(theta_arr, s, c = 'k')
+plt.xlabel(r'$\theta$ [rad]')
+plt.ylabel(r's [$R_\odot$]')
+plt.grid()
+plt.show()
+#%%
+z_shio = []
+vz_shio = []
+t_dot_shio = []
+d_shio = []
+t_shio = []
+Trad_shio = []
+diss_shio = []
+s_shio = []
+theta_shio = []
+try: 
+    cond_shio = np.load(f'{abspath}/data/{folder}/cond_shio_{check}{snap}.npy', allow_pickle=True)
+    print('cond_shio loaded')
+    save = False
+except:
+    cond_shio = []
+    save = True
+
+for i in range(len(x_stream)):
+    tg_shio_cond = sec.tangent_plane(X, Y, dim_cell, x_stream, y_stream, i)
+    _, t_dot = sec.rotate_coordinates(VX, VY, x_stream, y_stream, i, z_datas = None) # velocity in the tg plane
+    n_shio_cond, _, _ = sec.transverse_plane(X, Y, Z, dim_cell, x_stream, y_stream, z_stream, i, Rstar, just_plane = True)
+    # their intersection should be the vertical plane passing through the COMs
+    if save:
+        plane = np.logical_and(tg_shio_cond, n_shio_cond)
+        cond_shio.append(plane)
+    else:
+        plane = cond_shio[i]
+    z_shio.append(Z[plane])
+    vz_shio.append(VZ[plane])
+    t_dot_shio.append(t_dot[plane])
+    d_shio.append(Den[plane])
+    t_shio.append(Temp[plane]) 
+    Trad_shio.append((Rad_den[plane]*prel.en_den_converter/prel.tsol_cgs/prel.alpha_cgs)**(1/4))
+    diss_shio.append(Diss[plane])
+    s_shio.append(np.ones(len(z_shio[i])) * s[i])
+    theta_shio.append(np.ones(len(z_shio[i])) * theta_arr[i])
+if save:
+    np.save(f'{abspath}/data/{folder}/cond_shio_{check}{snap}.npy', cond_shio, allow_pickle=True)
+
+#%% Plot
+which_x = 's'
+zlim_low = -10
+zlim_high = 10
+slim_low = 400
+slim_high = 650
+theta_wanted = np.array([-3*np.pi/4, -np.pi/2, 0, np.pi/2, 3*np.pi/4])
+theta_labels = [r'$-3\pi$/4', r'$-\pi$/2', r'$0$', r'$\pi$/2', r'$3\pi$/4']
+# idx_theta_wanted = [np.argmin(np.abs(theta_arr - t)) for t in theta_wanted]
+# theta_ticks = theta_arr[idx_theta_wanted]
+# s_ticks = s[idx_theta_wanted]
+# Convert theta_wanted to matching s positions
+s_ticks = np.interp(theta_wanted, theta_arr, s)
+print(theta_labels)
+print(s_ticks)
+theta0_idx = np.argmin(np.abs(theta_arr))
+
+fig, (ax1, ax2) = plt.subplots(1,2, figsize = (18, 8))
+for i in range(len(x_stream)-1):
+    if which_x == 's':
+        x_shio = s_shio[i]
+    else:
+        x_shio = theta_shio[i]*radians
+    imgd = ax1.scatter(x_shio, z_shio[i], c = d_shio[i], s = 5, cmap = 'rainbow', norm = colors.LogNorm(vmin =1e-11, vmax = 1e-4))
+    imgT = ax2.scatter(x_shio, z_shio[i], c = diss_shio[i]*prel.en_converter/prel.tsol_cgs, s = 5, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e36, vmax = 1e38)) 
+plt.colorbar(imgd, label = r'$\rho [M_\odot/R_\odot]$', orientation = 'horizontal')
+plt.colorbar(imgT, label = r'Diss [erg/s]', orientation = 'horizontal')
+
+for ax in [ax1, ax2]:
+    ax.set_ylim(zlim_low, zlim_high)
+    if which_x == 's':
+        ax.set_xlabel(r's [$R_\odot$]')
+        axtwin = ax.twiny()
+        ax.set_xlim(s_ticks[0], s_ticks[-1]) #slim_low, slim_high)
+        # Set top x-axis: same tick positions, labels = theta values
+        axtwin.set_xticklabels([f"{val}" for val in theta_labels])
+        axtwin.set_xlim(ax.get_xlim())
+        axtwin.set_xticks(s_ticks)
+        axtwin.set_xlabel(r'$\theta$ [rad]')
+        axtwin.tick_params(axis = 'both', length = 10, width = 1.2)
+    else:
+        ax.set_xlabel(r'$\theta$ [rad]')
+        ax.set_xlim(theta_wanted[0], theta_wanted[-1])
+    ax.tick_params(axis = 'both', length = 10)
+
+ax1.set_ylabel(r'Z [$R_\odot$]')  
+
+plt.tight_layout()
+
+#%%
+fig, (ax1, ax2) = plt.subplots(1,2, figsize = (18, 8))
+for i in range(len(x_stream)-1):
+    imgd = ax1.scatter(theta_shio[i]*radians, z_shio[i], c = d_shio[i], s = 5, cmap = 'rainbow', norm = colors.LogNorm(vmin =1e-11, vmax = 1e-4))
+    imgT = ax2.scatter(theta_shio[i]*radians, z_shio[i], c = Trad_shio[i], s = 5, cmap = 'rainbow', norm = colors.LogNorm(vmin =1e4, vmax = 4e5)) 
+cbar = plt.colorbar(imgd, label = r'$\rho [M_\odot/R_\odot]$', orientation = 'horizontal')
+cbar.ax.tick_params(axis = 'both', length = 10, width = 1.2)
+cbar.ax.tick_params(axis = 'both', which = 'minor', length = 7, width = .8)
+cbar = plt.colorbar(imgT, label = r'$T_{\rm rad} [K]$', orientation = 'horizontal')
+cbar.ax.tick_params(axis = 'both', length = 10, width = 1.2)
+cbar.ax.tick_params(axis = 'both', which = 'minor', length = 7, width = .8)
+for ax in [ax1, ax2]:
+    ax.set_ylim(zlim_low, zlim_high)
+    ax.set_xlabel(r'$\theta$ [rad]')
+    ax.set_xticks(theta_wanted)
+    ax.set_xlim(theta_wanted[0], theta_wanted[-1])
+
+# %% Plot interpolating
+s_for_grid = list(itertools.chain.from_iterable(s_shio))
+z_shio_for_grid = list(itertools.chain.from_iterable(z_shio))
+d_shio_for_grid = list(itertools.chain.from_iterable(d_shio))
+diss_shio_for_grid = list(itertools.chain.from_iterable(diss_shio))
+grid_z, grid_s = np.meshgrid(np.linspace(zlim_low, zlim_high, 400),
+                             np.linspace(s_ticks[0], s_ticks[-1], 400), indexing='ij')
+grid_d = griddata((s_for_grid, z_shio_for_grid), d_shio_for_grid, (grid_s, grid_z), method='linear')
+grid_diss = griddata((s_for_grid, z_shio_for_grid), diss_shio_for_grid, (grid_s, grid_z), method='linear')
+
+figd, axd = plt.subplots(1,1, figsize = (18, 8))
+figdiss, axdiss = plt.subplots(1,1, figsize = (18, 8))
+img = axd.imshow(grid_d*prel.den_converter, extent = [s_ticks[0], s_ticks[-1], zlim_low, zlim_high], aspect = 'auto', cmap = 'rainbow', norm = colors.LogNorm(vmin =1e-10, vmax = 5e-4))
+cbar = plt.colorbar(img, label = r'$\rho$ [g/cm$^3$]') 
+cbar.ax.tick_params(which = 'major', length = 8, width = 1, labelsize = 30)
+cbar.ax.tick_params(which = 'minor', length = 4, width = .8)
+imgdiss = axdiss.imshow(grid_diss*prel.en_converter/prel.tsol_cgs, extent = [s_ticks[0], s_ticks[-1], zlim_low, zlim_high], aspect = 'auto', cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e36, vmax = 1e38))
+cbar = plt.colorbar(imgdiss, label = r'Diss [erg/s/cm$^3$]') 
+cbar.ax.tick_params(which = 'major', length = 8, width = 1, labelsize = 30)
+cbar.ax.tick_params(which = 'minor', length = 4, width = .8)
+
+for i in range(len(x_stream)-1):
+    s_qu = s_shio[i]
+    z_qu = z_shio[i]    
+    vz_qu = vz_shio[i]
+    t_dot_qu = t_dot_shio[i]
+    cond = np.logical_and(np.abs(z_qu)< 10, np.logical_and(s_qu > s_ticks[0], s_qu < s_ticks[-1]))
+    axd.quiver(s_qu[cond][::50], z_qu[cond][::50], t_dot_qu[cond][::50], vz_qu[cond][::50], color = 'k', angles='xy', scale_units = 'xy', scale = 10, width = 0.0015)
+
+for ax in [axd, axdiss]:
+    ax.axvline(x = s[theta0_idx], color = 'gray', linestyle = '--')
+    ax.text(s[theta0_idx]-4, zlim_low+1, r'$\theta=0$', fontsize = 20, color = 'white', rotation = 90)
+    ax.set_xlabel(r's [$R_\odot$]', fontsize = 30)
+    ax.set_ylabel(r'Z [$R_\odot$]', fontsize = 30) 
+    ax.tick_params(axis = 'both', length = 8, width = 1)
+    ax.set_title(f't = {tfb:.2f}' + r'$t_{\rm fb}$', fontsize = 30)
+
+figd.tight_layout()
+figd.savefig(f'{abspath}/Figs/next_meeting/shio{check}{snap}.png')
+figdiss.tight_layout()
+figdiss.savefig(f'{abspath}/Figs/next_meeting/shio_diss{check}{snap}.png')
+
+# %%

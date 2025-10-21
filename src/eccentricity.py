@@ -16,7 +16,6 @@ else:
 
 import numpy as np
 import matplotlib.pyplot as plt
-import Utilities.prelude
 import matplotlib.colors as colors
 from Utilities.operators import make_tree, single_branch, find_ratio
 import Utilities.sections as sec
@@ -125,8 +124,8 @@ else:
         for i in range(len(radii_grid)):
             ax.contour(xcfr_grid[i]/Rt, ycfr_grid[i]/Rt, cfr_grid[i]/Rt, levels = [0], color = 'k', linestyle = styles[i], linewidth = 2)
         cb.set_label(r'Eccentricity')
-        ax.set_xlabel(r'$X [R_{\rm t}]$')
-        ax.set_ylabel(r'$Y [R_{\rm t}]$')
+        ax.set_xlabel(r'$X [r_{\rm t}]$')
+        ax.set_ylabel(r'$Y [r_{\rm t}]$')
         ax.set_xlim(-3, 3)
         ax.set_ylim(-3, 3)
         plt.tight_layout()
@@ -154,7 +153,7 @@ else:
         plt.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed', linewidth = 2)
         plt.text(1.05*Rt/apo, 0.9*np.max(tfb), r'$R_{\rm t}$', fontsize = 24, color = 'k')
         plt.xscale('log')
-        plt.xlabel(r'$R [R_{\rm a}]$', fontsize = 30)
+        plt.xlabel(r'$r [r_{\rm a}]$', fontsize = 30)
         plt.ylabel(r'$t [t_{\rm fb}]$', fontsize = 30)
         plt.tick_params(axis='both', which='major', width=1.2, length=10, color = 'k', labelsize=25)
         plt.tick_params(axis='x', which='minor', width=.9, length=6, color = 'k', labelsize=25)
@@ -208,14 +207,14 @@ else:
         ax1 = fig.add_subplot(gs[0, 0])  # First plot
         ax2 = fig.add_subplot(gs[0, 1])  # Second plot
 
-        img = ax1.pcolormesh(radii/apo, tfb, rel_diffL, cmap = 'Greens', vmin = vmin, vmax = vmax, rasterized = True)
+        img = ax1.pcolormesh(radii/apo, tfb, rel_diffL, cmap = 'YlGn', vmin = vmin, vmax = vmax, rasterized = True)
         ax1.set_xscale('log')
-        ax1.text(0.6, .9*np.max(tfb), r'$\frac{e_{\rm Mid}}{e_{\rm Low}}$', fontsize = 40, color = 'k')
+        ax1.text(0.5, .9*np.max(tfb), r'$\frac{e_{\rm Middle}}{e_{\rm Low}}$', fontsize = 40, color = 'k')
         ax1.set_ylabel(r'$t [t_{\rm fb}]$')
 
-        img = ax2.pcolormesh(radii/apo, tfb, rel_diffH, cmap = 'Greens', vmin = vmin, vmax = vmax, rasterized = True)
+        img = ax2.pcolormesh(radii/apo, tfb, rel_diffH, cmap = 'YlGn', vmin = vmin, vmax = vmax, rasterized = True)
         ax2.set_xscale('log')
-        ax2.text(0.6, 0.9*np.max(tfb), r'$\frac{e_{\rm High}}{e_{\rm Mid}}$', fontsize = 40, color = 'k')
+        ax2.text(0.5, 0.9*np.max(tfb), r'$\frac{e_{\rm High}}{e_{\rm Middle}}$', fontsize = 40, color = 'k')
 
         # Create a colorbar that spans the first two subplots
         cbar_ax = fig.add_subplot(gs[0, 2])  # Colorbar subplot below the first two
@@ -225,12 +224,12 @@ else:
 
         for ax in [ax1, ax2]:
             ax.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed', linewidth = 2)
-            ax.text(1.05*Rt/apo, 0.9*np.max(tfb), r'$R_{\rm t}$', fontsize = 35, color = 'k')
+            ax.text(1.05*Rt/apo, 0.9*np.max(tfb), r'$r_{\rm t}$', fontsize = 35, color = 'k')
             # ax.axvline(x=R0/apo, color = 'white', linestyle = ':', linewidth = 2)
             ax.tick_params(axis='y', which='major', width=1.4, length=12, color = 'white')
             ax.tick_params(axis='x', which='minor', width=1.1, length=7, color = 'k')
             ax.set_ylim(np.min(tfb), np.max(tfb))
-            ax.set_xlabel(r'$R [R_{\rm a}]$')
+            ax.set_xlabel(r'$r [r_{\rm a}]$')
             ax.set_xlim(R0/apo, np.max(radii)/apo)
         
         plt.savefig(f'{abspath}/Figs/paper/ecc_diff.pdf', bbox_inches='tight')

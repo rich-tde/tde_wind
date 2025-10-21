@@ -87,8 +87,6 @@ for c, check in enumerate(checks):
         Temp_tr_snap = np.zeros(len(snaps))
         Mdot_snap = np.zeros(len(snaps))
         for s, snap in enumerate(snaps): 
-                if snap > 318:
-                        continue
                 tfb = tfbs[s]
                 dataph = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
                 xph, yph, zph, Temp_ph, RadDen_ph, Lum_ph = dataph[0], dataph[1], dataph[2], dataph[5], dataph[6], dataph[-2]
@@ -132,9 +130,9 @@ for c, check in enumerate(checks):
 
         # Eddington luminosity
         if check == 'HiResNewAMR':
-                last_snap, last_tfb = snaps[idx_maxLum], tfbs[idx_maxLum]
+                max_snap, max_tfb = snaps[idx_maxLum], tfbs[idx_maxLum]
                 xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, alphaph, _, Lumph, _ = \
-                        np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{last_snap}.txt')
+                        np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{max_snap}.txt')
                 kappaph = alphaph/denph
                 kappa = 1/np.mean(1/kappaph)
                 eta = np.mean(eta_axis[:, idx_maxLum])
@@ -262,7 +260,7 @@ data = np.loadtxt(f'{abspath}/data/{folder}/HiResNewAMR_red.csv', delimiter=',',
 snaps, tfb_LH = data[:, 0], data[:, 1]
 tfb_LH, snaps = sort_list([tfb_LH, snaps], snaps, unique=True)
 snap, tfb_fallH, mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind, Vwind_nonzer = \
-np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_HiResNewAMRRtr.csv', 
+np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_HiResNewAMR05aminmean.csv', 
                 delimiter = ',', 
                 skiprows=1, 
                 unpack=True)

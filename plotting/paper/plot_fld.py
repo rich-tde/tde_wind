@@ -104,6 +104,8 @@ cbar.set_label(r'f = $N_{\rm ph, unbound}/N_{\rm obs}$')
 cbar.ax.tick_params(which='major', length = 5)
 cbar.ax.tick_params(which='minor', length = 3) 
 axR.set_ylabel(r'median $r_{\rm ph} [r_{\rm t}]$')
+axR.axhline(apo/Rt, c = 'k', linestyle = '-.', linewidth = 2)
+axR.text(0.11, 1.1*apo/Rt, r'$r_{\rm a}$', fontsize = 20)
 
 # img = axL.scatter(tfb, Lum, s = 12, c = medianRph/Rt, cmap = 'viridis', norm = colors.LogNorm(
 #                  vmin = 1, vmax = 7e1))
@@ -132,7 +134,7 @@ for ax in [axR, axL]:
     ax.set_xlim(np.min(tfb), np.max(tfb))
 axR.set_ylim(1, 7e1)
 axL.set_ylabel(r'Luminosity [erg/s]')#, fontsize = 20)
-axL.set_ylim(9e37, 8e42)
+axL.set_ylim(9e37, 9e42)
 plt.tight_layout()
 plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld.pdf', bbox_inches='tight')
 # %%

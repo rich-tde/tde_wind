@@ -1,5 +1,5 @@
 """Compare resolutions: scatter plot of pericenter region and CDF of mass and size with comparison to other papers"""
-abspath = '/Users/paolamartire/shocks/'
+abspath = '/Users/paolamartire/shocks'
 import sys
 sys.path.append(abspath)
 
@@ -18,12 +18,6 @@ from Utilities.time_extractor import days_since_distruption
 # CONSTANTS
 #
 
-G_SI = 6.6743e-11
-Msol = 2e30 #1.98847e30 # kg
-Rsol = 7e8 #6.957e8 # m
-t = np.sqrt(Rsol**3 / (Msol*G_SI ))
-c = 3e8 / (7e8/t)
-G = 1
 price24 = 2.3e-7
 bonlu20 = 8.4e-9 #this is at late times, but they start with Mp = 1e-8
 # Ryu
@@ -41,8 +35,8 @@ sizehuang24 = 0.7
 # we consider the midplane
 sizeminRyu = arrR_Ryu23[0] * (dRoverR_Ryu23 * dthetaRyu * 1 * dphiryu)**(1/3) #
 sizemeanRyu = gmean(arrR_Ryu23) * (dRoverR_Ryu23 * dthetaRyu * 1 * dphiryu)**(1/3)
-# Sadowski
-RgSad = 1e5/c**2
+# Sadowski 
+RgSad = 1e5/prel.csol_cgs**2
 r_sad16 = np.logspace(1.85*RgSad, 1000*RgSad, 256)
 sad16 = np.min(np.diff(r_sad16))
 
@@ -58,26 +52,25 @@ beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
-Rt = Rstar * (Mbh/mstar)**(1/3)
-Rs = 2*G*Mbh / c**2
-Rg = Rs/2
-R0 = 0.6 * Rt
-Rp =  Rt / beta
-apo = orb.apocentre(Rstar, mstar, Mbh, beta)
-snap = '267'
+snapH = '116'
+snapM = '326'
+snapL = '340'
 compton = 'Compton'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-tfb = days_since_distruption(f'{abspath}/TDE/{folder}HiRes/{snap}/snap_{snap}.h5', m, mstar, Rstar, choose = 'tfb')
-print(f'Rt: {Rt}, Rg: {Rs}, R0: {R0}, Rp: {Rp}, apo: {apo}')
-print(f'In term of Rg: Rt: {Rt/Rg}, R0: {R0/Rg}, Rp: {Rp/Rg}, apo: {apo/Rg}')
+tfb = np.loadtxt(f'{abspath}/TDE/{folder}NewAMR/{snapM}/tfb_{snapM}.txt')
+params = [Mbh, Rstar, mstar, beta]
+things = orb.get_things_about(params)
+Rs = things['Rs']
+Rt = things['Rt']
+R0 = things['R0']
 xcr0, ycr0, cr0 = orb.make_cfr(R0)
 xcrt, ycrt, crt = orb.make_cfr(Rt)
 xcrtRes, ycrtRes, crtRes = orb.make_cfr(1.5*Rt)
 xcrtRes2, ycrtRes2, crtRes2 = orb.make_cfr(1.2*Rt)
 #%%
 # LowRes
-pathL = f'{abspath}TDE/{folder}LowRes/{snap}'
-dataL = make_tree(pathL, snap)#, energy = True)
+pathL = f'{abspath}/TDE/{folder}LowResNewAMR/{snapL}'
+dataL = make_tree(pathL, snapL)#, energy = True)
 finalcutL = dataL.Den > 1e-19 # throw fluff
 x_coordL, y_coordL, z_coordL, massL, denL, dim_cellL = \
     sec.make_slices([dataL.X, dataL.Y, dataL.Z, dataL.Mass, dataL.Den, dataL.Vol**(1/3)], finalcutL)
@@ -87,8 +80,8 @@ X_midplaneL, Y_midplaneL, Z_midplaneL, dim_midplaneL, mass_midplaneL, Den_midpla
     sec.make_slices([x_coordL, y_coordL, z_coordL, dim_cellL, massL, denL], midplaneL)
 
 # Fiducial
-path = f'{abspath}TDE/{folder}/{snap}'
-data = make_tree(path, snap)#, energy = True)
+path = f'{abspath}/TDE/{folder}NewAMR/{snapM}'
+data = make_tree(path, snapM)#, energy = True)
 finalcut = data.Den > 1e-19 # throw fluff
 x_coord, y_coord, z_coord, mass, den, dim_cell = \
     sec.make_slices([data.X, data.Y, data.Z, data.Mass, data.Den, data.Vol**(1/3)], finalcut)
@@ -98,8 +91,8 @@ X_midplane, Y_midplane, Z_midplane, dim_midplane, mass_midplane, Den_midplane = 
     sec.make_slices([x_coord, y_coord, z_coord, dim_cell, mass, den], midplane)
 
 # HiRes
-pathH = f'{abspath}TDE/{folder}HiRes/{snap}'
-dataH = make_tree(pathH, snap)#, energy = True)
+pathH = f'{abspath}/TDE/{folder}HiResNewAMR/{snapH}'
+dataH = make_tree(pathH, snapH)#, energy = True)
 finalcutH = dataH.Den > 1e-19 # throw fluff
 x_coordH, y_coordH, z_coordH, massH, denH, dim_cellH = \
     sec.make_slices([ dataH.X, dataH.Y, dataH.Z, dataH.Mass, dataH.Den, dataH.Vol**(1/3) ], finalcutH)
@@ -112,15 +105,15 @@ X_midplaneH, Y_midplaneH, Z_midplaneH,  dim_midplaneH, mass_midplaneH, Den_midpl
 print('min mass low:', np.min(massL), 'min dim low:', np.min(dim_cellL))
 print('min mass fiducial:', np.min(mass),'min dim fiducial:', np.min(dim_cell))
 print('min mass high:', np.min(massH), 'min dim high:', np.min(dim_cellH))
-#%%
+#
 print('50 percentile low mass', np.percentile(massL, 50), '90 percentile low mass', np.percentile(massL, 90))
 print('50 percentile fiducial mass', np.percentile(mass, 50), '90 percentile fiducial mass', np.percentile(mass, 90))
 print('50 percentile high mass', np.percentile(massH, 50), '90 percentile high mass', np.percentile(massH, 90))
-#%%
+#
 print('50 percentile low dim', np.percentile(dim_cellL, 50), '90 percentile low dim', np.percentile(dim_cellL, 90))
 print('50 percentile fiducial dim', np.percentile(dim_cell, 50), '90 percentile fiducial dim', np.percentile(dim_cell, 90))
 print('50 percentile high dim', np.percentile(dim_cellH, 50), '90 percentile high dim', np.percentile(dim_cellH, 90))
-#%%
+#
 print('min mass at midplane low:', np.min(mass_midplaneL), 'min dim at midplane low:', np.min(dim_midplaneL))
 print('min mass at midplane fiducial:', np.min(mass_midplane), 'min dim at midplane fiducial:', np.min(dim_midplane))
 print('min mass at midplane high:', np.min(mass_midplaneH), 'min dim at midplane high:', np.min(dim_midplaneH))
@@ -185,7 +178,7 @@ plt.subplots_adjust(wspace=0.25)  # Wider spacing between the first and second p
 # plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,2)))
 plt.tight_layout()
 if save:
-    plt.savefig(f'{abspath}/Figs/paper/compareRpMass_{snap}.pdf', bbox_inches='tight')
+    plt.savefig(f'{abspath}/Figs/paper/compareRpMass.pdf', bbox_inches='tight')
 plt.show()
 
 #%% CDF, grazie Sill
@@ -258,20 +251,19 @@ if include_mid == 'mid':
     dim_midplaneL.append(2)
     dim_midplaneH.append(2)
 
-# Plot
-fig, (ax1, ax2) = plt.subplots(1,2, figsize = (8, 4))
+#%% Plot
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16, 8))
 ax1.plot(massL, cumL, color = 'C1')#, label = 'Low res')
 ax1.plot(mass, cum, color = 'yellowgreen')#, label = 'Fid res')
 ax1.plot(massH, cumH, color = 'darkviolet')#, label = 'High res')
-ax1.axvline(price24, color = 'k', linestyle = '--', label = 'Price24')
-ax1.axvline(bonlu20, color = 'deepskyblue', linestyle = '--', label = 'BonnerotLu20')
+ax1.axvline(price24, color = 'forestgreen', linestyle = '--', label = 'Price24')
+ax1.axvline(bonlu20, color = 'plum', linestyle = 'dashdot', label = 'BonnerotLu20')
 ax2.plot(dim_cellL, cumdimL, color = 'C1')# label = 'Low res')
 ax2.plot(dim_cell, cumdim, color = 'yellowgreen')# label = 'Middle res')
 ax2.plot(dim_cellH, cumdimH, color = 'darkviolet',)# label = 'High res')
+ax2.axvline(sizeminRyu, color = 'k', linestyle = (0, (5, 10)), label = 'Ryu+23 min orb.plane')
 ax2.axvline(sizemeanRyu, color = 'k', linestyle = '--', label = 'Ryu+23 gmean orb.plane')
-ax2.axvline(sizeminRyu, color = 'k', linestyle = 'dashdot', label = 'Ryu+23 min orb.plane')
-ax2.axvline(sizehuang24, color = 'deepskyblue', linestyle = '--', label = 'Huang+24')
-
+ax2.axvline(sizehuang24, color = 'deepskyblue', linestyle = 'dashdot', label = 'Huang+24')
 
 if include_mid == 'mid':
     ax1.plot(mass_midplaneL, cum_midplaneL, '--', color = 'C1')#, label = 'Low res')
@@ -283,18 +275,20 @@ if include_mid == 'mid':
 
 for ax in [ax1, ax2]:
     ax.set_xscale('log')
-    ax.tick_params(axis = 'both', which = 'both', direction='in', labelsize=18)
-    ax.legend(loc ='upper left', fontsize = 11)
+    ax.tick_params(axis='both', which='major', width=1.2, length=7)
+    ax.tick_params(axis='both', which='minor', width=0.9, length=5)
+    ax.legend(loc ='upper left', fontsize = 18)
     ax.set_ylim(0,1.1)
-ax1.set_ylabel('CDF', fontsize = 20)
-ax1.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 18)
-ax2.set_xlabel(r'Cell size [$R_\odot$]', fontsize = 18)
+    ax.grid()
+ax1.set_ylabel('CDF')
+ax1.set_xlabel(r'Cell mass [$M_\odot$]')
+ax2.set_xlabel(r'Cell size [$R_\odot$]')
 ax1.set_xlim(5e-13, 3e-7)
 ax2.set_xlim(4e-2, 2)
 # plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
 plt.tight_layout()
 if save:
-    plt.savefig(f'{abspath}/Figs/paper/compareHistToget{include_mid}_{snap}.pdf', bbox_inches='tight')
+    plt.savefig(f'{abspath}/Figs/paper/compareHistToget{include_mid}.pdf', bbox_inches='tight')
 plt.show()
 
 # %%
