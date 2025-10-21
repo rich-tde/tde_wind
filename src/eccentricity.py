@@ -151,7 +151,7 @@ else:
         # plt.axvline(x=R0/apo, color = 'k', linestyle = 'dotted', linewidth = 2)
         # plt.text(1.05*R0/apo, 0.9*np.max(tfb), r'$R_{\rm 0}$', fontsize = 24, color = 'k')
         plt.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed', linewidth = 2)
-        plt.text(1.05*Rt/apo, 0.9*np.max(tfb), r'$R_{\rm t}$', fontsize = 24, color = 'k')
+        plt.text(1.05*Rt/apo, 0.9*np.max(tfb), r'$r_{\rm t}$', fontsize = 24, color = 'k')
         plt.xscale('log')
         plt.xlabel(r'$r [r_{\rm a}]$', fontsize = 30)
         plt.ylabel(r'$t [t_{\rm fb}]$', fontsize = 30)

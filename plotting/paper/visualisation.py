@@ -169,9 +169,9 @@ for i, snap in enumerate(choosen_snaps):
     ax.set_ylim(-3, 2)
     
     if i == 2:
-        ax.text(Rt/apo + 0.04, 0.1, r'$R_{\rm t}$', color = 'white', fontsize = 14)
-        ax.text(a_mb/apo + 0.04, 0.2, r'$a_{\rm mb}$', color = 'white', fontsize =14)
-        ax.text(1 + 0.01, 0.3, r'$R_{\rm a}$', color = 'white', fontsize =14)
+        ax.text(Rt/apo + 0.02, 0.05, r'$r_{\rm t}$', color = 'white', fontsize = 14)
+        ax.text(a_mb/apo + 0.04, 0.16, r'$a_{\rm mb}$', color = 'white', fontsize =14)
+        ax.text(1 + 0.01, 0.3, r'$r_{\rm a}$', color = 'white', fontsize =14)
 
 # Create a colorbar that spans the first two subplots
 cbar_ax = fig.add_subplot(gs[0:3, 1])  # Colorbar subplot below the first two

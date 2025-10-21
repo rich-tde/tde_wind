@@ -18,7 +18,7 @@ import matplotlib.colors as colors
 import csv
 import os
 import healpy as hp
-from scipy.spatial import KDTree
+from sklearn.neighbors import KDTree
 import Utilities.prelude as prel
 import src.orbits as orb
 from Utilities.operators import make_tree, to_spherical_components
@@ -98,7 +98,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         # Load data 
         data_tr = np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz')
         x_tr, y_tr, z_tr = data_tr['x_tr'], data_tr['y_tr'], data_tr['z_tr']
-        r_chosen = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+        r_chosen = np.array(np.sqrt(x_tr**2 + y_tr**2 + z_tr**2))
         # r_chosen = np.median(r_tr_all[r_tr_all!=0])
 
         # Load data and pick the ones unbound and with positive velocity
@@ -125,9 +125,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             # search the wind cells corresponding to the observers at Rtr
             xyz = np.array([X_pos, Y_pos, Z_pos]).T # shape: (N_pos, 3)
             tree = KDTree(xyz, leaf_size = 50) 
-            print('r ',np.len(r_chosen)) 
-            xyz_obs = r_chosen * observers_xyz
-            print(np.shape(observers_xyz))
+            xyz_obs = r_chosen[:, None] * observers_xyz
             dist, idx = tree.query(xyz_obs, k=1) 
             dist = np.concatenate(dist)
             idx = np.array([ int(idx[i][0]) for i in range(len(idx))])

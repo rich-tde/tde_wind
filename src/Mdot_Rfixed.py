@@ -34,7 +34,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'LowResNewAMR'
+check = 'ResNewAMR'
 statist = 'mean' # '' for mean, 'median' for median
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
