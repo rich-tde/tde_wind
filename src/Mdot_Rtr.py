@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import csv
 import os
+import healpy as hp
+from scipy.spatial import KDTree
 import Utilities.prelude as prel
 import src.orbits as orb
 from Utilities.operators import make_tree, to_spherical_components
@@ -34,7 +36,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiResNewAMR'
+check = 'LowResNewAMR'
 statist = 'mean' # '' for mean, 'median' for median
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -60,8 +62,9 @@ convers_kms = prel.Rsol_cgs * 1e-5/prel.tsol_cgs # it's aorund 400
 
 # MAIN
 if compute: # compute dM/dt = dM/dE * dE/dt
-    which_r = 0.5*amin # 'Rtr' for radius of the trap, value that you want for a fixed value
-    which_r_title = '05amin'
+    # define the observers and find their corresponding angles (they're radius is 1)
+    observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) #shape: (3, 192)
+    observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
     tfb_cgs = tfb * tfallback_cgs #converted to seconds
@@ -71,13 +74,6 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/wind/dMdE_{check}.txt')[0] # distribution just after the disruption
     bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
    
-    # define the observers and find their corresponding angles (they're radius is 1)
-    if which_r == 'Rtr':
-        import healpy as hp
-        from scipy.spatial import KDTree
-        observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) #shape: (3, 192)
-        observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
-    
     for i, snap in enumerate(snaps):
         print(snap, flush=True)
         if alice:
@@ -100,13 +96,10 @@ if compute: # compute dM/dt = dM/dE * dE/dt
 
         # Compute \dot{M}_w
         # Load data 
-        if which_r == 'Rtr':
-            data_tr = np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz')
-            x_tr, y_tr, z_tr = data_tr['x_tr'], data_tr['y_tr'], data_tr['z_tr']
-            r_chosen = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-            # r_chosen = np.median(r_tr_all[r_tr_all!=0])
-        else:
-            r_chosen = which_r
+        data_tr = np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz')
+        x_tr, y_tr, z_tr = data_tr['x_tr'], data_tr['y_tr'], data_tr['z_tr']
+        r_chosen = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+        # r_chosen = np.median(r_tr_all[r_tr_all!=0])
 
         # Load data and pick the ones unbound and with positive velocity
         data = make_tree(path, snap, energy = True)
@@ -129,36 +122,29 @@ if compute: # compute dM/dt = dM/dE * dE/dt
 
         else: 
             Mdot_dimCell = np.pi * dim_cell_pos**2 * Den_pos * v_rad_pos  
-            if which_r == 'Rtr':
-                # search the wind cell corresponding to the observer at Rtr
-                xyz = np.array([X_pos, Y_pos, Z_pos]).T # shape: (N_pos, 3)
-                tree = KDTree(xyz, leaf_size = 50) 
-                print(np.len(r_chosen)) 
-                xyz_obs = r_chosen * observers_xyz
-                print(np.shape(observers_xyz))
-                dist, idx = tree.query(xyz_obs, k=1) 
-                dist = np.concatenate(dist)
-                idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
-                r_sim = np.sqrt(X_pos[idx]**2 + Y_pos[idx]**2 + Z_pos[idx]**2) 
-                Mdot_dimCell_casted = Mdot_dimCell[idx]
-                v_rad_pos_casted = v_rad_pos[idx]
-                Mdot_R_casted = 4 * np.pi * r_chosen**2 * Den_pos[idx] * v_rad_pos_casted
-                check_dist = np.logical_and(dist <= dim_cell_pos[idx], r_sim >= Rt)
-                Mdot_dimCell_casted[~check_dist] = 0 
-                Mdot_R_casted[~check_dist] = 0
-                v_rad_pos_casted[~check_dist] = 0
-            else:
-                Mdot_R = 4 * np.pi * r_chosen**2 * Den_pos * v_rad_pos 
-                condRtr = np.abs(Rsph_pos-r_chosen) < dim_cell_pos
-                # Pick the cells at r_chosen
-                Mdot_dimCell_casted = Mdot_dimCell[condRtr] 
-                Mdot_R_casted = Mdot_R[condRtr]
-                v_rad_pos_casted = v_rad_pos[condRtr] 
+            # search the wind cells corresponding to the observers at Rtr
+            xyz = np.array([X_pos, Y_pos, Z_pos]).T # shape: (N_pos, 3)
+            tree = KDTree(xyz, leaf_size = 50) 
+            print('r ',np.len(r_chosen)) 
+            xyz_obs = r_chosen * observers_xyz
+            print(np.shape(observers_xyz))
+            dist, idx = tree.query(xyz_obs, k=1) 
+            dist = np.concatenate(dist)
+            idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
+            r_sim = np.sqrt(X_pos[idx]**2 + Y_pos[idx]**2 + Z_pos[idx]**2) 
+            Mdot_dimCell_casted = Mdot_dimCell[idx]
+            v_rad_pos_casted = v_rad_pos[idx]
+            Mdot_R_casted = 4 * np.pi * r_chosen**2 * Den_pos[idx] * v_rad_pos_casted
+            # exclude cells that don't correspond to what you want since they're too far away 
+            check_dist = dist <= dim_cell_pos[idx]
+            Mdot_dimCell_casted[~check_dist] = 0 
+            Mdot_R_casted[~check_dist] = 0
+            v_rad_pos_casted[~check_dist] = 0
 
             mwind_dimCell = np.sum(Mdot_dimCell_casted)
             if statist == 'mean':
-                mwind_R = np.mean(Mdot_R_casted) # NB: this is an overestimate since you're doing the mean already on the positive ones, not all the cells at radius R
-                mwind_R_nonzero = np.mean(Mdot_R_casted[Mdot_R_casted!=0]) # NB: if the radius is fixed, it's the same as the mean on all. 
+                mwind_R = np.mean(Mdot_R_casted) 
+                mwind_R_nonzero = np.mean(Mdot_R_casted[Mdot_R_casted!=0]) 
                 Vwind = np.mean(v_rad_pos_casted)
                 Vwind_nonzero = np.mean(v_rad_pos_casted[v_rad_pos_casted!=0])
             elif statist == 'median':
@@ -169,21 +155,20 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         
             data = [snap, tfb[i], mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind, Vwind_nonzero]
 
-        csv_path = f'{abspath}/data/{folder}/wind/Mdot_{check}{which_r_title}{statist}.csv'
+        csv_path = f'{abspath}/data/{folder}/wind/Mdot_{check}Rtr{statist}.csv'
         if alice:
             with open(csv_path, 'a', newline='') as file:
                 writer = csv.writer(file)
                 if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                    writer.writerow(['snap', ' tfb', ' Mdot_fb', ' Mw with dimCell', f'Mw with {which_r_title}', f'Mw with {which_r_title} (nonzero)', 'Vwind', 'Vwind (nonzero)'])
+                    writer.writerow(['snap', ' tfb', ' Mdot_fb', ' Mw with dimCell', f'Mw with Rtr', f'Mw with Rtr (nonzero)', 'Vwind', 'Vwind (nonzero)'])
                 writer.writerow(data)
             file.close()
 
 if plot:
     from scipy.integrate import cumulative_trapezoid
-    which_r_title = '05amin'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     snap, tfb, mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind, Vwind_nonzero = \
-        np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}{which_r_title}{statist}.csv', 
+        np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}Rtr{statist}.csv', 
                    delimiter = ',', 
                    skiprows=1, 
                    unpack=True)
