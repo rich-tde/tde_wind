@@ -34,7 +34,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'ResNewAMR'
+check = 'HiResNewAMR'
 statist = 'mean' # '' for mean, 'median' for median
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -52,7 +52,7 @@ norm_dMdE = things['E_mb']
 t_fb_days_cgs = things['t_fb_days'] * 24 * 3600 # in seconds
 max_Mdot = mstar*prel.Msol_cgs/(3*t_fb_days_cgs) # in code units
 
-Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 0.0096, prel.csol_cgs, prel.G)
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
@@ -147,49 +147,57 @@ if plot:
     from scipy.integrate import cumulative_trapezoid
     which_r_title = '05amin'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    snap, tfb, mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind, Vwind_nonzero = \
-        np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}{which_r_title}{statist}.csv', 
-                   delimiter = ',', 
-                   skiprows=1, 
-                   unpack=True)
-    # integrate mwind_dimCell in tfb
-    mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)
-    mfall_int = cumulative_trapezoid(np.abs(mfall), tfb, initial = 0)
-    print(f'integral of Mw at the last time: {mwind_dimCell_int[-1]/mstar} Mstar')
-    print(f'integral of Mfb at the last time: {mfall_int[-1]/mstar} Mstar')
-    
-    fig, ax1 = plt.subplots(1, 1, figsize = (9, 6))
-    # fig2, ax2 = plt.subplots(1, 1, figsize = (9, 6)) 
-    ax1.plot(tfb, np.abs(mwind_dimCell)/Medd_sol, c = 'darkviolet', label = r'$\dot{M}_{\rm w}$') # dim cell')
-    print('End of simualation, Mw/Mfb:', np.abs(mwind_dimCell[-1]/mfall[-1]))
-    ax1.plot(tfb, np.abs(mfall)/Medd_sol, ls = '--', c = 'gray', label = r'$\dot{M}_{\rm fb}$')
-    ax1.plot(tfb, np.abs(mwind_R)/Medd_sol, c = 'orange', label = r'$\dot{M}_{\rm w}$ with  $r={\rm 0.5a_{\rm min}}$')
-    ax1.plot(tfb, np.abs(mwind_R_nonzero)/Medd_sol, c = 'green', ls = '--', label = r'$\dot{M}_{\rm w}$ at  $r={\rm 0.5a_{\rm min}}$ (nonzero)')
-    # ax1.plot(tfb, np.abs(mfall)/Medd_sol, label = r'$\dot{M}_{\rm fb}$', c = 'k')
-    ax1.set_yscale('log')
-    ax1.set_ylim(1, 1e5)
-    ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')   
-    ax1.legend(fontsize = 20)
+    checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
+    checks_label = ['Low', 'Middle', 'High']    
+    colors = ['C1', 'yellowgreen', 'darkviolet']
 
-    # ax2.plot(tfb, Vwind/v_esc, c = 'dodgerblue')
-    # ax2.set_ylabel(r'$v_{\rm w} [v_{\rm esc}(R_{\rm p})]$')
+    fig, ax1 = plt.subplots(1, 1, figsize = (9, 7))
+    figCon, axCon = plt.subplots(1, 1, figsize = (9, 7))
+    for i, check in enumerate(checks):
+        snap, tfb, mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind, Vwind_nonzero = \
+            np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}{which_r_title}{statist}.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True)
+        # integrate mwind_dimCell in tfb
+        mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)
+        mfall_int = cumulative_trapezoid(np.abs(mfall), tfb, initial = 0)
+        print(f'integral of Mw at the last time: {mwind_dimCell_int[-1]/mstar} Mstar')
+        print(f'integral of Mfb at the last time: {mfall_int[-1]/mstar} Mstar')
+        print(f'End of simualation, Mw/Mfb in {check}:', np.abs(mwind_dimCell[-1]/mfall[-1]))
+        
+        if check == 'HiResNewAMR':
+            ax1.plot(tfb, np.abs(mfall)/Medd_sol, ls = '--', c = 'gray', label = r'$\dot{M}_{\rm fb}$')
+            ax1.plot(tfb, np.abs(mwind_dimCell)/Medd_sol, c = colors[i], label = r'$\dot{M}_{\rm w}$') # dim cell')
+            # ax1.plot(tfb, np.abs(mwind_R)/Medd_sol, c = 'orange', label = r'$\dot{M}_{\rm w}$ with  $r={\rm 0.5a_{\rm min}}$')
+            # ax1.plot(tfb, np.abs(mwind_R_nonzero)/Medd_sol, c = 'green', ls = '--', label = r'$\dot{M}_{\rm w}$ at  $r={\rm 0.5a_{\rm min}}$ (nonzero)')
+            # ax1.plot(tfb, np.abs(mfall)/Medd_sol, label = r'$\dot{M}_{\rm fb}$', c = 'k')
+        axCon.plot(tfb, np.abs(mwind_dimCell)/Medd_sol, c = colors[i], label = checks_label[i]) # dim cell')
+    
     original_ticks = ax1.get_xticks()
-    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-    # for ax in (ax1, ax2):
-    ax1.set_xlabel(r'$t [t_{\rm fb}]$')
-    ax1.set_xticks(new_ticks)
-    # ax.set_xticklabels(labels)
-    ax1.tick_params(axis='both', which='major', width=1.2, length=9)
-    ax1.tick_params(axis='both', which='minor', width=1, length=5)
+    for ax in (axCon, ax1):
+        ax.set_yscale('log')
+        ax.set_ylim(1, 1e7)
+        ax.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm Edd}]$')   
+
+        midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+        new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+        ax.set_xticks(new_ticks)
+        if ax == axCon:
+            labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
+            ax.set_xticklabels(labels)   
+        ax.set_xlabel(r'$t [t_{\rm fb}]$')
+        ax.tick_params(axis='both', which='major', width=1.2, length=9)
+        ax.tick_params(axis='both', which='minor', width=1, length=5)
+        ax.legend(fontsize = 20)
+        ax.grid()
+    axCon.set_xlim(np.min(tfb), 2.6)
     ax1.set_xlim(np.min(tfb), np.max(tfb))
-    ax1.grid()
-    # ax.set_title(f'Using {statist}', fontsize = 18)
 
     fig.tight_layout()
-    # fig2.tight_layout()
+    figCon.tight_layout()
     fig.savefig(f'{abspath}/Figs/paper/Mw.pdf', bbox_inches = 'tight')
+    figCon.savefig(f'{abspath}/Figs/paper/Mw_conv.pdf', bbox_inches = 'tight')
 
 
     

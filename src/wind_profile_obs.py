@@ -35,7 +35,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-which_obs = 'dark_bright_z' #'dark_bright_z' # 'arch', 'quadrants', 'axis'
+which_obs = '' #'dark_bright_z' # 'arch', 'quadrants', 'axis'
 which_part = 'outflow'
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -55,7 +55,7 @@ t_fb_sol = t_fb_days_cgs/prel.tsol_cgs
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 v_esc_kms = v_esc * conversion_sol_kms
-Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 0.0096, prel.csol_cgs, prel.G)
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 
@@ -109,6 +109,7 @@ def radial_profiles(loadpath, snap, which_part, indices_sorted):
         t_all = []
         v_rad_all = []
         d_all = []
+        m_all = []
         L_adv_all = []
         Mdot_all = []
         r = np.logspace(np.log10(rmin_array), np.log10(rph_median[j]), N_ray)
@@ -134,6 +135,7 @@ def radial_profiles(loadpath, snap, which_part, indices_sorted):
             ray_rad_den = Rad_den[idx]
             ray_V_r = V_r[idx] 
             d = Den[idx] 
+            ray_m = Mass[idx]
             
             # pick them just if near enough, otherwise set to 0 (easier for saving, insted of discard them)
             r_sim = np.sqrt(X[idx]**2 + Y[idx]**2 + Z[idx]**2)
@@ -142,6 +144,7 @@ def radial_profiles(loadpath, snap, which_part, indices_sorted):
             d[~check_dist] = 0 
             ray_rad_den[~check_dist] = 0
             ray_t = (ray_rad_den*prel.en_den_converter/prel.alpha_cgs)**(1/4) 
+            ray_m[~check_dist] = 0
             ray_Mdot = 4 * np.pi * r_sim**2 * np.abs(ray_V_r) * d 
             L_adv = 4 * np.pi * r_sim**2 * np.abs(ray_V_r) * ray_rad_den
 
@@ -149,6 +152,7 @@ def radial_profiles(loadpath, snap, which_part, indices_sorted):
             t_all.append(ray_t)
             v_rad_all.append(ray_V_r)
             d_all.append(d) 
+            m_all.append(ray_m)
             L_adv_all.append(L_adv)
             Mdot_all.append(ray_Mdot)
 
@@ -163,14 +167,23 @@ def radial_profiles(loadpath, snap, which_part, indices_sorted):
             d_col = np.transpose(d_all)[i]
             L_adv_col = np.transpose(L_adv_all)[i]
             Mdot_col = np.transpose(Mdot_all)[i]
-            nonzero = t_col[t_col != 0]
-            t_median.append(np.median(nonzero) if nonzero.size > 0 else 0)
-            nonzero = v_rad_col[v_rad_col != 0]
-            v_rad_median.append(np.median(nonzero) if nonzero.size > 0 else 0)
-            nonzero = d_col[d_col != 0]
-            d_mean.append(np.median(nonzero) if nonzero.size > 0 else 0)
-            nonzero = L_adv_col[L_adv_col != 0]
-            L_adv_median.append(np.median(nonzero) if nonzero.size > 0 else 0)
+            ray_m_col = np.transpose(m_all)[i]
+            cond = np.logical_and(t_col != 0, ray_m_col != 0)
+            nonzero = t_col[cond]
+            # t_median.append(np.median(nonzero) if nonzero.size > 0 else 0)
+            t_median.append(np.sum(nonzero*ray_m_col[cond])/np.sum(ray_m_col[cond]))
+            cond = np.logical_and(v_rad_col != 0, ray_m_col != 0)
+            nonzero = v_rad_col[cond]
+            # v_rad_median.append(np.median(nonzero) if nonzero.size > 0 else 0)
+            v_rad_median.append(np.sum(nonzero*ray_m_col[cond])/np.sum(ray_m_col[cond]))
+            cond = np.logical_and(d_col != 0, ray_m_col != 0)
+            nonzero = d_col[cond]
+            # d_mean.append(np.median(nonzero) if nonzero.size > 0 else 0) 
+            d_mean.append(np.sum(nonzero*ray_m_col[cond])/np.sum(ray_m_col[cond]))
+            cond = np.logical_and(L_adv_col != 0, ray_m_col != 0)
+            nonzero = L_adv_col[cond]
+            # L_adv_median.append(np.median(nonzero) if nonzero.size > 0 else 0)
+            L_adv_median.append(np.sum(nonzero*ray_m_col[cond])/np.sum(ray_m_col[cond]))
  
             Mdot_mean.append(np.mean(Mdot_col) if Mdot_col.size > 0 else 0)
         t_median = np.array(t_median)
@@ -206,7 +219,7 @@ observers_xyz = np.transpose(observers_xyz) #shape: Nx3
 if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 else:
-    snaps = [123]
+    snaps = [109]
 
 for snap in snaps:
     print(snap, flush=True)
@@ -270,14 +283,14 @@ for snap in snaps:
 
     if compute:
         all_outflows = radial_profiles(path, snap, which_part, indices_sorted)
-        out_path = f"{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}.npy"
+        out_path = f"{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}_weighmeanNOZERO.npy"
         np.save(out_path, all_outflows, allow_pickle=True)
  
     if plot:
         x_as_thetas = True
         thetas_tick = [-np.pi, 0, np.pi]
         thetas_tick_labels = [r'$-\pi$', r'$0$', r'$\pi$']
-        profiles = np.load(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}.npy', allow_pickle=True).item()
+        profiles = np.load(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}_medianNOZERO.npy', allow_pickle=True).item()
         # find eta = mfall(t_fb-t_dyn)/Mwind(tfb)
         figeta, axeta = plt.subplots(1, 1, figsize=(9, 6))
         fig, (axEdd, axL) = plt.subplots(2, 1, figsize=(9, 12))
@@ -348,8 +361,8 @@ for snap in snaps:
         y_test12 = 0.75*(x_test)**(-0.5)
         y_test02 = 5e3* (x_test)**(-0.2)
         y_test08 = 4.2e-12* (x_test)**(-0.8)
-        y_test23 = 6.5e5*(x_test)**(-2/3)
-        y_test2 = 3e-10* (x_test)**(-2)
+        y_test23 = 3e5*(x_test)**(-2/3)
+        y_test2 = 3e-11* (x_test)**(-2) 
         y_testplus2 = 2.5e3* (x_test)**(2)
         y_test3 = 6.5e-13 * (x_test)**(-3)
 
@@ -376,28 +389,27 @@ for snap in snaps:
             L_adv = profiles[lab]['L_adv_median']
             Mdot = profiles[lab]['Mdot_mean'] 
 
-            axd.plot(r_plot[d!=0]/r_normalizer, d[d!=0]*prel.den_converter,  color = colors_obs[i]) #, ls = lines_obs[i] , label = f'{lab}')# Observer {lab} ({indices_sorted[i]})')
-            axV.plot(r_plot[v_rad!=0]/r_normalizer, v_rad[v_rad!=0] * conversion_sol_kms,  color = colors_obs[i], label = f'{lab}')
-            axMdot.plot(r_plot[Mdot!=0]/r_normalizer, np.abs(Mdot[Mdot!=0]/mfall_mean[i]),  color = colors_obs[i], label = f'{lab}')# , ls = lines_obs[i])
-            axT.plot(r_plot[np.logical_and(t!=0, t < 1e6)]/r_normalizer, t[np.logical_and(t!=0, t < 1e6)],  color = colors_obs[i])#, label = f'{lab}')
-            axL.plot(r_plot[L_adv!=0]/r_normalizer, L_adv[L_adv!=0]/Ledd_sol,  color = colors_obs[i]) #, ls = lines_obs[i]), label = f'{lab}')
+            axd.plot(r_plot/r_normalizer, d*prel.den_converter,  color = colors_obs[i]) #, ls = lines_obs[i] , label = f'{lab}')# Observer {lab} ({indices_sorted[i]})')
+            axV.plot(r_plot/r_normalizer, v_rad * conversion_sol_kms,  color = colors_obs[i], label = f'{lab}')
+            axMdot.plot(r_plot/r_normalizer, np.abs(Mdot/mfall_mean[i]),  color = colors_obs[i], label = f'{lab}')# , ls = lines_obs[i])
+            axT.plot(r_plot/r_normalizer, t,  color = colors_obs[i])#, label = f'{lab}')
+            axL.plot(r_plot/r_normalizer, L_adv/Ledd_sol,  color = colors_obs[i]) #, ls = lines_obs[i]), label = f'{lab}')
 
             # for ax in [axd, axV, axMdot, axT, axL]:
         # axMdot.plot(x_test, y_testplus1, c = 'gray', ls = 'dotted', label = r'$\dot{M} \propto r$')
         # axd.plot(r/apo, rho_from_dM, c = 'gray', ls = '--', label = r'$\rho \propto R^{-2}$') #'From dM/dt')
         axd.plot(x_test, y_test2, c = 'k', ls = 'dashed', label = r'$\rho \propto r^{-2}$')
+        axd.text(32, 1.2e-14, r'$\rho \propto r^{-2}$', fontsize = 20, color = 'k', rotation = -42)
         # axd.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto r^{-3}$') 
         # axd.plot(x_test, y_test08, c = 'gray', ls = 'dashed', label = r'$v_r \propto r^{-0.8}$')
         axV.axhline(v_esc_kms, c = 'k', ls = 'dashed')#
-        axV.text(30, 1.1*v_esc_kms, r'v$_{\rm esc} (r_{\rm p})$', fontsize = 20, color = 'k')
+        axV.text(35, 1.1*v_esc_kms, r'v$_{\rm esc} (r_{\rm p})$', fontsize = 20, color = 'k')
         # axV.plot(x_test, y_test02, c = 'gray', ls = 'dashed', label = r'$v_r \propto  r^{-0.2}$')
         # axV.plot(x_test, 2.9*y_testplus1, c = 'gray', ls = '-.', label = r'$v_r \propto r$')
         # axV.plot(x_test, 2.5*y_testplus2, c = 'gray', ls = '--', label = r'$v_r \propto r^2$')
         axT.plot(x_test, y_test23, c = 'k', ls = 'dashed', label = r'$T \propto r^{-2/3}$')
-        # axT.plot(x_test, y_test1, c = 'gray', ls = ':', label = r'$T \propto r^{-1}$')
+        axT.text(32, 1.2e4, r'$T_{\rm rad} \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -33)
         axL.plot(x_test,3e-5*y_test23, c = 'k', ls = 'dashed', label = r'$L \propto r^{-2/3}$')
-        # axL.plot(x_test, 3e-6*y_test1, c = 'gray', ls = ':', label = r'$L \propto r^{-1}$')
-        # axL.plot(x_test, y_test12, c = 'gray', ls = ':', label = r'$L \propto r^{-0.5}$')
 
         for ax in [axd, axV, axMdot, axT, axL]:
             # put the legend if which_obs != 'all_rotate'. Lt it be outside
@@ -405,27 +417,27 @@ for snap in snaps:
             # ax.set_position([boxleg.x0, boxleg.y0, boxleg.width * 0.8, boxleg.height])
             # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 12)
             ax.tick_params(axis='both', which='minor', length=6, width=1)
-            ax.tick_params(axis='both', which='major', length=9, width=1.4)
+            ax.tick_params(axis='both', which='major', length=10, width=1.5)
             if normalize_by == 'Rt':
                 ax.set_xlim(1, 3*apo/Rp)
             elif normalize_by == '':
                 ax.set_xlim(Rt/apo, 2)
             ax.set_xlabel(r'$r [r_{\rm t}]$' if normalize_by == 'Rt' else r'$r [r_{\rm tr}]$', fontsize = 28)
             ax.loglog(), 
-            if normalize_by == 'Rt':
-                ax.legend(fontsize = 19) 
-            if ax != axMdot:
-                ax.set_title('Median over NON zero lines of sight', fontsize = 20)
+            # if normalize_by == 'Rt':
+            #     ax.legend(fontsize = 19) 
+            # if ax != axMdot:
+            #     ax.set_title('Median over NON zero lines of sight', fontsize = 20)
 
             ax.grid()
 
         axMdot.set_ylim(1e-4, 1e1)
         axMdot.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm fb}]$', fontsize = 28) 
-        axd.set_ylim(1e-13, 5e-10)
+        axd.set_ylim(1e-14, 1e-10)
         axd.set_ylabel(r'$\rho$ [g/cm$^3]$', fontsize = 28)
         axV.set_ylim(2e3, 3e4)
         axV.set_ylabel(r'v$_r$ [km/s]', fontsize = 28)
-        axT.set_ylim(3e4, 1e6)
+        axT.set_ylim(9e3, 5e5)
         axT.set_ylabel(r'$T_{\rm rad}$ [K]', fontsize = 28)
         axL.set_ylabel(r'$L [L_{\rm Edd}]$', fontsize = 28)
         axL.set_ylim(2e-1, 2e1)

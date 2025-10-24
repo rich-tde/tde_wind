@@ -36,7 +36,7 @@ Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
 apo = things['apo']
-Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 0.0096, prel.csol_cgs, prel.G)
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
 commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
@@ -382,71 +382,7 @@ if __name__ == '__main__':
     _, ratio_ieH, rel_err_ieH = ratio_BigOverSmall(tfb_oe, col_ie, tfb_oeH, col_ieH)
     _, ratio_radH, rel_err_radH = ratio_BigOverSmall(tfb_oe, col_rad, tfb_oeH, col_radH)
 
-    #  all three energies
-    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(25, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-    ax1.plot(tfb_oeL, col_orb_enL*prel.en_converter, label = r'Low', c = 'darkorange')
-    ax1.plot(tfb_oe, col_orb_en*prel.en_converter, label = r'Middle', c = 'yellowgreen')
-    ax1.plot(tfb_oeH, col_orb_enH*prel.en_converter, label = r'High', c = 'darkviolet')
-    ax1.set_ylabel(r'Energy [erg]')#, fontsize = 18)
-    ax1.set_title(r'Orbital energy', fontsize = 27)
-    ax1.legend(fontsize = 15)
-    ax1.set_ylim(-1e48, -0.7e48)
-
-    ax2.plot(tfb_oeL, col_ieL*prel.en_converter, label = r'Low', c = 'darkorange')
-    ax2.plot(tfb_oe, col_ie*prel.en_converter, label = r'Middle', c = 'yellowgreen')
-    ax2.plot(tfb_oeH, col_ieH*prel.en_converter, label = r'High', c = 'darkviolet')
-    ax2.set_title(r'Internal energy', fontsize = 27)
-
-    ax3.plot(tfb_oeL, col_radL*prel.en_converter, label = r'Low', c = 'darkorange')
-    ax3.plot(tfb_oe, col_rad*prel.en_converter, label = r'Middle', c = 'yellowgreen')
-    ax3.plot(tfb_oeH, col_radH*prel.en_converter, label = r'High', c = 'darkviolet')
-    ax3.set_title(r'Radiation energy', fontsize = 27)
-    ax3.set_yscale('log')
-
-    ax4.plot(tfb_ratio_orbL, ratio_orbL, linewidth = 2.5, c = 'darkorange',  label = r'Low andMiddledle',)
-    ax4.plot(tfb_ratio_orbL, ratio_orbL, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
-    ax4.plot(tfb_ratio_orbH, ratio_orbH, label = r'Middle and High', linewidth = 2, c = 'darkviolet')
-    ax4.plot(tfb_ratio_orbH, ratio_orbH,linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
-    ax4.set_ylabel(r'$\mathcal{R}$', fontsize = 26)
-    ax4.set_ylim(.99, 1.1)
-
-    ax5.plot(tfb_ratio_orbL, ratio_ieL, label = r'Low andMiddledle', linewidth = 2, c = 'darkorange')
-    ax5.plot(tfb_ratio_orbL, ratio_ieL, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
-    ax5.plot(tfb_ratio_orbH, ratio_ieH, label = r'Middle and High', linewidth = 2, c = 'darkviolet')
-    ax5.plot(tfb_ratio_orbH, ratio_ieH, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
-    # original_ticksy = ax5.get_yticks()
-    # midpointsy = (original_ticksy[:-1] + original_ticksy[1:]) / 2
-    # new_ticksy = np.sort(np.concatenate((original_ticksy, midpointsy)))
-    # ax5.set_yticks(new_ticksy)
-    # ax5.set_ylim(.95, 2)
-
-    ax6.plot(tfb_ratio_orbL, ratio_radL, linewidth = 2.5, c = 'darkorange',  label = r'Low andMiddledle',)
-    ax6.plot(tfb_ratio_orbL, ratio_radL, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
-    ax6.plot(tfb_ratio_orbH, ratio_radH, label = r'Middle and High', linewidth = 2, c = 'darkviolet')
-    ax6.plot(tfb_ratio_orbH, ratio_radH,linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
-    # original_ticksy = ax6.get_yticks()
-    # midpointsy = (original_ticksy[:-1] + original_ticksy[1:]) / 2
-    # new_ticksy = np.sort(np.concatenate((original_ticksy, midpointsy)))
-    # ax6.set_yticks(new_ticksy)
-    ax6.set_ylim(.95, 3)
-
-    original_ticks = ax1.get_xticks()
-    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-    for ax in [ax1, ax2, ax3, ax4, ax5, ax6]:
-        ax.set_xticks(new_ticks)
-        # ax.set_xticklabels(labels)
-        ax.grid()
-        ax.set_xlim(np.min(tfbH), np.max(tfb)) 
-        if ax == ax6:
-            ax.set_yscale('log')
-        if ax in [ax4, ax5, ax6]:
-            ax.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 18
-    plt.tight_layout()
-    plt.savefig(f'{abspath}/Figs/paper/OeIeRad.pdf', bbox_inches='tight')
-    # %% bound unbound IE
-    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(25, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
+    fig, ((ax1, ax2, ax3, axR), (ax4, ax5, ax6, ax7)) = plt.subplots(2, 4, figsize=(36, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
     ax1.plot(tfb_oeL, col_orb_en_negL*prel.en_converter*1e-49, label = r'Low', c = 'darkorange')
     ax1.plot(tfb_oe, col_orb_en_neg*prel.en_converter*1e-49, label = r'Middle', c = 'yellowgreen')
     ax1.plot(tfb_oeH, col_orb_en_negH*prel.en_converter*1e-49, label = r'High', c = 'darkviolet')
@@ -462,7 +398,14 @@ if __name__ == '__main__':
     ax3.plot(tfb_oeL, col_ieL*prel.en_converter*1e-46, label = r'Low', c = 'darkorange')
     ax3.plot(tfb_oe, col_ie*prel.en_converter*1e-46, label = r'Middle', c = 'yellowgreen')
     ax3.plot(tfb_oeH, col_ieH*prel.en_converter*1e-46, label = r'High', c = 'darkviolet')
-    ax3.set_title(r'Internal energy [$10^{46}$ erg]', fontsize = 27)
+    ax3.set_title(r'Internal energy [$10^{46}$ erg]', fontsize = 27)  
+
+    axR.plot(tfb_oeL, col_radL*prel.en_converter, label = r'Low', c = 'darkorange')
+    axR.plot(tfb_oe, col_rad*prel.en_converter, label = r'Middle', c = 'yellowgreen')
+    axR.plot(tfb_oeH, col_radH*prel.en_converter, label = r'High', c = 'darkviolet')
+    axR.set_title(r'Radiation energy', fontsize = 27)
+    axR.set_yscale('log')
+    axR.set_ylim(5e43, 2e48)
     
     ax4.plot(tfb_ratio_orbnegL, ratio_orbnegL, linewidth = 2.5, c = 'darkorange',  label = r'Low andMiddledle',)
     ax4.plot(tfb_ratio_orbnegL, ratio_orbnegL, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
@@ -482,18 +425,27 @@ if __name__ == '__main__':
     ax6.plot(tfb_ratio_orbH, ratio_ieH, label = r'Middle and High', linewidth = 2, c = 'darkviolet')
     ax6.plot(tfb_ratio_orbH, ratio_ieH, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
     
+    ax7.plot(tfb_ratio_orbL, ratio_radL, linewidth = 2.5, c = 'darkorange',  label = r'Low andMiddledle',)
+    ax7.plot(tfb_ratio_orbL, ratio_radL, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
+    ax7.plot(tfb_ratio_orbH, ratio_radH, label = r'Middle and High', linewidth = 2, c = 'darkviolet')
+    ax7.plot(tfb_ratio_orbH, ratio_radH,linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
+    ax7.set_ylim(.99, 3)
+    ax7.tick_params(axis='y', which='minor', length = 5, width = 0.7)
+    ax7.set_yscale('log')
+
     original_ticks = ax1.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
     new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
     # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-    for ax in [ax1, ax2, ax3, ax4, ax5, ax6]:
+    for ax in [ax1, ax2, ax3, axR, ax4, ax5, ax6, ax7]:
         ax.set_xticks(new_ticks)
         # ax.set_xticklabels(labels)
+        ax.tick_params(axis='both', which='major', length = 8, width = 1)
         ax.grid()
         ax.set_xlim(np.min(tfbH), np.max(tfb)) 
-        if ax in [ax4, ax5, ax6]:
+        if ax in [ax4, ax5, ax6, ax7]:
             ax.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 18)
     plt.tight_layout()
-    plt.savefig(f'{abspath}/Figs/paper/OeIe.pdf', bbox_inches='tight')
+    plt.savefig(f'{abspath}/Figs/paper/OeIeRad.pdf', bbox_inches='tight')
 
     # %%

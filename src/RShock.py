@@ -147,7 +147,8 @@ for j, check in enumerate(checks):
             snapR = int(snaps[i])
             photo = \
                 np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snapR}.txt')
-            xph, yph, zph = photo[0], photo[1], photo[2]
+            xph, yph, zph, volph, denph = photo[0], photo[1], photo[2], photo[3], photo[4]
+            mass_ph = volph * denph
             r_ph_all = np.sqrt(xph**2 + yph**2 + zph**2)
             R_ph[i] = np.median(r_ph_all)
 
@@ -156,7 +157,7 @@ for j, check in enumerate(checks):
             x_tr, y_tr, z_tr = data_tr['x_tr'], data_tr['y_tr'], data_tr['z_tr']
 
             r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-            R_tr[i] = np.median(r_tr_all[r_tr_all!=0])
+            R_tr[i] = np.median(r_tr_all)#[r_tr_all!=0])
  
     nan = np.isnan(R_sh)
     R_sh = R_sh[~nan]
@@ -171,12 +172,12 @@ Rlim_max = 1e16/(Rp*prel.Rsol_cgs)
 #
 fig, ax1 = plt.subplots(1, 1, figsize=(10, 6))
 for i, check in enumerate(checks):
-    ax1.plot(tfb_all[i], R_sh_all[i]/Rp, color = colorslegend[i], label = r'$R_{\rm sh}$' if i==2 else None)
-    ax1.plot(timeRDiss_all[i], RDiss_all[i]/Rp, linestyle = '--', color = colorslegend[i], label = r'$R_{\rm diss}$' if i==2 else None)
+    ax1.plot(tfb_all[i], R_sh_all[i]/Rp, color = colorslegend[i], label = r'$r_{\rm sh}$' if i==2 else None)
+    ax1.plot(timeRDiss_all[i], RDiss_all[i]/Rp, linestyle = '--', color = colorslegend[i], label = r'$r_{\rm diss}$' if i==2 else None)
 
 ax1.axhline(y=amin/Rp, color = 'k', linestyle = 'dotted')
 ax1.text(1.85, .5* amin/Rp, r'$a_{\rm mb}$', fontsize = 20, color = 'k')
-ax1.set_ylabel(r'$R [R_{\rm p}$]')#, fontsize = 18)
+ax1.set_ylabel(r'$r [r_{\rm p}$]')#, fontsize = 18)
 ax1.set_ylim(Rlim_min, Rlim_max)
 # Set primary y-axis ticks
 R_ticks = np.logspace(np.log10(Rlim_min), np.log10(Rlim_max), num=5)
@@ -225,10 +226,10 @@ Rtr_th = Rtr_out(params, mfall, fout=0.1, fv=1)
 Redge = v_esc / prel.tsol_cgs * tfb_fall*t_fb_days_cgs
 
 fig, ax1 = plt.subplots(1, 1, figsize=(10, 6))
-ax1.plot(tfb_all[2], R_sh_all[2]/Rt, color = 'b', ls = '--', label = r'$R_{\rm sh}$')
-ax1.plot(timeRDiss_all[2], RDiss_all[2]/Rt, color = 'deepskyblue', label = r'$R_{\rm diss}$')
-ax1.plot(tfb_all[2], R_ph/Rt, color = colorslegend[2], label = r'$R_{\rm ph}$')
-ax1.plot(tfb_all[2], R_tr/Rt, color = 'orchid', label = r'$R_{\rm tr}$')
+ax1.plot(tfb_all[2], R_sh_all[2]/Rt, color = 'b', ls = '--', label = r'$r_{\rm sh}$')
+ax1.plot(timeRDiss_all[2], RDiss_all[2]/Rt, color = 'deepskyblue', label = r'$r_{\rm diss}$')
+ax1.plot(tfb_all[2], R_ph/Rt, color = colorslegend[2], label = r'$r_{\rm ph}$')
+# ax1.plot(tfb_all[2], R_tr/Rt, color = 'orchid', label = r'$r_{\rm tr}$')
 # ax1.plot(tfb_fall, Redge/Rt, color = 'darkviolet', ls = '--', label = r'$v_{\rm esc}(R_p)$t')
 # ax1.plot(tfb_fall, Rtr_th/Rt, color = 'darkviolet', ls = '--', label = r'$R_{\rm tr}$ theory')
 
@@ -238,7 +239,7 @@ ax1.text(0.9*np.max(tfb), 0.7* amin/Rt, r'$a_{\rm mb}$', fontsize = 20, color = 
 # ax1.text(1.85, .5* Rt/Rt, r'$R_{\rm a}$', fontsize = 20, color = 'k')
 # ax1.axhline(y=Rt/Rt, color = 'r', linestyle = 'dotted')
 # ax0.set_ylabel(r'$|\dot{M}_{\rm fb}| [M_\odot/t_{\rm fb}$]', fontsize = 18)
-ax1.set_ylabel(r'$R [R_{\rm t}$]')#, fontsize = 18)
+ax1.set_ylabel(r'$r [r_{\rm t}$]')#, fontsize = 18)
 ax1.set_ylim(Rlim_min, Rlim_max)
 # Set primary y-axis ticks
 R_ticks = np.logspace(np.log10(Rlim_min), np.log10(Rlim_max), num=5)
@@ -273,12 +274,12 @@ plt.tight_layout()
 plt.savefig(f'{abspath}/Figs/paper/Reta.pdf', bbox_inches = 'tight')
 
 # %%
-plt.figure(figsize=(9, 6))
-plt.plot(tfb_all[2], eta_shL_all[2], color = colorslegend[2], label = r'$\eta_{\rm sh}$')
-plt.yticks(eta_ticks)
-plt.ylim(etalim_max, etalim_min)
-plt.ylabel(r'$\eta_{\rm sh}$')#, fontsize = 18)
-plt.yscale('log')
-plt.xlim(np.min(tfb), np.max(tfb))
-plt.grid()
+# plt.figure(figsize=(9, 6))
+# plt.plot(tfb_all[2], eta_shL_all[2], color = colorslegend[2], label = r'$\eta_{\rm sh}$')
+# plt.yticks(eta_ticks)
+# plt.ylim(etalim_max, etalim_min)
+# plt.ylabel(r'$\eta_{\rm sh}$')#, fontsize = 18)
+# plt.yscale('log')
+# plt.xlim(np.min(tfb), np.max(tfb))
+# plt.grid()
 # %%

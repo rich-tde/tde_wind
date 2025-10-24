@@ -247,13 +247,11 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
 
 
 if __name__ == '__main__':
-    theta_lim =  np.pi
-    step = np.round((2*theta_lim)/200, 3)
-    theta_init = np.arange(-theta_lim, theta_lim, step)
-    theta_arr = Ryan_sampler(theta_init)
-    # idx_forplot = 4 
-
     if alice:
+        theta_lim =  np.pi
+        step = np.round((2*theta_lim)/200, 3)
+        theta_init = np.arange(-theta_lim, theta_lim, step)
+        theta_arr = Ryan_sampler(theta_init)
         snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
     else: 
         snaps = [80]
@@ -288,14 +286,14 @@ if __name__ == '__main__':
                 slice_data[0], slice_data[1], slice_data[2], slice_data[3], slice_data[4]
             mass_slice = den_slice * dim_slice**3
             theta_arr, x_stream, y_stream, z_stream, thresh_cm = stream
-            fig, ax = plt.subplots(1, 1, figsize = (10, 5))
+            fig, ax = plt.subplots(1, 1, figsize = (14, 7))
             img = ax.scatter(x_slice/Rt, y_slice/Rt, s = 1, c = mass_slice, cmap = 'rainbow', norm = colors.LogNorm(vmin = np.percentile(mass_slice, 5), vmax = np.percentile(mass_slice, 99)))
             cb = plt.colorbar(img)
             cb.set_label(r'Mass [$M_\odot$]', fontsize = 16)
             ax.plot(x_stream/Rt, y_stream/Rt, c = 'k')
-            ax.set_xlabel(r'X [$R_{\rm t}$]')
-            ax.set_ylabel(r'Y [$R_{\rm t}$]')
-            ax.set_xlim(-30, 5)
-            ax.set_ylim(-10, 10)
+            ax.set_xlabel(r'X [$r_{\rm t}$]')
+            ax.set_ylabel(r'Y [$r_{\rm t}$]')
+            ax.set_xlim(-30, 2)
+            ax.set_ylim(-7, 7)
             ax.set_title(f't = {np.round(times[np.argmin(np.abs(snaps-snap))], 2)}' + r'$t_{\rm fb}$', fontsize = 16)
             plt.show()

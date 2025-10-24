@@ -244,6 +244,12 @@ def choose_observers(observers_xyz, choice):
         label_obs = ['-x','+x', '-y', '+y', 'z-', 'z+']
         lines_obs = ['solid', 'solid', 'solid', 'solid', 'solid', 'solid']
     
+    if choice == '':
+        indices_sorted = [np.arange(len(x_obs))]
+        label_obs = ['']
+        colors_obs = ['darkviolet']
+        lines_obs = ['solid']
+
     if plot:
         import matplotlib.pyplot as plt
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 5))

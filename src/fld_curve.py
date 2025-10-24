@@ -296,7 +296,7 @@ for idx_s, snap in enumerate(snaps):
         # Save red of the single snap
         pre_saving = f'{abspath}/data/{folder}'
         data = [snap, tfb[idx_s], Lphoto_snap]
-        with open(f'{pre_saving}/{check}_redNC.csv', 'a', newline='') as file:
+        with open(f'{pre_saving}/{check}_red.csv', 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(data)
         file.close()
@@ -304,14 +304,14 @@ for idx_s, snap in enumerate(snaps):
         # save Rph index and fluxes for each observer in the snapshot
         time_rph = np.concatenate([[snap,tfb[idx_s]], ph_idx])
         time_fluxes = np.concatenate([[snap,tfb[idx_s]], fluxes])
-        with open(f'{pre_saving}/{check}_phidx_fluxesNC.txt', 'a') as fileph:
+        with open(f'{pre_saving}/{check}_phidx_fluxes.txt', 'a') as fileph:
             fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
             fileph.write(' '.join(map(str, time_rph)) + '\n')
             fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes [cgs] for each obs \n')
             fileph.write(' '.join(map(str, time_fluxes)) + '\n')
             fileph.close()
         
-        with open(f'{pre_saving}/photoNC/{check}_photo{snap}.txt', 'w') as f:
+        with open(f'{pre_saving}/photo/{check}_photo{snap}.txt', 'w') as f:
             f.write('# Data for the photospere.\n')
             f.write('# xph\n' + ' '.join(map(str, xph)) + '\n')
             f.write('# yph\n' + ' '.join(map(str, yph)) + '\n')

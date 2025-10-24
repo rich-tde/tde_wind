@@ -54,7 +54,7 @@ norm_dMdE = things['E_mb']
 t_fb_days_cgs = things['t_fb_days'] * 24 * 3600 # in seconds
 max_Mdot = mstar*prel.Msol_cgs/(3*t_fb_days_cgs) # in code units
 
-Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 0.0096, prel.csol_cgs, prel.G)
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
@@ -163,52 +163,66 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             file.close()
 
 if plot:
-    from scipy.integrate import cumulative_trapezoid
+    from plotting.paper.IHopeIsTheLast import ratio_BigOverSmall
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    snap, tfb, mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind, Vwind_nonzero = \
-        np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}Rtr{statist}.csv', 
-                   delimiter = ',', 
-                   skiprows=1, 
-                   unpack=True)
-    # integrate mwind_dimCell in tfb
-    mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)
-    mfall_int = cumulative_trapezoid(np.abs(mfall), tfb, initial = 0)
-    print(f'integral of Mw at the last time: {mwind_dimCell_int[-1]/mstar} Mstar')
-    print(f'integral of Mfb at the last time: {mfall_int[-1]/mstar} Mstar')
-    
-    fig, ax1 = plt.subplots(1, 1, figsize = (9, 6))
-    # fig2, ax2 = plt.subplots(1, 1, figsize = (9, 6)) 
-    ax1.plot(tfb, np.abs(mwind_dimCell)/Medd_sol, c = 'darkviolet', label = r'$\dot{M}_{\rm w}$') # dim cell')
-    print('End of simualation, Mw/Mfb:', np.abs(mwind_dimCell[-1]/mfall[-1]))
-    ax1.plot(tfb, np.abs(mfall)/Medd_sol, ls = '--', c = 'gray', label = r'$\dot{M}_{\rm fb}$')
-    ax1.plot(tfb, np.abs(mwind_R)/Medd_sol, c = 'orange', label = r'$\dot{M}_{\rm w}$ with  $r={\rm 0.5a_{\rm min}}$')
-    ax1.plot(tfb, np.abs(mwind_R_nonzero)/Medd_sol, c = 'green', ls = '--', label = r'$\dot{M}_{\rm w}$ at  $r={\rm 0.5a_{\rm min}}$ (nonzero)')
-    # ax1.plot(tfb, np.abs(mfall)/Medd_sol, label = r'$\dot{M}_{\rm fb}$', c = 'k')
-    ax1.set_yscale('log')
-    ax1.set_ylim(1, 1e5)
-    ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')   
-    ax1.legend(fontsize = 20)
 
-    # ax2.plot(tfb, Vwind/v_esc, c = 'dodgerblue')
-    # ax2.set_ylabel(r'$v_{\rm w} [v_{\rm esc}(R_{\rm p})]$')
+    _, tfbL, mfallL, mwind_dimCellL, mwind_RL, mwind_R_nonzeroL, _, _ = \
+            np.loadtxt(f'{abspath}/data/{folder}LowResNewAMR/wind/Mdot_LowResNewAMRRtr{statist}.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True) 
+                    
+    _, tfbM, mfallM, mwind_dimCellM, mwind_RM, mwind_R_nonzeroM, _, _ = \
+            np.loadtxt(f'{abspath}/data/{folder}NewAMR/wind/Mdot_NewAMRRtr{statist}.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True)
+    tfb_ratioL, ratioL, rel_errL  = ratio_BigOverSmall(tfbM, mwind_dimCellM, tfbL, mwind_dimCellL)
+
+    _, tfbH, mfallH, mwind_dimCellH, mwind_RH, mwind_R_nonzeroH, _, _ = \
+            np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/wind/Mdot_HiResNewAMRRtr{statist}.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True) 
+
+    tfb_ratioH, ratioH, rel_errH  = ratio_BigOverSmall(tfbM, mwind_dimCellM, tfbH, mwind_dimCellH)
+
+    fig, ax1 = plt.subplots(1, 1, figsize = (9, 7))
+    ax1.plot(tfbH, np.abs(mfallH)/Medd_sol, ls = '--', c = 'gray', label = r'$\dot{M}_{\rm fb}$')
+    ax1.plot(tfbH, np.abs(mwind_dimCellH)/Medd_sol, c = 'darkviolet', label = r'$\dot{M}_{\rm w}$') # dim cell')
+    
+    figCon, (axCon, axerr) = plt.subplots(2, 1, figsize = (9, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
+    axCon.plot(tfbL, np.abs(mwind_dimCellL)/Medd_sol, c = 'C1', label = r'Low') # dim cell')
+    axCon.plot(tfbM, np.abs(mwind_dimCellM)/Medd_sol, c = 'yellowgreen', label = r'Middle') # dim cell')
+    axCon.plot(tfbH, np.abs(mwind_dimCellH)/Medd_sol, c = 'darkviolet', label = r'High') # dim cell')
+    axerr.plot(tfb_ratioL, ratioL, c = 'C1', label = r'Low')
+    axerr.plot(tfb_ratioL, ratioL, c = 'yellowgreen', ls = (0, (5, 10)))
+    axerr.plot(tfb_ratioH, ratioH, c = 'darkviolet', label = r'High')
+    axerr.plot(tfb_ratioH, ratioH, c = 'yellowgreen', ls = (0, (5, 10)))
+    
     original_ticks = ax1.get_xticks()
-    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-    # for ax in (ax1, ax2):
-    ax1.set_xlabel(r'$t [t_{\rm fb}]$')
-    ax1.set_xticks(new_ticks)
-    # ax.set_xticklabels(labels)
-    ax1.tick_params(axis='both', which='major', width=1.2, length=9)
-    ax1.tick_params(axis='both', which='minor', width=1, length=5)
+    for ax in (axCon, ax1, axerr):
+        ax.set_yscale('log')
+        if ax != axerr:
+            ax.set_ylim(10, 1e5)
+        ax.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm Edd}]$')   
+
+        midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+        new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+        ax.set_xticks(new_ticks)
+        if ax == axCon:
+            labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
+            ax.set_xticklabels(labels)   
+        else:
+            ax.set_xlabel(r'$t [t_{\rm fb}]$')
+        ax.tick_params(axis='both', which='major', width=1.2, length=9)
+        ax.tick_params(axis='both', which='minor', width=1, length=5)
+        ax.legend(fontsize = 20)
+        ax.grid()
+    axCon.set_xlim(np.min(tfb), 2.6)
     ax1.set_xlim(np.min(tfb), np.max(tfb))
-    ax1.grid()
-    # ax.set_title(f'Using {statist}', fontsize = 18)
 
     fig.tight_layout()
-    # fig2.tight_layout()
-    fig.savefig(f'{abspath}/Figs/paper/Mw.pdf', bbox_inches = 'tight')
-
-
-    
-# %%
+    figCon.tight_layout()
+    # fig.savefig(f'{abspath}/Figs/paper/Mw_Rtr.pdf', bbox_inches = 'tight')
+    # figCon.savefig(f'{abspath}/Figs/paper/Mw_conv_Rtr.pdf', bbox_inches = 'tight')

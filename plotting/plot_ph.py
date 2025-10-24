@@ -87,6 +87,8 @@ for c, check in enumerate(checks):
         Temp_tr_snap = np.zeros(len(snaps))
         Mdot_snap = np.zeros(len(snaps))
         for s, snap in enumerate(snaps): 
+                if snap >= 380:
+                        continue
                 tfb = tfbs[s]
                 dataph = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
                 xph, yph, zph, Temp_ph, RadDen_ph, Lum_ph = dataph[0], dataph[1], dataph[2], dataph[5], dataph[6], dataph[-2]
@@ -136,7 +138,7 @@ for c, check in enumerate(checks):
                 kappaph = alphaph/denph
                 kappa = 1/np.mean(1/kappaph)
                 eta = np.mean(eta_axis[:, idx_maxLum])
-                print(f'From snap  {snaps[idx_maxLum]} in {check}: kappa = {kappa}, eta = {eta}')
+                print(f'From snap  {snaps[idx_maxLum]} (t: {np.round(tfbs[idx_maxLum],2)}) in {check}: kappa = {kappa}, eta = {eta}')
                 Ledd_sol, Medd_sol = orb.Edd(Mbh, kappa/(prel.Rsol_cgs**2/prel.Msol_cgs), eta, prel.csol_cgs, prel.G)
                 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
                 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 

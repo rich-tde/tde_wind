@@ -25,14 +25,16 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-what = 'section' # 'section' or 'comparison' or 'max_compr' or 'single_snap_behavior' 
+what = 'max_compr' # 'section' or 'comparison' or 'max_compr' or 'single_snap_behavior' 
 
-Mbh = 10**m
-Rs = 2*prel.G*Mbh / prel.csol_cgs**2
-Rt = Rstar * (Mbh/mstar)**(1/3)
-Rp =  Rt / beta
-R0 = 0.6 * Rp
-apo = orb.apocentre(Rstar, mstar, Mbh, beta)    
+params = [Mbh, Rstar, mstar, beta]
+things = orb.get_things_about(params)
+Rs = things['Rs']
+Rg = things['Rg']
+Rt = things['Rt']
+Rp = things['Rp']
+R0 = things['R0']
+apo = things['apo']
 x_arr = np.arange(-2, 0.1, .1)
 line3_4 = draw_line(x_arr, 3/4*np.pi)
 lineminus3_4 = draw_line(x_arr, -3/4*np.pi)
@@ -112,11 +114,12 @@ if what == 'comparison':
         # _, indeces_plot = tree_plot.query(np.array([x_stream, y_stream, z_stream]).T, k=1)
 
 if what == 'single_snap_behavior' or what == 'section':
-    check = 'NewAMR'
-    snap = 238
+    check = 'HiResNewAMR'
+    snap = 76
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-    path = f'{abspath}/TDE/{folder}/{snap}'
+
     # Load data snap
+    path = f'{abspath}/TDE/{folder}/{snap}'
     tfb_single = np.loadtxt(f'{abspath}/TDE/{folder}/{snap}/tfb_{snap}.txt')
     data = make_tree(path, snap, energy = False)
     X, Y, Z, Den, Mass, Vol = \
@@ -132,6 +135,7 @@ if what == 'single_snap_behavior' or what == 'section':
     theta_arr, x_stream, y_stream, z_stream, thresh_cm = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
     stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
     wh = np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
+
     theta_wh, width, N_width, height, N_height = wh[0], wh[1], wh[2], wh[3], wh[4]
     indeces_boundary = np.load(f'{abspath}/data/{folder}/WH/indeces_boundary_{check}{snap}.npy')
     indeces_boundary_lowX, indeces_boundary_upX, indeces_boundary_lowZ, indeces_boundary_upZ = \
@@ -141,20 +145,20 @@ if what == 'single_snap_behavior' or what == 'section':
 
     if what == 'single_snap_behavior':
         # Plot stream (zoom out and in on theorbital plane) 
-        fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,6), width_ratios= [1.2, .5])
+        fig, (ax1, ax2) = plt.subplots(1,2, figsize = (18,8), width_ratios= [1.2, .8])
         for ax in [ax1, ax2]: 
-            img =ax.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 1e-6))
-            ax.plot(x_stream[:-70]/apo, y_stream[:-70]/apo, c = 'k')
-            ax.plot(x_stream[-30:]/apo, y_stream[-30:]/apo, c = 'k')
+            img =ax.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'viridis', norm = colors.LogNorm(vmin = 1e-13, vmax = 1e-6))
+            ax.plot(x_stream/apo, y_stream/apo, c = 'k')
+            # ax.plot(x_stream[-30:]/apo, y_stream[-30:]/apo, c = 'k')
             ax.plot([x_stream[0]/apo, x_stream[-1]/apo] , [y_stream[0]/apo, y_stream[-1]/apo], c = 'k')
-            ax.plot(x_low_width/apo, y_low_width/apo, c = 'coral')
-            ax.plot(x_up_width/apo, y_up_width/apo, c = 'coral')
+            ax.plot(x_low_width/apo, y_low_width/apo, ls = '--', c = 'k')
+            ax.plot(x_up_width/apo, y_up_width/apo, ls = '--', c = 'k')
             ax.plot(x_arr, line3_4, c = 'grey', linestyle = '--')
             ax.plot(x_arr, lineminus3_4, c = 'grey', linestyle = '--')
-            ax.set_xlabel(r'$X [R_{\rm a}]$')
-        cbar = plt.colorbar(img, ax=ax1)
+            ax.set_xlabel(r'$X [r_{\rm a}]$')
+        cbar = plt.colorbar(img, ax=ax1, orientation = 'horizontal')
         cbar.set_label(r'Density [$M_\odot/R_\odot^3$]')
-        ax1.set_ylabel(r'$Y [R_{\rm a}]$')
+        ax1.set_ylabel(r'$Y [r_{\rm a}]$')
         ax1.set_xlim(-1, .1)
         ax1.set_ylim(-.3, .3)
         ax2.set_xlim(-.2, .05)
@@ -175,8 +179,8 @@ if what == 'single_snap_behavior' or what == 'section':
         # ax4.set_ylabel(r'Ncells')
         ax1.set_ylim(1.1, 10)
         ax2.set_ylim(.2, 10)
-        ax3.set_ylim(5, 20)    
-        ax4.set_ylim(0.9, 10)
+        ax3.set_ylim(8, 30)    
+        ax4.set_ylim(0.9, 20)
         for ax in [ax1, ax2, ax3, ax4]:
             ax.set_yscale('log')
             ax.set_xlabel(r'$\theta$')
@@ -212,10 +216,10 @@ if what == 'single_snap_behavior' or what == 'section':
         # stream_cells = np.logical_and(stream_cells_T, stream_cells_Z)
         # print(f'Mass cells betwwen +-T, no limit in Z: {int(100*np.sum(mass_sec[stream_cells_T]) / np.sum(mass_sec))}% of total mass in the plane (below section threshold)')
         # print(f'Mass cells betwwen +-Z, no limit in T: {int(100*np.sum(mass_sec[stream_cells_Z]) / np.sum(mass_sec))}% of total mass in the plane (below section threshold)')
-        enclosed_cells = np.load(f'{abspath}/data/{folder}/WH/indeces_enclosed_{check}{snap}.npy', allow_pickle=True)
+        enclosed_cells = np.load(f'{abspath}/data/{folder}/WH/enclosed/indeces_enclosed_{check}{snap}.npy', allow_pickle=True)
         stream_cells = enclosed_cells[idx]
         
-        print('Mass in the stream/mass section: ', np.sum(mass_sec[stream_cells])/np.sum(mass_sec))
+        print('Mass in the stream/mass section: ', np.sum(Mass[stream_cells])/np.sum(mass_sec))
 
         if q_color == 'Mass':
             q_points = Mass_midplane
@@ -329,6 +333,8 @@ if what == 'max_compr':
         Nwidth_compr = np.zeros(len(snaps))
 
         for i, tfb in enumerate(tfbs):
+            if tfb > 1.1:
+                continue
             snap = snaps[i]
             path = f'{abspath}/TDE/{folder}/{snap}'
             wh = np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
@@ -369,11 +375,13 @@ if what == 'max_compr':
     original_ticks = ax1.get_xticks()
     mid_ticks = (original_ticks[1:] + original_ticks[:-1]) / 2
     new_ticks = np.concatenate((original_ticks, mid_ticks))
+    labels = [f'{tick:.1f}' if tick in original_ticks else '' for tick in new_ticks]
     for ax in [ax1, ax2, ax1_compr]:
         ax.set_xticks(new_ticks)
+        ax.set_xticklabels(labels)
         ax.tick_params(which = 'major', length = 10)
         ax.tick_params(which = 'minor', length = 5)
-        ax.set_xlim(0.01, 1.8)
+        ax.set_xlim(0.01, 1.1)
         ax.grid()
         if ax in [ax1, ax2]:
             ax.axhline(y=1, color='grey', linestyle = '--')
@@ -381,3 +389,5 @@ if what == 'max_compr':
             ax.set_ylim(1e-1, 5)
         
 
+
+# %%

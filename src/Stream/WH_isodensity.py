@@ -33,7 +33,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
-check = 'NewAMR'
+check = 'HiResNewAMR'
 compton = 'Compton'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
@@ -341,8 +341,8 @@ if __name__ == '__main__':
     step = np.round((2*theta_lim)/200, 3)
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_arr = Ryan_sampler(theta_init)
-    idx_forplot = np.argmin(np.abs(theta_arr + np.pi/4))
-    massperc = 0.99
+    idx_forplot = np.argmin(np.abs(theta_arr))
+    massperc = 0.5
     print(f'We are in folder {folder}', flush=True)
     
     path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -351,7 +351,7 @@ if __name__ == '__main__':
         if alice:
             snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
         else: 
-            snaps = [238]
+            snaps = [76]
 
         for i, snap in enumerate(snaps):
             print(f'Snap {snap}', flush = True)
@@ -413,7 +413,7 @@ if __name__ == '__main__':
                 np.save(f'{abspath}/data/{folder}/WH/enclosed/indeces_enclosed_{check}{snap}.npy', indeces_enclosed, allow_pickle=True)
 
     if plot: 
-        snap = 238
+        snap = 80
         dataLum = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
         snaps, tfbs = dataLum[:, 0], dataLum[:, 1]
 
@@ -421,10 +421,10 @@ if __name__ == '__main__':
             np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
         # Plotting results
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 9))
-        ax1.plot(theta_wh * radians, width, c='yellowgreen')
-        ax3.scatter(theta_wh * radians, N_width, c='yellowgreen')
-        ax2.plot(theta_wh * radians, height, c='yellowgreen')
-        ax4.scatter(theta_wh * radians, N_height, c='yellowgreen')
+        ax1.plot(theta_wh * radians, width, c = 'darkviolet')
+        ax3.scatter(theta_wh * radians, N_width, c = 'darkviolet')
+        ax2.plot(theta_wh * radians, height, c = 'darkviolet')
+        ax4.scatter(theta_wh * radians, N_height, c = 'darkviolet')
         ax1.set_ylabel(r'Width [$R_\odot$]')
         ax3.set_ylabel(r'N cells')
         ax2.set_ylabel(r'Height [$R_\odot$]')

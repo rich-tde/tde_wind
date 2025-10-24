@@ -2,6 +2,10 @@
 Created on Fri Feb 24 17:06:56 2023
 
 @author: konstantinos, paola 
+keys for each rank: ['CMx', 'CMy', 'CMz', 'Density', 'Dissipation', 'DpDx', 'DpDy', 'DpDz', 'DrhoDx', 'DrhoDy', 'DrhoDz', 'DsieDx', 'DsieDy', 'DsieDz', 'Eg_0', 'Erad', 'ID', 'InternalEnergy', 'Pressure', 'Temperature', 'Volume', 'Vx', 'Vy', 'Vz', 'X', 'Y', 'Z', 'divV', 'stickers', 'tracers']
+keys in tracers: ['Entropy', 'Star', 'WasRemoved']
+keys in stickers: []
+
 """
 import sys
 sys.path.append('/Users/paolamartire/shocks')
