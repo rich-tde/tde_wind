@@ -132,9 +132,9 @@ for ax in [axR, axL]:
     ax.tick_params(axis='both', which='major', width = 1.2, length = 9, color = 'k')
     ax.tick_params(axis='y', which='minor', width = 1, length = 5, color = 'k')
     ax.set_xlim(np.min(tfb), np.max(tfb))
-axR.set_ylim(1, 7e1)
+axR.set_ylim(1, 1.5e2)
 axL.set_ylabel(r'Luminosity [erg/s]')#, fontsize = 20)
-axL.set_ylim(9e37, 9e42)
+axL.set_ylim(9e37, 2e43)
 plt.tight_layout()
 plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld.pdf', bbox_inches='tight')
 # %%

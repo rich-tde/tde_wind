@@ -32,7 +32,7 @@ n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
 check = 'HiResNewAMR'
-do_cut = '' # '' or 'NOcut'
+do_cut = '' # '' or 'ionization
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 print(f'we are in {check}', flush=True)
@@ -50,30 +50,49 @@ if alice:
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         tfb = np.loadtxt(f'{path}/tfb_{snap}.txt')
         data = make_tree(path, snap, energy = True)
-        X, Y, Z, vol, den, Rad_den, Ediss_den = \
-            data.X, data.Y, data.Z, data.Vol, data.Den, data.Rad, data.Diss
+        X, Y, Z, vol, den, Temp, Rad_den, Ediss_den = \
+            data.X, data.Y, data.Z, data.Vol, data.Den, data.Temp, data.Rad, data.Diss
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
 
         # cut fluff
-        if do_cut != 'NOcut':
-            cut = den > 1e-19
-            Rsph, vol, Rad_den, Ediss_den = \
-                make_slices([Rsph, vol, Rad_den, Ediss_den], cut)
+        cut = den > 1e-19
+        Rsph, vol, Temp, Rad_den, Ediss_den = \
+            make_slices([Rsph, vol, Temp, Rad_den, Ediss_den], cut)
         Ediss = Ediss_den * vol # energy dissipation rate [energy/time] in code units
-        Ldisstot_pos = np.sum(Ediss[Ediss_den >= 0])
-        Rdiss_pos = np.sum(Rsph[Ediss_den >= 0] * Ediss[Ediss_den >= 0]) / np.sum(Ediss[Ediss_den >= 0])
-        Ldisstot_neg = np.sum(Ediss[Ediss_den < 0])
-        Rdiss_neg = np.sum(Rsph[Ediss_den < 0] * Ediss[Ediss_den < 0]) / np.sum(Ediss[Ediss_den < 0])
 
-        data = [snap, tfb, Rdiss_pos, Ldisstot_pos, Rdiss_neg, Ldisstot_neg]
-        csv_path = f'{abspath}/data/{folder}/Rdiss_{check}{do_cut}.csv'
-        with open(csv_path,'a', newline='') as file:
-            writer = csv.writer(file)           
-            if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                header = ['snap', ' tfb', ' Rdiss_pos', ' Ldisstot_pos', ' Rdiss_neg', ' Ldisstot_neg']
-                writer.writerow(header)
-            writer.writerow(data)
-        file.close()
+        if do_cut == '':
+            Ldisstot_pos = np.sum(Ediss[Ediss_den >= 0])
+            Rdiss_pos = np.sum(Rsph[Ediss_den >= 0] * Ediss[Ediss_den >= 0]) / np.sum(Ediss[Ediss_den >= 0])
+            Ldisstot_neg = np.sum(Ediss[Ediss_den < 0])
+            Rdiss_neg = np.sum(Rsph[Ediss_den < 0] * Ediss[Ediss_den < 0]) / np.sum(Ediss[Ediss_den < 0])
+            data = [snap, tfb, Rdiss_pos, Ldisstot_pos, Rdiss_neg, Ldisstot_neg]
+            csv_path = f'{abspath}/data/{folder}/Rdiss_{check}{do_cut}.csv'
+            with open(csv_path,'a', newline='') as file:
+                writer = csv.writer(file)           
+                if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
+                    header = ['snap', ' tfb', ' Rdiss_pos', ' Ldisstot_pos', ' Rdiss_neg', ' Ldisstot_neg']
+                    writer.writerow(header)
+                writer.writerow(data)
+            file.close()
+
+        if do_cut == 'ionization': 
+            # split above and belowe 5e4K
+            above = np.logical_and(Temp >= 5e4, Ediss_den >= 0)
+            below = np.logical_and(Temp < 5e4, Ediss_den >= 0)
+            Ldiss_above = np.sum(Ediss[above])
+            Rdiss_above = np.sum(Rsph[above] * Ediss[above]) / np.sum(Ediss[above])
+            Ldiss_below = np.sum(Ediss[below])
+            Rdiss_below = np.sum(Rsph[below] * Ediss[below]) / np.sum(Ediss[below])
+
+            data = [snap, tfb, Rdiss_above, Ldiss_above, Rdiss_below, Ldiss_below]
+            csv_path = f'{abspath}/data/{folder}/Rdiss_{check}{do_cut}.csv'
+            with open(csv_path,'a', newline='') as file:
+                writer = csv.writer(file)           
+                if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
+                    header = ['snap', ' tfb', ' Rdiss (pos) above 5e4K', ' Ldiss pos above', ' Rdiss pos below', ' Ldiss pos below']
+                    writer.writerow(header)
+                writer.writerow(data)
+            file.close()
 
 else:
     from plotting.paper.IHopeIsTheLast import ratio_BigOverSmall

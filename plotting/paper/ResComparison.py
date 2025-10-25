@@ -20,6 +20,7 @@ from Utilities.time_extractor import days_since_distruption
 
 price24 = 2.3e-7
 bonlu20 = 8.4e-9 #this is at late times, but they start with Mp = 1e-8
+Hu25 = 1/7e11
 # Ryu
 dthetaRyu = 0.008
 dphiryu = 0.0079
@@ -39,12 +40,13 @@ sizemeanRyu = gmean(arrR_Ryu23) * (dRoverR_Ryu23 * dthetaRyu * 1 * dphiryu)**(1/
 RgSad = 1e5/prel.csol_cgs**2
 r_sad16 = np.logspace(1.85*RgSad, 1000*RgSad, 256)
 sad16 = np.min(np.diff(r_sad16))
+##
 
 #%%
 # PARAMETERS
 ##
 save = True
-include_mid = 'mid'
+include_mid = '' # 'mid' or '
 
 m = 4
 Mbh = 10**m
@@ -218,7 +220,6 @@ dim_cellH.append(2)
 print('min midplane mass fiducial:', np.min(mass_midplane), 'min midplane mass high:', np.min(mass_midplaneH))
 print('min midplane dim fiducial:', np.min(dim_midplane), 'min midplane dim high:', np.min(dim_midplaneH))
 
-include_mid = ''
 if include_mid == 'mid':
     mass_midplaneL = np.sort(mass_midplaneL)
     mass_midplane = np.sort(mass_midplane)
@@ -257,7 +258,8 @@ ax1.plot(massL, cumL, color = 'C1')#, label = 'Low res')
 ax1.plot(mass, cum, color = 'yellowgreen')#, label = 'Fid res')
 ax1.plot(massH, cumH, color = 'darkviolet')#, label = 'High res')
 ax1.axvline(price24, color = 'forestgreen', linestyle = '--', label = 'Price24')
-ax1.axvline(bonlu20, color = 'plum', linestyle = 'dashdot', label = 'BonnerotLu20')
+ax1.axvline(bonlu20, color = 'mediumorchid', linestyle = 'dashdot', label = 'BonnerotLu20')
+ax1.axvline(Hu25, color = 'orangered', linestyle = 'dotted', label = 'Hu+25')
 ax2.plot(dim_cellL, cumdimL, color = 'C1')# label = 'Low res')
 ax2.plot(dim_cell, cumdim, color = 'yellowgreen')# label = 'Middle res')
 ax2.plot(dim_cellH, cumdimH, color = 'darkviolet',)# label = 'High res')

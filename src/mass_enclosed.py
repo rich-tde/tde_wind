@@ -93,7 +93,7 @@ if alice:
     file.close() 
 
 else:
-    to_plot = 'single_res' # 'compare_res', 'single_res'
+    to_plot = 'compare_res' # 'compare_res', 'single_res'
 
     if to_plot == 'compare_res':
         checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
@@ -135,7 +135,7 @@ else:
             ax.set_xlabel(r't [t$_{\rm fb}$]')  
             ax.grid()
             if ax in [axM1, axM2, axM3]:
-                ax.set_ylim(1e-6, 1e-1)
+                ax.set_ylim(1e-6, 1e-3)
                 ax.set_ylabel(r'Mass enclosed $[M_\star]$')
                 ax.legend(fontsize = 16)
             if ax in [axDiss1, axDiss2, axDiss3]:

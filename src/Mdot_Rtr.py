@@ -185,27 +185,31 @@ if plot:
                     skiprows=1, 
                     unpack=True) 
 
-    tfb_ratioH, ratioH, rel_errH  = ratio_BigOverSmall(tfbM, mwind_dimCellM, tfbH, mwind_dimCellH)
+    tfb_ratioH, ratioH, rel_errH  = ratio_BigOverSmall(tfbM, mwind_RM, tfbH, mwind_RH)
 
     fig, ax1 = plt.subplots(1, 1, figsize = (9, 7))
     ax1.plot(tfbH, np.abs(mfallH)/Medd_sol, ls = '--', c = 'gray', label = r'$\dot{M}_{\rm fb}$')
-    ax1.plot(tfbH, np.abs(mwind_dimCellH)/Medd_sol, c = 'darkviolet', label = r'$\dot{M}_{\rm w}$') # dim cell')
+    ax1.plot(tfbH, np.abs(mwind_RH)/Medd_sol, c = 'darkviolet', label = r'$\dot{M}_{\rm w}$') # dim cell')
     
     figCon, (axCon, axerr) = plt.subplots(2, 1, figsize = (9, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-    axCon.plot(tfbL, np.abs(mwind_dimCellL)/Medd_sol, c = 'C1', label = r'Low') # dim cell')
-    axCon.plot(tfbM, np.abs(mwind_dimCellM)/Medd_sol, c = 'yellowgreen', label = r'Middle') # dim cell')
-    axCon.plot(tfbH, np.abs(mwind_dimCellH)/Medd_sol, c = 'darkviolet', label = r'High') # dim cell')
-    axerr.plot(tfb_ratioL, ratioL, c = 'C1', label = r'Low')
+    axCon.plot(tfbL, np.abs(mwind_RL)/Medd_sol, c = 'C1', label = r'Low') # dim cell')
+    axCon.plot(tfbM, np.abs(mwind_RM)/Medd_sol, c = 'yellowgreen', label = r'Middle') # dim cell')
+    axCon.plot(tfbH, np.abs(mwind_RH)/Medd_sol, c = 'darkviolet', label = r'High') # dim cell')
+    axerr.plot(tfb_ratioL, ratioL, c = 'C1')
     axerr.plot(tfb_ratioL, ratioL, c = 'yellowgreen', ls = (0, (5, 10)))
-    axerr.plot(tfb_ratioH, ratioH, c = 'darkviolet', label = r'High')
+    axerr.plot(tfb_ratioH, ratioH, c = 'darkviolet')
     axerr.plot(tfb_ratioH, ratioH, c = 'yellowgreen', ls = (0, (5, 10)))
     
     original_ticks = ax1.get_xticks()
     for ax in (axCon, ax1, axerr):
-        ax.set_yscale('log')
         if ax != axerr:
-            ax.set_ylim(10, 1e5)
-        ax.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm Edd}]$')   
+            ax.set_ylim(1e3, 1e6)
+            ax.set_ylabel(r'$|\dot{M}_{\rm w} (r_{\rm tr})| [\dot{M}_{\rm Edd}]$')   
+            ax.legend(fontsize = 20)
+            ax.set_yscale('log')
+        else:
+            ax.set_ylabel(r'$\mathcal{R}$')  
+            ax.set_ylim(.9, 4) 
 
         midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
         new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
@@ -217,12 +221,11 @@ if plot:
             ax.set_xlabel(r'$t [t_{\rm fb}]$')
         ax.tick_params(axis='both', which='major', width=1.2, length=9)
         ax.tick_params(axis='both', which='minor', width=1, length=5)
-        ax.legend(fontsize = 20)
         ax.grid()
-    axCon.set_xlim(np.min(tfb), 2.6)
-    ax1.set_xlim(np.min(tfb), np.max(tfb))
+    axCon.set_xlim(np.min(tfbM), np.max(tfbM))
+    ax1.set_xlim(np.min(tfbH), np.max(tfbH))
 
     fig.tight_layout()
     figCon.tight_layout()
-    # fig.savefig(f'{abspath}/Figs/paper/Mw_Rtr.pdf', bbox_inches = 'tight')
-    # figCon.savefig(f'{abspath}/Figs/paper/Mw_conv_Rtr.pdf', bbox_inches = 'tight')
+    fig.savefig(f'{abspath}/Figs/paper/Mw_Rtr.pdf', bbox_inches = 'tight')
+    figCon.savefig(f'{abspath}/Figs/paper/Mw_conv_Rtr.pdf', bbox_inches = 'tight')
