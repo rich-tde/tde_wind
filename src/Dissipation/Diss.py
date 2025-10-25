@@ -32,7 +32,7 @@ n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
 check = 'HiResNewAMR'
-do_cut = '' # '' or 'ionization
+do_cut = 'ionization' # '' or 'ionization'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 print(f'we are in {check}', flush=True)
@@ -48,6 +48,7 @@ if alice:
         sys.stdout.flush()
         
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+        csv_path = f'{abspath}/data/{folder}/Rdiss_{check}{do_cut}.csv'
         tfb = np.loadtxt(f'{path}/tfb_{snap}.txt')
         data = make_tree(path, snap, energy = True)
         X, Y, Z, vol, den, Temp, Rad_den, Ediss_den = \
@@ -66,7 +67,6 @@ if alice:
             Ldisstot_neg = np.sum(Ediss[Ediss_den < 0])
             Rdiss_neg = np.sum(Rsph[Ediss_den < 0] * Ediss[Ediss_den < 0]) / np.sum(Ediss[Ediss_den < 0])
             data = [snap, tfb, Rdiss_pos, Ldisstot_pos, Rdiss_neg, Ldisstot_neg]
-            csv_path = f'{abspath}/data/{folder}/Rdiss_{check}{do_cut}.csv'
             with open(csv_path,'a', newline='') as file:
                 writer = csv.writer(file)           
                 if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
@@ -85,7 +85,6 @@ if alice:
             Rdiss_below = np.sum(Rsph[below] * Ediss[below]) / np.sum(Ediss[below])
 
             data = [snap, tfb, Rdiss_above, Ldiss_above, Rdiss_below, Ldiss_below]
-            csv_path = f'{abspath}/data/{folder}/Rdiss_{check}{do_cut}.csv'
             with open(csv_path,'a', newline='') as file:
                 writer = csv.writer(file)           
                 if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
