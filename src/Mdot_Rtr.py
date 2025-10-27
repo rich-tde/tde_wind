@@ -36,7 +36,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'LowResNewAMR'
+check = 'HiResNewAMR'
 statist = 'mean' # '' for mean, 'median' for median
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -50,6 +50,7 @@ Rp = things['Rp']
 R0 = things['R0']
 apo = things['apo']
 amin = things['a_mb'] # semimajor axis of the bound orbit
+#
 norm_dMdE = things['E_mb']
 t_fb_days_cgs = things['t_fb_days'] * 24 * 3600 # in seconds
 max_Mdot = mstar*prel.Msol_cgs/(3*t_fb_days_cgs) # in code units
@@ -139,7 +140,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             Mdot_R_casted[~check_dist] = 0
             v_rad_pos_casted[~check_dist] = 0
 
-            mwind_dimCell = np.sum(Mdot_dimCell_casted)
+            mwind_dimCell = np.sum(Mdot_dimCell_casted) # but I miss lot of space since I'm just considering the lines of sight
             if statist == 'mean':
                 mwind_R = np.mean(Mdot_R_casted) 
                 mwind_R_nonzero = np.mean(Mdot_R_casted[Mdot_R_casted!=0]) 

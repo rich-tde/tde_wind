@@ -254,9 +254,9 @@ if include_mid == 'mid':
 
 #%% Plot
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16, 8))
-ax1.plot(massL, cumL, color = 'C1')#, label = 'Low res')
-ax1.plot(mass, cum, color = 'yellowgreen')#, label = 'Fid res')
-ax1.plot(massH, cumH, color = 'darkviolet')#, label = 'High res')
+ax1.plot(massL, cumL, color = 'C1', label = 'This work, Low res')
+ax1.plot(mass, cum, color = 'yellowgreen', label = 'This work, Fid res')
+ax1.plot(massH, cumH, color = 'darkviolet', label = 'This work, High res')
 ax1.axvline(price24, color = 'forestgreen', linestyle = '--', label = 'Price24')
 ax1.axvline(bonlu20, color = 'mediumorchid', linestyle = 'dashdot', label = 'BonnerotLu20')
 ax1.axvline(Hu25, color = 'orangered', linestyle = 'dotted', label = 'Hu+25')
@@ -277,14 +277,14 @@ if include_mid == 'mid':
 
 for ax in [ax1, ax2]:
     ax.set_xscale('log')
-    ax.tick_params(axis='both', which='major', width=1.2, length=7)
+    ax.tick_params(axis='both', which='major', width=1.2, length=7, labelsize=28)
     ax.tick_params(axis='both', which='minor', width=0.9, length=5)
-    ax.legend(loc ='upper left', fontsize = 18)
+    ax.legend(loc ='upper left', fontsize = 22)
     ax.set_ylim(0,1.1)
     ax.grid()
-ax1.set_ylabel('CDF')
-ax1.set_xlabel(r'Cell mass [$M_\odot$]')
-ax2.set_xlabel(r'Cell size [$R_\odot$]')
+ax1.set_ylabel('CDF', fontsize = 30)
+ax1.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 30)
+ax2.set_xlabel(r'Cell size [$R_\odot$]', fontsize = 30)
 ax1.set_xlim(5e-13, 3e-7)
 ax2.set_xlim(4e-2, 2)
 # plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)

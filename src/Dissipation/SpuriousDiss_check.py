@@ -37,13 +37,11 @@ mstar = .5
 Rstar = .47
 n = 1.5 # 'n1.5'
 compton = 'Compton'
-check = 'NewAMR' # '' or 'HiRes' or 'LowRes'
+check = 'HiResNewAMR' # '' or 'HiRes' or 'LowRes'
 where = '_everywhere'
 params = [Mbh, Rstar, mstar, beta]
-if check in ['NewAMR', 'HiResNewAMR', 'LowResNewAMR']:
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-else:
-    folder = f'opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+
 
 Rt = Rstar * (Mbh/mstar)**(1/3)
 R0 = 0.6 * Rt
@@ -96,7 +94,7 @@ if alice:
     np.save(f'{prepath}/data/{folder}/Diss/spuriousDiss_{check}{where}.npy', [ie_sum, orb_en_pos_sum, orb_en_neg_sum, diss_pos_sum, diss_neg_sum])
 
 else:
-    how_to_check = 'pancake' # 'energies' or 'widths' or 'ionization'
+    how_to_check = 'ionization' # 'energies' or 'widths' or 'ionization'
     t_fall_days = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
     tfall_cgs = t_fall_days * 24 * 3600 
     recomb_en = 13.6*prel.ev_to_erg * mstar*prel.Msol_cgs/prel.m_p_cgs
@@ -141,12 +139,9 @@ else:
             plt.suptitle(r'R > 0.2 R$_a$, $\rho > 1e-19$', fontsize = 20)
 
     if how_to_check == 'ionization':
-        snap = 96
-        check = 'NewAMR'
-        if check in ['NewAMR', 'HiResNewAMR', 'LowResNewAMR']:
-            folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-        else:
-            folder = f'opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+        snap = 22
+        check = 'HiResNewAMR'
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
         path = f'{abspath}/TDE/{folder}/{snap}'
         tfb = np.loadtxt(f'{path}/tfb_{snap}.txt')
@@ -185,18 +180,21 @@ else:
         Den_infall_cgs = Den_infall * prel.den_converter
 
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 14), dpi=150)
-        img = ax1.scatter(T_noinfall, np.abs(Diss_noinfall*prel.en_converter)/prel.tsol_cgs, c= Den_infall_cgs, s = 1, cmap='rainbow', norm = LogNorm(vmin=1e-9, vmax=1), rasterized=True)
-        cbar = plt.colorbar(img, label=r'$\rho$ [g/cm$^3$]')
-        img = ax2.scatter(T_noinfall, np.abs(Diss_noinfall*prel.en_converter)/prel.tsol_cgs, s = 1, c = R_noinfall/apo, cmap='rainbow', vmin=0.4, vmax=1, rasterized=True)
-        cbar = plt.colorbar(img, label=r'R/R$_{\rm a}$')
+        img = ax1.scatter(T_noinfall*1e-4, Den_infall_cgs,  c = np.abs(Diss_noinfall*prel.en_converter)/prel.tsol_cgs, s = 1, cmap='rainbow', norm = LogNorm(vmin=1e38, vmax=1e43), rasterized=True)
+        ax1.set_ylabel(r'$\rho$ [g/cm$^3$]')
+        ax1.set_yscale('log')
+        ax1.set_ylim(1e-9, 1)
+        img = ax2.scatter(T_noinfall*1e-4, R_noinfall/apo, c = np.abs(Diss_noinfall*prel.en_converter)/prel.tsol_cgs, s = 1, cmap='rainbow', norm = LogNorm(vmin=1e38, vmax=1e43), rasterized=True)
+        cbar = plt.colorbar(img, label=r'$|$Diss rate$|$ [erg/s]')
+        ax2.set_ylabel(r'R/R$_{\rm a}$')
+        ax2.set_ylim(0.2, 1)
 
         for ax in [ax1, ax2]:
             ax.loglog()
-            ax.set_ylabel(r'$|$Diss rate$|$ [erg/s]')
-            ax.set_ylim(1e33, 2e38)
             ax.tick_params(axis='both', which='major', width=1.2, length=8, color = 'k')
             ax.tick_params(axis='both', which='minor', width=1, length=4, color = 'k')
-        ax2.set_xlabel(r'T [K]')
+            ax.set_xlim(1, 7)
+        ax2.set_xlabel(r'T [$10^{4}$K]')
         plt.suptitle(f'run: {check}, points with $R>0.2R_a$, t = {np.round(tfb, 2)}' + r' $t_{\rm fb}$', fontsize=20)
         plt.tight_layout()
 

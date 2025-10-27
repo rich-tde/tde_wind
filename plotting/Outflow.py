@@ -293,18 +293,6 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergenceOE' or kind_o
                 ratio_unbound_phM[j] = len(oe_M[np.logical_and(oe_M>=0, r_phM!=0)]) / len(oe_M)
             elif kind_of_plot == 'convergencebern':
                 ratio_unbound_phM[j] = len(bern_phM[np.logical_and(bern_phM>=0, r_phM!=0)]) / len(bern_phM)
- 
-            # if snap_sH == 53: #53
-            #     fig50, ax50 = plt.subplots()
-            #     ax50.scatter(x_phH[bern_phH>0]/apo, r_phH[bern_phH>0]/apo, c = 'r', s = 10, label = 'Unbound')
-            #     ax50.scatter(x_phH[bern_phH<0]/apo, r_phH[bern_phH<0]/apo, c = 'b', s = 10, label = 'Bound')
-            #     ax50.set_title(f'f = {np.round(ratio_unbound_phH[j],2)}, t = {np.round(tfbH[j],2)}' + r't$_{\rm fb}$')
-            #     ax50.set_xlabel(r'x$_{\rm ph}/R_a$')
-            #     ax50.set_ylabel(r'r$_{\rm ph}/R_a$')
-            #     ax50.set_yscale('log')
-            #     ax50.legend()
-            #     fig50.savefig(f'{abspath}/Figs/next_meeting/bern_phHiRes_{snap_sH}.png')
-                
 
         ax.plot(tfbL, ratio_unbound_phL, c = 'C1', label = 'Low')
         # plt.scatter(tfbH, mean_velH * conversion_sol_kms * 1e-4, c = ratio_unbound_phH, s = 20, vmin = 0, vmax = 0.8, marker = 's', label = 'High')
@@ -316,6 +304,10 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergenceOE' or kind_o
         ax.plot(tfb, ratio_unbound_ph, c = 'darkviolet', label = 'High') #c = mean_vel/v_esc, s = 20, vmin = 0.2, vmax = 1)
         # fig.suptitle(f'Convergence with {for_title}', fontsize = 20)
         ax.legend(fontsize = 16, loc = 'lower right')
+        orginal_ticks = ax.get_xticks()
+        mid_ticks = (orginal_ticks[:-1] + orginal_ticks[1:]) /2
+        new_ticks = np.sort(np.concatenate((orginal_ticks, mid_ticks)))
+        ax.set_xticks(new_ticks)
         ax.set_xlim(np.min(tfb), np.max(tfb))
         fig.tight_layout()
         fig.savefig(f'{abspath}/Figs/paper/f_conv.pdf')

@@ -45,6 +45,8 @@ snaps, Lum, tfb = sort_list([snaps, Lum, tfb], tfb, unique=True)
 snaps = snaps.astype(int)
 dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
 tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs
+dataDissIon = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}ionization.csv', delimiter=',', dtype=float, skiprows=1)
+tfbdiss_split, LDissAb, LdissBl =  dataDissIon[:,1], dataDissIon[:,3] * prel.en_converter/prel.tsol_cgs, dataDissIon[:,5] * prel.en_converter/prel.tsol_cgs
 
 time_theory = tfb[210:-1]
 Lum_theory = 5e41*time_theory**(-5/3)
@@ -73,7 +75,8 @@ cbar = fig.colorbar(img)
 cbar.set_label(r'median $R_{\rm ph} [R_{\rm t}]$')#, fontsize = 20)
 cbar.ax.tick_params(which='major', length = 5)
 cbar.ax.tick_params(which='minor', length = 3)
-ax.plot(tfbdiss, LDiss, '--', c= 'gray')
+ax.plot(tfbdiss_split, LdissBl, ls = 'dotted', c= 'b', label = r'$T_{\rm{gas}} < 5\cdot 10^4 K$')
+ax.plot(tfbdiss_split, LDissAb, '--', c= 'r', label = r'$T_{\rm{gas}} > 5\cdot 10^4 K$')
 ax.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
 ax.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd}$', fontsize = 20)
 # ax.plot(time_theory, Lum_theory, c = 'k', linestyle = 'dotted', linewidth = 1)
@@ -83,6 +86,7 @@ ax.set_ylim(9e37, 8e42)
 ax.set_ylabel(r'Luminosity [erg/s]')#, fontsize = 20)
 ax.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 20)
 ax.grid()
+ax.legend(fontsize = 16)
 original_ticks = ax.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
@@ -92,7 +96,7 @@ labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in ne
 ax.tick_params(axis='both', which='major', width = 1.2, length = 9, color = 'k')
 ax.tick_params(axis='y', which='minor', width = 1, length = 5, color = 'k')
 ax.set_xlim(np.min(tfb), np.max(tfb))
-# plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld.pdf', bbox_inches='tight')
+plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld_ioniz.pdf', bbox_inches='tight')
 
 # %%
 fig, (axR, axL) = plt.subplots(1, 2, figsize=(16, 7))

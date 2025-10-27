@@ -98,20 +98,17 @@ def radial_profiles(loadpath, snap, which_part, ray_params):
         ray_Mdot = 4 * np.pi * r**2 * np.abs(ray_V_r) * ray_d 
         L_adv = 4 * np.pi * r**2 * np.abs(ray_V_r) * ray_rad_den
 
-        # cond = np.logical_and(ray_t != 0, ray_m != 0)
-        nonzero = ray_t#[cond]
+        cond = ray_m >= 0 
+        nonzero = ray_t[cond]
         t_mean[i] = np.mean(nonzero) if nonzero.size > 0 else 0
         # t_mean[i] = np.sum(ray_t*ray_m)/np.sum(ray_m)
-        # cond = np.logical_and(ray_V_r != 0, ray_m != 0)
-        nonzero = ray_V_r#[cond]
+        nonzero = ray_V_r[cond]
         v_rad_mean[i] = np.mean(nonzero) if nonzero.size > 0 else 0
         # v_rad_mean[i] = np.sum(ray_V_r*ray_m)/np.sum(ray_m)
-        # cond = np.logical_and(ray_d != 0, ray_m != 0)
-        nonzero = ray_d#[cond]
+        nonzero = ray_d[cond]
         d_mean[i] = np.mean(nonzero) if nonzero.size > 0 else 0
         # d_mean[i] = np.sum(ray_d*ray_m)/np.sum(ray_m)
-        # cond = np.logical_and(L_adv != 0, ray_m != 0)
-        nonzero = L_adv#[cond]
+        nonzero = L_adv[cond]
         L_adv_mean[i] = np.mean(nonzero) if nonzero.size > 0 else 0
         # L_adv_mean[i] = np.sum(L_adv*ray_m)/np.sum(ray_m)
  
@@ -160,7 +157,7 @@ if compute:
     np.save(out_path, all_outflows, allow_pickle=True)
 
 if plot:
-    profiles = np.load(f'{abspath}/data/{folder}/wind/den_prof{snap}Shell{which_part}_weighmean.npy', allow_pickle=True).item()
+    profiles = np.load(f'{abspath}/data/{folder}/wind/den_prof{snap}Shell{which_part}_mean.npy', allow_pickle=True).item()
 
     r_plot = profiles['r']
     d = profiles['d_mean']
@@ -179,8 +176,8 @@ if plot:
     x_test = np.arange(1., 300)
     y_testplus1 = 3.5e3* (x_test)
     y_test1 = 9e4*(x_test)**(-1)
-    y_test23 = 8e5*(x_test)**(-2/3)
-    y_test2 = 5e-8* (x_test)**(-2) 
+    y_test23 = 5e5*(x_test)**(-2/3)
+    y_test2 = 1e-8* (x_test)**(-2) 
 
     fig, (axV, axd, axT) = plt.subplots(1, 3, figsize=(24, 6)) 
     figM, axMdot = plt.subplots(1, 1, figsize=(10, 6))
@@ -195,17 +192,17 @@ if plot:
 
     axd.plot(r_plot/Rt, d*prel.den_converter,  color = 'darkviolet') 
     axV.plot(r_plot/Rt, v_rad * conversion_sol_kms,  color = 'darkviolet')
-    axMdot.plot(r_plot/Rt, np.abs(Mdot/mfall_t),  color = 'darkviolet')
+    axMdot.plot(r_plot/Rt, np.abs(Mdot/Medd_sol),  color = 'darkviolet')
     axT.plot(r_plot/Rt, t,  color = 'darkviolet')
     axL.plot(r_plot/Rt, L_adv/Ledd_sol,  color = 'darkviolet')
 
     axd.plot(x_test, y_test2, c = 'k', ls = 'dashed', label = r'$\rho \propto r^{-2}$')
-    axd.text(35, 2e-11, r'$\rho \propto r^{-2}$', fontsize = 20, color = 'k', rotation = -42)
+    # axd.text(35, 2e-11, r'$\rho \propto r^{-2}$', fontsize = 20, color = 'k', rotation = -42)
     axV.axhline(v_esc_kms, c = 'k', ls = 'dashed')#
     axV.text(35, 1.1*v_esc_kms, r'v$_{\rm esc} (r_{\rm p})$', fontsize = 20, color = 'k')
     axT.plot(x_test, y_test23, c = 'k', ls = 'dashed', label = r'$T \propto r^{-2/3}$')
-    axT.text(27, 4.2e4, r'$T_{\rm rad} \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -33)
-    axL.plot(x_test, 8e-5*y_test23, c = 'k', ls = 'dashed', label = r'$L \propto r^{-2/3}$')
+    # axT.text(27, 4.2e4, r'$T_{\rm rad} \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -33)
+    axL.plot(x_test, 5e-5*y_test23, c = 'k', ls = 'dashed', label = r'$L \propto r^{-2/3}$')
 
     for ax in [axd, axV, axMdot, axT, axL]:
         ax.axvline(r_tr/Rt, c = 'darkviolet', ls = ':')
@@ -216,16 +213,16 @@ if plot:
         ax.set_xlabel(r'$r [r_{\rm t}]$', fontsize = 28)
         ax.grid()
 
-    axMdot.set_ylim(1e-3, 1e1)
-    axMdot.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm fb}]$', fontsize = 28) 
+    axMdot.set_ylim(1e4, 1e7)
+    axMdot.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm Edd}]$', fontsize = 28) 
     axd.set_ylim(1e-11, 4e-8)
     axd.set_ylabel(r'$\rho$ [g/cm$^3]$', fontsize = 28)
     axV.set_ylim(2e3, 3e4)
     axV.set_ylabel(r'v$_{\rm r}$ [km/s]', fontsize = 28)
-    axT.set_ylim(4e4, 1e6)
+    axT.set_ylim(7e4, 1e6)
     axT.set_ylabel(r'$T_{\rm rad}$ [K]', fontsize = 28)
     axL.set_ylabel(r'$L [L_{\rm Edd}]$', fontsize = 28)
-    axL.set_ylim(3, 5e1)
+    axL.set_ylim(1, 1e2)
     # fig.suptitle(f'{check}, t = {np.round(tfb,2)}' + r't$_{\rm fb}$', fontsize = 20)
     # figT.suptitle(f'{check}, t = {np.round(tfb,2)}' + r't$_{\rm fb}$', fontsize = 20)
     fig.tight_layout()

@@ -39,9 +39,10 @@ apo = things['apo']
 Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
+print(Medd_cgs)
 commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
-#
+#%%
 # FUNCTIONS
 ##
 def split_data_red(check):
@@ -403,7 +404,7 @@ if __name__ == '__main__':
     axR.plot(tfb_oeL, col_radL*prel.en_converter, label = r'Low', c = 'darkorange')
     axR.plot(tfb_oe, col_rad*prel.en_converter, label = r'Middle', c = 'yellowgreen')
     axR.plot(tfb_oeH, col_radH*prel.en_converter, label = r'High', c = 'darkviolet')
-    axR.set_title(r'Radiation energy', fontsize = 27)
+    axR.set_title(r'Radiation energy [erg]', fontsize = 27)
     axR.set_yscale('log')
     axR.set_ylim(5e43, 2e48)
     
@@ -429,9 +430,8 @@ if __name__ == '__main__':
     ax7.plot(tfb_ratio_orbL, ratio_radL, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
     ax7.plot(tfb_ratio_orbH, ratio_radH, label = r'Middle and High', linewidth = 2, c = 'darkviolet')
     ax7.plot(tfb_ratio_orbH, ratio_radH,linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
-    ax7.set_ylim(.99, 3)
+    ax7.set_ylim(.99, 2.5)
     ax7.tick_params(axis='y', which='minor', length = 5, width = 0.7)
-    ax7.set_yscale('log')
 
     original_ticks = ax1.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2

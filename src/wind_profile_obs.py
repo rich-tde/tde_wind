@@ -168,24 +168,21 @@ def radial_profiles(loadpath, snap, which_part, indices_sorted):
             L_adv_col = np.transpose(L_adv_all)[i]
             Mdot_col = np.transpose(Mdot_all)[i]
             ray_m_col = np.transpose(m_all)[i]
-            cond = np.logical_and(t_col != 0, ray_m_col != 0)
+            cond = ray_m_col != 0
             nonzero = t_col[cond]
-            # t_median.append(np.median(nonzero) if nonzero.size > 0 else 0)
-            t_median.append(np.sum(nonzero*ray_m_col[cond])/np.sum(ray_m_col[cond]))
-            cond = np.logical_and(v_rad_col != 0, ray_m_col != 0)
+            t_median.append(np.median(nonzero) if nonzero.size > 0 else 0)
+            # t_median.append(np.sum(nonzero*ray_m_col[cond])/np.sum(ray_m_col[cond]))
             nonzero = v_rad_col[cond]
-            # v_rad_median.append(np.median(nonzero) if nonzero.size > 0 else 0)
-            v_rad_median.append(np.sum(nonzero*ray_m_col[cond])/np.sum(ray_m_col[cond]))
-            cond = np.logical_and(d_col != 0, ray_m_col != 0)
+            v_rad_median.append(np.median(nonzero) if nonzero.size > 0 else 0)
+            # v_rad_median.append(np.sum(nonzero*ray_m_col[cond])/np.sum(ray_m_col[cond]))
             nonzero = d_col[cond]
-            # d_mean.append(np.median(nonzero) if nonzero.size > 0 else 0) 
-            d_mean.append(np.sum(nonzero*ray_m_col[cond])/np.sum(ray_m_col[cond]))
-            cond = np.logical_and(L_adv_col != 0, ray_m_col != 0)
+            d_mean.append(np.median(nonzero) if nonzero.size > 0 else 0) 
+            # d_mean.append(np.sum(nonzero*ray_m_col[cond])/np.sum(ray_m_col[cond]))
             nonzero = L_adv_col[cond]
-            # L_adv_median.append(np.median(nonzero) if nonzero.size > 0 else 0)
-            L_adv_median.append(np.sum(nonzero*ray_m_col[cond])/np.sum(ray_m_col[cond]))
+            L_adv_median.append(np.median(nonzero) if nonzero.size > 0 else 0)
+            # L_adv_median.append(np.sum(nonzero*ray_m_col[cond])/np.sum(ray_m_col[cond]))
  
-            Mdot_mean.append(np.mean(Mdot_col) if Mdot_col.size > 0 else 0)
+            Mdot_mean.append(np.median(Mdot_col[cond]) if Mdot_col[cond].size > 0 else 0)
         t_median = np.array(t_median)
         v_rad_median = np.array(v_rad_median)
         d_mean = np.array(d_mean)
@@ -230,7 +227,7 @@ for snap in snaps:
     # Load data
     tfb = np.loadtxt(f'{path}/tfb_{snap}.txt') 
     _, tfb_fall, mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind, Vwind_nonzero = \
-        np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_{check}05aminmean.csv', 
+        np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_{check}Rtrmean.csv', 
                    delimiter = ',', 
                    skiprows=1, 
                    unpack=True) 
@@ -283,14 +280,14 @@ for snap in snaps:
 
     if compute:
         all_outflows = radial_profiles(path, snap, which_part, indices_sorted)
-        out_path = f"{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}_weighmeanNOZERO.npy"
+        out_path = f"{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}_weighmeanNOzero.npy"
         np.save(out_path, all_outflows, allow_pickle=True)
  
     if plot:
         x_as_thetas = True
         thetas_tick = [-np.pi, 0, np.pi]
         thetas_tick_labels = [r'$-\pi$', r'$0$', r'$\pi$']
-        profiles = np.load(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}_medianNOZERO.npy', allow_pickle=True).item()
+        profiles = np.load(f'{abspath}/data/{folder}/wind/den_prof{snap}{which_obs}{which_part}_weighmeanNOzero.npy', allow_pickle=True).item()
         # find eta = mfall(t_fb-t_dyn)/Mwind(tfb)
         figeta, axeta = plt.subplots(1, 1, figsize=(9, 6))
         fig, (axEdd, axL) = plt.subplots(2, 1, figsize=(9, 12))
@@ -361,8 +358,8 @@ for snap in snaps:
         y_test12 = 0.75*(x_test)**(-0.5)
         y_test02 = 5e3* (x_test)**(-0.2)
         y_test08 = 4.2e-12* (x_test)**(-0.8)
-        y_test23 = 3e5*(x_test)**(-2/3)
-        y_test2 = 3e-11* (x_test)**(-2) 
+        y_test23 = 3.5e5*(x_test)**(-2/3)
+        y_test2 = 5e-11* (x_test)**(-2) 
         y_testplus2 = 2.5e3* (x_test)**(2)
         y_test3 = 6.5e-13 * (x_test)**(-3)
 
@@ -391,7 +388,7 @@ for snap in snaps:
 
             axd.plot(r_plot/r_normalizer, d*prel.den_converter,  color = colors_obs[i]) #, ls = lines_obs[i] , label = f'{lab}')# Observer {lab} ({indices_sorted[i]})')
             axV.plot(r_plot/r_normalizer, v_rad * conversion_sol_kms,  color = colors_obs[i], label = f'{lab}')
-            axMdot.plot(r_plot/r_normalizer, np.abs(Mdot/mfall_mean[i]),  color = colors_obs[i], label = f'{lab}')# , ls = lines_obs[i])
+            axMdot.plot(r_plot/r_normalizer, np.abs(Mdot/Medd_sol),  color = colors_obs[i], label = f'{lab}')# , ls = lines_obs[i])
             axT.plot(r_plot/r_normalizer, t,  color = colors_obs[i])#, label = f'{lab}')
             axL.plot(r_plot/r_normalizer, L_adv/Ledd_sol,  color = colors_obs[i]) #, ls = lines_obs[i]), label = f'{lab}')
 
@@ -399,7 +396,7 @@ for snap in snaps:
         # axMdot.plot(x_test, y_testplus1, c = 'gray', ls = 'dotted', label = r'$\dot{M} \propto r$')
         # axd.plot(r/apo, rho_from_dM, c = 'gray', ls = '--', label = r'$\rho \propto R^{-2}$') #'From dM/dt')
         axd.plot(x_test, y_test2, c = 'k', ls = 'dashed', label = r'$\rho \propto r^{-2}$')
-        axd.text(32, 1.2e-14, r'$\rho \propto r^{-2}$', fontsize = 20, color = 'k', rotation = -42)
+        # axd.text(32, 1.2e-14, r'$\rho \propto r^{-2}$', fontsize = 20, color = 'k', rotation = -42)
         # axd.plot(x_test, y_test3, c = 'gray', ls = 'dotted', label = r'$\rho \propto r^{-3}$') 
         # axd.plot(x_test, y_test08, c = 'gray', ls = 'dashed', label = r'$v_r \propto r^{-0.8}$')
         axV.axhline(v_esc_kms, c = 'k', ls = 'dashed')#
@@ -408,8 +405,8 @@ for snap in snaps:
         # axV.plot(x_test, 2.9*y_testplus1, c = 'gray', ls = '-.', label = r'$v_r \propto r$')
         # axV.plot(x_test, 2.5*y_testplus2, c = 'gray', ls = '--', label = r'$v_r \propto r^2$')
         axT.plot(x_test, y_test23, c = 'k', ls = 'dashed', label = r'$T \propto r^{-2/3}$')
-        axT.text(32, 1.2e4, r'$T_{\rm rad} \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -33)
-        axL.plot(x_test,3e-5*y_test23, c = 'k', ls = 'dashed', label = r'$L \propto r^{-2/3}$')
+        # axT.text(32, 1.2e4, r'$T_{\rm rad} \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -33)
+        axL.plot(x_test,1.5e-5*y_test23, c = 'k', ls = 'dashed', label = r'$L \propto r^{-2/3}$')
 
         for ax in [axd, axV, axMdot, axT, axL]:
             # put the legend if which_obs != 'all_rotate'. Lt it be outside
@@ -431,16 +428,16 @@ for snap in snaps:
 
             ax.grid()
 
-        axMdot.set_ylim(1e-4, 1e1)
-        axMdot.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm fb}]$', fontsize = 28) 
-        axd.set_ylim(1e-14, 1e-10)
+        axMdot.set_ylim(1e2, 1e5)
+        axMdot.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm Edd}]$', fontsize = 28) 
+        axd.set_ylim(1e-14, 2e-10)
         axd.set_ylabel(r'$\rho$ [g/cm$^3]$', fontsize = 28)
         axV.set_ylim(2e3, 3e4)
         axV.set_ylabel(r'v$_r$ [km/s]', fontsize = 28)
-        axT.set_ylim(9e3, 5e5)
+        axT.set_ylim(2e4, 5e5)
         axT.set_ylabel(r'$T_{\rm rad}$ [K]', fontsize = 28)
         axL.set_ylabel(r'$L [L_{\rm Edd}]$', fontsize = 28)
-        axL.set_ylim(2e-1, 2e1)
+        axL.set_ylim(1e-1, 8)
         # fig.suptitle(f'{check}, t = {np.round(tfb,2)}' + r't$_{\rm fb}$', fontsize = 20)
         # figT.suptitle(f'{check}, t = {np.round(tfb,2)}' + r't$_{\rm fb}$', fontsize = 20)
         fig.tight_layout()

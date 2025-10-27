@@ -120,7 +120,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             Mdot_R_casted = Mdot_R[condRtr]
             v_rad_pos_casted = v_rad_pos[condRtr] 
 
-            mwind_dimCell = np.sum(Mdot_dimCell_casted)
+            mwind_dimCell = 4 * r_chosen**2 * np.sum(Mdot_dimCell_casted) / np.sum(Rsph_pos[condRtr]**2)
             if statist == 'mean':
                 mwind_R = np.mean(Mdot_R_casted) # NB: this is an overestimate since you're doing the mean already on the positive ones, not all the cells at radius R
                 mwind_R_nonzero = np.mean(Mdot_R_casted[Mdot_R_casted!=0]) # NB: if the radius is fixed, it's the same as the mean on all. 
@@ -139,7 +139,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             with open(csv_path, 'a', newline='') as file:
                 writer = csv.writer(file)
                 if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                    writer.writerow(['snap', ' tfb', ' Mdot_fb', ' Mw with dimCell', f'Mw with {which_r_title}', f'Mw with {which_r_title} (nonzero)', 'Vwind', 'Vwind (nonzero)'])
+                    writer.writerow(['snap', ' tfb', ' Mdot_fb', 'normalized Mw with dimCell', f'Mw with {which_r_title}', f'Mw with {which_r_title} (nonzero)', 'Vwind', 'Vwind (nonzero)'])
                 writer.writerow(data)
             file.close()
 

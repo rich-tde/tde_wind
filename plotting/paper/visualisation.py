@@ -236,6 +236,7 @@ plt.show()
 # %%
 proj_movie = True
 overview = False
+n_panels = 2
 
 if proj_movie:
     n_panels = 3
@@ -267,7 +268,7 @@ if proj_movie:
         # k = alphaph/denph
         r_ph = np.sqrt(xph**2 + yph**2 + zph**2)
         median_ph[i] = np.median(r_ph)
-        if snap != 87:
+        if snap < 135:
             continue
         # print(k)
         # k_mean = 1/np.mean(1/k)
