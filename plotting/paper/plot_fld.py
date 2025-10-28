@@ -45,7 +45,7 @@ snaps, Lum, tfb = sort_list([snaps, Lum, tfb], tfb, unique=True)
 snaps = snaps.astype(int)
 dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
 tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs
-dataDissIon = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}ionization.csv', delimiter=',', dtype=float, skiprows=1)
+dataDissIon = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}ionizationHe.csv', delimiter=',', dtype=float, skiprows=1)
 tfbdiss_split, LDissAb, LdissBl =  dataDissIon[:,1], dataDissIon[:,3] * prel.en_converter/prel.tsol_cgs, dataDissIon[:,5] * prel.en_converter/prel.tsol_cgs
 
 time_theory = tfb[210:-1]
@@ -75,8 +75,8 @@ cbar = fig.colorbar(img)
 cbar.set_label(r'median $R_{\rm ph} [R_{\rm t}]$')#, fontsize = 20)
 cbar.ax.tick_params(which='major', length = 5)
 cbar.ax.tick_params(which='minor', length = 3)
-ax.plot(tfbdiss_split, LdissBl, ls = 'dotted', c= 'b', label = r'$T_{\rm{gas}} < 5\cdot 10^4 K$')
-ax.plot(tfbdiss_split, LDissAb, '--', c= 'r', label = r'$T_{\rm{gas}} > 5\cdot 10^4 K$')
+ax.plot(tfbdiss_split, LdissBl, ls = 'dotted', c= 'b', label = r'$T_{\rm{gas}} < 1\cdot 10^5 K$')
+ax.plot(tfbdiss_split, LDissAb, '--', c= 'r', label = r'$T_{\rm{gas}} > 1\cdot 10^5 K$')
 ax.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
 ax.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd}$', fontsize = 20)
 # ax.plot(time_theory, Lum_theory, c = 'k', linestyle = 'dotted', linewidth = 1)

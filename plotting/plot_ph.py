@@ -8,7 +8,9 @@ from src import orbits as orb
 import Utilities.prelude as prel
 import healpy as hp
 from scipy.stats import gmean
-from Utilities.operators import sort_list, choose_observers
+from Utilities.operators import sort_list, choose_observers    
+from plotting.paper.IHopeIsTheLast import ratio_BigOverSmall
+
 
 # first_eq = 88 # observer eq. plane
 # final_eq = 103+1 #observer eq. plane
@@ -21,9 +23,9 @@ n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
 which_obs = 'dark_bright_z'
-checks = ['HiResNewAMR', 'NewAMR']
-checkslegend = ['High', 'Middle']
-colors_res = ['darkviolet', 'yellowgreen']
+checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
+checkslegend = ['Low', 'Middle', 'High']
+colors_res = ['C1', 'yellowgreen', 'darkviolet']
 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -36,6 +38,9 @@ apo = things['apo']
 amin = things['a_mb']
 tfallback = things['t_fb_days']
 t_fb_days_cgs = tfallback * 24 * 3600 # in seconds
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
+Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
+Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
 
 #%% Pick observers
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
@@ -51,6 +56,7 @@ Temp_ph_all = []
 Rtr_all = []
 Mdot_all = []
 Temp_tr_all = []
+tfbs_all = []
 figTr, axTr = plt.subplots(1, 1, figsize=(10, 6))
 figL, (axL, axTph, axC2) = plt.subplots(1, 3, figsize=(27, 6))
 figMdot, (axMdot, axTtr, axC) = plt.subplots(1, 3, figsize=(27, 6))
@@ -63,6 +69,7 @@ for c, check in enumerate(checks):
         snaps = snaps.astype(int)
         Lph_all.append(Lums)
         idx_maxLum = np.argmax(Lums)
+        tfbs_all.append(tfbs)
 
         data_wind = np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_{check}.csv',  
                         delimiter = ',', 
@@ -87,8 +94,6 @@ for c, check in enumerate(checks):
         Temp_tr_snap = np.zeros(len(snaps))
         Mdot_snap = np.zeros(len(snaps))
         for s, snap in enumerate(snaps): 
-                if snap >= 380:
-                        continue
                 tfb = tfbs[s]
                 dataph = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
                 xph, yph, zph, Temp_ph, RadDen_ph, Lum_ph = dataph[0], dataph[1], dataph[2], dataph[5], dataph[6], dataph[-2]
@@ -104,8 +109,8 @@ for c, check in enumerate(checks):
                 Temprad_tr = (Rad_den_tr*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
                 r_tr_snap[s] = np.mean(r_tr)
                 Temp_tr_snap[s] = np.mean(Temprad_tr) #np.mean(Temp_tr)
-                Mdot_tr = 4 * np.pi * r_tr**2 * den_tr * np.abs(Vr_tr)
-                Mdot_snap[s] = np.mean(Mdot_tr)
+                Mdot_tr =  r_tr**2 * den_tr * np.abs(Vr_tr)
+                Mdot_snap[s] = 4 * np.pi * np.sum(Mdot_tr)/192 #np.mean(Mdot_tr)
                 for i, observer in enumerate(indices_axis):
                         Lum_ph_mean[i][s] = np.mean(Lum_ph[observer])   
                         Temp_ph_mean[i][s] = np.mean(Temprad_ph[observer])                    
@@ -129,20 +134,6 @@ for c, check in enumerate(checks):
         Mdot_all.append(Mdot_snap)
         Rph_all.append(r_ph_snap)
         approxL_ph_all.append(approxL_ph_snap)
-
-        # Eddington luminosity
-        if check == 'HiResNewAMR':
-                max_snap, max_tfb = snaps[idx_maxLum], tfbs[idx_maxLum]
-                xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, alphaph, _, Lumph, _ = \
-                        np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{max_snap}.txt')
-                kappaph = alphaph/denph
-                kappa = 1/np.mean(1/kappaph)
-                eta = np.mean(eta_axis[:, idx_maxLum])
-                print(f'From snap  {snaps[idx_maxLum]} (t: {np.round(tfbs[idx_maxLum],2)}) in {check}: kappa = {kappa}, eta = {eta}')
-                Ledd_sol, Medd_sol = orb.Edd(Mbh, kappa/(prel.Rsol_cgs**2/prel.Msol_cgs), eta, prel.csol_cgs, prel.G)
-                Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
-                Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
-                print(f'From snap {snaps[idx_maxLum]} in {check}: Ledd = {Ledd_cgs}, Medd = {Medd_cgs}')
 
         for i, observer in enumerate(indices_axis):
                 if label_axis[i] not in [r'$-\hat{\textbf{z}}$']:
@@ -186,7 +177,7 @@ axL.set_ylim(1e-1, 11)
 axC.set_ylim(1, 1e5)
 axC2.set_ylim(1, 1e5)
 axTph.set_ylim(9e2, 5e4)
-axMdot.set_ylim(5, 5e3)
+axMdot.set_ylim(1e3, 1e6)
 figTr.savefig(f'{abspath}/Figs/next_meeting/Rtr_res.png')
 figL.savefig(f'{abspath}/Figs/next_meeting/L_res.png')
 figMdot.savefig(f'{abspath}/Figs/next_meeting/Mdot_res.png')
@@ -210,84 +201,63 @@ figMdot.savefig(f'{abspath}/Figs/next_meeting/Mdot_res.png')
 #%% TOTAL
 figRTr_total, axRTr_total = plt.subplots(1, 1, figsize=(10, 6))
 figL_total, (axL_total, axTph_total, axapproxL_total) = plt.subplots(1, 3, figsize=(30, 6))
-figMdot_total, (axMdot_total, axTtr_total) = plt.subplots(1, 2, figsize=(18, 6))
+figTtr_total, axTtr_total = plt.subplots(1, 1, figsize=(10, 6))
+figMdot_total, (axMdot_total, axerr) = plt.subplots(2, 1, figsize = (9, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
+
+tfb_ratioL, ratioL, rel_errL  = ratio_BigOverSmall(tfbs_all[0], Mdot_all[0], tfbs_all[1], Mdot_all[1])
+tfb_ratioH, ratioH, rel_errH  = ratio_BigOverSmall(tfbs_all[2], Mdot_all[2], tfbs_all[1], Mdot_all[1])
+
 for i, check in (enumerate(checks)):
+        # if i != 2:
+        #        continue
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-        data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
-        snaps, tfbs, Lums = data[:, 0], data[:, 1], data[:, 2]
-        tfbs, snaps, Lums = sort_list([tfbs, snaps, Lums], snaps, unique=True)
-        idx_maxLum = np.argmax(Lums)
-        axRTr_total.plot(tfbs, Rtr_all[i]/Rp, c = colors_res[i], label = checkslegend[i])
-        # axRTr_total.plot(tfbs, Rph_all[i]/Rp, c = colors_res[i], ls = '--', label = r'$r_{\rm ph}$')
-        # axRTr_total.scatter(tfbs[idx_maxLum], Rtr_all[i][idx_maxLum]/Rp, c = colors_res[i], s = 95, marker = 'X')
-        axL_total.plot(tfbs, Lph_all[i]/Ledd_cgs, c = colors_res[i], label = checkslegend[i])
-        axapproxL_total.plot(tfbs, approxL_ph_all[i]/Ledd_cgs, c = colors_res[i], label = checkslegend[i])
-        axTph_total.plot(tfbs, Temp_ph_all[i]/Rp, c = colors_res[i], label = checkslegend[i])
-        axMdot_total.plot(tfbs, Mdot_all[i]/Medd_sol, c = colors_res[i], label = checkslegend[i])
-        # axMdot_total.scatter(tfbs[idx_maxLum], Mdot_all[i][idx_maxLum]/Medd_sol, c = colors_res[i], s = 95, marker = 'X')
-        axTtr_total.plot(tfbs, Temp_tr_all[i]/Rp, c = colors_res[i], label = checkslegend[i]) 
+        axRTr_total.plot(tfbs_all[i], Rtr_all[i]/Rp, c = colors_res[i], label = checkslegend[i])
+        axL_total.plot(tfbs_all[i], Lph_all[i]/Ledd_cgs, c = colors_res[i], label = checkslegend[i])
+        axapproxL_total.plot(tfbs_all[i], approxL_ph_all[i]/Ledd_cgs, c = colors_res[i], label = checkslegend[i])
+        axTph_total.plot(tfbs_all[i], Temp_ph_all[i]/Rp, c = colors_res[i], label = checkslegend[i])
+        axMdot_total.plot(tfbs_all[i], Mdot_all[i]/Medd_sol, c = colors_res[i], label = checkslegend[i])
+        axTtr_total.plot(tfbs_all[i], Temp_tr_all[i]/Rp, c = colors_res[i], label = checkslegend[i]) 
+
+axerr.plot(tfb_ratioL, ratioL, c = 'C1')
+axerr.plot(tfb_ratioL, ratioL, c = 'yellowgreen', ls = (0, (5, 10)))
+axerr.plot(tfb_ratioH, ratioH, c = 'darkviolet')
+axerr.plot(tfb_ratioH, ratioH, c = 'yellowgreen', ls = (0, (5, 10)))
 
 axRTr_total.set_ylabel(r'$r_{\rm tr} [r_{\rm t}]$')
 axL_total.set_ylabel(r'$L_{\rm ph} [L_{\rm Edd}]$')
 axapproxL_total.set_ylabel(r'$r_{\rm ph}^2 T_{\rm ph}^4 [L_{\rm Edd}]$')
 axTph_total.set_ylabel(r'$T_{\rm ph} [K]$')
-axMdot_total.set_ylabel(r'$\dot{M}_{\rm w}(R_{\rm tr}) [\dot{M}_{\rm Edd}]$')
+axMdot_total.set_ylabel(r'$\dot{M}_{\rm w}(r_{\rm tr}) [\dot{M}_{\rm Edd}]$')
 axTtr_total.set_ylabel(r'$T_{\rm tr} [K]$')
+axerr.set_ylabel(r'$\mathcal{R}$')
 original_ticks = axL_total.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-for ax in [axRTr_total, axL_total, axMdot_total, axTtr_total, axTph_total, axapproxL_total]:
+labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]
+for ax in [axRTr_total, axL_total, axMdot_total, axTtr_total, axTph_total, axapproxL_total, axerr]:
     ax.set_xlabel(r't [$t_{\rm fb}$]')
     ax.set_xticks(new_ticks)
+    ax.set_xticklabels(labels)
     ax.tick_params(axis='both', which='major', width=1.2, length=9, color = 'k')
     ax.tick_params(axis='both', which='minor', width=1, length=7, color = 'k')
     ax.grid()
-    ax.set_xlim(0, 1.8) 
-    ax.set_yscale('log')
+    ax.set_xlim(0, 2.5) 
     ax.legend(fontsize = 16)
+    if ax != axerr:
+        ax.set_yscale('log')
 
 axL_total.set_ylim(1e-1, 5)
 axapproxL_total.set_ylim(1e-1, 1e4)
-axMdot_total.set_ylim(5, 5e3)
+axMdot_total.set_ylim(1e3, 1e6)
 axRTr_total.set_ylim(1, 80) 
 axTtr_total.set_ylim(9e2, 5e4)
 axTph_total.set_ylim(9e2, 5e4)
+axerr.set_ylim(.9, 4)
 figRTr_total.savefig(f'{abspath}/Figs/next_meeting/Rtr_total.png')
 figL_total.savefig(f'{abspath}/Figs/next_meeting/L_total.png')
 figMdot_total.savefig(f'{abspath}/Figs/next_meeting/Mdot_total.png')
 
-# %% High res, different ways to compute Mdot
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiResNewAMR'
-data = np.loadtxt(f'{abspath}/data/{folder}/HiResNewAMR_red.csv', delimiter=',', dtype=float)
-snaps, tfb_LH = data[:, 0], data[:, 1]
-tfb_LH, snaps = sort_list([tfb_LH, snaps], snaps, unique=True)
-snap, tfb_fallH, mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind, Vwind_nonzer = \
-np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_HiResNewAMR05aminmean.csv', 
-                delimiter = ',', 
-                skiprows=1, 
-                unpack=True)
 
-fig1, ax1 = plt.subplots(1, 1, figsize = (9, 6))
-ax1.plot(tfb_LH, Mdot_all[0]/Medd_sol, c = colors_res[0], label = r'own $R_{\rm tr}$ (non zero obs)')
-# ax1.plot(tfb_fallH, np.abs(mwind_R_nonzero)/Medd_sol, c = 'green', label = r'fixed $r_{\rm tr}$ (non zero obs)')
-ax1.plot(tfb_fallH, np.abs(mwind_R)/Medd_sol, c = 'orange', label = r'fixed $r_{\rm tr}$')
-# ax1.plot(tfb_fallH, np.abs(mwind_dimCell)/Medd_sol, c = 'dodgerblue', label = r'dim cell')
-
-ax1.set_yscale('log')
-ax1.set_ylim(1e-1, 5e4)
-ax1.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')   
-ax1.legend(fontsize = 18)
-
-original_ticks = ax1.get_xticks()
-midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-ax1.set_xlabel(r'$t [t_{\rm fb}]$')
-ax1.set_xticks(new_ticks)
-ax1.tick_params(axis='both', which='major', width=1, length=7)
-ax1.tick_params(axis='both', which='minor', width=.8, length=4)
-ax1.set_xlim(0, 1.8)
-ax1.grid()
-fig1.tight_layout()
 
 
 # %%

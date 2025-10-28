@@ -120,7 +120,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             Mdot_R_casted = Mdot_R[condRtr]
             v_rad_pos_casted = v_rad_pos[condRtr] 
 
-            mwind_dimCell = 4 * r_chosen**2 * np.sum(Mdot_dimCell_casted) / np.sum(Rsph_pos[condRtr]**2)
+            mwind_dimCell = 4 * r_chosen**2 * np.sum(Mdot_dimCell_casted) / np.sum(dim_cell_pos[condRtr]**2)
             if statist == 'mean':
                 mwind_R = np.mean(Mdot_R_casted) # NB: this is an overestimate since you're doing the mean already on the positive ones, not all the cells at radius R
                 mwind_R_nonzero = np.mean(Mdot_R_casted[Mdot_R_casted!=0]) # NB: if the radius is fixed, it's the same as the mean on all. 
@@ -196,8 +196,8 @@ if plot:
 
     fig.tight_layout()
     figCon.tight_layout()
-    fig.savefig(f'{abspath}/Figs/paper/Mw.pdf', bbox_inches = 'tight')
-    figCon.savefig(f'{abspath}/Figs/paper/Mw_conv.pdf', bbox_inches = 'tight')
+    # fig.savefig(f'{abspath}/Figs/paper/Mw.pdf', bbox_inches = 'tight')
+    # figCon.savefig(f'{abspath}/Figs/paper/Mw_conv.pdf', bbox_inches = 'tight')
 
 
     
