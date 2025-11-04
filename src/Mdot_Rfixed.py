@@ -10,7 +10,6 @@ if alice:
 else:
     abspath = '/Users/paolamartire/shocks'
     compute = False
-    plot = True
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -43,11 +42,13 @@ things = orb.get_things_about(params)
 tfallback = things['t_fb_days']
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
 Rs = things['Rs']
+Rg = things['Rg']
 Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
 apo = things['apo']
 amin = things['a_mb'] # semimajor axis of the bound orbit
+# print(0.5*amin/Rt)
 norm_dMdE = things['E_mb']
 t_fb_days_cgs = things['t_fb_days'] * 24 * 3600 # in seconds
 max_Mdot = mstar*prel.Msol_cgs/(3*t_fb_days_cgs) # in code units
@@ -144,60 +145,103 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             file.close()
 
 if plot:
-    from scipy.integrate import cumulative_trapezoid
+    # from scipy.integrate import cumulative_trapezoid
+    from plotting.paper.IHopeIsTheLast import ratio_BigOverSmall
+    from Utilities.operators import sort_list
     which_r_title = '05amin'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
     checks_label = ['Low', 'Middle', 'High']    
     colors = ['C1', 'yellowgreen', 'darkviolet']
 
-    fig, ax1 = plt.subplots(1, 1, figsize = (9, 7))
-    figCon, axCon = plt.subplots(1, 1, figsize = (9, 7))
-    for i, check in enumerate(checks):
-        snap, tfb, mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind, Vwind_nonzero = \
-            np.loadtxt(f'{abspath}/data/{folder}{check}/wind/Mdot_{check}{which_r_title}{statist}.csv', 
+    fig, ax1 = plt.subplots(1, 1, figsize = (8, 6))
+    figCon, (axCon, axerr) = plt.subplots(2, 1, figsize = (9, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
+
+    dataL = np.loadtxt(f'{abspath}/data/{folder}LowResNewAMR/LowResNewAMR_red.csv', delimiter=',', dtype=float)
+    tfbsL_lum, LumsL = dataL[:, 1], dataL[:, 2]
+    LumsL, tfbsL_lum = sort_list([LumsL, tfbsL_lum], tfbsL_lum, unique=True)
+    tfbL_max = tfbsL_lum[np.argmax(LumsL)]
+    _, tfbL, mfallL, mwind_dimCellL, mwind_RL, mwind_R_nonzeroL, _, _ = \
+            np.loadtxt(f'{abspath}/data/{folder}LowResNewAMR/wind/Mdot_LowResNewAMR{which_r_title}{statist}.csv', 
                     delimiter = ',', 
                     skiprows=1, 
                     unpack=True)
-        # integrate mwind_dimCell in tfb
-        mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)
-        mfall_int = cumulative_trapezoid(np.abs(mfall), tfb, initial = 0)
-        print(f'integral of Mw at the last time: {mwind_dimCell_int[-1]/mstar} Mstar')
-        print(f'integral of Mfb at the last time: {mfall_int[-1]/mstar} Mstar')
-        print(f'End of simualation, Mw/Mfb in {check}:', np.abs(mwind_dimCell[-1]/mfall[-1]))
-        
-        if check == 'HiResNewAMR':
-            ax1.plot(tfb, np.abs(mfall)/Medd_sol, ls = '--', c = 'gray', label = r'$\dot{M}_{\rm fb}$')
-            ax1.plot(tfb, np.abs(mwind_dimCell)/Medd_sol, c = colors[i], label = r'$\dot{M}_{\rm w}$') # dim cell')
-            # ax1.plot(tfb, np.abs(mwind_R)/Medd_sol, c = 'orange', label = r'$\dot{M}_{\rm w}$ with  $r={\rm 0.5a_{\rm min}}$')
-            # ax1.plot(tfb, np.abs(mwind_R_nonzero)/Medd_sol, c = 'green', ls = '--', label = r'$\dot{M}_{\rm w}$ at  $r={\rm 0.5a_{\rm min}}$ (nonzero)')
-            # ax1.plot(tfb, np.abs(mfall)/Medd_sol, label = r'$\dot{M}_{\rm fb}$', c = 'k')
-        axCon.plot(tfb, np.abs(mwind_dimCell)/Medd_sol, c = colors[i], label = checks_label[i]) # dim cell')
+    MdotLmax = mwind_dimCellL[np.argmin(np.abs(tfbL - tfbL_max))]
+
+    dataM = np.loadtxt(f'{abspath}/data/{folder}NewAMR/NewAMR_red.csv', delimiter=',', dtype=float)
+    tfbsM_lum, LumsM = dataM[:, 1], dataM[:, 2]
+    LumsM, tfbsM_lum = sort_list([LumsM, tfbsM_lum], tfbsM_lum, unique=True)
+    tfbM_max = tfbsM_lum[np.argmax(LumsM)]
+    _, tfbM, mfallM, mwind_dimCellM, mwind_RM, mwind_R_nonzeroM, _, _ = \
+            np.loadtxt(f'{abspath}/data/{folder}NewAMR/wind/Mdot_NewAMR{which_r_title}{statist}.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True)
+    MdotMmax = mwind_dimCellM[np.argmin(np.abs(tfbM - tfbM_max))]
+    tfb_ratioL, ratioL, rel_errL  = ratio_BigOverSmall(tfbM, mwind_dimCellM, tfbL, mwind_dimCellL)
+
+    dataH = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/HiResNewAMR_red.csv', delimiter=',', dtype=float)
+    tfbsH_lum, LumsH = dataH[:, 1], dataH[:, 2]
+    LumsH, tfbsH_lum = sort_list([LumsH, tfbsH_lum], tfbsH_lum, unique=True)
+    tfbH_max = tfbsH_lum[np.argmax(LumsH)]
+    _, tfbH, mfallH, mwind_dimCellH, mwind_RH, mwind_R_nonzeroH, _, _ = \
+            np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/wind/Mdot_HiResNewAMR{which_r_title}{statist}.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True) 
+    MdotHmax = mwind_dimCellH[np.argmin(np.abs(tfbH - tfbH_max))]
+    tfb_ratioH, ratioH, rel_errH  = ratio_BigOverSmall(tfbM, mwind_RM, tfbH, mwind_RH)
+
+    # integrate mwind_dimCell in tfb
+    # mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)
+    # mfall_int = cumulative_trapezoid(np.abs(mfall), tfb, initial = 0)
+    # print(f'integral of Mw at the last time: {mwind_dimCell_int[-1]/mstar} Mstar')
+    # print(f'integral of Mfb at the last time: {mfall_int[-1]/mstar} Mstar')
+    # print(f'End of simualation, Mw/Mfb in {check}:', np.abs(mwind_dimCell[-1]/mfall[-1]))
+    
+    ax1.plot(tfbH, np.abs(mfallH)/Medd_sol, ls = '--', c = 'k', label = r'$\dot{M}_{\rm fb}$')
+    ax1.plot(tfbH, np.abs(mwind_dimCellH)/Medd_sol, c = 'darkviolet', label = r'$\dot{M}_{\rm w}$')
+    ax1.axvline(tfbH_max, ls = ':', c = 'gray')
+    ax1.text(0.011+tfbH_max, 20, r'$t=t_{\rm p}$', rotation = 90, fontsize = 20) 
+
+    axCon.plot(tfbL, np.abs(mwind_dimCellL)/Medd_sol, c = 'C1', label = 'Low') 
+    axCon.plot(tfbM, np.abs(mwind_dimCellM)/Medd_sol, c = 'yellowgreen', label = 'Middle') 
+    axCon.plot(tfbH, np.abs(mwind_dimCellH)/Medd_sol, c = 'darkviolet', label = 'High') 
+    axCon.scatter([tfbL_max, tfbM_max, tfbH_max], np.array([MdotLmax, MdotMmax, MdotHmax])/Medd_sol, c = ['C1', 'yellowgreen', 'darkviolet'], s = 90, marker = 'd')
+    axerr.plot(tfb_ratioL, ratioL, c = 'C1')
+    axerr.plot(tfb_ratioL, ratioL, c = 'yellowgreen', ls = (0, (5, 10)))
+    axerr.plot(tfb_ratioH, ratioH, c = 'darkviolet')
+    axerr.plot(tfb_ratioH, ratioH, c = 'yellowgreen', ls = (0, (5, 10)))
     
     original_ticks = ax1.get_xticks()
-    for ax in (axCon, ax1):
-        ax.set_yscale('log')
-        ax.set_ylim(1, 1e7)
-        ax.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm Edd}]$')   
+    for ax in (axCon, ax1, axerr):
+        if ax != axerr:
+            ax.set_yscale('log')
+            ax.set_ylim(10, 9e6)
+            ax.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm Edd}]$')   
+        else:
+            ax.set_ylim(0.9, 4)
+            ax.set_ylabel(r'$\mathcal{R}$')
 
         midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
         new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
         ax.set_xticks(new_ticks)
-        if ax == axCon:
-            labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
-            ax.set_xticklabels(labels)   
-        ax.set_xlabel(r'$t [t_{\rm fb}]$')
+        # if ax == axCon:
+        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
+        ax.set_xticklabels(labels)  
+        if ax != axCon:  
+            ax.set_xlabel(r'$t [t_{\rm fb}]$')
         ax.tick_params(axis='both', which='major', width=1.2, length=9)
         ax.tick_params(axis='both', which='minor', width=1, length=5)
         ax.legend(fontsize = 20)
         ax.grid()
-    axCon.set_xlim(np.min(tfb), 2.6)
-    ax1.set_xlim(np.min(tfb), np.max(tfb))
+    axCon.set_xlim(np.min(tfbM), np.max(tfbM))
+    ax1.set_xlim(np.min(tfbH), np.max(tfbH))
 
     fig.tight_layout()
     figCon.tight_layout()
-    # fig.savefig(f'{abspath}/Figs/paper/Mw.pdf', bbox_inches = 'tight')
-    # figCon.savefig(f'{abspath}/Figs/paper/Mw_conv.pdf', bbox_inches = 'tight')
+    fig.savefig(f'{abspath}/Figs/paper/Mw.pdf', bbox_inches = 'tight')
+    figCon.savefig(f'{abspath}/Figs/paper/Mw_conv.pdf', bbox_inches = 'tight')
 
 
     

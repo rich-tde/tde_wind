@@ -127,152 +127,99 @@ if __name__ == '__main__':
     tfbdissH, LDissH = dataDissH[:,1], dataDissH[:,3] *  prel.en_converter/prel.tsol_cgs
 
     ######## Plot #######
-    # Luminosity
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-    ax1.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
-    ax1.text(0.15, 1.3*Ledd_cgs, r'$L_{\rm Edd}$', fontsize = 20)
-    ax1.plot(tfbL, LumL, c = 'C1', label = 'Low')
-    ax1.plot(tfbdissL, LDissL, ls = '--', c = 'C1')
-    ax1.plot(tfb, Lum, c = 'yellowgreen', label = 'Middle')
-    ax1.plot(tfbdiss, LDiss, ls = '--', c = 'yellowgreen')
-    ax1.plot(tfbH, LumH, c = 'darkviolet', label = 'High')
-    ax1.plot(tfbdissH, LDissH, ls = '--', c = 'darkviolet')
-    ax1.set_ylabel(r'Luminosity [erg/s]')
-
-    original_ticks = ax1.get_yticks()
-    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    ax1.set_yticks(new_ticks)
-    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-    ax1.set_yticklabels(labels)
-    ax1.set_yscale('log')
-    ax1.set_ylim(7e37, 7e43)
-    ax1.grid()
-    ax1.legend(fontsize = 18, loc = 'lower right')
-
-    # ax2perc = ax2.twinx()
-    tfb_ratioDiss, ratioDiss, _  = ratio_BigOverSmall(tfbdiss, LDiss, tfbdissL, LDissL)
-    # ax2.plot(tfb_ratioDiss, ratioDiss, linewidth = 2, color = 'C1', ls = '--')
-    tfb_ratioL, ratioL, rel_errL  = ratio_BigOverSmall(tfb, Lum, tfbL, LumL)
-    ax2.plot(tfb_ratioL, ratioL, linewidth = 2, color = 'yellowgreen')
-    ax2.plot(tfb_ratioL, ratioL, linewidth = 2, color = 'C1', linestyle = (0, (5, 10)), label = 'Low,Middle')
-    # ax2perc.plot(tfb_ratioL, rel_errL, linewidth = 2, color = 'C1', linestyle = (0, (5, 10)), label = 'Low,Middle')
-    tfb_ratioDissH, ratioDissH, _  = ratio_BigOverSmall(tfbdissH, LDissH, tfbdiss, LDiss)
-    # ax2.plot(tfb_ratioDissH, ratioDissH, linewidth = 2, color = 'darkviolet', ls = '--')
-    tfb_ratioH, ratioH, rel_errH  = ratio_BigOverSmall(tfb, Lum, tfbH, LumH)
-    ax2.plot(tfb_ratioH, ratioH, linewidth = 2, color = 'yellowgreen')
-    ax2.plot(tfb_ratioH, ratioH, linewidth = 2, color = 'darkviolet', linestyle = (0, (5, 10)), label = 'Middle,High')
-    ax2.set_ylim(.8, 2.5)
-    # ax2.set_yscale('log')
+    fig, ((axR, axL), (axR_err, axL_err)) = plt.subplots(2, 2, figsize=(20, 10), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
     
-    # Set up the primary y-axis (ax2) ticks and labels
-    ax2.set_xlabel(r'$t [t_{\rm fb}]$')
-    ax2.set_ylabel(r'$\mathcal{R}$', labelpad = 25) # Luminosity')
-    ax2.grid()
-    
-    # Set up the secondary y-axis (ax2perc) to match the primary y-axis
-    # yticks = ax2.get_yticks()
-    # rel_err_ticks = (yticks - 1) * 100
-    # ax2perc.set_yticks(rel_err_ticks)
-    # ax2perc.set_yticklabels([f'{x:.0f}\%' for x in rel_err_ticks])
-    # ax2perc.set_ylim((ax2.get_ylim()[0] - 1) * 100, (ax2.get_ylim()[1] - 1) * 100)
-    # ax2perc.set_ylabel('Relative error')
-
-    original_ticks = ax2.get_xticks()
-    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    for ax in [ax1, ax2]:
-        ax.set_xticks(new_ticks)
-        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-        ax.set_xticklabels(labels)
-        ax.tick_params(axis='both', which='major', width=1.2, length=7)
-        ax.tick_params(axis='both', which='minor', width=0.9, length=5)
-        ax.set_xlim(np.min(tfbH), np.max(tfb))
-        if ax != ax1:
-            original_ticks_y = ax.get_yticks()
-            midpoints_y = (original_ticks_y[:-1] + original_ticks_y[1:]) / 2
-            new_ticks_y = np.sort(np.concatenate((original_ticks_y, midpoints_y)))
-            ax.set_yticks(new_ticks_y)
-            # if ax == ax2perc:
-            #     ax.set_yticklabels([f'{x:.0f}\%' if x in original_ticks_y else "" for x in new_ticks_y])
-            labels = [str(np.round(tick,2)) if tick in original_ticks_y else "" for tick in new_ticks_y]       
-            ax.set_yticklabels(labels)
-    # repeat the limits or it gets crazy in  the grid
-    ax2.set_ylim(.8, 3) 
-    # ax1.axvline(tfbH[np.argmin(np.abs(snapH-128))])       
-    # ax2perc.set_ylim((ax2.get_ylim()[0] - 1) * 100, (ax2.get_ylim()[1] - 1) * 100)
-    ax1.legend(fontsize = 18, loc = 'lower right')
-    plt.tight_layout()
-    plt.savefig(f'{abspath}/Figs/paper/fld.pdf', bbox_inches='tight')
-
     # Photosphere
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-    ax1.plot(tfbL, median_phL/Rt, c = 'C1', label = 'Low')
-    ax1.plot(tfbL, percentile84L/Rt, c = 'C1', alpha = 0.4, linestyle = '--')
-    ax1.plot(tfbL, percentile16L/Rt, c = 'C1', alpha = 0.4, linestyle = '--')
-    ax1.fill_between(tfbL, percentile16L/Rt, percentile84L/Rt, color = 'C1', alpha = 0.4)
-    #Middledle
-    ax1.plot(tfb, median_ph/Rt, c = 'yellowgreen', label = 'Middle')
-    # print(median_ph[-1]*prel.Rsol_cgs/1e14)
-    ax1.plot(tfb, percentile84/Rt, c = 'yellowgreen', alpha = 0.3, linestyle = '--')
-    ax1.plot(tfb, percentile16/Rt, c = 'yellowgreen', alpha = 0.3, linestyle = '--')
-    ax1.fill_between(tfb, percentile16/Rt, percentile84/Rt, color = 'yellowgreen', alpha = 0.3)
+    axR.plot(tfbL, median_phL/Rt, c = 'C1', label = 'Low')
+    axR.plot(tfbL, percentile84L/Rt, c = 'C1', alpha = 0.4, linestyle = '--')
+    axR.plot(tfbL, percentile16L/Rt, c = 'C1', alpha = 0.4, linestyle = '--')
+    axR.fill_between(tfbL, percentile16L/Rt, percentile84L/Rt, color = 'C1', alpha = 0.4)
+    #Middle
+    axR.plot(tfb, median_ph/Rt, c = 'yellowgreen', label = 'Middle')
+    axR.plot(tfb, percentile84/Rt, c = 'yellowgreen', alpha = 0.3, linestyle = '--')
+    axR.plot(tfb, percentile16/Rt, c = 'yellowgreen', alpha = 0.3, linestyle = '--')
+    axR.fill_between(tfb, percentile16/Rt, percentile84/Rt, color = 'yellowgreen', alpha = 0.3)
     # High
-    ax1.plot(tfbH, median_phH/Rt, c = 'darkviolet', label = 'High')
-    ax1.plot(tfbH, percentile84H/Rt, c = 'darkviolet', alpha = 0.2, linestyle = '--')
-    ax1.plot(tfbH, percentile16H/Rt, c = 'darkviolet', alpha = 0.2, linestyle = '--')
-    ax1.fill_between(tfbH, percentile16H/Rt, percentile84H/Rt, color = 'darkviolet', alpha = 0.2)
-    ax1.axhline(apo/Rt, c = 'k', linestyle = '-.', linewidth = 2)
-    ax1.text(0.11, 1.1*apo/Rt, r'$r_{\rm a}$', fontsize = 20)
-    ax1.set_ylim(1, 250)
-    ax1.set_yscale('log')
-    ax1.set_ylabel(r'median $r_{\rm ph} [r_{\rm t}]$')
-    ax1.legend(fontsize = 18)
+    axR.plot(tfbH, median_phH/Rt, c = 'darkviolet', label = 'High')
+    axR.plot(tfbH, percentile84H/Rt, c = 'darkviolet', alpha = 0.2, linestyle = '--')
+    axR.plot(tfbH, percentile16H/Rt, c = 'darkviolet', alpha = 0.2, linestyle = '--')
+    axR.fill_between(tfbH, percentile16H/Rt, percentile84H/Rt, color = 'darkviolet', alpha = 0.2)
+    axR.axhline(apo/Rt, c = 'k', linestyle = '-.', linewidth = 2)
+    axR.text(0.11, 1.1*apo/Rt, r'$r_{\rm a}$', fontsize = 20)
+    axR.set_ylabel(r'median $r_{\rm ph} [r_{\rm t}]$')
+    axR.set_yscale('log')
+    axR.set_ylim(1, 250)
+    axR.legend(fontsize = 18)
 
-    # ax2perc = ax2.twinx()
     tfb_ratioL_Rph, ratio_medianRphL, rel_errphL = ratio_BigOverSmall(tfb, median_ph, tfbL, median_phL)
-    ax2.plot(tfb_ratioL_Rph, ratio_medianRphL, linewidth = 2, color = 'yellowgreen')
-    ax2.plot(tfb_ratioL_Rph, ratio_medianRphL, linestyle = (0, (5, 10)), linewidth = 2, color = 'C1')
+    axR_err.plot(tfb_ratioL_Rph, ratio_medianRphL, linewidth = 2, color = 'yellowgreen')
+    axR_err.plot(tfb_ratioL_Rph, ratio_medianRphL, linestyle = (0, (5, 10)), linewidth = 2, color = 'C1')
     tfb_ratioH_Rph, ratio_medianRphH, rel_errphH = ratio_BigOverSmall(tfb, median_ph, tfbH, median_phH)
-    ax2.plot(tfb_ratioH_Rph, ratio_medianRphH, linewidth = 2, color = 'yellowgreen')
-    ax2.plot(tfb_ratioH_Rph, ratio_medianRphH, linestyle = (0, (5, 10)), linewidth = 2, color = 'darkviolet')
-    ax2.set_xlabel(r't [$t_{\rm fb}$]') 
-    ax2.set_ylabel(r'$\mathcal{R}$', fontsize = 20)
-    # ax2perc.set_ylabel('Relative error', fontsize = 20)
-    ax2.set_ylim(.8, 2.5)
+    axR_err.plot(tfb_ratioH_Rph, ratio_medianRphH, linewidth = 2, color = 'yellowgreen')
+    axR_err.plot(tfb_ratioH_Rph, ratio_medianRphH, linestyle = (0, (5, 10)), linewidth = 2, color = 'darkviolet')
+    axR_err.set_ylabel(r'$\mathcal{R}$', fontsize = 25)
+    axR_err.set_ylim(.8, 2.5)
+    
+    # Luminosity
+    axL.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
+    axL.text(0.15, 1.3*Ledd_cgs, r'$L_{\rm Edd}$', fontsize = 20)
+    axL.plot(tfbL, LumL, c = 'C1', label = 'Low')
+    axL.plot(tfbdissL, LDissL, ls = '--', c = 'C1')
+    axL.plot(tfb, Lum, c = 'yellowgreen', label = 'Middle')
+    axL.plot(tfbdiss, LDiss, ls = '--', c = 'yellowgreen')
+    axL.plot(tfbH, LumH, c = 'darkviolet', label = 'High')
+    axL.plot(tfbdissH, LDissH, ls = '--', c = 'darkviolet')
+    axL.set_ylabel(r'Luminosity [erg/s]')
+    axL.set_yscale('log')
+    axL.set_ylim(7e37, 7e43)
 
-    # yticks = ax2.get_yticks()
+    tfb_ratioDiss, ratioDiss, _  = ratio_BigOverSmall(tfbdiss, LDiss, tfbdissL, LDissL)
+    # axL_err.plot(tfb_ratioDiss, ratioDiss, linewidth = 2, color = 'C1', ls = '--')
+    tfb_ratioL, ratioL, rel_errL  = ratio_BigOverSmall(tfb, Lum, tfbL, LumL)
+    axL_err.plot(tfb_ratioL, ratioL, linewidth = 2, color = 'yellowgreen')
+    axL_err.plot(tfb_ratioL, ratioL, linewidth = 2, color = 'C1', linestyle = (0, (5, 10)), label = 'Low,Middle')
+    # axL_errperc.plot(tfb_ratioL, rel_errL, linewidth = 2, color = 'C1', linestyle = (0, (5, 10)), label = 'Low,Middle')
+    tfb_ratioDissH, ratioDissH, _  = ratio_BigOverSmall(tfbdissH, LDissH, tfbdiss, LDiss)
+    # axL_err.plot(tfb_ratioDissH, ratioDissH, linewidth = 2, color = 'darkviolet', ls = '--')
+    tfb_ratioH, ratioH, rel_errH  = ratio_BigOverSmall(tfb, Lum, tfbH, LumH)
+    axL_err.plot(tfb_ratioH, ratioH, linewidth = 2, color = 'yellowgreen')
+    axL_err.plot(tfb_ratioH, ratioH, linewidth = 2, color = 'darkviolet', linestyle = (0, (5, 10)), label = 'Middle,High')
+    axL_err.set_ylim(.8, 2.5)
+    
+    # Set up the primary y-axis (axL_err) ticks and labels
+    # Set up the secondary y-axis (axL_errperc) to match the primary y-axis
+    # yticks = axL_err.get_yticks()
     # rel_err_ticks = (yticks - 1) * 100
-    # ax2perc.set_yticks(rel_err_ticks)
-    # ax2perc.set_yticklabels([f'{x:.0f}\%' for x in rel_err_ticks])
-    # ax2perc.set_ylim((ax2.get_ylim()[0] - 1) * 100, (ax2.get_ylim()[1] - 1) * 100)
-    # ax2perc.set_ylabel('Relative error')
+    # axL_errperc.set_yticks(rel_err_ticks)
+    # axL_errperc.set_yticklabels([f'{x:.0f}\%' for x in rel_err_ticks])
+    # axL_errperc.set_ylim((axL_err.get_ylim()[0] - 1) * 100, (axL_err.get_ylim()[1] - 1) * 100)
+    # axL_errperc.set_ylabel('Relative error')
 
-    original_ticks = ax2.get_xticks()
+    original_ticks = axL.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
     new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    for ax in [ax1, ax2]:
+    original_ticks_y = axR_err.get_yticks()
+    midpoints_y = (original_ticks_y[:-1] + original_ticks_y[1:]) / 2
+    new_ticks_y = np.sort(np.concatenate((original_ticks_y, midpoints_y)))
+    for ax in [axL, axL_err, axR, axR_err]:
         ax.set_xticks(new_ticks)
         labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
         ax.set_xticklabels(labels)
-        ax.grid()
-        ax.set_xlim(np.min(tfbH), np.max(tfb))
         ax.tick_params(axis='both', which='major', width=1.2, length=7)
         ax.tick_params(axis='both', which='minor', width=0.9, length=5)
-        if ax != ax1:
-            original_ticks_y = ax.get_yticks()
-            midpoints_y = (original_ticks_y[:-1] + original_ticks_y[1:]) / 2
-            new_ticks_y = np.sort(np.concatenate((original_ticks_y, midpoints_y)))
+        ax.set_xlim(np.min(tfbH), np.max(tfb))
+        if ax in [axL_err, axR_err]:
             ax.set_yticks(new_ticks_y)
-            # if ax == ax2perc:
+            # if ax == axL_errperc:
             #     ax.set_yticklabels([f'{x:.0f}\%' if x in original_ticks_y else "" for x in new_ticks_y])
             labels = [str(np.round(tick,2)) if tick in original_ticks_y else "" for tick in new_ticks_y]       
             ax.set_yticklabels(labels)
-    ax2.set_ylim(.8, 2.5)
-    # ax2perc.set_ylim((ax2.get_ylim()[0] - 1) * 100, (ax2.get_ylim()[1] - 1) * 100)
-    ax2.set_xlabel(r't [$t_{fb}$]')
+            ax.set_ylim(.9, 2.5) # you need to repeat it
+            ax.set_xlabel(r'$t [t_{\rm fb}]$')
+        ax.grid()
+
     plt.tight_layout()
-    plt.savefig(f'{abspath}/Figs/paper/Rph_ratio.pdf', bbox_inches='tight')
+    plt.savefig(f'{abspath}/Figs/paper/fld_R_conv.pdf', bbox_inches='tight')
 
     #%% Radiation energy density 
     # fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)

@@ -29,7 +29,6 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
-choosen_snaps = np.array([21, 76, 118])
 save = True
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
@@ -83,12 +82,11 @@ first_idx, last_idx = np.min(indecesorbital), np.max(indecesorbital)
 time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/bigDentime_proj.txt')
 snaps = [int(i) for i in time[0]]
 tfb = time[1]
-fig = plt.figure(figsize=(10, 18))
+fig = plt.figure(figsize=(10, 21))
 gs = gridspec.GridSpec(3, 2, width_ratios=[1,0.03], height_ratios=[1,1,1], hspace=0.2, wspace = 0.03)
-for i, snap in enumerate(choosen_snaps):
+for i, snap in enumerate(snaps):
     # load the data
-    idx = np.argmin(np.abs(snaps-snap))
-    tfb_single = tfb[idx]
+    tfb_single = tfb[i]
     x_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/bigDenxarray.npy')
     y_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/bigDenyarray.npy')
     flat_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/bigDenproj{snap}.npy')
@@ -159,14 +157,14 @@ for i, snap in enumerate(choosen_snaps):
         ax.contour(xcfr_grid[j], ycfr_grid[j], cfr_grid[j], levels=[0], colors='white', alpha = 0.5)
     
     if i == 1:
-        ax.text(-5.5, 1.35, f't = {np.round(tfb[idx],1)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 16)
+        ax.text(-5.5, 2.35, f't = {np.round(tfb_single,1)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 16)
     else:
-        ax.text(-5.5, 1.35, f't = {np.round(tfb[idx],2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 16)
+        ax.text(-5.5, 2.35, f't = {np.round(tfb_single,2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 16)
     ax.set_ylabel(r'$Y [r_{\rm a}]$')#, fontsize = 20)
     ax.tick_params(axis='x', which='major', width = .7, length = 7, color = 'white')
     ax.tick_params(axis='y', which='major', width = .7, length = 7, color = 'white')
     ax.set_xlim(-6, 2.5)
-    ax.set_ylim(-3, 2)
+    ax.set_ylim(-3, 3)
     
     if i == 2:
         ax.text(Rt/apo + 0.02, 0.05, r'$r_{\rm t}$', color = 'white', fontsize = 14)

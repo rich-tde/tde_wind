@@ -32,7 +32,7 @@ n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
 check = 'HiResNewAMR'
-do_cut = 'ionizationHE' # '' or 'ionization' or 'ionizationHE'
+do_cut = 'ionizationHe' # '' or 'ionization' or 'ionizationHe'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 print(f'we are in {check}', flush=True)
@@ -75,9 +75,9 @@ if alice:
                 writer.writerow(data)
             file.close()
 
-        if do_cut == 'ionization' or do_cut == 'ionizationHE': 
+        if do_cut == 'ionization' or do_cut == 'ionizationHe': 
             # split above and belowe 5e4K
-            if do_cut == 'ionizationHE':
+            if do_cut == 'ionizationHe':
                 above = np.logical_and(Temp >= 1e5, Ediss_den >= 0)
                 below = np.logical_and(Temp < 1e5, Ediss_den >= 0)
             if do_cut == 'ionization':

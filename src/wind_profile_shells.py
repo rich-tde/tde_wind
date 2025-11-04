@@ -33,7 +33,6 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
 which_part = 'outflow'
-snap = 151
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
@@ -68,52 +67,62 @@ def radial_profiles(loadpath, snap, which_part, ray_params):
     vel = np.sqrt(VX**2 + VY**2 + VZ**2)  
     V_r, _, _ = to_spherical_components(VX, VY, VZ, X, Y, Z)
     bern = orb.bern_coeff(Rsph, vel, Den, Mass, Press, IE_den, Rad_den, params)
+    orb_en = orb.orbital_energy(Rsph, vel, Mass, params, prel.G)
 
     if which_part == 'outflow':
         cut = np.logical_and(Den > 1e-19, np.logical_and(bern > 0, V_r >= 0)) 
+        # cut = np.logical_and(Den > 1e-19, np.logical_and(orb_en > 0, V_r >= 0))
     elif which_part == 'inflow':
         cut = np.logical_and(Den > 1e-19, np.logical_and(bern < 0, V_r < 0)) 
-    X, Y, Z, Rsph, Vol, Den, Mass, VX, VY, VZ, V_r, T, Press, IE_den, Rad_den = \
-        make_slices([X, Y, Z, Rsph, Vol, Den, Mass, VX, VY, VZ, V_r, T, Press, IE_den, Rad_den], cut)       
+    X, Y, Z, Rsph, Vol, Den, Mass, vel, V_r, T, Press, IE_den, Rad_den = \
+        make_slices([X, Y, Z, Rsph, Vol, Den, Mass, vel, V_r, T, Press, IE_den, Rad_den], cut)       
 
     rmin, rmax, Nray = ray_params
     r_array = np.logspace(np.log10(rmin), np.log10(rmax), Nray)
    
     t_mean = np.zeros(Nray)
+    v_mean = np.zeros(Nray)
     v_rad_mean = np.zeros(Nray)
     d_mean = np.zeros(Nray)
     L_adv_mean = np.zeros(Nray)
     Mdot_mean = np.zeros(Nray)
+    Mdot_mean_dimcell = np.zeros(Nray)
     for i, r in enumerate(r_array): 
         if i % 100 == 0:
             print(f'{i}', flush=True)
         # find cells at r
         idx = np.abs(Rsph-r) < Vol**(1/3)
         ray_rad_den = Rad_den[idx]
+        ray_V = vel[idx]
         ray_V_r = V_r[idx] 
         ray_d = Den[idx] 
         ray_m = Mass[idx]
         ray_vol = Vol[idx]
+        ray_dim = ray_vol**(1/3)
         ray_t = (ray_rad_den*prel.en_den_converter/prel.alpha_cgs)**(1/4) 
-        ray_Mdot = 4 * np.pi * r**2 * np.abs(ray_V_r) * ray_d 
-        L_adv = 4 * np.pi * r**2 * np.abs(ray_V_r) * ray_rad_den
+        ray_Mdot = np.abs(ray_V_r) * ray_d 
+        L_adv =  np.abs(ray_V_r) * ray_rad_den
 
         # cond = ray_m >= 0 
         # t_mean[i] = np.mean(nonzero) if nonzero.size > 0 else 0 
         t_mean[i] = np.sum(ray_t*ray_vol)/np.sum(ray_vol)
+        v_mean[i] = np.sum(ray_V*ray_m)/np.sum(ray_m)
         v_rad_mean[i] = np.sum(ray_V_r*ray_m)/np.sum(ray_m)
         d_mean[i] = np.sum(ray_d*ray_m)/np.sum(ray_m)
-        L_adv_mean[i] = np.sum(L_adv*ray_m)/np.sum(ray_m)
- 
-        Mdot_mean[i] = np.mean(ray_Mdot) if ray_Mdot.size > 0 else 0
+        L_adv_mean[i] = 4 * np.pi * r**2 * np.sum(L_adv*ray_m)/np.sum(ray_m)
+
+        Mdot_mean[i] = 4 * np.pi * r**2 * np.mean(ray_Mdot) if ray_Mdot.size > 0 else 0 
+        Mdot_mean_dimcell[i] = 4 * r**2 /np.sum(ray_dim**2) * np.pi * np.sum(ray_dim**2 * ray_Mdot)
 
     outflow = {
         'r': r_array,
         't_mean': t_mean,
+        'v_mean': v_mean,
         'v_rad_mean': v_rad_mean,
         'd_mean': d_mean,
         'L_adv_mean': L_adv_mean,
-        'Mdot_mean': Mdot_mean
+        'Mdot_mean': Mdot_mean,
+        'Mdot_mean_dimcell': Mdot_mean_dimcell
     }
     return outflow
 
@@ -129,9 +138,11 @@ if plot:
     y_test1 = 9e4*(x_test)**(-1)
     y_test23 = 5e5*(x_test)**(-2/3)
     y_test2 = 3e-8* (x_test)**(-2) 
+    figV, axV_tot = plt.subplots(1, 1, figsize=(9, 7))
     fig, (axV, axd, axT) = plt.subplots(1, 3, figsize=(24, 6)) 
-    figM, axMdot = plt.subplots(1, 1, figsize=(10, 6))
-    figL, axL = plt.subplots(1, 1, figsize=(10, 6))
+    # figM, axMdot = plt.subplots(1, 1, figsize=(9, 7))
+    figM_dim, axMdot_dim = plt.subplots(1, 1, figsize=(9, 7))
+    figL, axL = plt.subplots(1, 1, figsize=(9, 7))
 
 for i, snap in enumerate(snaps):
     path = f'{pre}/{snap}'
@@ -148,10 +159,8 @@ for i, snap in enumerate(snaps):
     x_tr, y_tr, z_tr, den_tr, vol_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['vol_tr'] 
     r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
     mass_tr = den_tr * vol_tr
-    # nonzero = r_tr_all != 0
-    # r_tr = np.median(r_tr_all[nonzero]) if nonzero.any() else 0 #then at early times you have rtr > rph 
-    r_tr = np.mean(r_tr_all) #np.sum(r_tr_all * mass_tr)/np.sum(mass_tr)
-    print(r_tr, rph, np.mean(rph_all))
+    nonzero = r_tr_all != 0
+    r_tr = np.median(r_tr_all[nonzero]) if nonzero.any() else 0 #then at early times you have rtr > rph 
 
     if compute:
         all_outflows = radial_profiles(path, snap, which_part, [Rt, rph, 1000])
@@ -175,34 +184,39 @@ for i, snap in enumerate(snaps):
 
         r_plot = profiles['r'] 
         d = profiles['d_mean']
+        v_tot = profiles['v_mean']
         v_rad = profiles['v_rad_mean'] 
         t = profiles['t_mean']
         L_adv = profiles['L_adv_mean']
         Mdot = profiles['Mdot_mean'] 
+        Mdot_dimcell = profiles['Mdot_mean_dimcell']
         idx_rtr = np.argmin(np.abs(r_plot - r_tr))
 
+        axV_tot.plot(r_plot/Rt, v_tot * conversion_sol_kms,  color = colors_snaps[i], label = f't = {tfb:.1f} ' + r'$t_{\rm fb}$')
         axV.plot(r_plot/Rt, v_rad * conversion_sol_kms,  color = colors_snaps[i], label = f't = {tfb:.1f} ' + r'$t_{\rm fb}$')
-        axV.scatter(r_tr/Rt, v_rad[idx_rtr] * conversion_sol_kms, color = colors_snaps[i], s = 100, marker = 'd')
         axd.plot(r_plot/Rt, d*prel.den_converter,  color = colors_snaps[i])
-        axd.scatter(r_tr/Rt, d[idx_rtr]*prel.den_converter, color = colors_snaps[i], s = 100, marker = 'd')
         axT.plot(r_plot/Rt, t,  color = colors_snaps[i])
-        axT.scatter(r_tr/Rt, t[idx_rtr], color = colors_snaps[i], s = 100, marker = 'd')
-        axMdot.plot(r_plot/Rt, np.abs(Mdot/Medd_sol),  color = colors_snaps[i], label = f't = {tfb:.1f} ' + r'$t_{\rm fb}$')
-        axMdot.scatter(r_tr/Rt, np.abs(Mdot[idx_rtr]/Medd_sol), color = colors_snaps[i], s = 100, marker = 'd')
+        # axMdot.plot(r_plot/Rt, np.abs(Mdot/Medd_sol),  color = colors_snaps[i], label = f't = {tfb:.1f} ' + r'$t_{\rm fb}$')
+        # axMdot.scatter(r_tr/Rt, np.abs(Mdot[idx_rtr]/Medd_sol), color = colors_snaps[i], s = 100, marker = 'd')
+        axMdot_dim.plot(r_plot/Rt, np.abs(Mdot_dimcell/Medd_sol),  color = colors_snaps[i], label = f't = {tfb:.1f} ' + r'$t_{\rm fb}$')
         axL.plot(r_plot/Rt, L_adv/Ledd_sol,  color = colors_snaps[i], label = f't = {tfb:.1f} ' + r'$t_{\rm fb}$')
-        axL.scatter(r_tr/Rt, L_adv[idx_rtr]/Ledd_sol, color = colors_snaps[i], s = 100, marker = 'd')
-
+        if snap != 76:
+            axV.scatter(r_tr/Rt, v_rad[idx_rtr] * conversion_sol_kms, color = colors_snaps[i], s = 100, marker = 'd')
+            axd.scatter(r_tr/Rt, d[idx_rtr]*prel.den_converter, color = colors_snaps[i], s = 100, marker = 'd')
+            axT.scatter(r_tr/Rt, t[idx_rtr], color = colors_snaps[i], s = 100, marker = 'd')
+            axMdot_dim.scatter(r_tr/Rt, np.abs(Mdot_dimcell[idx_rtr]/Medd_sol), color = colors_snaps[i], s = 100, marker = 'd')
+            axL.scatter(r_tr/Rt, L_adv[idx_rtr]/Ledd_sol, color = colors_snaps[i], s = 100, marker = 'd')
 
 if plot:
     axd.plot(x_test, y_test2, c = 'k', ls = 'dashed') #, label = r'$\rho \propto r^{-2}$')
     axd.text(35, 1.1e-11, r'$\rho \propto r^{-2}$', fontsize = 20, color = 'k', rotation = -42)
-    axV.axhline(v_esc_kms, c = 'k', ls = 'dashed')#
-    axV.text(35, 1.1*v_esc_kms, r'v$_{\rm esc} (r_{\rm p})$', fontsize = 20, color = 'k')
+    axV_tot.axhline(v_esc_kms, c = 'k', ls = 'dashed')#
+    axV_tot.text(35, 1.1*v_esc_kms, r'v$_{\rm esc} (r_{\rm p})$', fontsize = 20, color = 'k')
     axT.plot(x_test, y_test23, c = 'k', ls = 'dashed') #, label = r'$T \propto r^{-2/3}$')
     axT.text(1.2, 2.8e5, r'$T_{\rm rad} \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -38)
     axL.plot(x_test, 5e-5*y_test23, c = 'k', ls = 'dashed') #, label = r'$L \propto r^{-2/3}$')
 
-    for ax in [axd, axV, axMdot, axT, axL]:
+    for ax in [axV_tot, axd, axV, axMdot_dim, axT, axL]:
         ax.tick_params(axis='both', which='minor', length=6, width=1)
         ax.tick_params(axis='both', which='major', length=10, width=1.5)
         ax.loglog()
@@ -210,13 +224,18 @@ if plot:
         ax.set_xlabel(r'$r [r_{\rm t}]$', fontsize = 28)
         ax.grid()
         if ax not in [axd, axT]:
-            ax.legend(fontsize = 16)
+            ax.legend(fontsize = 20)
 
-    axMdot.set_ylim(7e2, 1e7)
-    axMdot.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm Edd}]$', fontsize = 28) 
-    axMdot.set_title(r'Mean over spherical shells: $4\pi r^2\langle \rho v_r \rangle_{\rm wind \,cells}$', fontsize = 22)
+    # axMdot.set_ylim(7e2, 1e7)
+    # axMdot.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm Edd}]$', fontsize = 28) 
+    # axMdot.set_title(r'Mean over spherical shells: $4\pi r^2\langle \rho v_r \rangle_{\rm wind \,cells}$', fontsize = 20)
+    axMdot_dim.set_ylim(7e2, 1e7)
+    axMdot_dim.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm Edd}]$', fontsize = 28)
+    # axMdot_dim.set_title(r'Mean over spherical shells weighted by cell dimension: $\big(4 r^2/\sum s^2\big) \sum \pi s^2 \rho v_r$', fontsize = 16)
     axd.set_ylim(1e-11, 4e-8)
     axd.set_ylabel(r'$\rho$ [g/cm$^3]$', fontsize = 28)
+    axV_tot.set_ylim(2e3, 3e4)
+    axV_tot.set_ylabel(r'$|v|$ [km/s]', fontsize = 28)
     axV.set_ylim(2e3, 3e4)
     axV.set_ylabel(r'v$_{\rm r}$ [km/s]', fontsize = 28)
     axT.set_ylim(4e4, 1e6)
@@ -225,7 +244,7 @@ if plot:
     axL.set_ylim(1, 5e2)
     fig.tight_layout()
     fig.savefig(f'{abspath}/Figs/paper/den_profShell{which_part}.pdf', bbox_inches = 'tight')
-    figM.savefig(f'{abspath}/Figs/paper/MwShell{which_part}.pdf', bbox_inches = 'tight')
+    figM_dim.savefig(f'{abspath}/Figs/paper/MwShell{which_part}.pdf', bbox_inches = 'tight')
     figL.savefig(f'{abspath}/Figs/paper/LShell{which_part}.pdf', bbox_inches = 'tight')
     plt.show()
 

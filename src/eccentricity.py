@@ -202,19 +202,19 @@ else:
         #%% Plot
         vmin = 0.98
         vmax = 1.1
-        fig = plt.figure(figsize=(20, 9))
+        fig = plt.figure(figsize=(15, 7))
         gs = gridspec.GridSpec(1, 3, width_ratios=[1,1,.05], hspace=0.5)
         ax1 = fig.add_subplot(gs[0, 0])  # First plot
         ax2 = fig.add_subplot(gs[0, 1])  # Second plot
 
         img = ax1.pcolormesh(radii/apo, tfb, rel_diffL, cmap = 'YlGn', vmin = vmin, vmax = vmax, rasterized = True)
         ax1.set_xscale('log')
-        ax1.text(0.5, .9*np.max(tfb), r'$\frac{e_{\rm Middle}}{e_{\rm Low}}$', fontsize = 40, color = 'k')
+        ax1.text(0.5, .9*np.max(tfb), r'$\frac{e_{\rm Middle}}{e_{\rm Low}}$', fontsize = 28, color = 'k')
         ax1.set_ylabel(r'$t [t_{\rm fb}]$')
 
         img = ax2.pcolormesh(radii/apo, tfb, rel_diffH, cmap = 'YlGn', vmin = vmin, vmax = vmax, rasterized = True)
         ax2.set_xscale('log')
-        ax2.text(0.5, 0.9*np.max(tfb), r'$\frac{e_{\rm High}}{e_{\rm Middle}}$', fontsize = 40, color = 'k')
+        ax2.text(0.5, 0.9*np.max(tfb), r'$\frac{e_{\rm High}}{e_{\rm Middle}}$', fontsize = 28, color = 'k')
 
         # Create a colorbar that spans the first two subplots
         cbar_ax = fig.add_subplot(gs[0, 2])  # Colorbar subplot below the first two
@@ -224,7 +224,7 @@ else:
 
         for ax in [ax1, ax2]:
             ax.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed', linewidth = 2)
-            ax.text(1.05*Rt/apo, 0.9*np.max(tfb), r'$r_{\rm t}$', fontsize = 35, color = 'k')
+            ax.text(1.05*Rt/apo, 0.9*np.max(tfb), r'$r_{\rm t}$', fontsize = 25, color = 'k')
             # ax.axvline(x=R0/apo, color = 'white', linestyle = ':', linewidth = 2)
             ax.tick_params(axis='y', which='major', width=1.4, length=12, color = 'white')
             ax.tick_params(axis='x', which='minor', width=1.1, length=7, color = 'k')

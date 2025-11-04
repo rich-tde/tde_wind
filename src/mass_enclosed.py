@@ -49,6 +49,9 @@ t_fb_days = things['t_fb_days']
 t_fb_days_cgs = t_fb_days * 24 * 3600 
 Rcheck = np.array([R0, Rt, a_mb])
 Rchecklab = [r'$R_0$', r'$R_t$', r'$a_{\rm mb}$']
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
+Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
+Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
 
 if alice:
     check = 'NewAMR'
@@ -93,7 +96,7 @@ if alice:
     file.close() 
 
 else:
-    to_plot = 'compare_res' # 'compare_res', 'single_res'
+    to_plot = 'single_res' # 'compare_res', 'single_res'
 
     if to_plot == 'compare_res':
         checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
@@ -154,28 +157,39 @@ else:
     if to_plot == 'single_res':
         check = 'HiResNewAMR'
         Rcheck = np.array([R0, Rt, a_mb])
-        labelcheck = [r'$R_0$', r'$R_t$', r'$a_{\rm mb}$']
+        labelcheck = [r'$r<r_0$', r'$r<r_{\rm t}$', r'$r<a_{\rm mb}$']
         colorcheck = ['magenta', 'darkviolet', 'k']
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
         # Plot mass and dissipation rate enclosed in a sphere of radius Rcheck: 
-        fig , (axM, axDiss) = plt.subplots(1, 2, figsize = (24,8)) 
         # load and covert
         dataencl = np.loadtxt(f'{abspath}/data/{folder}/{check}Mass_encl.csv', delimiter=',', skiprows = 1)
         tfb_encl = dataencl[:, 1]
         Mass_encl = dataencl[:, 2:5]
         Diss_pos_encl = dataencl[:, 5:8] * prel.en_converter/prel.tsol_cgs
+        dMdt0 = np.diff(Mass_encl[:,0])/np.diff(tfb_encl)
+        dMdt0_cgs = dMdt0 * prel.Msol_cgs/t_fb_days_cgs
+        Lacc = 0.05 * dMdt0_cgs * prel.c_cgs**2
+        print(f'L = {np.max(Lacc)} at t = {tfb_encl[np.argmax(Lacc)]}')
+        # print(0.05 * 1e-4*mstar*prel.Msol_cgs/t_fb_days_cgs * prel.c_cgs**2)
+        plt.figure(figsize = (10,6))
+        plt.plot(tfb_encl[:-1], dMdt0/Medd_sol, c = 'k')
+        plt.yscale('log') 
+        plt.xlabel(r't [t$_{\rm fb}$]')
+        plt.ylabel(r'dM/dt $(r\leq r_0)[M_{\rm Edd}$]')
+        plt.grid()
+        plt.savefig(f'{abspath}/Figs/paper/dMdt0.pdf', bbox_inches='tight')
         dataall = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows = 1)
         tfb_all, Ldisstot_pos, Ldisstot_neg = dataall[:,1], dataall[:,3], dataall[:,5]
         Ldisstot_pos *= prel.en_converter/prel.tsol_cgs
         Ldisstot_neg *= prel.en_converter/prel.tsol_cgs
     
+        fig , (axM, axDiss) = plt.subplots(1, 2, figsize = (21,7)) 
         for j in range(3):
             axM.plot(tfb_encl, Mass_encl[:,j]/mstar, c = colorcheck[j], label = labelcheck[j])
-            axDiss.plot(tfb_encl, Diss_pos_encl[:,j], c = colorcheck[j], label = labelcheck[j])
+            axDiss.plot(tfb_encl, Diss_pos_encl[:,j], c = colorcheck[j])#, label = labelcheck[j])
 
         axDiss.plot(tfb_all, Ldisstot_pos, c = 'gray', ls = '--', label = 'Total')
-        axM.legend(fontsize = 16)
         axM.set_ylabel(r'Mass enclosed $[M_\star]$')
         axM.set_ylim(1e-6, 1e-1)
         axDiss.set_ylabel(r'Dissipation rate enclosed [erg/s]')
@@ -193,3 +207,6 @@ else:
             ax.grid()
             ax.set_yscale('log')
             ax.set_xlabel(r't [t$_{\rm fb}$]')  
+            ax.legend(fontsize = 18)
+        
+        fig.savefig(f'{abspath}/Figs/paper/ME_encl.pdf', bbox_inches='tight')

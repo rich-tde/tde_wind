@@ -110,7 +110,7 @@ for c, check in enumerate(checks):
                 r_tr_snap[s] = np.mean(r_tr)
                 Temp_tr_snap[s] = np.mean(Temprad_tr) #np.mean(Temp_tr)
                 Mdot_tr =  r_tr**2 * den_tr * np.abs(Vr_tr)
-                Mdot_snap[s] = 4 * np.pi * np.sum(Mdot_tr)/192 #np.mean(Mdot_tr)
+                Mdot_snap[s] = 4 * np.pi/192 * np.sum(Mdot_tr) #np.mean(Mdot_tr)
                 for i, observer in enumerate(indices_axis):
                         Lum_ph_mean[i][s] = np.mean(Lum_ph[observer])   
                         Temp_ph_mean[i][s] = np.mean(Temprad_ph[observer])                    
@@ -136,18 +136,17 @@ for c, check in enumerate(checks):
         approxL_ph_all.append(approxL_ph_snap)
 
         for i, observer in enumerate(indices_axis):
-                if label_axis[i] not in [r'$-\hat{\textbf{z}}$']:
-                        axTr.plot(tfbs, r_tr_mean[i]/Rt, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
-                        # axTr.plot(tfbs, r_ph_mean[i]/Rt, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
-                        axTtr.plot(tfbs, Temp_tr_mean[i]/Rp, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
-                        # axTr.scatter(tfbs[idx_maxLum], r_tr_mean[i][idx_maxLum]/Rt, c = colors_res[c], s = 85, marker = 'X')
-                        axL.plot(tfbs, Lum_ph_mean[i]/Ledd_cgs, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
-                        axTph.plot(tfbs, Temp_ph_mean[i]/Rp, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
-                        # axL.scatter(tfbs[idx_maxLum], Lum_obs_time[i][idx_maxLum]/Ledd_cgs, c = colors_res[c], s = 85, marker = 'X')
-                        axMdot.plot(tfbs, Mdot_mean[i]/Medd_sol, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
-                        # axMdot.scatter(tfbs[idx_maxLum], Mdot_mean[i][idx_maxLum]/Medd_sol, c = colors_res[c], s = 85, marker = 'X')
-                        axC.plot(tfbs, (r_tr_mean[i]*prel.Rsol_cgs*Temp_tr_mean[i]**2)**2/Ledd_cgs, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
-                        axC2.plot(tfbs, (r_ph_mean[i]*prel.Rsol_cgs*Temp_ph_mean[i]**2)**2/Ledd_cgs, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
+                axTr.plot(tfbs, r_tr_mean[i]/Rt, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
+                # axTr.plot(tfbs, r_ph_mean[i]/Rt, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
+                axTtr.plot(tfbs, Temp_tr_mean[i]/Rp, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
+                # axTr.scatter(tfbs[idx_maxLum], r_tr_mean[i][idx_maxLum]/Rt, c = colors_res[c], s = 85, marker = 'X')
+                axL.plot(tfbs, Lum_ph_mean[i]/Ledd_cgs, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
+                axTph.plot(tfbs, Temp_ph_mean[i]/Rp, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
+                # axL.scatter(tfbs[idx_maxLum], Lum_obs_time[i][idx_maxLum]/Ledd_cgs, c = colors_res[c], s = 85, marker = 'X')
+                axMdot.plot(tfbs, Mdot_mean[i]/Medd_sol, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
+                # axMdot.scatter(tfbs[idx_maxLum], Mdot_mean[i][idx_maxLum]/Medd_sol, c = colors_res[c], s = 85, marker = 'X')
+                axC.plot(tfbs, (r_tr_mean[i]*prel.Rsol_cgs*Temp_tr_mean[i]**2)**2/Ledd_cgs, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
+                axC2.plot(tfbs, (r_ph_mean[i]*prel.Rsol_cgs*Temp_ph_mean[i]**2)**2/Ledd_cgs, c = colors_res[c], ls = lines_axis[i], label = label_axis[i] if c == 0 else '')
 
 axTr.axhline(amin/Rt, c = 'k', ls = '--', label = r'$a_{\rm mb}$')        
 axTr.set_ylabel(r'$r_{\rm tr} [r_{\rm t}]$')
@@ -216,6 +215,8 @@ for i, check in (enumerate(checks)):
         axapproxL_total.plot(tfbs_all[i], approxL_ph_all[i]/Ledd_cgs, c = colors_res[i], label = checkslegend[i])
         axTph_total.plot(tfbs_all[i], Temp_ph_all[i]/Rp, c = colors_res[i], label = checkslegend[i])
         axMdot_total.plot(tfbs_all[i], Mdot_all[i]/Medd_sol, c = colors_res[i], label = checkslegend[i])
+        if check == 'HiResNewAMR':
+                axMdot_total.plot(tfbs_all[i], Rtr_all[i]/Rg, c = colors_res[i], ls = '--', label = r'$r_{\rm tr}/r_{\rm g}$ HiRes')
         axTtr_total.plot(tfbs_all[i], Temp_tr_all[i]/Rp, c = colors_res[i], label = checkslegend[i]) 
 
 axerr.plot(tfb_ratioL, ratioL, c = 'C1')
