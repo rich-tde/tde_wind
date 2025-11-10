@@ -41,10 +41,10 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
     apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
     if how_far == 'nozzle':
-        x_start = -3*Rt
-        x_stop = 3*Rt
-        y_start = -3*Rt 
-        y_stop = 3*Rt
+        x_start = -2*apo
+        x_stop = apo
+        y_start = -.5*apo
+        y_stop = .5*apo
         z_start = -2*apo 
         z_stop = 2*apo 
 
@@ -63,9 +63,6 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         y_stop = 2*apo  #3*apo
         z_start = -0.8*Rt #-2*apo 
         z_stop = 0.8*Rt #2*apo  
-        # x_num = 500
-        # y_num = 250
-        # z_num = 200
     
     xs = np.linspace(x_start, x_stop, num = x_num)
     ys = np.linspace(y_start, y_stop, num = y_num)
@@ -144,8 +141,8 @@ if __name__ == '__main__':
     n = 1.5
     check = 'HiResNewAMR'
     compton = 'Compton'
-    what_to_grid = 'Den'
-    how_far = '' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
+    what_to_grid = 'Diss'
+    how_far = 'nozzle' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
     save_fig = False
 
     params = [Mbh, Rstar, mstar, beta]
@@ -168,7 +165,7 @@ if __name__ == '__main__':
         t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
 
         snaps = np.array(snaps)
-        if how_far == 'big':
+        if how_far == 'big' or how_far == 'nozzle':
             idx_chosen = np.array([0,
                                 np.argmin(np.abs(tfb-1)),
                                 np.argmax(tfb)])
@@ -188,7 +185,7 @@ if __name__ == '__main__':
             else: 
                 path = f'{prepath}/TDE/{folder}/{snap}'
             
-            _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100, how_far = how_far)
+            _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=900, y_num=900, z_num = 100, how_far = how_far)
             flat_q = projector(grid_q, x_radii, y_radii, z_radii)
             np.save(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}proj{snap}.npy', flat_q)
                 
