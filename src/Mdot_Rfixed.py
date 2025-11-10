@@ -50,8 +50,7 @@ apo = things['apo']
 amin = things['a_mb'] # semimajor axis of the bound orbit
 # print(0.5*amin/Rt)
 norm_dMdE = things['E_mb']
-t_fb_days_cgs = things['t_fb_days'] * 24 * 3600 # in seconds
-max_Mdot = mstar*prel.Msol_cgs/(3*t_fb_days_cgs) # in code units
+max_Mdot = mstar*prel.Msol_cgs/(3*tfallback_cgs) # in code units
 
 Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
@@ -192,7 +191,10 @@ if plot:
     MdotHmax = mwind_dimCellH[np.argmin(np.abs(tfbH - tfbH_max))]
     tfb_ratioH, ratioH, rel_errH  = ratio_BigOverSmall(tfbM, mwind_RM, tfbH, mwind_RH)
 
-    # integrate mwind_dimCell in tfb
+    print('Naive estimate L:', 0.1 * np.max(np.abs(mfallH))* prel.Msol_cgs/prel.tsol_cgs * prel.c_cgs**2)
+    print('Medd_cgs:', Medd_cgs)
+
+    # integrate mwind_dimCell in tfb 
     # mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)
     # mfall_int = cumulative_trapezoid(np.abs(mfall), tfb, initial = 0)
     # print(f'integral of Mw at the last time: {mwind_dimCell_int[-1]/mstar} Mstar')

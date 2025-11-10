@@ -47,6 +47,7 @@ Rp = things['Rp']
 R0 = things['R0']
 apo = things['apo']
 ecc_mb = things['ecc_mb']
+print(ecc_mb)
 Rstart = 0.4 * Rt
 
 if alice: 
@@ -132,6 +133,7 @@ else:
         plt.savefig(f'{abspath}/Figs/{folder}/ecc_slice{snap}.png', bbox_inches='tight')
 
     if space_time:
+        check = 'HiResNewAMR' # '' or 'LowRes' or 'HiRes'
         path = f'{abspath}/data/{folder}'
         ecc2 = np.load(f'{path}/Ecc2_{which_cut}_{check}.npy') 
         ecc = np.sqrt(ecc2)
@@ -141,24 +143,30 @@ else:
         # for i in range(len(tfb)):  
         #     print(f'min ecc in {check} outside R0: {np.min(ecc[i][radii>R0])}')
         # Plot
-        plt.figure(figsize=(8,7))   
+        fig, ax = plt.subplots(1,1,figsize=(8,7))   
         # set to white the 0 values so they are white in the plot
         ecc[ecc == 0] = np.nan 
-        img = plt.pcolormesh(radii/apo, tfb, ecc, vmin = 0.5, vmax = .95, cmap = 'viridis', rasterized = True)#cmocean.cm.balance)
+        img = ax.pcolormesh(radii/apo, tfb, ecc, vmin = 0.5, vmax = 1, cmap = 'plasma', rasterized = True)#cmocean.cm.balance)
         cb = plt.colorbar(img)
         cb.ax.tick_params(labelsize=25)
-        cb.set_label(r'Eccentricity' , fontsize = 25, labelpad = 1)
-        # plt.axvline(x=R0/apo, color = 'k', linestyle = 'dotted', linewidth = 2)
-        # plt.text(1.05*R0/apo, 0.9*np.max(tfb), r'$R_{\rm 0}$', fontsize = 24, color = 'k')
-        plt.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed', linewidth = 2)
-        plt.text(1.05*Rt/apo, 0.9*np.max(tfb), r'$r_{\rm t}$', fontsize = 24, color = 'k')
-        plt.xscale('log')
-        plt.xlabel(r'$r [r_{\rm a}]$', fontsize = 30)
-        plt.ylabel(r'$t [t_{\rm fb}]$', fontsize = 30)
-        plt.tick_params(axis='both', which='major', width=1.2, length=10, color = 'k', labelsize=25)
-        plt.tick_params(axis='x', which='minor', width=.9, length=6, color = 'k', labelsize=25)
-        plt.xlim(R0/apo, np.max(radii)/apo)
-        # plt.ylim(0.054, 1.7)
+        cb.set_label(r'Eccentricity' )#, fontsize = 25, labelpad = 1)
+        # ax.axvline(x=R0/apo, color = 'k', linestyle = 'dotted', linewidth = 2)
+        # ax.text(1.05*R0/apo, 0.9*np.max(tfb), r'$R_{\rm 0}$', fontsize = 24, color = 'k')
+        ax.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed', linewidth = 2)
+        ax.text(1.05*Rt/apo, 0.9*np.max(tfb), r'$r_{\rm t}$', fontsize = 24, color = 'k')
+        ax.set_xscale('log')
+        ax.set_xlabel(r'$r [r_{\rm a}]$')#, fontsize = 30)
+        ax.set_ylabel(r'$t [t_{\rm fb}]$')#, fontsize = 30)
+        original_ticks = ax.get_yticks()
+        mid_ticks = (original_ticks[1:] + original_ticks[:-1]) / 2
+        all_ticks = np.concatenate(([original_ticks, mid_ticks]))
+        ax.set_yticks(all_ticks)
+        labels = [f'{tick:.2f}' if tick in original_ticks else '' for tick in all_ticks]
+        ax.set_yticks(all_ticks, labels, fontsize=25)
+        ax.tick_params(axis='both', which='major', width=1.2, length=10, color = 'k', labelsize=25)
+        ax.tick_params(axis='x', which='minor', width=.9, length=6, color = 'k', labelsize=25)
+        ax.set_xlim(R0/apo, np.max(radii)/apo)
+        ax.set_ylim(np.min(tfb), np.max(tfb))
         plt.savefig(f'{abspath}/Figs/paper/ecc{which_cut}{check}.pdf', bbox_inches='tight')
         plt.show()
 
@@ -183,19 +191,20 @@ else:
 
         # relative difference L and middle
         rel_diffL = []
-        medianL = np.zeros(len(ecc))
+        medianL = np.zeros(len(eccL))
         rel_diffH = []
-        medianH = np.zeros(len(ecc))
-        for i, time in enumerate(tfb):
-            idx = np.argmin(np.abs(tfbL - time))
-            rel_diff_time_i = ecc[i] /eccL[idx]
-            # rel_diff_time_i[eccL[idx] == 0] = 0 
+        medianH = np.zeros(len(eccH))
+        for i, time in enumerate(tfbL):
+            idx = np.argmin(np.abs(tfb - time))
+            rel_diff_time_i = ecc[idx] /eccL[i]
+            # rel_diff_time_i[eccL[i] == 0] = 0 
             rel_diffL.append(rel_diff_time_i)
             medianL[i] = np.median(rel_diff_time_i)
 
-            idx = np.argmin(np.abs(tfbH - time)) 
-            rel_diff_time_i = eccH[idx]/ecc[i]
-            # rel_diff_time_i[ecc[i] == 0] = 0
+        for i, time in enumerate(tfbH):
+            idx = np.argmin(np.abs(tfb - time)) 
+            rel_diff_time_i = eccH[i]/ecc[idx]
+            # rel_diff_time_i[ecc[idx] == 0] = 0
             rel_diffH.append(rel_diff_time_i)
             medianH[i] =  np.median(rel_diff_time_i)
 
@@ -207,39 +216,47 @@ else:
         ax1 = fig.add_subplot(gs[0, 0])  # First plot
         ax2 = fig.add_subplot(gs[0, 1])  # Second plot
 
-        img = ax1.pcolormesh(radii/apo, tfb, rel_diffL, cmap = 'YlGn', vmin = vmin, vmax = vmax, rasterized = True)
+        img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'Oranges', vmin = vmin, vmax = vmax, rasterized = True)
         ax1.set_xscale('log')
-        ax1.text(0.5, .9*np.max(tfb), r'$\frac{e_{\rm Middle}}{e_{\rm Low}}$', fontsize = 28, color = 'k')
+        ax1.text(0.5, .9*np.max(tfbL), r'$\frac{e_{\rm Middle}}{e_{\rm Low}}$', fontsize = 28, color = 'k')
         ax1.set_ylabel(r'$t [t_{\rm fb}]$')
-
-        img = ax2.pcolormesh(radii/apo, tfb, rel_diffH, cmap = 'YlGn', vmin = vmin, vmax = vmax, rasterized = True)
+        
+        img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'Oranges', vmin = vmin, vmax = vmax, rasterized = True)
         ax2.set_xscale('log')
-        ax2.text(0.5, 0.9*np.max(tfb), r'$\frac{e_{\rm High}}{e_{\rm Middle}}$', fontsize = 28, color = 'k')
-
+        ax2.text(0.5, 0.9*np.max(tfbH), r'$\frac{e_{\rm High}}{e_{\rm Middle}}$', fontsize = 28, color = 'k')
+        
         # Create a colorbar that spans the first two subplots
         cbar_ax = fig.add_subplot(gs[0, 2])  # Colorbar subplot below the first two
         cb = fig.colorbar(img, cax=cbar_ax)
         cb.ax.tick_params(labelsize=25)
         cb.set_label(r'ratio eccentricity')
 
+        original_ticks = ax2.get_yticks()
+        mid_ticks = (original_ticks[1:] + original_ticks[:-1]) / 2
+        all_ticks = np.concatenate(([original_ticks, mid_ticks]))
         for ax in [ax1, ax2]:
+            ax.set_yticks(all_ticks)
+            labels = [f'{tick:.2f}' if tick in original_ticks else '' for tick in all_ticks]
+            ax.set_yticks(all_ticks, labels, fontsize=25)
             ax.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed', linewidth = 2)
-            ax.text(1.05*Rt/apo, 0.9*np.max(tfb), r'$r_{\rm t}$', fontsize = 25, color = 'k')
             # ax.axvline(x=R0/apo, color = 'white', linestyle = ':', linewidth = 2)
             ax.tick_params(axis='y', which='major', width=1.4, length=12, color = 'white')
             ax.tick_params(axis='x', which='minor', width=1.1, length=7, color = 'k')
-            ax.set_ylim(np.min(tfb), np.max(tfb))
             ax.set_xlabel(r'$r [r_{\rm a}]$')
             ax.set_xlim(R0/apo, np.max(radii)/apo)
-        
+
+        ax1.text(1.05*Rt/apo, 0.9*np.max(tfbL), r'$r_{\rm t}$', fontsize = 25, color = 'k')
+        ax2.text(1.05*Rt/apo, 0.9*np.max(tfbH), r'$r_{\rm t}$', fontsize = 25, color = 'k')
+        ax1.set_ylim(np.min(tfbL), np.max(tfbL))
+        ax2.set_ylim(np.min(tfbH), np.max(tfbH))
         plt.savefig(f'{abspath}/Figs/paper/ecc_diff.pdf', bbox_inches='tight')
         plt.tight_layout
 
         fig, ax3 = plt.subplots(1,1,figsize=(9, 5))
-        ax3.plot(tfb, np.abs(1-medianL), c = 'darkorange', label = 'Fid/Low')
-        ax3.plot(tfb, np.abs(1-medianL), c = 'yellowgreen', linestyle = (0, (5, 10)))
-        ax3.plot(tfb, np.abs(1-medianH), c = 'darkviolet', label = 'High/Fid')
-        ax3.plot(tfb, np.abs(1-medianH), c = 'yellowgreen',linestyle = (0, (5, 10)),)
+        ax3.plot(tfbL, np.abs(1-medianL), c = 'darkorange', label = 'Fid/Low')
+        ax3.plot(tfbL, np.abs(1-medianL), c = 'yellowgreen', linestyle = (0, (5, 10)))
+        ax3.plot(tfbH, np.abs(1-medianH), c = 'darkviolet', label = 'High/Fid')
+        ax3.plot(tfbH, np.abs(1-medianH), c = 'yellowgreen',linestyle = (0, (5, 10)),)
         # ax3.text(0.4, 1, 'Fid vs High', fontsize = 27, color = 'k')
         original_ticks = ax3.get_xticks()
         mid_ticks = (original_ticks[1:] + original_ticks[:-1]) / 2

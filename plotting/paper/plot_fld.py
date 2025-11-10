@@ -37,12 +37,15 @@ things = orb.get_things_about(params)
 t_fall = things['t_fb_days']
 t_fall_cgs = t_fall * 24 * 3600
 Rt = things['Rt']
+omega_minus1 = np.sqrt(Rt**3/(prel.G*Mbh))
+# print('t_visc', prel.tsol_cgs/t_fall_cgs * omega_minus1 / 0.02)
+print('orb period in t_fb: ', 2*np.pi*omega_minus1*prel.tsol_cgs/t_fall_cgs)
 apo = things['apo']
-
 data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
 snaps, tfb, Lum = data[:, 0], data[:, 1], data[:, 2]
 snaps, Lum, tfb = sort_list([snaps, Lum, tfb], tfb, unique=True) 
 snaps = snaps.astype(int)
+idx_maxLum = np.argmax(Lum)
 dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
 tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs
 dataDissIon = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}ionizationHe.csv', delimiter=',', dtype=float, skiprows=1)
@@ -58,6 +61,8 @@ for i, snap in enumerate(snaps):
     x_ph, y_ph, z_ph, vol_ph, den_ph, Temp_ph, RadDen_ph, Vx_ph, Vy_ph, Vz_ph, Press_ph, IE_den_ph, _, _, _, _ = \
         np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
     Temprad_ph = (RadDen_ph*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
+    if i == idx_maxLum:
+        print('max median T_rad_ph:', np.median(Temprad_ph))
     r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
     vel_ph = np.sqrt(Vx_ph**2 + Vy_ph**2 + Vz_ph**2)
     mass_ph = den_ph * vol_ph
@@ -101,9 +106,10 @@ plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld_ioniz.pdf', bbox_inch
 
 # %%
 fig, (axR, axL) = plt.subplots(1, 2, figsize=(16, 7))
-axR.plot(tfb, percentile84/Rt, c = 'k', alpha = 0.3, linestyle = '--')
-axR.plot(tfb, percentile16/Rt, c = 'k', alpha = 0.3, linestyle = '--')
-img = axR.scatter(tfb, medianRph/Rt, c = f_ph, s = 12, cmap = 'viridis', vmin = 0, vmax = 1)
+# axR.plot(tfb, percentile84/Rt, c = 'k', alpha = 0.3, linestyle = '--')
+# axR.plot(tfb, percentile16/Rt, c = 'k', alpha = 0.3, linestyle = '--')
+print(medianRph[np.argmax(Lum)]*prel.Rsol_cgs*1e-14)
+img = axR.scatter(tfb, medianRph/Rt, c = f_ph, s = 12, cmap = 'plasma', vmin = 0, vmax = 1)
 cbar = fig.colorbar(img, orientation = 'horizontal')
 cbar.set_label(r'f $\equiv N_{\rm ph, unbound}/N_{\rm obs}$')
 cbar.ax.tick_params(which='major', length = 5)

@@ -94,7 +94,7 @@ for i, snap in enumerate(snaps):
     
     ax = fig.add_subplot(gs[i, 0])  # First plot
     # NB: can't use imshow beacuse of the data are not on a regular linspaced grid
-    img = ax.pcolormesh(x_radii/apo, y_radii/apo, flat_den_cgs.T, cmap = 'plasma',
+    img = ax.pcolormesh(x_radii/apo, y_radii/apo, flat_den_cgs.T, cmap = 'viridis',
                         norm = colors.LogNorm(vmin = 5e-2, vmax = 1e7), rasterized = True)
     
     if i == 0:
@@ -115,7 +115,7 @@ for i, snap in enumerate(snaps):
         flat_den_zoom = flat_den_cgs[np.ix_(x_mask, y_mask)]  # Zoomed-in density data
 
         # Use pcolormesh for the inset plot
-        img_inset = ax_inset.pcolormesh(x_zoom, y_zoom, flat_den_zoom.T, cmap='plasma',
+        img_inset = ax_inset.pcolormesh(x_zoom, y_zoom, flat_den_zoom.T, cmap='viridis',
                                         norm=colors.LogNorm(vmin=5e-2, vmax=1e7), rasterized=True)
 
         # Remove labels but keep ticks

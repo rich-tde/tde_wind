@@ -54,7 +54,7 @@ def Mdot_fb(Mbh, G, t, dmdE):
     Mdot : float
         Mass fallback rate in code units
     """
-    Mdot = -2/3 * dmdE * (np.pi * G * Mbh / np.sqrt(2))**(2/3) * t**(-5/3)
+    Mdot = -1/3 * dmdE * (2 * np.pi * G * Mbh)**(2/3) * t**(-5/3) # -2/3 * dmdE * (np.pi * G * Mbh / np.sqrt(2))**(2/3) * t**(-5/3)
     return Mdot
 
 def keplerian_orbit(theta, a, Rp, ecc=1):

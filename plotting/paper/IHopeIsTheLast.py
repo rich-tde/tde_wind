@@ -330,28 +330,28 @@ if __name__ == '__main__':
     _, ratio_ieH, rel_err_ieH = ratio_BigOverSmall(tfb_oe, col_ie, tfb_oeH, col_ieH)
     _, ratio_radH, rel_err_radH = ratio_BigOverSmall(tfb_oe, col_rad, tfb_oeH, col_radH)
 
-    fig, ((ax1, ax2, ax3, axR), (ax4, ax5, ax6, ax7)) = plt.subplots(2, 4, figsize=(36, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
+    fig, ((ax1, ax2, ax3, axR), (ax4, ax5, ax6, ax7)) = plt.subplots(2, 4, figsize=(40, 10), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
     ax1.plot(tfb_oeL, col_orb_en_negL*prel.en_converter*1e-49, label = r'Low', c = 'darkorange')
     ax1.plot(tfb_oe, col_orb_en_neg*prel.en_converter*1e-49, label = r'Middle', c = 'yellowgreen')
     ax1.plot(tfb_oeH, col_orb_en_negH*prel.en_converter*1e-49, label = r'High', c = 'darkviolet')
-    ax1.set_title(r'Orbital Energy [$10^{49}$ erg] bound gas', fontsize = 27)
-    ax1.set_ylabel(r'Energy', fontsize = 26) 
+    ax1.set_title(r'Orbital Energy [$10^{49}$ erg] bound gas', fontsize = 28)
+    ax1.set_ylabel(r'Energy', fontsize = 32) 
     ax1.legend(fontsize = 15)
 
     ax2.plot(tfb_oeL, col_orb_en_posL*prel.en_converter*1e-49, label = r'Low', c = 'darkorange')
     ax2.plot(tfb_oe, col_orb_en_pos*prel.en_converter*1e-49, label = r'Middle', c = 'yellowgreen')
     ax2.plot(tfb_oeH, col_orb_en_posH*prel.en_converter*1e-49, label = r'High', c = 'darkviolet')
-    ax2.set_title(r'Orbital Energy [$10^{49}$ erg] unbound gas', fontsize = 27)
+    ax2.set_title(r'Orbital Energy [$10^{49}$ erg] unbound gas', fontsize = 28)
 
     ax3.plot(tfb_oeL, col_ieL*prel.en_converter*1e-46, label = r'Low', c = 'darkorange')
     ax3.plot(tfb_oe, col_ie*prel.en_converter*1e-46, label = r'Middle', c = 'yellowgreen')
     ax3.plot(tfb_oeH, col_ieH*prel.en_converter*1e-46, label = r'High', c = 'darkviolet')
-    ax3.set_title(r'Internal energy [$10^{46}$ erg]', fontsize = 27)  
+    ax3.set_title(r'Thermal energy [$10^{46}$ erg]', fontsize = 28)  
 
     axR.plot(tfb_oeL, col_radL*prel.en_converter, label = r'Low', c = 'darkorange')
     axR.plot(tfb_oe, col_rad*prel.en_converter, label = r'Middle', c = 'yellowgreen')
     axR.plot(tfb_oeH, col_radH*prel.en_converter, label = r'High', c = 'darkviolet')
-    axR.set_title(r'Radiation energy [erg]', fontsize = 27)
+    axR.set_title(r'Radiation energy [erg]', fontsize = 28)
     axR.set_yscale('log')
     axR.set_ylim(5e43, 2e48)
     
@@ -359,7 +359,7 @@ if __name__ == '__main__':
     ax4.plot(tfb_ratio_orbnegL, ratio_orbnegL, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
     ax4.plot(tfb_ratio_orbnegH, ratio_orbnegH,  label = r'Middle and High', linewidth = 2, c = 'darkviolet')
     ax4.plot(tfb_ratio_orbnegH, ratio_orbnegH, linestyle = (0, (5, 10)), linewidth = 2, c = 'yellowgreen')
-    ax4.set_ylabel(r'$\mathcal{R}$', fontsize = 26)
+    ax4.set_ylabel(r'$\mathcal{R}$', fontsize = 32)
     ax4.set_ylim(1, 1.015)
 
     ax5.plot(tfb_ratio_orbnegL, ratio_orbposL, label = r'Low andMiddledle', linewidth = 2, c = 'darkorange')
@@ -383,15 +383,15 @@ if __name__ == '__main__':
     original_ticks = ax1.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
     new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
     for ax in [ax1, ax2, ax3, axR, ax4, ax5, ax6, ax7]:
         ax.set_xticks(new_ticks)
-        # ax.set_xticklabels(labels)
+        ax.set_xticklabels(labels)
         ax.tick_params(axis='both', which='major', length = 8, width = 1)
         ax.grid()
         ax.set_xlim(np.min(tfbH), np.max(tfb)) 
         if ax in [ax4, ax5, ax6, ax7]:
-            ax.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 18)
+            ax.set_xlabel(r'$t [t_{\rm fb}]$', fontsize = 32)
     plt.tight_layout()
     plt.savefig(f'{abspath}/Figs/paper/OeIeRad.pdf', bbox_inches='tight')
 
