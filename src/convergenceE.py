@@ -43,6 +43,8 @@ Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
 apo = things['apo']
+t_fall = things['t_fb_days']
+t_fall_cgs = t_fall * 24 * 3600
 
 if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
@@ -122,53 +124,53 @@ if alice:
 
 else:
     import matplotlib.pyplot as plt
-    commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    dataL = np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/convE_LowResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
-    snapsL, tfbL, IEL, OELpos, OELneg = dataL[:, 0], dataL[:, 1], dataL[:, 2], dataL[:, 3], dataL[:, 4]
-    data = np.loadtxt(f'{abspath}/data/{commonfolder}NewAMR/convE_NewAMR.csv', delimiter=',', dtype=float, skiprows=1)
-    snaps, tfb, IE, OEpos, OEneg = data[:, 0], data[:, 1], data[:, 2], data[:, 3], data[:, 4]
-    dataH = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/convE_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
-    snapsH, tfbH, IEH, OEHpos, OEHneg = dataH[:, 0], dataH[:, 1], dataH[:, 2], dataH[:, 3], dataH[:, 4]
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    data = np.loadtxt(f'{abspath}/data/{folder}/convE_{check}.csv', delimiter=',', dtype=float, skiprows=1)
+    snapsH, tfbH, IEH, OEHpos, OEHneg, Rad = data[:, 0], data[:, 1], data[:, 2], data[:, 3], data[:, 4], data[:, 5]
+    dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
+    tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3] *  prel.en_converter/prel.tsol_cgs
 
-    dataLout = np.loadtxt(f'{abspath}/data/{commonfolder}LowResNewAMR/convEoutsideR0_LowResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
-    snapsLout, tfbLout, IELout, OELposout, OELnegout = dataLout[:, 0], dataLout[:, 1], dataLout[:, 2], dataLout[:, 3], dataLout[:, 4]
-    dataout = np.loadtxt(f'{abspath}/data/{commonfolder}NewAMR/convEoutsideR0_NewAMR.csv', delimiter=',', dtype=float, skiprows=1)
-    snapsout, tfbout, IEout, OEposout, OEnegout = dataout[:, 0], dataout[:, 1], dataout[:, 2], dataout[:, 3], dataout[:, 4]
-    dataHout = np.loadtxt(f'{abspath}/data/{commonfolder}HiResNewAMR/convEoutsideR0_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
-    snapsHout, tfbHout, IEHout, OEHposout, OEHnegout = dataHout[:, 0], dataHout[:, 1], dataHout[:, 2], dataHout[:, 3], dataHout[:, 4]
-     
-    fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize = (24,6))
-    ax1.plot(tfbL, prel.en_converter * (OELpos + OELneg), c = 'C1', label = 'Low')
-    ax1.plot(tfbLout, prel.en_converter * (OELposout + OELnegout), c = 'C1', ls = '--', label = 'Low outside R0')
-    ax1.plot(tfb, prel.en_converter * (OEpos + OEneg), c = 'yellowgreen', label = 'Fid')
-    ax1.plot(tfbout, prel.en_converter * (OEposout + OEnegout), c = 'yellowgreen', ls = '--')
-    ax1.plot(tfbH, prel.en_converter * (OEHpos + OEHneg), c = 'darkviolet', label = 'High')
-    ax1.plot(tfbHout, prel.en_converter * (OEHposout + OEHnegout), c = 'darkviolet', ls = '--')
-    ax1.set_ylabel(r'OE [erg/s]')
-    ax1.set_title(r'Sum')
-    ax1.legend(fontsize = 15) 
+    fig, (ax1, ax2) = plt.subplots(1,2, figsize = (18,7))
+    figL, axL = plt.subplots(1,1, figsize = (10,7))
+    ax1.plot(tfbH, prel.en_converter * OEHpos, c = 'maroon', label = 'Unbound gas')
+    ax1.plot(tfbH, np.abs(prel.en_converter * OEHneg), c = 'maroon', ls = ':', label = 'Bound gas (abs value) ')
+    ax1.set_title(r'OE [erg]', fontsize = 24) 
+    # ax1.set_ylim(1.16e49, 1.2e49)
+    # ax1.set_yscale('log')
 
-    ax2.plot(tfbL, prel.en_converter * OELpos, c = 'C1', label = 'Low')
-    ax2.plot(tfbLout, prel.en_converter * OELposout, c = 'C1', ls = '--', label = 'Low')
-    ax2.plot(tfb, prel.en_converter * OEpos, c = 'yellowgreen', label = 'Fid')
-    ax2.plot(tfbout, prel.en_converter * OEposout, c = 'yellowgreen', ls = '--')
-    ax2.plot(tfbH, prel.en_converter * OEHpos, c = 'darkviolet', label = 'High')
-    ax2.plot(tfbHout, prel.en_converter * OEHposout, c = 'darkviolet', ls = '--')
-    ax2.set_title(r'Unbound gas')
+    ax2.plot(tfbH, prel.en_converter * IEH, c = 'C1', label = 'Thermal energy')
+    ax2.plot(tfbH, prel.en_converter * Rad, c = 'r', label = 'Radiation energy')
+    ax2.set_title(r'Thermal and radiation [erg]', fontsize = 24) 
 
-    ax3.plot(tfbL, prel.en_converter * OELneg, c = 'C1', label = 'Low')
-    ax3.plot(tfbLout, prel.en_converter * OELnegout, c = 'C1', ls = '--', label = 'Low')
-    ax3.plot(tfb, prel.en_converter * OEneg, c = 'yellowgreen', label = 'Fid')
-    ax3.plot(tfbout, prel.en_converter * OEnegout, c = 'yellowgreen', ls = '--')
-    ax3.plot(tfbH, prel.en_converter * OEHneg, c = 'darkviolet', label = 'High')
-    ax3.plot(tfbHout, prel.en_converter * OEHnegout, c = 'darkviolet', ls = '--')
-    ax3.set_title(r'Bound gas')
+    # compute rates 
+    dtH = np.diff(tfbH * t_fall_cgs)
+    dOEHpos = np.diff(OEHpos * prel.en_converter)
+    dOEHneg = np.diff(OEHneg * prel.en_converter)
+    dIEH = np.diff(IEH * prel.en_converter)
+    dRad = np.diff(Rad * prel.en_converter)
+    axL.plot(tfbdiss, LDiss, c = 'gray', label = r'$\dot{E}_{\rm irr}$', ls = '--')
+    axL.plot(tfbH[:-1], np.abs(dOEHpos)/dtH, c = 'maroon', label = 'Unbound gas')
+    axL.plot(tfbH[:-1], np.abs(dOEHneg)/dtH, c = 'maroon', ls = ':', label = 'Bound gas')
+    axL.plot(tfbH[:-1], np.abs(dIEH)/dtH, c = 'C1', label = 'Thermal energy')
+    axL.plot(tfbH[:-1], np.abs(dRad)/dtH, c = 'r', label = 'Radiation energy')
+    axL.set_ylabel(r'$|$Energy rates$|$ [erg/s]') 
+    axL.set_ylim(1e38, 3e43)
 
-    for ax in (ax1, ax2, ax3):
+    orginal_ticks = axL.get_xticks()
+    middle_ticks = (orginal_ticks[:-1] + orginal_ticks[1:]) /2
+    new_ticks = np.sort(np.concatenate((orginal_ticks, middle_ticks)))
+    labels = [str(np.round(tick,2)) if tick in orginal_ticks else "" for tick in new_ticks]       
+    for ax in (ax1, ax2, axL):
+        ax.tick_params(axis='both', which='major', width=1.2, length=7)
+        ax.tick_params(axis='both', which='minor', width=0.9, length=5)
+        ax.set_xticks(new_ticks)
+        ax.set_xticklabels(labels)
         ax.set_xlabel(r'$t [t_{\rm fb}]$')
-        # ax.set_yscale('log')
-        # ax.set_ylim(1e49, 1.5e49)
+        if ax != ax1:
+            ax.set_yscale('log')
+        ax.legend(fontsize = 20)
         ax.grid()
+        ax.set_xlim(0, np.max(tfbH))
     plt.tight_layout()
 
 # %%

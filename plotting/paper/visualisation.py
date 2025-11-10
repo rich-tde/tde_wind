@@ -91,19 +91,19 @@ for i, snap in enumerate(snaps):
     y_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/bigDenyarray.npy')
     flat_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/bigDenproj{snap}.npy')
     flat_den_cgs = flat_den * prel.den_converter * prel.Rsol_cgs # [g/cm2]
-    
+    dmin, dmax = 5e-2, 1e7
     ax = fig.add_subplot(gs[i, 0])  # First plot
     # NB: can't use imshow beacuse of the data are not on a regular linspaced grid
-    img = ax.pcolormesh(x_radii/apo, y_radii/apo, flat_den_cgs.T, cmap = 'viridis',
-                        norm = colors.LogNorm(vmin = 5e-2, vmax = 1e7), rasterized = True)
+    img = ax.pcolormesh(x_radii/apo, y_radii/apo, flat_den_cgs.T, cmap = 'plasma',
+                        norm = colors.LogNorm(vmin = dmin, vmax = dmax), rasterized = True)
     
     if i == 0:
         # Create an inset axis in the top right corner with more distance from the border
         ax_inset = inset_axes(ax, width="40%", height="40%", loc='lower left', borderpad = 2.5)
 
         # Define the zoom-in region in physical units
-        x_min, x_max = -1, 0.2    # Y range in physical units
-        y_min, y_max = -0.7, 0.7  # X range in physical units
+        x_min, x_max = -1, 0.5    # Y range in physical units
+        y_min, y_max = -0.5, 0.5  # X range in physical units
 
         # Get mask for selected region
         x_mask = (x_radii/apo >= x_min) & (x_radii/apo <= x_max)
@@ -115,8 +115,8 @@ for i, snap in enumerate(snaps):
         flat_den_zoom = flat_den_cgs[np.ix_(x_mask, y_mask)]  # Zoomed-in density data
 
         # Use pcolormesh for the inset plot
-        img_inset = ax_inset.pcolormesh(x_zoom, y_zoom, flat_den_zoom.T, cmap='viridis',
-                                        norm=colors.LogNorm(vmin=5e-2, vmax=1e7), rasterized=True)
+        img_inset = ax_inset.pcolormesh(x_zoom, y_zoom, flat_den_zoom.T, cmap = 'plasma',
+                                        norm=colors.LogNorm(vmin=dmin, vmax=dmax), rasterized=True)
 
         # Remove labels but keep ticks
         # Inset plot ticks
@@ -128,8 +128,8 @@ for i, snap in enumerate(snaps):
 
         # Set the aspect ratio to match the physical size of the zoom region
         aspect_ratio = (x_max - x_min) / (y_max - y_min)
-        ax.set_aspect(aspect_ratio, adjustable='box')  # Main plot aspect ratio
-        ax_inset.set_aspect(aspect_ratio, adjustable='box')  # Inset plot aspect ratio
+        # ax.set_aspect(aspect_ratio, adjustable='box')  # Main plot aspect ratio
+        # ax_inset.set_aspect(aspect_ratio, adjustable='box')  # Inset plot aspect ratio
 
         # Add a rectangle to indicate the zoomed-in region
         rect = plt.Rectangle((x_min, y_min), x_max - x_min, y_max - y_min,
@@ -184,60 +184,137 @@ if save:
     plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/3denprojph.png', bbox_inches='tight')
 plt.show() 
 
-#%% ORBITAL ENERGY AND a
-# time_slice = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/slices/z/z0_time.txt')
-# snaps_slice, tfb_slice = time_slice[0], time_slice[1]
-# idx = np.argmin(np.abs(snaps_slice-snap))
-# tfb_single = tfb_slice[idx]
-# zslice = np.load(f'/Users/paolamartire/shocks/data/{folder}/slices/z/z0slice_{snap}.npy')
-# x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid =\
-#     zslice[0], zslice[1], zslice[2], zslice[3], zslice[4], zslice[5], zslice[6], zslice[7], zslice[8]
-# orb_en_spec = orb_en_den_mid / den_mid
-# orb_en_spec_cgs = orb_en_spec * prel.en_converter / prel.Msol_cgs
-# orb_en_mid = orb_en_den_mid * dim_mid**3
-# orb_en_mid_cgs = orb_en_mid * prel.en_converter
-# a_mid = prel.G * Mbh / (2*np.abs(orb_en_spec))
-# vminoe_spec_cgs = 4e15 #4e40
-# vmaxoe_spec_cgs = 1e18 #9e42
-# vminoe_spec = vminoe_spec_cgs / (prel.en_converter / prel.Msol_cgs)
-# vmaxoe_spec = vmaxoe_spec_cgs / (prel.en_converter / prel.Msol_cgs)
-# vmina = prel.G * Mbh / (2*vmaxoe_spec) # vmaxoe is energy NOT specific
-# vmaxa = prel.G * Mbh / (2*vminoe_spec)
-# vminoe = orb_en_mid_cgs[np.argmin((np.abs(orb_en_spec_cgs-vminoe_spec_cgs)))] 
-# vmaxoe = orb_en_mid_cgs[np.argmin((np.abs(orb_en_spec_cgs-vmaxoe_spec_cgs)))]
 
-# img, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))
-# img = ax1.scatter(x_mid/apo, y_mid/apo, c = np.abs(orb_en_spec_cgs)/DeltaE_cgs, cmap = 'spring', s = 2,
-#                     norm = colors.LogNorm(vmin = vminoe_spec_cgs/DeltaE_cgs, vmax = vmaxoe_spec_cgs/DeltaE_cgs))
-# cb = plt.colorbar(img)
-# cb.set_label(r'$|$ Specific orbital energy$| [\Delta E$]', fontsize = 22)
-# ax1.set_ylabel(r'$Y/R_{\rm a}$',)# fontsize = 22)
+#%% with diss proj as well
+time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/bigDentime_proj.txt')
+snaps = [int(i) for i in time[0]]
+tfb = time[1]
+fig = plt.figure(figsize=(22, 25))
+gs = gridspec.GridSpec(4, 2, width_ratios=[1,1], height_ratios=[1,1,1, 0.03], hspace=0.2, wspace = 0.2)
+for i, snap in enumerate(snaps):
+    # load the data
+    tfb_single = tfb[i]
+    x_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/bigDenxarray.npy')
+    y_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/bigDenyarray.npy')
+    flat_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/bigDenproj{snap}.npy')
+    flat_den_cgs = flat_den * prel.den_converter * prel.Rsol_cgs # [g/cm2]
+    dmin, dmax = 5e-2, 1e7
+    x_radiiDiss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Dissxarray.npy')
+    y_radiiDiss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Dissyarray.npy')
+    flat_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Dissproj{snap}.npy')
+    flat_diss_cgs = flat_diss * prel.en_converter / (prel.tsol_cgs * prel.Rsol_cgs**2) # [erg/s/cm2]
+    Emin, Emax = 1e14, 1e19
 
-# img = ax2.scatter(x_mid/apo, y_mid/apo, c = a_mid/a_mb, cmap = 'winter', s = 2,
-#                     norm = colors.LogNorm(vmin = vmina/a_mb, vmax = vmaxa/a_mb))
-# cb = plt.colorbar(img)
-# cb.set_label(r'Semi-major axis $[a_{\rm mb}$]', fontsize = 22)
-# ax2.set_ylabel(r'$Y/R_{\rm a}$')#, fontsize = 22)
-# ax2.set_xlabel(r'$X/R_{\rm a}$')#, fontsize = 22)
-# for ax in [ax1, ax2]:
-#     ax.set_xlim(-1.2, 40/apo)
-#     ax.set_ylim(-0.4, 0.4)
-#     for j in range(len(radii_grid)):
-#         ax.contour(xcfr_grid[j], ycfr_grid[j], cfr_grid[j], [0], colors = 'k', linestyle = styles[j], alpha = 0.5)
+    ax = fig.add_subplot(gs[i, 0]) # first
+    axDiss = fig.add_subplot(gs[i, 1]) # second
+    # NB: can't use imshow beacuse of the data are not on a regular linspaced grid
+    img = ax.pcolormesh(x_radii/apo, y_radii/apo, flat_den_cgs.T, cmap = 'plasma',
+                        norm = colors.LogNorm(vmin = dmin, vmax = dmax), rasterized = True)
+    imgDiss = axDiss.pcolormesh(x_radiiDiss/apo, y_radiiDiss/apo, flat_diss_cgs.T, cmap = 'viridis',
+                        norm = colors.LogNorm(vmin = Emin, vmax = Emax), rasterized = True)
+    
+    if i == 0:
+        # Create an inset axis in the top right corner with more distance from the border
+        ax_inset = inset_axes(ax, width="40%", height="40%", loc='lower left', borderpad = 2.5)
 
-# plt.suptitle( f't = {np.round(tfb_slice[idx],2)}' + r' $t_{\rm fb}$', fontsize = 18)
-# plt.tight_layout()
-# # if save:
-# #     plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/OE_a{snap}.png')
-# plt.show()
+        # Define the zoom-in region in physical units
+        x_min, x_max = -1, 0.5    # Y range in physical units
+        y_min, y_max = -0.5, 0.5  # X range in physical units
 
-# %%
+        # Get mask for selected region
+        x_mask = (x_radii/apo >= x_min) & (x_radii/apo <= x_max)
+        y_mask = (y_radii/apo >= y_min) & (y_radii/apo <= y_max)
+
+        # Apply the mask to get zoomed-in grid points
+        x_zoom = x_radii[x_mask] / apo
+        y_zoom = y_radii[y_mask] / apo
+        flat_den_zoom = flat_den_cgs[np.ix_(x_mask, y_mask)]  # Zoomed-in density data
+
+        # Use pcolormesh for the inset plot
+        img_inset = ax_inset.pcolormesh(x_zoom, y_zoom, flat_den_zoom.T, cmap = 'plasma',
+                                        norm=colors.LogNorm(vmin=dmin, vmax=dmax), rasterized=True)
+
+        # Remove labels but keep ticks
+        # Inset plot ticks
+        ax_inset.tick_params(axis='x', direction='in', length=7, width=1.5, colors='white', labelsize=10)  # X-axis ticks
+        ax_inset.tick_params(axis='y', direction='in', length=7, width=1.5, colors='white', labelsize=10)  # Y-axis ticks
+        ax_inset.yaxis.tick_right()  # Move ticks to the right
+        # ax_inset.set_xticklabels([])  # Remove numbers
+        # ax_inset.set_yticklabels([])  # Remove numbers
+
+        # Set the aspect ratio to match the physical size of the zoom region
+        aspect_ratio = (x_max - x_min) / (y_max - y_min)
+        # ax.set_aspect(aspect_ratio, adjustable='box')  # Main plot aspect ratio
+        # ax_inset.set_aspect(aspect_ratio, adjustable='box')  # Inset plot aspect ratio
+
+        # Add a rectangle to indicate the zoomed-in region
+        rect = plt.Rectangle((x_min, y_min), x_max - x_min, y_max - y_min,
+                            linewidth=1, edgecolor='white', facecolor='none')
+        ax.add_patch(rect)
+        # Inset rectangle should have the same physical size as the main plot rectangle
+        inset_rect = plt.Rectangle((0, 0), 1, 1, transform=ax_inset.transAxes,
+                                linewidth=2, edgecolor='white', facecolor='none')
+        ax_inset.add_patch(inset_rect)
+
+    # Photosphere
+    dataph = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
+    xph, yph, zph, volph= dataph[0], dataph[1], dataph[2], dataph[3]
+    midph= np.abs(zph) < volph**(1/3)
+    # xph_mid, yph_mid, zph_mid = make_slices([xph, yph, zph], midph)
+    ax.plot(xph[indecesorbital]/apo, yph[indecesorbital]/apo, c = 'white', markersize = 5, marker = 'H', label = r'$R_{\rm ph}$')
+    # just to connect the first and last 
+    ax.plot([xph[first_idx]/apo, xph[last_idx]/apo], [yph[first_idx]/apo, yph[last_idx]/apo], c = 'white', markersize = 1, marker = 'H')
+        
+    if i == 0:
+        ax.plot(x_arr_par/apo, y_arr_par/apo, c= 'white', linestyle = 'dashed', alpha = 0.7)
+    else: 
+        ax.plot(x_arr_ell/apo, y_arr_ell/apo, c= 'white', linestyle = 'dashed', alpha = 0.7)
+    for j in range(len(radii_grid)):
+        ax.contour(xcfr_grid[j], ycfr_grid[j], cfr_grid[j], levels=[0], colors='white', alpha = 0.5)
+    
+    if i == 1:
+        ax.text(-5.5, 2.35, f't = {np.round(tfb_single,1)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 16)
+    else:
+        ax.text(-5.5, 2.35, f't = {np.round(tfb_single,2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 16)
+    ax.set_ylabel(r'$Y [r_{\rm a}]$')#, fontsize = 20)
+    ax.tick_params(axis='x', which='major', width = .7, length = 7, color = 'white')
+    ax.tick_params(axis='y', which='major', width = .7, length = 7, color = 'white')
+    ax.set_xlim(-6, 2.5)
+    ax.set_ylim(-3, 3)
+    
+    axDiss.set_xlim(x_min, x_max)
+    axDiss.set_ylim(y_min, y_max)
+
+    if i == 2:
+        ax.text(Rt/apo + 0.02, 0.05, r'$r_{\rm t}$', color = 'white', fontsize = 14)
+        ax.text(a_mb/apo + 0.04, 0.16, r'$a_{\rm mb}$', color = 'white', fontsize =14)
+        ax.text(1 + 0.01, 0.3, r'$r_{\rm a}$', color = 'white', fontsize =14)
+
+cbar_ax = fig.add_subplot(gs[3, 0])  # Colorbar subplot below the first 3 panels
+cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
+cb.ax.tick_params(which='major',length = 5)
+cb.ax.tick_params(which='minor',length = 3)
+cb.set_label(r'Column density [g/cm$^2$]', fontsize = 20)
+ax.set_xlabel(r'$X [r_{\rm a}]$')#, fontsize = 20)
+cbar_axDiss = fig.add_subplot(gs[3, 1])  # Colorbar subplot below the first 3 panels
+cbDiss = fig.colorbar(imgDiss, cax=cbar_axDiss, orientation='horizontal')
+cbDiss.ax.tick_params(which='major',length = 5)
+cbDiss.ax.tick_params(which='minor',length = 3)
+cbDiss.set_label(r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$', fontsize = 20)
+axDiss.set_xlabel(r'$X [r_{\rm a}]$')#, fontsize = 20)
+plt.tight_layout()
+
+if save:
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/3DenDissprojph.png', bbox_inches='tight')
+plt.show() 
+
+
+#%%
 proj_movie = True
 overview = False
-n_panels = 2
+n_panels = 3
 
 if proj_movie:
-    n_panels = 3
     data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
     snaps, Lum, tfb = split_data_red(check)
     dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows = 1)
@@ -266,7 +343,7 @@ if proj_movie:
         # k = alphaph/denph
         r_ph = np.sqrt(xph**2 + yph**2 + zph**2)
         median_ph[i] = np.median(r_ph)
-        if snap < 135:
+        if snap != 151:
             continue
         # print(k)
         # k_mean = 1/np.mean(1/k)
@@ -275,6 +352,7 @@ if proj_movie:
         y_denproj = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denyarray.npy')
         flat_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denproj{snap}.npy')
         flat_den_cgs = flat_den * prel.den_converter * prel.Rsol_cgs # [g/cm2]
+        
 
         if n_panels == 3:
             flat_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Dissproj{snap}.npy')
@@ -301,7 +379,7 @@ if proj_movie:
             fig, axd = plt.subplots(1,1, figsize = (25,18), constrained_layout=True)
 
         img = axd.pcolormesh(x_denproj/Rt, y_denproj/Rt, flat_den_cgs.T, cmap = 'plasma', \
-                          norm = colors.LogNorm(vmin = 1, vmax = 5e7))
+                          norm = colors.LogNorm(vmin=5e-2, vmax=1e7))
         cbar = plt.colorbar(img, orientation = 'horizontal', pad = 0.03 if n_panels == 2 else 0.1)
         cbar.set_label(r'Column density [g cm$^{-2}$]', fontsize = 60 if n_panels != 3 else 25)
         if n_panels != '':
@@ -351,12 +429,12 @@ if proj_movie:
         axd.scatter(0,0,c= 'white', marker = 'x', s = 100)
         axd.set_xlim(-3*apo/Rt, 2*apo/Rt)
         axd.set_ylim(-2*apo/Rt, 2*apo/Rt)
-        axd.set_xlabel(r'X [$R_{\rm t}$]', fontsize = 60 if n_panels != 3 else 25)
+        axd.set_xlabel(r'X [$r_{\rm t}$]', fontsize = 60 if n_panels != 3 else 25)
 
         plt.tight_layout()
-        fig.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection{n_panels}/denproj_{snap}.png')
+        # fig.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection{n_panels}/denproj_{snap}.png')
 
-        plt.close()
+        # plt.close()
 
 if overview:
     t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)

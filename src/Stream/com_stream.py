@@ -1,4 +1,5 @@
-""" Find the stream. """
+""" If alice: Find the stream as line connecting COMs.
+If not alice: plot on a scatter plot. """
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 from Utilities.isalice import isalice
@@ -270,8 +271,6 @@ if __name__ == '__main__':
             cutden = Den >1e-19
             X, Y, Z, Den, Mass, Vol = \
                 sec.make_slices([X, Y, Z, Den, Mass, Vol], cutden)
-            R = np.sqrt(X**2 + Y**2 + Z**2)
-            THETA, RADIUS_cyl = to_cylindric(X, Y)
             dim_cell = Vol**(1/3) 
             x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr)
             stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
@@ -279,13 +278,14 @@ if __name__ == '__main__':
             np.save(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', stream)
 
         else:
-            stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy')
+            theta_arr, x_stream, y_stream, z_stream, thresh_cm = \
+                np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy')
+            # print(len(theta_arr))
             snaps, times = np.loadtxt(f'{abspath}/data/{folder}/slices/z/z0_time.txt')
             slice_data = np.load(f'{abspath}/data/{folder}/slices/z/z0slice_{snap}.npy')
             x_slice, y_slice, z_slice, dim_slice, den_slice = \
                 slice_data[0], slice_data[1], slice_data[2], slice_data[3], slice_data[4]
             mass_slice = den_slice * dim_slice**3
-            theta_arr, x_stream, y_stream, z_stream, thresh_cm = stream
             fig, ax = plt.subplots(1, 1, figsize = (14, 7))
             img = ax.scatter(x_slice/Rt, y_slice/Rt, s = 1, c = mass_slice, cmap = 'rainbow', norm = colors.LogNorm(vmin = np.percentile(mass_slice, 5), vmax = np.percentile(mass_slice, 99)))
             cb = plt.colorbar(img)

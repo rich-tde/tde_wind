@@ -156,7 +156,7 @@ for idx_s, snap in enumerate(snaps):
         # find the simulation cell corresponding to cells in the wanted ray
         tree = KDTree(xyz, leaf_size=50) 
         _, idx = tree.query(xyz2, k=1)
-        idx = [ int(idx[i][0]) for i in range(len(idx))]
+        idx = idx.ravel()
         # Quantity corresponding to the ray
         d = Den[idx] * prel.den_converter
         t = T[idx]

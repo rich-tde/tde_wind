@@ -109,37 +109,29 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         make_slices([X, Y, Z, to_grid, Den], cutden)
     del X, Y, Z, to_grid, Den
     # make the tree
-    points_tree = np.array([x_cut, y_cut, z_cut]).T
+    points_tree = np.stack([x_cut, y_cut, z_cut], axis=-1)   # join xyz grid to a (xnum, ynum, znum, 3) array
     sim_tree = KDTree(points_tree)
-    gridded_indexes =  np.zeros(( len(xs), len(ys), len(zs) ))
-    gridded =  np.zeros(( len(xs), len(ys), len(zs) ))
-    for i in range(len(xs)):
-        for j in range(len(ys)):
-            for k in range(len(zs)):
-                # queried_value = [xs[i], ys[j], zs[k]] # if u use scipy.spatial
-                queried_value = np.array([xs[i], ys[j], zs[k]]).reshape(1, -1) # if u use sklearn, so it has shape (1,3)
-                _, idx = sim_tree.query(queried_value)
-                idx = int(idx[0][0]) # only ifyou use sklearn
-                                    
-                # Store
-                gridded_indexes[i, j, k] = idx
-                gridded_value = max(1e-20, to_grid_cut[idx]) # so you don't have negative values in Diss
-                gridded[i, j, k] = gridded_value
+    
+    query_points = np.stack([xs, ys, zs], axis=-1)   # join xyz grid to a (xnum, ynum, znum, 3) array
+    _, gridded_indexes = sim_tree.query(query_points)
+    gridded_indexes = gridded_indexes.ravel()
+    gridded = to_grid_cut[gridded_indexes]
+    gridded = np.maximum(gridded, 1e-20)
+
     del to_grid_cut, Den_cut, x_cut, y_cut, z_cut, points_tree 
 
     return gridded_indexes, gridded, xs, ys, zs
 
 @numba.njit
 def projector(gridded_den, x_radii, y_radii, z_radii):
-    """ Project density on XY plane. NB: to plot you have to transpose the saved data"""
+    """ Project density on XY plane. NB: to plot you have to transpose the saved data.
+    z_radii has to be linspaced. """
     # Make the 3D grid 
-    flat_den =  np.zeros(( len(x_radii), len(y_radii) ))
-    for i in range(len(x_radii)):
-        for j in range(len(y_radii)):
-            for k in range(len(z_radii) - 1): 
-                dz = (z_radii[k+1] - z_radii[k]) 
-                flat_den[i,j] += gridded_den[i,j,k] * dz
-
+    dz = z_radii[1] - z_radii[0]  # constant spacing
+    if dz == z_radii[-1] - z_radii[-2]:
+        flat_den = np.sum(gridded_den, axis = -1) * dz
+    else:
+        raise ValueError("z_radii has to be linspaced.")
     return flat_den
 
 #%%

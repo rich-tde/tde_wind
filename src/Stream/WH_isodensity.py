@@ -170,7 +170,7 @@ def find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_
         } 
         
         # Optional: Create visualization if this is the theta for plotting
-        if np.logical_and(alice == False, idx == 4):
+        if np.logical_and(alice == False, idx == 4 ):
             plot_isodensity_results(x_plane, x_Tplane, y_plane, z_plane, mass_plane, dim_plane,
                                     condition_enclosed, contour_stats, 
                                     theta_arr[idx], x_data, y_data, indeces_enclosed, 
@@ -207,7 +207,7 @@ def plot_isodensity_results(x_plane, x_Tplane, y_plane, z_plane, mass_plane, dim
     ax1.axvline(x=x_T_up, color='k', linestyle='--')
     ax1.legend()
     ax1.set_ylabel(r'Mass [$M_\odot$]')
-    ax1.set_xlabel(r'T [$R_\odot$]')
+    ax1.set_xlabel(r'N [$R_\odot$]')
     
     # Plot 2: Scatter plot with isodensity contour
     # Color points by whether they're inside or outside the contour
@@ -218,7 +218,7 @@ def plot_isodensity_results(x_plane, x_Tplane, y_plane, z_plane, mass_plane, dim
     ax2.axvline(x=x_T_up, color='k', linestyle='--', linewidth=2)
     ax2.axhline(y=z_low, color='k', linestyle='--', linewidth=2)
     ax2.axhline(y=z_up, color='k', linestyle='--', linewidth=2)
-    ax2.set_xlabel(r'T [$R_\odot$]')
+    ax2.set_xlabel(r'N [$R_\odot$]')
     ax2.set_ylabel(r'Z [$R_\odot$]')
     ax2.set_ylim(z_low-1, z_up+1)
     
@@ -285,7 +285,7 @@ def plot_isodensity_results(x_plane, x_Tplane, y_plane, z_plane, mass_plane, dim
     
     plt.suptitle(rf'$\theta$ = {np.round(theta_val, 2)} rad', fontsize=16)
     plt.tight_layout()
-    plt.savefig(f'{abspath}/Figs/next_meeting/WHCont{massperc}_{check}{snap}.png')
+    plt.savefig(f'{abspath}/Figs/{folder}/WHCont{massperc}_{check}{snap}.png')
     plt.show()
 
 def follow_the_stream_isodensity(x_data, y_data, z_data, dim_data, density_data, mass_data, stream, mass_percentage = 0.8):
@@ -341,8 +341,8 @@ if __name__ == '__main__':
     step = np.round((2*theta_lim)/200, 3)
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_arr = Ryan_sampler(theta_init)
-    idx_forplot = np.argmin(np.abs(theta_arr))
-    massperc = 0.5
+    idx_forplot = np.argmin(np.abs(theta_arr)) # indices for theta = -pi/2, 0, pi/2: 54 101 149
+    massperc = 0.8
     print(f'We are in folder {folder}', flush=True)
     
     path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -419,6 +419,8 @@ if __name__ == '__main__':
 
         theta_wh, width, N_width, height, N_height = \
             np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
+        print('indices for theta = -pi/2, 0, pi/2:', np.argmin(np.abs(theta_wh + np.pi/2)), np.argmin(np.abs(theta_wh)), np.argmin(np.abs(theta_wh - np.pi/2)))
+
         # Plotting results
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 9))
         ax1.plot(theta_wh * radians, width, c = 'darkviolet')
