@@ -109,11 +109,15 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
     points_tree = np.stack([x_cut, y_cut, z_cut], axis=-1)   # join xyz grid to a (xnum, ynum, znum, 3) array
     sim_tree = KDTree(points_tree)
     
-    query_points = np.stack([xs, ys, zs], axis=-1)   # join xyz grid to a (xnum, ynum, znum, 3) array
+    Xg, Yg, Zg = np.meshgrid(xs, ys, zs, indexing='ij')  # shapes (Nx, Ny, Nz)
+    query_points = np.stack([Xg, Yg, Zg], axis=-1).reshape(-1, 3)  # shape (Nx*Ny*Nz, 3)
+
     _, gridded_indexes = sim_tree.query(query_points)
     gridded_indexes = gridded_indexes.ravel()
     gridded = to_grid_cut[gridded_indexes]
     gridded = np.maximum(gridded, 1e-20)
+    gridded_indexes = gridded_indexes.reshape(len(xs), len(ys), len(zs))
+    gridded = gridded.reshape(len(xs), len(ys), len(zs))
 
     del to_grid_cut, Den_cut, x_cut, y_cut, z_cut, points_tree 
 

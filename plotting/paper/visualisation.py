@@ -186,11 +186,13 @@ plt.show()
 
 
 #%% with diss proj as well
+dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
+tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs
 time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/bigDentime_proj.txt')
 snaps = [int(i) for i in time[0]]
 tfb = time[1]
-fig = plt.figure(figsize=(22, 25))
-gs = gridspec.GridSpec(4, 2, width_ratios=[1,1], height_ratios=[1,1,1, 0.03], hspace=0.2, wspace = 0.2)
+fig = plt.figure(figsize=(24, 25))
+gs = gridspec.GridSpec(4, 2, width_ratios=[1,1], height_ratios=[1.05,1.05,1.05, 0.04], hspace=0.2, wspace = 0.2)
 for i, snap in enumerate(snaps):
     # load the data
     tfb_single = tfb[i]
@@ -198,10 +200,10 @@ for i, snap in enumerate(snaps):
     y_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/bigDenyarray.npy')
     flat_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/bigDenproj{snap}.npy')
     flat_den_cgs = flat_den * prel.den_converter * prel.Rsol_cgs # [g/cm2]
-    dmin, dmax = 5e-2, 1e7
-    x_radiiDiss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Dissxarray.npy')
-    y_radiiDiss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Dissyarray.npy')
-    flat_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Dissproj{snap}.npy')
+    dmin, dmax = 4, 1e7
+    x_radiiDiss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/nozzleDissxarray.npy')
+    y_radiiDiss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/nozzleDissyarray.npy')
+    flat_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/nozzleDissproj{snap}.npy')
     flat_diss_cgs = flat_diss * prel.en_converter / (prel.tsol_cgs * prel.Rsol_cgs**2) # [erg/s/cm2]
     Emin, Emax = 1e14, 1e19
 
@@ -272,23 +274,30 @@ for i, snap in enumerate(snaps):
     for j in range(len(radii_grid)):
         ax.contour(xcfr_grid[j], ycfr_grid[j], cfr_grid[j], levels=[0], colors='white', alpha = 0.5)
     
-    if i == 1:
-        ax.text(-5.5, 2.35, f't = {np.round(tfb_single,1)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 16)
-    else:
-        ax.text(-5.5, 2.35, f't = {np.round(tfb_single,2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 16)
     ax.set_ylabel(r'$Y [r_{\rm a}]$')#, fontsize = 20)
-    ax.tick_params(axis='x', which='major', width = .7, length = 7, color = 'white')
-    ax.tick_params(axis='y', which='major', width = .7, length = 7, color = 'white')
+    ax.tick_params(axis='x', which='major', width = .9, length = 7, color = 'white')
+    ax.tick_params(axis='y', which='major', width = .9, length = 7, color = 'white')
     ax.set_xlim(-6, 2.5)
     ax.set_ylim(-3, 3)
     
+    axDiss.tick_params(axis='x', which='major', width = .9, length = 7, color = 'white')
+    axDiss.tick_params(axis='y', which='major', width = .9, length = 7, color = 'white')
     axDiss.set_xlim(x_min, x_max)
     axDiss.set_ylim(y_min, y_max)
 
+    if i == 1:
+        ax.text(-0.9 * 6, 0.8 * 3, f't = {np.round(tfb_single,1)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 22)
+    else:
+        ax.text(-0.9 * 6, 0.8 * 3, f't = {np.round(tfb_single,2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 22)
+    axDiss.text(0.9 * x_min, 0.8 * y_max, r'$\dot{u}_{\rm irr}$ = ' + f'{LDiss[np.argmin(np.abs(tfbdiss-tfb_single))]:.1e} erg/s', color = 'white', fontsize = 18)
+
     if i == 2:
-        ax.text(Rt/apo + 0.02, 0.05, r'$r_{\rm t}$', color = 'white', fontsize = 14)
-        ax.text(a_mb/apo + 0.04, 0.16, r'$a_{\rm mb}$', color = 'white', fontsize =14)
-        ax.text(1 + 0.01, 0.3, r'$r_{\rm a}$', color = 'white', fontsize =14)
+        ax.text(Rt/apo + 0.02, 0.05, r'$r_{\rm t}$', color = 'white', fontsize = 16)
+        ax.text(a_mb/apo + 0.04, 0.16, r'$a_{\rm mb}$', color = 'white', fontsize =16)
+        ax.text(1 + 0.01, 0.2, r'$r_{\rm a}$', color = 'white', fontsize =16)
+    else:
+        ax.tick_params(axis='x', which='both', labelbottom=False)
+        axDiss.tick_params(axis='x', which='both', labelbottom=False)
 
 cbar_ax = fig.add_subplot(gs[3, 0])  # Colorbar subplot below the first 3 panels
 cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
@@ -305,13 +314,13 @@ axDiss.set_xlabel(r'$X [r_{\rm a}]$')#, fontsize = 20)
 plt.tight_layout()
 
 if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/3DenDissprojph.png', bbox_inches='tight')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/3DenDissprojph.png', bbox_inches='tight', dpi = 300)
 plt.show() 
 
 
 #%%
-proj_movie = True
-overview = False
+proj_movie = False
+overview = True
 n_panels = 3
 
 if proj_movie:
@@ -437,61 +446,57 @@ if proj_movie:
         # plt.close()
 
 if overview:
-    t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
-    t_fall_cgs = t_fall * 24 * 3600
+    # t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
+    # t_fall_cgs = t_fall * 24 * 3600
     time = np.loadtxt(f'{abspath}/data/{folder}/slices/z/z0_time.txt')
     snaps, tfb_all = time[0], time[1]
     snaps = np.array([int(snap) for snap in snaps])
-    snap_overview = [122, 164]
+    snap_overview = np.arange(21,36)
     for snap in snap_overview:
         tfb = tfb_all[np.argmin(np.abs(snaps-snap))]
-        data_mid = np.load(f'{abspath}/data/{folder}/slices/z/z0slice_{snap}.npy')
-        x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut =\
-            data_mid[0], data_mid[1], data_mid[2], data_mid[3], data_mid[4], data_mid[5], data_mid[6], data_mid[7], data_mid[8], data_mid[9], data_mid[10], data_mid[11]#, data_mid[12]
-        orb_en_spec_cut = orb_en_den_cut / den_cut
-        ie_spec_cut = ie_den_cut / den_cut
-        fig, ax = plt.subplots(2,3, figsize = (30,10))
-        img = ax[0][0].scatter(x_cut/apo, y_cut/apo, c = den_cut, cmap = 'jet', s= 5, \
-                    norm = colors.LogNorm(vmin = 2e-9, vmax = 5e-6))
+        x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut, IE_den_cut, Press_cut = \
+            np.load(f'{abspath}/data/{folder}/slices/z/z0slice_{snap}.npy')
+        Diss_den_cut *= prel.en_den_converter/prel.tsol_cgs  # [erg/s/cm3]
+        vminDiss, vmaxDiss = 1e3, 5e8
+        Trad_cut = (Rad_den_cut*prel.en_den_converter/prel.alpha_cgs)**0.25  # [K]
+        tmin, tmax = 1e4, 2e5
+        
+        fig, (ax1, ax2) = plt.subplots(1,2, figsize = (21,7))
+        figT, (ax1T, ax2T) = plt.subplots(1,2, figsize = (21,7))
+        img = ax1.scatter(x_cut/apo, y_cut/apo, c = Diss_den_cut, cmap = 'viridis', s= 1, \
+                    norm = colors.LogNorm(vmin = vminDiss, vmax = vmaxDiss))
+        ax1.set_title(r'All', fontsize = 22)
+
+        img = ax2.scatter(x_cut[temp_cut>1e5]/apo, y_cut[temp_cut>1e5]/apo, c = Diss_den_cut[temp_cut>1e5], cmap = 'viridis', s= 1, \
+                    norm = colors.LogNorm(vmin = vminDiss, vmax = vmaxDiss))
         cb = plt.colorbar(img)
-        cb.set_label(r'Density [$M_\odot/R_\odot^3$]', fontsize = 14)
+        cb.set_label(r'$\dot{u}_{\rm irr}$ [erg s$^{-1}$ cm$^{-3}$]')
+        ax2.set_title(r'T $>10^5$ K', fontsize = 22)
 
-        img = ax[0][1].scatter(x_cut/apo, y_cut/apo, c = temp_cut, cmap = 'jet', s= 5, \
-                    norm = colors.LogNorm(vmin = 1e4, vmax = 8e6))
+        img = ax1T.scatter(x_cut/apo, y_cut/apo, c = temp_cut, cmap = 'jet', s= 1, \
+                    norm = colors.LogNorm(vmin = tmin, vmax = tmax))
         cb = plt.colorbar(img)
-        cb.set_label(r'T [K]', fontsize = 14)
-
-        # img = ax[0][2].scatter(x_cut/apo, y_cut/apo, c = np.abs(Diss_den_cut)*prel.en_den_converter, cmap = 'jet', s= 5, \
-        #             norm = colors.LogNorm(vmin = 1e6, vmax = 2e14))
-        # cb = plt.colorbar(img)
-        # cb.set_label(r'$|$Dissipation energy density$|$ [erg/cm$^3$]', fontsize = 14)
-
-        img = ax[1][0].scatter(x_cut/apo, y_cut/apo, c = np.abs(orb_en_spec_cut)*prel.en_converter/prel.Msol_cgs, cmap = 'jet', s= 5, \
-                    norm = colors.LogNorm(vmin = 5e15, vmax = 4e17))
+        cb.set_label(r'T [K]')
+        img = ax2T.scatter(x_cut/apo, y_cut/apo, c = Trad_cut, cmap = 'jet', s= 1, \
+                    norm = colors.LogNorm(vmin = tmin, vmax = tmax))
         cb = plt.colorbar(img)
-        cb.set_label(r'Absolute specific orbital energy [erg/g]', fontsize = 14)
+        cb.set_label(r'T$_{\rm rad}$ [K]')
 
-        img = ax[1][1].scatter(x_cut/apo, y_cut/apo, c = ie_spec_cut*prel.en_converter/prel.Msol_cgs, cmap = 'jet', s= 5, \
-                    norm = colors.LogNorm(vmin = 7e12, vmax = 5e16))
-        cb = plt.colorbar(img)
-        cb.set_label(r'Specific IE [erg]', fontsize = 14)
+        for ax in [ax1, ax2, ax1T, ax2T]:
+            ax.set_xlabel(r'$X [r_{\rm a}]$')
+            ax.set_xlim(-1, .1)#(-340,25)
+            ax.set_ylim(-.4, .4)#(-70,70)
+            if ax in [ax1, ax1T]:
+                ax.set_ylabel(r'$Y [r_{\rm a}]$')
 
-        img = ax[1][2].scatter(x_cut/apo, y_cut/apo, c = Rad_den_cut*prel.en_den_converter, cmap = 'jet', s= 5, \
-                    norm = colors.LogNorm(vmin = 1e3, vmax = 2e11))
-        cb = plt.colorbar(img)
-        cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 14)
-
-        for i in range(2):
-            for j in range(3):
-                ax[i][j].set_xlabel(r'$X/R_{\rm a}$', fontsize = 20)
-                ax[i][j].set_xlim(-.2, .1)#(-340,25)
-                ax[i][j].set_ylim(-.1, .1)#(-70,70)
-            ax[i][0].set_ylabel(r'$Y/R_{\rm a}$', fontsize = 20)
-
-        ax[1][0].text(-0.18, 0.08, f't = {np.round(tfb, 2)}' + r'$t_{\rm fb}$', fontsize = 20)
-        ax[0][0].text(-0.18, 0.08, f'snap {int(snap)}', fontsize = 16)
-        plt.tight_layout()
-        plt.savefig(f'{abspath}/Figs/{folder}/slices/BIGvisual{snap}.png')
+        fig.suptitle(f't = {np.round(tfb, 2)}' + r'$t_{\rm fb}$', fontsize = 20)
+        figT.suptitle(f't = {np.round(tfb, 2)}' + r'$t_{\rm fb}$', fontsize = 20)
+        fig.tight_layout()
+        figT.tight_layout()
+        fig.savefig(f'{abspath}/Figs/{folder}/slices/DissOrbPl{snap}.png')
+        figT.savefig(f'{abspath}/Figs/{folder}/slices/TempOrbPl{snap}.png')
+        plt.close()
+        
 
 
     # %%
