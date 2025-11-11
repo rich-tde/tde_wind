@@ -19,8 +19,6 @@ import Utilities.prelude as prel
 import csv
 import os
 import gc
-import pandas as pd
-
 #
 ## PARAMETERS STAR AND BH
 #%%
@@ -50,9 +48,6 @@ t_fall_cgs = t_fall * 24 * 3600
 if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 
-    csv_path = f'{abspath}/data/{folder}/convE_{check}.csv'
-    df = pd.read_csv(csv_path)
-    orb_en_kin_all = []
     for i,snap in enumerate(snaps):
         print(snap, flush=False)
         sys.stdout.flush()
@@ -69,34 +64,30 @@ if alice:
         Rsph_cut = np.sqrt(np.power(X_cut, 2) + np.power(Y_cut, 2) + np.power(Z_cut, 2))
         vel_cut = np.sqrt(np.power(VX_cut, 2) + np.power(VY_cut, 2) + np.power(VZ_cut, 2))
         kin_en_cut = 0.5 * mass_cut *vel_cut**2
-        # orb_en_cut = orb.orbital_energy(Rsph_cut, vel_cut, mass_cut, params, prel.G)
-        # ie_cut = ie_den_cut * vol_cut
+        orb_en_cut = orb.orbital_energy(Rsph_cut, vel_cut, mass_cut, params, prel.G)
+        ie_cut = ie_den_cut * vol_cut
 
         # total energies with only the cut in density (not in radiation)
-        # tot_ie = np.sum(ie_cut)
-        # tot_orb_en_pos = np.sum(orb_en_cut[orb_en_cut > 0])
-        # tot_orb_en_neg = np.sum(orb_en_cut[orb_en_cut < 0])
-        # tot_Rad = np.sum(Rad)
+        tot_ie = np.sum(ie_cut)
+        tot_orb_en_pos = np.sum(orb_en_cut[orb_en_cut > 0])
+        tot_orb_en_neg = np.sum(orb_en_cut[orb_en_cut < 0])
+        tot_Rad = np.sum(Rad)
         tot_kin_en = np.sum(kin_en_cut)
-        orb_en_kin_all.append(tot_kin_en)
 
-        # data_E = [snap, tfb[i], tot_ie, tot_orb_en_pos, tot_orb_en_neg, tot_Rad, tot_kin_en]
-        # csv_path = f'{abspath}/data/{folder}/convE_{check}.csv'
-        # with open(csv_path, 'a', newline='') as file:
-        #     writer = csv.writer(file)
-        #     if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-        #         header = ['snap', ' tfb', ' tot_ie', ' tot_orb_en_pos', ' tot_orb_en_neg', ' tot_Rad', ' tot_kin_en']
-        #         writer.writerow(header)
-        #     writer.writerow(data_E)
-        # file.close()
+        data_E = [snap, tfb[i], tot_ie, tot_orb_en_pos, tot_orb_en_neg, tot_Rad, tot_kin_en]
+        csv_path = f'{abspath}/data/{folder}/convE_{check}.csv'
+        with open(csv_path, 'a', newline='') as file:
+            writer = csv.writer(file)
+            if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
+                header = ['snap', ' tfb', ' tot_ie', ' tot_orb_en_pos', ' tot_orb_en_neg', ' tot_Rad', ' tot_kin_en']
+                writer.writerow(header)
+            writer.writerow(data_E)
+        file.close()
 
         del X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den
         del X_cut, Y_cut, Z_cut, VX_cut, VY_cut, VZ_cut, mass_cut, vol_cut, den_cut, ie_den_cut
-        del Rsph_cut, vel_cut#, orb_en_cut, ie_cut, Rad
+        del Rsph_cut, vel_cut, orb_en_cut, ie_cut, Rad
         gc.collect()    
-
-    df['tot_orb_en_kin'] = orb_en_kin_all
-    df.to_csv(csv_path, index=False)
 
 else:
     import matplotlib.pyplot as plt
@@ -108,8 +99,8 @@ else:
 
     fig, (ax1, ax2) = plt.subplots(1,2, figsize = (18,7))
     figL, axL = plt.subplots(1,1, figsize = (10,7))
-    ax1.plot(tfbH, prel.en_converter * OEHpos, c = 'plum', label = 'Unbound gas')
-    ax1.plot(tfbH, np.abs(prel.en_converter * OEHneg), c = 'plum', ls = ':', label = 'Bound gas (abs value) ')
+    ax1.plot(tfbH, prel.en_converter * OEHpos, c = 'plum', label = 'Orbital energy unbound gas')
+    ax1.plot(tfbH, np.abs(prel.en_converter * OEHneg), c = 'plum', ls = ':', label = 'Orbital energy bound gas (abs value) ')
     ax1.set_title(r'OE [erg]', fontsize = 24) 
     # ax1.set_ylim(1.16e49, 1.2e49)
     # ax1.set_yscale('log')
@@ -125,8 +116,8 @@ else:
     dIEH = np.diff(IEH * prel.en_converter)
     dRad = np.diff(Rad * prel.en_converter)
     axL.plot(tfbdiss, LDiss, c = 'gray', label = r'$\dot{E}_{\rm irr}$', ls = '--')
-    axL.plot(tfbH[:-1], np.abs(dOEHpos)/dtH, c = 'plum', label = 'Unbound gas')
-    axL.plot(tfbH[:-1], np.abs(dOEHneg)/dtH, c = 'plum', ls = ':', label = 'Bound gas')
+    axL.plot(tfbH[:-1], np.abs(dOEHpos)/dtH, c = 'plum', label = 'Orbital energy unbound gas')
+    axL.plot(tfbH[:-1], np.abs(dOEHneg)/dtH, c = 'plum', ls = ':', label = 'Orbital energy bound gas')
     axL.plot(tfbH[:-1], np.abs(dIEH)/dtH, c = 'magenta', label = 'Thermal energy')
     axL.plot(tfbH[:-1], np.abs(dRad)/dtH, c = 'darkviolet', label = 'Radiation energy')
     axL.set_ylabel(r'$|$Energy rates$|$ [erg/s]') 
