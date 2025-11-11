@@ -72,14 +72,15 @@ if alice:
         tot_orb_en_pos = np.sum(orb_en_cut[orb_en_cut > 0])
         tot_orb_en_neg = np.sum(orb_en_cut[orb_en_cut < 0])
         tot_Rad = np.sum(Rad)
-        tot_kin_en = np.sum(kin_en_cut)
+        tot_kin_en_pos = np.sum(kin_en_cut[orb_en_cut > 0])
+        tot_kin_en_neg = np.sum(kin_en_cut[orb_en_cut < 0])
 
-        data_E = [snap, tfb[i], tot_ie, tot_orb_en_pos, tot_orb_en_neg, tot_Rad, tot_kin_en]
+        data_E = [snap, tfb[i], tot_ie, tot_orb_en_pos, tot_orb_en_neg, tot_Rad, tot_kin_en_pos, tot_kin_en_neg]
         csv_path = f'{abspath}/data/{folder}/convE_{check}.csv'
         with open(csv_path, 'a', newline='') as file:
             writer = csv.writer(file)
             if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                header = ['snap', ' tfb', ' tot_ie', ' tot_orb_en_pos', ' tot_orb_en_neg', ' tot_Rad', ' tot_kin_en']
+                header = ['snap', ' tfb', ' tot_ie', ' tot_orb_en_pos', ' tot_orb_en_neg', ' tot_Rad', ' tot_kin_en_pos', ' tot_kin_en_neg']
                 writer.writerow(header)
             writer.writerow(data_E)
         file.close()
@@ -93,7 +94,7 @@ else:
     import matplotlib.pyplot as plt
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     data = np.loadtxt(f'{abspath}/data/{folder}/convE_{check}.csv', delimiter=',', dtype=float, skiprows=1)
-    snapsH, tfbH, IEH, OEHpos, OEHneg, Rad = data[:, 0], data[:, 1], data[:, 2], data[:, 3], data[:, 4], data[:, 5]
+    snapsH, tfbH, IEH, OEHpos, OEHneg, Rad, Kin = data[:, 0], data[:, 1], data[:, 2], data[:, 3], data[:, 4], data[:, 5], data[:, 6]
     dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
     tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3] *  prel.en_converter/prel.tsol_cgs
 
@@ -107,6 +108,7 @@ else:
 
     ax2.plot(tfbH, prel.en_converter * IEH, c = 'magenta', label = 'Thermal energy')
     ax2.plot(tfbH, prel.en_converter * Rad, c = 'darkviolet', label = 'Radiation energy')
+    ax2.plot(tfbH, prel.en_converter * Kin, c = 'plum', label = 'Kinetic energy')
     ax2.set_title(r'Thermal and radiation [erg]', fontsize = 24) 
 
     # compute rates 
@@ -115,11 +117,13 @@ else:
     dOEHneg = np.diff(OEHneg * prel.en_converter)
     dIEH = np.diff(IEH * prel.en_converter)
     dRad = np.diff(Rad * prel.en_converter)
+    dKin = np.diff(Kin * prel.en_converter)
     axL.plot(tfbdiss, LDiss, c = 'gray', label = r'$\dot{E}_{\rm irr}$', ls = '--')
-    axL.plot(tfbH[:-1], np.abs(dOEHpos)/dtH, c = 'plum', label = 'Orbital energy unbound gas')
-    axL.plot(tfbH[:-1], np.abs(dOEHneg)/dtH, c = 'plum', ls = ':', label = 'Orbital energy bound gas')
+    # axL.plot(tfbH[:-1], np.abs(dOEHpos)/dtH, c = 'plum', label = 'Orbital energy unbound gas')
+    # axL.plot(tfbH[:-1], np.abs(dOEHneg)/dtH, c = 'plum', ls = ':', label = 'Orbital energy bound gas')
     axL.plot(tfbH[:-1], np.abs(dIEH)/dtH, c = 'magenta', label = 'Thermal energy')
     axL.plot(tfbH[:-1], np.abs(dRad)/dtH, c = 'darkviolet', label = 'Radiation energy')
+    axL.plot(tfbH[:-1], np.abs(dKin)/dtH, c = 'plum', label = 'Kinetic energy')
     axL.set_ylabel(r'$|$Energy rates$|$ [erg/s]') 
     axL.set_ylim(1e38, 3e43)
 
