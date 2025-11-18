@@ -363,28 +363,41 @@ if __name__ == '__main__':
                 path = f'{path}/{snap}'
 
             data = make_tree(path, snap, energy = False)
-            X, Y, Z, Den, Mass, Vol = \
-                data.X, data.Y, data.Z, data.Den, data.Mass, data.Vol
+            X, Y, Z,  VX, VY, VZ, Den, Mass, Vol = \
+                data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Den, data.Mass, data.Vol
             cutden = Den >1e-19
-            X, Y, Z, Den, Mass, Vol = \
-                sec.make_slices([X, Y, Z, Den, Mass, Vol], cutden)
+            X, Y, Z, VX, VY, VZ, Den, Mass, Vol = \
+                sec.make_slices([X, Y, Z, VX, VY, VZ, Den, Mass, Vol], cutden)
             dim_cell = Vol**(1/3) 
             del Vol
 
             try:
                 com = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
                 print('Load stream from file', flush=True)
-                stream = [com['theta_arr'], com['x_cm'], com['y_cm'], com['z_cm'], com['thresh_cm']]
             except FileNotFoundError:
                 from src.Stream.com_stream import find_transverse_com
                 print('Stream not found, computing it', flush=True)
                 thresh_cm, indices_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr)
-                x_cm, y_cm, z_cm = \
-                    X[indices_cm], Y[indices_cm], Z[indices_cm]
-                stream = [theta_arr, x_cm, y_cm, z_cm, thresh_cm]
+                x_cm, y_cm, z_cm, vx_cm, vy_cm, vz_cm, den_cm, mass_cm = \
+                    X[indices_cm], Y[indices_cm], Z[indices_cm], \
+                        VX[indices_cm], VY[indices_cm], VZ[indices_cm], \
+                            Den[indices_cm], Mass[indices_cm]
+                com = {
+                    'theta_arr': theta_arr,
+                    'thresh_cm': thresh_cm,
+                    'x_cm': x_cm,
+                    'y_cm': y_cm,
+                    'z_cm': z_cm,
+                    'vx_cm': vx_cm,
+                    'vy_cm': vy_cm,
+                    'vz_cm': vz_cm,
+                    'den_cm': den_cm,
+                    'mass_cm': mass_cm
+                } 
                 if alice:
                     np.save(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', com)
 
+            stream = [com['theta_arr'], com['x_cm'], com['y_cm'], com['z_cm'], com['thresh_cm']]
             if not alice: # just some computation
                 stream = stream[:, idx_forplot-4:idx_forplot+5]
 
