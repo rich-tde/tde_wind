@@ -98,7 +98,7 @@ if save:
     np.save(f'{abspath}/data/{folder}/cond_shio_{check}{snap}.npy', cond_shio, allow_pickle=True)
 
 #%% Plot
-which_x = 's'
+which_x = ''
 zlim_low = -10
 zlim_high = 10
 slim_low = 400

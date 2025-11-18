@@ -147,13 +147,13 @@ if plot:
     # from scipy.integrate import cumulative_trapezoid
     from plotting.paper.IHopeIsTheLast import ratio_BigOverSmall
     from Utilities.operators import sort_list
+    import matplotlib.colors as mcolors
     which_r_title = '05amin'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
     checks_label = ['Low', 'Middle', 'High']    
-    colors = ['C1', 'yellowgreen', 'darkviolet']
 
-    fig, ax1 = plt.subplots(1, 1, figsize = (8, 6))
+    fig, ax1 = plt.subplots(1, 1, figsize = (10, 6))
     figCon, (axCon, axerr) = plt.subplots(2, 1, figsize = (9, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
 
     dataL = np.loadtxt(f'{abspath}/data/{folder}LowResNewAMR/LowResNewAMR_red.csv', delimiter=',', dtype=float)
@@ -190,6 +190,11 @@ if plot:
                     unpack=True) 
     MdotHmax = mwind_dimCellH[np.argmin(np.abs(tfbH - tfbH_max))]
     tfb_ratioH, ratioH, rel_errH  = ratio_BigOverSmall(tfbM, mwind_RM, tfbH, mwind_RH)
+    data_E = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/convE_{check}.csv', delimiter=',', dtype=float, skiprows=1)    
+    tfb_E, IE, Rad = data_E[:, 1], data_E[:, 2], data_E[:, 5]
+    ratio_RadIE = Rad/IE
+    # not the best way to do it, but Mdot starts later than energies
+    ratio_RadIE = np.array(ratio_RadIE[len(ratio_RadIE)-len(mwind_dimCellH):])
 
     print('Naive estimate L:', 0.1 * np.max(np.abs(mfallH))* prel.Msol_cgs/prel.tsol_cgs * prel.c_cgs**2)
     print('Medd_cgs:', Medd_cgs)
@@ -202,7 +207,11 @@ if plot:
     # print(f'End of simualation, Mw/Mfb in {check}:', np.abs(mwind_dimCell[-1]/mfall[-1]))
     
     ax1.plot(tfbH, np.abs(mfallH)/Medd_sol, ls = '--', c = 'k', label = r'$\dot{M}_{\rm fb}$')
-    ax1.plot(tfbH, np.abs(mwind_dimCellH)/Medd_sol, c = 'darkviolet', label = r'$\dot{M}_{\rm w}$')
+    img = ax1.scatter(tfbH, np.abs(mwind_dimCellH)/Medd_sol, c = ratio_RadIE, cmap = 'PuOr', edgecolors = 'gray', norm = colors.LogNorm(vmin=3e-2, vmax=5e1) ,label = r'$\dot{M}_{\rm w}$')
+    cbar = fig.colorbar(img, ax = ax1)
+    cbar.set_label(r'$E_{\rm rad}/E_{\rm th}$')
+    cbar.ax.tick_params(which = 'major', length=8, width=0.9)
+    cbar.ax.tick_params(which = 'minor', length=5, width=0.7)
     ax1.axvline(tfbH_max, ls = ':', c = 'gray')
     ax1.text(0.011+tfbH_max, 20, r'$t=t_{\rm p}$', rotation = 90, fontsize = 20) 
 
@@ -244,6 +253,24 @@ if plot:
     figCon.tight_layout()
     fig.savefig(f'{abspath}/Figs/paper/Mw.pdf', bbox_inches = 'tight')
     figCon.savefig(f'{abspath}/Figs/paper/Mw_conv.pdf', bbox_inches = 'tight')
+
+    fig, ax = plt.subplots(1,1, figsize = (8,6))
+    ax.plot(tfbH, np.abs(mwind_dimCellH/mfallH), c = 'k')
+    ax.set_yscale('log')
+    ax.set_xlabel(r'$t [t_{\rm fb}]$')
+    ax.set_ylabel(r'$|\dot{M}_{\rm w}/\dot{M}_{\rm fb}|$')
+    original_ticks = ax.get_xticks()
+    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+    ax.set_xticks(new_ticks)
+    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
+    ax.set_xticklabels(labels)
+    ax.tick_params(axis='both', which='major', width=1.2, length=9)
+    ax.tick_params(axis='both', which='minor', width=1, length=5)
+    ax.set_ylim(1e-2, 1)
+    ax.set_xlim(np.min(tfbH), np.max(tfbH))
+    ax.grid()
+    fig.tight_layout()
 
 
     

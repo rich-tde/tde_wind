@@ -25,7 +25,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-what = 'onlysection' # 'onlysection' or 'section4' or 'comparison' or 'max_compr' or 'single_snap_behavior' 
+what = 'comparison' # 'onlysection' or 'section4' or 'comparison' or 'max_compr' or 'single_snap_behavior' 
 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -41,7 +41,7 @@ lineminus3_4 = draw_line(x_arr, -3/4*np.pi)
 
 if what == 'comparison':
     # line at 3/4 and -3/4 pi
-    wanted_time = [0.5, 0.75, 1]
+    wanted_time = [0.5, 0.75, 1, 1.5]
     checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
     compton = 'Compton'
     checks_name = ['Low', 'Fid', 'High']
@@ -54,7 +54,7 @@ if what == 'comparison':
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize = (15,12))
 
         for i, check in enumerate(checks):
-            # pick the simualtion
+            # pick the simulation
             folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
             data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
             snaps = np.array([int(s) for s in data[:,0]])
@@ -115,7 +115,7 @@ if what == 'comparison':
 
 if what == 'single_snap_behavior' or what == 'section4' or what == 'onlysection':
     check = 'HiResNewAMR'
-    snap = 76
+    snap = 123
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
     # Load data snap

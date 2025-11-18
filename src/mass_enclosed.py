@@ -33,6 +33,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 
+
 ##
 # MAIN
 ##
@@ -171,7 +172,9 @@ else:
         dMdt0_cgs = dMdt0 * prel.Msol_cgs/t_fb_days_cgs
         Lacc = 0.05 * dMdt0_cgs * prel.c_cgs**2
         print(f'L = {np.max(Lacc)} at t = {tfb_encl[np.argmax(Lacc)]}')
-        # print(0.05 * 1e-4*mstar*prel.Msol_cgs/t_fb_days_cgs * prel.c_cgs**2)
+        # print(0.05 * 1e-4*mstar*prel.Msol_cgs/t_fb_days_cgs * prel.c_cgs**2) 
+        t_visc = np.sqrt((2*Rt)**3/prel.G/Mbh)/(0.1*0.2**2) * prel.tsol_cgs/(3600*24)
+        print('t_visc in days: ', t_visc)
         plt.figure(figsize = (10,6))
         plt.plot(tfb_encl[:-1], dMdt0/Medd_sol, c = 'k')
         plt.yscale('log') 

@@ -157,7 +157,6 @@ def get_things_about(params, c = prel.csol_cgs, G = prel.G):
     return things
 
 def parameters_orbit(Rp, Ra, Mbh, c, G ):
-    # Rp, Ra, Mbh, c, G = params_orb[0], params_orb[1], params_orb[2], params_orb[3], params_orb[4]
     Rs = 2 * G * Mbh / c**2
     En = G * Mbh * (Rp**2 * (Ra-Rs) - Ra**2 * (Rp-Rs)) / ((Ra**2-Rp**2) * (Rp-Rs) * (Ra-Rs))
     L = np.sqrt(2 * Ra**2 * (En + G*Mbh/(Ra-Rs)))

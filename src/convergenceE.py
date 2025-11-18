@@ -72,7 +72,7 @@ if alice:
         tot_orb_en_pos = np.sum(orb_en_cut[orb_en_cut > 0])
         tot_orb_en_neg = np.sum(orb_en_cut[orb_en_cut < 0])
         tot_Rad = np.sum(Rad)
-        tot_kin_en_pos = np.sum(kin_en_cut[orb_en_cut > 0])
+        tot_kin_en_pos = np.sum(kin_en_cut[orb_en_cut >= 0])
         tot_kin_en_neg = np.sum(kin_en_cut[orb_en_cut < 0])
 
         data_E = [snap, tfb[i], tot_ie, tot_orb_en_pos, tot_orb_en_neg, tot_Rad, tot_kin_en_pos, tot_kin_en_neg]
@@ -94,38 +94,44 @@ else:
     import matplotlib.pyplot as plt
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     data = np.loadtxt(f'{abspath}/data/{folder}/convE_{check}.csv', delimiter=',', dtype=float, skiprows=1)
-    snapsH, tfbH, IEH, OEHpos, OEHneg, Rad, Kin = data[:, 0], data[:, 1], data[:, 2], data[:, 3], data[:, 4], data[:, 5], data[:, 6]
+    snaps, tfb, IE, OEpos, OEEneg, Rad, Kinpos, Kinneg = data[:, 0], data[:, 1], data[:, 2], data[:, 3], data[:, 4], data[:, 5], data[:, 6], data[:, 7]
     dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
     tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3] *  prel.en_converter/prel.tsol_cgs
+    totalK = Kinneg + Kinpos
 
     fig, (ax1, ax2) = plt.subplots(1,2, figsize = (18,7))
     figL, axL = plt.subplots(1,1, figsize = (10,7))
-    ax1.plot(tfbH, prel.en_converter * OEHpos, c = 'plum', label = 'Orbital energy unbound gas')
-    ax1.plot(tfbH, np.abs(prel.en_converter * OEHneg), c = 'plum', ls = ':', label = 'Orbital energy bound gas (abs value) ')
+    ax1.plot(tfb, prel.en_converter * OEpos, c = 'plum', label = 'Orbital energy unbound gas')
+    ax1.plot(tfb, np.abs(prel.en_converter * OEEneg), c = 'plum', ls = ':', label = 'Orbital energy bound gas (abs value) ')
     ax1.set_title(r'OE [erg]', fontsize = 24) 
-    # ax1.set_ylim(1.16e49, 1.2e49)
+    ax2.set_ylim(1e43, 6e49)
     # ax1.set_yscale('log')
 
-    ax2.plot(tfbH, prel.en_converter * IEH, c = 'magenta', label = 'Thermal energy')
-    ax2.plot(tfbH, prel.en_converter * Rad, c = 'darkviolet', label = 'Radiation energy')
-    ax2.plot(tfbH, prel.en_converter * Kin, c = 'plum', label = 'Kinetic energy')
+    ax2.plot(tfb, prel.en_converter * IE, c = 'magenta', label = 'Thermal energy')
+    ax2.plot(tfb, prel.en_converter * Rad, c = 'darkviolet', label = 'Radiation energy')
+    ax2.plot(tfb, prel.en_converter * Kinpos, c = 'plum', label = 'Kinetic energy unbound gas')
+    ax2.plot(tfb, np.abs(prel.en_converter * Kinneg), c = 'plum', ls = ':', label = 'Kinetic energy bound gas (abs value)')
     ax2.set_title(r'Thermal and radiation [erg]', fontsize = 24) 
 
     # compute rates 
-    dtH = np.diff(tfbH * t_fall_cgs)
-    dOEHpos = np.diff(OEHpos * prel.en_converter)
-    dOEHneg = np.diff(OEHneg * prel.en_converter)
-    dIEH = np.diff(IEH * prel.en_converter)
+    dtH = np.diff(tfb * t_fall_cgs)
+    dOEpos = np.diff(OEpos * prel.en_converter)
+    dOEEneg = np.diff(OEEneg * prel.en_converter)
+    dIE = np.diff(IE * prel.en_converter)
     dRad = np.diff(Rad * prel.en_converter)
-    dKin = np.diff(Kin * prel.en_converter)
+    dKinpos = np.diff(Kinpos * prel.en_converter)
+    dKinneg = np.diff(Kinneg * prel.en_converter)
+    dTotalK = np.diff(totalK * prel.en_converter)
+    axL.plot(tfb[:-1], np.abs(dOEpos)/dtH, c = 'plum', label = 'Orb. en. unbound gas')
+    axL.plot(tfb[:-1], np.abs(dOEEneg)/dtH, c = 'plum', ls = ':', label = 'Orb. en. bound gas')
+    axL.plot(tfb[:-1], np.abs(dIE)/dtH, c = 'magenta', label = 'Thermal energy')
+    axL.plot(tfb[:-1], np.abs(dRad)/dtH, c = 'darkviolet', label = 'Radiation energy')
     axL.plot(tfbdiss, LDiss, c = 'gray', label = r'$\dot{E}_{\rm irr}$', ls = '--')
-    # axL.plot(tfbH[:-1], np.abs(dOEHpos)/dtH, c = 'plum', label = 'Orbital energy unbound gas')
-    # axL.plot(tfbH[:-1], np.abs(dOEHneg)/dtH, c = 'plum', ls = ':', label = 'Orbital energy bound gas')
-    axL.plot(tfbH[:-1], np.abs(dIEH)/dtH, c = 'magenta', label = 'Thermal energy')
-    axL.plot(tfbH[:-1], np.abs(dRad)/dtH, c = 'darkviolet', label = 'Radiation energy')
-    axL.plot(tfbH[:-1], np.abs(dKin)/dtH, c = 'plum', label = 'Kinetic energy')
+    # axL.plot(tfb[:-1], np.abs(dKinpos)/dtH, c = 'plum', label = 'Kinetic energy unbound gas')
+    # axL.plot(tfb[:-1], np.abs(dKinneg)/dtH, c = 'plum', ls = ':', label = 'Kinetic energy bound gas (abs value)')
+    # axL.plot(tfb[:-1], np.abs(dTotalK)/dtH, c = 'brown', label = 'Total Kinetic energy')
     axL.set_ylabel(r'$|$Energy rates$|$ [erg/s]') 
-    axL.set_ylim(1e38, 3e43)
+    axL.set_ylim(1e39, 1e44)
 
     orginal_ticks = axL.get_xticks()
     middle_ticks = (orginal_ticks[:-1] + orginal_ticks[1:]) /2
@@ -139,9 +145,9 @@ else:
         ax.set_xlabel(r'$t [t_{\rm fb}]$')
         if ax != ax1:
             ax.set_yscale('log')
-        ax.legend(fontsize = 20)
+        ax.legend(fontsize = 18)
         ax.grid()
-        ax.set_xlim(0, np.max(tfbH))
+        ax.set_xlim(0, np.max(tfb))
     fig.tight_layout()
     fig.savefig(f'{abspath}/Figs/paper/Ebudget_{check}.png', dpi = 300)
     figL.tight_layout()

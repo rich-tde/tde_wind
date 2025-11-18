@@ -12,7 +12,7 @@ else:
     import matplotlib.pyplot as plt
     from Utilities.basic_units import radians
     import matplotlib.colors as colors
-    compute = True
+    compute = False
 
 import numpy as np
 from scipy.optimize import brentq
@@ -413,36 +413,66 @@ if __name__ == '__main__':
                 np.save(f'{abspath}/data/{folder}/WH/enclosed/indeces_enclosed_{check}{snap}.npy', indeces_enclosed, allow_pickle=True)
 
     if plot: 
-        snap = 80
+        from Utilities.operators import sort_list
+        x_axis = ''
         dataLum = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
         snaps, tfbs = dataLum[:, 0], dataLum[:, 1]
-
-        theta_wh, width, N_width, height, N_height = \
-            np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
-        print('indices for theta = -pi/2, 0, pi/2:', np.argmin(np.abs(theta_wh + np.pi/2)), np.argmin(np.abs(theta_wh)), np.argmin(np.abs(theta_wh - np.pi/2)))
+        snaps, tfbs = sort_list([snaps, tfbs], tfbs)
+        snaps = [int(snap) for snap in snaps]
 
         # Plotting results
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 9))
-        ax1.plot(theta_wh * radians, width, c = 'darkviolet')
-        ax3.scatter(theta_wh * radians, N_width, c = 'darkviolet')
-        ax2.plot(theta_wh * radians, height, c = 'darkviolet')
-        ax4.scatter(theta_wh * radians, N_height, c = 'darkviolet')
-        ax1.set_ylabel(r'Width [$R_\odot$]')
-        ax3.set_ylabel(r'N cells')
-        ax2.set_ylabel(r'Height [$R_\odot$]')
-        ax1.set_ylim(1, 15)
-        ax2.set_ylim(.1, 10)
-        ax3.set_ylim(4, 40)    
-        ax4.set_ylim(0.9, 35)
-        for ax in [ax1, ax2, ax3, ax4]:
-            ax.set_yscale('log')
-            ax.set_xlabel(r'$\theta$')
-            ax.set_xlim(-2.5, 2.5)
-            ax.tick_params(axis='both', which='major', length = 10, width = 1.2)
-            ax.tick_params(axis='both', which='minor', length = 8, width = 1)
-            ax.grid()
-        plt.suptitle(f't = {np.round(tfbs[snaps==snap][0],2)} ' + r't$_{\rm fb}$', fontsize=16)
-        plt.tight_layout()
+        for i, snap in enumerate(snaps):
+            # if snap == 81:
+            #     continue
+            theta_wh, width, N_width, height, N_height = \
+                np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
+            if x_axis == 'radius':
+                theta_stream, x_stream, y_stream, z_stream, _ = \
+                    np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
+                r_stream = np.sqrt(x_stream**2 + y_stream**2 + z_stream**2)
+                x_ax = r_stream/Rt
+            else:
+                x_ax = theta_wh * radians
+            # print('indices for theta = -pi/2, 0, pi/2:', np.argmin(np.abs(theta_wh + np.pi/2)), np.argmin(np.abs(theta_wh)), np.argmin(np.abs(theta_wh - np.pi/2)))
+            fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(18, 14))
+            if x_axis == 'radius':
+                ax1.scatter(x_ax, width, c = theta_wh*radians, cmap = 'jet')
+                img = ax3.scatter(x_ax, N_width, c = theta_wh*radians, cmap = 'jet')
+                cbar = plt.colorbar(img, orientation = 'horizontal')
+                cbar.set_label(r'$\theta$ [rad]')
+                ax2.scatter(x_ax, height, c = theta_wh*radians, cmap = 'jet')
+                ax2.plot(x_ax, 8*np.sqrt(x_ax), c = 'k', ls = '--')
+                img = ax4.scatter(x_ax, N_height, c = theta_wh*radians, cmap = 'jet')
+                cbar = plt.colorbar(img, orientation = 'horizontal')
+                cbar.set_label(r'$\theta$ [rad]')
+            else:
+                ax1.plot(x_ax, width, c = 'darkviolet')
+                ax3.plot(x_ax, N_width, c = 'darkviolet')
+                ax2.plot(x_ax, height, c = 'darkviolet')
+                ax4.plot(x_ax, N_height, c = 'darkviolet')
+            ax1.set_ylabel(r'Width [$R_\odot$]')
+            ax3.set_ylabel(r'N cells')
+            ax2.set_ylabel(r'Height [$R_\odot$]')
+            ax1.set_ylim(1, 15)
+            ax2.set_ylim(.2, 10)
+            ax3.set_ylim(10, 40)    
+            ax4.set_ylim(0.9, 35)
+            for ax in [ax1, ax2, ax3, ax4]:
+                if x_axis == 'radius':
+                    ax.set_xlabel(r'$r [r_{\rm t}]$')
+                    ax.set_xlim(.5, 1e2)
+                    ax.loglog()
+                else:
+                    ax.set_xlabel(r'$\theta$')
+                    ax.set_xlim(-2.5, 2.5)
+                    ax.set_yscale('log')
+                ax.tick_params(axis='both', which='major', length = 10, width = 1.2)
+                ax.tick_params(axis='both', which='minor', length = 8, width = 1)
+                ax.grid()
+            plt.suptitle(f't = {np.round(tfbs[i],2)} ' + r't$_{\rm fb}$', fontsize= 25)
+            plt.tight_layout()
+            plt.savefig(f'{abspath}/Figs/{folder}/stream/WH_theta{snap}{x_axis}.png')
+            plt.close()
     
 
 

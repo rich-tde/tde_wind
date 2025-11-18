@@ -16,7 +16,7 @@ else:
 
 import numpy as np
 import numba
-
+from sklearn.neighbors import KDTree
 import Utilities.prelude as prel
 import Utilities.sections as sec
 import src.orbits as orb
@@ -237,14 +237,14 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         z_cm[idx] = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
         thresh_cm[idx] = thresh
     # Search in the tree the closest point to the center of mass
-    # points = np.array([x_data, y_data, z_data]).T
-    # tree = KDTree(points)
-    # _, indeces_cm = tree.query(np.array([x_cm, y_cm, z_cm]).T, k=1)
-    # indeces_cm = [ int(indeces_cm[i][0]) for i in range(len(indeces_cm))]
+    points = np.array([x_data, y_data, z_data]).T
+    tree = KDTree(points)
+    _, indeces_cm = tree.query(np.array([x_cm, y_cm, z_cm]).T, k=1)
+    indeces_cm = [ int(indeces_cm[i][0]) for i in range(len(indeces_cm))]
     if all_iterations:
         return x_cm, y_cm, z_cm, thresh_cm, x_cmTR, y_cmTR, z_cmTR, x_stream_rad, y_stream_rad, z_stream_rad
     else:
-        return x_cm, y_cm, z_cm, thresh_cm
+        return thresh_cm, indeces_cm
 
 
 if __name__ == '__main__':
@@ -269,13 +269,28 @@ if __name__ == '__main__':
             X, Y, Z, Den, Mass, Vol = \
                 data.X, data.Y, data.Z, data.Den, data.Mass, data.Vol
             cutden = Den >1e-19
-            X, Y, Z, Den, Mass, Vol = \
-                sec.make_slices([X, Y, Z, Den, Mass, Vol], cutden)
+            X, Y, Z, VX, VY, VZ, Den, Mass, Vol = \
+                sec.make_slices([X, Y, Z, VX, VY, VZ, Den, Mass, Vol], cutden)
             dim_cell = Vol**(1/3) 
-            x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr)
-            stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
+            thresh_cm, indices_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr)
+            x_cm, y_cm, z_cm, vx_cm, vy_cm, vz_cm, den_cm, mass_cm = \
+                X[indices_cm], Y[indices_cm], Z[indices_cm], \
+                    VX[indices_cm], VY[indices_cm], VZ[indices_cm], \
+                        Den[indices_cm], Mass[indices_cm]
+            com = {
+                'theta_arr': theta_arr,
+                'thresh_cm': thresh_cm,
+                'x_cm': x_cm,
+                'y_cm': y_cm,
+                'z_cm': z_cm,
+                'vx_cm': vx_cm,
+                'vy_cm': vy_cm,
+                'vz_cm': vz_cm,
+                'den_cm': den_cm,
+                'mass_cm': mass_cm
+            } 
 
-            np.save(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', stream)
+            np.save(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', com)
 
         else:
             theta_arr, x_stream, y_stream, z_stream, thresh_cm = \

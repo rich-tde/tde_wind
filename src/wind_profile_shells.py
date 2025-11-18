@@ -139,9 +139,8 @@ if plot:
     y_test23 = 5e5*(x_test)**(-2/3)
     y_test2 = 3e-8* (x_test)**(-2) 
     figV, axV_tot = plt.subplots(1, 1, figsize=(9, 7))
-    fig, (axV, axd, axT) = plt.subplots(1, 3, figsize=(24, 6)) 
-    # figM, axMdot = plt.subplots(1, 1, figsize=(9, 7))
-    figM_dim, axMdot_dim = plt.subplots(1, 1, figsize=(9, 7))
+    fig, (axMdot_dim, axV, axd, axT) = plt.subplots(1, 4, figsize=(32, 6)) 
+    # figM_dim, axMdot_dim = plt.subplots(1, 1, figsize=(9, 7))
     figL, axL = plt.subplots(1, 1, figsize=(9, 7))
 
 for i, snap in enumerate(snaps):
@@ -223,7 +222,7 @@ if plot:
         ax.set_xlim(1, 4*apo/Rt)
         ax.set_xlabel(r'$r [r_{\rm t}]$', fontsize = 28)
         ax.grid()
-        if ax not in [axd, axT]:
+        if ax not in [axd, axT, axV]:
             ax.legend(fontsize = 20)
 
     # axMdot.set_ylim(7e2, 1e7)
@@ -244,7 +243,7 @@ if plot:
     axL.set_ylim(1, 5e2)
     fig.tight_layout()
     fig.savefig(f'{abspath}/Figs/paper/den_profShell{which_part}.pdf', bbox_inches = 'tight')
-    figM_dim.savefig(f'{abspath}/Figs/paper/MwShell{which_part}.pdf', bbox_inches = 'tight')
+    # figM_dim.savefig(f'{abspath}/Figs/paper/MwShell{which_part}.pdf', bbox_inches = 'tight')
     figL.savefig(f'{abspath}/Figs/paper/LShell{which_part}.pdf', bbox_inches = 'tight')
     plt.show()
 
