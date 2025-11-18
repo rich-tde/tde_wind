@@ -290,11 +290,12 @@ if __name__ == '__main__':
                 'mass_cm': mass_cm
             } 
 
-            np.save(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', com)
+            np.savez(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npz', **com)
 
         else:
+            data = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npz')
             theta_arr, x_stream, y_stream, z_stream, thresh_cm = \
-                np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy')
+                data['theta_arr'], data['x_cm'], data['y_cm'], data['z_cm'], data['thresh_cm']
             # print(len(theta_arr))
             snaps, times = np.loadtxt(f'{abspath}/data/{folder}/slices/z/z0_time.txt')
             slice_data = np.load(f'{abspath}/data/{folder}/slices/z/z0slice_{snap}.npy')

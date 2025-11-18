@@ -372,7 +372,7 @@ if __name__ == '__main__':
             del Vol
 
             try:
-                com = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
+                com = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npz')
                 print('Load stream from file', flush=True)
             except FileNotFoundError:
                 from src.Stream.com_stream import find_transverse_com
@@ -395,7 +395,7 @@ if __name__ == '__main__':
                     'mass_cm': mass_cm
                 } 
                 if alice:
-                    np.save(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', com)
+                    np.savez(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npz', **com)
 
             stream = [com['theta_arr'], com['x_cm'], com['y_cm'], com['z_cm'], com['thresh_cm']]
             if not alice: # just some computation
