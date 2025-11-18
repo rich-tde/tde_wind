@@ -266,8 +266,8 @@ if __name__ == '__main__':
             path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
             path = f'{path}/snap_{snap}'
             data = make_tree(path, snap, energy = False)
-            X, Y, Z, Den, Mass, Vol = \
-                data.X, data.Y, data.Z, data.Den, data.Mass, data.Vol
+            X, Y, Z, VX, VY, VZ, Den, Mass, Vol = \
+                data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Den, data.Mass, data.Vol
             cutden = Den >1e-19
             X, Y, Z, VX, VY, VZ, Den, Mass, Vol = \
                 sec.make_slices([X, Y, Z, VX, VY, VZ, Den, Mass, Vol], cutden)

@@ -372,15 +372,18 @@ if __name__ == '__main__':
             del Vol
 
             try:
-                stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
+                com = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
                 print('Load stream from file', flush=True)
+                stream = [com['theta_arr'], com['x_cm'], com['y_cm'], com['z_cm'], com['thresh_cm']]
             except FileNotFoundError:
                 from src.Stream.com_stream import find_transverse_com
                 print('Stream not found, computing it', flush=True)
-                x_stream, y_stream, z_stream, thresh_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr)
-                stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
+                thresh_cm, indices_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr)
+                x_cm, y_cm, z_cm = \
+                    X[indices_cm], Y[indices_cm], Z[indices_cm]
+                stream = [theta_arr, x_cm, y_cm, z_cm, thresh_cm]
                 if alice:
-                    np.save(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', stream)
+                    np.save(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', com)
 
             if not alice: # just some computation
                 stream = stream[:, idx_forplot-4:idx_forplot+5]
