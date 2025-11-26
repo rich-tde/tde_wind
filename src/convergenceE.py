@@ -34,7 +34,6 @@ check = 'HiResNewAMR'
 
 #%%
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-Mbh = 10**m
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 Rs = things['Rs']
@@ -45,6 +44,7 @@ apo = things['apo']
 t_fall = things['t_fb_days']
 t_fall_cgs = t_fall * 24 * 3600
 
+#%%
 if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 
@@ -130,7 +130,7 @@ else:
     # axL.plot(tfb[:-1], np.abs(dKinpos)/dtH, c = 'plum', label = 'Kinetic energy unbound gas')
     # axL.plot(tfb[:-1], np.abs(dKinneg)/dtH, c = 'plum', ls = ':', label = 'Kinetic energy bound gas (abs value)')
     # axL.plot(tfb[:-1], np.abs(dTotalK)/dtH, c = 'brown', label = 'Total Kinetic energy')
-    axL.set_ylabel(r'$|$Energy rates$|$ [erg/s]') 
+    axL.set_ylabel(r'Luminosity [erg/s]') 
     axL.set_ylim(1e39, 1e44)
 
     orginal_ticks = axL.get_xticks()

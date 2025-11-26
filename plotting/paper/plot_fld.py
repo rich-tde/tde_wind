@@ -105,6 +105,7 @@ ax.set_xlim(np.min(tfb), np.max(tfb))
 plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld_ioniz.pdf', bbox_inches='tight')
 
 # %%
+print('max L', np.max(Lum)/Ledd_cgs)
 fig, (axR, axL) = plt.subplots(1, 2, figsize=(16, 7))
 axR.plot(tfb, percentile84/Rt, c = 'k', alpha = 0.3, linestyle = '--')
 axR.plot(tfb, percentile16/Rt, c = 'k', alpha = 0.3, linestyle = '--')

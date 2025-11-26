@@ -101,8 +101,8 @@ if alice:
 
 if not alice:
     if test_bins:
-        snap = 348
-        check = ''
+        snap = 109
+        check = 'HiResNewAMR'
         spacebins = 0.01
         bins = np.arange(-6.5, 2, spacebins) #np.linspace(-5,5,1000)
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'

@@ -6,10 +6,12 @@ alice, plot = isalice()
 if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
     save = True
+    compute = True
 else:
     import k3match
     abspath = '/Users/paolamartire/shocks'
     save = False
+    compute = False
 
 #%%
 import gc
@@ -35,7 +37,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'NewAMR' 
+check = 'HiResNewAMR' 
 which_part = 'outflow' # 'outflow' or ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -51,6 +53,7 @@ apo = things['apo']
 norm = things['E_mb']
 tfallback = things['t_fb_days']
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
+t_fb_sol = tfallback_cgs/prel.tsol_cgs
 
 # Opacity
 opac_path = f'{abspath}/src/Opacity'
@@ -315,41 +318,51 @@ def r_trapp(loadpath, snap):
 # MAIN
 ## 
 #%% matlab
-eng = matlab.engine.start_matlab()
-snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True)
+if compute:
+    snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True)
+else:
+    snaps = [109, 151]
 
 for snap in snaps:
-    if alice:
-        loadpath = f'{pre}/snap_{snap}'
-        print(snap, flush=True)
-    else: 
-        if snap != 318:
-            continue
-        loadpath = f'{pre}/{snap}'
-        observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
-        indices_sorted, label_obs, colors_obs, _ = choose_observers(observers_xyz, 'hemispheres')
-        test_idx = indices_sorted[:,1]
-        # take just the first one for each direction
-        label_obs = np.array(label_obs)
-        colors_obs = np.array(colors_obs)
-        test_idx = np.array(test_idx)
-        label_obs, colors_obs, test_idx = sort_list([label_obs, colors_obs, test_idx], test_idx)
-    r_tr = r_trapp(loadpath, snap)
+    if compute:
+        eng = matlab.engine.start_matlab()
+        if alice:
+            loadpath = f'{pre}/snap_{snap}'
+            print(snap, flush=True)
+        else: 
+            if snap != 318:
+                continue
+            loadpath = f'{pre}/{snap}'
+            observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
+            indices_sorted, label_obs, colors_obs, _ = choose_observers(observers_xyz, 'hemispheres')
+            test_idx = indices_sorted[:,1]
+            # take just the first one for each direction
+            label_obs = np.array(label_obs)
+            colors_obs = np.array(colors_obs)
+            test_idx = np.array(test_idx)
+            label_obs, colors_obs, test_idx = sort_list([label_obs, colors_obs, test_idx], test_idx)
+        r_tr = r_trapp(loadpath, snap)
 
-    if save:
-        np.savez(f"{pre_saving}/trap/{check}_Rtr{snap}.npz", **r_tr)
+        if save:
+            np.savez(f"{pre_saving}/trap/{check}_Rtr{snap}.npz", **r_tr)
+        eng.exit()
 
     if plot:
-        x_tr, y_tr, z_tr , den_tr, Vr_tr = r_tr['x_tr'], r_tr['y_tr'], r_tr['z_tr'], r_tr['den_tr'], r_tr['Vr_tr']
+        dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz")
+        x_tr, y_tr, z_tr , den_tr, Vr_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr']
         radius_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-        Mdot_w = 4 * np.pi * radius_tr**2 * np.abs(Vr_tr) * den_tr
-        Mdot_w_cgs = Mdot_w * prel.Msol_cgs/prel.tsol_cgs
-        plt.figure(figsize = (8, 6))
-        plt.plot(radius_tr/apo, Mdot_w_cgs/Medd)
-        plt.xlabel(r'$R [R_{\rm a}]$')
-        plt.ylabel(r'$\dot{M}$ [M$_{\odot}$/s]')
-        plt.title(f'Snap {snap}')
-        plt.grid()
+        # Mdot_w = 4 * np.pi * radius_tr**2 * np.abs(Vr_tr) * den_tr
+        # Mdot_w_cgs = Mdot_w * prel.Msol_cgs/prel.tsol_cgs
+        t_dyn = radius_tr / np.abs(Vr_tr)
+        fig, ax = plt.subplots(1, 1, figsize = (8, 6))
+        ax.scatter(np.arange(len(radius_tr)), t_dyn/t_fb_sol, s = 5, c = 'k')
+        ax.set_xlabel(r'Observer index')
+        ax.set_ylabel(r'$t_{\rm dyn}$ [t$_{\rm fb}$]')
+        ax.set_yscale('log')
+        ax.set_title(f'Snap {snap}')
+        ax.grid()
+        ax.tick_params(axis='both', which='minor', length=6, width=1)
+        ax.tick_params(axis='both', which='major', length=10, width=1.5)
         plt.tight_layout()
     
 
@@ -398,6 +411,5 @@ for snap in snaps:
     # plt.legend() 
 
 
-#%%
-eng.exit()
+
 

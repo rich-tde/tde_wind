@@ -58,6 +58,8 @@ Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
 convers_kms = prel.Rsol_cgs * 1e-5/prel.tsol_cgs # it's aorund 400
 
+print(Rp/Rg)
+#%%
 # MAIN
 if compute: # compute dM/dt = dM/dE * dE/dt
     r_chosen = 0.5*amin # 'Rtr' for radius of the trap, value that you want for a fixed value
@@ -96,22 +98,26 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         data = make_tree(path, snap, energy = True)
         X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
             data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Press, data.VX, data.VY, data.VZ, data.IE, data.Rad
-        dim_cell = Vol**(1/3)
         cut = Den > 1e-19
-        X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
-            make_slices([X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
+        X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
+            make_slices([X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
+        dim_cell = Vol**(1/3)
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
         V = np.sqrt(VX**2 + VY**2 + VZ**2)
         bern = orb.bern_coeff(Rsph, V, Den, Mass, Press, IE_den, Rad_den, params)
         v_rad, _, _ = to_spherical_components(VX, VY, VZ, X, Y, Z)
+        IE = IE_den * Vol
+        Rad = Rad_den * Vol
         cond_wind = np.logical_and(v_rad >= 0, bern > 0)
-        X_pos, Y_pos, Z_pos, Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
-            make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell], cond_wind)
+        X_pos, Y_pos, Z_pos, Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos, IE_pos, Rad_pos = \
+            make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell, IE, Rad], cond_wind)
         if Den_pos.size == 0:
             print(f'no positive', flush=True)
-            data = [snap, tfb[i], mfall, 0, 0, 0, 0, 0]
+            data = [snap, tfb[i], mfall, 0, 0, 0, 0, 0, 0, 0]
 
         else: 
+            tot_IE = np.sum(IE_pos)
+            tot_Rad = np.sum(Rad_pos)
             Mdot_dimCell = np.pi * dim_cell_pos**2 * Den_pos * v_rad_pos  
             Mdot_R = 4 * np.pi * r_chosen**2 * Den_pos * v_rad_pos 
             condRtr = np.abs(Rsph_pos-r_chosen) < dim_cell_pos
@@ -132,14 +138,14 @@ if compute: # compute dM/dt = dM/dE * dE/dt
                 Vwind = np.median(v_rad_pos_casted)
                 Vwind_nonzero = np.median(v_rad_pos_casted[v_rad_pos_casted!=0])
         
-            data = [snap, tfb[i], mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind, Vwind_nonzero]
-
+            data = [snap, tfb[i], mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind, Vwind_nonzero, tot_IE, tot_Rad]
+    
         csv_path = f'{abspath}/data/{folder}/wind/Mdot_{check}{which_r_title}{statist}.csv'
         if alice:
             with open(csv_path, 'a', newline='') as file:
                 writer = csv.writer(file)
                 if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                    writer.writerow(['snap', ' tfb', ' Mdot_fb', 'normalized Mw with dimCell', f'Mw with {which_r_title}', f'Mw with {which_r_title} (nonzero)', 'Vwind', 'Vwind (nonzero)'])
+                    writer.writerow(['snap', ' tfb', ' Mdot_fb', 'normalized Mw with dimCell', f'Mw with {which_r_title}', f'Mw with {which_r_title} (nonzero)', 'Vwind', 'Vwind (nonzero)', 'tot_IE', 'tot_Rad'])
                 writer.writerow(data)
             file.close()
 
@@ -195,6 +201,7 @@ if plot:
     ratio_RadIE = Rad/IE
     # not the best way to do it, but Mdot starts later than energies
     ratio_RadIE = np.array(ratio_RadIE[len(ratio_RadIE)-len(mwind_dimCellH):])
+    print('final ratios Rad/IE:', ratio_RadIE[-10:])
 
     print('Naive estimate L:', 0.1 * np.max(np.abs(mfallH))* prel.Msol_cgs/prel.tsol_cgs * prel.c_cgs**2)
     print('Medd_cgs:', Medd_cgs)
@@ -229,7 +236,7 @@ if plot:
         if ax != axerr:
             ax.set_yscale('log')
             ax.set_ylim(10, 9e6)
-            ax.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm Edd}]$')   
+            ax.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm Edd}]$')   
         else:
             ax.set_ylim(0.9, 4)
             ax.set_ylabel(r'$\mathcal{R}$')

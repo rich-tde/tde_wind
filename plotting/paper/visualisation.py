@@ -309,7 +309,7 @@ cbar_axDiss = fig.add_subplot(gs[3, 1])  # Colorbar subplot below the first 3 pa
 cbDiss = fig.colorbar(imgDiss, cax=cbar_axDiss, orientation='horizontal')
 cbDiss.ax.tick_params(which='major',length = 5)
 cbDiss.ax.tick_params(which='minor',length = 3)
-cbDiss.set_label(r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$', fontsize = 20)
+cbDiss.set_label(r'Dissipation rate column density [erg s$^{-1}$cm$^{-2}]$', fontsize = 20)
 axDiss.set_xlabel(r'$X [r_{\rm a}]$')#, fontsize = 20)
 plt.tight_layout()
 
