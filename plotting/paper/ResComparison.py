@@ -19,7 +19,8 @@ from Utilities.time_extractor import days_since_distruption
 #
 
 kubli25 = 1e-10
-Hu25 = 1/(7e11)
+Hu25_worst = 1/(4e7)
+Hu25_best = 1/(7e11)
 price24 = 2.3e-7
 fancher23 = 7.8e-9
 bonlu20 = 8.4e-9 #this is at late times, but they start with Mp = 1e-8
@@ -255,23 +256,24 @@ if include_mid == 'mid':
     dim_midplaneH.append(2)
 
 #%% Plot
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16, 8))
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize = (9, 11))
 ax1.plot(massL, cumL, color = 'C1')#, label = 'This work, Low res')
-ax1.text(1e-8, 0.51, 'Low', fontsize = 20, rotation = 54)
+ax1.text(3e-9, 0.39, 'Low', fontsize = 18, rotation = 40)
 ax1.plot(mass, cum, color = 'yellowgreen')#, label = 'This work, Fid res')
-ax1.text(2e-9, 0.437, 'Middle', fontsize = 20, rotation = 51.5)
+ax1.text(6e-10, 0.335, 'Middle', fontsize = 18, rotation = 34)
 ax1.plot(massH, cumH, color = 'darkviolet') #, label = 'This work, High res')
-ax1.text(5e-10, 0.4, 'High', fontsize = 20, rotation = 51.5)
-ax1.axvline(price24, color = 'deepskyblue', linestyle = (0, (5, 10)), label = 'Price24')
+ax1.text(1.6e-10, 0.31, 'High', fontsize = 18, rotation = 32)
+ax1.axvline(price24, color = 'tomato', linestyle = (0, (5, 10)), label = 'Price24')
 # ax1.axvline(bonlu20, color = 'mediumorchid', linestyle = 'dashdot', label = 'BonnerotLu20')
 ax1.axvline(fancher23, color = 'forestgreen', linestyle = 'dashdot', label = 'BonnerotLu20, Norman+21, Fancher+23')
-ax1.axvline(kubli25, color = 'k', linestyle = '--', label = 'Kubli+25')
-ax1.axvline(Hu25, color = 'tomato', linestyle = 'dotted', label = 'Hu+25')
+ax1.axvline(kubli25, color = 'deepskyblue', linestyle = 'dotted', label = 'Kubli+25')
+ax1.axvline(Hu25_worst, color = 'k', linestyle = (0, (5, 10)), label = 'Hu+25 low')
+ax1.axvline(Hu25_best, color = 'k', linestyle = '--', label = 'Hu+25 high')
 ax2.plot(dim_cellL, cumdimL, color = 'C1')# label = 'Low res')
 ax2.plot(dim_cell, cumdim, color = 'yellowgreen')# label = 'Middle res')
 ax2.plot(dim_cellH, cumdimH, color = 'darkviolet',)# label = 'High res')
-ax2.axvline(sizeminRyu, color = 'k', linestyle = (0, (5, 10)), label = 'Ryu+23 min orb.plane')
-ax2.axvline(sizemeanRyu, color = 'k', linestyle = '--', label = 'Ryu+23 gmean orb.plane')
+ax2.axvline(sizemeanRyu, color = 'k', linestyle = (0, (5, 10)), label = 'Ryu+23 gmean orb.plane')
+ax2.axvline(sizeminRyu, color = 'k', linestyle = '--', label = 'Ryu+23 min orb.plane')
 ax2.axvline(sizehuang24, color = 'deepskyblue', linestyle = 'dashdot', label = 'Huang+24')
 
 if include_mid == 'mid':
@@ -286,18 +288,18 @@ for ax in [ax1, ax2]:
     ax.set_xscale('log')
     ax.tick_params(axis='both', which='major', width=1.2, length=7, labelsize=28)
     ax.tick_params(axis='both', which='minor', width=0.9, length=5)
-    ax.legend(loc ='upper left', fontsize = 20)
+    ax.legend(loc ='upper left', fontsize = 18)
     ax.set_ylim(0,1.1)
     ax.grid()
-ax1.set_ylabel('CDF', fontsize = 30)
-ax1.set_xlabel(r'Cell mass [$M_\odot$]', fontsize = 30)
-ax2.set_xlabel(r'Cell size [$R_\odot$]', fontsize = 30)
+    ax.set_ylabel('CDF') #, fontsize = 30)
+ax1.set_xlabel(r'Cell mass [$M_\odot$]') #, fontsize = 30)
+ax2.set_xlabel(r'Cell size [$R_\odot$]') #, fontsize = 30)
 ax1.set_xlim(5e-13, 3e-7)
 ax2.set_xlim(4e-2, 2)
 # plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
 plt.tight_layout()
 if save:
-    plt.savefig(f'{abspath}/Figs/paper/compareHistToget{include_mid}.pdf', bbox_inches='tight')
+    plt.savefig(f'{abspath}/Figs/paper/compareHistToget{include_mid}_vert.pdf', bbox_inches='tight')
 plt.show()
 
 # %%

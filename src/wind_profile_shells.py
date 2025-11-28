@@ -12,7 +12,7 @@ else:
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
     import matplotlib.cm as cm
-    compute = True
+    compute = False
 
 import numpy as np
 import Utilities.prelude as prel
@@ -76,7 +76,7 @@ def radial_profiles(loadpath, snap, which_part, ray_params):
     orb_en = orb.orbital_energy(Rsph, vel, Mass, params, prel.G)
 
     if which_part == 'outflow': 
-        # cut_mid = np.logical_and(X<-10*Rt, np.abs(Z) > 50) #dim_cell)
+        # cut_mid = np.abs(Z) > dim_cell #np.logical_and(X<-10*Rt, np.abs(Z) > 50) #dim_cell)
         cut_wind = np.logical_and(bern > 0, V_r > 0)
         cut = cut_wind #np.logical_and(cut_wind, ~cut_mid)
         # cut = np.logical_and(orb_en > 0, V_r >= 0)
@@ -199,8 +199,8 @@ def radial_profiles(loadpath, snap, which_part, ray_params):
 #
 ## MAIN
 #
-snaps = [109] #[76, 109, 151]
-colors_snaps = ['magenta'] #['plum', 'magenta', 'darkviolet']
+snaps = [76, 109, 151]
+colors_snaps = ['plum', 'magenta', 'darkviolet']
 
 if plot:
     x_test = np.arange(1., 300)
@@ -285,8 +285,8 @@ for i, snap in enumerate(snaps):
             print('(t_ph/T_tr)^4', (t[-1]/t[idx_rtr])**4)
             print('(r_ph/r_tr)^2', (rph/r_tr)**2)
             print('v(rtr) km/s', v_rad[idx_rtr] * conversion_sol_kms)
-            print('L(rph)/L(rtr)= ', L_adv[-1]/L_adv[idx_rtr])
-            print('esitamated', 4/3 * (rph/r_tr)**2 * (t[-1]/t[idx_rtr])**4 * prel.csol_cgs/v_rad[idx_rtr])
+            print('L(rph)/L(rtr) from data= ', L_adv[-1]/L_adv[idx_rtr])
+            print('estimated with escape velocity', 2 * 2/3 * (rph/r_tr)**2 * (t[-1]/t[idx_rtr])**4 * prel.csol_cgs/v_esc)#v_rad[idx_rtr])
             # from eq. 17 in the paper
             v_radiat2 = 20 * (prel.c_cgs*1e-5)**2 * Medd_sol/Mdot_dimcell[idx_rtr] #in km/s
             print(v_radiat2)
@@ -295,12 +295,12 @@ for i, snap in enumerate(snaps):
 if plot:
     axd.plot(x_test, y_test2, c = 'k', ls = 'dashed') #, label = r'$\rho \propto r^{-2}$')
     axd.text(35, 1.1e-11, r'$\rho \propto r^{-2}$', fontsize = 20, color = 'k', rotation = -42)
-    axV.axhline(0.2*v_esc_kms, c = 'k', ls = 'dashed')# 
-    axV.text(35, 1.1*0.2*v_esc_kms, r'0.2v$_{\rm esc} (r_{\rm p})$', fontsize = 20, color = 'k')
+    # axV.axhline(0.2*v_esc_kms, c = 'k', ls = 'dashed')# 
+    # axV.text(35, 1.1*0.2*v_esc_kms, r'0.2v$_{\rm esc} (r_{\rm p})$', fontsize = 20, color = 'k')
     axT.plot(x_test, y_test23, c = 'k', ls = 'dashed') #, label = r'$T \propto r^{-2/3}$')
-    axT.text(1.2, 2.5e5, r'$T_{\rm rad} \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -38)
+    axT.text(1.2, 2.4e5, r'$T_{\rm rad} \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -24)
     axL.plot(x_test, 2e-4*y_test23, c = 'k', ls = 'dashed') #, label = r'$L \propto r^{-2/3}$')
-    axL.text(1.2, 6e1, r'$L \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -22)
+    axL.text(1.2, 5.6e1, r'$L \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -18)
 
     for ax in [axV_tot, axd, axV, axMdot_dim, axT, axL]:
         ax.tick_params(axis='both', which='minor', length=6, width=1)
@@ -324,12 +324,12 @@ if plot:
     axV_tot.set_ylabel(r'$|v|$ [km/s]', fontsize = 28)
     axV.set_ylim(2e3, 3e4)
     axV.set_ylabel(r'v$_{\rm r}$ [km/s]', fontsize = 28)
-    axT.set_ylim(2e4, 1e6)
+    axT.set_ylim(1e4, 1e6)
     axT.set_ylabel(r'$T_{\rm rad}$ [K]', fontsize = 28)
     axL.set_ylabel(r'$L [L_{\rm Edd}]$', fontsize = 28)
     axL.set_ylim(1, 5e2)
     fig.tight_layout()
-    fig.savefig(f'{abspath}/Figs/next_meeting/den_profShell{which_part}_{suffix_saveing}.pdf', bbox_inches = 'tight')
+    fig.savefig(f'{abspath}/Figs/paper/den_profShell{which_part}_{suffix_saveing}.pdf', bbox_inches = 'tight')
     # figM_dim.savefig(f'{abspath}/Figs/paper/MwShell{which_part}.pdf', bbox_inches = 'tight')
     # figL.savefig(f'{abspath}/Figs/paper/LShell{which_part}.pdf', bbox_inches = 'tight')
     plt.show()
@@ -337,4 +337,8 @@ if plot:
 
 # %% compute constant wind
 A_w_cgs = np.sqrt(prel.G_cgs) * (np.sqrt(2)/(3*np.pi))**(1/3) * (prel.Msol_cgs*1e4)**(1/18) * (prel.Msol_cgs)**(7/9) * (prel.Rsol_cgs)**(-5/6)
-print(A_w_cgs) 
+print('constant A wind (without wind efficiency)/Ledd^1/3:', A_w_cgs/Ledd_cgs**(1/3)) 
+print('Ledd^1/3, :', 1e-13*Ledd_cgs**(1/3), '1e13')
+A_w_cgs_eff = (np.sqrt(2*prel.G_cgs**5)/(3*np.pi* prel.c_cgs**2))**(1/3) * (prel.Msol_cgs )**(8/9) * (prel.Msol_cgs*1e4)**(5/18)  / (prel.Rsol_cgs)**(7/6) 
+print('constant A wind (with wind efficiency rg/rp)/Ledd^1/3:', A_w_cgs_eff/Ledd_cgs**(1/3))
+# %%

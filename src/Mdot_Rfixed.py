@@ -189,7 +189,7 @@ if plot:
     tfbsH_lum, LumsH = dataH[:, 1], dataH[:, 2]
     LumsH, tfbsH_lum = sort_list([LumsH, tfbsH_lum], tfbsH_lum, unique=True)
     tfbH_max = tfbsH_lum[np.argmax(LumsH)]
-    _, tfbH, mfallH, mwind_dimCellH, mwind_RH, mwind_R_nonzeroH, _, _ = \
+    _, tfbH, mfallH, mwind_dimCellH, mwind_RH, mwind_R_nonzeroH, _, _, tot_IE_H, tot_Rad_H = \
             np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/wind/Mdot_HiResNewAMR{which_r_title}{statist}.csv', 
                     delimiter = ',', 
                     skiprows=1, 
@@ -197,14 +197,13 @@ if plot:
     MdotHmax = mwind_dimCellH[np.argmin(np.abs(tfbH - tfbH_max))]
     tfb_ratioH, ratioH, rel_errH  = ratio_BigOverSmall(tfbM, mwind_RM, tfbH, mwind_RH)
     data_E = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/convE_{check}.csv', delimiter=',', dtype=float, skiprows=1)    
-    tfb_E, IE, Rad = data_E[:, 1], data_E[:, 2], data_E[:, 5]
-    ratio_RadIE = Rad/IE
+    # tfb_E, IE, Rad = data_E[:, 1], data_E[:, 2], data_E[:, 5]
+    ratio_RadIE = tot_Rad_H/tot_IE_H #Rad/IE
     # not the best way to do it, but Mdot starts later than energies
-    ratio_RadIE = np.array(ratio_RadIE[len(ratio_RadIE)-len(mwind_dimCellH):])
+    # ratio_RadIE = np.array(ratio_RadIE[len(ratio_RadIE)-len(mwind_dimCellH):])
     print('final ratios Rad/IE:', ratio_RadIE[-10:])
 
     print('Naive estimate L:', 0.1 * np.max(np.abs(mfallH))* prel.Msol_cgs/prel.tsol_cgs * prel.c_cgs**2)
-    print('Medd_cgs:', Medd_cgs)
 
     # integrate mwind_dimCell in tfb 
     # mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)

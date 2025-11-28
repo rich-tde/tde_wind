@@ -160,7 +160,7 @@ ax1.plot(timeRDiss, RDiss/Rt,  color = 'magenta', label = r'$r_{\rm diss}$')
 ax1.plot(tfb, R_ph/Rt, color = 'darkviolet', label = r'$r_{\rm ph}$')
 
 ax1.axhline(y=apo/Rt, color = 'gray', linestyle = '-.')
-ax1.text(0.92*np.max(tfb), 1.15* apo/Rt, r'$r_{\rm a}$', fontsize = 20, color = 'k')
+ax1.text(0.92*np.max(tfb), 1.18* apo/Rt, r'$r_{\rm a}$', fontsize = 20, color = 'k')
 ax1.set_ylabel(r'$r [r_{\rm t}$]')#, fontsize = 18)
 ax1.set_ylim(Rlim_min, Rlim_max)
 # Set primary y-axis ticks
@@ -174,7 +174,7 @@ etalim_min = eta_from_R(Mbh_cgs, Rlim_max*Rt*prel.Rsol_cgs, prel.G_cgs, prel.c_c
 etalim_max = eta_from_R(Mbh_cgs, Rlim_min*Rt*prel.Rsol_cgs, prel.G_cgs, prel.c_cgs)
 ax2.set_yticks(eta_ticks)
 ax2.set_ylim(etalim_max, etalim_min)
-ax2.set_ylabel(r'$\eta_{\rm sh}$')#, fontsize = 18)
+ax2.set_ylabel(r'$\eta_{\rm num}$')#, fontsize = 18)
 
 original_ticks = ax1.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2

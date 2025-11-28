@@ -237,7 +237,7 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergenceOE' or kind_o
     # cbar.set_label(r'mean velocity [v$_{\rm esc} (r_{\rm p})$]')
     ax.set_xlim(-0.09, 1.8)
     ax.set_xlabel(r'$t [t_{\rm fb}]$')
-    ax.set_ylabel(r'f$\equiv N_{\rm ph, unb}/N_{\rm ph, tot}$')
+    ax.set_ylabel(r'$f\equiv N_{\rm ph, unb}/N_{\rm ph, obs}$')
     # plt.title(f'Photospheric cells', fontsize = 20)
     ax.grid() 
     
@@ -307,6 +307,8 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergenceOE' or kind_o
         orginal_ticks = ax.get_xticks()
         mid_ticks = (orginal_ticks[:-1] + orginal_ticks[1:]) /2
         new_ticks = np.sort(np.concatenate((orginal_ticks, mid_ticks)))
+        labels = [str(np.round(tick,2)) if tick in orginal_ticks else "" for tick in new_ticks]       
+        ax.set_xticklabels(labels)
         ax.set_xticks(new_ticks)
         ax.set_xlim(np.min(tfb), np.max(tfb))
         fig.tight_layout()

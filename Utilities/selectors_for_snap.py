@@ -18,9 +18,9 @@ def select_prefix(m, check, mstar, rstar, beta, n, compton):
     else: 
         prepath = f'/Users/paolamartire/shocks/TDE'
 
-    if check not in ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']:
-        prepath = f'{prepath}/opacity_tests/{folder}'
-    else:
+    if check in ['HiResStream', 'HiResStream2']:
+        prepath = f'{prepath}/StreamConvergence/{folder}'
+    elif check in ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']:
         prepath = f'{prepath}/{folder}'
 
     return prepath

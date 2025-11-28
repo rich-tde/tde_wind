@@ -100,7 +100,7 @@ else:
     totalK = Kinneg + Kinpos
 
     fig, (ax1, ax2) = plt.subplots(1,2, figsize = (18,7))
-    figL, axL = plt.subplots(1,1, figsize = (10,7))
+    figL, axL = plt.subplots(1,1, figsize = (10,6))
     ax1.plot(tfb, prel.en_converter * OEpos, c = 'plum', label = 'Orbital energy unbound gas')
     ax1.plot(tfb, np.abs(prel.en_converter * OEEneg), c = 'plum', ls = ':', label = 'Orbital energy bound gas (abs value) ')
     ax1.set_title(r'OE [erg]', fontsize = 24) 
