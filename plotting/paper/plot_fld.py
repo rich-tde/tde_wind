@@ -47,7 +47,7 @@ snaps, Lum, tfb = sort_list([snaps, Lum, tfb], tfb, unique=True)
 snaps = snaps.astype(int)
 idx_maxLum = np.argmax(Lum)
 dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
-snapdiss, tfbdiss, LDiss = dataDiss[:,0], dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs
+snapdiss, tfbdiss, LDiss, LDissNeg = dataDiss[:,0], dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs, dataDiss[:,5] * prel.en_converter/prel.tsol_cgs
 dataDissIon = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}ionizationHe.csv', delimiter=',', dtype=float, skiprows=1)
 tfbdiss_split, LDissAb, LdissBl =  dataDissIon[:,1], dataDissIon[:,3] * prel.en_converter/prel.tsol_cgs, dataDissIon[:,5] * prel.en_converter/prel.tsol_cgs
 
@@ -157,7 +157,8 @@ plt.tight_layout()
 plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld.pdf', bbox_inches='tight')
 # %%
 fig, ax = plt.subplots(1, 1, figsize=(10, 7))
-ax.plot(tfbdiss, LDiss, '--', c= 'k')
+ax.plot(tfbdiss, LDiss, '--', c= 'k', label = 'positive')
+ax.plot(tfbdiss, np.abs(LDissNeg), '--', c= 'r', label = 'negative')
 ax.axhline(y=Ledd_cgs, c = 'gray', linestyle = '-.', linewidth = 2)
 ax.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd}$', fontsize = 20)
 original_ticks = ax.get_xticks()
@@ -173,6 +174,7 @@ ax.tick_params(axis='both', which='major', width = 1, length = 7, color = 'k')
 ax.tick_params(axis='y', which='minor', width = 1, length = 4, color = 'k')
 ax.set_xlim(-.1, np.max(tfb))
 ax.grid()
+ax.legend(fontsize = 16)
 ax.set_ylabel(r'Dissipation rate [erg/s]')#, fontsize = 20)
 # ax.set_ylim(9e37, 2e43)
 # %%

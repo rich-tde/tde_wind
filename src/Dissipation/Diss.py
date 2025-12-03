@@ -64,7 +64,7 @@ if alice:
             make_slices([Rsph, vol, Temp, Rad_den, Ediss_den], cut)
         Ediss = Ediss_den * vol # energy dissipation rate [energy/time] in code units
 
-        if do_cut == '':
+        if do_cut == '' or do_cut == 'nocut':
             Ldisstot_pos = np.sum(Ediss[Ediss_den >= 0])
             Rdiss_pos = np.sum(Rsph[Ediss_den >= 0] * Ediss[Ediss_den >= 0]) / np.sum(Ediss[Ediss_den >= 0])
             Ldisstot_neg = np.sum(Ediss[Ediss_den < 0])
