@@ -32,7 +32,7 @@ n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
 check = 'HiResNewAMR'
-do_cut = 'ionizationHe' # '' or 'ionization' or 'ionizationHe'
+do_cut = 'nocut' # '' or 'ionization' or 'ionizationHe'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 print(f'we are in {check}', flush=True)
@@ -56,7 +56,10 @@ if alice:
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
 
         # cut fluff
-        cut = den > 1e-19
+        if do_cut == 'nocut':
+            cut = den > 0
+        else:
+            cut = den > 1e-19
         Rsph, vol, Temp, Rad_den, Ediss_den = \
             make_slices([Rsph, vol, Temp, Rad_den, Ediss_den], cut)
         Ediss = Ediss_den * vol # energy dissipation rate [energy/time] in code units

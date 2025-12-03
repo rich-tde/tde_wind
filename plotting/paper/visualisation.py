@@ -289,7 +289,7 @@ for i, snap in enumerate(snaps):
         ax.text(-0.9 * 6, 0.8 * 3, f't = {np.round(tfb_single,1)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 22)
     else:
         ax.text(-0.9 * 6, 0.8 * 3, f't = {np.round(tfb_single,2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 22)
-    axDiss.text(0.9 * x_min, 0.8 * y_max, r'$\dot{u}_{\rm irr}$ = ' + f'{LDiss[np.argmin(np.abs(tfbdiss-tfb_single))]:.1e} erg/s', color = 'white', fontsize = 18)
+    axDiss.text(0.9 * x_min, 0.8 * y_max, r'$\dot{E}_{\rm irr}$ = ' + f'{LDiss[np.argmin(np.abs(tfbdiss-tfb_single))]:.1e} erg/s', color = 'white', fontsize = 18)
 
     if i == 2:
         ax.text(Rt/apo + 0.02, 0.05, r'$r_{\rm t}$', color = 'white', fontsize = 16)
@@ -303,7 +303,7 @@ cbar_ax = fig.add_subplot(gs[3, 0])  # Colorbar subplot below the first 3 panels
 cb = fig.colorbar(img, cax=cbar_ax, orientation='horizontal')
 cb.ax.tick_params(which='major',length = 5)
 cb.ax.tick_params(which='minor',length = 3)
-cb.set_label(r'Column density [g/cm$^2$]', fontsize = 20)
+cb.set_label(r'Column density [g cm$^{-2}$]', fontsize = 20)
 ax.set_xlabel(r'$X [r_{\rm a}]$')#, fontsize = 20)
 cbar_axDiss = fig.add_subplot(gs[3, 1])  # Colorbar subplot below the first 3 panels
 cbDiss = fig.colorbar(imgDiss, cax=cbar_axDiss, orientation='horizontal')

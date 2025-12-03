@@ -18,13 +18,36 @@ from Utilities.time_extractor import days_since_distruption
 # CONSTANTS
 #
 
-kubli25 = 1e-10
+#%% Clement: he said to use the initial value email on 2/12/25)
+init_mass_bonlu20 = 1e-8
+# init_number_bonlu20 = 0.5/init_mass_bonlu20
+# final_number_bonlu20 = init_number_bonlu20 + 9.3e6
+# bonlu20 = 0.5/final_number_bonlu20 # = 8.4e-9. This is at late times, but they start with Mp = 1e-8
+bonlu20 = init_mass_bonlu20
+fancher23 = 7.8e-9
+norman21 = 1/1.28e8
+kubli25 = 9.7e-11
 Hu25_worst = 1/(4e7)
 Hu25_best = 1/(7e11)
 price24 = 2.3e-7
-fancher23 = 7.8e-9
-bonlu20 = 8.4e-9 #this is at late times, but they start with Mp = 1e-8
-# Ryu
+# Ryu from email on 30/01/25
+'''T.R: The number of cells at later stages is N_r * N_theta * N_phi = 800 * 128 * 800. 
+The radial grid is exponential, extending from 40 r_g to 18000 r_g, so dr/r ~ 0.0076. 
+The grid along the Phi direction is regular, so dPhi = 2 Pi / 800 ~ 0.0079. 
+Lastly, we employ a mid-plane concentrated grid (Equation 7) along the theta-direction, 
+with the theta cutout angle ~ 15 degrees (I believe). 
+Because dtheta varies, it is hard to give a certain number. It should be dtheta ~ 0.0008 in the midplane. 
+We have done:
+cell size = R x (dR/R * dtheta * sin(theta) * dphi)**(1/3) 
+where theta is the latitude angle so we kept theta=pi/2 in the midplane'''
+Rg = prel.G*10**5 / prel.csol_cgs**2
+arrR = np.logspace(np.log10(40*Rg), np.log10(18000*Rg), 800)
+dR = np.diff(arrR)
+dRoverR = (dR/arrR[:-1])[0] #they are all the same
+dtheta = 0.008
+dphi= 0.0079
+print(dRoverR)
+#%%
 dthetaRyu = 0.008
 dphiryu = 0.0079
 RgRyu = prel.G*10**5 / prel.csol_cgs**2
@@ -263,12 +286,12 @@ ax1.plot(mass, cum, color = 'yellowgreen')#, label = 'This work, Fid res')
 ax1.text(6e-10, 0.335, 'Middle', fontsize = 18, rotation = 34)
 ax1.plot(massH, cumH, color = 'darkviolet') #, label = 'This work, High res')
 ax1.text(1.6e-10, 0.31, 'High', fontsize = 18, rotation = 32)
+ax1.axvline(bonlu20, color = 'mediumorchid', linestyle = 'dashdot', label = 'BonnerotLu20')
+ax1.axvline(fancher23, color = 'forestgreen', linestyle = 'dashdot', label = 'Norman+21, Fancher+23')
 ax1.axvline(price24, color = 'tomato', linestyle = (0, (5, 10)), label = 'Price24')
-# ax1.axvline(bonlu20, color = 'mediumorchid', linestyle = 'dashdot', label = 'BonnerotLu20')
-ax1.axvline(fancher23, color = 'forestgreen', linestyle = 'dashdot', label = 'BonnerotLu20, Norman+21, Fancher+23')
 ax1.axvline(kubli25, color = 'deepskyblue', linestyle = 'dotted', label = 'Kubli+25')
-ax1.axvline(Hu25_worst, color = 'k', linestyle = (0, (5, 10)), label = 'Hu+25 low')
-ax1.axvline(Hu25_best, color = 'k', linestyle = '--', label = 'Hu+25 high')
+ax1.axvline(Hu25_worst, color = 'k', linestyle = (0, (5, 10)), label = 'Hu,Fitz+25 low')
+ax1.axvline(Hu25_best, color = 'k', linestyle = '--', label = 'Hu,Fitz+25 high')
 ax2.plot(dim_cellL, cumdimL, color = 'C1')# label = 'Low res')
 ax2.plot(dim_cell, cumdim, color = 'yellowgreen')# label = 'Middle res')
 ax2.plot(dim_cellH, cumdimH, color = 'darkviolet',)# label = 'High res')
@@ -286,8 +309,8 @@ if include_mid == 'mid':
 
 for ax in [ax1, ax2]:
     ax.set_xscale('log')
-    ax.tick_params(axis='both', which='major', width=1.2, length=7, labelsize=28)
-    ax.tick_params(axis='both', which='minor', width=0.9, length=5)
+    ax.tick_params(axis='both', which='major', width=1.3, length=9, labelsize=28)
+    ax.tick_params(axis='both', which='minor', width=0.9, length=6)
     ax.legend(loc ='upper left', fontsize = 18)
     ax.set_ylim(0,1.1)
     ax.grid()
@@ -295,7 +318,7 @@ for ax in [ax1, ax2]:
 ax1.set_xlabel(r'Cell mass [$M_\odot$]') #, fontsize = 30)
 ax2.set_xlabel(r'Cell size [$R_\odot$]') #, fontsize = 30)
 ax1.set_xlim(5e-13, 3e-7)
-ax2.set_xlim(4e-2, 2)
+ax2.set_xlim(6e-2, 2)
 # plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
 plt.tight_layout()
 if save:

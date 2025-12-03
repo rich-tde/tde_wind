@@ -47,7 +47,7 @@ snaps, Lum, tfb = sort_list([snaps, Lum, tfb], tfb, unique=True)
 snaps = snaps.astype(int)
 idx_maxLum = np.argmax(Lum)
 dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
-tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs
+snapdiss, tfbdiss, LDiss = dataDiss[:,0], dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs
 dataDissIon = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}ionizationHe.csv', delimiter=',', dtype=float, skiprows=1)
 tfbdiss_split, LDissAb, LdissBl =  dataDissIon[:,1], dataDissIon[:,3] * prel.en_converter/prel.tsol_cgs, dataDissIon[:,5] * prel.en_converter/prel.tsol_cgs
 
@@ -58,11 +58,15 @@ _, medianRph, percentile16, percentile84 = statistics_photo(snaps, check)
 medianTemprad_ph = np.zeros(len(snaps))
 f_ph = np.zeros(len(snaps))
 for i, snap in enumerate(snaps):
-    x_ph, y_ph, z_ph, vol_ph, den_ph, Temp_ph, RadDen_ph, Vx_ph, Vy_ph, Vz_ph, Press_ph, IE_den_ph, _, _, _, _ = \
+    x_ph, y_ph, z_ph, vol_ph, den_ph, Temp_ph, RadDen_ph, Vx_ph, Vy_ph, Vz_ph, Press_ph, IE_den_ph, alpha_ph, _, _, _ = \
         np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
     Temprad_ph = (RadDen_ph*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
     if i == idx_maxLum:
         print('max median T_rad_ph:', np.median(Temprad_ph))
+        kappa_ph = alpha_ph / den_ph
+        one_over_kappa_ph = (np.mean(1/kappa_ph))#**(-1)
+        kappa = one_over_kappa_ph**(-1)
+        print('kappa at max L:', kappa)
     r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
     vel_ph = np.sqrt(Vx_ph**2 + Vy_ph**2 + Vz_ph**2)
     mass_ph = den_ph * vol_ph
@@ -104,8 +108,10 @@ ax.tick_params(axis='y', which='minor', width = 1, length = 5, color = 'k')
 ax.set_xlim(np.min(tfb), np.max(tfb))
 plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld_ioniz.pdf', bbox_inches='tight')
 
+#%%
+print(np.log10(LDiss[-1]/Lum[-1]))
 # %%
-print('max L', np.max(Lum)/Ledd_cgs)
+print('max L', np.max(Lum[-1])/Ledd_cgs)
 fig, (axR, axL) = plt.subplots(1, 2, figsize=(16, 7))
 axR.plot(tfb, percentile84/Rt, c = 'k', alpha = 0.3, linestyle = '--')
 axR.plot(tfb, percentile16/Rt, c = 'k', alpha = 0.3, linestyle = '--')
@@ -142,11 +148,31 @@ for ax in [axR, axL]:
     ax.set_xticklabels(labels)
     ax.tick_params(axis='both', which='major', width = 1, length = 7, color = 'k')
     ax.tick_params(axis='y', which='minor', width = 1, length = 4, color = 'k')
-    ax.set_xlim(np.min(tfb), np.max(tfb))
+    ax.set_xlim(-.1, np.max(tfb))
     ax.grid()
 axR.set_ylim(1, 1.5e2)
 axL.set_ylabel(r'Luminosity [erg/s]')#, fontsize = 20)
 axL.set_ylim(9e37, 2e43)
 plt.tight_layout()
 plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld.pdf', bbox_inches='tight')
+# %%
+fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+ax.plot(tfbdiss, LDiss, '--', c= 'k')
+ax.axhline(y=Ledd_cgs, c = 'gray', linestyle = '-.', linewidth = 2)
+ax.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd}$', fontsize = 20)
+original_ticks = ax.get_xticks()
+midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+ax.set_yscale('log')
+ax.set_xticks(new_ticks)
+ax.axvline(tfbdiss[np.argmin(np.abs(snapdiss-21))], ymin=0, ymax=1, color='gray', linestyle=':')
+ax.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 20)
+ax.set_xticklabels(labels)
+ax.tick_params(axis='both', which='major', width = 1, length = 7, color = 'k')
+ax.tick_params(axis='y', which='minor', width = 1, length = 4, color = 'k')
+ax.set_xlim(-.1, np.max(tfb))
+ax.grid()
+ax.set_ylabel(r'Dissipation rate [erg/s]')#, fontsize = 20)
+# ax.set_ylim(9e37, 2e43)
 # %%

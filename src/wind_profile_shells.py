@@ -59,7 +59,7 @@ suffix_saveing = ''
 # print('v_esc (r_p) = ', v_esc_kms, 'km/s')
 #%%
 # FUNCTIONS
-#
+
 def radial_profiles(loadpath, snap, which_part, ray_params):
     data = make_tree(loadpath, snap, energy = True)
     X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
@@ -334,11 +334,3 @@ if plot:
     # figL.savefig(f'{abspath}/Figs/paper/LShell{which_part}.pdf', bbox_inches = 'tight')
     plt.show()
 
-
-# %% compute constant wind
-A_w_cgs = np.sqrt(prel.G_cgs) * (np.sqrt(2)/(3*np.pi))**(1/3) * (prel.Msol_cgs*1e4)**(1/18) * (prel.Msol_cgs)**(7/9) * (prel.Rsol_cgs)**(-5/6)
-print('constant A wind (without wind efficiency)/Ledd^1/3:', A_w_cgs/Ledd_cgs**(1/3)) 
-print('Ledd^1/3, :', 1e-13*Ledd_cgs**(1/3), '1e13')
-A_w_cgs_eff = (np.sqrt(2*prel.G_cgs**5)/(3*np.pi* prel.c_cgs**2))**(1/3) * (prel.Msol_cgs )**(8/9) * (prel.Msol_cgs*1e4)**(5/18)  / (prel.Rsol_cgs)**(7/6) 
-print('constant A wind (with wind efficiency rg/rp)/Ledd^1/3:', A_w_cgs_eff/Ledd_cgs**(1/3))
-# %%

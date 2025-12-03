@@ -51,6 +51,24 @@ def B_nu(nu, T):
     return (2 * h * nu**3 / c**2) / (np.expm1(h * nu / (k_B * T)))
 
 def m_ab_band(L_bol, T, z, lamnu_center, central_value = 'lambda'):
+    '''Find AB magnitude in a band centered at lamnu_center (can be wavelength or frequency)
+    Parameters:
+    -----------
+    L_bol: float
+        Bolometric luminosity in erg/s
+    T: float        
+        Blackbody temperature in K
+    z: float
+        Redshift
+    lamnu_center: astropy Quantity
+        Central wavelength (if central_value='lambda') or frequency (if central_value='frequency') of the band
+    central_value: str
+        'lambda' or 'frequency' to specify the type of lamnu_center
+    Returns:
+    --------
+    m_AB: float
+        AB magnitude in the specified band
+    '''
     # Luminosity distance
     DL = cosmo.luminosity_distance(z).to(u.cm).value
     # Observed bolometric flux
@@ -60,7 +78,7 @@ def m_ab_band(L_bol, T, z, lamnu_center, central_value = 'lambda'):
     if central_value == 'lambda':
         nu_0 = (const.c / lamnu_center).cgs.value
     elif central_value == 'frequency':
-        nu_0 = lamnu_center
+        nu_0 = lamnu_center.cgs.value
     
     # Fraction of flux in band: F_band = F_obs * (pi * B_nu / sigma T^4) * delta_nu
     sigma_sb = const.sigma_sb.cgs.value
@@ -137,7 +155,7 @@ print(z_arr)
 print(m)
 
 #%%
-z_chosen = 0.01
+z_chosen = 0.1
 # m_g = compute_m_ab(Lum_max, Temp_max, z_chosen, lam_g_min, lam_g_max, "g")
 m_g = m_ab_band(Lum_max, Temp_max, z_chosen, lam_g_mean)
 m_r = m_ab_band(Lum_max, Temp_max, z_chosen, lam_r_mean)
@@ -159,7 +177,7 @@ flux_eROS = 3e-13 # erg/s/cm^2
 # fluz_eROS_Hz = flux_eROS / nueROS_mean
 # F_eROS_Jy = fluz_eROS_Hz / 1e-23  # erg/s/cm^2/Hz -> Jy
 # m_lim_eROS = -2.5 * np.log10(F_eROS_Jy / 3631)
-distance_eROS_Mpc = np.sqrt(0.1*Lum_max / (4 * np.pi * flux_eROS)) / 3.086e24  # in Mpc
+distance_eROS_Mpc = np.sqrt(0.1 * Lum_max / (4 * np.pi * flux_eROS)) / 3.086e24  # in Mpc (https://en.wikipedia.org/wiki/Parsec 1pc = 3.086e16 m)
 print("\neROSITA limiting distance (Mpc):", distance_eROS_Mpc)
 
 z_horizon_r_ZTF = find_horizon(Lum_max, Temp_max, lam_r_mean, m_lim_ZTF)

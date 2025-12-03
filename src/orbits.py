@@ -113,13 +113,13 @@ def eccentricity_squared(r, vel, specOE, Mbh, G):
 
 def e_mb(Rstar, mstar, Mbh, beta):
     # eccentricity of most bound derbis. It comes from Rp = a(1-e), a = Rt^2/2Rstar
-    Rt = Rstar * (Mbh/mstar)**(1/3)
+    Rt = tidal_radius(Rstar, mstar, Mbh)
     ecc = 1-2*Rstar/(beta*Rt)
     return ecc
 
 def energy_mb(Rstar, mstar, Mbh, G):
     """ Specific orbital energy of most bound debris """
-    Rt = Rstar * (Mbh/mstar)**(1/3)
+    Rt = tidal_radius(Rstar, mstar, Mbh)
     En = G * Mbh * Rstar / Rt**2
     return En
 

@@ -58,7 +58,6 @@ Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
 convers_kms = prel.Rsol_cgs * 1e-5/prel.tsol_cgs # it's aorund 400
 
-print(Rp/Rg)
 #%%
 # MAIN
 if compute: # compute dM/dt = dM/dE * dE/dt
@@ -166,7 +165,7 @@ if plot:
     tfbsL_lum, LumsL = dataL[:, 1], dataL[:, 2]
     LumsL, tfbsL_lum = sort_list([LumsL, tfbsL_lum], tfbsL_lum, unique=True)
     tfbL_max = tfbsL_lum[np.argmax(LumsL)]
-    _, tfbL, mfallL, mwind_dimCellL, mwind_RL, mwind_R_nonzeroL, _, _ = \
+    _, tfbL, mfallL, mwind_dimCellL, mwind_RL, mwind_R_nonzeroL, _, _, _, _ = \
             np.loadtxt(f'{abspath}/data/{folder}LowResNewAMR/wind/Mdot_LowResNewAMR{which_r_title}{statist}.csv', 
                     delimiter = ',', 
                     skiprows=1, 
@@ -177,7 +176,7 @@ if plot:
     tfbsM_lum, LumsM = dataM[:, 1], dataM[:, 2]
     LumsM, tfbsM_lum = sort_list([LumsM, tfbsM_lum], tfbsM_lum, unique=True)
     tfbM_max = tfbsM_lum[np.argmax(LumsM)]
-    _, tfbM, mfallM, mwind_dimCellM, mwind_RM, mwind_R_nonzeroM, _, _ = \
+    _, tfbM, mfallM, mwind_dimCellM, mwind_RM, mwind_R_nonzeroM, _, _, _, _ = \
             np.loadtxt(f'{abspath}/data/{folder}NewAMR/wind/Mdot_NewAMR{which_r_title}{statist}.csv', 
                     delimiter = ',', 
                     skiprows=1, 
@@ -235,7 +234,7 @@ if plot:
         if ax != axerr:
             ax.set_yscale('log')
             ax.set_ylim(10, 9e6)
-            ax.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm Edd}]$')   
+            ax.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')   
         else:
             ax.set_ylim(0.9, 4)
             ax.set_ylabel(r'$\mathcal{R}$')
@@ -281,3 +280,34 @@ if plot:
 
     
 # %%
+print('naive L from dotM_fb: ', 0.1 * np.max(np.abs(mfallH)) * prel.Msol_cgs/prel.tsol_cgs * prel.c_cgs**2)
+# %% compute constant wind
+dataDiss = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
+timeRDiss, RDiss = dataDiss[:,1], dataDiss[:,2] 
+print('Rdiss at max lum', RDiss[np.argmax(LumsH)]/Rp, ' Rp')
+zeta = np.abs(mwind_dimCellH[np.argmax(LumsH)]/mfallH[np.argmax(LumsH)]) #7e4/2e6 
+A_w_cgs = np.sqrt(prel.G_cgs) * (np.sqrt(2) / (3*np.pi))**(1/3) * (prel.Msol_cgs*1e4)**(1/18) * (prel.Msol_cgs)**(7/9) * (prel.Rsol_cgs)**(-5/6)
+print(f'constant A wind', 1e-15*A_w_cgs, '1e15') 
+print('zeta:', zeta)
+print('Ledd^1/3, :', 1e-13*Ledd_cgs**(1/3), '1e13')
+print('ratio, :', A_w_cgs/Ledd_cgs**(1/3))
+
+def Ltr_an(Mbh, mstar, Rstar, beta, t_over_tfb, zeta):
+    A = A_w_cgs #1e15
+    Ledd_sol_T, _ = orb.Edd(Mbh, 0.34/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
+    Ledd_cgs_T = Ledd_sol_T * prel.en_converter/prel.tsol_cgs
+    Ltr = A * zeta**(1/3) * Ledd_cgs_T**(2/3) * beta**(1/3) * (Mbh/1e4)**(1/18) * (mstar)**(7/9) * (1/Rstar)**(5/6) * (1/t_over_tfb)**(5/9)
+    Ltr_over_Edd = Ltr / Ledd_cgs_T
+    return Ltr_over_Edd
+
+pred_1e4 = Ltr_an(Mbh, mstar, Rstar, beta, tfbL_max, zeta)
+print('predicted Ltr at tfbL_max tfb (in Ledd) from Eq.16: ', pred_1e4)
+print('predicted Ltr at tfbL_max tfb (in Ledd) from Eq.15: ', (Rg*mwind_dimCellH[np.argmax(LumsH)]/(Rp*Medd_sol))**(1/3))
+# %%
+pred_1e6 = Ltr_an(1e6, mstar, Rstar, beta, tfbL_max, zeta)
+print('predicted Ltr (in Ledd) from Eq.16 for a WD: ', pred_1e6)
+#%%
+pred_WD = Ltr_an(Mbh, mstar, 0.01, beta, tfbL_max, zeta)
+print('predicted Ltr (in Ledd) from Eq.16 for a 1e6BH: ', pred_WD)
+# %%
+ 

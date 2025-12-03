@@ -88,7 +88,7 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 # mid_points = (bins[:-1]+bins[1:]) * norm_dMdE/2  # get rid of the normalization
 # dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/wind/dMdE_{check}.txt')[0] # distribution just after the disruption
 # bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
-snaps, tfb, mfall, _, _, _, _, _ = \
+snaps, tfb, mfall, _, _, _, _, _, _, _ = \
         np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_{check}05aminmean.csv', 
                 delimiter = ',', 
                 skiprows=1, 
@@ -153,6 +153,7 @@ for i, t in enumerate(tfb_cgs):
 R_sh = R_sh / prel.Rsol_cgs # in solar radii
 Rlim_min = 7e11/(Rt*prel.Rsol_cgs)
 Rlim_max = 1e16/(Rt*prel.Rsol_cgs) 
+
 #
 fig, ax1 = plt.subplots(1, 1, figsize=(10, 6))
 ax1.plot(tfb, R_sh/Rt, color = 'k', linestyle = '--', label = r'$r_{\rm sh}$')
@@ -208,4 +209,5 @@ plt.yscale('log')
 plt.xlim(np.min(tfb), np.max(tfb))
 plt.legend(fontsize = 18)
 plt.grid()
+
 # %%
