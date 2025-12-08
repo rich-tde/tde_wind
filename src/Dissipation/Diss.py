@@ -32,13 +32,15 @@ n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
 check = 'HiResNewAMR'
-do_cut = 'nocut' # '' or 'ionization' or 'ionizationHe'
+do_cut = '' # '' or 'ionization' or 'ionizationHe'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 print(f'we are in {check}', flush=True)
 things = orb.get_things_about(params)
 Rt = things['Rt']
 apo = things['apo']
+t_fb_days = things['t_fb_days']
+t_fb_days_cgs = t_fb_days * 24 * 3600 
 
 if alice:
     snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
@@ -103,11 +105,11 @@ if alice:
 else:
     from plotting.paper.IHopeIsTheLast import ratio_BigOverSmall
     commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-    dataL = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/Rdiss_LowResNewAMR.csv', delimiter=',', dtype=float)
+    dataL = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/Rdiss_LowResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     snapL, tfbL, Rdiss_posL, Ldisstot_posL, Rdiss_negL, Ldisstot_negL =  dataL[:, 0], dataL[:, 1], dataL[:, 2], dataL[:, 3], dataL[:, 4], dataL[:, 5]
-    data = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/Rdiss_NewAMR.csv', delimiter=',', dtype=float)
+    data = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/Rdiss_NewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     snap, tfb, Rdiss_pos, Ldisstot_pos, Rdiss_neg, Ldisstot_neg = data[:,0], data[:,1], data[:,2], data[:,3], data[:,4], data[:,5]
-    dataH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float)
+    dataH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     snapH, tfbH, Rdiss_posH, Ldisstot_posH, Rdiss_negH, Ldisstot_negH = dataH[:,0], dataH[:,1], dataH[:,2], dataH[:,3], dataH[:,4], dataH[:,5]
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 14))
@@ -133,10 +135,10 @@ else:
     ax2.set_xlabel(r't [t$_{\rm fb}$]')
 
     # with ratios
-    tfb_ratioDiss_L, ratio_DissL = ratio_BigOverSmall(tfb, Ldisstot_pos, tfbL, Ldisstot_posL)
-    tfb_ratioDiss_H, ratio_DissH = ratio_BigOverSmall(tfb, Ldisstot_pos, tfbH, Ldisstot_posH)
-    tfb_ratioRdiss_L, ratio_RdissL = ratio_BigOverSmall(tfb, Rdiss_pos, tfbL, Rdiss_posL)
-    tfb_ratioRdiss_H, ratio_RdissH = ratio_BigOverSmall(tfb, Rdiss_pos, tfbH, Rdiss_posH)
+    # tfb_ratioDiss_L, ratio_DissL = ratio_BigOverSmall(tfb, Ldisstot_pos, tfbL, Ldisstot_posL)
+    # tfb_ratioDiss_H, ratio_DissH = ratio_BigOverSmall(tfb, Ldisstot_pos, tfbH, Ldisstot_posH)
+    # tfb_ratioRdiss_L, ratio_RdissL = ratio_BigOverSmall(tfb, Rdiss_pos, tfbL, Rdiss_posL)
+    # tfb_ratioRdiss_H, ratio_RdissH = ratio_BigOverSmall(tfb, Rdiss_pos, tfbH, Rdiss_posH)
 
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(22, 16))
     ax1.plot(tfbL, Ldisstot_posL * prel.en_converter/prel.tsol_cgs, color = 'C1', label = 'Low')
@@ -145,10 +147,10 @@ else:
     ax1.set_ylabel('Dissipation rate [erg/s]')
     ax1.legend(fontsize = 16)
 
-    ax3.plot(tfb_ratioDiss_L, ratio_DissL, color = 'C1')
-    ax3.plot(tfb_ratioDiss_L, ratio_DissL, '--', color = 'yellowgreen')
-    ax3.plot(tfb_ratioDiss_H, ratio_DissH, color = 'yellowgreen')
-    ax3.plot(tfb_ratioDiss_H, ratio_DissH, '--', color = 'darkviolet')
+    # ax3.plot(tfb_ratioDiss_L, ratio_DissL, color = 'C1')
+    # ax3.plot(tfb_ratioDiss_L, ratio_DissL, '--', color = 'yellowgreen')
+    # ax3.plot(tfb_ratioDiss_H, ratio_DissH, color = 'yellowgreen')
+    # ax3.plot(tfb_ratioDiss_H, ratio_DissH, '--', color = 'darkviolet')
 
     ax2.plot(tfbL, Rdiss_posL/apo, c = 'C1')
     ax2.plot(tfb, Rdiss_pos/apo, c = 'yellowgreen')
@@ -157,10 +159,10 @@ else:
     ax2.axhline(Rt/apo, color = 'k', linestyle = '--', label = r'$R_{\rm t}$')
     ax3.set_ylabel('Ratio of dissipation rate')
 
-    ax4.plot(tfb_ratioRdiss_L, ratio_RdissL, color = 'C1')
-    ax4.plot(tfb_ratioRdiss_L, ratio_RdissL, '--', color = 'yellowgreen')
-    ax4.plot(tfb_ratioRdiss_H, ratio_RdissH, color = 'yellowgreen')
-    ax4.plot(tfb_ratioRdiss_H, ratio_RdissH, '--', color = 'darkviolet')
+    # ax4.plot(tfb_ratioRdiss_L, ratio_RdissL, color = 'C1')
+    # ax4.plot(tfb_ratioRdiss_L, ratio_RdissL, '--', color = 'yellowgreen')
+    # ax4.plot(tfb_ratioRdiss_H, ratio_RdissH, color = 'yellowgreen')
+    # ax4.plot(tfb_ratioRdiss_H, ratio_RdissH, '--', color = 'darkviolet')
     ax4.set_ylabel(r'ratio $R_{\rm diss}$')
 
     for ax in [ax1, ax2, ax3, ax4]:
@@ -169,8 +171,19 @@ else:
         ax.grid()
         ax.tick_params(axis='both', which='major', length = 7, width = 1.2)
         ax.tick_params(axis='both', which='minor', length = 3, width = 1)
-        ax.set_xlim(0, 1.7)
+        ax.set_xlim(-0.1, 1.7)
     ax3.set_xlabel(r't [t$_{\rm fb}$]')
     ax4.set_xlabel(r't [t$_{\rm fb}$]')
+
+    # compute the integral of Ldisstot_posH
+    from scipy.integrate import trapezoid 
+    idx_time_before_sqitch = np.argmin(np.abs(snapH - 21))
+    # print(tfbH[:idx_time_before_sqitch])
+    integral = trapezoid(Ldisstot_posH[:idx_time_before_sqitch] * prel.en_converter/prel.tsol_cgs, tfbH[:idx_time_before_sqitch] * t_fb_days_cgs)
+    print(f'Integral of Ldisstot_posH up to snap 21: {integral:.2e} erg')
+    idx_time25 = np.argmin(np.abs(tfbH - 0.25))
+    # print(tfbH[:idx_time25])
+    integral = trapezoid(Ldisstot_posH[:idx_time25] * prel.en_converter/prel.tsol_cgs, tfbH[:idx_time25] * t_fb_days_cgs)
+    print(f'Integral of Ldisstot_posH up to t=0.25 tfb: {integral:.2e} erg')
 
 

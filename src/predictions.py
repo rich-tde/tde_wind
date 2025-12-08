@@ -155,7 +155,7 @@ print(z_arr)
 print(m)
 
 #%%
-z_chosen = 0.1
+z_chosen = 0.05
 # m_g = compute_m_ab(Lum_max, Temp_max, z_chosen, lam_g_min, lam_g_max, "g")
 m_g = m_ab_band(Lum_max, Temp_max, z_chosen, lam_g_mean)
 m_r = m_ab_band(Lum_max, Temp_max, z_chosen, lam_r_mean)
@@ -168,6 +168,10 @@ m_rLSST = m_ab_band(Lum_max, Temp_max, z_chosen, lamLSST_r_mean)
 print("\nLSST AB magnitudes at z = ", z_chosen)
 print(f"g-band: {m_gLSST:.2f}")
 print(f"r-band: {m_rLSST:.2f}")
+
+m_uv_ULTRASAT = m_ab_band(Lum_max, Temp_max, z_chosen, lam_uv_mean)
+print("\nULTRASAT-like UV-band AB magnitude at z = ", z_chosen)
+print(f"UV-band: {m_uv_ULTRASAT:.2f}")
 
 ## Compute horizon
 m_lim_ZTF = 20.5
@@ -191,6 +195,3 @@ print(f"ULTRASAT UV-band (m_lim = {m_lim_ULTRASAT}): z_horizon = {z_horizon_uv_U
 # print(f"eROSITA (flux_lim = {flux_eROS} erg/s/cm^2): z_horizon = {z_horizon_eROSITA:.3f}")
 
 
-# %%
-print((20*13*prel.Rsol_cgs/2e9)/(3600*24*2.5))
-# %%

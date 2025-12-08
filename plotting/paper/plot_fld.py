@@ -109,7 +109,7 @@ ax.set_xlim(np.min(tfb), np.max(tfb))
 plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld_ioniz.pdf', bbox_inches='tight')
 
 #%%
-print(np.log10(LDiss[-1]/Lum[-1]))
+print(LDiss[-3]/Lum[-3])
 # %%
 print('max L', np.max(Lum[-1])/Ledd_cgs)
 fig, (axR, axL) = plt.subplots(1, 2, figsize=(16, 7))
@@ -156,7 +156,11 @@ axL.set_ylim(9e37, 2e43)
 plt.tight_layout()
 plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld.pdf', bbox_inches='tight')
 # %%
+dataDissnocut = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}nocut.csv', delimiter=',', dtype=float, skiprows=1)
+tfbdissnocut, LDissnocut = dataDissnocut[:,1], dataDissnocut[:,3] * prel.en_converter/prel.tsol_cgs
+
 fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+ax.plot(tfbdissnocut, LDissnocut, c = 'c', label = r'no cut')
 ax.plot(tfbdiss, LDiss, '--', c= 'k', label = 'positive')
 ax.plot(tfbdiss, np.abs(LDissNeg), '--', c= 'r', label = 'negative')
 ax.axhline(y=Ledd_cgs, c = 'gray', linestyle = '-.', linewidth = 2)

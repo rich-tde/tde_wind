@@ -174,7 +174,7 @@ else:
         print(f'accretion L = {np.max(Lacc)} at t = {tfb_encl[np.argmax(Lacc)]}')
         print(f'accretion L = {Lacc[-1]} at t = {tfb_encl[-1]}')
         # print(0.05 * 1e-4*mstar*prel.Msol_cgs/t_fb_days_cgs * prel.c_cgs**2) 
-        t_visc = np.sqrt((2*Rt)**3/prel.G/Mbh)/(0.1*0.2**2) * prel.tsol_cgs/(3600*24)
+        t_visc = np.sqrt((2*Rt)**3/(prel.G*Mbh))/(0.03*0.3**2) * prel.tsol_cgs/(3600*24)
         print('t_visc in days: ', t_visc)
         plt.figure(figsize = (10,6))
         plt.plot(tfb_encl[:-1], dMdt0/Medd_sol, c = 'k')
@@ -193,7 +193,7 @@ else:
             axM.plot(tfb_encl, Mass_encl[:,j]/mstar, c = colorcheck[j], label = labelcheck[j])
             axDiss.plot(tfb_encl, Diss_pos_encl[:,j], c = colorcheck[j])#, label = labelcheck[j])
 
-        axDiss.plot(tfb_all, Ldisstot_pos, c = 'gray', ls = '--', label = 'Total')
+        axDiss.plot(tfb_all, Ldisstot_pos, c = 'gray', ls = '--', label = r'Total $\dot{E}_{\rm irr}$')
         axM.set_ylabel(r'Mass enclosed $[M_\star]$')
         axM.set_ylim(1e-6, 1e-1)
         axDiss.set_ylabel(r'Dissipation rate enclosed [erg/s]')
@@ -214,3 +214,4 @@ else:
             ax.legend(fontsize = 18)
         
         fig.savefig(f'{abspath}/Figs/paper/ME_encl.pdf', bbox_inches='tight')
+
