@@ -40,8 +40,8 @@ Rs = things['Rs']
 Rt = things['Rt']
 Rp = things['Rp']
 apo = things['apo']
-coord_to_cut = 'x' # 'x', 'y', 'z'
-cut_chosen = Rp
+coord_to_cut = 'z' # 'x', 'y', 'z'
+cut_chosen = 0
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 if cut_chosen == Rp:
@@ -78,14 +78,16 @@ else:
     indecesorbital = np.concatenate(np.where(latitude_moll==0))
 
 for idx, snap in enumerate(snaps):
+    if snap != 20:
+        continue
     print(snap, flush=True)
     if do:
         # you are in alice
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
 
         data = make_tree(path, snap, energy = True)
-        X, Y, Z, vol, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, IE_den, Press = \
-            data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Temp, data.IE, data.Rad, data.VX, data.VY, data.VZ, data.Diss, data.IE, data.Press
+        X, Y, Z, vol, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, IE_den, Press, DivV = \
+            data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Temp, data.IE, data.Rad, data.VX, data.VY, data.VZ, data.Diss, data.IE, data.Press, data.DivV
         Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
         dim_cell = vol**(1/3)
         if coord_to_cut == 'x':
@@ -101,51 +103,79 @@ for idx, snap in enumerate(snaps):
         cut = np.logical_and(density_cut, coordinate_cut)
         # x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut = \
         #     sec.make_slices([X, Y, Z, dim_cell, den, data.Temp, ie_den, orb_en_den, Rad_den], cut)
-        x_cut, y_cut, z_cut, dim_cut, mass_cut, den_cut, temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut, IE_den_cut, Press_cut = \
-            sec.make_slices([X, Y, Z, dim_cell, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, IE_den, Press], cut)
-        
+        x_cut, y_cut, z_cut, dim_cut, mass_cut, den_cut, temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut, IE_den_cut, Press_cut, DivV_cut = \
+            sec.make_slices([X, Y, Z, dim_cell, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, IE_den, Press, DivV], cut)
+
         np.save(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy',\
-                 [x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut, IE_den_cut, Press_cut])
+            [x_cut, y_cut, z_cut, dim_cut, mass_cut, den_cut, temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut, IE_den_cut, Press_cut, DivV_cut])
         
     else:
         # you are not in alice
         import matplotlib.pyplot as plt
         import matplotlib.colors as colors
         # choose what to plot
-        npanels = '' # 3 or 6
+        npanels = 2 # 3 or 6
 
         # load the data
-        data = np.load(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy', allow_pickle=True)
-        x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, orb_en_den_mid, Rad_den_mid, VX_mid, VY_mid, VZ_mid, Diss_den_mid, IE_den_mid, Press_mid =\
-            data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14]
+        # data = np.load(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy', allow_pickle=True)
+        # x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, Rad_den_mid, VX_mid, VY_mid, VZ_mid, Diss_den_mid, IE_den_mid, Press_mid =\
+        #     data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13]
+        data = np.load(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy', allow_pickle=True).item()
+        x_mid = data['x']
+        y_mid = data['y']
+        z_mid = data['z']
+        dim_mid = data['dim']
+        Diss_mid = Diss_den_mid * dim_mid**3 * prel.en_converter
+        mass_mid = data['mass']
+        den_mid = data['den']
+        temp_mid = data['temp']
+        ie_den_mid = data['ie_den']
+        Rad_den_mid = data['Rad_den']
+        Temp_rad_mid = (Rad_den_mid * prel.en_den_converter / prel.alpha_cgs)**0.25
+        VX_mid = data['VX']
+        VY_mid = data['VY']
+        VZ_mid = data['VZ']
+        V = np.sqrt(VX_mid**2 + VY_mid**2 + VZ_mid**2)
+        Diss_den_mid = data['Diss_den']
+        IE_den_mid = data['IE_den']
+        Press_mid = data['Press']
+        DivV = data['DivV']
 
+        if npanels == 2:
+            fig, ax = plt.subplots(1,2, figsize = (14,8))
+            img = ax[0].scatter(x_mid, y_mid, c = den_mid*prel.den_converter, cmap = 'plasma', s= .1, \
+                        norm = colors.LogNorm(vmin = 5e-9, vmax = 1e-4))
+            cb = plt.colorbar(img, orientation='horizontal')
+            cb.set_label(r'Density [g/cm$^3$]')
+            cb.ax.tick_params(which='major', length=7, width=1.2)
+            cb.ax.tick_params(which='minor', length=4, width=1)
+            ax[0].set_ylabel(r'$Y/R_\odot$')
+ 
+            img = ax[1].scatter(x_mid, y_mid, c = Diss_mid, cmap = 'viridis', s= .1, \
+                        norm = colors.LogNorm(vmin = 1e38, vmax = 8e40))
+            cb = plt.colorbar(img, orientation='horizontal')
+            cb.set_label(r'Dissipation [erg/s]')
+            cb.ax.tick_params(which='major', length=7, width=1.2)
+            cb.ax.tick_params(which='minor', length=4, width=1)
+
+        
         if npanels == 3:
-            orb_en_onmass_mid = np.abs(orb_en_den_mid/den_mid) * prel.en_converter / prel.Msol_cgs
-            ie_onmass_mid = (ie_den_mid/den_mid) * prel.en_converter / prel.Msol_cgs
-            Rad_den_mid *= prel.en_den_converter
             fig, ax = plt.subplots(1,3, figsize = (20,5))
-            img = ax[0].scatter(x_mid/apo, y_mid/apo, c = orb_en_onmass_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = np.percentile(orb_en_onmass_mid, 5), vmax = np.percentile(orb_en_onmass_mid, 99)))
+            img = ax[0].scatter(x_mid, y_mid, c = np.abs(DivV), cmap = 'viridis', s= .1, \
+                        norm = colors.LogNorm(vmin = 1e-1, vmax = 1e2))
             cb = plt.colorbar(img)
-            cb.set_label(r'Absolute specific orbital energy [erg/g]', fontsize = 16)
-            ax[0].set_ylabel(r'$Y/R_{\rm a}$', fontsize = 20)
+            cb.set_label(r'$|\nabla \cdot \mathbf{v}|$', fontsize = 16)
+            ax[0].set_ylabel(r'$Y/R_{\rm a}$')
 
-            img = ax[1].scatter(x_mid/apo, y_mid/apo, c = ie_onmass_mid, cmap = 'viridis', s= .1, \
+            img = ax[1].scatter(x_mid, y_mid, c = ie_onmass_mid, cmap = 'viridis', s= .1, \
                         norm = colors.LogNorm(vmin = np.percentile(ie_onmass_mid, 5), vmax = np.percentile(ie_onmass_mid, 99)))
             cb = plt.colorbar(img)
-            cb.set_label(r'Specific IE [erg/g]', fontsize = 16)
+            cb.set_label(r'Specific IE [erg/g]')
 
-            img = ax[2].scatter(x_mid/apo, y_mid/apo, c = Rad_den_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = np.percentile(Rad_den_mid, 5), vmax = np.percentile(Rad_den_mid, 99)))
+            img = ax[2].scatter(x_mid, y_mid, c = Temp_rad_mid, cmap = 'viridis', s= .1, \
+                        norm = colors.LogNorm(vmin = 1e4, vmax = 1e6))
             cb = plt.colorbar(img)
-            cb.set_label(r'Radiation energy density [erg/cm$^3$]', fontsize = 16)
-            for i in range(npanels):
-                ax[i].set_xlabel(r'$X/R_{\rm a}$', fontsize = 20)
-                ax[i].set_xlim(-1.2, 0.1)#(-340,25)
-                ax[i].set_ylim(-0.5, 0.5)#(-70,70)
-            ax[0].text(-1.05, 0.42, f't = {np.round(tfb[idx], 2)}' + r'$t_{\rm fb}$', fontsize = 20)
-            ax[0].text(-1.05, 0.38, f'snap {int(snaps[idx])}', fontsize = 16)
-            ax[2].text(-.4, 0.42, f'Max: %.2e' % np.max(Rad_den_mid), fontsize = 16)
+            cb.set_label(r'$T_{\rm rad}$ [K]')
         
         if npanels == 6:
             orb_en_mid = np.abs(orb_en_den_mid * dim_mid**3) * prel.en_converter
@@ -196,16 +226,23 @@ for idx, snap in enumerate(snaps):
             cb = plt.colorbar(img)
             cb.set_label(r'Radiation energy density [erg]', fontsize = 14)
 
-        if npanels == 6 or npanels == 3:    
+        plt.suptitle(f't = {np.round(tfb[idx], 4)}' + r'$t_{\rm fb}$', fontsize = 20)
+        plt.tight_layout()
+        if npanels == 6:
             for i in range(2):
                 ax[i][0].set_ylabel(r'$Y/R_{\rm a}$', fontsize = 20)
                 for j in range(3):
                     ax[i][j].set_xlabel(r'$X/R_{\rm a}$', fontsize = 20)
                     ax[i][j].set_xlim(-1.2, 0.1)#(-340,25)
                     ax[i][j].set_ylim(-0.5, 0.5)#(-70,70)
-            ax[1][0].text(-1.05, 0.42, f't = {np.round(tfb[idx], 2)}' + r'$t_{\rm fb}$', fontsize = 20)
-            ax[0][0].text(-1.05, 0.38, f'snap {int(snaps[idx])}', fontsize = 16)
+        if npanels == 2 or npanels == 3:
+            ax[0].set_ylabel(r'$ [R_\odot]$')
+            for i in range(npanels):
+                ax[i].set_xlabel(r'$X [R_\odot]$')
+                # ax[i].set_xlim(-10, 10)#(-340,25)
+                # ax[i].set_ylim(-10, 10)#(-70,70)
+                ax[i].set_aspect('equal', 'box')
+        # ax[0][0].text(-1.05, 0.38, f'snap {int(snaps[idx])}', fontsize = 16)
 
-            plt.tight_layout()
-            plt.savefig(f'{abspath}Figs/{folder}/slices/Panel{npanels}Slice{snap}.png')
-            plt.close()
+        plt.savefig(f'{abspath}Figs/{folder}/slices/Panel{npanels}Slice{snap}.png')
+        # plt.close()

@@ -303,12 +303,12 @@ print('zeta:', zeta)
 # print('predicted Ltr at tfbL_max tfb (in Ledd) from Eq.16: ', pred_1e4)
 
 
-adim_A_w_cgs = (0.34 * np.sqrt(2*prel.G_cgs) / (12*(np.pi)**2 * prel.c_cgs))**(1/3) * (prel.Msol_cgs*1e4)**(-5/18) * (prel.Msol_cgs)**(7/9) * (prel.Rsol_cgs)**(-5/6)
+adim_A_w_cgs = (0.04*1.44 * np.sqrt(2*prel.G_cgs) / (12*(np.pi)**2 * prel.c_cgs))**(1/3) * (prel.Msol_cgs*1e4)**(-5/18) * (prel.Msol_cgs)**(7/9) * (prel.Rsol_cgs)**(-5/6)
 print('adim A_w:', adim_A_w_cgs)
 
 def Ltr_Ledd(Mbh, mstar, Rstar, beta, t_over_tfb, kappa, zeta):
     A = adim_A_w_cgs 
-    Ltr = A * (zeta * beta * kappa/0.34)**(1/3) * (Mbh/1e4)**(-5/18) * (mstar)**(7/9) * (1/Rstar)**(5/6) * (1/t_over_tfb)**(5/9)
+    Ltr = A * (zeta/0.04 * beta * kappa/1.44)**(1/3) * (Mbh/1e4)**(-5/18) * (mstar)**(7/9) * (1/Rstar)**(5/6) * (1/t_over_tfb)**(5/9)
     Ltr_over_Edd = Ltr 
     return Ltr_over_Edd
 pred = Ltr_Ledd(Mbh, mstar, Rstar, beta, tfbL_max, 1.44, zeta)
@@ -316,7 +316,7 @@ print('predicted Ltr at tfbL_max tfb (in Ledd) from new Eq.: ', pred)
 
 Mbhs = [1e3, 1e4, 1e5, 1e6]
 for massBH in Mbhs:
-    pred = Ltr_Ledd(massBH, mstar, Rstar, beta, 1, 0.34, 0.04)
+    pred = Ltr_Ledd(massBH, mstar, Rstar, beta, 1.5, 1.44, 0.04)
     print(f'predicted Ltr at 1 tfb (in Ledd) from new Eq. for Mbh={massBH}: ', pred)
 # %%
 predWD = Ltr_Ledd(massBH, mstar, Rstar, beta, 1.5, 1.44, 0.04)
