@@ -48,7 +48,7 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         z_start = -100 
         z_stop = 100 
 
-    if how_far == 'nozzle':
+    elif how_far == 'nozzle':
         x_start = -2*apo
         x_stop = apo
         y_start = -.5*apo
@@ -56,7 +56,7 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         z_start = -2*apo 
         z_stop = 2*apo 
 
-    if how_far == 'big':
+    elif how_far == 'big':
         x_start = -6*apo
         x_stop = 2.5*apo
         y_start = -4*apo 
@@ -73,6 +73,7 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         z_stop = 0.8*Rt #2*apo  
     
     xs = np.linspace(x_start, x_stop, num = x_num)
+    print(xs)
     ys = np.linspace(y_start, y_stop, num = y_num)
     zs = np.linspace(z_start, z_stop, z_num) #simulator units
     # data = make_tree(path, snap, energy = True)
@@ -189,8 +190,8 @@ if __name__ == '__main__':
             f.close()
             
         for snap in snaps:
-            # if snap != 150:
-            #     continue
+            if snap != 10:
+                continue
             print(snap, flush=True)
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
