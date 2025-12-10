@@ -73,7 +73,6 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         z_stop = 0.8*Rt #2*apo  
     
     xs = np.linspace(x_start, x_stop, num = x_num)
-    print(xs)
     ys = np.linspace(y_start, y_stop, num = y_num)
     zs = np.linspace(z_start, z_stop, z_num) #simulator units
     # data = make_tree(path, snap, energy = True)
@@ -198,7 +197,7 @@ if __name__ == '__main__':
             else: 
                 path = f'{prepath}/TDE/{folder}/{snap}'
             
-            _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=900, y_num=900, z_num = 100, how_far = how_far)
+            _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=500, y_num=500, z_num = 100, how_far = how_far)
             flat_q = projector(grid_q, x_radii, y_radii, z_radii)
             np.save(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}proj{snap}.npy', flat_q)
                 
