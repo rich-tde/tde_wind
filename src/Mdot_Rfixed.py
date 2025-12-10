@@ -285,7 +285,7 @@ print('naive L from dotM_fb: ', 0.1 * np.max(np.abs(mfallH)) * prel.Msol_cgs/pre
 # %% compute constant wind
 dataDiss = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
 timeRDiss, RDiss = dataDiss[:,1], dataDiss[:,2] 
-print('predicted Ltr at tfbL_max tfb (in Ledd) from Eq.15: ', (Rg*mwind_dimCellH[np.argmax(LumsH)]/(Rp*Medd_sol))**(1/3))
+print('predicted Ltr at tfbH_max tfb (in Ledd) from Eq.15: ', (Rg*mwind_dimCellH[np.argmax(LumsH)]/(Rp*Medd_sol))**(1/3))
 print('Rdiss at max lum', RDiss[np.argmax(LumsH)]/Rp, ' Rp')
 zeta = np.abs(mwind_dimCellH[np.argmax(LumsH)]/mfallH[np.argmax(LumsH)]) #7e4/2e6 
 print('zeta:', zeta)
@@ -299,8 +299,8 @@ print('zeta:', zeta)
 #     Ltr = A * zeta**(1/3) * Ledd_cgs_T**(2/3) * beta**(1/3) * (Mbh/1e4)**(1/18) * (mstar)**(7/9) * (1/Rstar)**(5/6) * (1/t_over_tfb)**(5/9)
 #     Ltr_over_Edd = Ltr / Ledd_cgs_T
 #     return Ltr_over_Edd
-# pred_1e4 = Ltr_an(Mbh, mstar, Rstar, beta, tfbL_max, zeta)
-# print('predicted Ltr at tfbL_max tfb (in Ledd) from Eq.16: ', pred_1e4)
+# pred_1e4 = Ltr_an(Mbh, mstar, Rstar, beta, tfbH_max, zeta)
+# print('predicted Ltr at tfbH_max tfb (in Ledd) from Eq.16: ', pred_1e4)
 
 
 adim_A_w_cgs = (0.04*1.44 * np.sqrt(2*prel.G_cgs) / (12*(np.pi)**2 * prel.c_cgs))**(1/3) * (prel.Msol_cgs*1e4)**(-5/18) * (prel.Msol_cgs)**(7/9) * (prel.Rsol_cgs)**(-5/6)
@@ -311,15 +311,15 @@ def Ltr_Ledd(Mbh, mstar, Rstar, beta, t_over_tfb, kappa, zeta):
     Ltr = A * (zeta/0.04 * beta * kappa/1.44)**(1/3) * (Mbh/1e4)**(-5/18) * (mstar)**(7/9) * (1/Rstar)**(5/6) * (1/t_over_tfb)**(5/9)
     Ltr_over_Edd = Ltr 
     return Ltr_over_Edd
-pred = Ltr_Ledd(Mbh, mstar, Rstar, beta, tfbL_max, 1.44, zeta)
-print('predicted Ltr at tfbL_max tfb (in Ledd) from new Eq.: ', pred)
+pred = Ltr_Ledd(Mbh, mstar, Rstar, beta, tfbH_max, 1.44, zeta)
+print('predicted Ltr at tfbH_max tfb (in Ledd) from new Eq.: ', pred)
 
 Mbhs = [1e3, 1e4, 1e5, 1e6]
 for massBH in Mbhs:
-    pred = Ltr_Ledd(massBH, mstar, Rstar, beta, 1.5, 1.44, 0.04)
+    pred = Ltr_Ledd(massBH, mstar, Rstar, beta, 1, 0.34, 0.04)
     print(f'predicted Ltr at 1 tfb (in Ledd) from new Eq. for Mbh={massBH}: ', pred)
 # %%
-predWD = Ltr_Ledd(massBH, mstar, Rstar, beta, 1.5, 1.44, 0.04)
+predWD = Ltr_Ledd(massBH, mstar, Rstar, beta, 1, 0.34, 0.04)
 print('predicted Ltr at 1.5 tfb for WD (in Ledd) from new Eq.: ', predWD)
 
 # %%

@@ -311,7 +311,7 @@ for ax in [ax1, ax2]:
     ax.set_xscale('log')
     ax.tick_params(axis='both', which='major', width=1.3, length=9, labelsize=28)
     ax.tick_params(axis='both', which='minor', width=0.9, length=6)
-    ax.legend(loc ='upper left', fontsize = 18)
+    ax.legend(loc ='upper left', fontsize = 18, bbox_to_anchor=(0.035, 1.0))
     ax.set_ylim(0,1.1)
     ax.grid()
     ax.set_ylabel('CDF') #, fontsize = 30)

@@ -40,6 +40,14 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
     # R0 = 0.6 * Rt
     apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
 
+    if how_far == 'star_frame':
+        x_start = -20
+        x_stop = 20
+        y_start = -20
+        y_stop = 20
+        z_start = -100 
+        z_stop = 100 
+
     if how_far == 'nozzle':
         x_start = -2*apo
         x_stop = apo
@@ -65,6 +73,7 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         z_stop = 0.8*Rt #2*apo  
     
     xs = np.linspace(x_start, x_stop, num = x_num)
+    print(xs)
     ys = np.linspace(y_start, y_stop, num = y_num)
     zs = np.linspace(z_start, z_stop, z_num) #simulator units
     # data = make_tree(path, snap, energy = True)
@@ -146,7 +155,7 @@ if __name__ == '__main__':
     check = 'HiResNewAMR'
     compton = 'Compton'
     what_to_grid = 'Diss'
-    how_far = 'nozzle' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
+    how_far = 'star_frame' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
     save_fig = False
 
     params = [Mbh, Rstar, mstar, beta]
@@ -201,10 +210,10 @@ if __name__ == '__main__':
         import src.orbits as orb
         from plotting.paper.IHopeIsTheLast import split_data_red
         from Utilities.operators import from_cylindric
-        snap = 318
-        what_to_grid = 'Den' #['tau_scatt', 'tau_ross', 'Den']
+        snap = 10
+        what_to_grid = 'Diss' #['tau_scatt', 'tau_ross', 'Den']
         sign = '' # '' for positive, '_neg' for negative
-        how_far = ''
+        how_far = 'star_frame'
 
         snaps, Lum, tfb = split_data_red(check)
         tfb_single = tfb[np.argmin(np.abs(snap-snaps))] 
@@ -213,11 +222,12 @@ if __name__ == '__main__':
         flat_q = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}proj{snap}{sign}.npy')
         x_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}xarray.npy')
         y_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}yarray.npy')
-        dataph = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
-        xph, yph, zph, volph= dataph[0], dataph[1], dataph[2], dataph[3]
+        print(x_radii)
+        # dataph = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
+        # xph, yph, zph, volph= dataph[0], dataph[1], dataph[2], dataph[3]
         # midph= np.abs(zph) < volph**(1/3)
         # xph_mid, yph_mid, zph_mid = make_slices([xph, yph, zph], midph)
-       
+        
         if how_far == 'big':
             ax.set_xlim(-6, 2.5)
             ax.set_ylim(-3, 2)
@@ -237,13 +247,15 @@ if __name__ == '__main__':
             cbar_label = r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$'
             cmap = 'viridis'
             
-        img = ax.pcolormesh(x_radii/apo, y_radii/apo, np.abs(flat_q).T, cmap = cmap,
+        img = ax.pcolormesh(x_radii, y_radii, np.abs(flat_q).T, cmap = cmap,
                             norm = colors.LogNorm(vmin = vmin, vmax = vmax))
         cb = plt.colorbar(img)
         # ax.plot(xph[indecesorbital]/apo, yph[indecesorbital]/apo, c = 'white', markersize = 5, marker = 'H', label = r'$R_{\rm ph}$')
         # just to connect the first and last 
         # ax.plot([xph[first_idx]/apo, xph[last_idx]/apo], [yph[first_idx]/apo, yph[last_idx]/apo], c = 'white', markersize = 1, marker = 'H')
         cb.set_label(cbar_label)
+        ax.set_xlabel(r'$X [R_\odot]$', fontsize = 20)
+        ax.set_ylabel(r'$Y [R_\odot]$', fontsize = 20)
         # ax.set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
         # ax.set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
         ax.scatter(0, 0, color = 'k', edgecolors = 'orange', s = 40)

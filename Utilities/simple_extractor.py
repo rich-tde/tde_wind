@@ -53,10 +53,10 @@ def extractor(filename):
     Star = []
     Entropy = []
     Diss = []
-    # DpDx = []
-    # DpDy = []
-    # DpDz = []
-    # DivV = []
+    DpDx = []
+    DpDy = []
+    DpDz = []
+    DivV = []
     
     #print('tot ranks: ', len(keys))
     # Iterate over ranks
@@ -89,10 +89,10 @@ def extractor(filename):
             star_data = f[key]['tracers']['Star']
             Diss_data = f[key]['Dissipation']
             entropy_data = f[key]['tracers']['Entropy']
-            # DpDx_data = f[key]['DpDx']
-            # DpDy_data = f[key]['DpDy']
-            # DpDz_data = f[key]['DpDz']
-            # DivV_data = f[key]['divV']
+            DpDx_data = f[key]['DpDx']
+            DpDy_data = f[key]['DpDy']
+            DpDz_data = f[key]['DpDz']
+            DivV_data = f[key]['divV']
 
             for i in range(len(entropy_data)):
                 X.append(x_data[i])
@@ -111,14 +111,14 @@ def extractor(filename):
                 Star.append(star_data[i]) #mass of the disrupted star for TDE
                 Diss.append(Diss_data[i])
                 Entropy.append(entropy_data[i])
-                # DpDx.append(DpDx_data[i])
-                # DpDy.append(DpDy_data[i])
-                # DpDz.append(DpDz_data[i])
-                # DivV.append(DivV_data[i])
+                DpDx.append(DpDx_data[i])
+                DpDy.append(DpDy_data[i])
+                DpDz.append(DpDz_data[i])
+                DivV.append(DivV_data[i])
 
     # Close the file
     f.close()
-    return box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy #, DpDx, DpDy, DpDz, DivV
+    return box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz, DivV
 
 ##
 # MAIN
@@ -141,6 +141,8 @@ snaps = select_snap(m, check, mstar, Rstar, beta, n, time = False)
 print(f'We are in folder: {folder}', flush=True)
 
 for i, snap in enumerate(snaps):
+    if snap != 10:
+        continue
     prepath = select_prefix(m, check, mstar, Rstar, beta, n, compton)
     if alice:
         prepath = f'{prepath}/snap_{snap}'
@@ -151,7 +153,7 @@ for i, snap in enumerate(snaps):
     print(snap, flush=True)
 
     tfb = days_since_distruption(file, m, mstar, Rstar, choose = 'tfb')
-    box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy = extractor(file)
+    box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz, DivV = extractor(file)
    
    # Save to another file.
     np.save(f'{prepath}/box_{snap}', box) 
@@ -171,12 +173,12 @@ for i, snap in enumerate(snaps):
     np.save(f'{prepath}/Star_{snap}', Star) 
     np.save(f'{prepath}/Diss_{snap}', Diss)
     np.save(f'{prepath}/Entropy_{snap}', Entropy) 
-    # np.save(f'{prepath}/DpDx_{snap}', DpDx)
-    # np.save(f'{prepath}/DpDy_{snap}', DpDy)
-    # np.save(f'{prepath}/DpDz_{snap}', DpDz)
-    # np.save(f'{prepath}/DivV_{snap}', DivV)
+    np.save(f'{prepath}/DpDx_{snap}', DpDx)
+    np.save(f'{prepath}/DpDy_{snap}', DpDy)
+    np.save(f'{prepath}/DpDz_{snap}', DpDz)
+    np.save(f'{prepath}/DivV_{snap}', DivV)
     np.savetxt(f'{prepath}/tfb_{snap}.txt', [tfb])
 
-    del box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy
+    del box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz, DivV
 print('Done')
                 

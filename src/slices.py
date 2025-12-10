@@ -78,8 +78,8 @@ else:
     indecesorbital = np.concatenate(np.where(latitude_moll==0))
 
 for idx, snap in enumerate(snaps):
-    if snap != 20:
-        continue
+    if snap != 0:
+            continue
     print(snap, flush=True)
     if do:
         # you are in alice
@@ -117,29 +117,13 @@ for idx, snap in enumerate(snaps):
         npanels = 2 # 3 or 6
 
         # load the data
-        # data = np.load(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy', allow_pickle=True)
-        # x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, Rad_den_mid, VX_mid, VY_mid, VZ_mid, Diss_den_mid, IE_den_mid, Press_mid =\
-        #     data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13]
-        data = np.load(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy', allow_pickle=True).item()
-        x_mid = data['x']
-        y_mid = data['y']
-        z_mid = data['z']
-        dim_mid = data['dim']
+        data = np.load(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy', allow_pickle=True)
+        x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, Rad_den_mid, VX_mid, VY_mid, VZ_mid, Diss_den_mid, IE_den_mid, Press_mid =\
+            data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13] #, data[14] 
         Diss_mid = Diss_den_mid * dim_mid**3 * prel.en_converter
-        mass_mid = data['mass']
-        den_mid = data['den']
-        temp_mid = data['temp']
-        ie_den_mid = data['ie_den']
-        Rad_den_mid = data['Rad_den']
-        Temp_rad_mid = (Rad_den_mid * prel.en_den_converter / prel.alpha_cgs)**0.25
-        VX_mid = data['VX']
-        VY_mid = data['VY']
-        VZ_mid = data['VZ']
-        V = np.sqrt(VX_mid**2 + VY_mid**2 + VZ_mid**2)
-        Diss_den_mid = data['Diss_den']
-        IE_den_mid = data['IE_den']
-        Press_mid = data['Press']
-        DivV = data['DivV']
+        Temp_rad_mid = (Rad_den_mid * prel.en_den_converter/prel.alpha_cgs)**(0.25)
+        vel_mid = np.sqrt(VX_mid**2 + VY_mid**2 + VZ_mid**2)
+        cs_mid = Press_mid/den_mid
 
         if npanels == 2:
             fig, ax = plt.subplots(1,2, figsize = (14,8))
@@ -167,10 +151,10 @@ for idx, snap in enumerate(snaps):
             cb.set_label(r'$|\nabla \cdot \mathbf{v}|$', fontsize = 16)
             ax[0].set_ylabel(r'$Y/R_{\rm a}$')
 
-            img = ax[1].scatter(x_mid, y_mid, c = ie_onmass_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = np.percentile(ie_onmass_mid, 5), vmax = np.percentile(ie_onmass_mid, 99)))
+            img = ax[1].scatter(x_mid, y_mid, c = cs_mid/vel_mid, cmap = 'viridis', s= .1, \
+                        norm = colors.LogNorm(vmin = 1e-1, vmax = 10))
             cb = plt.colorbar(img)
-            cb.set_label(r'Specific IE [erg/g]')
+            cb.set_label(r'$c_{\rm s}/v$ [erg/g]')
 
             img = ax[2].scatter(x_mid, y_mid, c = Temp_rad_mid, cmap = 'viridis', s= .1, \
                         norm = colors.LogNorm(vmin = 1e4, vmax = 1e6))
@@ -239,8 +223,8 @@ for idx, snap in enumerate(snaps):
             ax[0].set_ylabel(r'$ [R_\odot]$')
             for i in range(npanels):
                 ax[i].set_xlabel(r'$X [R_\odot]$')
-                # ax[i].set_xlim(-10, 10)#(-340,25)
-                # ax[i].set_ylim(-10, 10)#(-70,70)
+                ax[i].set_xlim(-1, 1)#(-340,25)
+                ax[i].set_ylim(-1, 1)#(-70,70)
                 ax[i].set_aspect('equal', 'box')
         # ax[0][0].text(-1.05, 0.38, f'snap {int(snaps[idx])}', fontsize = 16)
 
