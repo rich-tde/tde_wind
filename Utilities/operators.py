@@ -385,7 +385,7 @@ def compute_curl(X, Y, Z, Vol, VX, VY, VZ):
     # dvx_dx = np.nan_to_num((vx_p - vx_m)/(2*dx))
     dvy_dx = np.nan_to_num((vy_p - vy_m)/(2*dx))
     dvz_dx = np.nan_to_num((vz_p - vz_m)/(2*dx))
-
+    print('Computed dv/dx', flush=True)
     vx_p = griddata(f_inter_input, vx_i, Yp_dx, method='linear')
     vx_m = griddata(f_inter_input, vx_i, Ym_dx, method='linear')
     vy_p = griddata(f_inter_input, vy_i, Yp_dx, method='linear')
@@ -395,7 +395,7 @@ def compute_curl(X, Y, Z, Vol, VX, VY, VZ):
     dvx_dy = np.nan_to_num((vx_p - vx_m)/(2*dx))
     # dvy_dy = np.nan_to_num((vy_p - vy_m)/(2*dx))
     dvz_dy = np.nan_to_num((vz_p - vz_m)/(2*dx))
-
+    print('Computed dv/dy', flush=True)
     vx_p = griddata(f_inter_input, vx_i, Zp_dx, method='linear')
     vx_m = griddata(f_inter_input, vx_i, Zm_dx, method='linear')
     vy_p = griddata(f_inter_input, vy_i, Zp_dx, method='linear')
@@ -405,7 +405,7 @@ def compute_curl(X, Y, Z, Vol, VX, VY, VZ):
     dvx_dz = np.nan_to_num((vx_p - vx_m)/(2*dx))
     dvy_dz = np.nan_to_num((vy_p - vy_m)/(2*dx))
     # dvz_dz = np.nan_to_num((vz_p - vz_m)/(2*dx))
-
+    print('Computed dv/dz', flush=True)
     # Compute curl for all particles
     curl_vec = np.zeros((len(X),3))
     curl_vec[:,0] = dvz_dy - dvy_dz  # curl_x
@@ -785,7 +785,7 @@ if __name__ == '__main__':
     n = 1.5
     check = 'HiResNewAMR'
     compton = 'Compton'
-    snap = 10
+    snap = 20
 
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
