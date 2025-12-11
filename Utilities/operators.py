@@ -20,6 +20,7 @@ from sklearn.neighbors import KDTree
 import k3match
 import math
 import numba
+from scipy.interpolate import griddata
 import Utilities.prelude
 
 def to_cylindric(x,y):
@@ -358,6 +359,61 @@ def make_tree(filename, snap, energy = False):
     else: 
         data = data_snap(sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, time)
     return data
+
+def compute_curl(X, Y, Z, Vol, VX, VY, VZ):
+    R_vec = np.transpose(np.array([X, Y, Z]))
+    tree = KDTree(R_vec, leaf_size=50) 
+    _, idx = tree.query(R_vec, k=20)  # idx shape: (N,k)
+    idx = np.unique(idx)  
+    f_inter_input = np.array([X[idx], Y[idx], Z[idx]]).T
+    vx_i = VX[idx]
+    vy_i = VY[idx]
+    vz_i = VZ[idx]
+    dx = 0.5 * (Vol[idx])**(1/3)
+    Xp_dx = np.transpose(np.array([X+dx, Y, Z]))
+    Xm_dx = np.transpose(np.array([X-dx, Y, Z]))
+    Yp_dx = np.transpose(np.array([X, Y+dx, Z]))
+    Ym_dx = np.transpose(np.array([X, Y-dx, Z]))
+    Zp_dx = np.transpose(np.array([X, Y, Z+dx]))
+    Zm_dx = np.transpose(np.array([X, Y, Z-dx]))
+    vx_p = griddata(f_inter_input, vx_i, Xp_dx, method='linear')
+    vx_m = griddata(f_inter_input, vx_i, Xm_dx, method='linear')
+    vy_p = griddata(f_inter_input, vy_i, Xp_dx, method='linear')
+    vy_m = griddata(f_inter_input, vy_i, Xm_dx, method='linear')
+    vz_p = griddata(f_inter_input, vz_i, Xp_dx, method='linear')
+    vz_m = griddata(f_inter_input, vz_i, Xm_dx, method='linear')
+    # dvx_dx = np.nan_to_num((vx_p - vx_m)/(2*dx))
+    dvy_dx = np.nan_to_num((vy_p - vy_m)/(2*dx))
+    dvz_dx = np.nan_to_num((vz_p - vz_m)/(2*dx))
+
+    vx_p = griddata(f_inter_input, vx_i, Yp_dx, method='linear')
+    vx_m = griddata(f_inter_input, vx_i, Ym_dx, method='linear')
+    vy_p = griddata(f_inter_input, vy_i, Yp_dx, method='linear')
+    vy_m = griddata(f_inter_input, vy_i, Ym_dx, method='linear')
+    vz_p = griddata(f_inter_input, vz_i, Yp_dx, method='linear')
+    vz_m = griddata(f_inter_input, vz_i, Ym_dx, method='linear')
+    dvx_dy = np.nan_to_num((vx_p - vx_m)/(2*dx))
+    # dvy_dy = np.nan_to_num((vy_p - vy_m)/(2*dx))
+    dvz_dy = np.nan_to_num((vz_p - vz_m)/(2*dx))
+
+    vx_p = griddata(f_inter_input, vx_i, Zp_dx, method='linear')
+    vx_m = griddata(f_inter_input, vx_i, Zm_dx, method='linear')
+    vy_p = griddata(f_inter_input, vy_i, Zp_dx, method='linear')
+    vy_m = griddata(f_inter_input, vy_i, Zm_dx, method='linear')
+    vz_p = griddata(f_inter_input, vz_i, Zp_dx, method='linear')
+    vz_m = griddata(f_inter_input, vz_i, Zm_dx, method='linear')
+    dvx_dz = np.nan_to_num((vx_p - vx_m)/(2*dx))
+    dvy_dz = np.nan_to_num((vy_p - vy_m)/(2*dx))
+    # dvz_dz = np.nan_to_num((vz_p - vz_m)/(2*dx))
+
+    # Compute curl for all particles
+    curl_vec = np.zeros((len(X),3))
+    curl_vec[:,0] = dvz_dy - dvy_dz  # curl_x
+    curl_vec[:,1] = dvx_dz - dvz_dx  # curl_y
+    curl_vec[:,2] = dvy_dx - dvx_dy  # curl_z
+
+    return curl_vec
+
 
 def single_branch(radii, R, tocast, weights, keep_track = False):
     """ Casts a quantity down to a smaller size vector
@@ -718,3 +774,27 @@ def calc_multiple_grad(sim_tree, X, Y, Z, f_array, point, delta):
         gradients.append(grad)
 
     return gradients
+
+if __name__ == '__main__':
+    from Utilities.sections import make_slices
+    m = 4
+    Mbh = 10**m
+    beta = 1
+    mstar = .5
+    Rstar = .47
+    n = 1.5
+    check = 'HiResNewAMR'
+    compton = 'Compton'
+    snap = 10
+
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+    data = make_tree(path, snap, energy = True)
+    cut = data.Den > 1e-19
+    X, Y, Z, vol, vx, vy, vz= \
+        make_slices([data.X, data.Y, data.Z, data.Vol, data.VX, data.VY, data.VZ], cut)
+    curl = compute_curl(X, Y, Z, vol, vx, vy, vz)
+    np.save(f'{path}/curl_test.npy', curl)
+
+
+    

@@ -218,7 +218,7 @@ if __name__ == '__main__':
         snaps, Lum, tfb = split_data_red(check)
         tfb_single = tfb[np.argmin(np.abs(snap-snaps))] 
         
-        fig, ax = plt.subplots(1, 1, figsize = (10,7))
+        fig, ax = plt.subplots(1, 1, figsize = (15,9))
         flat_q = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}proj{snap}{sign}.npy')
         x_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}xarray.npy')
         y_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}yarray.npy')
@@ -250,6 +250,8 @@ if __name__ == '__main__':
         img = ax.pcolormesh(x_radii, y_radii, np.abs(flat_q).T, cmap = cmap,
                             norm = colors.LogNorm(vmin = vmin, vmax = vmax))
         cb = plt.colorbar(img)
+        ax.set_xlim(-5, 5)
+        ax.set_ylim(-5, 5)
         # ax.plot(xph[indecesorbital]/apo, yph[indecesorbital]/apo, c = 'white', markersize = 5, marker = 'H', label = r'$R_{\rm ph}$')
         # just to connect the first and last 
         # ax.plot([xph[first_idx]/apo, xph[last_idx]/apo], [yph[first_idx]/apo, yph[last_idx]/apo], c = 'white', markersize = 1, marker = 'H')
@@ -258,7 +260,7 @@ if __name__ == '__main__':
         ax.set_ylabel(r'$Y [R_\odot]$', fontsize = 20)
         # ax.set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
         # ax.set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
-        ax.scatter(0, 0, color = 'k', edgecolors = 'orange', s = 40)
+        # ax.scatter(0, 0, color = 'k', edgecolors = 'orange', s = 40)
         # ax.plot(x_arr_ell/apo, y_arr_ell/apo, c= 'white', linestyle = 'dashed', alpha = 0.7)
         # for j in range(len(radii_grid)):
         #     ax.contour(xcfr_grid[j]/apo, ycfr_grid[j]/apo, cfr_grid[j]/apo, levels=[0], colors='white')
