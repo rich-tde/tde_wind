@@ -794,7 +794,7 @@ if __name__ == '__main__':
     X, Y, Z, vol, vx, vy, vz= \
         make_slices([data.X, data.Y, data.Z, data.Vol, data.VX, data.VY, data.VZ], cut)
     curl = compute_curl(X, Y, Z, vol, vx, vy, vz)
-    np.save(f'{path}/curl_test.npy', curl)
+    np.save(f'{path}/curl_{snap}.npy', curl)
 
 
     

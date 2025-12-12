@@ -50,7 +50,12 @@ dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',
 snapdiss, tfbdiss, LDiss, LDissNeg = dataDiss[:,0], dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs, dataDiss[:,5] * prel.en_converter/prel.tsol_cgs
 dataDissIon = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}ionizationHe.csv', delimiter=',', dtype=float, skiprows=1)
 tfbdiss_split, LDissAb, LdissBl =  dataDissIon[:,1], dataDissIon[:,3] * prel.en_converter/prel.tsol_cgs, dataDissIon[:,5] * prel.en_converter/prel.tsol_cgs
-
+_, tfbmdot, mfallH, _, _, _, _, _, tot_IE_H, tot_Rad_H = \
+            np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_HiResNewAMR05aminmean.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True) 
+Lum_mdot = 0.1 * np.abs(mfallH) * prel.csol_cgs**2 *prel.en_converter/prel.tsol_cgs 
 time_theory = tfb[210:-1]
 Lum_theory = 5e41*time_theory**(-5/3)
 
@@ -87,6 +92,7 @@ cbar.ax.tick_params(which='minor', length = 3)
 ax.plot(tfbdiss, LDiss,c = 'gray', label = r'tot')
 ax.plot(tfbdiss_split, LdissBl, ls = 'dotted', c= 'b', label = r'$T_{\rm{gas}} < 1\cdot 10^5 K$')
 ax.plot(tfbdiss_split, LDissAb, '--', c= 'r', label = r'$T_{\rm{gas}} > 1\cdot 10^5 K$')
+ax.plot(tfbmdot, Lum_mdot*1e-5, ls = 'dashdot', c= 'orange', label = r'from $\dot{M}_{\rm fb}$ (scaled by $10^{-5}$)')
 ax.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
 ax.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd}$', fontsize = 20)
 # ax.plot(time_theory, Lum_theory, c = 'k', linestyle = 'dotted', linewidth = 1)
@@ -181,4 +187,12 @@ ax.grid()
 ax.legend(fontsize = 16)
 ax.set_ylabel(r'Dissipation rate [erg/s]')#, fontsize = 20)
 # ax.set_ylim(9e37, 2e43)
+# %%
+x_test = np.arange(1, 100)
+y_test = x_test**2
+y2_test = x_test**2 
+plt.plot(x_test, y_test)
+plt.plot(x_test, y2_test*1e-2)
+plt.yscale('log')
+# plt.ylim(1, 1e6)
 # %%
