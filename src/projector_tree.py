@@ -24,7 +24,7 @@ import numpy as np
 import numba
 # from scipy.spatial import KDTree
 from sklearn.neighbors import KDTree
-from Utilities.selectors_for_snap import select_prefix, select_snap
+from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
 import Utilities.prelude as prel
 from src import orbits as orb
@@ -73,9 +73,9 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         z_stop = 0.8*Rt #2*apo  
     
     xs = np.linspace(x_start, x_stop, num = x_num)
-    print(xs)
     ys = np.linspace(y_start, y_stop, num = y_num)
     zs = np.linspace(z_start, z_stop, z_num) #simulator units
+    # print(zs)
     # data = make_tree(path, snap, energy = True)
     # sim_tree = data.sim_tree
     X = np.load(f'{path}/CMx_{snap}.npy')
@@ -138,9 +138,10 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
     z_radii has to be linspaced. """
     # Make the 3D grid 
     dz = z_radii[1] - z_radii[0]  # constant spacing
-    if dz == z_radii[-1] - z_radii[-2]:
+    if np.round(dz, 4) == np.round(z_radii[-1] - z_radii[-2], 4):
         flat_den = np.sum(gridded_den, axis = -1) * dz
     else:
+        print(dz, z_radii[-1] - z_radii[-2])
         raise ValueError("z_radii has to be linspaced.")
     return flat_den
 
@@ -178,11 +179,11 @@ if __name__ == '__main__':
         t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
 
         snaps = np.array(snaps)
-        if how_far == 'big' or how_far == 'nozzle':
-            idx_chosen = np.array([0,
-                                np.argmin(np.abs(tfb-1)),
-                                np.argmax(tfb)])
-            snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
+        # if how_far == 'big' or how_far == 'nozzle':
+        #     idx_chosen = np.array([0,
+        #                         np.argmin(np.abs(tfb-1)),
+        #                         np.argmax(tfb)])
+        #     snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
         
         with open(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}time_proj.txt', 'w') as f:
             f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
@@ -190,7 +191,7 @@ if __name__ == '__main__':
             f.close()
             
         for snap in snaps:
-            if snap != 28:
+            if snap not in [35, 40, 48]:
                 continue
             print(snap, flush=True)
             path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -214,7 +215,7 @@ if __name__ == '__main__':
         snap = 10
         what_to_grid = 'Diss' #['tau_scatt', 'tau_ross', 'Den']
         sign = '' # '' for positive, '_neg' for negative
-        how_far = 'star_frame'
+        how_far = 'nozzle'
 
         snaps, Lum, tfb = split_data_red(check)
         tfb_single = tfb[np.argmin(np.abs(snap-snaps))] 
