@@ -24,7 +24,7 @@ import numpy as np
 import numba
 # from scipy.spatial import KDTree
 from sklearn.neighbors import KDTree
-from Utilities.selectors_for_snap import select_snap
+from Utilities.selectors_for_snap import select_prefix, select_snap
 from Utilities.sections import make_slices
 import Utilities.prelude as prel
 from src import orbits as orb
@@ -152,10 +152,10 @@ if __name__ == '__main__':
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = 'HiResNewAMR'
+    check = 'HiResStream'
     compton = 'Compton'
     what_to_grid = 'Diss'
-    how_far = 'star_frame' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
+    how_far = 'nozzle' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
     save_fig = False
 
     params = [Mbh, Rstar, mstar, beta]
@@ -168,10 +168,10 @@ if __name__ == '__main__':
     a_mb = things['a_mb']
     e_mb = things['ecc_mb']
 
-    if check == '':
-        folder = f'opacity_tests/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-    else:
-        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    # if check in ['HiResStream', 'HiResStream2']:
+    #     print('HERE', flush=True)
+    #     folder = f'StreamConvergence/{folder}'
 
     if compute:
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
@@ -190,13 +190,14 @@ if __name__ == '__main__':
             f.close()
             
         for snap in snaps:
-            if snap != 10:
+            if snap != 28:
                 continue
             print(snap, flush=True)
+            path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
             if alice:
-                path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-            else: 
-                path = f'{prepath}/TDE/{folder}/{snap}'
+                path = f'{path}/snap_{snap}'
+            else:
+                path = f'{path}/{snap}'
             
             _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=500, y_num=500, z_num = 100, how_far = how_far)
             flat_q = projector(grid_q, x_radii, y_radii, z_radii)

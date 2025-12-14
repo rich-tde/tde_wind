@@ -785,7 +785,8 @@ if __name__ == '__main__':
     n = 1.5
     check = 'HiResNewAMR'
     compton = 'Compton'
-    snap = 20
+    snap = 0
+    print('Computing curl for snapshot', snap, flush=True)
 
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
