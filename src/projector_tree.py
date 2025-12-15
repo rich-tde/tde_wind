@@ -153,7 +153,7 @@ if __name__ == '__main__':
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = 'HiResStream'
+    check = 'HiResNewAMR'
     compton = 'Compton'
     what_to_grid = 'Diss'
     how_far = 'nozzle' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
@@ -179,11 +179,14 @@ if __name__ == '__main__':
         t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
 
         snaps = np.array(snaps)
-        # if how_far == 'big' or how_far == 'nozzle':
-        #     idx_chosen = np.array([0,
-        #                         np.argmin(np.abs(tfb-1)),
-        #                         np.argmax(tfb)])
-        #     snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
+        if how_far == 'big' or how_far == 'nozzle':
+            # idx_chosen = np.array([0,
+            #                     np.argmin(np.abs(tfb-1)),
+            #                     np.argmax(tfb)])
+            idx_chosen = np.array([np.argmin(np.abs(tfb-0.1)),
+                                np.argmin(np.abs(tfb-0.2)),
+                                np.argmin(np.abs(tfb-0.32))])
+            snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
         
         with open(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}time_proj.txt', 'w') as f:
             f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
@@ -191,8 +194,8 @@ if __name__ == '__main__':
             f.close()
             
         for snap in snaps:
-            if snap not in [35, 40, 48]:
-                continue
+            # if snap not in [35, 40, 48]:
+            #     continue
             print(snap, flush=True)
             path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
             if alice:
@@ -212,19 +215,21 @@ if __name__ == '__main__':
         import src.orbits as orb
         from plotting.paper.IHopeIsTheLast import split_data_red
         from Utilities.operators import from_cylindric
-        snap = 10
+        snap = 48
         what_to_grid = 'Diss' #['tau_scatt', 'tau_ross', 'Den']
         sign = '' # '' for positive, '_neg' for negative
         how_far = 'nozzle'
+        check = 'HiResStream'
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-        snaps, Lum, tfb = split_data_red(check)
+        snaps, tfb = np.loadtxt(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}time_proj.txt')
         tfb_single = tfb[np.argmin(np.abs(snap-snaps))] 
         
         fig, ax = plt.subplots(1, 1, figsize = (15,9))
         flat_q = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}proj{snap}{sign}.npy')
         x_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}xarray.npy')
         y_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}yarray.npy')
-        print(x_radii)
+        # print(x_radii)
         # dataph = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
         # xph, yph, zph, volph= dataph[0], dataph[1], dataph[2], dataph[3]
         # midph= np.abs(zph) < volph**(1/3)
@@ -244,22 +249,22 @@ if __name__ == '__main__':
             cmap = 'plasma'
         elif what_to_grid == 'Diss':
             flat_q *= prel.en_converter/(prel.tsol_cgs * prel.Rsol_cgs**2)
-            vmin = 1e14
+            vmin = 1e12 #1e14
             vmax = 1e19
             cbar_label = r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$'
             cmap = 'viridis'
             
-        img = ax.pcolormesh(x_radii, y_radii, np.abs(flat_q).T, cmap = cmap,
+        img = ax.pcolormesh(x_radii/Rt, y_radii/Rt, np.abs(flat_q).T, cmap = cmap,
                             norm = colors.LogNorm(vmin = vmin, vmax = vmax))
         cb = plt.colorbar(img)
-        ax.set_xlim(-5, 5)
-        ax.set_ylim(-5, 5)
+        ax.set_xlim(-40, 20)
+        ax.set_ylim(-12, 12)
         # ax.plot(xph[indecesorbital]/apo, yph[indecesorbital]/apo, c = 'white', markersize = 5, marker = 'H', label = r'$R_{\rm ph}$')
         # just to connect the first and last 
         # ax.plot([xph[first_idx]/apo, xph[last_idx]/apo], [yph[first_idx]/apo, yph[last_idx]/apo], c = 'white', markersize = 1, marker = 'H')
         cb.set_label(cbar_label)
-        ax.set_xlabel(r'$X [R_\odot]$', fontsize = 20)
-        ax.set_ylabel(r'$Y [R_\odot]$', fontsize = 20)
+        ax.set_xlabel(r'$X [R_{\rm t}]$', fontsize = 20)
+        ax.set_ylabel(r'$Y [R_{\rm t}]$', fontsize = 20)
         # ax.set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
         # ax.set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
         # ax.scatter(0, 0, color = 'k', edgecolors = 'orange', s = 40)
@@ -268,7 +273,7 @@ if __name__ == '__main__':
         #     ax.contour(xcfr_grid[j]/apo, ycfr_grid[j]/apo, cfr_grid[j]/apo, levels=[0], colors='white')
             
         plt.tight_layout()
-        # ax.set_title(f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$, res: ' + f'{check}', color = 'k', fontsize = 25)
+        ax.set_title(f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$, res: ' + f'{check}', color = 'k', fontsize = 25)
         # plt.savefig(f'{prepath}/Figs/Test/{folder}/projection/{what_to_grid}{faraway}proj{snap}{sign}.png', dpi = 300)
         plt.show()
 # %%
