@@ -17,6 +17,8 @@ else:
 import numpy as np
 from scipy.optimize import brentq
 import gc
+import os
+import csv
 import Utilities.prelude as prel
 import Utilities.sections as sec
 import src.orbits as orb
@@ -392,7 +394,8 @@ if __name__ == '__main__':
                     'vy_cm': vy_cm,
                     'vz_cm': vz_cm,
                     'den_cm': den_cm,
-                    'mass_cm': mass_cm
+                    'mass_cm': mass_cm,
+                    'indices_cm': indices_cm
                 } 
                 if alice:
                     np.savez(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npz', **com)
@@ -413,35 +416,50 @@ if __name__ == '__main__':
             gc.collect()
 
             if alice:
-                with open(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt','w') as file:
-                    # if file exist, save theta and date of execution
-                    file.write(f'# theta \n')
-                    file.write((' '.join(map(str, theta_wh)) + '\n'))
-                    file.write(f'# Width \n')
-                    file.write((' '.join(map(str, w_params[0])) + '\n'))
-                    file.write(f'# Ncells width\n')
-                    file.write((' '.join(map(str, w_params[1])) + '\n'))
-                    file.write(f'# Height \n')
-                    file.write((' '.join(map(str, h_params[0])) + '\n'))
-                    file.write(f'# Ncells height \n')
-                    file.write((' '.join(map(str, h_params[1])) + '\n'))
-                np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{check}{snap}.npy', indeces_boundary)
-                np.save(f'{abspath}/data/{folder}/WH/enclosed/indeces_enclosed_{check}{snap}.npy', indeces_enclosed, allow_pickle=True)
+                X_bound = X[indeces_boundary] # nx4: Xlow_w, Xup_w, Xlow_h, Xup_h are the rows
+                Y_bound = Y[indeces_boundary]
+                Z_bound = Z[indeces_boundary]
+
+                width_data = {
+                    'theta_wh': theta_wh,
+                    'X_low_w': X_bound[:, 0],
+                    'X_up_w': X_bound[:, 1],
+                    'X_low_h': X_bound[:, 2],
+                    'X_up_h': X_bound[:, 3],
+                    'Y_low_w': Y_bound[:, 0],
+                    'Y_up_w': Y_bound[:, 1],
+                    'Y_low_h': Y_bound[:, 2],
+                    'Y_up_h': Y_bound[:, 3],
+                    'Z_low_w': Z_bound[:, 0],
+                    'Z_up_w': Z_bound[:, 1],
+                    'Z_low_h': Z_bound[:, 2],
+                    'Z_up_h': Z_bound[:, 3],
+                    'width': w_params[0],
+                    'N_width': w_params[1],
+                    'height': h_params[0],
+                    'N_height': h_params[1]
+                }
+
+                np.savez(f'{abspath}/data/{folder}/WH/wh_{massperc}{check}{snap}.npz', **width_data)
+                np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{massperc}{check}{snap}.npy', indeces_boundary)
+                np.save(f'{abspath}/data/{folder}/WH/enclosed/indeces_enclosed_{massperc}{check}{snap}.npy', indeces_enclosed, allow_pickle=True)
 
     if plot: 
-        from Utilities.operators import sort_list
         x_axis = ''
-        dataLum = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
-        snaps, tfbs = dataLum[:, 0], dataLum[:, 1]
-        snaps, tfbs = sort_list([snaps, tfbs], tfbs)
-        snaps = [int(snap) for snap in snaps]
+        data = np.loadtxt(f'{abspath}/data/{folder}/projection/Dentime_proj.txt', ndmin=2)
+        snaps = data[0].astype(int)
+        tfb = data[1] 
 
         # Plotting results
         for i, snap in enumerate(snaps):
             # if snap == 81:
             #     continue
-            theta_wh, width, N_width, height, N_height = \
-                np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
+            data_width = np.load(f'{abspath}/data/{folder}/WH/wh_{massperc}{check}{snap}.npz', allow_pickle=True)
+            theta_wh = data_width['theta_wh']
+            width = data_width['width']
+            N_width = data_width['N_width']
+            height = data_width['height']
+            N_height = data_width['N_height']
             if x_axis == 'radius':
                 theta_stream, x_stream, y_stream, z_stream, _ = \
                     np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)

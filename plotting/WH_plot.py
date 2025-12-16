@@ -25,7 +25,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-what = 'comparison' # 'onlysection' or 'section4' or 'comparison' or 'max_compr' or 'single_snap_behavior' 
+what = 'single_snap_behavior' # 'onlysection' or 'section4' or 'comparison' or 'max_compr' or 'single_snap_behavior' 
 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -41,81 +41,81 @@ lineminus3_4 = draw_line(x_arr, -3/4*np.pi)
 
 if what == 'comparison':
     # line at 3/4 and -3/4 pi
-    wanted_time = [0.5, 0.75, 1, 1.5]
-    checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
+    wanted_time = [0.3] #5, 0.75, 1]#, 1.5]
+    checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR', 'HiResStream','HiResStream2']
     compton = 'Compton'
-    checks_name = ['Low', 'Fid', 'High']
-    markers_sizes = [40, 20, 10]
-    linestyle_checks = ['solid', 'dashed', 'dotted']
-    color_checks = ['C1', 'yellowgreen', 'darkviolet']
+    checks_name = ['Low', 'Fid', 'High', 'HiResStream', 'HiResStream2']
+    markers_sizes = [40, 20, 10, 15, 15]
+    linestyle_checks = ['solid', 'dashed', 'dotted', 'dashdot', 'dashdot']
+    color_checks = ['C1', 'yellowgreen', 'darkviolet', 'magenta', 'dodgerblue']
 
     for i, time in enumerate(wanted_time): 
-        fig0, ax0 = plt.subplots(1, 1, figsize = (10,6))
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize = (15,12))
+        # fig0, ax0 = plt.subplots(1, 1, figsize = (10,6))
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize = (20,12))
 
         for i, check in enumerate(checks):
             # pick the simulation
             folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-            data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
-            snaps = np.array([int(s) for s in data[:,0]])
-            tfb = data[:, 1]
+            data = np.loadtxt(f'{abspath}/data/{folder}/projection/Dentime_proj.txt', ndmin=2)
+            snaps = data[0].astype(int)
+            tfb = data[1] 
             idx_time = np.argmin(np.abs(tfb - time)) # find the closest snap to the wanted time
             snap = snaps[idx_time]
             if np.abs(tfb[idx_time]- time) > 0.05:
                 print(f'Warning: the time {time} is not well represented in the data, closest is {tfb[idx_time]}')
                 continue
-            print(f'Check: {check}, time: {np.round(tfb[idx_time], 2)}')
+            print(f'Check: {check}, time: {np.round(tfb[idx_time], 2)}', f'snap: {snap}')
             # Load the data
-            theta_arr, x_stream, y_stream, z_stream, _ = \
-                np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
+            # theta_arr, x_stream, y_stream, z_stream, _ = \
+            #     np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
             theta_wh, width, N_width, height, N_height = \
                 np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
-            ax0.plot(x_stream/apo, y_stream/apo, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
-            ax0.plot(x_arr, line3_4, c = 'grey', alpha = 0.2)
-            ax0.plot(x_arr, lineminus3_4, c = 'grey', alpha = 0.2)
+            # ax0.plot(x_stream/apo, y_stream/apo, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
+            # ax0.plot(x_arr, line3_4, c = 'grey', alpha = 0.2)
+            # ax0.plot(x_arr, lineminus3_4, c = 'grey', alpha = 0.2)
 
-            ax1.set_title('Width', fontsize = 16)
+            ax1.set_title('Width', fontsize = 20)
             ax1.plot(theta_wh * radians, width, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
             ax3.scatter(theta_wh * radians, N_width, c = color_checks[i], s = markers_sizes[i], label = f'{checks_name[i]}')
-            ax2.set_title('Height', fontsize = 16)
+            ax2.set_title('Height', fontsize = 20)
             ax2.plot(theta_wh * radians, height, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
             ax4.scatter(theta_wh * radians, N_height, c = color_checks[i], s = markers_sizes[i], label = f'{checks_name[i]}')
 
-        ax0.set_xlim(-1, 0.1)
-        ax0.set_ylim(-.2,.2)
-        ax0.set_xlabel(r'$X [R_{\rm a}]$')
-        ax0.set_ylabel(r'$Y [R_{\rm a}]$')
-        ax0.legend(fontsize = 16)
+        # ax0.set_xlim(-1, 0.1)
+        # ax0.set_ylim(-.2,.2)
+        # ax0.set_xlabel(r'$X [R_{\rm a}]$')
+        # ax0.set_ylabel(r'$Y [R_{\rm a}]$')
+        # ax0.legend(fontsize = 16)
 
         ax1.set_ylabel(r'Stream size [$R_\odot$]')
-        ax1.set_ylim(1, 20)
-        ax2.set_ylim(0.1, 10)
+        ax1.set_ylim(1, 30)
+        ax2.set_ylim(0.1, 20)
         ax1.legend(fontsize = 16)
         ax3.set_ylabel(r'N$_{\rm cells}$')
-        ax3.set_ylim(np.min(N_width)/2, np.max(N_width) + 1)
+        ax3.set_ylim(9, 100) #np.min(N_width)/2, np.max(N_width) + 1)
         ax4.set_ylim(.9, np.max(N_height) + 1)
         for ax in [ax1, ax2, ax3, ax4]: 
             ax.set_xlim(-2.5, 2.5) #-3/4*np.pi, 3/4*np.pi)
             ax.grid()
             ax.tick_params(axis='both', which='major', length=10, width=1.5)
-            ax.tick_params(axis='both', which='minor', length=5, width=1)
+            ax.tick_params(axis='both', which='minor', length=7, width=1.2)
             ax.set_yscale('log')
             if ax in [ax3, ax4]:
                 ax.set_xlabel(r'$\theta$ [rad]')
             else: 
                 ax.set_xlabel('')
         
-        fig0.suptitle(r't/t$_{fb}$ = ' + str(time), fontsize = 18)
-        fig.suptitle(r't/t$_{fb}$ = ' + str(time), fontsize = 18)
-        fig0.tight_layout()
+        # fig0.suptitle(r't/t$_{fb}$ = ' + str(time), fontsize = 18)
+        fig.suptitle(r't/t$_{fb}$ = ' + str(time), fontsize = 20)
+        # fig0.tight_layout()
         fig.tight_layout()
         # Find the stream in the simulation data
         # tree_plot = KDTree(np.array([X, Y, Z]).T)
         # _, indeces_plot = tree_plot.query(np.array([x_stream, y_stream, z_stream]).T, k=1)
 
 if what == 'single_snap_behavior' or what == 'section4' or what == 'onlysection':
-    check = 'HiResNewAMR'
-    snap = 123
+    check = 'HiResStream'
+    snap = 48
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
     # Load data snap
@@ -179,8 +179,8 @@ if what == 'single_snap_behavior' or what == 'section4' or what == 'onlysection'
         # ax4.set_ylabel(r'Ncells')
         ax1.set_ylim(1.1, 10)
         ax2.set_ylim(.2, 10)
-        ax3.set_ylim(8, 30)    
-        ax4.set_ylim(0.9, 20)
+        ax3.set_ylim(8, 50)    
+        ax4.set_ylim(0.9, 30)
         for ax in [ax1, ax2, ax3, ax4]:
             ax.set_yscale('log')
             ax.set_xlabel(r'$\theta$')

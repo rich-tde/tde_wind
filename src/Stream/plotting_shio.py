@@ -24,9 +24,9 @@ mstar = .5
 Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
-check = 'NewAMR'
+check = 'HiResNewAMR'
 compton = 'Compton'
-snap = 238
+snap = 76
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 things = orb.get_things_about(params)
@@ -37,13 +37,18 @@ apo = things['apo']
 #%% Load data
 path = f'{abspath}/TDE/{folder}/{snap}'
 data = make_tree(path, snap, energy = True)
-X, Y, Z, Vol, Den, Mass, Temp, VX, VY, VZ, Rad_den, Diss_den= \
-    data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Temp, data.VX, data.VY, data.VZ, data.Rad, data.Diss
+X, Y, Z, Vol, Den, Mass, Temp, VX, VY, VZ, Rad_den, Diss_den, IE_den= \
+    data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Temp, data.VX, data.VY, data.VZ, data.Rad, data.Diss, data.IE
 Diss = Diss_den * Vol
 dim_cell = Vol**(1/3)
 cut = Den > 1e-19
-X, Y, Z, dim_cell, Den, Mass, Temp, VX, VY, VZ, Rad_den, Diss= \
-    sec.make_slices([X, Y, Z, dim_cell, Den, Mass, Temp, VX, VY, VZ, Rad_den, Diss], cut)
+R_sph = np.sqrt(X**2 + Y**2 + Z**2)
+vel = np.sqrt(VX**2 + VY**2 + VZ**2)
+orb_en = orb.orbital_energy(R_sph, vel, Mass, params, prel.G)
+orb_en_den = orb_en / Vol
+ie_orben = IE_den / orb_en_den
+X, Y, Z, dim_cell, Den, Mass, Temp, VX, VY, VZ, Rad_den, Diss, ie_orben= \
+    sec.make_slices([X, Y, Z, dim_cell, Den, Mass, Temp, VX, VY, VZ, Rad_den, Diss, ie_orben], cut)
 
 theta_arr, x_stream, y_stream, z_stream, _ = \
             np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
@@ -64,6 +69,7 @@ t_dot_shio = []
 d_shio = []
 t_shio = []
 Trad_shio = []
+ie_orben_shio = []
 diss_shio = []
 s_shio = []
 theta_shio = []
@@ -91,6 +97,7 @@ for i in range(len(x_stream)):
     d_shio.append(Den[plane])
     t_shio.append(Temp[plane]) 
     Trad_shio.append((Rad_den[plane]*prel.en_den_converter/prel.tsol_cgs/prel.alpha_cgs)**(1/4))
+    ie_orben_shio.append(ie_orben[plane])
     diss_shio.append(Diss[plane])
     s_shio.append(np.ones(len(z_shio[i])) * s[i])
     theta_shio.append(np.ones(len(z_shio[i])) * theta_arr[i])
@@ -120,10 +127,10 @@ for i in range(len(x_stream)-1):
         x_shio = s_shio[i]
     else:
         x_shio = theta_shio[i]*radians
-    imgd = ax1.scatter(x_shio, z_shio[i], c = d_shio[i], s = 5, cmap = 'rainbow', norm = colors.LogNorm(vmin =1e-11, vmax = 1e-4))
-    imgT = ax2.scatter(x_shio, z_shio[i], c = diss_shio[i]*prel.en_converter/prel.tsol_cgs, s = 5, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e36, vmax = 1e38)) 
-plt.colorbar(imgd, label = r'$\rho [M_\odot/R_\odot]$', orientation = 'horizontal')
-plt.colorbar(imgT, label = r'Diss [erg/s]', orientation = 'horizontal')
+    imgd = ax1.scatter(x_shio, z_shio[i], c = diss_shio[i]*prel.en_converter/prel.tsol_cgs, s = 5, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e36, vmax = 1e38)) 
+    imgie = ax2.scatter(x_shio, z_shio[i], c = np.abs(ie_orben_shio[i]), s = 5, cmap = 'rainbow', norm = colors.LogNorm(vmin =1e-3, vmax = 2e-2))
+plt.colorbar(imgd, label = r'Diss [erg/s]', orientation = 'horizontal')
+plt.colorbar(imgie, label = r'IE/OE', orientation = 'horizontal')
 
 for ax in [ax1, ax2]:
     ax.set_ylim(zlim_low, zlim_high)

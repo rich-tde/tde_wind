@@ -14,7 +14,7 @@ if alice:
     prepath = '/data1/martirep/shocks/shock_capturing'
     compute = True
 else:
-    prepath = '/Users/paolamartire/shocks/'
+    prepath = '/Users/paolamartire/shocks'
     compute = False
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
@@ -153,11 +153,7 @@ if __name__ == '__main__':
     mstar = .5
     Rstar = .47
     n = 1.5
-    check = 'HiResNewAMR'
     compton = 'Compton'
-    what_to_grid = 'Diss'
-    how_far = 'nozzle' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
-    save_fig = False
 
     params = [Mbh, Rstar, mstar, beta]
     things = orb.get_things_about(params)
@@ -169,12 +165,12 @@ if __name__ == '__main__':
     a_mb = things['a_mb']
     e_mb = things['ecc_mb']
 
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-    # if check in ['HiResStream', 'HiResStream2']:
-    #     print('HERE', flush=True)
-    #     folder = f'StreamConvergence/{folder}'
-
     if compute:
+        check = 'HiResStream'
+        how_far = 'nozzle' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
+        what_to_grid = 'Den'
+
+        folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
         t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
 
@@ -213,67 +209,46 @@ if __name__ == '__main__':
     else:
         import healpy as hp
         import src.orbits as orb
-        from plotting.paper.IHopeIsTheLast import split_data_red
-        from Utilities.operators import from_cylindric
-        snap = 48
-        what_to_grid = 'Diss' #['tau_scatt', 'tau_ross', 'Den']
+        snap = 45
+        # what_to_grid = 'Diss' #['tau_scatt', 'tau_ross', 'Den']
         sign = '' # '' for positive, '_neg' for negative
         how_far = 'nozzle'
-        check = 'HiResStream'
+        check = 'HiResNewAMR'
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-        snaps, tfb = np.loadtxt(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}time_proj.txt')
+        snaps, tfb = np.loadtxt(f'{prepath}/data/{folder}/projection/{how_far}Dentime_proj.txt')
         tfb_single = tfb[np.argmin(np.abs(snap-snaps))] 
         
-        fig, ax = plt.subplots(1, 1, figsize = (15,9))
-        flat_q = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}proj{snap}{sign}.npy')
-        x_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}xarray.npy')
-        y_radii = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}{what_to_grid}yarray.npy')
-        # print(x_radii)
-        # dataph = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
-        # xph, yph, zph, volph= dataph[0], dataph[1], dataph[2], dataph[3]
-        # midph= np.abs(zph) < volph**(1/3)
-        # xph_mid, yph_mid, zph_mid = make_slices([xph, yph, zph], midph)
-        
-        if how_far == 'big':
-            ax.set_xlim(-6, 2.5)
-            ax.set_ylim(-3, 2)
-        # elif how_far == '':
-        #     ax.set_xlim(-1.2, 0.1)
-        #     ax.set_ylim(-0.4, 0.4)
-        if what_to_grid == 'Den':
-            flat_q *= prel.Msol_cgs/prel.Rsol_cgs**2
-            vmin = 1
-            vmax = 9e7
-            cbar_label = r'Column density [g/cm$^2$]'
-            cmap = 'plasma'
-        elif what_to_grid == 'Diss':
-            flat_q *= prel.en_converter/(prel.tsol_cgs * prel.Rsol_cgs**2)
-            vmin = 1e12 #1e14
-            vmax = 1e19
-            cbar_label = r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$'
-            cmap = 'viridis'
-            
-        img = ax.pcolormesh(x_radii/Rt, y_radii/Rt, np.abs(flat_q).T, cmap = cmap,
-                            norm = colors.LogNorm(vmin = vmin, vmax = vmax))
+        vmin_den = 1e-4
+        vmax_den = 1e3
+        vmin_diss = 1e10 #1e14
+        vmax_diss = 1e18
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (18,7))
+        Den_flat = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denproj{snap}{sign}.npy')
+        x_radii_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denxarray.npy')
+        y_radii_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denyarray.npy')
+        Den_flat *= prel.Msol_cgs/prel.Rsol_cgs**2
+        Diss_flat = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Dissproj{snap}{sign}.npy')
+        x_radii_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Dissxarray.npy')
+        y_radii_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Dissyarray.npy')
+        Diss_flat *= prel.en_converter/(prel.tsol_cgs * prel.Rsol_cgs**2)
+        img = ax1.pcolormesh(x_radii_den/Rt, y_radii_den/Rt, np.abs(Den_flat).T, cmap = 'plasma',
+                            norm = colors.LogNorm(vmin = vmin_den, vmax = vmax_den))
         cb = plt.colorbar(img)
-        ax.set_xlim(-40, 20)
-        ax.set_ylim(-12, 12)
-        # ax.plot(xph[indecesorbital]/apo, yph[indecesorbital]/apo, c = 'white', markersize = 5, marker = 'H', label = r'$R_{\rm ph}$')
-        # just to connect the first and last 
-        # ax.plot([xph[first_idx]/apo, xph[last_idx]/apo], [yph[first_idx]/apo, yph[last_idx]/apo], c = 'white', markersize = 1, marker = 'H')
-        cb.set_label(cbar_label)
-        ax.set_xlabel(r'$X [R_{\rm t}]$', fontsize = 20)
-        ax.set_ylabel(r'$Y [R_{\rm t}]$', fontsize = 20)
-        # ax.set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
-        # ax.set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
-        # ax.scatter(0, 0, color = 'k', edgecolors = 'orange', s = 40)
-        # ax.plot(x_arr_ell/apo, y_arr_ell/apo, c= 'white', linestyle = 'dashed', alpha = 0.7)
-        # for j in range(len(radii_grid)):
-        #     ax.contour(xcfr_grid[j]/apo, ycfr_grid[j]/apo, cfr_grid[j]/apo, levels=[0], colors='white')
-            
+        cb.set_label(r'Column density [g/cm$^2$]')
+        img = ax2.pcolormesh(x_radii_diss/Rt, y_radii_diss/Rt, np.abs(Diss_flat).T, cmap = 'viridis',
+                            norm = colors.LogNorm(vmin = vmin_diss, vmax = vmax_diss))
+        cb = plt.colorbar(img)
+        cb.set_label(r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$')
+
+        ax1.set_ylabel(r'$Y [R_{\rm t}]$', fontsize = 20)
+        for ax in [ax1, ax2]:
+            ax.set_xlim(-40, 20)
+            ax.set_ylim(-12, 12)
+            ax.set_xlabel(r'$X [R_{\rm t}]$', fontsize = 20)
+       
+        plt.suptitle(f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$, res: ' + f'{check}', color = 'k', fontsize = 25)
         plt.tight_layout()
-        ax.set_title(f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$, res: ' + f'{check}', color = 'k', fontsize = 25)
-        # plt.savefig(f'{prepath}/Figs/Test/{folder}/projection/{what_to_grid}{faraway}proj{snap}{sign}.png', dpi = 300)
+        plt.savefig(f'{prepath}/Figs/{folder}/projection/DenDiss{how_far}proj{snap}.png', dpi = 300)
         plt.show()
 # %%
