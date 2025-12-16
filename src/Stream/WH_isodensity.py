@@ -412,7 +412,6 @@ if __name__ == '__main__':
             indeces_boundary = np.array([stats['indeces_boundary'] for stats in contour_stats])
             indeces_enclosed = np.array(indeces_enclosed, dtype=object)
 
-            del X, Y, Z, Den, Mass, dim_cell
             gc.collect()
 
             if alice:
@@ -444,6 +443,9 @@ if __name__ == '__main__':
                 np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{massperc}{check}_{snap}.npy', indeces_boundary)
                 np.save(f'{abspath}/data/{folder}/WH/enclosed/indeces_enclosed_{massperc}{check}_{snap}.npy', indeces_enclosed, allow_pickle=True)
 
+            del X, Y, Z, VX, VY, VZ, Den, Mass, dim_cell
+            gc.collect()
+
     if plot: 
         x_axis = ''
         data = np.loadtxt(f'{abspath}/data/{folder}/projection/Dentime_proj.txt', ndmin=2)
@@ -452,22 +454,41 @@ if __name__ == '__main__':
 
         # Plotting results
         for i, snap in enumerate(snaps):
-            # if snap == 81:
-            #     continue
-            data_width = np.load(f'{abspath}/data/{folder}/WH/wh_{massperc}{check}{snap}.npz', allow_pickle=True)
+            if snap != 32:
+                continue
+            data_stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
+            x_cm = data_stream['x_cm']
+            plt.scatter(np.arange(5),data_stream['theta_arr'][40:45], s=1)
+            y_cm = data_stream['y_cm']
+            z_cm = data_stream['z_cm']
+            data_width = np.load(f'{abspath}/data/{folder}/WH/wh_{massperc}{check}_{snap}.npz', allow_pickle=True)
             theta_wh = data_width['theta_wh']
+            X_low_w = data_width['X_low_w']
+            X_up_w = data_width['X_up_w']
+            Y_low_w = data_width['Y_low_w']
+            Y_up_w = data_width['Y_up_w']
             width = data_width['width']
             N_width = data_width['N_width']
             height = data_width['height']
             N_height = data_width['N_height']
+
             if x_axis == 'radius':
-                theta_stream, x_stream, y_stream, z_stream, _ = \
-                    np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
-                r_stream = np.sqrt(x_stream**2 + y_stream**2 + z_stream**2)
+                r_stream = np.sqrt(x_cm**2 + y_cm**2 + z_cm**2)
                 x_ax = r_stream/Rt
             else:
                 x_ax = theta_wh * radians
             # print('indices for theta = -pi/2, 0, pi/2:', np.argmin(np.abs(theta_wh + np.pi/2)), np.argmin(np.abs(theta_wh)), np.argmin(np.abs(theta_wh - np.pi/2)))
+            
+            fig0, ax0 = plt.subplots(1, 1, figsize=(8,6))
+            ax0.scatter(x_cm/apo, y_cm/apo, s=1, c='k')
+            ax0.scatter(X_low_w/apo, Y_low_w/apo, c='gray', s=1)
+            ax0.scatter(X_up_w/apo, Y_up_w/apo, c='gray', s=1)
+            ax0.set_xlabel(r'X [$r_{\rm a}$]')
+            ax0.set_ylabel(r'Y [$r_{\rm a}$]')
+            ax0.set_xlim(-0.5, 0.1)
+            ax0.set_ylim(-0.2, 0.2)
+            ax0.set_title(f't = {np.round(tfb[i],2)} ' + r't$_{\rm fb}$')
+
             fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(18, 14))
             if x_axis == 'radius':
                 ax1.scatter(x_ax, width, c = theta_wh*radians, cmap = 'jet')
@@ -503,13 +524,9 @@ if __name__ == '__main__':
                 ax.tick_params(axis='both', which='major', length = 10, width = 1.2)
                 ax.tick_params(axis='both', which='minor', length = 8, width = 1)
                 ax.grid()
-            plt.suptitle(f't = {np.round(tfbs[i],2)} ' + r't$_{\rm fb}$', fontsize= 25)
+            plt.suptitle(f't = {np.round(tfb[i],2)} ' + r't$_{\rm fb}$', fontsize= 25)
             plt.tight_layout()
-            plt.savefig(f'{abspath}/Figs/{folder}/stream/WH_theta{snap}{x_axis}.png')
-            plt.close()
-    
-
-
+            # plt.savefig(f'{abspath}/Figs/{folder}/stream/WH_theta{snap}{x_axis}.png')
 
 
 # %%

@@ -138,11 +138,11 @@ def projector(gridded_den, x_radii, y_radii, z_radii):
     z_radii has to be linspaced. """
     # Make the 3D grid 
     dz = z_radii[1] - z_radii[0]  # constant spacing
-    if np.round(dz, 4) == np.round(z_radii[-1] - z_radii[-2], 4):
-        flat_den = np.sum(gridded_den, axis = -1) * dz
-    else:
-        print(dz, z_radii[-1] - z_radii[-2])
-        raise ValueError("z_radii has to be linspaced.")
+    # if np.round(dz, 4) == np.round(z_radii[-1] - z_radii[-2], 4):
+    flat_den = np.sum(gridded_den, axis = -1) * dz
+    # else:
+    #     print(dz, z_radii[-1] - z_radii[-2])
+    #     raise ValueError("z_radii has to be linspaced.")
     return flat_den
 
 #%%
