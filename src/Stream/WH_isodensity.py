@@ -398,7 +398,7 @@ if __name__ == '__main__':
                     'indices_cm': indices_cm
                 } 
                 if alice:
-                    np.savez(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npz', **com)
+                    np.savez(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', **com)
 
             stream = [com['theta_arr'], com['x_cm'], com['y_cm'], com['z_cm'], com['thresh_cm']]
             if not alice: # just some computation
@@ -440,9 +440,9 @@ if __name__ == '__main__':
                     'N_height': h_params[1]
                 }
 
-                np.savez(f'{abspath}/data/{folder}/WH/wh_{massperc}{check}{snap}.npz', **width_data)
-                np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{massperc}{check}{snap}.npy', indeces_boundary)
-                np.save(f'{abspath}/data/{folder}/WH/enclosed/indeces_enclosed_{massperc}{check}{snap}.npy', indeces_enclosed, allow_pickle=True)
+                np.savez(f'{abspath}/data/{folder}/WH/wh_{massperc}{check}_{snap}.npz', **width_data)
+                np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{massperc}{check}_{snap}.npy', indeces_boundary)
+                np.save(f'{abspath}/data/{folder}/WH/enclosed/indeces_enclosed_{massperc}{check}_{snap}.npy', indeces_enclosed, allow_pickle=True)
 
     if plot: 
         x_axis = ''
