@@ -12,7 +12,7 @@ else:
     import matplotlib.pyplot as plt
     from Utilities.basic_units import radians
     import matplotlib.colors as colors
-    compute = False
+    compute = True
 
 import numpy as np
 from scipy.optimize import brentq
@@ -170,7 +170,7 @@ def find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_
         } 
         
         # Optional: Create visualization if this is the theta for plotting
-        if np.logical_and(alice == False, idx == 4 ):
+        if alice == False: #np.logical_and(alice == False, idx == 4 ):
             plot_isodensity_results(x_plane, x_Tplane, y_plane, z_plane, mass_plane, dim_plane,
                                     condition_enclosed, contour_stats, 
                                     theta_arr[idx], x_data, y_data, indeces_enclosed, 
@@ -351,7 +351,7 @@ if __name__ == '__main__':
         if alice:
             snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
         else: 
-            snaps = [31]
+            snaps = [41]
 
         for i, snap in enumerate(snaps):
             print(f'Snap {snap}', flush = True)
@@ -372,11 +372,17 @@ if __name__ == '__main__':
             del Vol
 
             try:
-                com = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npz')
+                com = np.load(f'{abspath}/data/{folder}/WH/stream/sxtream_{check}_{snap}.npz', allow_pickle=True)
                 print('Load stream from file', flush=True)
+                x_cm = com['x_cm']
+                y_cm = com['y_cm']
+                z_cm = com['z_cm']
             except FileNotFoundError:
                 from src.Stream.com_stream import find_transverse_com
                 print('Stream not found, computing it', flush=True)
+                if not alice: # just some computation
+                    theta_arr = theta_arr[idx_forplot-3:idx_forplot+3]
+                
                 thresh_cm, indices_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr)
                 x_cm, y_cm, z_cm, vx_cm, vy_cm, vz_cm, den_cm, mass_cm = \
                     X[indices_cm], Y[indices_cm], Z[indices_cm], \
@@ -398,9 +404,7 @@ if __name__ == '__main__':
                 if alice:
                     np.savez(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', **com)
 
-            stream = [com['theta_arr'], com['x_cm'], com['y_cm'], com['z_cm'], com['thresh_cm']]
-            if not alice: # just some computation
-                stream = stream[:, idx_forplot-4:idx_forplot+5]
+            stream = np.array([com['theta_arr'], x_cm, y_cm, z_cm, com['thresh_cm']])
 
             theta_wh, density_thresholds, indeces_enclosed, contour_stats = follow_the_stream_isodensity(X, Y, Z, dim_cell, Den, Mass, stream, mass_percentage = massperc)
             w_params = np.array([[stats['width'] for stats in contour_stats],
@@ -410,13 +414,11 @@ if __name__ == '__main__':
             indeces_boundary = np.array([stats['indeces_boundary'] for stats in contour_stats])
             indeces_enclosed = np.array(indeces_enclosed, dtype=object)
 
-            gc.collect()
+            X_bound = X[indeces_boundary] # nx4: Xlow_w, Xup_w, Xlow_h, Xup_h are the rows
+            Y_bound = Y[indeces_boundary]
+            Z_bound = Z[indeces_boundary]
 
             if alice:
-                X_bound = X[indeces_boundary] # nx4: Xlow_w, Xup_w, Xlow_h, Xup_h are the rows
-                Y_bound = Y[indeces_boundary]
-                Z_bound = Z[indeces_boundary]
-
                 width_data = {
                     'theta_wh': theta_wh,
                     'X_low_w': X_bound[:, 0],
@@ -454,7 +456,7 @@ if __name__ == '__main__':
             del X, Y, Z, VX, VY, VZ, Den, Mass, dim_cell
             gc.collect()
 
-    if plot: 
+    if not plot: 
         x_axis = ''
         data = np.loadtxt(f'{abspath}/data/{folder}/projection/Dentime_proj.txt', ndmin=2)
         snaps = data[0].astype(int)

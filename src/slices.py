@@ -13,7 +13,7 @@ else:
     abspath = '/Users/paolamartire/shocks/'
 
 import numpy as np
-from Utilities.selectors_for_snap import select_snap
+from Utilities.selectors_for_snap import select_snap, select_prefix
 import src.orbits as orb
 import Utilities.prelude as prel
 import Utilities.sections as sec
@@ -78,16 +78,17 @@ else:
     indecesorbital = np.concatenate(np.where(latitude_moll==0))
 
 for idx, snap in enumerate(snaps):
-    if snap != 0:
-            continue
+    # if snap != 0:
+    #         continue
     print(snap, flush=True)
     if do:
         # you are in alice
-        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+        path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
+        path = f'{path}/snap_{snap}'
 
         data = make_tree(path, snap, energy = True)
-        X, Y, Z, vol, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, IE_den, Press, DivV = \
-            data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Temp, data.IE, data.Rad, data.VX, data.VY, data.VZ, data.Diss, data.IE, data.Press, data.DivV
+        X, Y, Z, vol, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, IE_den, Press = \
+            data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Temp, data.IE, data.Rad, data.VX, data.VY, data.VZ, data.Diss, data.IE, data.Press
         Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
         dim_cell = vol**(1/3)
         if coord_to_cut == 'x':
@@ -101,18 +102,16 @@ for idx, snap in enumerate(snaps):
         density_cut = den > 1e-19
         coordinate_cut = np.abs(cutcoord-cut_chosen) < dim_cell
         cut = np.logical_and(density_cut, coordinate_cut)
-        # x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, orb_en_den_cut, Rad_den_cut = \
-        #     sec.make_slices([X, Y, Z, dim_cell, den, data.Temp, ie_den, orb_en_den, Rad_den], cut)
-        x_cut, y_cut, z_cut, dim_cut, mass_cut, den_cut, temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut, IE_den_cut, Press_cut, DivV_cut = \
-            sec.make_slices([X, Y, Z, dim_cell, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, IE_den, Press, DivV], cut)
+        x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut, temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut, IE_den_cut, Press_cut = \
+            sec.make_slices([X, Y, Z, dim_cell, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, IE_den, Press], cut)
 
         slice_data = {
             'x': x_cut,
             'y': y_cut,
             'z': z_cut,
             'dim': dim_cut,
-            'mass': mass_cut,
             'den': den_cut,
+            'mass': mass_cut,
             'temp': temp_cut,
             'ie_den': ie_den_cut,
             'Rad_den': Rad_den_cut,
@@ -122,7 +121,6 @@ for idx, snap in enumerate(snaps):
             'Diss_den': Diss_den_cut,
             'IE_den': IE_den_cut,
             'Press': Press_cut,
-            'DivV': DivV_cut
         }
         np.savez(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npz', **slice_data)
         

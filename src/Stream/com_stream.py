@@ -124,17 +124,16 @@ def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R
         z_max[i] = z_plane[idx_max]
         
         # if np.logical_and(alice == False, __name__ == '__main__'):
-        #     if i == idx_forplot:
-        #         r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
-        #         r_central = np.sqrt(x_max[i]**2 + y_max[i]**2 + z_max[i]**2)
-        #         fig, ax1 = plt.subplots(1,1, figsize = (10,5))
-        #         ax1.scatter(r_plane/Rt, den_plane, s = 10, c = 'k', label = 'Density')
-        #         ax1.set_xlabel(r'R [$R_{\rm t}$]')
-        #         ax1.set_ylabel(r'Density $[M_\odot/R_\odot^3]$')
-        #         ax1.set_xlim(0.1, r_central/Rt+1)
-        #         ax1.axvline(r_central/Rt, c = 'yellowgreen')
-        #         ax1.set_title(r'$\theta$ = ' + f'{np.round(theta_arr[i],2)} rad', fontsize = 14)
-        #         plt.show()
+        #     r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
+        #     r_central = np.sqrt(x_max[i]**2 + y_max[i]**2 + z_max[i]**2)
+        #     fig, ax1 = plt.subplots(1,1, figsize = (10,5))
+        #     ax1.scatter(r_plane/Rt, den_plane, s = 10, c = 'k', label = 'Density')
+        #     ax1.set_xlabel(r'R [$R_{\rm t}$]')
+        #     ax1.set_ylabel(r'Density $[M_\odot/R_\odot^3]$')
+        #     ax1.set_xlim(0.1, r_central/Rt+1)
+        #     ax1.axvline(r_central/Rt, c = 'yellowgreen')
+        #     ax1.set_title(r'$\theta$ = ' + f'{np.round(theta_arr[i],2)} rad', fontsize = 14)
+        #     plt.show()
 
     return x_max, y_max, z_max    
 
