@@ -114,66 +114,57 @@ if what == 'comparison':
         # _, indeces_plot = tree_plot.query(np.array([x_stream, y_stream, z_stream]).T, k=1)
 
 if what == 'single_snap_behavior' or what == 'section4' or what == 'onlysection':
-    check = 'HiResStream'
-    snap = 48
+    check = 'HiResNewAMR'
+    snap = 41
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
     # Load data snap
-    path = f'{abspath}/TDE/{folder}/{snap}'
-    tfb_single = np.loadtxt(f'{abspath}/TDE/{folder}/{snap}/tfb_{snap}.txt')
-    data = make_tree(path, snap, energy = False)
-    X, Y, Z, Den, Mass, Vol = \
-        data.X, data.Y, data.Z, data.Den, data.Mass, data.Vol
-    cutden = Den >1e-19
-    dim_cell = Vol**(1/3)
-    X, Y, Z, Den, Mass, dim_cell = \
-        sec.make_slices([X, Y, Z, Den, Mass, dim_cell], cutden)
-    midplane = np.abs(Z) < dim_cell
-    X_midplane, Y_midplane, Z_midplane, dim_midplane, Den_midplane, Mass_midplane = \
-        sec.make_slices([X, Y, Z, dim_cell, Den, Mass], midplane)
-    # Load data stream
-    theta_arr, x_stream, y_stream, z_stream, thresh_cm = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
-    stream = [theta_arr, x_stream, y_stream, z_stream, thresh_cm]
-    wh = np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
-
-    theta_wh, width, N_width, height, N_height = wh[0], wh[1], wh[2], wh[3], wh[4]
-    indeces_boundary = np.load(f'{abspath}/data/{folder}/WH/indeces_boundary_{check}{snap}.npy')
-    indeces_boundary_lowX, indeces_boundary_upX, indeces_boundary_lowZ, indeces_boundary_upZ = \
-        indeces_boundary[:,0], indeces_boundary[:,1], indeces_boundary[:,2], indeces_boundary[:,3]
-    x_low_width, y_low_width = X[indeces_boundary_lowX], Y[indeces_boundary_lowX]
-    x_up_width, y_up_width = X[indeces_boundary_upX], Y[indeces_boundary_upX]
-
-    if what == 'single_snap_behavior':
+    data_stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
+    x_stream = data_stream['x_cm']
+    y_stream = data_stream['y_cm']
+    z_stream = data_stream['z_cm']
+    data_width = np.load(f'{abspath}/data/{folder}/WH/wh_0.8{check}_{snap}.npz', allow_pickle=True)
+    theta_wh = data_width['theta_wh']
+    x_low_width = data_width['X_low_w']
+    x_up_width = data_width['X_up_w']
+    y_low_width = data_width['Y_low_w']
+    y_up_width = data_width['Y_up_w']
+    width = data_width['width']
+    N_width = data_width['N_width']
+    height = data_width['height']
+    N_height = data_width['N_height']
+    
+    if what == 'single_snap_behavior': 
         # Plot stream (zoom out and in on theorbital plane) 
         fig, (ax1, ax2) = plt.subplots(1,2, figsize = (18,8), width_ratios= [1.2, .8])
         for ax in [ax1, ax2]: 
-            img =ax.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'viridis', norm = colors.LogNorm(vmin = 1e-13, vmax = 1e-6))
-            ax.plot(x_stream/apo, y_stream/apo, c = 'k')
-            # ax.plot(x_stream[-30:]/apo, y_stream[-30:]/apo, c = 'k')
-            ax.plot([x_stream[0]/apo, x_stream[-1]/apo] , [y_stream[0]/apo, y_stream[-1]/apo], c = 'k')
-            ax.plot(x_low_width/apo, y_low_width/apo, ls = '--', c = 'k')
-            ax.plot(x_up_width/apo, y_up_width/apo, ls = '--', c = 'k')
+            # img =ax.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'viridis', norm = colors.LogNorm(vmin = 1e-13, vmax = 1e-6))
+            ax.scatter(x_stream/apo, y_stream/apo, s = 2, c = 'k')
+            # ax.scatter(x_stream[-30:]/apo, y_stream[-30:]/apo, s = 2, c = 'k')
+            ax.scatter([x_stream[0]/apo, x_stream[-1]/apo] , [y_stream[0]/apo, y_stream[-1]/apo], s = 2, c = 'k')
+            ax.scatter(x_low_width/apo, y_low_width/apo, ls = '--', s = 2, c = 'k')
+            ax.scatter(x_up_width/apo, y_up_width/apo, ls = '--', s = 2, c = 'k')
             ax.plot(x_arr, line3_4, c = 'grey', linestyle = '--')
             ax.plot(x_arr, lineminus3_4, c = 'grey', linestyle = '--')
             ax.set_xlabel(r'$X [r_{\rm a}]$')
-        cbar = plt.colorbar(img, ax=ax1, orientation = 'horizontal')
-        cbar.set_label(r'Density [$M_\odot/R_\odot^3$]')
+        # cbar = plt.colorbar(img, ax=ax1, orientation = 'horizontal')
+        # cbar.set_label(r'Density [$M_\odot/R_\odot^3$]')
         ax1.set_ylabel(r'$Y [r_{\rm a}]$')
         ax1.set_xlim(-1, .1)
         ax1.set_ylim(-.3, .3)
         ax2.set_xlim(-.2, .05)
         ax2.set_ylim(-.1, .1)
-        plt.suptitle(r'Stream at t/t$_{\rm fb}$ = ' + str(np.round(tfb_single,2)) + f', check: {check}', fontsize = 16)
+        # plt.suptitle(r'Stream at t/t$_{\rm fb}$ = ' + str(np.round(tfb_single,2)) + f', check: {check}', fontsize = 16)
 
         # Plot width and height and number of cells
         fig, ((ax1,ax2), (ax3, ax4)) = plt.subplots(2,2, figsize = (18,9))
         ax1.plot(theta_wh * radians, width, c = 'dodgerblue')
-        img = ax3.scatter(theta_arr * radians, N_width, c = 'dodgerblue')#, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1, vmax = 15))
+        img = ax3.scatter(theta_wh * radians, N_width, c = 'dodgerblue')#, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1, vmax = 15))
         # cbar = plt.colorbar(img)
         ax1.set_ylabel(r'Width [$R_\odot$]')
         ax3.set_ylabel(r'Ncells')
         ax2.plot(theta_wh * radians, height, c = 'orange')
-        img = ax4.scatter(theta_arr * radians, N_height, c = 'orange')#, cmap = 'rainbow', norm = colors.LogNorm(vmin = 0.5, vmax = 10))
+        img = ax4.scatter(theta_wh * radians, N_height, c = 'orange')#, cmap = 'rainbow', norm = colors.LogNorm(vmin = 0.5, vmax = 10))
         # cbar = plt.colorbar(img)
         ax2.set_ylabel(r'Height [$R_\odot$]')
         # ax4.set_ylabel(r'Ncells')

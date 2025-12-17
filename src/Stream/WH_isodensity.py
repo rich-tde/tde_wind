@@ -454,11 +454,11 @@ if __name__ == '__main__':
 
         # Plotting results
         for i, snap in enumerate(snaps):
-            if snap != 32:
+            if snap != 41:
                 continue
             data_stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
             x_cm = data_stream['x_cm']
-            plt.scatter(np.arange(5),data_stream['theta_arr'][40:45], s=1)
+            print(data_stream['theta_arr'][42:45])
             y_cm = data_stream['y_cm']
             z_cm = data_stream['z_cm']
             data_width = np.load(f'{abspath}/data/{folder}/WH/wh_{massperc}{check}_{snap}.npz', allow_pickle=True)
@@ -480,9 +480,9 @@ if __name__ == '__main__':
             # print('indices for theta = -pi/2, 0, pi/2:', np.argmin(np.abs(theta_wh + np.pi/2)), np.argmin(np.abs(theta_wh)), np.argmin(np.abs(theta_wh - np.pi/2)))
             
             fig0, ax0 = plt.subplots(1, 1, figsize=(8,6))
-            ax0.scatter(x_cm/apo, y_cm/apo, s=1, c='k')
-            ax0.scatter(X_low_w/apo, Y_low_w/apo, c='gray', s=1)
-            ax0.scatter(X_up_w/apo, Y_up_w/apo, c='gray', s=1)
+            ax0.scatter(x_cm[41:43]/apo, y_cm[41:43]/apo, s=1, c='k')
+            ax0.scatter(X_low_w[41:43]/apo, Y_low_w[41:43]/apo, c='gray', s=1)
+            ax0.scatter(X_up_w[41:43]/apo, Y_up_w[41:43]/apo, c='gray', s=1)
             ax0.set_xlabel(r'X [$r_{\rm a}$]')
             ax0.set_ylabel(r'Y [$r_{\rm a}$]')
             ax0.set_xlim(-0.5, 0.1)

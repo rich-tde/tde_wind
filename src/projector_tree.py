@@ -53,8 +53,8 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         x_stop = apo
         y_start = -.5*apo
         y_stop = .5*apo
-        z_start = -2*apo 
-        z_stop = 2*apo 
+        z_start = -.5*apo 
+        z_stop = .5*apo 
 
     elif how_far == 'big':
         x_start = -6*apo
@@ -209,10 +209,10 @@ if __name__ == '__main__':
     else:
         import healpy as hp
         import src.orbits as orb
-        snap = 45
+        snap = 28
         # what_to_grid = 'Diss' #['tau_scatt', 'tau_ross', 'Den']
         sign = '' # '' for positive, '_neg' for negative
-        how_far = 'nozzle'
+        how_far = ''
         check = 'HiResNewAMR'
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 

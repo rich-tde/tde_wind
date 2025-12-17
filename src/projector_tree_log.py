@@ -35,10 +35,7 @@ from src import orbits as orb
 
 def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 100, how_far = ''):
     """ ALL outputs are in in solar units """
-    Mbh = 10**m
-    Rt = Rstar * (Mbh/mstar)**(1/3)
-    # R0 = 0.6 * Rt
-    apo = Rt**2 / Rstar #2 * Rt * (Mbh/mstar)**(1/3)
+    global apo
 
     if how_far == 'star_frame':
         x_start = -20
@@ -53,8 +50,8 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         x_stop = apo
         y_start = -.5*apo
         y_stop = .5*apo
-        z_start = -2*apo 
-        z_stop = 2*apo 
+        z_start = -.5*apo 
+        z_stop = .5*apo
 
     elif how_far == 'big':
         x_start = -6*apo
@@ -136,13 +133,8 @@ if __name__ == '__main__':
 
     params = [Mbh, Rstar, mstar, beta]
     things = orb.get_things_about(params)
-    Rs = things['Rs']
     Rt = things['Rt']
-    Rp = things['Rp']
-    R0 = things['R0']
     apo = things['apo']
-    a_mb = things['a_mb']
-    e_mb = things['ecc_mb']
 
     if compute:
         check = 'HiResStream'
@@ -155,9 +147,6 @@ if __name__ == '__main__':
 
         snaps = np.array(snaps)
         if how_far == 'big' or how_far == 'nozzle':
-            # idx_chosen = np.array([0,
-            #                     np.argmin(np.abs(tfb-1)),
-            #                     np.argmax(tfb)])
             idx_chosen = np.array([np.argmin(np.abs(tfb-0.1)),
                                 np.argmin(np.abs(tfb-0.2)),
                                 np.argmin(np.abs(tfb-0.32))])
@@ -179,7 +168,7 @@ if __name__ == '__main__':
                 path = f'{path}/{snap}'
             
             _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=500, y_num=500, z_num = 100, how_far = how_far)
-            flat_q = projector(grid_q, x_radii, y_radii, z_radii)
+            flat_q = projector(grid_q, z_radii)
             np.save(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}proj{snap}.npy', flat_q)
                 
         np.save(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}xarray.npy', x_radii)
@@ -188,11 +177,11 @@ if __name__ == '__main__':
     else:
         import healpy as hp
         import src.orbits as orb
-        snap = 45
+        snap = 48
         # what_to_grid = 'Diss' #['tau_scatt', 'tau_ross', 'Den']
         sign = '' # '' for positive, '_neg' for negative
         how_far = 'nozzle'
-        check = 'HiResNewAMR'
+        check = 'HiResStream'
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
         snaps, tfb = np.loadtxt(f'{prepath}/data/{folder}/projection/{how_far}Dentime_proj.txt')
@@ -202,7 +191,7 @@ if __name__ == '__main__':
         vmax_den = 1e3
         vmin_diss = 1e10 #1e14
         vmax_diss = 1e18
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (18,7))
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (20,7))
         Den_flat = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denproj{snap}{sign}.npy')
         x_radii_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denxarray.npy')
         y_radii_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denyarray.npy')
