@@ -139,7 +139,7 @@ if __name__ == '__main__':
     if compute:
         check = 'HiResStream'
         how_far = 'nozzle' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
-        what_to_grid = 'Den'
+        what_to_grid = 'Den' 
 
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
