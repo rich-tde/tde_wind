@@ -167,6 +167,7 @@ if __name__ == '__main__':
 
     if compute:
         check = 'HiResStream'
+        print(f'We are in {check}', flush=True)
         how_far = 'nozzle' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
         what_to_grid = 'Den'
 

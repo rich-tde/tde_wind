@@ -138,9 +138,9 @@ if __name__ == '__main__':
 
     if compute:
         check = 'HiResStream'
+        print(f'We are in {check}', flush=True)
         how_far = 'nozzle' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
         what_to_grid = 'Den' 
-
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
         t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
@@ -177,23 +177,24 @@ if __name__ == '__main__':
     else:
         import healpy as hp
         import src.orbits as orb
-        snap = 48
+        snap = 45
         # what_to_grid = 'Diss' #['tau_scatt', 'tau_ross', 'Den']
         sign = '' # '' for positive, '_neg' for negative
         how_far = 'nozzle'
-        check = 'HiResStream'
+        check = 'HiResNewAMR'
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
         snaps, tfb = np.loadtxt(f'{prepath}/data/{folder}/projection/{how_far}Dentime_proj.txt')
         tfb_single = tfb[np.argmin(np.abs(snap-snaps))] 
         
         vmin_den = 1e-4
-        vmax_den = 1e3
+        vmax_den = 1e2
         vmin_diss = 1e10 #1e14
         vmax_diss = 1e18
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (20,7))
         Den_flat = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denproj{snap}{sign}.npy')
         x_radii_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denxarray.npy')
+        print(np.shape(x_radii_den))
         y_radii_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denyarray.npy')
         Den_flat *= prel.Msol_cgs/prel.Rsol_cgs**2
         Diss_flat = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Dissproj{snap}{sign}.npy')
@@ -218,5 +219,33 @@ if __name__ == '__main__':
         plt.suptitle(f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$, res: ' + f'{check}', color = 'k', fontsize = 25)
         plt.tight_layout()
         plt.savefig(f'{prepath}/Figs/{folder}/projection/DenDiss{how_far}proj{snap}.png', dpi = 300)
-        plt.show()
+        #%% to check with scatter
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (20,7))
+        Den_flat = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denproj{snap}{sign}.npy')
+        x_radii_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denxarray.npy')
+        print(np.shape(x_radii_den))
+        y_radii_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denyarray.npy')
+        Den_flat *= prel.Msol_cgs/prel.Rsol_cgs**2
+        Diss_flat = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Dissproj{snap}{sign}.npy')
+        x_radii_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Dissxarray.npy')
+        y_radii_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Dissyarray.npy')
+        Diss_flat *= prel.en_converter/(prel.tsol_cgs * prel.Rsol_cgs**2)
+        img = ax1.pcolormesh(x_radii_den/Rt, y_radii_den/Rt, np.abs(Den_flat).T, cmap = 'plasma',
+                            norm = colors.LogNorm(vmin = vmin_den, vmax = vmax_den))
+        cb = plt.colorbar(img)
+        cb.set_label(r'Column density [g/cm$^2$]')
+        img = ax2.pcolormesh(x_radii_diss/Rt, y_radii_diss/Rt, np.abs(Diss_flat).T, cmap = 'viridis',
+                            norm = colors.LogNorm(vmin = vmin_diss, vmax = vmax_diss))
+        cb = plt.colorbar(img)
+        cb.set_label(r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$')
+
+        ax1.set_ylabel(r'$Y [R_{\rm t}]$', fontsize = 20)
+        for ax in [ax1, ax2]:
+            ax.set_xlim(-40, 20)
+            ax.set_ylim(-12, 12)
+            ax.set_xlabel(r'$X [R_{\rm t}]$', fontsize = 20)
+       
+        plt.suptitle(f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$, res: ' + f'{check}', color = 'k', fontsize = 25)
+        plt.tight_layout()
+
 # %%

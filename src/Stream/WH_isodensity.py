@@ -17,8 +17,6 @@ else:
 import numpy as np
 from scipy.optimize import brentq
 import gc
-import os
-import csv
 import Utilities.prelude as prel
 import Utilities.sections as sec
 import src.orbits as orb
@@ -343,7 +341,7 @@ if __name__ == '__main__':
     step = np.round((2*theta_lim)/200, 3)
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_arr = Ryan_sampler(theta_init)
-    idx_forplot = np.argmin(np.abs(theta_arr)) # indices for theta = -pi/2, 0, pi/2: 54 101 149
+    idx_forplot = 42 # indices for theta = -pi/2, 0, pi/2: 54 101 149
     massperc = 0.8
     print(f'We are in folder {folder}', flush=True)
     
@@ -353,7 +351,7 @@ if __name__ == '__main__':
         if alice:
             snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
         else: 
-            snaps = [76]
+            snaps = [31]
 
         for i, snap in enumerate(snaps):
             print(f'Snap {snap}', flush = True)
@@ -443,6 +441,16 @@ if __name__ == '__main__':
                 np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{massperc}{check}_{snap}.npy', indeces_boundary)
                 np.save(f'{abspath}/data/{folder}/WH/enclosed/indeces_enclosed_{massperc}{check}_{snap}.npy', indeces_enclosed, allow_pickle=True)
 
+            else:
+                fig0, ax0 = plt.subplots(1, 1, figsize=(8,6))
+                ax0.scatter(x_cm/apo, y_cm/apo, s=1, c='k')
+                ax0.scatter(X_bound[:, 0]/apo, Y_bound[:, 0]/apo, c='gray', s=1)
+                ax0.scatter(X_bound[:, 1]/apo, Y_bound[:, 1]/apo, c='gray', s=1)
+                ax0.set_xlabel(r'X [$r_{\rm a}$]')
+                ax0.set_ylabel(r'Y [$r_{\rm a}$]')
+                ax0.set_xlim(-0.5, 0.1)
+                ax0.set_ylim(-0.2, 0.2)
+
             del X, Y, Z, VX, VY, VZ, Den, Mass, dim_cell
             gc.collect()
 
@@ -454,7 +462,7 @@ if __name__ == '__main__':
 
         # Plotting results
         for i, snap in enumerate(snaps):
-            if snap != 41:
+            if snap != 31:
                 continue
             data_stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
             x_cm = data_stream['x_cm']
@@ -480,9 +488,9 @@ if __name__ == '__main__':
             # print('indices for theta = -pi/2, 0, pi/2:', np.argmin(np.abs(theta_wh + np.pi/2)), np.argmin(np.abs(theta_wh)), np.argmin(np.abs(theta_wh - np.pi/2)))
             
             fig0, ax0 = plt.subplots(1, 1, figsize=(8,6))
-            ax0.scatter(x_cm[41:43]/apo, y_cm[41:43]/apo, s=1, c='k')
-            ax0.scatter(X_low_w[41:43]/apo, Y_low_w[41:43]/apo, c='gray', s=1)
-            ax0.scatter(X_up_w[41:43]/apo, Y_up_w[41:43]/apo, c='gray', s=1)
+            ax0.scatter(x_cm/apo, y_cm/apo, s=1, c='k')
+            ax0.scatter(X_low_w/apo, Y_low_w/apo, c='gray', s=1)
+            ax0.scatter(X_up_w/apo, Y_up_w/apo, c='gray', s=1)
             ax0.set_xlabel(r'X [$r_{\rm a}$]')
             ax0.set_ylabel(r'Y [$r_{\rm a}$]')
             ax0.set_xlim(-0.5, 0.1)

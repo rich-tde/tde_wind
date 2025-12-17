@@ -13,7 +13,7 @@ import matplotlib.colors as colors
 import Utilities.prelude as prel
 import Utilities.sections as sec
 import src.orbits as orb
-from Utilities.operators import make_tree, draw_line, format_pi_frac
+from Utilities.operators import draw_line, format_pi_frac
 from plotting.paper.IHopeIsTheLast import split_data_red
 from matplotlib.ticker import FuncFormatter
 
@@ -45,13 +45,21 @@ if what == 'comparison':
     checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR', 'HiResStream','HiResStream2']
     compton = 'Compton'
     checks_name = ['Low', 'Fid', 'High', 'HiResStream', 'HiResStream2']
-    markers_sizes = [40, 20, 10, 15, 15]
+    markers_sizes = [40, 30, 20, 15, 10]
     linestyle_checks = ['solid', 'dashed', 'dotted', 'dashdot', 'dashdot']
     color_checks = ['C1', 'yellowgreen', 'darkviolet', 'magenta', 'dodgerblue']
 
     for i, time in enumerate(wanted_time): 
-        # fig0, ax0 = plt.subplots(1, 1, figsize = (10,6))
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize = (20,12))
+        fig_st, ax_st = plt.subplots(1, 1, figsize = (10,6))
+        fig_wh, ((ax_w, ax_h), (ax_Nw, ax_Nh)) = plt.subplots(2, 2, figsize = (20,12))
+        fig_pp, (ax_pp1, ax_pp2) = plt.subplots(2,1, figsize = (10,10))
+        ratio_of_pi = 2
+        ax_pp1.set_ylabel(r'$\Delta (\alpha+\pi$/' + f'{ratio_of_pi}) /' + r'$\Delta (\alpha-\pi$/' + f'{ratio_of_pi})')
+        ax_pp2.set_ylabel(r'H ($\alpha+\pi$/' + f'{ratio_of_pi}) /' + r'H($\alpha-\pi$/' + f'{ratio_of_pi})')
+
+        # to plot where is the maximum compression
+        fig_compr, ax1_compr = plt.subplots(1,1, figsize = (12,7))
+        ax1_compr.set_ylabel(r'H$_{\rm min} [R_\star]$')
 
         for i, check in enumerate(checks):
             # pick the simulation
@@ -66,48 +74,55 @@ if what == 'comparison':
                 continue
             print(f'Check: {check}, time: {np.round(tfb[idx_time], 2)}', f'snap: {snap}')
             # Load the data
-            # theta_arr, x_stream, y_stream, z_stream, _ = \
-            #     np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
-            theta_wh, width, N_width, height, N_height = \
-                np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
-            # ax0.plot(x_stream/apo, y_stream/apo, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
-            # ax0.plot(x_arr, line3_4, c = 'grey', alpha = 0.2)
-            # ax0.plot(x_arr, lineminus3_4, c = 'grey', alpha = 0.2)
+            data_stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
+            x_stream = data_stream['x_cm']
+            y_stream = data_stream['y_cm']
+            z_stream = data_stream['z_cm']
+            ax_st.plot(x_stream/apo, y_stream/apo, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
+            ax_st.plot(x_arr, line3_4, c = 'grey', alpha = 0.2)
+            ax_st.plot(x_arr, lineminus3_4, c = 'grey', alpha = 0.2)
+            
+            data_width = np.load(f'{abspath}/data/{folder}/WH/wh_0.8{check}_{snap}.npz', allow_pickle=True)
+            theta_wh = data_width['theta_wh']
+            width = data_width['width']
+            N_width = data_width['N_width']
+            height = data_width['height']
+            N_height = data_width['N_height']
 
-            ax1.set_title('Width', fontsize = 20)
-            ax1.plot(theta_wh * radians, width, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
-            ax3.scatter(theta_wh * radians, N_width, c = color_checks[i], s = markers_sizes[i], label = f'{checks_name[i]}')
-            ax2.set_title('Height', fontsize = 20)
-            ax2.plot(theta_wh * radians, height, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
-            ax4.scatter(theta_wh * radians, N_height, c = color_checks[i], s = markers_sizes[i], label = f'{checks_name[i]}')
+            ax_w.set_title('Width', fontsize = 20)
+            ax_w.plot(theta_wh * radians, width, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
+            ax_Nw.scatter(theta_wh * radians, N_width, c = color_checks[i], s = markers_sizes[i], label = f'{checks_name[i]}')
+            ax_h.set_title('Height', fontsize = 20)
+            ax_h.plot(theta_wh * radians, height, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
+            ax_Nh.scatter(theta_wh * radians, N_height, c = color_checks[i], s = markers_sizes[i], label = f'{checks_name[i]}')
 
-        # ax0.set_xlim(-1, 0.1)
-        # ax0.set_ylim(-.2,.2)
-        # ax0.set_xlabel(r'$X [R_{\rm a}]$')
-        # ax0.set_ylabel(r'$Y [R_{\rm a}]$')
-        # ax0.legend(fontsize = 16)
+        ax_st.set_xlim(-1, 0.1)
+        ax_st.set_ylim(-.2,.2)
+        ax_st.set_xlabel(r'$X [R_{\rm a}]$')
+        ax_st.set_ylabel(r'$Y [R_{\rm a}]$')
+        ax_st.legend(fontsize = 16)
 
-        ax1.set_ylabel(r'Stream size [$R_\odot$]')
-        ax1.set_ylim(1, 30)
-        ax2.set_ylim(0.1, 20)
-        ax1.legend(fontsize = 16)
-        ax3.set_ylabel(r'N$_{\rm cells}$')
-        ax3.set_ylim(9, 100) #np.min(N_width)/2, np.max(N_width) + 1)
-        ax4.set_ylim(.9, np.max(N_height) + 1)
-        for ax in [ax1, ax2, ax3, ax4]: 
+        ax_w.set_ylabel(r'Stream size [$R_\odot$]')
+        ax_w.set_ylim(1, 30)
+        ax_h.set_ylim(0.1, 20)
+        ax_w.legend(fontsize = 16)
+        ax_Nw.set_ylabel(r'N$_{\rm cells}$')
+        ax_Nw.set_ylim(9, 100) #np.min(N_width)/2, np.max(N_width) + 1)
+        ax_Nh.set_ylim(.9, np.max(N_height) + 1)
+        for ax in [ax_w, ax_h, ax_Nw, ax_Nh]: 
             ax.set_xlim(-2.5, 2.5) #-3/4*np.pi, 3/4*np.pi)
             ax.grid()
             ax.tick_params(axis='both', which='major', length=10, width=1.5)
             ax.tick_params(axis='both', which='minor', length=7, width=1.2)
             ax.set_yscale('log')
-            if ax in [ax3, ax4]:
+            if ax in [ax_Nw, ax_Nh]:
                 ax.set_xlabel(r'$\theta$ [rad]')
             else: 
                 ax.set_xlabel('')
         
-        # fig0.suptitle(r't/t$_{fb}$ = ' + str(time), fontsize = 18)
+        fig_st.suptitle(r't/t$_{fb}$ = ' + str(time), fontsize = 20)
         fig.suptitle(r't/t$_{fb}$ = ' + str(time), fontsize = 20)
-        # fig0.tight_layout()
+        fig_st.tight_layout()
         fig.tight_layout()
         # Find the stream in the simulation data
         # tree_plot = KDTree(np.array([X, Y, Z]).T)
@@ -115,8 +130,11 @@ if what == 'comparison':
 
 if what == 'single_snap_behavior' or what == 'section4' or what == 'onlysection':
     check = 'HiResNewAMR'
-    snap = 41
+    snap = 22
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    snaps, tfb = np.loadtxt(f'{abspath}/data/{folder}/projection/Dentime_proj.txt', ndmin=2)
+    snaps = snaps.astype(int)
+    tfb_single = tfb[np.argmin(np.abs(snaps-snap))]
 
     # Load data snap
     data_stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
@@ -154,7 +172,7 @@ if what == 'single_snap_behavior' or what == 'section4' or what == 'onlysection'
         ax1.set_ylim(-.3, .3)
         ax2.set_xlim(-.2, .05)
         ax2.set_ylim(-.1, .1)
-        # plt.suptitle(r'Stream at t/t$_{\rm fb}$ = ' + str(np.round(tfb_single,2)) + f', check: {check}', fontsize = 16)
+        plt.suptitle(r'Stream at t/t$_{\rm fb}$ = ' + str(np.round(tfb_single,2)) + f', check: {check}', fontsize = 16)
 
         # Plot width and height and number of cells
         fig, ((ax1,ax2), (ax3, ax4)) = plt.subplots(2,2, figsize = (18,9))
@@ -310,7 +328,6 @@ if what == 'max_compr':
     fig, (ax1, ax2) = plt.subplots(2,1, figsize = (10,10))
     ax1.set_ylabel(r'$\Delta (\alpha+\pi$/' + f'{ratio_of_pi}) /' + r'$\Delta (\alpha-\pi$/' + f'{ratio_of_pi})')
     ax2.set_ylabel(r'H ($\alpha+\pi$/' + f'{ratio_of_pi}) /' + r'H($\alpha-\pi$/' + f'{ratio_of_pi})')
-    
 
     # to plot where is the maximum compression
     fig_compr, ax1_compr = plt.subplots(1,1, figsize = (12,7))
@@ -390,6 +407,3 @@ if what == 'max_compr':
             ax.set_yscale('log')
             ax.set_ylim(1e-1, 5)
         
-
-
-# %%
