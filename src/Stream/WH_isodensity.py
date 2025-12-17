@@ -351,7 +351,7 @@ if __name__ == '__main__':
         if alice:
             snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
         else: 
-            snaps = [41]
+            snaps = [31]
 
         for i, snap in enumerate(snaps):
             print(f'Snap {snap}', flush = True)

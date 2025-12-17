@@ -1,4 +1,7 @@
 """ If alice: Find the stream as line connecting COMs.
+!!!! Limitation: 
+at early times the stream next to pericenter is splitted in a double tail, 
+so you might have a jump when you search for the maximum density !!!!
 If not alice: plot on a scatter plot. """
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
@@ -111,29 +114,28 @@ def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R
     x_max = np.zeros(len(theta_arr))
     y_max = np.zeros(len(theta_arr))
     z_max = np.zeros(len(theta_arr))
+    # fig, ax1 = plt.subplots(1,1, figsize = (12,7))
     for i in range(len(theta_arr)):
         # Exclude points inside the smoothing lenght and find radial plane
         condition_distance = np.sqrt(x_data**2 + y_data**2 + z_data**2) > R0 
         condition_Rplane = sec.radial_plane(x_data, y_data, dim_data, theta_arr[i])
         condition_Rplane = np.logical_and(condition_Rplane, condition_distance)
-        x_plane, y_plane, z_plane, den_plane = sec.make_slices([x_data, y_data, z_data, den_data], condition_Rplane)
+        x_plane, y_plane, z_plane, den_plane, dim_plane = sec.make_slices([x_data, y_data, z_data, den_data, dim_data], condition_Rplane)
         # Find and save the maximum density point
         idx_max = np.argmax(den_plane) 
         x_max[i] = x_plane[idx_max]
         y_max[i] = y_plane[idx_max]
         z_max[i] = z_plane[idx_max]
         
-        # if np.logical_and(alice == False, __name__ == '__main__'):
-        #     r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
-        #     r_central = np.sqrt(x_max[i]**2 + y_max[i]**2 + z_max[i]**2)
-        #     fig, ax1 = plt.subplots(1,1, figsize = (10,5))
-        #     ax1.scatter(r_plane/Rt, den_plane, s = 10, c = 'k', label = 'Density')
-        #     ax1.set_xlabel(r'R [$R_{\rm t}$]')
-        #     ax1.set_ylabel(r'Density $[M_\odot/R_\odot^3]$')
-        #     ax1.set_xlim(0.1, r_central/Rt+1)
-        #     ax1.axvline(r_central/Rt, c = 'yellowgreen')
-        #     ax1.set_title(r'$\theta$ = ' + f'{np.round(theta_arr[i],2)} rad', fontsize = 14)
-        #     plt.show()
+        # if not alice: 
+        #     from matplotlib import colors
+        #     ax1.scatter(x_plane[np.abs(z_plane) < dim_plane]/apo, y_plane[np.abs(z_plane) < dim_plane]/apo, s = 1)
+        #     ax1.scatter(0, 0, marker = 'x', c = 'red')
+        #     ax1.scatter(x_max[i]/apo, y_max[i]/apo, marker = 'x', c = 'red')
+        #     ax1.set_xlabel(r'X [$R_{\rm a}$]')
+        #     ax1.set_ylabel(r'Y [$R_{\rm a}$]')
+        #     ax1.set_xlim(-0.5, 0.1)
+        #     ax1.set_ylim(-0.2, 0.2)
 
     return x_max, y_max, z_max    
 
@@ -199,42 +201,50 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     y_cm = np.zeros(len(theta_arr))
     z_cm = np.zeros(len(theta_arr))
     thresh_cm = np.zeros(len(theta_arr))
+    # if not alice:
+    #     fig, ax1 = plt.subplots(1,1, figsize = (12,7))
     for idx in range(len(theta_arr)):
         # Find the transverse plane
         condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, Rstar, just_plane = True)
         x_plane, y_plane, z_plane, dim_plane, mass_plane = \
             sec.make_slices([x_cut, y_cut, z_cut, dim_cut, mass_cut], condition_T)
         # plot section at pericenter
-        # if idx == np.argmin(np.abs(theta_arr)): 
-        #     from matplotlib import colors
-        #     fig, (ax1, ax2) = plt.subplots(1,2, figsize = (20,8))
-        #     img = ax1.scatter(x_T, z_plane, c = den_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-13, vmax = 1e-6))
-        #     cbar = plt.colorbar(img)
-        #     cbar.set_label(r'Density $[M_\odot/R_\odot^3]$')
-        #     ax1.set_ylabel(r'Z [$R_\odot$]')
-        #     img = ax2.scatter(x_T, z_plane, c = mass_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-12, vmax = 1e-8))
-        #     cbar = plt.colorbar(img)
-        #     cbar.set_label(r'Cell mass $[R_\odot]$')
-        #     for ax in [ax1, ax2]:
-        #         ax.scatter(0,0, edgecolor= 'k', marker = 'o', facecolors='none', s=80)
-        #         ax.set_xlim(-50, 30)
-        #         ax.set_ylim(-10, 10)
-        #         ax.set_xlabel(r'T [$R_\odot$]')
-        #     plt.suptitle('(0,0) is the center of mass of the TZ plane of the max density point', fontsize = 14)
-        #     plt.tight_layout()
+
         # Restrict the points to not keep points too far away.
         r_plane = np.sqrt(x_plane**2 + y_plane**2 + z_plane**2)
         thresh = get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) 
         condition_x = np.abs(x_T) < thresh
         condition_z = np.abs(z_plane) < thresh
         condition = condition_x & condition_z
-        x_plane, y_plane, z_plane, mass_plane = \
-            sec.make_slices([x_plane, y_plane, z_plane, mass_plane], condition)
+        x_plane, y_plane, z_plane, mass_plane, dim_plane = \
+            sec.make_slices([x_plane, y_plane, z_plane, mass_plane, dim_plane], condition)
         # Find and save the center of mass
         x_cm[idx] = np.sum(x_plane * mass_plane) / np.sum(mass_plane)
         y_cm[idx]= np.sum(y_plane * mass_plane) / np.sum(mass_plane)
         z_cm[idx] = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
         thresh_cm[idx] = thresh
+        # if not alice: 
+        #     from matplotlib import colors
+        #     fig2, ax2 = plt.subplots(1,1, figsize = (10,8))
+            # ax1.scatter(x_plane[np.abs(z_plane) < dim_plane]/apo, y_plane[np.abs(z_plane) < dim_plane]/apo, s = 1)
+            # ax1.scatter(0, 0, marker = 'x', c = 'red')
+            # ax1.scatter(x_cm[idx]/apo, y_cm[idx]/apo, marker = 'x', c = 'red')
+            # ax1.set_xlabel(r'X [$R_{\rm a}$]')
+            # ax1.set_ylabel(r'Y [$R_{\rm a}$]')
+            # ax1.set_xlim(-0.5, 0.1)
+            # ax1.set_ylim(-0.2, 0.2)
+
+        #     img = ax2.scatter(x_T, z_plane, c = mass_plane, s = 10, cmap = 'rainbow', norm = colors.LogNorm(vmin = 2e-12, vmax = 7e-12))
+        #     cbar = plt.colorbar(img)
+        #     cbar.set_label(r'Cell mass $[M_\odot]$')
+        #     ax2.set_xlabel(r'N [$R_\odot$]')
+        #     ax2.set_ylabel(r'Z [$R_\odot$]')
+        #     ax2.set_xlim(-6, 6)
+        #     ax2.set_ylim(-4, 4)
+        #     fig2.suptitle(f'Idx: {idx}, Theta: {np.round(theta_arr[idx],2)} rad', fontsize = 16) 
+        #     fig2.tight_layout()
+    # fig.suptitle(f'Idx: {idx}', fontsize = 16) 
+    # fig.tight_layout()
     # Search in the tree the closest point to the center of mass
     points = np.array([x_data, y_data, z_data]).T
     tree = KDTree(points)

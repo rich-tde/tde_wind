@@ -177,11 +177,11 @@ if __name__ == '__main__':
     else:
         import healpy as hp
         import src.orbits as orb
-        snap = 48
+        snap = 45
         # what_to_grid = 'Diss' #['tau_scatt', 'tau_ross', 'Den']
         sign = '' # '' for positive, '_neg' for negative
-        how_far = 'nozzle'
-        check = 'HiResStream'
+        how_far = ''
+        check = 'HiResNewAMR'
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
         snaps, tfb = np.loadtxt(f'{prepath}/data/{folder}/projection/{how_far}Dentime_proj.txt')
@@ -218,7 +218,7 @@ if __name__ == '__main__':
        
         plt.suptitle(f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$, res: ' + f'{check}', color = 'k', fontsize = 25)
         plt.tight_layout()
-        plt.savefig(f'{prepath}/Figs/{folder}/projection/DenDiss{how_far}proj{snap}.png', dpi = 300)
+        # plt.savefig(f'{prepath}/Figs/{folder}/projection/DenDiss{how_far}proj{snap}.png', dpi = 300)
         #%% to check with scatter
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (28,7))
         data = np.load(f'{abspath}/data/{folder}/slices/z/z0slice_{snap}.npz', allow_pickle=True)

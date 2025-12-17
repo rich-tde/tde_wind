@@ -105,24 +105,10 @@ for idx, snap in enumerate(snaps):
         x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut, temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut, IE_den_cut, Press_cut = \
             sec.make_slices([X, Y, Z, dim_cell, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, IE_den, Press], cut)
 
-        slice_data = {
-            'x': x_cut,
-            'y': y_cut,
-            'z': z_cut,
-            'dim': dim_cut,
-            'den': den_cut,
-            'mass': mass_cut,
-            'temp': temp_cut,
-            'ie_den': ie_den_cut,
-            'Rad_den': Rad_den_cut,
-            'VX': VX_cut,
-            'VY': VY_cut,
-            'VZ': VZ_cut,
-            'Diss_den': Diss_den_cut,
-            'IE_den': IE_den_cut,
-            'Press': Press_cut,
-        }
-        np.savez(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npz', **slice_data)
+        slice_data = [x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut, \
+                      temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, \
+                        Diss_den_cut, IE_den_cut, Press_cut]
+        np.save(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy', slice_data)
         
     else:
         # you are not in alice
@@ -132,9 +118,8 @@ for idx, snap in enumerate(snaps):
         npanels = 2 # 3 or 6
 
         # load the data
-        data = np.load(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npz', allow_pickle=True)
-        x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, ie_den_mid, Rad_den_mid, VX_mid, VY_mid, VZ_mid, Diss_den_mid, IE_den_mid, Press_mid =\
-            data['x'], data['y'], data['z'], data['dim'], data['den'], data['temp'], data['ie_den'], data['Rad_den'], data['VX'], data['VY'], data['VZ'], data['Diss_den'], data['IE_den'], data['Press']
+        x_mid, y_mid, z_mid, dim_mid, den_mid, mass_mid, temp_mid, ie_den_mid, Rad_den_mid, VX_mid, VY_mid, VZ_mid, Diss_den_mid, IE_den_mid, Press_mid = \
+            np.load(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy', allow_pickle=True)
         Diss_mid = Diss_den_mid * dim_mid**3 * prel.en_converter
         Temp_rad_mid = (Rad_den_mid * prel.en_den_converter/prel.alpha_cgs)**(0.25)
         vel_mid = np.sqrt(VX_mid**2 + VY_mid**2 + VZ_mid**2)

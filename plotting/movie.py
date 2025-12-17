@@ -9,10 +9,10 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'LowResNewAMR'
+check = 'HiResNewAMR'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-start = 81
+start = 21
 slow_down_factor = 3 # Increase this value to make the video slower
 
 # Get the height of the first image to calculate the scale
@@ -27,10 +27,10 @@ def get_image_size(image_path):
     return width, height
 
 # For Denproj
-# how_many = '3'
-# path = f'{abspath}/Figs/{folder}/projection{how_many}/denproj_%d.png' 
-# output_path = f'{abspath}/Figs/{folder}/projection{how_many}/denproj_{how_many}{check}.mp4'
-# first_image_path = f'{abspath}/Figs/{folder}/projection{how_many}/denproj_{start}.png'
+how_many = ''
+path = f'{abspath}/Figs/{folder}/projection{how_many}/denproj_%d.png' 
+output_path = f'{abspath}/Figs/{folder}/projection{how_many}/denproj_{how_many}{check}.mp4'
+first_image_path = f'{abspath}/Figs/{folder}/projection{how_many}/denproj_{start}.png'
 
 # For Slices 
 # path = f'{abspath}/Figs/{folder}/slices/Panel6Slice%d.png' 
@@ -48,9 +48,9 @@ def get_image_size(image_path):
 # first_image_path = f'{abspath}/Figs/{folder}/Outflow/B_slice_{start}.png'
 
 # For stream
-path = f'{abspath}/Figs/{folder}/stream/WH_theta%d.png'
-output_path = f'{abspath}/Figs/{folder}/stream/WH_theta.mp4'
-first_image_path = f'{abspath}/Figs/{folder}/stream/WH_theta{start}.png'
+# path = f'{abspath}/Figs/{folder}/stream/WH_theta%d.png'
+# output_path = f'{abspath}/Figs/{folder}/stream/WH_theta.mp4'
+# first_image_path = f'{abspath}/Figs/{folder}/stream/WH_theta{start}.png'
 
 
 width, height = get_image_size(first_image_path)
