@@ -221,20 +221,15 @@ if __name__ == '__main__':
         plt.savefig(f'{prepath}/Figs/{folder}/projection/DenDiss{how_far}proj{snap}.png', dpi = 300)
         #%% to check with scatter
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (20,7))
-        Den_flat = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denproj{snap}{sign}.npy')
-        x_radii_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denxarray.npy')
-        print(np.shape(x_radii_den))
-        y_radii_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denyarray.npy')
-        Den_flat *= prel.Msol_cgs/prel.Rsol_cgs**2
-        Diss_flat = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Dissproj{snap}{sign}.npy')
-        x_radii_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Dissxarray.npy')
-        y_radii_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Dissyarray.npy')
-        Diss_flat *= prel.en_converter/(prel.tsol_cgs * prel.Rsol_cgs**2)
-        img = ax1.pcolormesh(x_radii_den/Rt, y_radii_den/Rt, np.abs(Den_flat).T, cmap = 'plasma',
-                            norm = colors.LogNorm(vmin = vmin_den, vmax = vmax_den))
+        data = np.load(f'{abspath}data/{folder}/slices/z/z0slice_{snap}.npz', allow_pickle=True)
+        x_mid, y_mid, dim_mid, den_mid, Diss_den_mid =\
+            data['x'], data['y'], data['dim'], data['den'], data['Diss_den']
+        
+        img = ax1.scatter(x_mid/Rt, y_mid/Rt, c = np.abs(den_mid), cmap = 'plasma',
+                            norm = colors.LogNorm(vmin = vmin_den/1e10, vmax = vmax_den/1e10))
         cb = plt.colorbar(img)
-        cb.set_label(r'Column density [g/cm$^2$]')
-        img = ax2.pcolormesh(x_radii_diss/Rt, y_radii_diss/Rt, np.abs(Diss_flat).T, cmap = 'viridis',
+        cb.set_label(r'Density [g/cm$^2$]')
+        img = ax2.scatter(x_mid/Rt, y_mid/Rt, c = np.abs(Diss_den_mid), cmap = 'viridis',
                             norm = colors.LogNorm(vmin = vmin_diss, vmax = vmax_diss))
         cb = plt.colorbar(img)
         cb.set_label(r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$')
