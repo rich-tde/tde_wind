@@ -175,26 +175,25 @@ if __name__ == '__main__':
         np.save(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}yarray.npy', y_radii)
 
     else:
-        import healpy as hp
         import src.orbits as orb
-        snap = 45
+        snap = 48
         # what_to_grid = 'Diss' #['tau_scatt', 'tau_ross', 'Den']
         sign = '' # '' for positive, '_neg' for negative
-        how_far = ''
-        check = 'HiResNewAMR'
+        how_far = 'nozzle'
+        check = 'HiResStream'
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
         snaps, tfb = np.loadtxt(f'{prepath}/data/{folder}/projection/{how_far}Dentime_proj.txt')
         tfb_single = tfb[np.argmin(np.abs(snap-snaps))] 
         
-        vmin_den = 1e-3
-        vmax_den = 1e2
+        vmin_den_scat = 1e-13
+        vmax_den_scat = 2e-8
         vmin_diss = 1e10 #1e14
-        vmax_diss = 1e18
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (28,7))
+        vmax_diss = 1e14
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (18,7))
         Den_flat = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denproj{snap}{sign}.npy')
         x_radii_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denxarray.npy')
-        print(np.shape(x_radii_den))
+        # print(np.shape(y_radii_den))
         y_radii_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denyarray.npy')
         Den_flat *= prel.Msol_cgs/prel.Rsol_cgs**2
         Diss_flat = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Dissproj{snap}{sign}.npy')
@@ -202,42 +201,41 @@ if __name__ == '__main__':
         y_radii_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Dissyarray.npy')
         Diss_flat *= prel.en_converter/(prel.tsol_cgs * prel.Rsol_cgs**2)
         img = ax1.pcolormesh(x_radii_den, y_radii_den, np.abs(Den_flat).T, cmap = 'jet',
-                            norm = colors.LogNorm(vmin = vmin_den, vmax = vmax_den))
-        cb = plt.colorbar(img)
+                            norm = colors.LogNorm(vmin = vmin_den_scat*1e6, vmax = vmax_den_scat*1e6))
+        cb = plt.colorbar(img, orientation = 'horizontal')
         cb.set_label(r'Column density [g/cm$^2$]')
         img = ax2.pcolormesh(x_radii_diss, y_radii_diss, np.abs(Diss_flat).T, cmap = 'viridis',
                             norm = colors.LogNorm(vmin = vmin_diss, vmax = vmax_diss))
-        cb = plt.colorbar(img)
+        cb = plt.colorbar(img, orientation = 'horizontal')
         cb.set_label(r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$')
 
-        ax1.set_ylabel(r'$Y [R_\odot]$', fontsize = 20)
+        ax2.set_ylabel(r'$Y [r_{\rm t}]$')
         for ax in [ax1, ax2]:
-            ax.set_xlim(-300, 40)
+            ax.set_xlim(-200, 40)
             ax.set_ylim(-50, 50)
-            ax.set_xlabel(r'$X [R_\odot]$', fontsize = 20)
+            ax.set_xlabel(r'$X [r_{\rm t}]$')
        
         plt.suptitle(f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$, res: ' + f'{check}', color = 'k', fontsize = 25)
         plt.tight_layout()
         # plt.savefig(f'{prepath}/Figs/{folder}/projection/DenDiss{how_far}proj{snap}.png', dpi = 300)
         #%% to check with scatter
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (28,7))
-        data = np.load(f'{abspath}/data/{folder}/slices/z/z0slice_{snap}.npz', allow_pickle=True)
-        x_mid, y_mid, dim_mid, den_mid, Diss_den_mid =\
-            data['x'], data['y'], data['dim'], data['mass'], data['Diss_den']
+        x_mid, y_mid, z_mid, dim_mid, den_mid, mass_mid, temp_mid, ie_den_mid, Rad_den_mid, VX_mid, VY_mid, VZ_mid, Diss_den_mid, IE_den_mid, Press_mid = \
+            np.load(f'{abspath}/data/{folder}/slices/z/z0slice_{snap}.npy', allow_pickle=True)
         # print(np.min(dim_mid), np.max(dim_mid))
         img = ax1.scatter(x_mid, y_mid, c = den_mid, cmap = 'jet', s =1,
-                            norm = colors.LogNorm(vmin = vmin_den/1e10, vmax = vmax_den/1e10))
+                            norm = colors.LogNorm(vmin = vmin_den_scat, vmax = vmax_den_scat))
         cb = plt.colorbar(img)
-        cb.set_label(r'Density [g/cm$^2$]')
+        cb.set_label(r'Density [g/cm$^3$]')
         img = ax2.scatter(x_mid, y_mid, c = np.abs(Diss_den_mid), cmap = 'viridis', s = 1,
-                            norm = colors.LogNorm(vmin = vmin_diss/1e10, vmax = vmax_diss/1e10))
+                            norm = colors.LogNorm(vmin = vmin_diss/1e11, vmax = vmax_diss/1e11))
         cb = plt.colorbar(img)
         cb.set_label(r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$')
 
         ax1.set_ylabel(r'$Y [R_\odot]$', fontsize = 20)
         for ax in [ax1, ax2]:
-            ax.set_xlim(-220, 40)
-            ax.set_ylim(-40, 40)
+            ax.set_xlim(-200, 40)
+            ax.set_ylim(-50, 50)
             ax.set_xlabel(r'$X [R_\odot]$', fontsize = 20)
        
         plt.suptitle(f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$, res: ' + f'{check}', color = 'k', fontsize = 25)

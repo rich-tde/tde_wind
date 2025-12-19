@@ -25,7 +25,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-what = 'single_snap_behavior' # 'onlysection' or 'section4' or 'comparison' or 'max_compr' or 'single_snap_behavior' 
+what = 'comparison' # 'onlysection' or 'section4' or 'comparison' or 'max_compr' or 'single_snap_behavior' 
 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -74,20 +74,28 @@ if what == 'comparison':
                 continue
             print(f'Check: {check}, time: {np.round(tfb[idx_time], 2)}', f'snap: {snap}')
             # Load the data
-            data_stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
-            x_stream = data_stream['x_cm']
-            y_stream = data_stream['y_cm']
-            z_stream = data_stream['z_cm']
-            ax_st.plot(x_stream/apo, y_stream/apo, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
-            ax_st.plot(x_arr, line3_4, c = 'grey', alpha = 0.2)
-            ax_st.plot(x_arr, lineminus3_4, c = 'grey', alpha = 0.2)
+            # try:
+            #     data_stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
+            #     x_stream = data_stream['x_cm']
+            #     y_stream = data_stream['y_cm']
+            #     z_stream = data_stream['z_cm']
+            # except FileNotFoundError:
+            #     _, x_stream, y_stream, z_stream, _ = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
+                
+            # ax_st.plot(x_stream/apo, y_stream/apo, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
+            # ax_st.plot(x_arr, line3_4, c = 'grey', alpha = 0.2)
+            # ax_st.plot(x_arr, lineminus3_4, c = 'grey', alpha = 0.2)
             
-            data_width = np.load(f'{abspath}/data/{folder}/WH/wh_0.8{check}_{snap}.npz', allow_pickle=True)
-            theta_wh = data_width['theta_wh']
-            width = data_width['width']
-            N_width = data_width['N_width']
-            height = data_width['height']
-            N_height = data_width['N_height']
+            try:
+                data_width = np.load(f'{abspath}/data/{folder}/WH/wh_0.8{check}_{snap}.npz', allow_pickle=True)
+                theta_wh = data_width['theta_wh']
+                width = data_width['width']
+                N_width = data_width['N_width']
+                height = data_width['height']
+                N_height = data_width['N_height']
+            except FileNotFoundError:
+                theta_wh, width, N_width, height, N_height = \
+                    np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
 
             ax_w.set_title('Width', fontsize = 20)
             ax_w.plot(theta_wh * radians, width, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
