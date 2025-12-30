@@ -1,5 +1,4 @@
-"""Bunch of plots for the paper"""
-#%%
+""" Convergence plots for Paper1: fld, Rph, energies. """
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 
@@ -41,15 +40,12 @@ Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
 commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 
-#%%
+##
 # FUNCTIONS
 ##
 def split_data_red(check):
     """Split the data in the file into two lists: time and luminosity."""
-    if check in ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']:
-         filename = f'{abspath}/data/{commonfold}{check}/{check}_red.csv'
-    else:
-        filename = f'{abspath}/data/opacity_tests/{commonfold}{check}/{check}_red.csv'
+    filename = f'{abspath}/data/{commonfold}{check}/{check}_red.csv'
     data = np.loadtxt(filename, delimiter=',', dtype=float)
     snap = np.array([int(s) for s in data[:,0]])
     time = data[:, 1]
@@ -94,10 +90,7 @@ def statistics_photo(snaps, check):
     percentile16 = np.zeros(len(snaps))
     percentile84 = np.zeros(len(snaps))
     for i, snapi in enumerate(snaps):
-        if check in ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']:
-            photo = np.loadtxt(f'{abspath}/data/{commonfold}{check}/photo/{check}_photo{snapi}.txt')
-        else:
-            photo = np.loadtxt(f'{abspath}/data/opacity_tests/{commonfold}{check}/photo/{check}_photo{snapi}.txt')
+        photo = np.loadtxt(f'{abspath}/data/{commonfold}{check}/photo/{check}_photo{snapi}.txt')
         xph_i, yph_i, zph_i = photo[0], photo[1], photo[2]
         rph_i = np.sqrt(xph_i**2 + yph_i**2 + zph_i**2)
         mean_ph[i] = np.mean(rph_i)
@@ -107,7 +100,7 @@ def statistics_photo(snaps, check):
     return mean_ph, median_ph, percentile16, percentile84
 
 if __name__ == '__main__':
-    # Luminosity 
+    # Load luminosity data
     # Low
     snapL, LumL, tfbL = split_data_red('LowResNewAMR')
     snap, Lum, tfb = split_data_red('NewAMR')
@@ -117,7 +110,7 @@ if __name__ == '__main__':
     mean_ph, median_ph, percentile16, percentile84 = statistics_photo(snap, 'NewAMR')
     mean_phH, median_phH, percentile16H, percentile84H = statistics_photo(snapH, 'HiResNewAMR')
 
-    # Dissipation (positive sign, which is the one of pericenter)
+    # Load dissipation (positive sign, which is the one of pericenter) data
     dataDissL = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/Rdiss_LowResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     tfbdissL, LDissL = dataDissL[:,1], dataDissL[:,3] *  prel.en_converter/prel.tsol_cgs
     dataDiss = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/Rdiss_NewAMR.csv', delimiter=',', dtype=float, skiprows=1)
@@ -125,7 +118,7 @@ if __name__ == '__main__':
     dataDissH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     tfbdissH, LDissH = dataDissH[:,1], dataDissH[:,3] *  prel.en_converter/prel.tsol_cgs
 
-    ######## Plot #######
+    ######## Plot ########
     fig, ((axR, axL), (axR_err, axL_err)) = plt.subplots(2, 2, figsize=(20, 10), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
     
     # Photosphere
@@ -220,90 +213,7 @@ if __name__ == '__main__':
     plt.tight_layout()
     plt.savefig(f'{abspath}/Figs/paper/fld_R_conv.pdf', bbox_inches='tight')
 
-    #%% Radiation energy density 
-    # fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-    # ax1.plot(r_arr/apo, Rad_den_R_snapL * prel.en_den_converter, c = 'C1', label = 'Low')
-    # ax1.plot(r_arr/apo, Rad_den_R_snap * prel.en_den_converter, c = 'yellowgreen', label = 'Middle')
-    # ax1.plot(r_arr/apo, Rad_den_R_snapH * prel.en_den_converter, c = 'darkviolet', label = 'High')
-    # ax1.set_ylabel(r'$u$ [erg/cm$^3$s]')
-    # ax1.legend(fontsize = 18)
-
-    # ax2.plot(r_arr/apo, diffuL, color = 'C1')
-    # ax2.plot(r_arr/apo, diffuH, color = 'darkviolet')
-    # ax2.set_xlabel(r'$R [R_\odot$]')
-    # ax2.set_ylabel(r'$2|u_{\rm x}-u_{\rmMiddledle}|/(u_{\rm x}+u_{\rmMiddledle})$')
-    # for ax in [ax1, ax2]:
-    #     ax.set_yscale('log')
-    #     ax.grid()
-    # plt.suptitle('Radiation energy density u from the line of sight of the observers')
-    # plt.tight_layout()
-    # ## 
-    # fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-    # ax1.plot(r_arr/apo, Rad_den_R_snapL * prel.en_den_converter, c = 'C1', label = 'Low')
-    # ax1.plot(r_arr/apo, Rad_den_R_snap * prel.en_den_converter, c = 'yellowgreen', label = 'Middle')
-    # ax1.plot(r_arr/apo, Rad_den_R_snapH * prel.en_den_converter, c = 'darkviolet', label = 'High')
-    # ax1.set_ylabel(r'$u_{\rm rad}$ [erg/(cm$^3$s)]')#, fontsize = 18)
-    # ax1.legend(fontsize = 18)
-    # ax1.set_yscale('log')
-
-    # ax2.plot(r_arr/apo, ratiouL, linewidth = 2, color = 'yellowgreen')
-    # ax2.plot(r_arr/apo, ratiouL, linestyle = (0, (5, 10)), linewidth = 2, color = 'C1')
-    # ax2.plot(r_arr/apo, ratiouH, linewidth = 2, color = 'yellowgreen')
-    # ax2.plot(r_arr/apo, ratiouH, linestyle = (0, (5, 10)), linewidth = 2, color = 'darkviolet')
-    # ax2.set_xlabel(r'$R [R_{\rm a}$]')#, fontsize = 18)
-    # ax2.set_ylabel(r'$\mathcal{R} u_{\rm rad}$')#, fontsize = 18)
-    # ax2.set_ylim(1, 3)
-    # # Get the existing ticks on the x-axis
-    # original_ticks = np.arange(1, 11, 2, dtype=int)
-    # midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-    # new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    # for ax in [ax1, ax2]:
-    #     ax.set_xticks(new_ticks)
-    #     labels = [str(int(tick)) if tick in original_ticks else "" for tick in new_ticks]       
-    #     ax.set_xticklabels(labels)
-    #     ax.tick_params(axis='y', which='minor', length = 3, width = 0.7)
-    #     ax.tick_params(axis='x', which='minor', length = 3, width = 0.7)
-    #     ax.tick_params(axis='y', which='major', length = 5, width = 1)
-    #     ax.set_xlim(0, np.max(r_arr)/apo)
-    #     ax.grid()
-    # # plt.suptitle('Radiation energy density u from the line of sight of the observers')
-    # plt.tight_layout()
-    # plt.savefig(f'{abspath}/Figs/multiple/Rad.png', bbox_inches='tight')
-    # plt.savefig(f'{abspath}/Figs/paper/Rad.pdf', bbox_inches='tight')
-
-    # fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
-    # ax1.plot(r_arr/apo, Rad_den_R_snapL * r_arr**3 * prel.en_converter, c = 'C1', label = 'Low')
-    # ax1.plot(r_arr/apo, Rad_den_R_snap * r_arr**3 * prel.en_converter, c = 'yellowgreen', label = 'Middle')
-    # ax1.plot(r_arr/apo, Rad_den_R_snapH * r_arr**3 * prel.en_converter, c = 'darkviolet', label = 'High')
-    # ax1.set_ylabel(r'Radiation energy [erg/s]')#, fontsize = 18)
-    # ax1.legend(fontsize = 18)
-    # ax1.set_yscale('log')
-
-    # ax2.plot(r_arr/apo, ratiouL, linewidth = 2, color = 'yellowgreen')
-    # ax2.plot(r_arr/apo, ratiouL, linestyle = (0, (5, 10)), linewidth = 2, color = 'C1')
-    # ax2.plot(r_arr/apo, ratiouH, linewidth = 2, color = 'yellowgreen')
-    # ax2.plot(r_arr/apo, ratiouH, linestyle = (0, (5, 10)), linewidth = 2, color = 'darkviolet')
-    # ax2.set_xlabel(r'$R [R_{\rm a}$]')#, fontsize = 18)
-    # ax2.set_ylabel(r'$\mathcal{R} u_{\rm rad}$')#, fontsize = 18)
-    # ax2.set_ylim(1, 3)
-    # # Get the existing ticks on the x-axis
-    # original_ticks = np.arange(1, 11, 2, dtype=int)
-    # midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-    # new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    # for ax in [ax1, ax2]:
-    #     ax.set_xticks(new_ticks)
-    #     labels = [str(int(tick)) if tick in original_ticks else "" for tick in new_ticks]       
-    #     ax.set_xticklabels(labels)
-    #     ax.tick_params(axis='y', which='minor', length = 3, width = 0.7)
-    #     ax.tick_params(axis='x', which='minor', length = 3, width = 0.7)
-    #     ax.tick_params(axis='y', which='major', length = 5, width = 1)
-    #     ax.set_xlim(0, np.max(r_arr)/apo)
-    #     ax.grid()
-    # # plt.suptitle('Radiation energy density u from the line of sight of the observers')
-    # plt.tight_layout()
-
-
-    #%% OE and IE
+    # OE and IE
     # Load data
     dataL = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/convE_LowResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     tfb_oeL, col_ieL, col_orb_en_posL, col_orb_en_negL, col_radL = dataL[:, 1], dataL[:, 2], dataL[:, 3], dataL[:, 4], dataL[:, 5]
@@ -395,4 +305,3 @@ if __name__ == '__main__':
     plt.tight_layout()
     plt.savefig(f'{abspath}/Figs/paper/OeIeRad.pdf', bbox_inches='tight')
 
-    # %%

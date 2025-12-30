@@ -52,14 +52,14 @@ if what == 'comparison':
     for i, time in enumerate(wanted_time): 
         fig_st, ax_st = plt.subplots(1, 1, figsize = (10,6))
         fig_wh, ((ax_w, ax_h), (ax_Nw, ax_Nh)) = plt.subplots(2, 2, figsize = (20,12))
-        fig_pp, (ax_pp1, ax_pp2) = plt.subplots(2,1, figsize = (10,10))
+        # fig_pp, (ax_pp1, ax_pp2) = plt.subplots(2,1, figsize = (10,10))
         ratio_of_pi = 2
-        ax_pp1.set_ylabel(r'$\Delta (\alpha+\pi$/' + f'{ratio_of_pi}) /' + r'$\Delta (\alpha-\pi$/' + f'{ratio_of_pi})')
-        ax_pp2.set_ylabel(r'H ($\alpha+\pi$/' + f'{ratio_of_pi}) /' + r'H($\alpha-\pi$/' + f'{ratio_of_pi})')
+        # ax_pp1.set_ylabel(r'$\Delta (\alpha+\pi$/' + f'{ratio_of_pi}) /' + r'$\Delta (\alpha-\pi$/' + f'{ratio_of_pi})')
+        # ax_pp2.set_ylabel(r'H ($\alpha+\pi$/' + f'{ratio_of_pi}) /' + r'H($\alpha-\pi$/' + f'{ratio_of_pi})')
 
         # to plot where is the maximum compression
-        fig_compr, ax1_compr = plt.subplots(1,1, figsize = (12,7))
-        ax1_compr.set_ylabel(r'H$_{\rm min} [R_\star]$')
+        # fig_compr, ax1_compr = plt.subplots(1,1, figsize = (12,7))
+        # ax1_compr.set_ylabel(r'H$_{\rm min} [R_\star]$')
 
         for i, check in enumerate(checks):
             # pick the simulation
@@ -74,28 +74,21 @@ if what == 'comparison':
                 continue
             print(f'Check: {check}, time: {np.round(tfb[idx_time], 2)}', f'snap: {snap}')
             # Load the data
-            # try:
-            #     data_stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
-            #     x_stream = data_stream['x_cm']
-            #     y_stream = data_stream['y_cm']
-            #     z_stream = data_stream['z_cm']
-            # except FileNotFoundError:
-            #     _, x_stream, y_stream, z_stream, _ = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npy', allow_pickle=True)
-                
-            # ax_st.plot(x_stream/apo, y_stream/apo, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
-            # ax_st.plot(x_arr, line3_4, c = 'grey', alpha = 0.2)
-            # ax_st.plot(x_arr, lineminus3_4, c = 'grey', alpha = 0.2)
+            data_stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
+            x_stream = data_stream['x_cm']
+            y_stream = data_stream['y_cm']
+            z_stream = data_stream['z_cm']
+  
+            ax_st.plot(x_stream/apo, y_stream/apo, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
+            ax_st.plot(x_arr, line3_4, c = 'grey', alpha = 0.2)
+            ax_st.plot(x_arr, lineminus3_4, c = 'grey', alpha = 0.2)
             
-            try:
-                data_width = np.load(f'{abspath}/data/{folder}/WH/wh_0.8{check}_{snap}.npz', allow_pickle=True)
-                theta_wh = data_width['theta_wh']
-                width = data_width['width']
-                N_width = data_width['N_width']
-                height = data_width['height']
-                N_height = data_width['N_height']
-            except FileNotFoundError:
-                theta_wh, width, N_width, height, N_height = \
-                    np.loadtxt(f'{abspath}/data/{folder}/WH/wh_{check}{snap}.txt')
+            data_width = np.load(f'{abspath}/data/{folder}/WH/wh_0.8{check}_{snap}.npz', allow_pickle=True)
+            theta_wh = data_width['theta_wh']
+            width = data_width['width']
+            N_width = data_width['N_width']
+            height = data_width['height']
+            N_height = data_width['N_height']
 
             ax_w.set_title('Width', fontsize = 20)
             ax_w.plot(theta_wh * radians, width, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
@@ -106,8 +99,8 @@ if what == 'comparison':
 
         ax_st.set_xlim(-1, 0.1)
         ax_st.set_ylim(-.2,.2)
-        ax_st.set_xlabel(r'$X [R_{\rm a}]$')
-        ax_st.set_ylabel(r'$Y [R_{\rm a}]$')
+        ax_st.set_xlabel(r'$X [r_{\rm a}]$')
+        ax_st.set_ylabel(r'$Y [r_{\rm a}]$')
         ax_st.legend(fontsize = 16)
 
         ax_w.set_ylabel(r'Stream size [$R_\odot$]')
@@ -129,9 +122,9 @@ if what == 'comparison':
                 ax.set_xlabel('')
         
         fig_st.suptitle(r't/t$_{fb}$ = ' + str(time), fontsize = 20)
-        fig.suptitle(r't/t$_{fb}$ = ' + str(time), fontsize = 20)
+        # fig_compr.suptitle(r't/t$_{fb}$ = ' + str(time), fontsize = 20)
         fig_st.tight_layout()
-        fig.tight_layout()
+        # fig_compr.tight_layout()
         # Find the stream in the simulation data
         # tree_plot = KDTree(np.array([X, Y, Z]).T)
         # _, indeces_plot = tree_plot.query(np.array([x_stream, y_stream, z_stream]).T, k=1)

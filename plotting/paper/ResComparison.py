@@ -1,4 +1,4 @@
-"""Compare resolutions: scatter plot of pericenter region and CDF of mass and size with comparison to other papers"""
+"""Compare resolutions: scatter plot of pericenter region and CDF (Fig.1 paper1) of mass and size with comparison to other papers"""
 abspath = '/Users/paolamartire/shocks'
 import sys
 sys.path.append(abspath)

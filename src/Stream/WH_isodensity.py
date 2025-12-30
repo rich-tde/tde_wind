@@ -372,7 +372,7 @@ if __name__ == '__main__':
             del Vol
 
             try:
-                com = np.load(f'{abspath}/data/{folder}/WH/stream/sxtream_{check}_{snap}.npz', allow_pickle=True)
+                com = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
                 print('Load stream from file', flush=True)
                 x_cm = com['x_cm']
                 y_cm = com['y_cm']

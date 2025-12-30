@@ -1,4 +1,4 @@
-#%%
+""" Plots for FLD light curve for Paper1 and to check ionization"""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 
@@ -34,13 +34,13 @@ Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
+apo = things['apo']
+Rt = things['Rt']
 t_fall = things['t_fb_days']
 t_fall_cgs = t_fall * 24 * 3600
-Rt = things['Rt']
 omega_minus1 = np.sqrt(Rt**3/(prel.G*Mbh))
 # print('t_visc', prel.tsol_cgs/t_fall_cgs * omega_minus1 / 0.02)
 print('orb period in t_fb: ', 2*np.pi*omega_minus1*prel.tsol_cgs/t_fall_cgs)
-apo = things['apo']
 data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
 snaps, tfb, Lum = data[:, 0], data[:, 1], data[:, 2]
 snaps, Lum, tfb = sort_list([snaps, Lum, tfb], tfb, unique=True) 
@@ -89,20 +89,19 @@ cbar = fig.colorbar(img)
 cbar.set_label(r'median $r_{\rm ph} [r_{\rm t}]$')#, fontsize = 20)
 cbar.ax.tick_params(which='major', length = 7, width = 1)
 cbar.ax.tick_params(which='minor', length = 4, width = .6)
-# ax.plot(tfbdiss, LDiss,c = 'gray', label = r'tot')
-# ax.plot(tfbdiss_split, LdissBl, ls = 'dotted', c= 'b', label = r'$T_{\rm{gas}} < 1\cdot 10^5 K$')
-# ax.plot(tfbdiss_split, LDissAb, '--', c= 'r', label = r'$T_{\rm{gas}} > 1\cdot 10^5 K$')
-# ax.plot(tfbmdot, Lum_mdot*1e-5, ls = 'dashdot', c= 'orange', label = r'from $\dot{M}_{\rm fb}$ (scaled by $10^{-5}$)')
+ax.plot(tfbdiss, LDiss,c = 'gray', label = r'tot')
+ax.plot(tfbdiss_split, LdissBl, ls = 'dotted', c= 'b', label = r'$T_{\rm{gas}} < 1\cdot 10^5 K$')
+ax.plot(tfbdiss_split, LDissAb, '--', c= 'r', label = r'$T_{\rm{gas}} > 1\cdot 10^5 K$')
+ax.plot(tfbmdot, Lum_mdot*1e-5, ls = 'dashdot', c= 'orange', label = r'from $\dot{M}_{\rm fb}$ (scaled by $10^{-5}$)')
 ax.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
 ax.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd}$', fontsize = 20)
 # ax.plot(time_theory, Lum_theory, c = 'k', linestyle = 'dotted', linewidth = 1)
 # ax.text(1.4, 9e40, r'$L\propto t^{-5/3}$', fontsize = 20)
 ax.set_yscale('log')
 ax.set_ylim(9e37, 8e42)
-ax.set_ylabel(r'Luminosity [erg/s]')#, fontsize = 20)
-ax.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 20)
+ax.set_ylabel(r'Luminosity [erg/s]')
+ax.set_xlabel(r'$t [t_{\rm fb}]$')
 ax.grid()
-# ax.legend(fontsize = 16)
 original_ticks = ax.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
@@ -112,16 +111,13 @@ ax.set_xticklabels(labels)
 ax.tick_params(axis='both', which='major', width = 1.2, length = 9, color = 'k')
 ax.tick_params(axis='y', which='minor', width = 1, length = 5, color = 'k')
 ax.set_xlim(np.min(tfb), np.max(tfb))
-# plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld_ioniz.pdf', bbox_inches='tight')
+ax.legend(fontsize = 16)
+plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld_ioniz.pdf', bbox_inches='tight')
 
 #%%
-print(LDiss[-3]/Lum[-3])
-# %%
-print('max L', np.max(Lum[-1])/Ledd_cgs)
 fig, (axR, axL) = plt.subplots(1, 2, figsize=(16, 7))
 axR.plot(tfb, percentile84/Rt, c = 'k', alpha = 0.3, linestyle = '--')
 axR.plot(tfb, percentile16/Rt, c = 'k', alpha = 0.3, linestyle = '--')
-print(medianRph[np.argmax(Lum)]*prel.Rsol_cgs*1e-14)
 img = axR.scatter(tfb, medianRph/Rt, c = f_ph, s = 12, cmap = 'plasma', vmin = 0, vmax = 1)
 cbar = fig.colorbar(img, orientation = 'horizontal')
 cbar.set_label(r'$f\equiv N_{\rm ph, unbound}/N_{\rm obs}$')
@@ -131,8 +127,6 @@ axR.set_ylabel(r'median $r_{\rm ph} [r_{\rm t}]$')
 axR.axhline(apo/Rt, c = 'k', linestyle = '-.', linewidth = 2)
 axR.text(0.11, 1.1*apo/Rt, r'$r_{\rm a}$', fontsize = 20)
 
-# img = axL.scatter(tfb, Lum, s = 12, c = medianRph/Rt, cmap = 'viridis', norm = colors.LogNorm(
-#                  vmin = 1, vmax = 7e1))
 img = axL.scatter(tfb, Lum, s = 12, c = medianTemprad_ph*1e-4, cmap = 'viridis', vmin = 1, vmax = 5)
 cbar = fig.colorbar(img, orientation = 'horizontal')
 cbar.set_label(r'median $T_{\rm rad, ph} [10^4 K]$')#, fontsize = 20)
@@ -141,8 +135,6 @@ cbar.ax.tick_params(which='minor', length = 3)
 axL.plot(tfbdiss, LDiss, '--', c= 'gray')
 axL.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
 axL.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd}$', fontsize = 20)
-# ax.plot(time_theory, Lum_theory, c = 'k', linestyle = 'dotted', linewidth = 1)
-# ax.text(1.4, 9e40, r'$L\propto t^{-5/3}$', fontsize = 20)
 original_ticks = axR.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
@@ -161,38 +153,3 @@ axL.set_ylabel(r'Luminosity [erg/s]')#, fontsize = 20)
 axL.set_ylim(9e37, 2e43)
 plt.tight_layout()
 plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld.pdf', bbox_inches='tight')
-# %%
-dataDissnocut = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}nocut.csv', delimiter=',', dtype=float, skiprows=1)
-tfbdissnocut, LDissnocut = dataDissnocut[:,1], dataDissnocut[:,3] * prel.en_converter/prel.tsol_cgs
-
-fig, ax = plt.subplots(1, 1, figsize=(10, 7))
-ax.plot(tfbdissnocut, LDissnocut, c = 'c', label = r'no cut')
-ax.plot(tfbdiss, LDiss, '--', c= 'k', label = 'positive')
-ax.plot(tfbdiss, np.abs(LDissNeg), '--', c= 'r', label = 'negative')
-ax.axhline(y=Ledd_cgs, c = 'gray', linestyle = '-.', linewidth = 2)
-ax.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd}$', fontsize = 20)
-original_ticks = ax.get_xticks()
-midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-ax.set_yscale('log')
-ax.set_xticks(new_ticks)
-ax.axvline(tfbdiss[np.argmin(np.abs(snapdiss-21))], ymin=0, ymax=1, color='gray', linestyle=':')
-ax.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 20)
-ax.set_xticklabels(labels)
-ax.tick_params(axis='both', which='major', width = 1, length = 7, color = 'k')
-ax.tick_params(axis='y', which='minor', width = 1, length = 4, color = 'k')
-ax.set_xlim(-.1, np.max(tfb))
-ax.grid()
-ax.legend(fontsize = 16)
-ax.set_ylabel(r'Dissipation rate [erg/s]')#, fontsize = 20)
-# ax.set_ylim(9e37, 2e43)
-# %%
-x_test = np.arange(1, 100)
-y_test = x_test**2
-y2_test = x_test**2 
-plt.plot(x_test, y_test)
-plt.plot(x_test, y2_test*1e-2)
-plt.yscale('log')
-# plt.ylim(1, 1e6)
-# %%

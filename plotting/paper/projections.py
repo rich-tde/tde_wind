@@ -1,5 +1,4 @@
-""" Plot density proj / Dendiss proj / bunch of slices."""
-#%%
+""" Plot density proj / Dendiss proj"""
 abspath = '/Users/paolamartire/shocks'
 import sys
 sys.path.append(abspath)
@@ -10,11 +9,9 @@ import matplotlib.colors as colors
 import matplotlib.gridspec as gridspec
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import healpy as hp
-from astropy import units as u
 import src.orbits as orb
 import Utilities.prelude as prel
-from Utilities.sections import make_slices
-from Utilities.operators import from_cylindric, sort_list
+from Utilities.operators import from_cylindric
 from plotting.paper.IHopeIsTheLast import split_data_red
 import Utilities.prelude as prel
 
@@ -29,7 +26,8 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
-save = True
+proj_movie = True
+n_panels = ''
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
 params = [Mbh, Rstar, mstar, beta]
@@ -180,8 +178,7 @@ cb.set_label(r'Column density [g/cm$^2$]', fontsize = 20)
 ax.set_xlabel(r'$X [r_{\rm a}]$')#, fontsize = 20)
 plt.tight_layout()
 
-if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/3denprojph.png', bbox_inches='tight')
+plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/3denprojph.png', bbox_inches='tight')
 plt.show() 
 
 
@@ -313,15 +310,8 @@ cbDiss.set_label(r'Dissipation rate column density [erg s$^{-1}$cm$^{-2}]$', fon
 axDiss.set_xlabel(r'$X [r_{\rm a}]$')#, fontsize = 20)
 plt.tight_layout()
 
-if save:
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/3DenDissprojph.png', bbox_inches='tight', dpi = 300)
+plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/3DenDissprojph.png', bbox_inches='tight', dpi = 300)
 plt.show() 
-
-
-#%%
-proj_movie = True
-overview = False
-n_panels = ''
 
 if proj_movie:
     data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
@@ -446,58 +436,4 @@ if proj_movie:
 
         plt.close()
 
-if overview:
-    # t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
-    # t_fall_cgs = t_fall * 24 * 3600
-    time = np.loadtxt(f'{abspath}/data/{folder}/slices/z/z0_time.txt')
-    snaps, tfb_all = time[0], time[1]
-    snaps = np.array([int(snap) for snap in snaps])
-    snap_overview = np.arange(21,36)
-    for snap in snap_overview:
-        tfb = tfb_all[np.argmin(np.abs(snaps-snap))]
-        x_cut, y_cut, z_cut, dim_cut, den_cut, temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut, IE_den_cut, Press_cut = \
-            np.load(f'{abspath}/data/{folder}/slices/z/z0slice_{snap}.npy')
-        Diss_den_cut *= prel.en_den_converter/prel.tsol_cgs  # [erg/s/cm3]
-        vminDiss, vmaxDiss = 1e3, 5e8
-        Trad_cut = (Rad_den_cut*prel.en_den_converter/prel.alpha_cgs)**0.25  # [K]
-        tmin, tmax = 1e4, 2e5
-        
-        fig, (ax1, ax2) = plt.subplots(1,2, figsize = (21,7))
-        figT, (ax1T, ax2T) = plt.subplots(1,2, figsize = (21,7))
-        img = ax1.scatter(x_cut/apo, y_cut/apo, c = Diss_den_cut, cmap = 'viridis', s= 1, \
-                    norm = colors.LogNorm(vmin = vminDiss, vmax = vmaxDiss))
-        ax1.set_title(r'All', fontsize = 22)
-
-        img = ax2.scatter(x_cut[temp_cut>1e5]/apo, y_cut[temp_cut>1e5]/apo, c = Diss_den_cut[temp_cut>1e5], cmap = 'viridis', s= 1, \
-                    norm = colors.LogNorm(vmin = vminDiss, vmax = vmaxDiss))
-        cb = plt.colorbar(img)
-        cb.set_label(r'$\dot{u}_{\rm irr}$ [erg s$^{-1}$ cm$^{-3}$]')
-        ax2.set_title(r'T $>10^5$ K', fontsize = 22)
-
-        img = ax1T.scatter(x_cut/apo, y_cut/apo, c = temp_cut, cmap = 'jet', s= 1, \
-                    norm = colors.LogNorm(vmin = tmin, vmax = tmax))
-        cb = plt.colorbar(img)
-        cb.set_label(r'T [K]')
-        img = ax2T.scatter(x_cut/apo, y_cut/apo, c = Trad_cut, cmap = 'jet', s= 1, \
-                    norm = colors.LogNorm(vmin = tmin, vmax = tmax))
-        cb = plt.colorbar(img)
-        cb.set_label(r'T$_{\rm rad}$ [K]')
-
-        for ax in [ax1, ax2, ax1T, ax2T]:
-            ax.set_xlabel(r'$X [r_{\rm a}]$')
-            ax.set_xlim(-1, .1)#(-340,25)
-            ax.set_ylim(-.4, .4)#(-70,70)
-            if ax in [ax1, ax1T]:
-                ax.set_ylabel(r'$Y [r_{\rm a}]$')
-
-        fig.suptitle(f't = {np.round(tfb, 2)}' + r'$t_{\rm fb}$', fontsize = 20)
-        figT.suptitle(f't = {np.round(tfb, 2)}' + r'$t_{\rm fb}$', fontsize = 20)
-        fig.tight_layout()
-        figT.tight_layout()
-        fig.savefig(f'{abspath}/Figs/{folder}/slices/DissOrbPl{snap}.png')
-        figT.savefig(f'{abspath}/Figs/{folder}/slices/TempOrbPl{snap}.png')
-        plt.close()
-        
-
-
-    # %%
+# %%
