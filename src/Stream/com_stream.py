@@ -185,8 +185,8 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     x_cmTR = np.zeros(len(theta_arr))
     y_cmTR = np.zeros(len(theta_arr))
     z_cmTR = np.zeros(len(theta_arr))
-    if not alice:
-        fig, ax1 = plt.subplots(1,1, figsize = (12,7))
+    # if not alice:
+    #     fig, ax1 = plt.subplots(1,1, figsize = (12,7))
     for idx in range(len(theta_arr)):
         # Find the transverse plane
         condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, Rstar, just_plane = True)
@@ -205,18 +205,18 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         x_cmTR[idx] = np.sum(x_plane * mass_plane) / np.sum(mass_plane)
         y_cmTR[idx]= np.sum(y_plane * mass_plane) / np.sum(mass_plane)
         z_cmTR[idx] = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
-        if not alice: 
-            from matplotlib import colors
-            ax1.scatter(x_plane[np.abs(z_plane) < dim_plane]/Rt, y_plane[np.abs(z_plane) < dim_plane]/Rt, s = 1)
-            ax1.scatter(0, 0, marker = 'x', c = 'red')
-            ax1.scatter(x_cmTR[idx]/Rt, y_cmTR[idx]/Rt, marker = 'x', c = 'red')
-            ax1.set_xlabel(r'X [$R_{\rm a}$]')
-            ax1.set_ylabel(r'Y [$R_{\rm a}$]')
-            ax1.set_xlim(-20, 2)
-            ax1.set_ylim(-5, 5)
+    #     if not alice: 
+    #         from matplotlib import colors
+    #         ax1.scatter(x_plane[np.abs(z_plane) < dim_plane]/Rt, y_plane[np.abs(z_plane) < dim_plane]/Rt, s = 1)
+    #         ax1.scatter(0, 0, marker = 'x', c = 'red')
+    #         ax1.scatter(x_cmTR[idx]/Rt, y_cmTR[idx]/Rt, marker = 'x', c = 'red')
+    #         ax1.set_xlabel(r'X [$R_{\rm a}$]')
+    #         ax1.set_ylabel(r'Y [$R_{\rm a}$]')
+    #         ax1.set_xlim(-20, 2)
+    #         ax1.set_ylim(-5, 5)
 
-    fig.suptitle(f'Idx: {idx}', fontsize = 16) 
-    fig.tight_layout()
+    # fig.suptitle(f'Idx: {idx}', fontsize = 16) 
+    # fig.tight_layout()
     print('Iteration radial-transverse done', flush = True)
 
     # Second iteration: find the center of mass of each transverse plane corresponding to COM stream
