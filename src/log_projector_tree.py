@@ -123,8 +123,8 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         x_stop = 0.5*apo
         y_start = -.5*apo
         y_stop = .5*apo
-        z_start = -.5*apo 
-        z_stop = .5*apo 
+        z_start = apo 
+        z_stop = apo 
 
     elif how_far == 'big':
         x_start = -6*apo
@@ -142,10 +142,9 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         z_start = -0.8*Rt #-2*apo 
         z_stop = 0.8*Rt #2*apo  
     
-    xs = piecewise_log_grid(x_start, x_stop, n_log = x_num)
-    ys = piecewise_log_grid(y_start, y_stop, n_log = y_num)
-    zs = piecewise_log_grid(z_start, z_stop, n_log = z_num)
-    # print(zs)
+    xs = piecewise_log_grid(x_start, x_stop, n_log = x_num//2)
+    ys = piecewise_log_grid(y_start, y_stop, n_log = y_num//2)
+    zs = piecewise_log_grid(z_start, z_stop, n_log = z_num//2)
     # data = make_tree(path, snap, energy = True)
     # sim_tree = data.sim_tree
     X = np.load(f'{path}/CMx_{snap}.npy')
@@ -208,10 +207,8 @@ def projector(gridded_den, z_radii):
     z_radii has to be linspaced. """
     dz = np.diff(z_radii)
     # if np.round(dz, 4) == np.round(z_radii[-1] - z_radii[-2], 4):
-    flat_den = np.sum(gridded_den[:,:,:-1], axis = -1) * dz
-    # else:
-    #     print(dz, z_radii[-1] - z_radii[-2])
-    #     raise ValueError("z_radii has to be linspaced.")
+    flat_den = np.sum(gridded_den[:, :, :-1] * dz[None, None, :],
+                        axis=-1)
     return flat_den
 
 #%%
@@ -254,14 +251,14 @@ if __name__ == '__main__':
             #                     np.argmin(np.abs(tfb-0.32))])
             snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
         
-        with open(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}time_projlog.txt', 'w') as f:
+        with open(f'{prepath}/data/{folder}/projection/log/{how_far}{what_to_grid}time_projlog.txt', 'w') as f:
             f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
             f.write(f'# t/t_fb (t_fb = {t_fall})\n' + ' '.join(map(str, tfb)) + '\n')
             f.close()
             
         for snap in snaps:
-            # if snap not in [35, 40, 48]:
-            #     continue
+            if snap not in [21]:
+                continue
             print(snap, flush=True)
             path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
             if alice:
@@ -269,56 +266,49 @@ if __name__ == '__main__':
             else:
                 path = f'{path}/{snap}'
             
-            _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=400, y_num=300, z_num = 400, how_far = how_far)
+            _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 400, how_far = how_far)
             flat_q = projector(grid_q, z_radii)
-            np.save(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}projlog{snap}.npy', flat_q)
+            np.save(f'{prepath}/data/{folder}/projection/log/{how_far}{what_to_grid}projlog{snap}.npy', flat_q)
                 
-        np.save(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}xarraylog.npy', x_radii)
-        np.save(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}yarraylog.npy', y_radii)
+        np.save(f'{prepath}/data/{folder}/projection/log/{how_far}{what_to_grid}xarraylog.npy', x_radii)
+        np.save(f'{prepath}/data/{folder}/projection/log/{how_far}{what_to_grid}yarraylog.npy', y_radii)
 
     else:
-        import healpy as hp
         import src.orbits as orb
-        snap = 28
+        snap = 21
         # what_to_grid = 'Diss' #['tau_scatt', 'tau_ross', 'Den']
         sign = '' # '' for positive, '_neg' for negative
-        how_far = ''
+        how_far = 'nozzle'
         check = 'HiResNewAMR'
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-        snaps, tfb = np.loadtxt(f'{prepath}/data/{folder}/projection/{how_far}Dentime_proj.txt')
+        snaps, tfb = np.loadtxt(f'{prepath}/data/{folder}/projection/log/{how_far}Disstime_projlog.txt')
         tfb_single = tfb[np.argmin(np.abs(snap-snaps))] 
         
-        vmin_den = 1e-4
-        vmax_den = 1e3
-        vmin_diss = 1e10 #1e14
-        vmax_diss = 1e18
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (18,7))
-        Den_flat = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denproj{snap}{sign}.npy')
-        x_radii_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denxarray.npy')
-        y_radii_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Denyarray.npy')
-        Den_flat *= prel.Msol_cgs/prel.Rsol_cgs**2
-        Diss_flat = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Dissproj{snap}{sign}.npy')
-        x_radii_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Dissxarray.npy')
-        y_radii_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/{how_far}Dissyarray.npy')
+        vmin_den = 1e1
+        vmax_den = 1e7
+        vmin_diss = 1e14 #1e14
+        vmax_diss = 1e19
+        fig, ax2 = plt.subplots(1, 1, figsize = (14,7))
+        Diss_flat = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/log/{how_far}Dissprojlog{snap}{sign}.npy')
+        x_radii_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/log/{how_far}Dissxarraylog.npy')
+        y_radii_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/log/{how_far}Dissyarraylog.npy')
         Diss_flat *= prel.en_converter/(prel.tsol_cgs * prel.Rsol_cgs**2)
-        img = ax1.pcolormesh(x_radii_den/Rt, y_radii_den/Rt, np.abs(Den_flat).T, cmap = 'plasma',
-                            norm = colors.LogNorm(vmin = vmin_den, vmax = vmax_den))
-        cb = plt.colorbar(img)
-        cb.set_label(r'Column density [g/cm$^2$]')
-        img = ax2.pcolormesh(x_radii_diss/Rt, y_radii_diss/Rt, np.abs(Diss_flat).T, cmap = 'viridis',
+        img = ax2.pcolormesh(x_radii_diss/apo, y_radii_diss/apo, np.abs(Diss_flat).T, cmap = 'viridis',
                             norm = colors.LogNorm(vmin = vmin_diss, vmax = vmax_diss))
         cb = plt.colorbar(img)
         cb.set_label(r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$')
 
-        ax1.set_ylabel(r'$Y [R_{\rm t}]$', fontsize = 20)
-        for ax in [ax1, ax2]:
-            ax.set_xlim(-40, 20)
-            ax.set_ylim(-12, 12)
-            ax.set_xlabel(r'$X [R_{\rm t}]$', fontsize = 20)
+        ax2.set_ylabel(r'$Y [R_{\rm a}]$', fontsize = 20)
+        ax2.set_xlim(-1, 0.5)
+        ax2.set_ylim(-0.4, 0.4)
+        ax2.set_xlabel(r'$X [R_{\rm a}]$', fontsize = 20)
        
         plt.suptitle(f't = {np.round(tfb_single,2)}' + r't$_{\rm fb}$, res: ' + f'{check}', color = 'k', fontsize = 25)
         plt.tight_layout()
-        plt.savefig(f'{prepath}/Figs/{folder}/projection/DenDiss{how_far}proj{snap}.png', dpi = 300)
         plt.show()
+        plt.figure()
+        print(np.min(np.diff(x_radii_diss)))
+        plt.hist(np.diff(x_radii_diss), bins=200, color='k')
+        plt.xlim(0, 1)
 # %%

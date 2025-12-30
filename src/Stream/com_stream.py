@@ -9,13 +9,12 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
-    save = True
+    compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
     import matplotlib.pyplot as plt
-    from Utilities.basic_units import radians
     import matplotlib.colors as colors
-    save = False
+    compute = True
 
 import numpy as np
 import numba
@@ -33,7 +32,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiResNewAMR' 
+check = 'LowResNewAMR' 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 Rs = things['Rs']
@@ -114,7 +113,7 @@ def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R
     x_max = np.zeros(len(theta_arr))
     y_max = np.zeros(len(theta_arr))
     z_max = np.zeros(len(theta_arr))
-    # fig, ax1 = plt.subplots(1,1, figsize = (12,7))
+    fig, ax1 = plt.subplots(1,1, figsize = (12,7))
     for i in range(len(theta_arr)):
         # Exclude points inside the smoothing lenght and find radial plane
         condition_distance = np.sqrt(x_data**2 + y_data**2 + z_data**2) > R0 
@@ -127,15 +126,18 @@ def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R
         y_max[i] = y_plane[idx_max]
         z_max[i] = z_plane[idx_max]
         
-        # if not alice: 
-        #     from matplotlib import colors
-        #     ax1.scatter(x_plane[np.abs(z_plane) < dim_plane]/apo, y_plane[np.abs(z_plane) < dim_plane]/apo, s = 1)
-        #     ax1.scatter(0, 0, marker = 'x', c = 'red')
-        #     ax1.scatter(x_max[i]/apo, y_max[i]/apo, marker = 'x', c = 'red')
-        #     ax1.set_xlabel(r'X [$R_{\rm a}$]')
-        #     ax1.set_ylabel(r'Y [$R_{\rm a}$]')
-        #     ax1.set_xlim(-0.5, 0.1)
-        #     ax1.set_ylim(-0.2, 0.2)
+        if not alice: 
+            from matplotlib import colors
+            # ax1.scatter(x_plane[np.abs(z_plane) < dim_plane]/apo, y_plane[np.abs(z_plane) < dim_plane]/apo, s = 1)
+            ax1.scatter(0, 0, marker = 'o', c = 'red')
+            ax1.plot(x_max[:i]/Rt, y_max[:i]/Rt, c = 'k')#, marker = 'x')
+            ax1.set_xlabel(r'X [$t_{\rm t}$]')
+            ax1.set_ylabel(r'Y [$t_{\rm t}$]')
+            ax1.set_xlim(-20, 2)
+            ax1.set_ylim(-5, 5)
+    # if not alice:
+    #     ax1.legend()
+    #     plt.show()
 
     return x_max, y_max, z_max    
 
@@ -257,23 +259,27 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
 
 
 if __name__ == '__main__':
+    print('We are in res', check, flush = True)
     if alice:
+        snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
+    else: 
+        snaps = [133]
+
+    if compute:
         theta_lim =  np.pi
         step = np.round((2*theta_lim)/200, 3)
         theta_init = np.arange(-theta_lim, theta_lim, step)
         theta_arr = Ryan_sampler(theta_init)
-        snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
-    else: 
-        snaps = [80]
-        # theta_arr = theta_arr[136:146]
+        theta_arr = theta_arr[20:140]
     
-    print('We are in res', check, flush = True)
     for i, snap in enumerate(snaps):
         print(f'Snap {snap}', flush = True)
-        
-        if alice:
+        if compute:
             path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
-            path = f'{path}/snap_{snap}'
+            if alice:   
+                path = f'{path}/snap_{snap}'
+            else:
+                path = f'{path}/{snap}'
             data = make_tree(path, snap, energy = False)
             X, Y, Z, VX, VY, VZ, Den, Mass, Vol = \
                 data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Den, data.Mass, data.Vol
@@ -297,28 +303,36 @@ if __name__ == '__main__':
                 'vz_cm': vz_cm,
                 'den_cm': den_cm,
                 'mass_cm': mass_cm
-            } 
+            }  
 
-            np.savez(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npz', **com)
+            if alice:
+                np.savez(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npz', **com)
 
-        else:
-            data = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npz')
+        if plot:
+            data_stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
             theta_arr, x_stream, y_stream, z_stream, thresh_cm = \
-                data['theta_arr'], data['x_cm'], data['y_cm'], data['z_cm'], data['thresh_cm']
-            # print(len(theta_arr))
-            snaps, times = np.loadtxt(f'{abspath}/data/{folder}/slices/z/z0_time.txt')
-            slice_data = np.load(f'{abspath}/data/{folder}/slices/z/z0slice_{snap}.npy')
-            x_slice, y_slice, z_slice, dim_slice, den_slice = \
-                slice_data[0], slice_data[1], slice_data[2], slice_data[3], slice_data[4]
-            mass_slice = den_slice * dim_slice**3
+                data_stream['theta_arr'], data_stream['x_cm'], data_stream['y_cm'], data_stream['z_cm'], data_stream['thresh_cm']
+            path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
+            path = f'{path}/{snap}'
+            data = make_tree(path, snap, energy = True)
+            X, Y, Z, Den, Vol = data.X, data.Y, data.Z, data.Den, data.Vol
+            cut = np.logical_and(Den > 1e-19, np.abs(Z) < Vol**(1/3))
+            x_slice, y_slice, den_slice, vol_slice = \
+                sec.make_slices([X, Y, Den, Vol], cut)
+            mass_slice = den_slice * vol_slice
+            # snaps, times = np.loadtxt(f'{abspath}/data/{folder}/slices/z/z0_time.txt')
+            # slice_data = np.load(f'{abspath}/data/{folder}/slices/z/z0slice_{snap}.npy')
+            # x_slice, y_slice, z_slice, dim_slice, den_slice = \
+            #     slice_data[0], slice_data[1], slice_data[2], slice_data[3], slice_data[4]
+            # mass_slice = den_slice * dim_slice**3
             fig, ax = plt.subplots(1, 1, figsize = (14, 7))
-            img = ax.scatter(x_slice/Rt, y_slice/Rt, s = 1, c = mass_slice, cmap = 'rainbow', norm = colors.LogNorm(vmin = np.percentile(mass_slice, 5), vmax = np.percentile(mass_slice, 99)))
+            img = ax.scatter(x_slice/Rt, y_slice/Rt, s = 1, c = den_slice, cmap = 'rainbow', norm = colors.LogNorm(vmin = np.percentile(mass_slice, 5), vmax = np.percentile(mass_slice, 98)))
             cb = plt.colorbar(img)
-            cb.set_label(r'Mass [$M_\odot$]', fontsize = 16)
+            cb.set_label(r'Den [$M_\odot/R_\odot^3$]', fontsize = 16)
             ax.plot(x_stream/Rt, y_stream/Rt, c = 'k')
             ax.set_xlabel(r'X [$r_{\rm t}$]')
             ax.set_ylabel(r'Y [$r_{\rm t}$]')
-            ax.set_xlim(-30, 2)
-            ax.set_ylim(-7, 7)
-            ax.set_title(f't = {np.round(times[np.argmin(np.abs(snaps-snap))], 2)}' + r'$t_{\rm fb}$', fontsize = 16)
+            ax.set_xlim(-20, 2)
+            ax.set_ylim(-5, 5)
+            # ax.set_title(f't = {np.round(times[np.argmin(np.abs(snaps-snap))], 2)}' + r'$t_{\rm fb}$', fontsize = 16)
             plt.show()
