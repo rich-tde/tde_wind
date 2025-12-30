@@ -133,7 +133,7 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
     return gridded_indexes, gridded, xs, ys, zs
 
 @numba.njit
-def projector(gridded_den, x_radii, y_radii, z_radii):
+def projector(gridded_den, z_radii):
     """ Project density on XY plane. NB: to plot you have to transpose the saved data.
     z_radii has to be linspaced. """
     # Make the 3D grid 
@@ -169,7 +169,7 @@ if __name__ == '__main__':
         check = 'HiResNewAMR'
         print(f'We are in {check}', flush=True)
         how_far = 'nozzle' # 'big' for big grid, '' for usual grid, 'nozzle' for nearby nozzle 
-        what_to_grid = 'Den'
+        what_to_grid = 'Diss'
 
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
@@ -200,8 +200,8 @@ if __name__ == '__main__':
             else:
                 path = f'{path}/{snap}'
             
-            _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=00, z_num = 100, how_far = how_far)
-            flat_q = projector(grid_q, x_radii, y_radii, z_radii)
+            _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100, how_far = how_far)
+            flat_q = projector(grid_q, z_radii)
             np.save(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}proj{snap}.npy', flat_q)
                 
         np.save(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}xarray.npy', x_radii)
