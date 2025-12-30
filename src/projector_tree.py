@@ -200,7 +200,7 @@ if __name__ == '__main__':
             else:
                 path = f'{path}/{snap}'
             
-            _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=800, z_num = 100, how_far = how_far)
+            _, grid_q, x_radii, y_radii, z_radii = grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num=800, y_num=00, z_num = 100, how_far = how_far)
             flat_q = projector(grid_q, x_radii, y_radii, z_radii)
             np.save(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}proj{snap}.npy', flat_q)
                 
