@@ -22,7 +22,7 @@ from sklearn.neighbors import KDTree
 import Utilities.prelude as prel
 import Utilities.sections as sec
 import src.orbits as orb
-from Utilities.operators import make_tree, to_cylindric, Ryan_sampler
+from Utilities.operators import make_tree, from_cylindric, Ryan_sampler
 from Utilities.selectors_for_snap import select_snap, select_prefix
 
 m = 4
@@ -32,7 +32,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'LowResNewAMR' 
+check = 'NewAMR' 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 Rs = things['Rs']
@@ -41,6 +41,8 @@ Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
 apo = things['apo']
+a_mb = things['a_mb']
+e_mb = things['ecc_mb']
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 @numba.njit
@@ -166,19 +168,25 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         x_stream_rad, y_stream_rad, z_stream_rad : array
             X, Y, Z coordinates of the radial maximum points of the stream.
     """ 
-    global R0, apo, Rt, Rstar
+    global R0, apo, Rt, Rstar, a_mb, e_mb 
     # Cut a bit the data at the first step of everything for computational reasons
     cutting = np.logical_and(np.abs(z_data) < apo, np.abs(y_data) < 2 * apo)
     x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut = \
         sec.make_slices([x_data, y_data, z_data, dim_data, den_data, mass_data], cutting)
     # Find the radial maximum points to have a first guess of the stream (necessary for the threshold and the tg)
-    x_stream_rad, y_stream_rad, z_stream_rad = find_radial_maximum(x_cut, y_cut, z_cut, dim_cut, den_cut, theta_arr, R0)
+    # x_stream_rad, y_stream_rad, z_stream_rad = find_radial_maximum(x_cut, y_cut, z_cut, dim_cut, den_cut, theta_arr, R0)
+    
+    r_arr_ell = orb.keplerian_orbit(theta_arr, a_mb, Rp, ecc=e_mb)
+    x_stream_rad, y_stream_rad = from_cylindric(theta_arr, r_arr_ell)
+    z_stream_rad = np.zeros(len(theta_arr))
     print('radial done', flush = True)
 
     # First iteration: find the center of mass of each transverse plane of the maxima-density stream
     x_cmTR = np.zeros(len(theta_arr))
     y_cmTR = np.zeros(len(theta_arr))
     z_cmTR = np.zeros(len(theta_arr))
+    if not alice:
+        fig, ax1 = plt.subplots(1,1, figsize = (12,7))
     for idx in range(len(theta_arr)):
         # Find the transverse plane
         condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, Rstar, just_plane = True)
@@ -189,13 +197,26 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         thresh = get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) 
         condition_x = np.abs(x_T) < thresh
         condition_z = np.abs(z_plane) < thresh
-        condition = condition_x & condition_z
-        x_plane, y_plane, z_plane, mass_plane = \
-            sec.make_slices([x_plane, y_plane, z_plane, mass_plane], condition)
+        condition_y = y_plane * y_stream_rad[idx] >= 0  # to be sure to take points in the same semiplane of y
+        condition = condition_x & condition_z & condition_y
+        x_plane, y_plane, z_plane, mass_plane, dim_plane = \
+            sec.make_slices([x_plane, y_plane, z_plane, mass_plane, dim_plane], condition)
         # Find the center of mass
         x_cmTR[idx] = np.sum(x_plane * mass_plane) / np.sum(mass_plane)
         y_cmTR[idx]= np.sum(y_plane * mass_plane) / np.sum(mass_plane)
         z_cmTR[idx] = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
+        if not alice: 
+            from matplotlib import colors
+            ax1.scatter(x_plane[np.abs(z_plane) < dim_plane]/Rt, y_plane[np.abs(z_plane) < dim_plane]/Rt, s = 1)
+            ax1.scatter(0, 0, marker = 'x', c = 'red')
+            ax1.scatter(x_cmTR[idx]/Rt, y_cmTR[idx]/Rt, marker = 'x', c = 'red')
+            ax1.set_xlabel(r'X [$R_{\rm a}$]')
+            ax1.set_ylabel(r'Y [$R_{\rm a}$]')
+            ax1.set_xlim(-20, 2)
+            ax1.set_ylim(-5, 5)
+
+    fig.suptitle(f'Idx: {idx}', fontsize = 16) 
+    fig.tight_layout()
     print('Iteration radial-transverse done', flush = True)
 
     # Second iteration: find the center of mass of each transverse plane corresponding to COM stream
@@ -217,7 +238,8 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         thresh = get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) 
         condition_x = np.abs(x_T) < thresh
         condition_z = np.abs(z_plane) < thresh
-        condition = condition_x & condition_z
+        condition_y = y_plane * y_cmTR[idx] >= 0  # to be sure to take points in the same semiplane of y
+        condition = condition_x & condition_z & condition_y
         x_plane, y_plane, z_plane, mass_plane, dim_plane = \
             sec.make_slices([x_plane, y_plane, z_plane, mass_plane, dim_plane], condition)
         # Find and save the center of mass
@@ -263,14 +285,14 @@ if __name__ == '__main__':
     if alice:
         snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
     else: 
-        snaps = [133]
+        snaps = [162]
 
     if compute:
         theta_lim =  np.pi
         step = np.round((2*theta_lim)/200, 3)
         theta_init = np.arange(-theta_lim, theta_lim, step)
         theta_arr = Ryan_sampler(theta_init)
-        theta_arr = theta_arr[20:140]
+        # theta_arr = theta_arr[180:200]
     
     for i, snap in enumerate(snaps):
         print(f'Snap {snap}', flush = True)
@@ -307,6 +329,16 @@ if __name__ == '__main__':
 
             if alice:
                 np.savez(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npz', **com)
+            
+            else:
+                fig, ax = plt.subplots(1, 1, figsize = (14, 7))
+                ax.plot(x_cm/Rt, y_cm/Rt, c = 'k')
+                ax.set_xlabel(r'X [$r_{\rm t}$]')
+                ax.set_ylabel(r'Y [$r_{\rm t}$]')
+                ax.set_xlim(-20, 2)
+                ax.set_ylim(-5, 5)
+                # ax.set_title(f't = {np.round(times[np.argmin(np.abs(snaps-snap))], 2)}' + r'$t_{\rm fb}$', fontsize = 16)
+                plt.show()
 
         if plot:
             data_stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
@@ -330,6 +362,8 @@ if __name__ == '__main__':
             cb = plt.colorbar(img)
             cb.set_label(r'Den [$M_\odot/R_\odot^3$]', fontsize = 16)
             ax.plot(x_stream/Rt, y_stream/Rt, c = 'k')
+            if compute:
+                ax.plot(x_cm/Rt, y_cm/Rt, c = 'r', linestyle = '--')
             ax.set_xlabel(r'X [$r_{\rm t}$]')
             ax.set_ylabel(r'Y [$r_{\rm t}$]')
             ax.set_xlim(-20, 2)
