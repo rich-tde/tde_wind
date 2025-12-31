@@ -1,7 +1,8 @@
-""" If comparison is True, it plots the WH and #cells as function of the anomaly for different res at different times.
-If single_snap_behavior is True, it plots the WH and #cells for a single res at a single time + a visualization of the stream in the orbital plane.
-If section is True, it plots the transverse plane, mass distribution and T-density scatter.
-If max_compr is True, it plots the res comparison of H_min and ratio between before and after the compression.
+""" If what = 'comparison' is True, it plots the WH and #cells as function of the anomaly for different res at different times.
+If what = 'single_snap_behavior' is True, it plots the WH and #cells for a single res at a single time + a visualization of the stream in the orbital plane.
+If what = 'onlysection' is True, it plots only the midplane with stream and width of the chosem res.
+If what = 'section4' is True, it plots the midplane and transverse plane, mass distribution and T-density scatter.
+If what = 'max_compr' is True, it plots the res comparison of H_min and ratio between before and after the compression.
 """
 abspath = '/Users/paolamartire/shocks'
 import sys
@@ -25,7 +26,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-what = 'comparison' # 'onlysection' or 'section4' or 'comparison' or 'max_compr' or 'single_snap_behavior' 
+what = 'section4' # 'onlysection' or 'section4' or 'comparison' or 'max_compr' or 'single_snap_behavior' 
 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -35,16 +36,16 @@ Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
 apo = things['apo']
-x_arr = np.arange(-2, 0.1, .1)
+x_arr = np.arange(-20, 0.1, .1)
 line3_4 = draw_line(x_arr, 3/4*np.pi)
 lineminus3_4 = draw_line(x_arr, -3/4*np.pi)
 
 if what == 'comparison':
     # line at 3/4 and -3/4 pi
-    wanted_time = [0.3] #5, 0.75, 1]#, 1.5]
+    wanted_time = [0.2, 0.3, 1, 1.5] #5, 0.75, 1]#, 1.5]
     checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR', 'HiResStream','HiResStream2']
     compton = 'Compton'
-    checks_name = ['Low', 'Fid', 'High', 'HiResStream', 'HiResStream2']
+    checks_name = ['Low', 'Middle', 'High', 'HiResStream', 'HiResStream2']
     markers_sizes = [40, 30, 20, 15, 10]
     linestyle_checks = ['solid', 'dashed', 'dotted', 'dashdot', 'dashdot']
     color_checks = ['C1', 'yellowgreen', 'darkviolet', 'magenta', 'dodgerblue']
@@ -90,13 +91,15 @@ if what == 'comparison':
             height = data_width['height']
             N_height = data_width['N_height']
 
-            ax_w.set_title('Width', fontsize = 20)
+            # if check == 'LowResNewAMR':
+            #     continue
             ax_w.plot(theta_wh * radians, width, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
-            ax_Nw.scatter(theta_wh * radians, N_width, c = color_checks[i], s = markers_sizes[i], label = f'{checks_name[i]}')
-            ax_h.set_title('Height', fontsize = 20)
+            ax_Nw.plot(theta_wh * radians, N_width, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
             ax_h.plot(theta_wh * radians, height, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
-            ax_Nh.scatter(theta_wh * radians, N_height, c = color_checks[i], s = markers_sizes[i], label = f'{checks_name[i]}')
+            ax_Nh.plot(theta_wh * radians, N_height, c = color_checks[i], linestyle = linestyle_checks[i], label = f'{checks_name[i]}')
 
+        ax_w.set_title('Width', fontsize = 20)
+        ax_h.set_title('Height', fontsize = 20)
         ax_st.set_xlim(-1, 0.1)
         ax_st.set_ylim(-.2,.2)
         ax_st.set_xlabel(r'$X [r_{\rm a}]$')
@@ -121,17 +124,17 @@ if what == 'comparison':
             else: 
                 ax.set_xlabel('')
         
+        fig_wh.suptitle(r't/t$_{fb}$ = ' + str(time), fontsize = 20)
+        fig_wh.tight_layout()
         fig_st.suptitle(r't/t$_{fb}$ = ' + str(time), fontsize = 20)
-        # fig_compr.suptitle(r't/t$_{fb}$ = ' + str(time), fontsize = 20)
         fig_st.tight_layout()
-        # fig_compr.tight_layout()
         # Find the stream in the simulation data
         # tree_plot = KDTree(np.array([X, Y, Z]).T)
         # _, indeces_plot = tree_plot.query(np.array([x_stream, y_stream, z_stream]).T, k=1)
 
 if what == 'single_snap_behavior' or what == 'section4' or what == 'onlysection':
     check = 'HiResNewAMR'
-    snap = 22
+    snap = 76
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     snaps, tfb = np.loadtxt(f'{abspath}/data/{folder}/projection/Dentime_proj.txt', ndmin=2)
     snaps = snaps.astype(int)
@@ -157,22 +160,22 @@ if what == 'single_snap_behavior' or what == 'section4' or what == 'onlysection'
         # Plot stream (zoom out and in on theorbital plane) 
         fig, (ax1, ax2) = plt.subplots(1,2, figsize = (18,8), width_ratios= [1.2, .8])
         for ax in [ax1, ax2]: 
-            # img =ax.scatter(X_midplane/apo, Y_midplane/apo, c = Den_midplane, s = 1, cmap = 'viridis', norm = colors.LogNorm(vmin = 1e-13, vmax = 1e-6))
-            ax.scatter(x_stream/apo, y_stream/apo, s = 2, c = 'k')
-            # ax.scatter(x_stream[-30:]/apo, y_stream[-30:]/apo, s = 2, c = 'k')
-            ax.scatter([x_stream[0]/apo, x_stream[-1]/apo] , [y_stream[0]/apo, y_stream[-1]/apo], s = 2, c = 'k')
-            ax.scatter(x_low_width/apo, y_low_width/apo, ls = '--', s = 2, c = 'k')
-            ax.scatter(x_up_width/apo, y_up_width/apo, ls = '--', s = 2, c = 'k')
+            # img =ax.scatter(X_midplane/Rt, Y_midplane/Rt, c = Den_midplane, s = 1, cmap = 'viridis', norm = colors.LogNorm(vmin = 1e-13, vmax = 1e-6))
+            ax.scatter(x_stream/Rt, y_stream/Rt, s = 2, c = 'k')
+            # ax.scatter(x_stream[-30:]/Rt, y_stream[-30:]/Rt, s = 2, c = 'k')
+            ax.scatter([x_stream[0]/Rt, x_stream[-1]/Rt] , [y_stream[0]/Rt, y_stream[-1]/Rt], s = 2, c = 'k')
+            ax.scatter(x_low_width/Rt, y_low_width/Rt, ls = '--', s = 2, c = 'k')
+            ax.scatter(x_up_width/Rt, y_up_width/Rt, ls = '--', s = 2, c = 'k')
             ax.plot(x_arr, line3_4, c = 'grey', linestyle = '--')
             ax.plot(x_arr, lineminus3_4, c = 'grey', linestyle = '--')
             ax.set_xlabel(r'$X [r_{\rm a}]$')
         # cbar = plt.colorbar(img, ax=ax1, orientation = 'horizontal')
         # cbar.set_label(r'Density [$M_\odot/R_\odot^3$]')
         ax1.set_ylabel(r'$Y [r_{\rm a}]$')
-        ax1.set_xlim(-1, .1)
-        ax1.set_ylim(-.3, .3)
-        ax2.set_xlim(-.2, .05)
-        ax2.set_ylim(-.1, .1)
+        ax1.set_xlim(-10, 2)
+        ax1.set_ylim(-5, 5)
+        ax2.set_xlim(-2, 2)
+        ax2.set_ylim(-2, 2)
         plt.suptitle(r'Stream at t/t$_{\rm fb}$ = ' + str(np.round(tfb_single,2)) + f', check: {check}', fontsize = 16)
 
         # Plot width and height and number of cells
@@ -200,6 +203,8 @@ if what == 'single_snap_behavior' or what == 'section4' or what == 'onlysection'
         plt.tight_layout()
 
     if what == 'section4' or what == 'onlysection':
+        from Utilities.selectors_for_snap import select_prefix
+        from Utilities.operators import make_tree
         q_color = 'Density'
         idx = np.argmin(height) #np.argmin(np.abs(theta_arr + 3*np.pi/4)) # find the index of the theta closest to 1.5
         chosentheta = theta_wh[idx]
@@ -209,6 +214,17 @@ if what == 'single_snap_behavior' or what == 'section4' or what == 'onlysection'
         y_arr_chosentheta = draw_line(x_arr, chosentheta)
         y_before = draw_line(x_arr, thetabefore)
         y_after = draw_line(x_arr, thetaafter)
+
+        path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
+        path = f'{path}/{snap}'
+        data = make_tree(path, snap, energy = True)
+        X, Y, Z, Den, Vol = data.X, data.Y, data.Z, data.Den, data.Vol
+        X, Y, Z, Den, Vol = sec.make_slices([X, Y, Z, Den, Vol], Den > 1e-19)
+        dim_cell = Vol**(1/3)
+        Mass = Den * Vol
+        cut_mid =  np.abs(Z) < Vol**(1/3)
+        x_midplane, y_midplane, Den_midplane, vol_midplane, Mass_midplane = \
+            sec.make_slices([X, Y, Den, Vol, Mass], cut_mid)
 
         if q_color == 'Mass':
             q_points = Mass_midplane
@@ -220,13 +236,17 @@ if what == 'single_snap_behavior' or what == 'section4' or what == 'onlysection'
             # plt.suptitle(f't =  {np.round(tfb_single,2)}' + r' $t_{\rm fb}$', fontsize = 25)
 
         else:
+            indeces_boundary = np.load(f'{abspath}/data/{folder}/WH/indeces_boundary_0.8{check}_{snap}.npy', allow_pickle=True)
+            print(np.shape(indeces_boundary))
+            idx_low, idx_up, idx_low_h, idx_up_h = indeces_boundary[idx,0], indeces_boundary[idx,1], indeces_boundary[idx,2], indeces_boundary[idx,3]
+            thresh_cm = data_stream['thresh_cm']
             indeces = np.arange(len(X))
             # find in the simulaion the boundary and the points inside
             condition_T, x_T = sec.transverse_plane(X, Y, Z, dim_cell, x_stream, y_stream, z_stream, idx, Rstar, just_plane = False)
             x_plane, x_T_plane, y_plane, z_plane, dim_plane, mass_plane, den_plane, indeces_plane = \
                 sec.make_slices([X, x_T, Y, Z, dim_cell, Mass, Den, indeces], condition_T)
-            x_T_low, x_T_up = x_T[indeces_boundary_lowX[idx]], x_T[indeces_boundary_upX[idx]]
-            z_low, z_up = Z[indeces_boundary_lowZ[idx]], Z[indeces_boundary_upZ[idx]]
+            x_T_low, x_T_up = x_T[idx_low], x_T[idx_up]
+            z_low, z_up = Z[idx_low_h], Z[idx_up_h]
             
             condition_thresh = np.logical_and(np.abs(x_T_plane) < thresh_cm[idx], np.abs(z_plane) < thresh_cm[idx])
             x_sec, x_T_sec, y_sec, z_sec, dim_sec, den_sec, mass_sec = \
@@ -236,21 +256,23 @@ if what == 'single_snap_behavior' or what == 'section4' or what == 'onlysection'
             # stream_cells = np.logical_and(stream_cells_T, stream_cells_Z)
             # print(f'Mass cells betwwen +-T, no limit in Z: {int(100*np.sum(mass_sec[stream_cells_T]) / np.sum(mass_sec))}% of total mass in the plane (below section threshold)')
             # print(f'Mass cells betwwen +-Z, no limit in T: {int(100*np.sum(mass_sec[stream_cells_Z]) / np.sum(mass_sec))}% of total mass in the plane (below section threshold)')
-            enclosed_cells = np.load(f'{abspath}/data/{folder}/WH/enclosed/indeces_enclosed_{check}{snap}.npy', allow_pickle=True)
+            enclosed_cells = np.load(f'{abspath}/data/{folder}/WH/enclosed/indeces_enclosed_0.8{check}_{snap}.npy', allow_pickle=True)
             stream_cells = enclosed_cells[idx]
             print('Mass in the stream/mass section: ', np.sum(Mass[stream_cells])/np.sum(mass_sec))
             if q_color == 'Mass':
+                q_encl = Mass
                 q_plane = mass_plane
                 q_sec = mass_sec
             elif q_color == 'Density':
+                q_encl = Den * prel.den_converter
                 q_plane = den_plane * prel.den_converter
                 q_sec = den_sec * prel.den_converter
             
             fig, ((ax0, ax1), (ax2, ax3)) = plt.subplots(2,2,figsize = (20,14))
             img = ax1.scatter(x_T_plane, z_plane, c = q_plane, s = 20, cmap = 'rainbow', norm = colors.LogNorm(vmin = np.percentile(q_plane, 50), vmax = np.max(q_plane)))
             cbar = plt.colorbar(img)
-            # img = ax1.scatter(x_T_sec[stream_cells], z_sec[stream_cells], c = q_sec[stream_cells], s = 40, edgecolor = 'k', cmap = 'rainbow', norm = colors.LogNorm(vmin = np.percentile(q_sec, 50), vmax = np.max(q_sec)))
-            cbar.set_label(r'Mass [$M_\odot$]')
+            img = ax1.scatter(x_T[stream_cells], Z[stream_cells], c = q_encl[stream_cells], s = 40, edgecolor = 'k', cmap = 'rainbow', norm = colors.LogNorm(vmin = np.percentile(q_sec, 50), vmax = np.max(q_sec)))
+            cbar.set_label(r'Mass [$M_\odot$]' if q_color == 'Mass' else r'Density [g/cm$^3$]')
             ax1.set_xlabel(r'N [$R_\odot$]')
             ax1.set_ylabel(r'Z [$R_\odot$]')
             ax1.axvline(x=x_T_low, color='grey', linestyle = '--')
@@ -292,15 +314,12 @@ if what == 'single_snap_behavior' or what == 'section4' or what == 'onlysection'
 
             plt.suptitle(r'$\alpha$ = ' + f'{np.round(theta_wh[idx], 2)}, {check}, t =  {np.round(tfb_single,2)}' + r' $t_{\rm fb}$, number cells $\Delta$ = ' + f'{N_width[idx]}, H = {N_height[idx]}', fontsize = 25)
         
-        img = ax0.scatter(X_midplane/apo, Y_midplane/apo, c = q_points, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = np.percentile(q_points, 20), vmax = np.percentile(q_points, 95)))
+        img = ax0.scatter(x_midplane/apo, y_midplane/apo, c = q_points, s = 1, cmap = 'rainbow', norm = colors.LogNorm(vmin = np.percentile(q_points, 20), vmax = np.percentile(q_points, 95)))
         cbar = plt.colorbar(img, ax=ax0)
+        cbar.set_label(r'Mass [$M_\odot$]' if q_color == 'Mass' else r'Density [g/cm$^3$]', fontsize = 25)
         cbar.ax.tick_params(which='major', labelsize=25, width = .8, length = 8, pad = 10)
         cbar.ax.tick_params(which='minor',  width = .6, length = 5, pad = 10)
             
-        if q_color == 'Mass':
-            cbar.set_label(r'Mass [$M_\odot$]') 
-        elif q_color == 'Density':
-            cbar.set_label(r'Density [g/cm$^3$]')
         ax0.plot(x_stream[:185]/apo, y_stream[:185]/apo, c = 'k', ls = ':')
         ax0.plot(x_low_width[:185]/apo, y_low_width[:185]/apo, c = 'k')
         ax0.plot(x_up_width[:185]/apo, y_up_width[:185]/apo, c = 'k')
@@ -308,7 +327,7 @@ if what == 'single_snap_behavior' or what == 'section4' or what == 'onlysection'
         # ax0.plot(x_arr, y_before, c = 'r', label = r'$\alpha \pm \pi/2$')
         # ax0.plot(x_arr, y_after, c = 'b', label = r'$\alpha + \pi/2$')
         ax0.set_xlim(-1, 0.1) 
-        ax0.set_ylim(-.3, .3)
+        ax0.set_ylim(-.2, .2)
         ax0.set_xlabel(r'X [$r_{\rm a}$]')
         ax0.set_ylabel(r'Y [$r_{\rm a}$]')
         ax0.legend(fontsize = 16, loc = 'upper left')

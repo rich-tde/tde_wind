@@ -115,7 +115,7 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_str
     x_chosen, y_chosen, z_chosen = x_stream[idx], y_stream[idx], z_stream[idx]
     x_data_trasl = x_data - x_chosen
     y_data_trasl = y_data - y_chosen 
-    # z_data_trasl = z_data - z_chosen 
+    z_data_trasl = z_data - z_chosen 
     # Rotate data
     x_onplaneall, y_onplaneall, z_data_trasl = \
         rotate_coordinates(x_data_trasl, y_data_trasl, x_stream, y_stream, idx, z_datas = [z_data, z_stream])
@@ -132,6 +132,8 @@ def transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_str
         # Change the condition_tra
         condition_tra = np.abs(y_onplaneall) < max_dim
 
+    # condition_quadrant = (x_data * x_chosen >=0) & (y_data * y_chosen >=0)
+    # condition_tra = condition_tra & condition_quadrant
     if just_plane:
         x_onplane = x_onplaneall[condition_tra]
         # y_onplane = y_onplaneall[condition_tra]
@@ -171,7 +173,7 @@ if __name__ == '__main__':
     mstar = .5
     Rstar = .47
     n = 1.5
-    snap = '238'
+    snap = '162'
     check = 'NewAMR'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}Compton{check}'
     path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
@@ -183,9 +185,11 @@ if __name__ == '__main__':
     X, Y, Z, Vol = data.X, data.Y, data.Z, data.Vol
     dim_cell = Vol**(1/3)
 
-    theta_arr, x_stream, y_stream, z_stream, _ = \
-        np.load(f'/Users/paolamartire/shocks/data/{folder}/WH/stream/stream_{check}{snap}.npy' )
-      
+    com = np.load(f'/Users/paolamartire/shocks//data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
+    theta_arr = com['theta_arr']
+    x_stream = com['x_cm']
+    y_stream = com['y_cm']
+    z_stream = com['z_cm']
     # idx =  100
     # condition_rad = radial_plane(X, Y, dim_cell, theta_arr[idx])
     # X_rad, Y_rad, Z_rad = \
@@ -196,8 +200,13 @@ if __name__ == '__main__':
     # vec_tg, x_stream_sm, y_stream_sm = tangent_versor(x_stream, y_stream, idx, smooth_stream = True)
 
     fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,5), width_ratios=(1.5,.8))
-    for idx in range(187,190):
+    for idx in range(80, 81):
     # idx = 120
+        condition_rad = radial_plane(X, Y, dim_cell, theta_arr[idx])
+        X_rad, Y_rad, Z_rad = \
+            make_slices([X, Y, Z], condition_rad)
+        X_rad_midplane = X_rad[np.abs(Z_rad) < dim_cell[condition_rad]]
+        Y_rad_midplane = Y_rad[np.abs(Z_rad) < dim_cell[condition_rad]]
         condition_tra, x_onplane, _ = transverse_plane(X, Y, Z, dim_cell, x_stream, y_stream, z_stream, idx, Rstar, just_plane = True)
         X_tra, Y_tra, Z_tra = \
             make_slices([X, Y, Z], condition_tra)
@@ -211,8 +220,9 @@ if __name__ == '__main__':
         # Y_tg_midplane = Y_tg[np.abs(Z_tg) < dim_cell[condition_tg]]
         
         for ax in [ax1, ax2]:
-            ax.scatter(X_tra_midplane, Y_tra_midplane, s=.1, alpha = 0.8,  label = 'Transverse plane')
-            # ax.scatter(X_tg_midplane, Y_tg_midplane, s=.1, alpha = 0.8, c = 'g', label = 'Tangent plane')
+            ax.scatter(X_rad_midplane, Y_rad_midplane, s=1, c = 'r', label = 'Radial plane')
+            ax.scatter(X_tra_midplane, Y_tra_midplane, s=1,  label = 'Transverse plane')
+            # ax.scatter(X_tg_midplane, Y_tg_midplane, s=.1, c = 'g', label = 'Tangent plane')
             ax.plot(x_stream, y_stream,  c = 'k', label = 'Stream')
             # ax.contour(xcfr, ycfr, cfr, [0], linestyles = 'dotted', colors = 'k')
             ax.set_xlabel(r'$X [R_\odot]$')

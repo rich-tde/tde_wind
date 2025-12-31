@@ -45,7 +45,7 @@ a_mb = things['a_mb']
 e_mb = things['ecc_mb']
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-@numba.njit
+# @numba.njit
 def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
     """ Find the T-Z threshold to cut the transverse plane (as a square) in width and height. 
     This is necessary to avoid to take points too far away from the center of mass (eg in 2 different semiplanes).
@@ -78,10 +78,9 @@ def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
         step = 2*np.mean(dim_plane[condition]) 
         C += step 
         condition = np.logical_and(np.abs(t_plane) <= C, np.abs(z_plane) <= C)
-        # Check that you add new points
-        # if len(mass_plane[condition]) == len(mass):
-            # print(f'No new points added, increase C adding {np.round(step,2)} to {np.round(C,2)}', flush = True)
-            # C += step
+        if len(mass_plane[condition]) == len(mass_plane):
+            print('I took all the points', flush = True)
+            break
 
         if len(mass_plane[condition]) != len(mass):
             tocheck = r_plane[condition]-R0
@@ -96,50 +95,7 @@ def get_threshold(t_plane, z_plane, r_plane, mass_plane, dim_plane, R0):
                 break
             total_mass = new_mass
     return C
-
-def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R0):
-    """ Find the maxima density points in the radial plane for all the thetas in theta_arr 
-    Parameters
-    ----------
-    x_data, y_data, z_data, dim_data, den_data : array
-        X, Y, Z, coordinates, dimension and density of simualtion points.
-    theta_arr : array
-        Angles in radians.
-    R0 : float
-        Smoothing radius.
-    Returns
-    -------
-    x_max, y_max, z_max : array
-        X, Y, Z coordinates of the maximum density points in the radial plane of each angle in the sample.
-    """
-    x_max = np.zeros(len(theta_arr))
-    y_max = np.zeros(len(theta_arr))
-    z_max = np.zeros(len(theta_arr))
-    fig, ax1 = plt.subplots(1,1, figsize = (7,7))
-    for i in range(len(theta_arr)):
-        # Exclude points inside the smoothing lenght and find radial plane
-        condition_distance = np.sqrt(x_data**2 + y_data**2 + z_data**2) > R0 
-        condition_Rplane = sec.radial_plane(x_data, y_data, dim_data, theta_arr[i])
-        condition_Rplane = np.logical_and(condition_Rplane, condition_distance)
-        x_plane, y_plane, z_plane, den_plane, dim_plane = sec.make_slices([x_data, y_data, z_data, den_data, dim_data], condition_Rplane)
-        # Find and save the maximum density point
-        idx_max = np.argmax(den_plane) 
-        x_max[i] = x_plane[idx_max]
-        y_max[i] = y_plane[idx_max]
-        z_max[i] = z_plane[idx_max]
-        
-    if not alice: 
-        from matplotlib import colors
-        # ax1.scatter(x_plane[np.abs(z_plane) < dim_plane]/apo, y_plane[np.abs(z_plane) < dim_plane]/apo, s = 1)
-        ax1.scatter(0, 0, marker = 'o', c = 'red')
-        ax1.plot(x_max/Rt, y_max/Rt, c = 'k')#, marker = 'x')
-        ax1.set_xlabel(r'X [$r_{\rm t}$]')
-        ax1.set_ylabel(r'Y [$r_{\rm t}$]')
-        ax1.set_xlim(-2, 2)
-        ax1.set_ylim(-2,2)
-    #     ax1.legend()
-
-    return x_max, y_max, z_max    
+  
 
 def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, theta_arr, all_iterations = False):
     """ Find the centres of mass that defines the stream.
@@ -171,18 +127,24 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     cutting = np.logical_and(np.abs(z_data) < apo, np.abs(y_data) < 2 * apo)
     x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut = \
         sec.make_slices([x_data, y_data, z_data, dim_data, den_data, mass_data], cutting)
-    # Find the radial maximum points to have a first guess of the stream (necessary for the threshold and the tg)
-    x_stream_rad, y_stream_rad, z_stream_rad = find_radial_maximum(x_cut, y_cut, z_cut, dim_cut, den_cut, theta_arr, R0)
+
+    r_arr_ell = orb.keplerian_orbit(theta_arr, a_mb, Rp, ecc=e_mb)
+    x_stream_rad, y_stream_rad = from_cylindric(theta_arr, r_arr_ell)
+    z_stream_rad = np.full(len(theta_arr), np.nan)
+    print('radial done', flush = True)
 
     # First iteration: find the center of mass of each transverse plane of the maxima-density stream
-    x_cmTR = np.zeros(len(theta_arr))
-    y_cmTR = np.zeros(len(theta_arr))
-    z_cmTR = np.zeros(len(theta_arr))
-    if not alice:
-        fig, ax1 = plt.subplots(1,1, figsize = (7,7))
+    x_cmTR = np.full(len(theta_arr), np.nan)
+    y_cmTR = np.full(len(theta_arr), np.nan)
+    z_cmTR = np.full(len(theta_arr), np.nan)
+    # if not alice:
+    #     fig, ax1 = plt.subplots(1,1, figsize = (12,7))
     for idx in range(len(theta_arr)):
         # Find the transverse plane
         condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_stream_rad, y_stream_rad, z_stream_rad, idx, Rstar, just_plane = True)
+        if len(x_T) == 0:
+            print(f'No points found in the transverse plane for idx = {idx}, theta = {np.round(theta_arr[idx],2)} rad', flush = True)
+            continue
         x_plane, y_plane, z_plane, dim_plane, mass_plane = \
             sec.make_slices([x_cut, y_cut, z_cut, dim_cut, mass_cut], condition_T)
         # Cut the TZ plane to not keep points too far away.
@@ -190,39 +152,43 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         thresh = get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) 
         condition_x = np.abs(x_T) < thresh
         condition_z = np.abs(z_plane) < thresh
-        # condition_y = y_plane * y_stream_rad[idx] >= 0  # to be sure to take points in the same semiplane of y
-        condition = condition_x & condition_z 
+        condition_y = y_plane * y_stream_rad[idx] >= 0  # to be sure to take points in the same semiplane of y
+        condition = condition_x & condition_z & condition_y
         x_plane, y_plane, z_plane, mass_plane, dim_plane = \
             sec.make_slices([x_plane, y_plane, z_plane, mass_plane, dim_plane], condition)
         # Find the center of mass
         x_cmTR[idx] = np.sum(x_plane * mass_plane) / np.sum(mass_plane)
         y_cmTR[idx]= np.sum(y_plane * mass_plane) / np.sum(mass_plane)
         z_cmTR[idx] = np.sum(z_plane * mass_plane) / np.sum(mass_plane)
-        if not alice: 
-            from matplotlib import colors
-            ax1.scatter(x_plane[np.abs(z_plane) < dim_plane]/Rt, y_plane[np.abs(z_plane) < dim_plane]/Rt, s = 1)
-            ax1.scatter(0, 0, marker = 'o', c = 'k')
-            ax1.scatter(x_stream_rad[idx]/Rt, y_stream_rad[idx]/Rt, marker = 'x', c = 'red', label = 'Radial max' if idx ==0 else "")
-            # ax1.scatter(x_cmTR[idx]/Rt, y_cmTR[idx]/Rt, marker = 'x', c = 'b', label = 'COM TR' if idx ==0 else "")
-            ax1.set_xlabel(r'X [$r_{\rm t}$]')
-            ax1.set_ylabel(r'Y [$r_{\rm t}$]')
-            ax1.set_xlim(-2, 2)
-            ax1.set_ylim(-2,2)
+    #     if not alice: 
+    #         from matplotlib import colors
+    #         ax1.scatter(x_plane[np.abs(z_plane) < dim_plane]/Rt, y_plane[np.abs(z_plane) < dim_plane]/Rt, s = 1)
+    #         ax1.scatter(0, 0, marker = 'x', c = 'red')
+    #         ax1.scatter(x_cmTR[idx]/Rt, y_cmTR[idx]/Rt, marker = 'x', c = 'red')
+    #         ax1.set_xlabel(r'X [$R_{\rm a}$]')
+    #         ax1.set_ylabel(r'Y [$R_{\rm a}$]')
+    #         ax1.set_xlim(-20, 2)
+    #         ax1.set_ylim(-5, 5)
 
-    fig.suptitle(f'cmTR', fontsize = 16) 
-    fig.tight_layout()
+    # fig.suptitle(f'Idx: {idx}', fontsize = 16) 
+    # fig.tight_layout()
     print('Iteration radial-transverse done', flush = True)
 
     # Second iteration: find the center of mass of each transverse plane corresponding to COM stream
-    x_cm = np.zeros(len(theta_arr))
-    y_cm = np.zeros(len(theta_arr))
-    z_cm = np.zeros(len(theta_arr))
-    thresh_cm = np.zeros(len(theta_arr))
-    # if not alice:
+    x_cm = np.full(len(theta_arr), np.nan)
+    y_cm = np.full(len(theta_arr), np.nan)
+    z_cm = np.full(len(theta_arr), np.nan)
+    thresh_cm = np.full(len(theta_arr), np.nan)
+    # if not alice: 
     #     fig, ax1 = plt.subplots(1,1, figsize = (12,7))
     for idx in range(len(theta_arr)):
         # Find the transverse plane
+        if np.isnan(x_cmTR[idx]):
+            continue
         condition_T, x_T, _ = sec.transverse_plane(x_cut, y_cut, z_cut, dim_cut, x_cmTR, y_cmTR, z_cmTR, idx, Rstar, just_plane = True)
+        if len(x_T) == 0:
+            print(f'No points found in the transverse plane for idx = {idx}, theta = {np.round(theta_arr[idx],2)} rad', flush = True)
+            continue
         x_plane, y_plane, z_plane, dim_plane, mass_plane = \
             sec.make_slices([x_cut, y_cut, z_cut, dim_cut, mass_cut], condition_T)
         # plot section at pericenter
@@ -232,8 +198,8 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
         thresh = get_threshold(x_T, z_plane, r_plane, mass_plane, dim_plane, R0) 
         condition_x = np.abs(x_T) < thresh
         condition_z = np.abs(z_plane) < thresh
-        # condition_y = y_plane * y_cmTR[idx] >= 0  # to be sure to take points in the same semiplane of y
-        condition = condition_x & condition_z 
+        condition_y = y_plane * y_cmTR[idx] >= 0  # to be sure to take points in the same semiplane of y
+        condition = condition_x & condition_z & condition_y
         x_plane, y_plane, z_plane, mass_plane, dim_plane = \
             sec.make_slices([x_plane, y_plane, z_plane, mass_plane, dim_plane], condition)
         # Find and save the center of mass
@@ -264,14 +230,17 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
     # fig.suptitle(f'Idx: {idx}', fontsize = 16) 
     # fig.tight_layout()
     # Search in the tree the closest point to the center of mass
-    points = np.array([x_data, y_data, z_data]).T
-    tree = KDTree(points)
-    _, indeces_cm = tree.query(np.array([x_cm, y_cm, z_cm]).T, k=1)
-    indeces_cm = [ int(indeces_cm[i][0]) for i in range(len(indeces_cm))]
+    # points = np.array([x_data, y_data, z_data]).T
+    # tree = KDTree(points)
+    # x_cm = x_cm[~np.isnan(x_cm)]
+    # y_cm = y_cm[~np.isnan(x_cm)]
+    # z_cm = z_cm[~np.isnan(x_cm)] 
+    # _, indeces_cm = tree.query(np.array([x_cm, y_cm, z_cm]).T, k=1)
+    # indeces_cm = [ int(indeces_cm[i][0]) for i in range(len(indeces_cm))]
     if all_iterations:
         return x_cm, y_cm, z_cm, thresh_cm, x_cmTR, y_cmTR, z_cmTR, x_stream_rad, y_stream_rad, z_stream_rad
     else:
-        return thresh_cm, indeces_cm
+        return thresh_cm, x_cm, y_cm, z_cm
 
 
 if __name__ == '__main__':
@@ -279,14 +248,14 @@ if __name__ == '__main__':
     if alice:
         snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
     else: 
-        snaps = [162]
+        snaps = [133]
 
     if compute:
         theta_lim =  np.pi
         step = np.round((2*theta_lim)/200, 3)
         theta_init = np.arange(-theta_lim, theta_lim, step)
         theta_arr = Ryan_sampler(theta_init)
-        # theta_arr = theta_arr[0:100]
+        # theta_arr = theta_arr[180:200]
     
     for i, snap in enumerate(snaps):
         print(f'Snap {snap}', flush = True)
@@ -303,41 +272,46 @@ if __name__ == '__main__':
             X, Y, Z, VX, VY, VZ, Den, Mass, Vol = \
                 sec.make_slices([X, Y, Z, VX, VY, VZ, Den, Mass, Vol], cutden)
             dim_cell = Vol**(1/3) 
-            thresh_cm, indices_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr)
-            x_cm, y_cm, z_cm, vx_cm, vy_cm, vz_cm, den_cm, mass_cm = \
-                X[indices_cm], Y[indices_cm], Z[indices_cm], \
-                    VX[indices_cm], VY[indices_cm], VZ[indices_cm], \
-                        Den[indices_cm], Mass[indices_cm]
+            thresh_cm, x_cm, y_cm, z_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr)
+            theta_arr, thresh_cm, x_cm, y_cm, z_cm = \
+                sec.make_slices([theta_arr, thresh_cm, x_cm, y_cm, z_cm], ~np.isnan(x_cm))
+            # points = np.array([X, Y, Z,]).T
+            # tree = KDTree(points)
+            # _, indeces_cm = tree.query(np.array([x_cm, y_cm, z_cm]).T, k=1)
+            # x_cm, y_cm, z_cm, vx_cm, vy_cm, vz_cm, den_cm, mass_cm = \
+            #     X[indeces_cm], Y[indeces_cm], Z[indeces_cm], \
+            #         VX[indeces_cm], VY[indeces_cm], VZ[indeces_cm], \
+            #             Den[indeces_cm], Mass[indeces_cm]
             com = {
                 'theta_arr': theta_arr,
                 'thresh_cm': thresh_cm,
                 'x_cm': x_cm,
                 'y_cm': y_cm,
                 'z_cm': z_cm,
-                'vx_cm': vx_cm,
-                'vy_cm': vy_cm,
-                'vz_cm': vz_cm,
-                'den_cm': den_cm,
-                'mass_cm': mass_cm
+                # 'vx_cm': vx_cm,
+                # 'vy_cm': vy_cm,
+                # 'vz_cm': vz_cm,
+                # 'den_cm': den_cm,
+                # 'mass_cm': mass_cm
             }  
 
             if alice:
                 np.savez(f'{abspath}/data/{folder}/WH/stream/stream_{check}{snap}.npz', **com)
             
             else:
-                fig, ax = plt.subplots(1, 1, figsize = (7, 7))
+                fig, ax = plt.subplots(1, 1, figsize = (14, 7))
                 ax.plot(x_cm/Rt, y_cm/Rt, c = 'k')
                 ax.set_xlabel(r'X [$r_{\rm t}$]')
                 ax.set_ylabel(r'Y [$r_{\rm t}$]')
-                ax.set_xlim(-2, 2)
+                ax.set_xlim(-20, 2)
                 ax.set_ylim(-5, 5)
                 # ax.set_title(f't = {np.round(times[np.argmin(np.abs(snaps-snap))], 2)}' + r'$t_{\rm fb}$', fontsize = 16)
                 plt.show()
 
         if plot:
             data_stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
-            theta_arr, x_stream, y_stream, z_stream, thresh_cm = \
-                data_stream['theta_arr'], data_stream['x_cm'], data_stream['y_cm'], data_stream['z_cm'], data_stream['thresh_cm']
+            theta_arr, x_stream, y_stream, z_stream = \
+                data_stream['theta_arr'], data_stream['x_cm'], data_stream['y_cm'], data_stream['z_cm']
             path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
             path = f'{path}/{snap}'
             data = make_tree(path, snap, energy = True)
@@ -351,16 +325,16 @@ if __name__ == '__main__':
             # x_slice, y_slice, z_slice, dim_slice, den_slice = \
             #     slice_data[0], slice_data[1], slice_data[2], slice_data[3], slice_data[4]
             # mass_slice = den_slice * dim_slice**3
-            fig, ax = plt.subplots(1, 1, figsize = (7, 7))
-            # img = ax.scatter(x_slice/Rt, y_slice/Rt, s = 1, c = den_slice, cmap = 'rainbow', norm = colors.LogNorm(vmin = np.percentile(mass_slice, 5), vmax = np.percentile(mass_slice, 98)))
-            # cb = plt.colorbar(img)
-            # cb.set_label(r'Den [$M_\odot/R_\odot^3$]', fontsize = 16)
+            fig, ax = plt.subplots(1, 1, figsize = (14, 7))
+            img = ax.scatter(x_slice/Rt, y_slice/Rt, s = 1, c = den_slice, cmap = 'rainbow', norm = colors.LogNorm(vmin = np.percentile(mass_slice, 5), vmax = np.percentile(mass_slice, 98)))
+            cb = plt.colorbar(img)
+            cb.set_label(r'Den [$M_\odot/R_\odot^3$]', fontsize = 16)
             ax.plot(x_stream/Rt, y_stream/Rt, c = 'k')
             if compute:
-                ax.plot(x_cm/Rt, y_cm/Rt, c = 'r', ls = '--')
+                ax.plot(x_cm/Rt, y_cm/Rt, c = 'r', linestyle = '--')
             ax.set_xlabel(r'X [$r_{\rm t}$]')
             ax.set_ylabel(r'Y [$r_{\rm t}$]')
-            ax.set_xlim(-2, 2)
+            ax.set_xlim(-20, 2)
             ax.set_ylim(-5, 5)
             # ax.set_title(f't = {np.round(times[np.argmin(np.abs(snaps-snap))], 2)}' + r'$t_{\rm fb}$', fontsize = 16)
             plt.show()

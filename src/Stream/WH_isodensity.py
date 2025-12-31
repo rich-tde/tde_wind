@@ -12,7 +12,7 @@ else:
     import matplotlib.pyplot as plt
     from Utilities.basic_units import radians
     import matplotlib.colors as colors
-    compute = True
+    compute = False
 
 import numpy as np
 from scipy.optimize import brentq
@@ -27,13 +27,13 @@ from Utilities.selectors_for_snap import select_prefix, select_snap
 ## Parameters
 #
 m = 4
-Mbh = 10**m
+Mbh = 10**m 
 beta = 1
 mstar = .5
 Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
-check = 'HiResNewAMR'
+check = 'LowResNewAMR'
 compton = 'Compton'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
@@ -73,7 +73,7 @@ def bound_mass_density(density_threshold, density_data, mass_data, m_thres):
     total_mass = np.sum(mass)
     return total_mass - m_thres
 
-def find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_data, mass_data, stream, idx, mass_percentage):
+def find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_data, mass_data, com, idx, mass_percentage):
     """
     Find the boundaries using isodensity contours for a single theta.
     
@@ -99,7 +99,8 @@ def find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_
     """
     global Rt, R0, Rstar
     indeces = np.arange(len(x_data))
-    theta_arr, x_stream, y_stream, z_stream, thresh_stream = stream[0], stream[1], stream[2], stream[3], stream[4]
+    theta_arr, x_stream, y_stream, z_stream, thresh_stream = \
+        com['theta_arr'], com['x_cm'], com['y_cm'], com['z_cm'], com['thresh_cm']
     thresh = thresh_stream[idx]
     # Slice the transverse plane and get the quantities of its points
     condition_T, x_Tplane, _ = sec.transverse_plane(x_data, y_data, z_data, dim_data, x_stream, y_stream, z_stream, idx, Rstar, just_plane=True)
@@ -288,7 +289,7 @@ def plot_isodensity_results(x_plane, x_Tplane, y_plane, z_plane, mass_plane, dim
     plt.savefig(f'{abspath}/Figs/{folder}/WHCont{massperc}_{check}{snap}.png')
     plt.show()
 
-def follow_the_stream_isodensity(x_data, y_data, z_data, dim_data, density_data, mass_data, stream, mass_percentage = 0.8):
+def follow_the_stream_isodensity(x_data, y_data, z_data, dim_data, density_data, mass_data, com, mass_percentage = 0.8):
     """
     Find isodensity contour boundaries all along the stream.
     
@@ -323,7 +324,7 @@ def follow_the_stream_isodensity(x_data, y_data, z_data, dim_data, density_data,
     for i in range(len(theta_arr)):
         print(i)
         density_threshold, indeces_enclosed_i, contour_stats_i = \
-            find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_data, mass_data, stream, i, mass_percentage)
+            find_single_boundaries_isodensity(x_data, y_data, z_data, dim_data, density_data, mass_data, com, i, mass_percentage)
         
         if density_threshold is None:
             print(f'Skipping theta {np.round(theta_arr[i],2)} due to ValueError in boundary finding.', flush=True)
@@ -351,7 +352,7 @@ if __name__ == '__main__':
         if alice:
             snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
         else: 
-            snaps = [31]
+            snaps = [81]
 
         for i, snap in enumerate(snaps):
             print(f'Snap {snap}', flush = True)
@@ -383,30 +384,29 @@ if __name__ == '__main__':
                 if not alice: # just some computation
                     theta_arr = theta_arr[idx_forplot-3:idx_forplot+3]
                 
-                thresh_cm, indices_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr)
-                x_cm, y_cm, z_cm, vx_cm, vy_cm, vz_cm, den_cm, mass_cm = \
-                    X[indices_cm], Y[indices_cm], Z[indices_cm], \
-                        VX[indices_cm], VY[indices_cm], VZ[indices_cm], \
-                            Den[indices_cm], Mass[indices_cm]
+                thresh_cm, x_cm, y_cm, z_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr)
+                theta_arr, thresh_cm, x_cm, y_cm, z_cm = \
+                    sec.make_slices([theta_arr, thresh_cm, x_cm, y_cm, z_cm], ~np.isnan(x_cm))
+                
                 com = {
                     'theta_arr': theta_arr,
                     'thresh_cm': thresh_cm,
                     'x_cm': x_cm,
                     'y_cm': y_cm,
                     'z_cm': z_cm,
-                    'vx_cm': vx_cm,
-                    'vy_cm': vy_cm,
-                    'vz_cm': vz_cm,
-                    'den_cm': den_cm,
-                    'mass_cm': mass_cm,
-                    'indices_cm': indices_cm
+                    # 'vx_cm': vx_cm,
+                    # 'vy_cm': vy_cm,
+                    # 'vz_cm': vz_cm,
+                    # 'den_cm': den_cm,
+                    # 'mass_cm': mass_cm,
+                    # 'indices_cm': indices_cm
                 } 
                 if alice:
                     np.savez(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', **com)
 
-            stream = np.array([com['theta_arr'], x_cm, y_cm, z_cm, com['thresh_cm']])
+            # stream = np.array([com['theta_arr'], x_cm, y_cm, z_cm, com['thresh_cm']])
 
-            theta_wh, density_thresholds, indeces_enclosed, contour_stats = follow_the_stream_isodensity(X, Y, Z, dim_cell, Den, Mass, stream, mass_percentage = massperc)
+            theta_wh, density_thresholds, indeces_enclosed, contour_stats = follow_the_stream_isodensity(X, Y, Z, dim_cell, Den, Mass, com, mass_percentage = massperc)
             w_params = np.array([[stats['width'] for stats in contour_stats],
                                 [stats['ncells_w'] for stats in contour_stats]])
             h_params = np.array([[stats['height'] for stats in contour_stats],
@@ -439,9 +439,9 @@ if __name__ == '__main__':
                     'N_height': h_params[1]
                 }
 
-                np.savez(f'{abspath}/data/{folder}/WH/wh_{massperc}{check}_{snap}.npz', **width_data)
-                np.save(f'{abspath}/data/{folder}/WH/indeces_boundary_{massperc}{check}_{snap}.npy', indeces_boundary)
-                np.save(f'{abspath}/data/{folder}/WH/enclosed/indeces_enclosed_{massperc}{check}_{snap}.npy', indeces_enclosed, allow_pickle=True)
+                np.savez(f'{abspath}/data/{folder}/WH/{massperc}/wh_{massperc}{check}_{snap}.npz', **width_data)
+                np.save(f'{abspath}/data/{folder}/WH/{massperc}/indeces_boundary_{massperc}{check}_{snap}.npy', indeces_boundary)
+                np.save(f'{abspath}/data/{folder}/WH/{massperc}/enclosed/indeces_enclosed_{massperc}{check}_{snap}.npy', indeces_enclosed, allow_pickle=True)
 
             else:
                 fig0, ax0 = plt.subplots(1, 1, figsize=(8,6))
@@ -456,7 +456,7 @@ if __name__ == '__main__':
             del X, Y, Z, VX, VY, VZ, Den, Mass, dim_cell
             gc.collect()
 
-    if not plot: 
+    if plot: 
         x_axis = ''
         data = np.loadtxt(f'{abspath}/data/{folder}/projection/Dentime_proj.txt', ndmin=2)
         snaps = data[0].astype(int)
@@ -464,11 +464,11 @@ if __name__ == '__main__':
 
         # Plotting results
         for i, snap in enumerate(snaps):
-            if snap != 31:
-                continue
+            # if snap != 31:
+            #     continue
             data_stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
             x_cm = data_stream['x_cm']
-            print(data_stream['theta_arr'][42:45])
+            # print(data_stream['theta_arr'][42:45])
             y_cm = data_stream['y_cm']
             z_cm = data_stream['z_cm']
             data_width = np.load(f'{abspath}/data/{folder}/WH/wh_{massperc}{check}_{snap}.npz', allow_pickle=True)
