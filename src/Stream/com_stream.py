@@ -115,7 +115,8 @@ def find_radial_maximum(x_data, y_data, z_data, dim_data, den_data, theta_arr, R
     x_max = np.zeros(len(theta_arr))
     y_max = np.zeros(len(theta_arr))
     z_max = np.zeros(len(theta_arr))
-    fig, ax1 = plt.subplots(1,1, figsize = (7,7))
+    if not alice:
+        fig, ax1 = plt.subplots(1,1, figsize = (7,7))
     for i in range(len(theta_arr)):
         # Exclude points inside the smoothing lenght and find radial plane
         condition_distance = np.sqrt(x_data**2 + y_data**2 + z_data**2) > R0 

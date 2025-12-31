@@ -313,7 +313,7 @@ def follow_the_stream_isodensity(x_data, y_data, z_data, dim_data, density_data,
     contour_stats : list
         List of contour statistics dictionaries for each theta.
     """
-    theta_arr = stream[0]
+    theta_arr = com['theta_arr']
     
     # Initialize output arrays
     theta_wh = []
