@@ -210,8 +210,8 @@ def find_transverse_com(x_data, y_data, z_data, dim_data, den_data, mass_data, t
             ax1.set_xlim(-2, 2)
             ax1.set_ylim(-2,2)
 
-    fig.suptitle(f'cmTR', fontsize = 16) 
-    fig.tight_layout()
+    # fig.suptitle(f'cmTR', fontsize = 16) 
+    # fig.tight_layout()
     print('Iteration radial-transverse done', flush = True)
 
     # Second iteration: find the center of mass of each transverse plane corresponding to COM stream

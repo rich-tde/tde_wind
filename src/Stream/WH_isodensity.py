@@ -384,23 +384,24 @@ if __name__ == '__main__':
                 if not alice: # just some computation
                     theta_arr = theta_arr[idx_forplot-3:idx_forplot+3]
                 
-                thresh_cm, x_cm, y_cm, z_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr)
-                theta_arr, thresh_cm, x_cm, y_cm, z_cm = \
-                    sec.make_slices([theta_arr, thresh_cm, x_cm, y_cm, z_cm], ~np.isnan(x_cm))
+                thresh_cm, indeces_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr)
+                x_cm, y_cm, z_cm, vx_cm, vy_cm, vz_cm, den_cm, mass_cm = \
+                X[indeces_cm], Y[indeces_cm], Z[indeces_cm], \
+                    VX[indeces_cm], VY[indeces_cm], VZ[indeces_cm], \
+                        Den[indeces_cm], Mass[indeces_cm]
                 
                 com = {
-                    'theta_arr': theta_arr,
-                    'thresh_cm': thresh_cm,
-                    'x_cm': x_cm,
-                    'y_cm': y_cm,
-                    'z_cm': z_cm,
-                    # 'vx_cm': vx_cm,
-                    # 'vy_cm': vy_cm,
-                    # 'vz_cm': vz_cm,
-                    # 'den_cm': den_cm,
-                    # 'mass_cm': mass_cm,
-                    # 'indices_cm': indices_cm
-                } 
+                'theta_arr': theta_arr,
+                'thresh_cm': thresh_cm,
+                'x_cm': x_cm,
+                'y_cm': y_cm,
+                'z_cm': z_cm,
+                'vx_cm': vx_cm,
+                'vy_cm': vy_cm,
+                'vz_cm': vz_cm,
+                'den_cm': den_cm,
+                'mass_cm': mass_cm
+            }  
                 if alice:
                     np.savez(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', **com)
 
