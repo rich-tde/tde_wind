@@ -96,7 +96,7 @@ def pericentre(Rstar, mstar, Mbh, beta):
 
 def apocentre(Rstar, mstar, Mbh, beta):
     # comes from Ra=a(1+e), a=Rt^2/2Rstar, e=1-2*Rstar/(beta*Rt)
-    Rt = Rstar * (Mbh/mstar)**(1/3)
+    Rt = tidal_radius(Rstar, mstar, Mbh)
     apo = Rt**2/Rstar - Rt/beta 
     return apo
 

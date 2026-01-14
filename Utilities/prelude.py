@@ -58,6 +58,12 @@ Si_nf = 3.149181875599997e-05 #14
 S_nf = 1.6527141419999988e-05 #16 
 Fe_nf = 2.5597511293999976e-05 #26 
 Ni_nf = 1.6150937749999985e-06 #28
+
+# Frequency array for BB in src.fld_curve
+f_min = Kb_cgs * 1e3 / h_cgs
+f_max = Kb_cgs * 3e13 / h_cgs
+f_num = 1_000
+freqs = np.logspace(np.log10(f_min), np.log10(f_max), f_num)
     
 # Plotting
 import matplotlib as mpl

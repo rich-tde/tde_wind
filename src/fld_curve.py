@@ -54,12 +54,11 @@ opac_path = f'{abspath}/src/Opacity'
 T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
+planck = np.loadtxt(f'{opac_path}/planck.txt')
 scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
 _, _, scatter2 = opacity_linear(T_cool, Rho_cool, scattering, slope_length = 7, highT_slope = 0)
-if check in ['LowRes', '', 'HiRes']:
-    T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, scatter = scatter2, slope_length = 5, highT_slope = -3.5)
-if check in ['LowResNewAMR', 'LowResNewAMRRemoveCenter', 'NewAMRRemoveCenter', 'NewAMR', 'HiResNewAMR']:
-    T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, scatter = scatter2, slope_length = 7, highT_slope = 0)
+T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, scatter = scatter2, slope_length = 7, highT_slope = 0)
+_, _, planck2 = opacity_extrap(T_cool, Rho_cool, planck, scatter = None, highrho_slope = 2, slope_length = 7, highT_slope = -3.5)
 # if check in ['LowResOpacityNew', 'OpacityNew', 'OpacityNewNewAMR']:
 #     T_cool2, Rho_cool2, rossland2 = opacity_linear(T_cool, Rho_cool, rossland, scatter = scatter2, slope_length = 7, highT_slope = 0)
           
@@ -92,10 +91,15 @@ for idx_s, snap in enumerate(snaps):
     # Cross dot -----------------------------------------------------------------
     num_obs = prel.NPIX # you'll use it for the mean of the observers. It's 192, unless you don't find the photosphere for someone and so decrease of 1
     observers_xyz = hp.pix2vec(prel.NSIDE, range(num_obs)) #shape: (3, 192)
-    observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
+    observers_xyz = np.array(observers_xyz).T#[:,:,0] # shape: (192, 3)
+
+    cross_dot = np.matmul(observers_xyz,  observers_xyz.T)
+    cross_dot[cross_dot<0] = 0
+    cross_dot *= 4/192
 
     # Dynamic Box 
-    reds = np.zeros(num_obs)
+    F_photo = np.zeros((prel.NPIX, len(prel.freqs)))
+    F_photo_temp = np.zeros((prel.NPIX, len(prel.freqs)))
     ph_idx = np.zeros(num_obs)
     xph = np.zeros(num_obs) 
     yph = np.zeros(num_obs)
@@ -114,10 +118,11 @@ for idx_s, snap in enumerate(snaps):
     alphaph = np.zeros(num_obs) 
     Lph = np.zeros(num_obs) 
     r_initial = np.zeros(num_obs) # initial starting point for Rph
+    colorsphere = {'idx': [], 'x': [], 'y': [], 'z': [], 'vol': [], 'den': [], 'temp': [], 'radden': [], 'vx': [], 'vy': [], 'vz': [], 'P': [], 'ieden': [], 'alpha_eff': []}
     for i in range(num_obs):
         # Progress 
         print(f'Snap: {snap}, Obs: {i}', flush=True)
-        sys.stdout.flush()
+        # sys.stdout.flush()
 
         mu_x = observers_xyz[i][0]
         mu_y = observers_xyz[i][1]
@@ -174,12 +179,15 @@ for idx_s, snap in enumerate(snaps):
         # Interpolate opacity 
         ln_alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
         ln_alpha_rossland = np.array(ln_alpha_rossland)[0]
-        underflow_mask = ln_alpha_rossland != 0.0
-        idx = np.array(idx)
+        ln_alpha_planck = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t), np.log(d), 'linear', 0)
+        ln_alpha_planck = np.array(ln_alpha_planck)[0]
+        underflow_mask = np.logical_and(ln_alpha_rossland != 0.0, ln_alpha_planck != 0.0)
         d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx = \
             make_slices([d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx], underflow_mask)
+        idx = np.array(idx)
         alpha_rossland = np.exp(ln_alpha_rossland) # [1/cm]
-        del ln_alpha_rossland
+        alpha_planck = np.exp(ln_alpha_planck) # [1/cm]
+        del ln_alpha_rossland, ln_alpha_planck
         gc.collect()
 
         # Optical Depth
@@ -188,6 +196,12 @@ for idx_s, snap in enumerate(snaps):
         # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
         los = - np.flipud(sci.cumulative_trapezoid(alpha_rossland_fuT, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
         
+        alpha_effective = np.sqrt(3 * alpha_planck * alpha_rossland) 
+        alpha_effective_fuT = np.flipud(alpha_effective)
+        los_effective = - np.flipud(sci.cumulative_trapezoid(alpha_effective_fuT, 
+                                                         r_fuT, initial = 0)) * prel.Rsol_cgs
+        los_effective[los_effective>30] = 30
+
         # Red 
         # Get 20 unique nearest neighbors to each cell in the wanted ray and use them to compute the gradient along the ray
         xyz3 = np.array([ray_x, ray_y, ray_z]).T
@@ -240,7 +254,7 @@ for idx_s, snap in enumerate(snaps):
         except IndexError: # if you don't find the photosphere, skip the observer
             # num_obs -= 1 # you don't have light from there, but the observers are still 192
             print(f'No photosphere found for observer {i}', flush=True)
-            sys.stdout.flush()
+            # sys.stdout.flush()
             continue
         Lphoto2 = 4*np.pi * prel.c_cgs*smoothed_flux[photosphere] * prel.Msol_cgs / (prel.tsol_cgs**2) # you have to convert ray_radDen*r^2/lenght = energy/lenght^2 = mass/time^2
         if Lphoto2 < 0:
@@ -265,6 +279,37 @@ for idx_s, snap in enumerate(snaps):
         alphaph[i] = alpha_rossland[photosphere]
         fluxes[i] = Lphoto / (4*np.pi*(r[photosphere]*prel.Rsol_cgs)**2)
         Lph[i] = Lphoto 
+
+        # Spectra
+        color_idx = np.argmin(np.abs(los_effective-5))
+        colorsphere['idx'].append(idx[color_idx])
+        colorsphere['x'].append(ray_x[color_idx])
+        colorsphere['y'].append(ray_y[color_idx])
+        colorsphere['z'].append(ray_z[color_idx])
+        colorsphere['vol'].append(volume[color_idx])
+        colorsphere['den'].append(d[color_idx])
+        colorsphere['temp'].append(t[color_idx])
+        colorsphere['radden'].append(ray_radDen[color_idx])
+        colorsphere['vx'].append(ray_vx[color_idx])
+        colorsphere['vy'].append(ray_vy[color_idx])
+        colorsphere['vz'].append(ray_vz[color_idx])
+        colorsphere['P'].append(ray_press[color_idx])
+        colorsphere['ieden'].append(ray_ie_den[color_idx])
+        colorsphere['alpha_eff'].append(alpha_effective[color_idx])
+
+        # Spectra ---
+        for k in range(color_idx, len(r)):
+            if k == 0:
+                continue
+            dr = r[k]-r[k-1]
+            Vcell =  r[k]**2 * dr # there should be a (4 * np.pi / 192)*, but doesn't matter because we normalize
+            wien = np.exp(prel.h_cgs * prel.freqs / (prel.Kb_cgs * t[k])) - 1
+            black_body = prel.freqs**3 / (prel.c_cgs**2 * wien)
+            F_photo_temp[i,:] += alpha_planck[k] * Vcell * np.exp(-los_effective[k]) * black_body
+        
+        norm = Lph / np.trapezoid(F_photo_temp[i,:], prel.freqs)
+        F_photo_temp[i,:] *= norm
+        F_photo[i,:] = np.dot(cross_dot[i,:], F_photo_temp)    
          
         if plot:
             kappa = alpha_rossland/d
@@ -290,7 +335,7 @@ for idx_s, snap in enumerate(snaps):
 
     Lphoto_snap = np.mean(Lph) # take the mean
     print(Lphoto_snap, flush=True)
-    sys.stdout.flush()
+    # sys.stdout.flush()
 
     if save:
         # Save red of the single snap
@@ -304,32 +349,38 @@ for idx_s, snap in enumerate(snaps):
         # save Rph index and fluxes for each observer in the snapshot
         time_rph = np.concatenate([[snap,tfb[idx_s]], ph_idx])
         time_fluxes = np.concatenate([[snap,tfb[idx_s]], fluxes])
-        with open(f'{pre_saving}/{check}_phidx_fluxes.txt', 'a') as fileph:
-            fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
-            fileph.write(' '.join(map(str, time_rph)) + '\n')
-            fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes [cgs] for each obs \n')
-            fileph.write(' '.join(map(str, time_fluxes)) + '\n')
-            fileph.close()
+        # with open(f'{pre_saving}/{check}_phidx_fluxes.txt', 'a') as fileph:
+        #     fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
+        #     fileph.write(' '.join(map(str, time_rph)) + '\n')
+        #     fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes [cgs] for each obs \n')
+        #     fileph.write(' '.join(map(str, time_fluxes)) + '\n')
+        #     fileph.close()
         
-        with open(f'{pre_saving}/photo/{check}_photo{snap}.txt', 'w') as f:
-            f.write('# Data for the photospere.\n')
-            f.write('# xph\n' + ' '.join(map(str, xph)) + '\n')
-            f.write('# yph\n' + ' '.join(map(str, yph)) + '\n')
-            f.write('# zph\n' + ' '.join(map(str, zph)) + '\n')
-            f.write('# volph\n' + ' '.join(map(str, volph)) + '\n')
-            f.write('# denph CGS\n' + ' '.join(map(str, denph)) + '\n')
-            f.write('# Tempph\n' + ' '.join(map(str, Tempph)) + '\n')
-            f.write('# Rad_denph\n' + ' '.join(map(str, Rad_denph)) + '\n')
-            f.write('# Vxph\n' + ' '.join(map(str, Vxph)) + '\n')
-            f.write('# Vyph\n' + ' '.join(map(str, Vyph)) + '\n')
-            f.write('# Vzph\n' + ' '.join(map(str, Vzph)) + '\n')
-            f.write('# Pressph\n' + ' '.join(map(str, Pressph)) + '\n')
-            f.write('# IE_denph\n' + ' '.join(map(str, IE_denph)) + '\n')
-            f.write('# alpha CGS\n' + ' '.join(map(str, alphaph)) + '\n')
-            f.write('# rph\n' + ' '.join(map(str, rph)) + '\n')
-            f.write('# Lph CGS\n' + ' '.join(map(str, Lph)) + '\n')
-            f.write('# indices\n' + ' '.join(map(str, ph_idx)) + '\n')
-            f.close()
+        # with open(f'{pre_saving}/photo/{check}_photo{snap}.txt', 'w') as f:
+        #     f.write('# Data for the photospere.\n')
+        #     f.write('# xph\n' + ' '.join(map(str, xph)) + '\n')
+        #     f.write('# yph\n' + ' '.join(map(str, yph)) + '\n')
+        #     f.write('# zph\n' + ' '.join(map(str, zph)) + '\n')
+        #     f.write('# volph\n' + ' '.join(map(str, volph)) + '\n')
+        #     f.write('# denph CGS\n' + ' '.join(map(str, denph)) + '\n')
+        #     f.write('# Tempph\n' + ' '.join(map(str, Tempph)) + '\n')
+        #     f.write('# Rad_denph\n' + ' '.join(map(str, Rad_denph)) + '\n')
+        #     f.write('# Vxph\n' + ' '.join(map(str, Vxph)) + '\n')
+        #     f.write('# Vyph\n' + ' '.join(map(str, Vyph)) + '\n')
+        #     f.write('# Vzph\n' + ' '.join(map(str, Vzph)) + '\n')
+        #     f.write('# Pressph\n' + ' '.join(map(str, Pressph)) + '\n')
+        #     f.write('# IE_denph\n' + ' '.join(map(str, IE_denph)) + '\n')
+        #     f.write('# alpha CGS\n' + ' '.join(map(str, alphaph)) + '\n')
+        #     f.write('# rph\n' + ' '.join(map(str, rph)) + '\n')
+        #     f.write('# Lph CGS\n' + ' '.join(map(str, Lph)) + '\n')
+        #     f.write('# indices\n' + ' '.join(map(str, ph_idx)) + '\n')
+        #     f.close()
+
+        # Save spectrum
+        np.savetxt(f'{pre_saving}/spectra/freqs.txt', prel.freqs)
+        np.savetxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt', F_photo)
+        np.savez(f"{pre_saving}/trap/{check}_Rtr{snap}.npz", **colorsphere)
+        
             
     del xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, rph, alphaph, Lph, ph_idx
     gc.collect()
@@ -337,22 +388,3 @@ for idx_s, snap in enumerate(snaps):
 eng.exit()
 # usage = resource.getrusage(resource.RUSAGE_SELF)
 # print(f"Peak RAM usage: {usage.ru_maxrss / 1024**2:.2f} MB")
-
-#%% test if you save the indices correctly
-# if not alice:
-#     snap = 162
-#     ph_idx = [int(ph_idx_i) for ph_idx_i in ph_idx]
-#     data_check = make_tree(loadpath, snap, energy = True)
-#     X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ = \
-#         data_check.X, data_check.Y, data_check.Z, data_check.Temp, data_check.Den, data_check.Rad, data_check.Vol, data_check.VX, data_check.VY, data_check.VZ
-
-#     denmask = Den > 1e-19
-#     X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ = \
-#         make_slices([X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ], denmask)
-    
-#     plt.figure()
-#     plt.plot(xph/X[ph_idx], c = 'firebrick', label = 'x')
-#     plt.plot(yph/Y[ph_idx], ls = '--', c = 'dodgerblue', label = 'y')
-#     plt.plot(zph/Z[ph_idx], ls = ':', c = 'royalblue', label = 'z')
-#     plt.legend()
-# %%

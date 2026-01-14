@@ -1,0 +1,227 @@
+""" Total and regional angle-integrated radial velocity, density, temperature, mass fallback, luminosity and trapping radius
+for wind photospheric cells."""
+abspath = '/Users/paolamartire/shocks'
+import sys
+sys.path.append(abspath)
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
+from src import orbits as orb
+import Utilities.prelude as prel
+import healpy as hp
+from Utilities.operators import sort_list, choose_observers, to_spherical_components  
+
+m = 4
+Mbh = 10**m
+beta = 1
+mstar = .5
+Rstar = .47
+n = 1.5
+params = [Mbh, Rstar, mstar, beta]
+compton = 'Compton'
+which_obs = 'dark_bright_z' #'dark_bright_z' #'arch', 'quadrants', 'axis'
+check = 'HiResNewAMR' 
+
+params = [Mbh, Rstar, mstar, beta]
+things = orb.get_things_about(params)
+Rs = things['Rs']
+Rg = things['Rg']
+Rt = things['Rt']
+Rp = things['Rp']
+R0 = things['R0']
+apo = things['apo']
+amin = things['a_mb']
+tfallback = things['t_fb_days']
+t_fb_days_cgs = tfallback * 24 * 3600 # in seconds
+conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
+Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
+Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
+snaps, tfbs, Lums = data[:, 0], data[:, 1], data[:, 2]
+tfbs, snaps, Lums = sort_list([tfbs, snaps, Lums], snaps, unique=True)
+snaps = snaps.astype(int)
+idx_maxLum = np.argmax(Lums)
+
+def mean_nonzero(arr, axis=1):
+    count = np.count_nonzero(arr, axis=axis)
+    return np.divide(
+        np.sum(arr, axis=axis),
+        count,
+        out=np.zeros_like(count, dtype=float),
+        where=count != 0
+    )
+
+# Pick observers
+observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
+observers_xyz = np.array(observers_xyz)
+indices_axis, label_axis, colors_axis, lines_axis = choose_observers(observers_xyz, which_obs)
+observers_xyz = observers_xyz.T
+x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
+
+Lum_ph_all = np.zeros(len(snaps))
+ratio_Rtr = np.zeros((len(indices_axis), len(snaps)))
+r_tr_sec = np.zeros((len(indices_axis), len(snaps)))
+r_trnonzero_sec = np.zeros((len(indices_axis), len(snaps)))
+r_ph_sec = np.zeros((len(indices_axis), len(snaps)))
+r_phnonzero_sec = np.zeros((len(indices_axis), len(snaps)))
+Mdot_sec = np.zeros((len(indices_axis), len(snaps)))
+Vr_tr_sec = np.zeros((len(indices_axis), len(snaps)))  
+Vr_ph_sec = np.zeros((len(indices_axis), len(snaps)))  
+den_tr_sec = np.zeros((len(indices_axis), len(snaps)))
+den_ph_sec = np.zeros((len(indices_axis), len(snaps)))
+Temp_tr_sec = np.zeros((len(indices_axis), len(snaps))) 
+Temp_ph_sec = np.zeros((len(indices_axis), len(snaps)))   
+Lum_ph_sec = np.zeros((len(indices_axis), len(snaps)))
+Lum_adv_tr_sec = np.zeros((len(indices_axis), len(snaps)))
+# Lum_adv_ph_sec = np.zeros((len(indices_axis), len(snaps)))
+
+# fig, ax = plt.subplots(1, 3, figsize=(18,6))
+for s, snap in enumerate(snaps): 
+        # you are considering all the photosphere, not only the unbound
+        xph, yph, zph, vol_ph, den_ph, Temp_ph, RadDen_ph, vx_ph, vy_ph, vz_ph, Press_ph, IE_den_ph, _, _, Lum_ph, _ = \
+                np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
+        den_ph /=prel.den_converter # it was saved in cgs
+        r_ph = np.sqrt(xph**2 + yph**2 + zph**2)
+        vel_ph = np.sqrt(vx_ph**2 + vy_ph**2 + vz_ph**2)
+        mass_ph = den_ph * vol_ph
+        Lum_ph_all[s] = np.mean(Lum_ph) # CGS
+        Vr_ph, _, _ = to_spherical_components(vx_ph, vy_ph, vz_ph, xph, yph, zph)
+        bern_ph = orb.bern_coeff(r_ph, vel_ph, den_ph, mass_ph, Press_ph, IE_den_ph, RadDen_ph, params)
+
+        Temprad_ph = (RadDen_ph*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
+        # Lum_adv_ph = 4 * np.pi * r_ph**2 * Vr_ph * RadDen_ph # advective luminosity
+
+        dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz") # NB it is selected to be only done by wind cells
+        x_tr, y_tr, z_tr, den_tr, Vr_tr, Temp_tr, Rad_den_tr, vol_tr = \
+                dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['Temp_tr'], dataRtr['Rad_den_tr'], dataRtr['vol_tr']
+        mass_tr = den_tr * vol_tr
+        dim_tr = (vol_tr)**(1/3)
+        r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+        Temprad_tr = (Rad_den_tr*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
+        Mdot_tr =  np.pi * dim_tr**2 * den_tr * Vr_tr 
+        Lum_adv_tr = 4 * np.pi * r_tr**2 * Vr_tr * Rad_den_tr # advective luminosity
+        for i, observer in enumerate(indices_axis):
+                # if snap == 109:
+                #         if i != 3:
+                #                 img = ax[i].scatter(r_ph[observer]/Rt, zph[observer]/ Rt, s = 40, c= Lum_ph[observer]/Ledd_cgs, cmap='rainbow', norm=LogNorm(vmin=5e-2, vmax=5e1))
+                #                 ax[i].set_xlabel(r'$r_{\rm ph} [r_{\rm t}]$')
+                #                 if i != 2:
+                #                         ax[i].loglog()
+                #                         ax[i].set_xlim(2, 1e2)
+                #                 # else:
+                #                 #         ax[i].set_yscale('log')
+                #                 ax[i].tick_params(axis='both', which='major', width=1.2, length=9)
+                #                 ax[i].tick_params(axis='both', which='minor', width=.8, length=5)
+                #                 ax[i].set_title(f'Observer: {label_axis[i]}', fontsize=16)
+                #                 # ax[i].set_ylim(1, 50)
+                #         if i == 3:
+                #                 cbar = fig.colorbar(img)
+                                # cbar.set_label(r'$L_{\rm ph}$ [L$_{\rm Edd}$]')
+                # Rtr > 1.5*Rt to avoid spurious point at the beginning
+                
+                exist_rtr = r_tr[observer] > 1.5*Rt
+                photo_wind = np.logical_and(bern_ph[observer]>0, Vr_ph[observer]>0)
+                ratio_Rtr[i][s] = len(r_tr[observer][exist_rtr]) / len(r_tr[observer])
+                wind_Rtr = observer[np.logical_and(exist_rtr, photo_wind)]
+                Vr_ph_sec[i][s] = np.sum(Vr_ph[wind_Rtr] * mass_ph[wind_Rtr]) / np.sum(mass_ph[wind_Rtr])
+                den_ph_sec[i][s] = np.sum(den_ph[wind_Rtr] * mass_ph[wind_Rtr]) / np.sum(mass_ph[wind_Rtr])
+                Temp_ph_sec[i][s] = np.sum(Temprad_ph[wind_Rtr] * vol_ph[wind_Rtr]) / np.sum(vol_ph[wind_Rtr])                 
+                # Lum_adv_ph_sec[i][s] = np.mean(Lum_adv_ph[wind_Rtr])  
+                r_ph_sec[i][s] = np.mean(r_ph[observer])  
+                r_phnonzero_sec[i][s] = np.mean(r_ph[observer][exist_rtr])
+                Lum_ph_sec[i][s] = np.mean(Lum_ph[observer]) # CGS
+                
+                # wind_Rtr = observer[np.logical_and(bern_tr[observer]>0, Vr_tr[observer]>0)]
+                Vr_tr_sec[i][s] = np.sum(Vr_tr[wind_Rtr] * mass_tr[wind_Rtr]) / np.sum(mass_tr[wind_Rtr])
+                den_tr_sec[i][s] = np.sum(den_tr[wind_Rtr] * mass_tr[wind_Rtr]) / np.sum(mass_tr[wind_Rtr])
+                Temp_tr_sec[i][s] = np.sum(Temprad_tr[wind_Rtr] * vol_tr[wind_Rtr]) / np.sum(vol_tr[wind_Rtr])                 
+                Lum_adv_tr_sec[i][s] = np.mean(Lum_adv_tr[wind_Rtr]) * prel.en_converter/prel.tsol_cgs
+
+                r_tr_sec[i][s] = np.mean(r_tr[observer]) 
+                r_trnonzero_sec[i][s] = np.mean(r_tr[observer][exist_rtr]) 
+                Temp_tr_sec[i][s] = np.sum(Temprad_tr[wind_Rtr] * vol_tr[wind_Rtr]) / np.sum(vol_tr[wind_Rtr])
+                Mdot_sec[i][s] = 4 * r_tr_sec[i][s]**2 /np.sum(dim_tr[wind_Rtr]**2) * np.sum(Mdot_tr[wind_Rtr])
+
+# ax[0].set_ylabel(r'z [r$_{\rm t}$]')
+# Plot
+figTr, ((axTr, axTrnonzero), (axNtr, axratio)) = plt.subplots(2, 2, figsize=(18, 15))
+fig, (axVph, axdph, axTph) = plt.subplots(1, 3, figsize=(27, 6))
+figL, (axL, axMdot) = plt.subplots(1, 2, figsize=(18, 6))
+
+for i, observer in enumerate(indices_axis):
+        if i == 3:
+               continue
+        axTr.plot(tfbs, r_tr_sec[i]/Rt, c = colors_axis[i], label = r'$r_{\rm tr}$' if i == 0 else '')
+        axTr.plot(tfbs, r_ph_sec[i]/Rt, c = colors_axis[i], ls=':', label = r'$r_{\rm ph}$' if i == 0 else '')
+        
+        axTrnonzero.plot(tfbs, r_trnonzero_sec[i]/Rt, c = colors_axis[i], label = r'$r_{\rm tr}$' if i == 0 else '')
+        axTrnonzero.plot(tfbs, r_phnonzero_sec[i]/Rt, c = colors_axis[i], ls = ':', label = r'$r_{\rm ph}$' if i == 0 else '')
+
+        
+        axratio.plot(tfbs, r_phnonzero_sec[i]/r_trnonzero_sec[i], c = colors_axis[i]) #, label = label_axis[i])
+        axNtr.plot(tfbs, ratio_Rtr[i], c = colors_axis[i], label = label_axis[i])
+        axVph.plot(tfbs, Vr_ph_sec[i] * conversion_sol_kms, c = colors_axis[i], label = label_axis[i])
+        axdph.plot(tfbs, den_ph_sec[i] * prel.den_converter, c = colors_axis[i], label = label_axis[i])
+        axTph.plot(tfbs, Temp_ph_sec[i]/Rp, c = colors_axis[i], label = label_axis[i])
+        # axTr.plot(tfbs, r_ph_sec[i]/Rt, c = colors_axis[i], label = label_axis[i])
+        # axTr.scatter(tfbs[idx_maxLum], r_tr_sec[i][idx_maxLum]/Rt, c = colors_axis[i], s = 85, marker = 'X')
+        axL.plot(tfbs, Lum_ph_sec[i]/Lum_ph_all, c = colors_axis[i],  ls = '--', label =r'$L_{\rm FLD} (r_{\rm ph})$' if i ==0 else '')
+        axL.plot(tfbs, Lum_adv_tr_sec[i]/Lum_ph_all, c = colors_axis[i], label =r'$L_{\rm adv} (r_{\rm tr})$' if i ==0 else '')
+        # axL.scatter(tfbs[idx_maxLum], Lum_obs_time[i][idx_maxLum]/Ledd_cgs, c = colors_axis[i], s = 85, marker = 'X')
+        axMdot.plot(tfbs, Mdot_sec[i]/Medd_sol, c = colors_axis[i], label = label_axis[i])
+        # axMdot.scatter(tfbs[idx_maxLum], Mdot_sum[i][idx_maxLum]/Medd_sol, c = colors_axis[i], s = 85, marker = 'X')
+
+axTr.set_ylabel(r'$\langle r \rangle_{\rm obs} [r_{\rm t}]$')
+axTrnonzero.set_ylabel(r'$\langle r \rangle_{\rm adv obs} [r_{\rm t}]$')
+axNtr.set_ylabel(r'Fraction of obs with adv region')
+axratio.set_ylabel(r'$r_{\rm ph}/r_{\rm tr}$ in adv. region')
+axVph.set_ylabel(r'v$_{\rm ph}$ [km/s]')
+axdph.set_ylabel(r'$\rho_{\rm ph}$ [g/cm$^3]$')    
+axL.set_ylabel(r'$L [L_{\rm FLD}]$')
+axMdot.set_ylabel(r'$\dot{M}_{\rm w} (r_{\rm tr}) [\dot{M}_{\rm Edd}]$')
+axTph.set_ylabel(r'$T_{\rm rad, ph} [K]$')
+original_ticks = axTr.get_xticks()
+midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+new_labels = [f'{tick:.2f}' if tick in original_ticks else '' for tick in new_ticks]
+for ax in [axTrnonzero, axTr, axratio, axNtr, axVph, axdph, axL, axMdot, axTph]:
+        ax.set_xlabel(r't [$t_{\rm fb}$]')
+        ax.set_xticks(new_ticks)
+        ax.set_xticklabels(new_labels)
+        ax.tick_params(axis='both', which='major', width=1.2, length=9, color = 'k')
+        ax.tick_params(axis='both', which='minor', width=1, length=7, color = 'k')
+        ax.grid()
+        ax.set_xlim(0.05, 2.25) 
+        if ax != axratio:
+                ax.set_yscale('log')
+        ax.legend(fontsize = 16)
+        #     ax.set_title(r'Mean on observers (NON discarding the one with $r_{\rm tr}=0$)')
+
+axTr.set_ylim(1, 100)
+axratio.set_ylim(1, 10)
+axdph.set_ylim(1e-15, 1e-10)
+axVph.set_ylim(2e3, 3e4)
+axTph.set_ylim(9e2, 5e4)
+axMdot.set_ylim(7e2, 5e5)
+axL.set_ylim(1e-1, 10)
+
+
+#  compare with other resolutions
+# pvalue 
+# statL = np.zeros(len(tfbL)) 
+# pvalueL = np.zeros(len(tfbL))
+# for i, snapi in enumerate(snapsL):
+#         # LowRes data
+#         photo = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/photo/LowResNewAMR_photo{snapi}.txt')
+#         xph_i, yph_i, zph_i, vol_i = photo[0], photo[1], photo[2], photo[3]
+#         rph_i = np.sqrt(xph_i**2 + yph_i**2 + zph_i**2)
+#         if rph_i.any() < R0:
+#                 print('Less than R0:', rph_i[rph_i<R0])
+#         # ksL = ks_2samp(rph_i, rph_iFid, alternative='two-sided')
+#         # statL[i], pvalueL[i] = ksL.statistic, ksL.pvalue
+
+
+
+# %%

@@ -7,7 +7,7 @@ Created on Tue Nov 26 15:12:06 2024
 """
 import numpy as np
 
-def opacity_extrap(x, y, K, scatter = None, slope_length = 7, highT_slope = 0, extrarowsx = 101, 
+def opacity_extrap(x, y, K, scatter = None, slope_length = 7, highrho_slope = None, highT_slope = 0, extrarowsx = 101, 
                  extrarowsy = 100):
     ''' 
     Extra/Interpolation for opacity both in density and temperature.
@@ -19,6 +19,7 @@ def opacity_extrap(x, y, K, scatter = None, slope_length = 7, highT_slope = 0, e
     scatter: either None or interpoalted scattering table in ln (with the same shape of K).
              if != None, brings to opacity always above scattering. It has to be applied for rosseland.
     slope_length, int: position of the other point used for the slope.
+    highrho_slope, float: slope for high density extrapolation.
     highT_slope, float: slope for high temperature extrapolation.
     extrarowsx/extrarowsy, int: number of rows/columns to extrapolate.
     
@@ -66,10 +67,13 @@ def opacity_extrap(x, y, K, scatter = None, slope_length = 7, highT_slope = 0, e
                 elif ysel > y[-1]: # Too dense
                     deltay = y[-1] - y[-slope_length] 
                     Kxslope = (K[slope_length - 1, -1] - K[0, -1]) / deltax
-                    Kyslope = (K[0, -1] - K[0, -slope_length]) / deltay
+                    if highrho_slope:
+                        Kyslope = highrho_slope 
+                    else:
+                        Kyslope = (K[0, -1] - K[0, -slope_length]) / deltay
                     # Rho_ext.append(ysel)
                     # slope_rho.append(Kyslope)
-                    Kn[ix][iy] = K[0, -1] + Kxslope * (xsel - x[0]) + Kyslope * (ysel - y[-1])
+                    Kn[ix][iy] = K[0, -1] + Kxslope * (xsel - x[0]) +  Kyslope * (ysel - y[-1])
                 else: # Density is inside the table
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kxslope = (K[slope_length - 1, iy_inK] - K[0, iy_inK]) / deltax
@@ -116,7 +120,10 @@ def opacity_extrap(x, y, K, scatter = None, slope_length = 7, highT_slope = 0, e
                     
                 elif ysel > y[-1]:  # Too dense, Temperature is inside table
                     deltay = y[-1] - y[-slope_length]
-                    Kyslope = (K[ix_inK, -1] - K[ix_inK, -slope_length]) / deltay
+                    if highrho_slope:
+                        Kyslope = highrho_slope
+                    else:
+                        Kyslope = (K[ix_inK, -1] - K[ix_inK, -slope_length]) / deltay
                     Kn[ix][iy] = K[ix_inK, -1] + Kyslope * (ysel - y[-1])
 
                 else:

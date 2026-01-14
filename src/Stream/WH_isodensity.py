@@ -23,7 +23,7 @@ import src.orbits as orb
 from Utilities.operators import make_tree, Ryan_sampler
 from Utilities.selectors_for_snap import select_prefix, select_snap
 
-#%%
+#
 ## Parameters
 #
 m = 4
@@ -33,7 +33,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
-check = 'LowResNewAMR'
+check = 'HiResStream'
 compton = 'Compton'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
@@ -236,8 +236,8 @@ def plot_isodensity_results(x_plane, x_Tplane, y_plane, z_plane, mass_plane, dim
     counts_Z, bin_edges_Z = np.histogram(z_plane, bins=50, weights=mass_plane)
     bin_centers_Z = 0.5 * (bin_edges_Z[:-1] + bin_edges_Z[1:])
     ax3.plot(bin_centers_Z, counts_Z, c='k')
-    ax3.axvline(x=z_low, color='k', linestyle='--')
-    ax3.axvline(x=z_up, color='k', linestyle='--')
+    ax3.axvline(x=z_low, color='k', linestyle = '--')
+    ax3.axvline(x=z_up, color='k', linestyle = '--')
     ax3.set_ylabel(r'Mass [$M_\odot$]')
     ax3.set_xlabel(r'Z [$R_\odot$]')
     original_ticks = ax3.get_xticks()
@@ -342,7 +342,7 @@ if __name__ == '__main__':
     step = np.round((2*theta_lim)/200, 3)
     theta_init = np.arange(-theta_lim, theta_lim, step)
     theta_arr = Ryan_sampler(theta_init)
-    idx_forplot = 42 # indices for theta = -pi/2, 0, pi/2: 54 101 149
+    idx_forplot = np.argmin(np.abs(theta_arr-np.pi/8)) # indices for theta = -pi/2, 0, pi/2: 54 101 149
     massperc = 0.8
     print(f'We are in folder {folder}', flush=True)
     
@@ -352,7 +352,7 @@ if __name__ == '__main__':
         if alice:
             snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
         else: 
-            snaps = [81]
+            snaps = [48]
 
         for i, snap in enumerate(snaps):
             print(f'Snap {snap}', flush = True)
@@ -370,10 +370,13 @@ if __name__ == '__main__':
             X, Y, Z, VX, VY, VZ, Den, Mass, Vol = \
                 sec.make_slices([X, Y, Z, VX, VY, VZ, Den, Mass, Vol], cutden)
             dim_cell = Vol**(1/3) 
-            del Vol
+            del Vol 
 
             try:
-                com = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
+                if alice:
+                    com = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
+                else:
+                    com = np.load(f'fail.npz', allow_pickle=True) # dumb way to make it fail
                 print('Load stream from file', flush=True)
                 x_cm = com['x_cm']
                 y_cm = com['y_cm']
@@ -381,9 +384,10 @@ if __name__ == '__main__':
             except FileNotFoundError:
                 from src.Stream.com_stream import find_transverse_com
                 print('Stream not found, computing it', flush=True)
-                if not alice: # just some computation
-                    theta_arr = theta_arr[idx_forplot-3:idx_forplot+3]
-                
+                if not alice:
+                    theta_arr = theta_arr[idx_forplot-3:idx_forplot+4]
+                    print('I will use', theta_arr, 'for theta array', flush=True)
+
                 thresh_cm, indeces_cm = find_transverse_com(X, Y, Z, dim_cell, Den, Mass, theta_arr)
                 x_cm, y_cm, z_cm, vx_cm, vy_cm, vz_cm, den_cm, mass_cm = \
                 X[indeces_cm], Y[indeces_cm], Z[indeces_cm], \
@@ -465,14 +469,14 @@ if __name__ == '__main__':
 
         # Plotting results
         for i, snap in enumerate(snaps):
-            # if snap != 31:
-            #     continue
+            if snap != 48:
+                continue
             data_stream = np.load(f'{abspath}/data/{folder}/WH/stream/stream_{check}_{snap}.npz', allow_pickle=True)
             x_cm = data_stream['x_cm']
             # print(data_stream['theta_arr'][42:45])
             y_cm = data_stream['y_cm']
             z_cm = data_stream['z_cm']
-            data_width = np.load(f'{abspath}/data/{folder}/WH/wh_{massperc}{check}_{snap}.npz', allow_pickle=True)
+            data_width = np.load(f'{abspath}/data/{folder}/WH/{massperc}/wh_{massperc}{check}_{snap}.npz', allow_pickle=True)
             theta_wh = data_width['theta_wh']
             X_low_w = data_width['X_low_w']
             X_up_w = data_width['X_up_w']
