@@ -69,6 +69,8 @@ apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 eng = matlab.engine.start_matlab()
 Lphoto_all = np.zeros(len(snaps))
 for idx_s, snap in enumerate(snaps):
+    if snap != 109:
+        continue
     print('\n Snapshot: ', snap, '\n', flush=True)
     box = np.zeros(6)
     # Load data -----------------------------------------------------------------
@@ -307,7 +309,7 @@ for idx_s, snap in enumerate(snaps):
             black_body = prel.freqs**3 / (prel.c_cgs**2 * wien)
             F_photo_temp[i,:] += alpha_planck[k] * Vcell * np.exp(-los_effective[k]) * black_body
         
-        norm = Lph / np.trapezoid(F_photo_temp[i,:], prel.freqs)
+        norm = Lphoto / np.trapezoid(F_photo_temp[i,:], prel.freqs)
         F_photo_temp[i,:] *= norm
         F_photo[i,:] = np.dot(cross_dot[i,:], F_photo_temp)    
          
@@ -327,8 +329,8 @@ for idx_s, snap in enumerate(snaps):
             plt.tight_layout() 
             plt.tick_params(axis='both', which='major',length=10, width=1.5)
             plt.tick_params(axis='both', which='minor',length=5, width=1)
-            plt.savefig(f'{abspath}/Figs/{folder}/Test/{snap}/alphai_{snap}_{i}.png')
-            plt.close()
+            # plt.savefig(f'{abspath}/Figs/{folder}/Test/{snap}/alphai_{snap}_{i}.png')
+            # plt.close()
 
         del smoothed_flux, R_lamda, fld_factor, ray_radDen
         gc.collect()
