@@ -66,6 +66,7 @@ if alice:
         Ediss = Ediss_den * vol # energy dissipation rate [energy/time] in code units
         
         if do_cut == 'sections':
+            X, Y, Z = make_slices([X, Y, Z], cut)
             sections = choose_sections(X, Y, Z, choice = 'dark_bright_z')
             diss_list = {}
             diss_list[i] = {
@@ -75,9 +76,15 @@ if alice:
             label_obs = []
             for key in sections.keys():
                 cond_sec.append(sections[key]['cond'])
-                # colors_obs.append(sections[key]['color'])
                 label_obs.append(sections[key]['label'])
-                # lines_obs.append(sections[key]['line'])
+
+            for k, cond in enumerate(cond_sec):
+                Ldisstot_pos = np.sum(Ediss[np.logical_and(Ediss_den >= 0, cond)]) 
+                Rdiss_pos = np.sum(Rsph[np.logical_and(Ediss_den >= 0, cond)] * Ediss[np.logical_and(Ediss_den >= 0, cond)]) / np.sum(Ediss[np.logical_and(Ediss_den >= 0, cond)])
+
+                diss_list[i] = {
+                    f'Rdiss_pos {label_obs[k]}': Rdiss_pos,
+                    f'Ldisstot_pos {label_obs[k]}': Ldisstot_pos}
 
         if do_cut == '' or do_cut == 'nocut':
             Ldisstot_pos = np.sum(Ediss[Ediss_den >= 0])
@@ -92,18 +99,6 @@ if alice:
                     writer.writerow(header)
                 writer.writerow(data)
             file.close()
-        
-        elif do_cut == 'sections':
-            for k, cond in enumerate(cond_sec):
-                Ldisstot_pos = np.sum(Ediss[np.logical_and(Ediss_den >= 0, cond)]) 
-                Rdiss_pos = np.sum(Rsph[np.logical_and(Ediss_den >= 0, cond)] * Ediss[np.logical_and(Ediss_den >= 0, cond)]) / np.sum(Ediss[np.logical_and(Ediss_den >= 0, cond)])
-                Ldisstot_neg = np.sum(Ediss[np.logical_and(Ediss_den < 0, cond)])
-                Rdiss_neg = np.sum(Rsph[np.logical_and(Ediss_den < 0, cond)] * Ediss[np.logical_and(Ediss_den < 0, cond)]) / np.sum(Ediss[np.logical_and(Ediss_den < 0, cond)])
-                data = [snap, tfb, Rdiss_pos, Ldisstot_pos, Rdiss_neg, Ldisstot_neg]
-
-                diss_list[i] = {
-                    f'Rdiss_pos {label_obs[k]}': Rdiss_pos,
-                    f'Ldisstot_pos {label_obs[k]}': Ldisstot_pos}
 
         elif do_cut == 'ionization' or do_cut == 'ionizationHe': 
             # split above and belowe 5e4K
