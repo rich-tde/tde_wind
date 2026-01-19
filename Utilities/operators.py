@@ -131,7 +131,7 @@ def find_step(theta_arr, i):
 
 def choose_sections(X, Y, Z, choice = 'dark_bright_z'):
     R_cyl = np.sqrt(X**2 + Y**2)
-    alpha_pole = np.pi/2-np.arccos(23/24)
+    alpha_pole = np.pi/4 #np.pi/2-np.arccos(23/24)
     slope = np.tan(alpha_pole)  
     cond_Npole = np.logical_and(np.abs(Z) >= slope *  R_cyl, Z > 0)
     cond_Spole = np.logical_and(np.abs(Z) >= slope *  R_cyl, Z < 0)

@@ -1,0 +1,287 @@
+""" Compute Mdot fallback and wind across a symmetrical (eventually fixed) surface"""
+import sys
+sys.path.append('/Users/paolamartire/shocks/')
+
+from Utilities.isalice import isalice
+alice, plot = isalice()
+if alice:
+    abspath = '/data1/martirep/shocks/shock_capturing'
+    compute = True
+else:
+    abspath = '/Users/paolamartire/shocks'
+    compute = False
+
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import csv
+import os
+import Utilities.prelude as prel
+import src.orbits as orb
+from Utilities.operators import make_tree, to_spherical_components, choose_sections
+from Utilities.selectors_for_snap import select_snap
+from Utilities.sections import make_slices
+
+##
+# PARAMETERS
+#%%
+m = 4
+Mbh = 10**4
+Mbh_cgs = Mbh * prel.Msol_cgs
+beta = 1
+mstar = .5
+Rstar = .47
+n = 1.5
+compton = 'Compton'
+check = 'HiResNewAMR'
+
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+params = [Mbh, Rstar, mstar, beta]
+things = orb.get_things_about(params)
+tfallback = things['t_fb_days']
+tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
+Rs = things['Rs']
+Rg = things['Rg']
+Rt = things['Rt']
+Rp = things['Rp']
+R0 = things['R0']
+apo = things['apo']
+amin = things['a_mb'] # semimajor axis of the bound orbit
+
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
+Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
+Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
+
+#%%
+# MAIN
+if compute: # compute dM/dt = dM/dE * dE/dt
+    r_chosen = 0.5*amin # 'Rtr' for radius of the trap, value that you want for a fixed value
+    which_r_title = '05amin'
+
+    snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
+
+    for i, snap in enumerate(snaps):
+        print(snap, flush=True)
+        if alice:
+            path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+        else:
+            path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
+
+        # Load data and pick the ones unbound and with positive velocity
+        data = make_tree(path, snap, energy = True)
+        X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
+            data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Press, data.VX, data.VY, data.VZ, data.IE, data.Rad
+        cut = Den > 1e-19
+        X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
+            make_slices([X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
+        dim_cell = Vol**(1/3)
+        Rsph = np.sqrt(X**2 + Y**2 + Z**2)
+        V = np.sqrt(VX**2 + VY**2 + VZ**2)
+        bern = orb.bern_coeff(Rsph, V, Den, Mass, Press, IE_den, Rad_den, params)
+        v_rad, _, _ = to_spherical_components(VX, VY, VZ, X, Y, Z)
+
+        cond_wind = np.logical_and(v_rad >= 0, bern > 0)
+        X_pos, Y_pos, Z_pos, Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
+            make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell], cond_wind)
+        if Den_pos.size == 0:
+            print(f'no positive', flush=True)
+            data = [snap, tfb[i], 0, 0, 0, 0]
+
+        else: 
+            sections = choose_sections(X_pos, Y_pos, Z_pos, choice = 'dark_bright_z')
+            cond_sec = []
+            label_obs = []
+            for key in sections.keys():
+                cond_sec.append(sections[key]['cond'])
+                label_obs.append(sections[key]['label'])
+
+            mwind = np.zeros(len(cond_sec))
+            for j, cond in enumerate(cond_sec):
+                condRtr = np.logical_and(np.abs(Rsph_pos-r_chosen) < dim_cell_pos, cond)
+                Mdot = np.pi * dim_cell_pos**2 * Den_pos * v_rad_pos  
+                mwind[j] = 4 * r_chosen**2 * np.sum(Mdot[condRtr]) / np.sum(dim_cell_pos[condRtr]**2)
+            data = np.concatenate(([snap], [tfb[i]], mwind))  
+    
+        csv_path = f'{abspath}/data/{folder}/wind/MdotSec_{check}{which_r_title}.csv'
+        if alice:
+            with open(csv_path, 'a', newline='') as file:
+                writer = csv.writer(file)
+                if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
+                    writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_obs])
+                writer.writerow(data)
+            file.close()
+
+if plot:
+    # from scipy.integrate import cumulative_trapezoid
+    from plotting.paper.IHopeIsTheLast import ratio_BigOverSmall
+    from Utilities.operators import sort_list
+    import matplotlib.colors as mcolors
+    which_r_title = '05amin'
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
+    checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
+    checks_label = ['Low', 'Middle', 'High']    
+
+    fig, ax1 = plt.subplots(1, 1, figsize = (10, 6))
+    figCon, (axCon, axerr) = plt.subplots(2, 1, figsize = (9, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
+
+    dataL = np.loadtxt(f'{abspath}/data/{folder}LowResNewAMR/LowResNewAMR_red.csv', delimiter=',', dtype=float)
+    tfbsL_lum, LumsL = dataL[:, 1], dataL[:, 2]
+    LumsL, tfbsL_lum = sort_list([LumsL, tfbsL_lum], tfbsL_lum, unique=True)
+    tfbL_max = tfbsL_lum[np.argmax(LumsL)]
+    _, tfbL, mfallL, mwind_dimCellL, mwind_RL, mwind_R_nonzeroL, _, _, _, _ = \
+            np.loadtxt(f'{abspath}/data/{folder}LowResNewAMR/wind/Mdot_LowResNewAMR{which_r_title}{statist}.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True)
+    MdotLmax = mwind_dimCellL[np.argmin(np.abs(tfbL - tfbL_max))]
+
+    dataM = np.loadtxt(f'{abspath}/data/{folder}NewAMR/NewAMR_red.csv', delimiter=',', dtype=float)
+    tfbsM_lum, LumsM = dataM[:, 1], dataM[:, 2]
+    LumsM, tfbsM_lum = sort_list([LumsM, tfbsM_lum], tfbsM_lum, unique=True)
+    tfbM_max = tfbsM_lum[np.argmax(LumsM)]
+    _, tfbM, mfallM, mwind_dimCellM, mwind_RM, mwind_R_nonzeroM, _, _, _, _ = \
+            np.loadtxt(f'{abspath}/data/{folder}NewAMR/wind/Mdot_NewAMR{which_r_title}{statist}.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True)
+    MdotMmax = mwind_dimCellM[np.argmin(np.abs(tfbM - tfbM_max))]
+    tfb_ratioL, ratioL, rel_errL  = ratio_BigOverSmall(tfbM, mwind_dimCellM, tfbL, mwind_dimCellL)
+
+    dataH = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/HiResNewAMR_red.csv', delimiter=',', dtype=float)
+    tfbsH_lum, LumsH = dataH[:, 1], dataH[:, 2]
+    LumsH, tfbsH_lum = sort_list([LumsH, tfbsH_lum], tfbsH_lum, unique=True)
+    tfbH_max = tfbsH_lum[np.argmax(LumsH)]
+    _, tfbH, mfallH, mwind_dimCellH, mwind_RH, mwind_R_nonzeroH, _, _, tot_IE_H, tot_Rad_H = \
+            np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/wind/Mdot_HiResNewAMR{which_r_title}{statist}.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True) 
+    MdotHmax = mwind_dimCellH[np.argmin(np.abs(tfbH - tfbH_max))]
+    tfb_ratioH, ratioH, rel_errH  = ratio_BigOverSmall(tfbM, mwind_RM, tfbH, mwind_RH)
+    data_E = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/convE_{check}.csv', delimiter=',', dtype=float, skiprows=1)    
+    # tfb_E, IE, Rad = data_E[:, 1], data_E[:, 2], data_E[:, 5]
+    ratio_RadIE = tot_Rad_H/tot_IE_H #Rad/IE
+    # not the best way to do it, but Mdot starts later than energies
+    # ratio_RadIE = np.array(ratio_RadIE[len(ratio_RadIE)-len(mwind_dimCellH):])
+    print('final ratios Rad/IE:', ratio_RadIE[-10:])
+
+    print('Naive estimate L with max Mdot:', 0.1 * np.max(np.abs(mfallH))* prel.Msol_cgs/prel.tsol_cgs * prel.c_cgs**2)
+
+    # integrate mwind_dimCell in tfb 
+    # mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)
+    # mfall_int = cumulative_trapezoid(np.abs(mfall), tfb, initial = 0)
+    # print(f'integral of Mw at the last time: {mwind_dimCell_int[-1]/mstar} Mstar')
+    # print(f'integral of Mfb at the last time: {mfall_int[-1]/mstar} Mstar')
+    # print(f'End of simualation, Mw/Mfb in {check}:', np.abs(mwind_dimCell[-1]/mfall[-1]))
+    
+    ax1.plot(tfbH, np.abs(mfallH)/Medd_sol, ls = '--', c = 'k', label = r'$\dot{M}_{\rm fb}$')
+    img = ax1.scatter(tfbH, np.abs(mwind_dimCellH)/Medd_sol, c = ratio_RadIE, cmap = 'PuOr', edgecolors = 'gray', norm = colors.LogNorm(vmin=3e-2, vmax=5e1) ,label = r'$\dot{M}_{\rm w}$')
+    cbar = fig.colorbar(img, ax = ax1)
+    cbar.set_label(r'$E_{\rm rad}/E_{\rm th}$')
+    cbar.ax.tick_params(which = 'major', length=8, width=0.9)
+    cbar.ax.tick_params(which = 'minor', length=5, width=0.7)
+    ax1.axvline(tfbH_max, ls = ':', c = 'gray')
+    ax1.text(0.011+tfbH_max, 20, r'$t=t_{\rm p}$', rotation = 90, fontsize = 20) 
+
+    axCon.plot(tfbL, np.abs(mwind_dimCellL)/Medd_sol, c = 'C1', label = 'Low') 
+    axCon.plot(tfbM, np.abs(mwind_dimCellM)/Medd_sol, c = 'yellowgreen', label = 'Middle') 
+    axCon.plot(tfbH, np.abs(mwind_dimCellH)/Medd_sol, c = 'darkviolet', label = 'High') 
+    axCon.scatter([tfbL_max, tfbM_max, tfbH_max], np.array([MdotLmax, MdotMmax, MdotHmax])/Medd_sol, c = ['C1', 'yellowgreen', 'darkviolet'], s = 90, marker = 'd')
+    axerr.plot(tfb_ratioL, ratioL, c = 'C1')
+    axerr.plot(tfb_ratioL, ratioL, c = 'yellowgreen', ls = (0, (5, 10)))
+    axerr.plot(tfb_ratioH, ratioH, c = 'darkviolet')
+    axerr.plot(tfb_ratioH, ratioH, c = 'yellowgreen', ls = (0, (5, 10)))
+    
+    original_ticks = ax1.get_xticks()
+    for ax in (axCon, ax1, axerr):
+        if ax != axerr:
+            ax.set_yscale('log')
+            ax.set_ylim(10, 9e6)
+            ax.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')   
+            ax.legend(fontsize = 20)
+        else:
+            ax.set_ylim(0.9, 4)
+            ax.set_ylabel(r'$\mathcal{R}$')
+
+        midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+        new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+        ax.set_xticks(new_ticks)
+        # if ax == axCon:
+        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
+        ax.set_xticklabels(labels)  
+        if ax != axCon:  
+            ax.set_xlabel(r'$t [t_{\rm fb}]$')
+        ax.tick_params(axis='both', which='major', width=1.2, length=9)
+        ax.tick_params(axis='both', which='minor', width=1, length=5)
+        ax.grid()
+    axCon.set_xlim(np.min(tfbM), np.max(tfbM))
+    ax1.set_xlim(np.min(tfbH), np.max(tfbH))
+
+    fig.tight_layout()
+    figCon.tight_layout()
+    fig.savefig(f'{abspath}/Figs/paper/Mw.pdf', bbox_inches = 'tight')
+    figCon.savefig(f'{abspath}/Figs/paper/Mw_conv.pdf', bbox_inches = 'tight')
+
+    fig, ax = plt.subplots(1,1, figsize = (8,6))
+    ax.plot(tfbH, np.abs(mwind_dimCellH/mfallH), c = 'k')
+    ax.set_yscale('log')
+    ax.set_xlabel(r'$t [t_{\rm fb}]$')
+    ax.set_ylabel(r'$|\dot{M}_{\rm w}/\dot{M}_{\rm fb}|$')
+    original_ticks = ax.get_xticks()
+    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+    ax.set_xticks(new_ticks)
+    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
+    ax.set_xticklabels(labels)
+    ax.tick_params(axis='both', which='major', width=1.2, length=9)
+    ax.tick_params(axis='both', which='minor', width=1, length=5)
+    ax.set_ylim(1e-2, 1)
+    ax.set_xlim(np.min(tfbH), np.max(tfbH))
+    ax.grid()
+    fig.tight_layout()
+
+
+    
+# %%
+print('naive L from dotM_fb: ', 0.1 * np.max(np.abs(mfallH)) * prel.Msol_cgs/prel.tsol_cgs * prel.c_cgs**2)
+# %% compute constant wind
+dataDiss = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
+timeRDiss, RDiss = dataDiss[:,1], dataDiss[:,2] 
+print('predicted Ltr at tfbH_max tfb (in Ledd) from Eq.15: ', (Rg*mwind_dimCellH[np.argmax(LumsH)]/(Rp*Medd_sol))**(1/3))
+print('Rdiss at max lum', RDiss[np.argmax(LumsH)]/Rp, ' Rp')
+zeta = np.abs(mwind_dimCellH[np.argmax(LumsH)]/mfallH[np.argmax(LumsH)]) #7e4/2e6 
+print('zeta:', zeta)
+# A_w_cgs = np.sqrt(prel.G_cgs) * (np.sqrt(2) / (3*np.pi))**(1/3) * (prel.Msol_cgs*1e4)**(1/18) * (prel.Msol_cgs)**(7/9) * (prel.Rsol_cgs)**(-5/6)
+# print(f'new constant A wind from old', A_w_cgs * (0.34/(4*np.pi*prel.G_cgs*prel.c_cgs*1e4*prel.Msol_cgs))**(1/3)) 
+# print(f'constant A wind', 1e-15*A_w_cgs, '1e15') 
+# def Ltr_an(Mbh, mstar, Rstar, beta, t_over_tfb, zeta):
+#     A = A_w_cgs #1e15
+#     Ledd_sol_T, _ = orb.Edd(Mbh, 0.34/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
+#     Ledd_cgs_T = Ledd_sol_T * prel.en_converter/prel.tsol_cgs
+#     Ltr = A * zeta**(1/3) * Ledd_cgs_T**(2/3) * beta**(1/3) * (Mbh/1e4)**(1/18) * (mstar)**(7/9) * (1/Rstar)**(5/6) * (1/t_over_tfb)**(5/9)
+#     Ltr_over_Edd = Ltr / Ledd_cgs_T
+#     return Ltr_over_Edd
+# pred_1e4 = Ltr_an(Mbh, mstar, Rstar, beta, tfbH_max, zeta)
+# print('predicted Ltr at tfbH_max tfb (in Ledd) from Eq.16: ', pred_1e4)
+
+
+adim_A_w_cgs = (0.04*1.44 * np.sqrt(2*prel.G_cgs) / (12*(np.pi)**2 * prel.c_cgs))**(1/3) * (prel.Msol_cgs*1e4)**(-5/18) * (prel.Msol_cgs)**(7/9) * (prel.Rsol_cgs)**(-5/6)
+print('adim A_w:', adim_A_w_cgs)
+
+def Ltr_Ledd(Mbh, mstar, Rstar, beta, t_over_tfb, kappa, zeta):
+    A = adim_A_w_cgs 
+    Ltr = A * (zeta/0.04 * beta * kappa/1.44)**(1/3) * (Mbh/1e4)**(-5/18) * (mstar)**(7/9) * (1/Rstar)**(5/6) * (1/t_over_tfb)**(5/9)
+    Ltr_over_Edd = Ltr 
+    return Ltr_over_Edd
+pred = Ltr_Ledd(Mbh, mstar, Rstar, beta, tfbH_max, 1.44, zeta)
+print('predicted Ltr at tfbH_max tfb (in Ledd) from new Eq.: ', pred)
+
+Mbhs = [1e3, 1e4, 1e5, 1e6]
+for massBH in Mbhs:
+    pred = Ltr_Ledd(massBH, mstar, Rstar, beta, 1, 0.34, 0.04)
+    print(f'predicted Ltr at 1 tfb (in Ledd) from new Eq. for Mbh={massBH}: ', pred)
+# %%
+predWD = Ltr_Ledd(massBH, mstar, Rstar, beta, 1, 0.34, 0.04)
+print('predicted Ltr at 1.5 tfb for WD (in Ledd) from new Eq.: ', predWD)
+
+# %%

@@ -28,7 +28,7 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
 snap = 151
-which_obs = 'dark_bright_z' #'dark_bright_z' # 'arch', 'quadrants', 'axis'
+which_obs = 'dark_bright_z' # 'dark_bright_z' # 'arch', 'quadrants', 'axis'
 norm = '' # '' or '_norm'
 n_obs = '' # '' or '_npix8
 if n_obs == '_npix8':
@@ -128,65 +128,90 @@ def radial_profiles(loadpath, snap, observers_xyz, indices_sorted, r_tr, ray_par
         L_adv_all = []
         Mdot_dimcell_all = []
 
-        for i in idx_list: # i in [0, Nobs]: pick the line of sight that you'll use for the mean of the chosen direction
-            # print(f'Obs {i}', flush= True)
-            if r_tr[i] == 0:
-                continue
-            mu_x = observers_xyz[i][0]
-            mu_y = observers_xyz[i][1]
-            mu_z = observers_xyz[i][2]
+        if len(idx_list) == 0:
+            v_rad_all.append(np.zeros(Nray))
+            d_all.append(np.zeros(Nray))
+            m_all.append(np.zeros(Nray))
+            vol_all.append(np.zeros(Nray))
+            t_all.append(np.zeros(Nray))
+            L_adv_all.append(np.zeros(Nray))
+            Mdot_dimcell_all.append(np.zeros(Nray))
 
-            if norm == '_norm':
-                x = r*r_tr[i]*mu_x
-                y = r*r_tr[i]*mu_y
-                z = r*r_tr[i]*mu_z
-            else:
-                x = r*mu_x
-                y = r*mu_y
-                z = r*mu_z
-            xyz2 = np.array([x, y, z]).T
-            del x, y, z
+        else:
+            for i in idx_list: # i in [0, Nobs]: pick the line of sight that you'll use for the mean of the chosen direction
+                # print(f'Obs {i}', flush= True)
+                if r_tr[i] == 0:
+                    v_rad_all.append(np.zeros(Nray))
+                    d_all.append(np.zeros(Nray))
+                    m_all.append(np.zeros(Nray))
+                    vol_all.append(np.zeros(Nray))
+                    t_all.append(np.zeros(Nray))
+                    L_adv_all.append(np.zeros(Nray))
+                    Mdot_dimcell_all.append(np.zeros(Nray))
+                    continue
+                mu_x = observers_xyz[i][0]
+                mu_y = observers_xyz[i][1]
+                mu_z = observers_xyz[i][2]
 
-            dist, idx = tree.query(xyz2, k=10) 
-            # dist = np.concatenate(dist)
-            # idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
+                if norm == '_norm':
+                    x = r*r_tr[i]*mu_x
+                    y = r*r_tr[i]*mu_y
+                    z = r*r_tr[i]*mu_z
+                else:
+                    x = r*mu_x
+                    y = r*mu_y
+                    z = r*mu_z
+                xyz2 = np.array([x, y, z]).T
+                del x, y, z
+
+                dist, idx = tree.query(xyz2, k=10) 
+                # dist = np.concatenate(dist)
+                # idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
+                
+                # Quantity corresponding to the ray
+                ray_V_r = V_r[idx] 
+                d = Den[idx] 
+                ray_m = Mass[idx]
+                ray_vol = Vol[idx]
+                ray_rad_den = Rad_den[idx]
+                r_sim = np.sqrt(X[idx]**2 + Y[idx]**2 + Z[idx]**2)
             
-            # Quantity corresponding to the ray
-            ray_V_r = V_r[idx] 
-            d = Den[idx] 
-            ray_m = Mass[idx]
-            ray_vol = Vol[idx]
-            ray_rad_den = Rad_den[idx]
-            r_sim = np.sqrt(X[idx]**2 + Y[idx]**2 + Z[idx]**2)
-            
-            # pick them just if near enough, otherwise set to 0 (easier for saving, insted of discard them)
-            check_dist = dist <= ray_vol**(1/3) # np.logical_and(dist <= ray_vol**(1/3), r_sim >= rmin_array)
-            ray_V_r[~check_dist] = 0 # shape is (N_ray, k)
-            d[~check_dist] = 0 
-            ray_m[~check_dist] = 0
-            ray_vol[~check_dist] = 0
-            ray_rad_den[~check_dist] = 0
-            ray_t = (ray_rad_den*prel.en_den_converter/prel.alpha_cgs)**(1/4) 
-            if norm == '_norm': # in that case we'll do the mean of Mdot since we can't fund the normalization... nor very happy of that
-                ray_Mdot = 4 * np.pi * r_sim**2 * ray_V_r * d
-            else:
-                ray_Mdot = np.pi * ray_vol**(2/3) * ray_V_r * d 
-            L_adv = 4 * np.pi * r_sim**2 * ray_V_r * ray_rad_den
+                # pick them just if near enough, otherwise set to 0 (easier for saving, insted of discard them)
+                check_dist = dist <= ray_vol**(1/3) # np.logical_and(dist <= ray_vol**(1/3), r_sim >= rmin_array)
+                ray_V_r[~check_dist] = 0 # shape is (N_ray, k)
+                d[~check_dist] = 0 
+                ray_m[~check_dist] = 0
+                ray_vol[~check_dist] = 0
+                ray_rad_den[~check_dist] = 0
+                ray_t = (ray_rad_den*prel.en_den_converter/prel.alpha_cgs)**(1/4) 
+                if norm == '_norm': # in that case we'll do the mean of Mdot since we can't fund the normalization... nor very happy of that
+                    ray_Mdot = 4 * np.pi * r_sim**2 * ray_V_r * d
+                else:
+                    ray_Mdot = np.pi * ray_vol**(2/3) * ray_V_r * d 
+                L_adv = 4 * np.pi * r_sim**2 * ray_V_r * ray_rad_den
 
-            v_rad_all.append(mean_nonzero(ray_V_r))
-            d_all.append(mean_nonzero(d))
-            m_all.append(mean_nonzero(ray_m))
-            vol_all.append(mean_nonzero(ray_vol))
-            t_all.append(mean_nonzero(ray_t))
-            L_adv_all.append(mean_nonzero(L_adv))
-            Mdot_dimcell_all.append(mean_nonzero(ray_Mdot))
-
+                v_rad_all.append(mean_nonzero(ray_V_r))
+                d_all.append(mean_nonzero(d))
+                m_all.append(mean_nonzero(ray_m))
+                vol_all.append(mean_nonzero(ray_vol))
+                t_all.append(mean_nonzero(ray_t))
+                L_adv_all.append(mean_nonzero(L_adv))
+                Mdot_dimcell_all.append(mean_nonzero(ray_Mdot))
+        
+        # shape v_rad_all: (len(idx_list), Nray)
         t_mean = []
         v_rad_mean = []
         d_mean = [] 
         L_adv_mean = []
         Mdot_mean = []
         for i in range(Nray):
+            # if len(v_rad_all)== 0:
+            #     v_rad_mean.append(0)
+            #     d_mean.append(0)
+            #     t_mean.append(0)
+            #     L_adv_mean.append(0)
+            #     Mdot_mean.append(0)
+            #     continue
             v_rad_col = np.transpose(v_rad_all)[i]
             d_col = np.transpose(d_all)[i]
             vol_col = np.transpose(vol_all)[i]

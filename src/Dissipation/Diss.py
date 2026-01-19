@@ -46,6 +46,8 @@ if alice:
     snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
 
     for i, snap in enumerate(snaps):
+        if snap > 30:
+            continue
         print(snap, flush=True) 
         
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
@@ -79,12 +81,13 @@ if alice:
                 label_obs.append(sections[key]['label'])
 
             for k, cond in enumerate(cond_sec):
-                Ldisstot_pos = np.sum(Ediss[np.logical_and(Ediss_den >= 0, cond)]) 
-                Rdiss_pos = np.sum(Rsph[np.logical_and(Ediss_den >= 0, cond)] * Ediss[np.logical_and(Ediss_den >= 0, cond)]) / np.sum(Ediss[np.logical_and(Ediss_den >= 0, cond)])
+                mask = np.logical_and(Ediss_den >= 0, cond)
 
-                diss_list[i] = {
-                    f'Rdiss_pos {label_obs[k]}': Rdiss_pos,
-                    f'Ldisstot_pos {label_obs[k]}': Ldisstot_pos}
+                Ldisstot_pos = np.sum(Ediss[mask])
+                Rdiss_pos = np.sum(Rsph[mask] * Ediss[mask]) / np.sum(Ediss[mask])
+
+                diss_list[i][f'Rdiss_pos {label_obs[k]}'] = Rdiss_pos
+                diss_list[i][f'Ldisstot_pos {label_obs[k]}'] = Ldisstot_pos
 
         if do_cut == '' or do_cut == 'nocut':
             Ldisstot_pos = np.sum(Ediss[Ediss_den >= 0])
@@ -123,7 +126,7 @@ if alice:
             file.close()
         
     if do_cut == 'sections':
-        np.savez(f'{abspath}/data/{folder}/wind/{check}_RdissSec.npz', **diss_list)
+        np.savez( f'{abspath}/data/{folder}/wind/{check}_RdissSecTest.npz', diss_list=diss_list)
 
 else:
     from plotting.paper.IHopeIsTheLast import ratio_BigOverSmall
