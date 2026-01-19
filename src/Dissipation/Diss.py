@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Utilities.prelude as prel
 import src.orbits as orb
-from Utilities.operators import make_tree
+from Utilities.operators import make_tree, choose_sections
 from Utilities.sections import make_slices
 from Utilities.selectors_for_snap import select_snap
 import Utilities.sections as sec
@@ -32,7 +32,7 @@ n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
 check = 'HiResNewAMR'
-do_cut = '' # '' or 'ionization' or 'ionizationHe'
+do_cut = 'sections' # '' or 'ionization' or 'ionizationHe' or 'sections'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 print(f'we are in {check}', flush=True)
@@ -46,8 +46,7 @@ if alice:
     snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
 
     for i, snap in enumerate(snaps):
-        print(snap, flush=False) 
-        sys.stdout.flush()
+        print(snap, flush=True) 
         
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         csv_path = f'{abspath}/data/{folder}/Rdiss_{check}{do_cut}.csv'
@@ -65,6 +64,20 @@ if alice:
         Rsph, vol, Temp, Rad_den, Ediss_den = \
             make_slices([Rsph, vol, Temp, Rad_den, Ediss_den], cut)
         Ediss = Ediss_den * vol # energy dissipation rate [energy/time] in code units
+        
+        if do_cut == 'sections':
+            sections = choose_sections(X, Y, Z, choice = 'dark_bright_z')
+            diss_list = {}
+            diss_list[i] = {
+                    'snap': snap,
+                    'tfb': tfb}
+            cond_sec = []
+            label_obs = []
+            for key in sections.keys():
+                cond_sec.append(sections[key]['cond'])
+                # colors_obs.append(sections[key]['color'])
+                label_obs.append(sections[key]['label'])
+                # lines_obs.append(sections[key]['line'])
 
         if do_cut == '' or do_cut == 'nocut':
             Ldisstot_pos = np.sum(Ediss[Ediss_den >= 0])
@@ -79,8 +92,20 @@ if alice:
                     writer.writerow(header)
                 writer.writerow(data)
             file.close()
+        
+        elif do_cut == 'sections':
+            for cond in cond_sec:
+                Ldisstot_pos = np.sum(Ediss[np.logical_and(Ediss_den >= 0, cond)]) 
+                Rdiss_pos = np.sum(Rsph[np.logical_and(Ediss_den >= 0, cond)] * Ediss[np.logical_and(Ediss_den >= 0, cond)]) / np.sum(Ediss[np.logical_and(Ediss_den >= 0, cond)])
+                Ldisstot_neg = np.sum(Ediss[np.logical_and(Ediss_den < 0, cond)])
+                Rdiss_neg = np.sum(Rsph[np.logical_and(Ediss_den < 0, cond)] * Ediss[np.logical_and(Ediss_den < 0, cond)]) / np.sum(Ediss[np.logical_and(Ediss_den < 0, cond)])
+                data = [snap, tfb, Rdiss_pos, Ldisstot_pos, Rdiss_neg, Ldisstot_neg]
 
-        if do_cut == 'ionization' or do_cut == 'ionizationHe': 
+                diss_list[i] = {
+                    f'Rdiss_pos {label_obs[i]}': Rdiss_pos,
+                    f'Ldisstot_pos {label_obs[i]}': Ldisstot_pos}
+
+        elif do_cut == 'ionization' or do_cut == 'ionizationHe': 
             # split above and belowe 5e4K
             if do_cut == 'ionizationHe':
                 above = np.logical_and(Temp >= 1e5, Ediss_den >= 0)
@@ -101,6 +126,9 @@ if alice:
                     writer.writerow(header)
                 writer.writerow(data)
             file.close()
+        
+    if do_cut == 'sections':
+        np.savez(f'{abspath}/data/{folder}/wind/{check}_RdissSec.npz', **diss_list)
 
 else:
     from plotting.paper.IHopeIsTheLast import ratio_BigOverSmall

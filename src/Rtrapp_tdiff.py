@@ -64,7 +64,7 @@ scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
 _, _, scatter2 = opacity_linear(T_cool, Rho_cool, scattering, slope_length = 7, highT_slope = 0)
 T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, scatter = scatter2, slope_length = 7, highT_slope = 0)
 
-def r_trapp(loadpath, snap):
+def r_trapp(loadpath, snap, which_part = 'outflow'):
     observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) #shape: (3, 192)
     observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 

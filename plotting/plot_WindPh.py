@@ -73,7 +73,8 @@ den_tr_sec = np.zeros((len(indices_axis), len(snaps)))
 den_ph_sec = np.zeros((len(indices_axis), len(snaps)))
 Temp_tr_sec = np.zeros((len(indices_axis), len(snaps))) 
 Temp_ph_sec = np.zeros((len(indices_axis), len(snaps)))   
-Lum_ph_sec = np.zeros((len(indices_axis), len(snaps)))
+Lum_allph_sec = np.zeros((len(indices_axis), len(snaps)))
+Lum_windph_sec = np.zeros((len(indices_axis), len(snaps)))
 Lum_adv_tr_sec = np.zeros((len(indices_axis), len(snaps)))
 # Lum_adv_ph_sec = np.zeros((len(indices_axis), len(snaps)))
 
@@ -121,7 +122,7 @@ for s, snap in enumerate(snaps):
                                 # cbar.set_label(r'$L_{\rm ph}$ [L$_{\rm Edd}$]')
                 # Rtr > 1.5*Rt to avoid spurious point at the beginning
                 
-                exist_rtr = r_tr[observer] > 1.5*Rt
+                exist_rtr = np.logical_and(r_tr[observer] > 1.5*Rt, x_tr[observer]*x[observer]>0) # second condition to have only the observers in the wanted region
                 photo_wind = np.logical_and(bern_ph[observer]>0, Vr_ph[observer]>0)
                 ratio_Rtr[i][s] = len(r_tr[observer][exist_rtr]) / len(r_tr[observer])
                 wind_Rtr = observer[np.logical_and(exist_rtr, photo_wind)]
@@ -131,7 +132,8 @@ for s, snap in enumerate(snaps):
                 # Lum_adv_ph_sec[i][s] = np.mean(Lum_adv_ph[wind_Rtr])  
                 r_ph_sec[i][s] = np.mean(r_ph[observer])  
                 r_phnonzero_sec[i][s] = np.mean(r_ph[observer][exist_rtr])
-                Lum_ph_sec[i][s] = np.mean(Lum_ph[observer]) # CGS
+                Lum_allph_sec[i][s] = np.mean(Lum_ph[observer]) # CGS
+                Lum_windph_sec[i][s] = np.mean(Lum_ph[wind_Rtr]) # CGS
                 
                 # wind_Rtr = observer[np.logical_and(bern_tr[observer]>0, Vr_tr[observer]>0)]
                 Vr_tr_sec[i][s] = np.sum(Vr_tr[wind_Rtr] * mass_tr[wind_Rtr]) / np.sum(mass_tr[wind_Rtr])
@@ -160,15 +162,16 @@ for i, observer in enumerate(indices_axis):
         axTrnonzero.plot(tfbs, r_phnonzero_sec[i]/Rt, c = colors_axis[i], ls = ':', label = r'$r_{\rm ph}$' if i == 0 else '')
 
         
-        axratio.plot(tfbs, r_phnonzero_sec[i]/r_trnonzero_sec[i], c = colors_axis[i]) #, label = label_axis[i])
         axNtr.plot(tfbs, ratio_Rtr[i], c = colors_axis[i], label = label_axis[i])
+        axratio.plot(tfbs, r_phnonzero_sec[i]/r_trnonzero_sec[i], c = colors_axis[i]) #, label = label_axis[i])
         axVph.plot(tfbs, Vr_ph_sec[i] * conversion_sol_kms, c = colors_axis[i], label = label_axis[i])
         axdph.plot(tfbs, den_ph_sec[i] * prel.den_converter, c = colors_axis[i], label = label_axis[i])
         axTph.plot(tfbs, Temp_ph_sec[i]/Rp, c = colors_axis[i], label = label_axis[i])
         # axTr.plot(tfbs, r_ph_sec[i]/Rt, c = colors_axis[i], label = label_axis[i])
         # axTr.scatter(tfbs[idx_maxLum], r_tr_sec[i][idx_maxLum]/Rt, c = colors_axis[i], s = 85, marker = 'X')
-        axL.plot(tfbs, Lum_ph_sec[i]/Lum_ph_all, c = colors_axis[i],  ls = '--', label =r'$L_{\rm FLD} (r_{\rm ph})$' if i ==0 else '')
-        axL.plot(tfbs, Lum_adv_tr_sec[i]/Lum_ph_all, c = colors_axis[i], label =r'$L_{\rm adv} (r_{\rm tr})$' if i ==0 else '')
+        # axL.plot(tfbs, Lum_allph_sec[i]/Lum_ph_all, c = colors_axis[i],  ls = ':', label =r'$L_{\rm FLD} (r_{\rm ph, all})$' if i ==0 else '')
+        axL.plot(tfbs, Lum_windph_sec[i]/Lum_ph_all, c = colors_axis[i],  label =r'$L_{\rm FLD} (r_{\rm ph, wind})$' if i ==0 else '')
+        axL.plot(tfbs, Lum_adv_tr_sec[i]/Lum_ph_all, c = colors_axis[i], ls = '--', label =r'$L_{\rm adv} (r_{\rm tr})$' if i ==0 else '')
         # axL.scatter(tfbs[idx_maxLum], Lum_obs_time[i][idx_maxLum]/Ledd_cgs, c = colors_axis[i], s = 85, marker = 'X')
         axMdot.plot(tfbs, Mdot_sec[i]/Medd_sol, c = colors_axis[i], label = label_axis[i])
         # axMdot.scatter(tfbs[idx_maxLum], Mdot_sum[i][idx_maxLum]/Medd_sol, c = colors_axis[i], s = 85, marker = 'X')
@@ -179,7 +182,7 @@ axNtr.set_ylabel(r'Fraction of obs with adv region')
 axratio.set_ylabel(r'$r_{\rm ph}/r_{\rm tr}$ in adv. region')
 axVph.set_ylabel(r'v$_{\rm ph}$ [km/s]')
 axdph.set_ylabel(r'$\rho_{\rm ph}$ [g/cm$^3]$')    
-axL.set_ylabel(r'$L [L_{\rm FLD}]$')
+axL.set_ylabel(r'$L [L_{\rm FLD, tot}]$')
 axMdot.set_ylabel(r'$\dot{M}_{\rm w} (r_{\rm tr}) [\dot{M}_{\rm Edd}]$')
 axTph.set_ylabel(r'$T_{\rm rad, ph} [K]$')
 original_ticks = axTr.get_xticks()

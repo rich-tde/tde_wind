@@ -261,9 +261,9 @@ def choose_observers(observers_xyz, choice):
                     (0,0,-1)] 
 
         tree_obs = KDTree(observers_xyz.T) # shape is N,3
-        _, indices_sorted = tree_obs.query(np.array(wanted_obs), k=4) # shape: (len(wanted_obs),k)
+        _, indices_sorted = tree_obs.query(np.array(wanted_obs), k = 4) # shape: (len(wanted_obs),k)
         label_obs = ['x+', 'y+', 'x-', 'y-', 'z+', 'z-']
-        colors_obs = ['k', 'plum', 'r', 'sienna', 'orange', 'dodgerblue']
+        colors_obs = ['dodgerblue', 'plum', 'forestgreen', 'magenta', 'orange', 'sienna']
         lines_obs = ['solid', 'solid', 'solid', 'solid', 'solid', 'solid']
     
     # if choice == 'dark_bright_z':

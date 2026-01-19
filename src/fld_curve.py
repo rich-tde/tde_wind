@@ -381,7 +381,7 @@ for idx_s, snap in enumerate(snaps):
         # Save spectrum
         np.savetxt(f'{pre_saving}/spectra/freqs.txt', prel.freqs)
         np.savetxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt', F_photo)
-        np.savez(f"{pre_saving}/trap/{check}_Rtr{snap}.npz", **colorsphere)
+        np.savez(f"{pre_saving}/spectra/{check}_Rcol{snap}.npz", **colorsphere)
         
             
     del xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, rph, alphaph, Lph, ph_idx

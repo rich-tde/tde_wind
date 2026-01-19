@@ -15,7 +15,7 @@ from Utilities.sections import make_slices
 import src.orbits as orb
 from Utilities.operators import to_spherical_components, make_tree, choose_observers
 
-compute = False
+compute = True
 #
 # PARAMS
 #
@@ -27,9 +27,9 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-snap = 109
+snap = 151
 which_obs = 'dark_bright_z' #'dark_bright_z' # 'arch', 'quadrants', 'axis'
-norm = '_norm' # '' or '_norm'
+norm = '' # '' or '_norm'
 n_obs = '' # '' or '_npix8
 if n_obs == '_npix8':
     NSIDE = 8  
@@ -93,10 +93,9 @@ def mean_nonzero(arr, axis=1):
         where=count != 0
     )
 
-def radial_profiles(loadpath, snap, observers_xyz, indices_sorted, ray_params):
+def radial_profiles(loadpath, snap, observers_xyz, indices_sorted, r_tr, ray_params = None):
     # create rays
-    if len(ray_params) == 1:
-        r_tr = ray_params[0]
+    if ray_params == None:
         rmin, rmax, Nray = 1e-1, 50, 200
     else:
         rmin, rmax, Nray = ray_params
@@ -131,6 +130,8 @@ def radial_profiles(loadpath, snap, observers_xyz, indices_sorted, ray_params):
 
         for i in idx_list: # i in [0, Nobs]: pick the line of sight that you'll use for the mean of the chosen direction
             # print(f'Obs {i}', flush= True)
+            if r_tr[i] == 0:
+                continue
             mu_x = observers_xyz[i][0]
             mu_y = observers_xyz[i][1]
             mu_z = observers_xyz[i][2]
@@ -159,7 +160,7 @@ def radial_profiles(loadpath, snap, observers_xyz, indices_sorted, ray_params):
             r_sim = np.sqrt(X[idx]**2 + Y[idx]**2 + Z[idx]**2)
             
             # pick them just if near enough, otherwise set to 0 (easier for saving, insted of discard them)
-            check_dist = dist <= ray_vol**(1/3) #np.logical_and(dist <= ray_vol**(1/3), r_sim >= rmin_array)
+            check_dist = dist <= ray_vol**(1/3) # np.logical_and(dist <= ray_vol**(1/3), r_sim >= rmin_array)
             ray_V_r[~check_dist] = 0 # shape is (N_ray, k)
             d[~check_dist] = 0 
             ray_m[~check_dist] = 0
@@ -246,20 +247,18 @@ x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
 indices_sorted, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, which_obs)
 observers_xyz = np.transpose(observers_xyz) #shape: Nx3
 
-r_tr_mean = np.zeros(len(indices_sorted))
+r_tr_means = np.zeros(len(indices_sorted))
 rph_means = np.zeros(len(indices_sorted))
-Lum_ph_mean = np.zeros(len(indices_sorted)) 
 fig, (ax1, ax2) = plt.subplots(1, 2)
 for i, idx_list in enumerate(indices_sorted):  
     ax1.scatter(x_obs[idx_list], y_obs[idx_list], facecolor = 'none', edgecolors = 'k', linewidths = 1)
     ax2.scatter(x_obs[idx_list], z_obs[idx_list], facecolor = 'none', edgecolors = 'k', linewidths = 1)
     rph_means[i] = np.mean(rph[idx_list])
-    Lum_ph_mean[i] = np.mean(Lum_ph[idx_list]) # in this case we do the mean since it's what we do for the FLD
     
     nonzero = r_tr[idx_list] != 0
     if nonzero.any():
         print(f'{label_obs[i]}: no Rtr in {np.sum(~nonzero)/len(r_tr[idx_list])*100:.2f}%')
-        r_tr_mean[i] = np.mean(r_tr[idx_list[nonzero]])
+        r_tr_means[i] = np.mean(r_tr[idx_list[nonzero]])
     idx_list = idx_list[nonzero]
     indices_sorted[i] = idx_list
     # Plot the observers with trapping radius non zero
@@ -282,9 +281,9 @@ plt.tight_layout()
 if compute:
     path = f'{abspath}/TDE/{folder}/{snap}'
     if norm == '_norm':
-        profiles = radial_profiles(path, snap, observers_xyz, indices_sorted, [r_tr])
+        profiles = radial_profiles(path, snap, observers_xyz, indices_sorted, r_tr)
     else: 
-        profiles = radial_profiles(path, snap, observers_xyz, indices_sorted, [Rt, 3*np.mean(rph), 200])
+        profiles = radial_profiles(path, snap, observers_xyz, indices_sorted, r_tr, [Rt, 3*np.mean(rph), 200])
     out_path = f"{abspath}/data/{folder}/paper2/den_prof{snap}{which_obs}_sections{n_obs}{norm}.npy"
     np.save(out_path, profiles, allow_pickle = True)
 else:
@@ -297,12 +296,12 @@ for i, lab in enumerate(profiles.keys()):
     if i == 3:
         continue
     # for ax in [axMdot, axV, axd, axT, axL]:
-    #     ax.axvline(r_tr_mean[i]/Rt, c = colors_obs[i], ls = ':')
+    #     ax.axvline(r_tr_means[i]/Rt, c = colors_obs[i], ls = ':')
     #     ax.axvline(rph_means[i]/Rt, c = colors_obs[i], ls = '--')
 
     r_plot = profiles[lab]['r']
     idx_ph = np.argmin(np.abs(r_plot - rph_means[i]))
-    idx_tr = np.argmin(np.abs(r_plot - r_tr_mean[i]))
+    idx_tr = np.argmin(np.abs(r_plot - r_tr_means[i]))
     v_rad = profiles[lab]['v_rad_mean']
     d = profiles[lab]['d_mean']
     t = profiles[lab]['t_mean']
@@ -391,9 +390,9 @@ plt.show()
 #         for i, lab in enumerate(profiles.keys()):
 #             if i == 3:
 #                 continue
-#             # r_tr = r_tr_mean[i]
+#             # r_tr = r_tr_means[i]
 #             rph_single = rph_means[i]
-#             Lum_ph_single = Lum_ph_mean[i]
+#             Lum_ph_single = Lum_ph_means[i]
 #             r_plot = profiles[lab]['r']
 #             d = profiles[lab]['d_mean']
 #             # v_rad_tr = profiles[lab]['v_rad_median'][np.argmin(np.abs(r_plot-r_tr))]

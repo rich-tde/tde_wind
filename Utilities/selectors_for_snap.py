@@ -20,7 +20,7 @@ def select_prefix(m, check, mstar, rstar, beta, n, compton):
 
     if check in ['HiResStream', 'HiResStream2']:
         prepath = f'{prepath}/StreamConvergence/{folder}'
-    elif check in ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']:
+    else:
         prepath = f'{prepath}/{folder}'
 
     return prepath
