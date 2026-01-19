@@ -94,7 +94,7 @@ if alice:
             file.close()
         
         elif do_cut == 'sections':
-            for cond in cond_sec:
+            for k, cond in enumerate(cond_sec):
                 Ldisstot_pos = np.sum(Ediss[np.logical_and(Ediss_den >= 0, cond)]) 
                 Rdiss_pos = np.sum(Rsph[np.logical_and(Ediss_den >= 0, cond)] * Ediss[np.logical_and(Ediss_den >= 0, cond)]) / np.sum(Ediss[np.logical_and(Ediss_den >= 0, cond)])
                 Ldisstot_neg = np.sum(Ediss[np.logical_and(Ediss_den < 0, cond)])
@@ -102,8 +102,8 @@ if alice:
                 data = [snap, tfb, Rdiss_pos, Ldisstot_pos, Rdiss_neg, Ldisstot_neg]
 
                 diss_list[i] = {
-                    f'Rdiss_pos {label_obs[i]}': Rdiss_pos,
-                    f'Ldisstot_pos {label_obs[i]}': Ldisstot_pos}
+                    f'Rdiss_pos {label_obs[k]}': Rdiss_pos,
+                    f'Ldisstot_pos {label_obs[k]}': Ldisstot_pos}
 
         elif do_cut == 'ionization' or do_cut == 'ionizationHe': 
             # split above and belowe 5e4K
