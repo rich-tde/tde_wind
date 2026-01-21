@@ -9,7 +9,7 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = True
+    compute = False
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -72,7 +72,7 @@ if compute:
         if alice:
             path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         else:
-            if snap != 109:
+            if snap != 151:
                 continue
             path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
 
@@ -95,7 +95,7 @@ if compute:
             make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell], cond_wind)
         if Den_pos.size == 0:
             print(f'no positive', flush=True)
-            data = [snap, tfb[i], np.zeros(len(indices_axis))]
+            data = [snap, tfb[i], 0, 0, 0, 0]
 
         else: 
             Mdot_pos = np.pi * dim_cell_pos**2 * Den_pos * v_rad_pos  
@@ -141,7 +141,13 @@ if plot:
                     unpack=True)
     
     _, tfbH, MwR, MwL ,MwN, MwS = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotObsSec_{check}{which_r_title}_old.csv', 
+            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotObsSec_{check}{which_r_title}.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True) 
+    
+    _, tfbH8, MwR8, MwL8 ,MwN8, MwS8 = \
+            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotObsSec_{check}{which_r_title}_npix8.csv', 
                     delimiter = ',', 
                     skiprows=1, 
                     unpack=True) 
@@ -155,14 +161,17 @@ if plot:
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (18, 7))
     ax1.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--')
     ax1.plot(tfbH, np.abs(MwL)/Medd_sol, c = 'forestgreen', label = r'left')
+    ax1.scatter(tfbH8, np.abs(MwL8)/Medd_sol, c = 'forestgreen', label = r'768 obs', s = 40)
     ax1.plot(tfbH, np.abs(MwR)/Medd_sol, c = 'deepskyblue', label = r'right')
+    ax1.scatter(tfbH8, np.abs(MwR8)/Medd_sol, c = 'deepskyblue', s = 40)
     ax1.plot(tfbH, np.abs(MwN)/Medd_sol, c = 'orange', label = r'N pole')
-    ax1.plot(tfbH, np.abs(MwS)/Medd_sol, c = 'sienna', label = r'S pole')
+    ax1.scatter(tfbH8, np.abs(MwN8)/Medd_sol, c = 'orange', s = 40)  
+    # ax1.plot(tfbH, np.abs(MwS)/Medd_sol, c = 'sienna', label = r'S pole')
 
     ax2.plot(tfbH, np.abs(MwL/mfb), c = 'forestgreen')
     ax2.plot(tfbH, np.abs(MwR/mfb), c = 'deepskyblue')
     ax2.plot(tfbH, np.abs(MwN/mfb), c = 'orange')
-    ax2.plot(tfbH, np.abs(MwS/mfb), c = 'sienna')
+    # ax2.plot(tfbH, np.abs(MwS/mfb), c = 'sienna')
     
     original_ticks = ax1.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
@@ -173,12 +182,12 @@ if plot:
         ax.set_xlabel(r'$t [t_{\rm fb}]$')
         ax.set_xticks(new_ticks)
         ax.set_xticklabels(labels)  
-        ax.set_xlim(0, np.max(tfbH))
+        ax.set_xlim(0, 2.25)
         ax.tick_params(axis='both', which='major', width=1.2, length=9)
         ax.tick_params(axis='both', which='minor', width=1, length=5)
         ax.legend(fontsize = 18)
         ax.grid()
-    ax1.set_ylim(5e2, 5e6)
+    ax1.set_ylim(5e2, 8e6)
     ax1.set_ylabel(r'$|\dot{M}_{{\rm w}}| [\dot{M}_{\rm Edd}]$')   
     ax2.set_ylim(1e-3, 2)
     ax2.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm fb}]$')

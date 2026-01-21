@@ -9,7 +9,7 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = True
+    compute = False
 
 
 import numpy as np
@@ -56,8 +56,8 @@ Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 #%%
 # MAIN
 if compute: # compute dM/dt = dM/dE * dE/dt
-    r_chosen = 0.5*amin # 'Rtr' for radius of the trap, value that you want for a fixed value
-    which_r_title = '05amin'
+    r_chosen = 5*apo #0.5*amin # 'Rtr' for radius of the trap, value that you want for a fixed value
+    which_r_title = '5apo' # '05amin'
 
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
@@ -85,8 +85,8 @@ if compute: # compute dM/dt = dM/dE * dE/dt
 
         # select just outflowing and unbound material
         cond_wind = np.logical_and(v_rad >= 0, bern > 0)
-        X_wind, Y_wind, Z_wind, Den_wind, Rsph_wind, v_rad_wind, dim_cell_wind = \
-            make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell], cond_wind)
+        X_wind, Y_wind, Z_wind, Den_wind, Rsph_wind, v_rad_wind, dim_cell_wind, Rad_den_wind = \
+            make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell, Rad_den], cond_wind)
         if Den_wind.size == 0:
             print(f'no positive', flush=True)
             data = [snap, tfb[i], 0, 0, 0, 0]
@@ -102,8 +102,9 @@ if compute: # compute dM/dt = dM/dE * dE/dt
                 label_obs.append(sections[key]['label'])
                 color_obs.append(sections[key]['color'])
             
-
             mwind = np.zeros(len(cond_sec))
+            Lum_fs = np.zeros(len(cond_sec))
+            Ekin = np.zeros(len(cond_sec))
             Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
             if plot: # see what I'm selecting
                 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 7))
@@ -121,20 +122,28 @@ if compute: # compute dM/dt = dM/dE * dE/dt
                 # select the particles in the chosen section and at the chosen radius
                 condR = np.logical_and(np.abs(Rsph_wind-r_chosen) < dim_cell_wind, cond)
                 mwind[j] = 4 * r_chosen**2 * np.sum(Mdot[condR]) / np.sum(dim_cell_wind[condR]**2)
+                if r_chosen > apo:
+                    Lum_fs[j] = np.mean(4 * np.pi * Rsph_wind[condR]**2 * Rad_den_wind[condR] * prel.csol_cgs)
+                    Ekin[j] = 0.5 * np.sum(Mdot[condR] * v_rad_wind[condR]**2)
                 
                 if plot:
                     # see what I'm selecting
                     ax1.scatter(X_wind[cond]/Rt, Y_wind[cond]/Rt, s=1, c = color_obs[j], label=label_obs[j])
                     ax2.scatter(X_wind[condR]/Rt, Y_wind[condR]/Rt, s=1, c = color_obs[j])
-                    
-            data = np.concatenate(([snap], [tfb[i]], mwind))  
+            if r_chosen > apo:
+                data = np.concatenate(([snap], [tfb[i]], mwind, Lum_fs, Ekin))
+            else:        
+                data = np.concatenate(([snap], [tfb[i]], mwind))  
     
         csv_path = f'{abspath}/data/{folder}/wind/MdotSec_{check}{which_r_title}.csv'
         if alice:
             with open(csv_path, 'a', newline='') as file:
                 writer = csv.writer(file)
                 if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                    writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_obs])
+                    if r_chosen > apo:
+                        writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_obs] + [f'Lum_fs {lab}' for lab in label_obs] + [f'Ekin {lab}' for lab in label_obs])
+                    else:
+                        writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_obs])
                 writer.writerow(data)
             file.close()
 

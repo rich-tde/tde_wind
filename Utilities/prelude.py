@@ -43,7 +43,7 @@ m_p_sol = m_p_cgs / Msol_cgs # [g] proton mass in code units
 
 # Healpy
 import healpy as hp
-NSIDE = 4  # observers = 12 * NSIDE **2
+NSIDE = 4 # observers = 12 * NSIDE **2
 NPIX = hp.nside2npix(NSIDE)#  int(NSIDE * 96)
 
 # TOPS abundancies in the order you have to put them to have opacity (https://aphysics2.lanl.gov/apps/)
