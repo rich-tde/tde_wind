@@ -15,7 +15,7 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 
 import numpy as np
-# from scipy.spatial import KDTree
+import matplotlib.pyplot as plt
 from sklearn.neighbors import KDTree
 import k3match
 import math
@@ -131,7 +131,7 @@ def find_step(theta_arr, i):
 
 def choose_sections(X, Y, Z, choice = 'dark_bright_z'):
     R_cyl = np.sqrt(X**2 + Y**2)
-    alpha_pole = np.pi/6 # should be np.pi/6
+    alpha_pole = np.pi/6 
     slope = np.tan(alpha_pole)  
     cond_Npole = np.logical_and(np.abs(Z) >= slope *  R_cyl, Z > 0)
     cond_Spole = np.logical_and(np.abs(Z) >= slope *  R_cyl, Z < 0)
@@ -371,7 +371,7 @@ def choose_observers(observers_xyz, choice):
         indices6 = all_idx_obs[np.logical_and(z_obs>=0, np.logical_and(z_obs > np.abs(y_obs), z_obs > np.abs(x_obs)))]
 
         indices_sorted = [indices1, indices2, indices3, indices4, indices5, indices6]#, indices7, indices8]
-        colors_obs = plt.cm.rainbow(np.linspace(0, 1, len(indices_sorted)))
+        colors_obs = ['forestgreen', 'deepskyblue', 'magenta', 'plum', 'sienna', 'orange']
         label_obs = ['-x','+x', '-y', '+y', 'z-', 'z+']
         lines_obs = ['solid', 'solid', 'solid', 'solid', 'solid', 'solid']
     

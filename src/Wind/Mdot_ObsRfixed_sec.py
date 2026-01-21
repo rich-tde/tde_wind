@@ -9,16 +9,18 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = False
+    compute = True
 
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+import healpy as hp
 import csv
 import os
+from sklearn.neighbors import KDTree
 import Utilities.prelude as prel
 import src.orbits as orb
-from Utilities.operators import make_tree, to_spherical_components, choose_sections
+from Utilities.operators import make_tree, to_spherical_components, choose_observers
 from Utilities.selectors_for_snap import select_snap
 from Utilities.sections import make_slices
 
@@ -52,30 +54,38 @@ Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
 
+observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
+observers_xyz = np.array(observers_xyz)
+indices_axis, label_axis, colors_axis, lines_axis = choose_observers(observers_xyz, 'dark_bright_z')
+observers_xyz = observers_xyz.T
+x_obs, y_obs, z_obs = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
+
 #%%
 # MAIN
-if compute: # compute dM/dt = dM/dE * dE/dt
+if compute: 
     r_chosen = 0.5*amin # 'Rtr' for radius of the trap, value that you want for a fixed value
     which_r_title = '05amin'
 
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
     for i, snap in enumerate(snaps):
-        print(snap, flush=True)
         if alice:
             path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         else:
+            if snap != 109:
+                continue
             path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
 
+        print(snap, flush=True)
         # Load data and pick the ones unbound and with positive velocity
         data = make_tree(path, snap, energy = True)
         X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
             data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Press, data.VX, data.VY, data.VZ, data.IE, data.Rad
-        cut = Den > 1e-19
-        X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
-            make_slices([X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
-        dim_cell = Vol**(1/3)
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
+        dim_cell = Vol**(1/3)
+        cut = np.logical_and(Den > 1e-19, np.abs(Rsph-r_chosen) < dim_cell) # alredy select only cells around r_chosen
+        X, Y, Z, Rsph, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
+            make_slices([X, Y, Z, Rsph, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
         V = np.sqrt(VX**2 + VY**2 + VZ**2)
         bern = orb.bern_coeff(Rsph, V, Den, Mass, Press, IE_den, Rad_den, params)
         v_rad, _, _ = to_spherical_components(VX, VY, VZ, X, Y, Z)
@@ -85,31 +95,37 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell], cond_wind)
         if Den_pos.size == 0:
             print(f'no positive', flush=True)
-            data = [snap, tfb[i], 0, 0, 0, 0]
+            data = [snap, tfb[i], np.zeros(len(indices_axis))]
 
         else: 
-            sections = choose_sections(X_pos, Y_pos, Z_pos, choice = 'dark_bright_z')
-            cond_sec = []
-            label_obs = []
-            for key in sections.keys():
-                cond_sec.append(sections[key]['cond'])
-                label_obs.append(sections[key]['label'])
-
-            mwind = np.zeros(len(cond_sec))
-            for j, cond in enumerate(cond_sec):
-                condR = np.logical_and(np.abs(Rsph_pos-r_chosen) < dim_cell_pos, cond)
-                Mdot = np.pi * dim_cell_pos**2 * Den_pos * v_rad_pos  
-                mwind[j] = 4 * r_chosen**2 * np.sum(Mdot[condR]) / np.sum(dim_cell_pos[condR]**2)
+            Mdot_pos = np.pi * dim_cell_pos**2 * Den_pos * v_rad_pos  
+            xyz = np.transpose([X_pos/r_chosen, Y_pos/r_chosen, Z_pos/r_chosen]) # normalize to r_chosen
+            tree = KDTree(xyz) 
+            mwind = []
+            for j, indices in enumerate(indices_axis):
+                x_obs_axis = x_obs[indices]
+                y_obs_axis = y_obs[indices]
+                z_obs_axis = z_obs[indices]
+                dist, idx = tree.query( np.transpose([x_obs_axis, y_obs_axis, z_obs_axis]), k=1)
+                Mdot_tokeep, dim_cell_tokeep = Mdot_pos[idx], dim_cell_pos[idx]
+                far = dist > dim_cell_tokeep
+                # print(Rsph_pos[idx]/r_chosen)
+                # print('shape Mdot', np.shape(Mdot_tokeep))
+                # print('shape far', np.shape(far))
+                # print('shape NON zero Mdot', np.shape(Mdot_tokeep[Mdot_tokeep!=0]))
+                Mdot_tokeep[far] = 0 
+                mwind.append(4 * r_chosen**2 * np.sum(Mdot_tokeep) / np.sum(dim_cell_tokeep**2))
             data = np.concatenate(([snap], [tfb[i]], mwind))  
     
-        csv_path = f'{abspath}/data/{folder}/wind/MdotSec_{check}{which_r_title}.csv'
+        csv_path = f'{abspath}/data/{folder}/wind/MdotObsSec_{check}{which_r_title}.csv'
         if alice:
             with open(csv_path, 'a', newline='') as file:
                 writer = csv.writer(file)
                 if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                    writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_obs])
+                    writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_axis])
                 writer.writerow(data)
             file.close()
+        # print(data/Medd_sol)
 
 if plot:
     # from scipy.integrate import cumulative_trapezoid
@@ -125,7 +141,7 @@ if plot:
                     unpack=True)
     
     _, tfbH, MwR, MwL ,MwN, MwS = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec_{check}{which_r_title}_old.csv', 
+            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotObsSec_{check}{which_r_title}_old.csv', 
                     delimiter = ',', 
                     skiprows=1, 
                     unpack=True) 

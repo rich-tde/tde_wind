@@ -280,11 +280,14 @@ fig, (ax1, ax2) = plt.subplots(1, 2)
 for i, idx_list in enumerate(indices_sorted):  
     ax1.scatter(x_obs[idx_list], y_obs[idx_list], facecolor = 'none', edgecolors = 'k', linewidths = 1)
     ax2.scatter(x_obs[idx_list], z_obs[idx_list], facecolor = 'none', edgecolors = 'k', linewidths = 1)
-    rph_means[i] = np.mean(rph[idx_list])
+    # rph_means[i] = np.mean(rph[idx_list])
+    # r_tr_means[i] = np.mean(r_tr[idx_list])
+
     
     nonzero = r_tr[idx_list] != 0
     if nonzero.any():
         print(f'{label_obs[i]}: no Rtr in {np.sum(~nonzero)/len(r_tr[idx_list])*100:.2f}%')
+        rph_means[i] = np.mean(rph[idx_list[nonzero]])
         r_tr_means[i] = np.mean(r_tr[idx_list[nonzero]])
     idx_list = idx_list[nonzero]
     indices_sorted[i] = idx_list
@@ -320,8 +323,8 @@ else:
 fig, (axV, axd, axT) = plt.subplots(1, 3, figsize=(24, 6)) 
 figM, (axMdot, axL) = plt.subplots(1, 2, figsize=(18, 6))
 for i, lab in enumerate(profiles.keys()):
-    # if i == 3:
-    #     continue
+    if i == 3:
+        continue
     # for ax in [axMdot, axV, axd, axT, axL]:
     #     ax.axvline(r_tr_means[i]/Rt, c = colors_obs[i], ls = ':')
     #     ax.axvline(rph_means[i]/Rt, c = colors_obs[i], ls = '--')
@@ -346,14 +349,14 @@ for i, lab in enumerate(profiles.keys()):
         axV.plot(r_plot/Rt, v_rad * conversion_sol_kms,  color = colors_obs[i], label = f'{lab}')
         axd.plot(r_plot/Rt, d*prel.den_converter,  color = colors_obs[i]) #, ls = lines_obs[i] , label = f'{lab}')# Observer {lab} ({indices_sorted[i]})')
         axMdot.plot(r_plot/Rt, np.abs(Mdot/Medd_sol),  color = colors_obs[i], label = f'{lab}')# , ls = lines_obs[i])
-        axT.plot(r_plot/Rt, t,  color = colors_obs[i])#, label = f'{lab}')
+        axT.plot(r_plot/Rt, t,  color = colors_obs[i], label = f'{lab}')
         axL.plot(r_plot/Rt, L_adv/Ledd_sol,  color = colors_obs[i]) #, ls = lines_obs[i]), label = f'{lab}')]
         # add point where is the photosphere and trapping radius
-        axV.scatter(r_plot[idx_ph]/Rt, v_rad[idx_ph] * conversion_sol_kms, color = colors_obs[i], s = 120)
-        axd.scatter(r_plot[idx_ph]/Rt, d[idx_ph]*prel.den_converter, color = colors_obs[i], s = 120)
-        axT.scatter(r_plot[idx_ph]/Rt, t[idx_ph], color = colors_obs[i], s = 120)
-        axL.scatter(r_plot[idx_ph]/Rt, L_adv[idx_ph]/Ledd_sol, color = colors_obs[i], s = 120)
-        axMdot.scatter(r_plot[idx_ph]/Rt, np.abs(Mdot[idx_ph]/Medd_sol), color = colors_obs[i], s = 120)
+        axV.scatter(r_plot[idx_ph]/Rt, v_rad[idx_ph] * conversion_sol_kms, color = colors_obs[i], s = 120, marker = 'x')
+        axd.scatter(r_plot[idx_ph]/Rt, d[idx_ph]*prel.den_converter, color = colors_obs[i], s = 120, marker = 'x')
+        axT.scatter(r_plot[idx_ph]/Rt, t[idx_ph], color = colors_obs[i], s = 120, marker = 'x')
+        axL.scatter(r_plot[idx_ph]/Rt, L_adv[idx_ph]/Ledd_sol, color = colors_obs[i], s = 120, marker = 'x')
+        axMdot.scatter(r_plot[idx_ph]/Rt, np.abs(Mdot[idx_ph]/Medd_sol), color = colors_obs[i], s = 120, marker = 'x')
         axV.scatter(r_plot[idx_tr]/Rt, v_rad[idx_tr] * conversion_sol_kms, color = colors_obs[i], s = 120, marker = 's')
         axd.scatter(r_plot[idx_tr]/Rt, d[idx_tr]*prel.den_converter, color = colors_obs[i], s = 120, marker = 's')
         axT.scatter(r_plot[idx_tr]/Rt, t[idx_tr], color = colors_obs[i], s = 120, marker = 's')
@@ -365,7 +368,7 @@ if norm != '_norm':
     # axd.text(32, 1.2e-14, r'$\rho \propto r^{-2}$', fontsize = 20, color = 'k', rotation = -42)
     axV.axhline(v_esc_kms, c = 'k', ls = 'dashed')#
     axV.text(35, 1.1*v_esc_kms, r'v$_{\rm esc} (r_{\rm p})$', fontsize = 20, color = 'k')
-    axT.plot(x_test, y_test23, c = 'k', ls = 'dashed', label = r'$T \propto r^{-2/3}$')
+    axT.plot(x_test, y_test23, c = 'k', ls = 'dashed')#, label = r'$T \propto r^{-2/3}$')
     # axT.text(32, 1.2e4, r'$T_{\rm rad} \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -33)
     axL.plot(x_test,1.5e-5*y_test23, c = 'k', ls = 'dashed', label = r'$L \propto r^{-2/3}$')
 
@@ -381,8 +384,9 @@ for ax in [axd, axV, axMdot, axT, axL]:
     ax.loglog()
     ax.grid()
 
+axT.legend(fontsize = 19) 
 axMdot.legend(fontsize = 19) 
-axMdot.set_ylim(7e2, 5e5)
+axMdot.set_ylim(2e2, 7e5)
 if norm == '_norm':
     axMdot.text(1.5, 1.1e4, r'$\dot{M}_{\rm w} = 4\pi \langle r^2 v_{\rm} \rho \rangle$', fontsize = 20, color = 'k')
 axMdot.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm Edd}]$', fontsize = 28) 
@@ -390,10 +394,10 @@ axd.set_ylim(1e-13, 1e-8)
 axd.set_ylabel(r'$\rho$ [g/cm$^3]$', fontsize = 28)
 axV.set_ylim(2e3, 3e4)
 axV.set_ylabel(r'v$_r$ [km/s]', fontsize = 28)
-axT.set_ylim(2e4, 5e5)
+axT.set_ylim(1e4, 5e5)
 axT.set_ylabel(r'$T_{\rm rad}$ [K]', fontsize = 28)
 axL.set_ylabel(r'$L [L_{\rm Edd}]$', fontsize = 28)
-axL.set_ylim(1e-1, 50)
+axL.set_ylim(5e-2, 50)
 # fig.suptitle(f'{check}, t = {np.round(tfb,2)}' + r't$_{\rm fb}$', fontsize = 20)
 # figT.suptitle(f'{check}, t = {np.round(tfb,2)}' + r't$_{\rm fb}$', fontsize = 20)
 fig.tight_layout()
