@@ -19,7 +19,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-which_obs = 'dark_bright_z' #'dark_bright_z' #'arch', 'quadrants', 'axis'
+which_obs = 'dark_bright_z' #'dark_bright_z' #'arch', 'quadrants', 'ax is'
 check = 'HiResNewAMR' 
 
 params = [Mbh, Rstar, mstar, beta]
@@ -108,7 +108,6 @@ for s, snap in enumerate(snaps):
         Mdot_tr =  np.pi * dim_tr**2 * den_tr * Vr_tr 
         Lum_adv_tr = 4 * np.pi * r_tr**2 * Vr_tr * Rad_den_tr # advective luminosity
         for i, observer in enumerate(indices_axis):
-                print(len(observer))
                 lab = label_axis[i]
                 # L_diss_sec[i][s] = dataDiss[s][f'Ldisstot_pos {lab}']
                 # if snap == 109:

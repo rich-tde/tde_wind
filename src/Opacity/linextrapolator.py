@@ -4,10 +4,10 @@
 Created on Tue Nov 26 15:12:06 2024
 
 @author: konstantinos
-"""
+""" 
 import numpy as np
 
-def opacity_extrap(x, y, K, scatter = None, slope_length = 7, highrho_slope = None, highT_slope = 0, extrarowsx = 101, 
+def opacity_extrap(x, y, K, which_opacity, scatter = None, slope_length = 7,  extrarowsx = 101, 
                  extrarowsy = 100):
     ''' 
     Extra/Interpolation for opacity both in density and temperature.
@@ -19,7 +19,7 @@ def opacity_extrap(x, y, K, scatter = None, slope_length = 7, highrho_slope = No
     scatter: either None or interpoalted scattering table in ln (with the same shape of K).
              if != None, brings to opacity always above scattering. It has to be applied for rosseland.
     slope_length, int: position of the other point used for the slope.
-    highrho_slope, float: slope for high density extrapolation.
+    special_rho_slope, float: slope for some density extrapolations.
     highT_slope, float: slope for high temperature extrapolation.
     extrarowsx/extrarowsy, int: number of rows/columns to extrapolate.
     
@@ -41,10 +41,13 @@ def opacity_extrap(x, y, K, scatter = None, slope_length = 7, highrho_slope = No
     xn = np.concatenate([x_extra_low[::-1], x, x_extra_high])
     yn = np.concatenate([y_extra_low[::-1], y, y_extra_high])
     
+    if which_opacity == 'planck':
+        special_rho_slope = 2
+        highT_slope = -3.5
+    else:
+        special_rho_slope = 1 
+        highT_slope = 0
     Kn = np.zeros((len(xn), len(yn)))
-    T_scatter = []
-    d_scatter = []
-    alpha_scatter = []
     for ix, xsel in enumerate(xn):
         for iy, ysel in enumerate(yn):
             if xsel < x[0]: # Too cold
@@ -52,28 +55,23 @@ def opacity_extrap(x, y, K, scatter = None, slope_length = 7, highrho_slope = No
                 if ysel < y[0]: # Too rarefied
                     deltay = y[slope_length - 1] - y[0]
                     Kxslope = (K[slope_length - 1, 0] - K[0, 0]) / deltax
-                    Kyslope = (K[0, slope_length - 1] - K[0, 0]) / deltay
+                    if which_opacity == 'planck':
+                        Kyslope = special_rho_slope
+                    else:
+                        Kyslope = (K[0, slope_length - 1] - K[0, 0]) / deltay
                     Kn[ix][iy] = K[0, 0] + Kxslope * (xsel - x[0]) + Kyslope * (ysel - y[0])
                 
-                    if np.logical_and(highT_slope != -3.5, scatter is not None):
-                        # the condition on highT_slope is beacuse for the first runs of RICH (where highT_slope=-3.5) we didn't have the scatter limit
+                    if scatter is not None:
                         scatter_this_den = scatter[ix][iy]
                         if Kn[ix][iy] < scatter_this_den:
                             Kn[ix][iy] = scatter_this_den
-                        T_scatter.append(xsel)
-                        d_scatter.append(ysel)
-                        alpha_scatter.append(Kn[ix][iy])
 
                 elif ysel > y[-1]: # Too dense
                     deltay = y[-1] - y[-slope_length] 
                     Kxslope = (K[slope_length - 1, -1] - K[0, -1]) / deltax
-                    if highrho_slope:
-                        Kyslope = highrho_slope 
-                    else:
-                        Kyslope = (K[0, -1] - K[0, -slope_length]) / deltay
-                    # Rho_ext.append(ysel)
-                    # slope_rho.append(Kyslope)
+                    Kyslope = special_rho_slope
                     Kn[ix][iy] = K[0, -1] + Kxslope * (xsel - x[0]) +  Kyslope * (ysel - y[-1])
+                
                 else: # Density is inside the table
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kxslope = (K[slope_length - 1, iy_inK] - K[0, iy_inK]) / deltax
@@ -81,49 +79,49 @@ def opacity_extrap(x, y, K, scatter = None, slope_length = 7, highrho_slope = No
             
             # Too hot
             elif xsel > x[-1]: 
+                Kxslope = highT_slope 
                 if ysel < y[0]: # Too rarefied
                     deltay = y[slope_length - 1] - y[0]
-                    Kxslope = highT_slope #(K[-1, 0] - K[-slope_length, 0]) / deltax
-                    Kyslope = (K[-1, slope_length - 1] - K[-1, 0]) / deltay
+                    if which_opacity == 'planck':
+                        Kyslope = special_rho_slope
+                    else:
+                        Kyslope = (K[-1, slope_length - 1] - K[-1, 0]) / deltay
                     Kn[ix][iy] = K[-1, 0] + Kxslope * (xsel - x[-1]) + Kyslope * (ysel - y[0])
+                    
+                    if scatter is not None:
+                        scatter_this_den = scatter[ix][iy]
+                        if Kn[ix][iy] < scatter_this_den:
+                            Kn[ix][iy] = scatter_this_den
+
                 elif ysel > y[-1]: # Too dense
-                    deltay = y[-1] - y[-slope_length] 
-                    Kxslope = highT_slope #(K[-1, -1] - K[-slope_length, -1]) / deltax
-                    Kyslope = (K[-1, -1] - K[-1, -slope_length]) / deltay
+                    Kyslope = special_rho_slope 
                     Kn[ix][iy] = K[-1, -1] + Kxslope * (xsel - x[-1]) + Kyslope * (ysel - y[-1])
+                
                 else: # Density is inside the table
                     iy_inK = np.argmin(np.abs(y - ysel))
-                    Kxslope = highT_slope #(K[-1, iy_inK] - K[-slope_length, iy_inK]) / deltax
                     Kn[ix][iy] = K[-1, iy_inK] + Kxslope * (xsel - x[-1])
                 
-                if scatter is not None:
-                    scatter_this_den = scatter[ix][iy]
-                    if Kn[ix][iy] < scatter_this_den:
-                        Kn[ix][iy] = scatter_this_den
-                    T_scatter.append(xsel)
-                    d_scatter.append(ysel)
-                    alpha_scatter.append(Kn[ix][iy])
+
             else: 
                 ix_inK = np.argmin(np.abs(x - xsel))
                 if ysel < y[0]: # Too rarefied, Temperature is inside table
-                    deltay = y[slope_length - 1] - y[0]
-                    Kyslope = (K[ix_inK, slope_length - 1] - K[ix_inK, 0]) / deltay
+                    if which_opacity == 'planck': # this is for Planck interpolation in STAgreyOpacity
+                        Kyslope = (K[ix_inK, 10] - K[ix_inK, 0]) / (y[10] - y[0])
+                        if Kyslope < 0.35 or Kyslope > 2.75:
+                            print('Error in opavity: Ky slope too high/low')
+                            break
+                    else:
+                        deltay = y[slope_length - 1] - y[0]
+                        Kyslope = (K[ix_inK, slope_length - 1] - K[ix_inK, 0]) / deltay
                     Kn[ix][iy] = K[ix_inK, 0] + Kyslope * (ysel - y[0])
 
-                    if np.logical_and(highT_slope != -3.5, scatter is not None):
+                    if scatter is not None:
                         scatter_this_den =  scatter[ix][iy] # 1/cm
                         if Kn[ix][iy] < scatter_this_den:
                             Kn[ix][iy] = scatter_this_den
-                        T_scatter.append(xsel)
-                        d_scatter.append(ysel)
-                        alpha_scatter.append(Kn[ix][iy])
                     
                 elif ysel > y[-1]:  # Too dense, Temperature is inside table
-                    deltay = y[-1] - y[-slope_length]
-                    if highrho_slope:
-                        Kyslope = highrho_slope
-                    else:
-                        Kyslope = (K[ix_inK, -1] - K[ix_inK, -slope_length]) / deltay
+                    Kyslope = special_rho_slope
                     Kn[ix][iy] = K[ix_inK, -1] + Kyslope * (ysel - y[-1])
 
                 else:
@@ -179,7 +177,7 @@ def opacity_extrap(x, y, K, scatter = None, slope_length = 7, highrho_slope = No
 
     return xn, yn, Kn
 
-def opacity_linear(x, y, K, scatter = None, slope_length = 7, highT_slope = 0, 
+def opacity_linear(x, y, K, slope_length = 7, highT_slope = 0, 
                 extrarowsx = 101, extrarowsy = 100):
     ''' 
     Extra/Interpolation for temperature, linear with slope = 1 for density. 
@@ -242,11 +240,6 @@ def opacity_linear(x, y, K, scatter = None, slope_length = 7, highT_slope = 0,
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kxslope = highT_slope #(K[-1, iy_inK] - K[-slope_length, iy_inK]) / deltax
                     Kn[ix][iy] = K[-1, iy_inK] + Kxslope * (xsel - x[-1])
-                
-                if scatter is not None:
-                    scatter_this_den = scatter[ix][iy]
-                    if Kn[ix][iy] < scatter_this_den:
-                        Kn[ix][iy] = scatter_this_den
 
             else: 
                 ix_inK = np.argmin(np.abs(x - xsel))

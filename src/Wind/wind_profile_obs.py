@@ -27,7 +27,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-snap = 151
+snap = 109
 which_obs = 'dark_bright_z' # 'dark_bright_z' # 'arch', 'quadrants', 'axis'
 norm = '' # '' or '_norm'
 n_obs = '' # '' or '_npix8
@@ -270,6 +270,8 @@ r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
 observers_xyz = np.array(hp.pix2vec(NSIDE, range(NPIX))) # shape is 3,N
 x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
 indices_sorted, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, which_obs)
+for idx in indices_sorted:
+    print(len(idx))
 observers_xyz = np.transpose(observers_xyz) #shape: Nx3
 
 r_tr_means = np.zeros(len(indices_sorted))
@@ -318,8 +320,8 @@ else:
 fig, (axV, axd, axT) = plt.subplots(1, 3, figsize=(24, 6)) 
 figM, (axMdot, axL) = plt.subplots(1, 2, figsize=(18, 6))
 for i, lab in enumerate(profiles.keys()):
-    if i == 3:
-        continue
+    # if i == 3:
+    #     continue
     # for ax in [axMdot, axV, axd, axT, axL]:
     #     ax.axvline(r_tr_means[i]/Rt, c = colors_obs[i], ls = ':')
     #     ax.axvline(rph_means[i]/Rt, c = colors_obs[i], ls = '--')

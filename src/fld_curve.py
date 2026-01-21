@@ -56,12 +56,10 @@ Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 planck = np.loadtxt(f'{opac_path}/planck.txt')
 scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
-_, _, scatter2 = opacity_linear(T_cool, Rho_cool, scattering, slope_length = 7, highT_slope = 0)
-T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, scatter = scatter2, slope_length = 7, highT_slope = 0)
-_, _, planck2 = opacity_extrap(T_cool, Rho_cool, planck, scatter = None, highrho_slope = 2, slope_length = 7, highT_slope = -3.5)
-# if check in ['LowResOpacityNew', 'OpacityNew', 'OpacityNewNewAMR']:
-#     T_cool2, Rho_cool2, rossland2 = opacity_linear(T_cool, Rho_cool, rossland, scatter = scatter2, slope_length = 7, highT_slope = 0)
-          
+_, _, scatter2 = opacity_linear(T_cool, Rho_cool, scattering)
+T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, which_opacity = 'rossland', scatter = scatter2)
+_, _, planck2 = opacity_extrap(T_cool, Rho_cool, planck, which_opacity = 'planck', scatter = None)
+
 N_ray = 5_000
 apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 

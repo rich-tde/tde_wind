@@ -131,7 +131,7 @@ def find_step(theta_arr, i):
 
 def choose_sections(X, Y, Z, choice = 'dark_bright_z'):
     R_cyl = np.sqrt(X**2 + Y**2)
-    alpha_pole = np.pi/4 #np.pi/2-np.arccos(23/24)
+    alpha_pole = np.pi/6 # should be np.pi/6
     slope = np.tan(alpha_pole)  
     cond_Npole = np.logical_and(np.abs(Z) >= slope *  R_cyl, Z > 0)
     cond_Spole = np.logical_and(np.abs(Z) >= slope *  R_cyl, Z < 0)
@@ -190,9 +190,9 @@ def choose_observers(observers_xyz, choice):
         raise ValueError("observers_xyz must be a 3xN array.")
     
     x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
+    all_idx_obs = np.arange(len(x_obs))
     if choice == 'dark_bright_z' or choice == 'arch' or choice == 'dark_bright_z_in_out':
         indices_sorted = []
-        all_idx_obs = np.arange(len(observers_xyz.T))
         # wanted_z_obs = [(0,0,1), (0,0,-1)]
         # tree_obs = KDTree(observers_xyz.T) 
         # _, indices_z = tree_obs.query(np.array(wanted_z_obs), k=4) 
@@ -212,10 +212,74 @@ def choose_observers(observers_xyz, choice):
         lines_obs = []
         for key in sections_ph.keys(): 
             cond_single = sections_ph[key]['cond']
-            indices_sorted.append(all_idx_obs[cond_single])
             label_obs.append(sections_ph[key]['label'])
             colors_obs.append(sections_ph[key]['color'])
             lines_obs.append(sections_ph[key]['line'])
+        if choice == 'dark_bright_z':
+            x_obs_bright = x_obs[sections_ph['bright']['cond']]
+            x_obs_north = x_obs[sections_ph['north']['cond']]
+            x_obs_south = x_obs[sections_ph['south']['cond']]
+            if len(x_obs_bright) != 2 * len(x_obs_north):
+                print('Adjusting observers number')
+                y_obs_north = y_obs[sections_ph['north']['cond']]
+                z_obs_north = z_obs[sections_ph['north']['cond']]
+                indices_north = all_idx_obs[sections_ph['north']['cond']]
+                # find distances from the pole and all the one who has the maximum distance
+                distances = np.sqrt(x_obs_north**2 + y_obs_north**2 + (z_obs_north - 1)**2)
+                indices_to_change = np.where(np.isclose(distances, np.max(distances)))[0]
+                indices_to_change_dark = indices_to_change[x_obs_north[indices_to_change] < 0]
+                indices_to_change_dark = indices_north[indices_to_change_dark]
+                indices_to_change_dark = indices_to_change_dark[::2]
+                sections_ph['north']['cond'][indices_to_change_dark] = False
+                sections_ph['dark']['cond'][indices_to_change_dark] = True
+                indices_to_change_bright = indices_to_change[x_obs_north[indices_to_change] >= 0]
+                indices_to_change_bright = indices_north[indices_to_change_bright]
+                indices_to_change_bright = indices_to_change_bright[::2]
+                sections_ph['north']['cond'][indices_to_change_bright] = False
+                sections_ph['bright']['cond'][indices_to_change_bright] = True
+                # same for south
+                y_obs_south = y_obs[sections_ph['south']['cond']]
+                z_obs_south = z_obs[sections_ph['south']['cond']]
+                indices_south = all_idx_obs[sections_ph['south']['cond']]
+                # find distances from the pole and all the one who has the maximum distance
+                distances = np.sqrt(x_obs_south**2 + y_obs_south**2 + (z_obs_south + 1)**2)
+                indices_to_change = np.where(np.isclose(distances, np.max(distances)))[0]
+                indices_to_change_dark = indices_to_change[x_obs_south[indices_to_change] < 0]
+                indices_to_change_dark = indices_south[indices_to_change_dark]
+                indices_to_change_dark = indices_to_change_dark[::2]
+                sections_ph['south']['cond'][indices_to_change_dark] = False
+                sections_ph['dark']['cond'][indices_to_change_dark] = True
+                indices_to_change_bright = indices_to_change[x_obs_south[indices_to_change] >= 0]
+                indices_to_change_bright = indices_south[indices_to_change_bright]
+                indices_to_change_bright = indices_to_change_bright[::2]
+                sections_ph['south']['cond'][indices_to_change_bright] = False
+                sections_ph['bright']['cond'][indices_to_change_bright] = True
+
+        for key in sections_ph.keys(): 
+            cond_single = sections_ph[key]['cond']
+            indices_sorted.append(all_idx_obs[cond_single])
+        # if choice == 'dark_bright_z':
+        #     x_obs_bright = x_obs[sections_ph['bright']['cond']]
+        #     x_obs_north = x_obs[sections_ph['north']['cond']]
+        #     if len(x_obs_bright) != 2 * len(x_obs_north):
+        #         print('Adjusting observers number')
+        #         y_obs_north = y_obs[sections_ph['north']['cond']]
+        #         z_obs_north = z_obs[sections_ph['north']['cond']]
+        #         # find distances from the pole and all the one who has the maximum distance
+        #         distances = np.sqrt(x_obs_north**2 + y_obs_north**2 + (z_obs_north - 1)**2)
+        #         indices_to_change = np.where(np.isclose(distances,np.max(distances)))[0]
+        #         indices_to_change = all_idx_obs[indices_to_change]
+        #         print(sections_ph['north']['cond'])
+        #         sections_ph['north']['cond'][indices_to_change] = False
+        #         print(sections_ph['north']['cond'])
+        #         # indices_to_give = indices_to_change[::2]
+        #         indices_to_give_bright = indices_to_change[::2]
+        #         indices_to_give_dark = indices_to_change[1::2]
+        #         sections_ph['bright']['cond'][indices_to_give_bright] = True
+        #         sections_ph['dark']['cond'][indices_to_give_dark] = True
+
+
+
 
     # if choice == 'arch': # upper hemisphere
     #     wanted_obs = [(1,0,0), 
@@ -266,46 +330,45 @@ def choose_observers(observers_xyz, choice):
         colors_obs = ['dodgerblue', 'plum', 'forestgreen', 'magenta', 'orange', 'sienna']
         lines_obs = ['solid', 'solid', 'solid', 'solid', 'solid', 'solid']
     
-    # if choice == 'dark_bright_z':
-    #     indices_sorted = []
-    #     all_idx_obs = np.arange(len(observers_xyz.T))
-        # wanted_z_obs = [(0,0,1), (0,0,-1)]
-        # tree_obs = KDTree(observers_xyz.T) 
-        # _, indices_z = tree_obs.query(np.array(wanted_z_obs), k=4) 
-        # remaining_idx_obs = all_idx_obs[~np.isin(all_idx_obs, np.concatenate(indices_z))]
-        # indices_bright = remaining_idx_obs[x_obs[remaining_idx_obs] > 0]
-        # indices_dark = remaining_idx_obs[x_obs[remaining_idx_obs] < 0]
-        # indices_sorted.append(indices_bright)
-        # indices_sorted.append(indices_dark)
-        # indices_sorted.append(indices_z[0])
-        # indices_sorted.append(indices_z[1])
-        # label_obs = [r'$+\hat{\textbf{x}}$', r'$-\hat{\textbf{x}}$', r'$+\hat{\textbf{z}}$', r'$-\hat{\textbf{z}}$']
-        # colors_obs = ['deepskyblue', 'forestgreen', 'orange', 'sienna']
-        # lines_obs = ['dashed', 'solid', 'dotted', 'dashed']
+    # if choice == 'equal_bright_right_z': # 3D cartesian axis
+    #     wanted_obs_x = [(1,0,0), (-1,0,0)]  
+    #     wanted_obs_z = [(0,0,1), (0,0,-1)] 
 
+    #     tree_obs = KDTree(observers_xyz.T) # shape is N,3
+    #     _, indices_sorted_x = tree_obs.query(np.array(wanted_obs_x), k = 64) # shape: (len(wanted_obs),k)
+    #     x_obs_nox, y_obs_nox, z_obs_nox, all_idx_obs_nox = x_obs[~indices_sorted_x.flatten()], y_obs[~indices_sorted_x.flatten()], z_obs[~indices_sorted_x.flatten()], all_idx_obs[~indices_sorted_x.flatten()]
+    #     tree_obs_nox = KDTree(np.array([x_obs_nox, y_obs_nox, z_obs_nox]).T)
+    #     print(len(x_obs_nox))
+    #     _, indices_sorted_z_temp = tree_obs_nox.query(np.array(wanted_obs_z), k = 32) # shape: (len(wanted_obs),k)
+    #     indices_sorted_z = all_idx_obs_nox[indices_sorted_z_temp.flatten()]
+    #     indices_sorted = indices_sorted_x #[indices_sorted_x, indices_sorted_z]
+    #     label_obs = ['x+', 'x-', 'z+', 'z-']
+    #     colors_obs = ['dodgerblue', 'forestgreen', 'orange', 'sienna']
+    #     lines_obs = ['solid', 'solid', 'solid', 'solid']
+ 
     if choice == 'quadrants ': # 8 3d-quadrants 
         # Cartesian view    
-        indices1 = obs_indices[np.logical_and(z_obs>=0, np.logical_and(x_obs >= 0, y_obs >= 0))]
-        indices2 = obs_indices[np.logical_and(z_obs>=0, np.logical_and(x_obs < 0, y_obs >= 0))]
-        indices3 = obs_indices[np.logical_and(z_obs>=0, np.logical_and(x_obs < 0, y_obs < 0))]
-        indices4 = obs_indices[np.logical_and(z_obs>=0, np.logical_and(x_obs >= 0, y_obs < 0))]
-        indices5 = obs_indices[np.logical_and(z_obs<0, np.logical_and(x_obs >= 0, y_obs >= 0))]
-        indices6 = obs_indices[np.logical_and(z_obs<0, np.logical_and(x_obs < 0, y_obs >= 0))]
-        indices7 = obs_indices[np.logical_and(z_obs<0, np.logical_and(x_obs < 0, y_obs < 0))]
-        indices8 = obs_indices[np.logical_and(z_obs<0, np.logical_and(x_obs >= 0, y_obs < 0))]
+        indices1 = all_idx_obs[np.logical_and(z_obs>=0, np.logical_and(x_obs >= 0, y_obs >= 0))]
+        indices2 = all_idx_obs[np.logical_and(z_obs>=0, np.logical_and(x_obs < 0, y_obs >= 0))]
+        indices3 = all_idx_obs[np.logical_and(z_obs>=0, np.logical_and(x_obs < 0, y_obs < 0))]
+        indices4 = all_idx_obs[np.logical_and(z_obs>=0, np.logical_and(x_obs >= 0, y_obs < 0))]
+        indices5 = all_idx_obs[np.logical_and(z_obs<0, np.logical_and(x_obs >= 0, y_obs >= 0))]
+        indices6 = all_idx_obs[np.logical_and(z_obs<0, np.logical_and(x_obs < 0, y_obs >= 0))]
+        indices7 = all_idx_obs[np.logical_and(z_obs<0, np.logical_and(x_obs < 0, y_obs < 0))]
+        indices8 = all_idx_obs[np.logical_and(z_obs<0, np.logical_and(x_obs >= 0, y_obs < 0))]
         indices_sorted = [indices1, indices2, indices3, indices4, indices5, indices6, indices7, indices8]
         label_obs = ['+x+y+z', '-x+y+z', '-x-y+z', '+x-y+z',
                     '+x+y-z', '-x+y-z', '-x-y-z', '+x-y-z',]
         colors_obs = plt.cm.rainbow(np.linspace(0, 1, len(indices_sorted)))
 
     if choice == 'chunky_axis': # centered on the cartesian axes
-        indices1 = obs_indices[np.logical_and(np.abs(z_obs) < np.abs(x_obs), np.logical_and(x_obs < 0, np.abs(y_obs) < np.abs(x_obs)))]
-        indices2 = obs_indices[np.logical_and(np.abs(z_obs) < np.abs(x_obs), np.logical_and(x_obs >= 0, np.abs(y_obs) < x_obs))]
-        indices3 = obs_indices[np.logical_and(np.abs(z_obs) < np.abs(y_obs), np.logical_and(y_obs < 0, np.abs(y_obs) > np.abs(x_obs)))]
-        indices4 = obs_indices[np.logical_and(np.abs(z_obs) < np.abs(y_obs), np.logical_and(y_obs >= 0, y_obs > np.abs(x_obs)))]
+        indices1 = all_idx_obs[np.logical_and(np.abs(z_obs) < np.abs(x_obs), np.logical_and(x_obs < 0, np.abs(y_obs) < np.abs(x_obs)))]
+        indices2 = all_idx_obs[np.logical_and(np.abs(z_obs) < np.abs(x_obs), np.logical_and(x_obs >= 0, np.abs(y_obs) < x_obs))]
+        indices3 = all_idx_obs[np.logical_and(np.abs(z_obs) < np.abs(y_obs), np.logical_and(y_obs < 0, np.abs(y_obs) > np.abs(x_obs)))]
+        indices4 = all_idx_obs[np.logical_and(np.abs(z_obs) < np.abs(y_obs), np.logical_and(y_obs >= 0, y_obs > np.abs(x_obs)))]
         
-        indices5 = obs_indices[np.logical_and(z_obs<0, np.logical_and(np.abs(z_obs) > np.abs(y_obs), np.abs(z_obs) > np.abs(x_obs)))]
-        indices6 = obs_indices[np.logical_and(z_obs>=0, np.logical_and(z_obs > np.abs(y_obs), z_obs > np.abs(x_obs)))]
+        indices5 = all_idx_obs[np.logical_and(z_obs<0, np.logical_and(np.abs(z_obs) > np.abs(y_obs), np.abs(z_obs) > np.abs(x_obs)))]
+        indices6 = all_idx_obs[np.logical_and(z_obs>=0, np.logical_and(z_obs > np.abs(y_obs), z_obs > np.abs(x_obs)))]
 
         indices_sorted = [indices1, indices2, indices3, indices4, indices5, indices6]#, indices7, indices8]
         colors_obs = plt.cm.rainbow(np.linspace(0, 1, len(indices_sorted)))
