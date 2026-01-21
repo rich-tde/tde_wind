@@ -46,8 +46,8 @@ if alice:
     snaps = select_snap(m, check, mstar, Rstar, beta, n, compton, time = False) 
 
     for i, snap in enumerate(snaps):
-        if snap > 30:
-            continue
+        # if snap > 30:
+        #     continue
         print(snap, flush=True) 
         
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
@@ -70,24 +70,31 @@ if alice:
         if do_cut == 'sections':
             X, Y, Z = make_slices([X, Y, Z], cut)
             sections = choose_sections(X, Y, Z, choice = 'dark_bright_z')
-            diss_list = {}
-            diss_list[i] = {
-                    'snap': snap,
-                    'tfb': tfb}
             cond_sec = []
             label_obs = []
             for key in sections.keys():
                 cond_sec.append(sections[key]['cond'])
                 label_obs.append(sections[key]['label'])
 
+            Rdiss_list = np.zeros(len(cond_sec))
+            Ldiss_list = np.zeros(len(cond_sec))
             for k, cond in enumerate(cond_sec):
                 mask = np.logical_and(Ediss_den >= 0, cond)
 
-                Ldisstot_pos = np.sum(Ediss[mask])
                 Rdiss_pos = np.sum(Rsph[mask] * Ediss[mask]) / np.sum(Ediss[mask])
+                Ldisstot_pos = np.sum(Ediss[mask])
 
-                diss_list[i][f'Rdiss_pos {label_obs[k]}'] = Rdiss_pos
-                diss_list[i][f'Ldisstot_pos {label_obs[k]}'] = Ldisstot_pos
+                Rdiss_list[k] = Rdiss_pos
+                Ldiss_list[k] = Ldisstot_pos
+    
+            data = np.concatenate(([snap], [tfb], Rdiss_list, Ldiss_list))  
+            with open(csv_path,'a', newline='') as file:
+                writer = csv.writer(file)           
+                if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
+                    header = ['snap', ' tfb', [f' Rdiss_pos {lab}' for lab in label_obs], [f' Ldisstot_pos {lab}' for lab in label_obs]]
+                writer.writerow(data)
+            file.close()
+
 
         if do_cut == '' or do_cut == 'nocut':
             Ldisstot_pos = np.sum(Ediss[Ediss_den >= 0])

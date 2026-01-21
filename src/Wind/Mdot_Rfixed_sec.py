@@ -9,7 +9,8 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = False
+    compute = True
+
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -61,12 +62,14 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
     for i, snap in enumerate(snaps):
-        print(snap, flush=True)
         if alice:
             path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         else:
+            if snap != 109:
+                continue
             path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
 
+        print(snap, flush=True)
         # Load data and pick the ones unbound and with positive velocity
         data = make_tree(path, snap, energy = True)
         X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
@@ -80,26 +83,50 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         bern = orb.bern_coeff(Rsph, V, Den, Mass, Press, IE_den, Rad_den, params)
         v_rad, _, _ = to_spherical_components(VX, VY, VZ, X, Y, Z)
 
+        # select just outflowing and unbound material
         cond_wind = np.logical_and(v_rad >= 0, bern > 0)
-        X_pos, Y_pos, Z_pos, Den_pos, Rsph_pos, v_rad_pos, dim_cell_pos = \
+        X_wind, Y_wind, Z_wind, Den_wind, Rsph_wind, v_rad_wind, dim_cell_wind = \
             make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell], cond_wind)
-        if Den_pos.size == 0:
+        if Den_wind.size == 0:
             print(f'no positive', flush=True)
             data = [snap, tfb[i], 0, 0, 0, 0]
 
         else: 
-            sections = choose_sections(X_pos, Y_pos, Z_pos, choice = 'dark_bright_z')
+            # split the wind material in sections
+            sections = choose_sections(X_wind, Y_wind, Z_wind, choice = 'dark_bright_z')
             cond_sec = []
             label_obs = []
+            color_obs = []
             for key in sections.keys():
                 cond_sec.append(sections[key]['cond'])
                 label_obs.append(sections[key]['label'])
+                color_obs.append(sections[key]['color'])
+            
 
             mwind = np.zeros(len(cond_sec))
+            Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
+            if plot: # see what I'm selecting
+                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 7))
+                for ax in [ax1, ax2]:    
+                        ax.set_xlabel(r'$X [r_{\rm t}]$')
+                ax1.set_xlim(-30,30)
+                ax1.set_ylim(-30,30)
+                ax2.set_xlim(-30,30)
+                ax2.set_ylim(-30,30)
+                ax1.set_ylabel(r'$Y [r_{\rm t}]$')
+                ax1.set_title('Wind cells')
+                ax2.set_title('Selected')
+                plt.tight_layout()
             for j, cond in enumerate(cond_sec):
-                condR = np.logical_and(np.abs(Rsph_pos-r_chosen) < dim_cell_pos, cond)
-                Mdot = np.pi * dim_cell_pos**2 * Den_pos * v_rad_pos  
-                mwind[j] = 4 * r_chosen**2 * np.sum(Mdot[condR]) / np.sum(dim_cell_pos[condR]**2)
+                # select the particles in the chosen section and at the chosen radius
+                condR = np.logical_and(np.abs(Rsph_wind-r_chosen) < dim_cell_wind, cond)
+                mwind[j] = 4 * r_chosen**2 * np.sum(Mdot[condR]) / np.sum(dim_cell_wind[condR]**2)
+                
+                if plot:
+                    # see what I'm selecting
+                    ax1.scatter(X_wind[cond]/Rt, Y_wind[cond]/Rt, s=1, c = color_obs[j], label=label_obs[j])
+                    ax2.scatter(X_wind[condR]/Rt, Y_wind[condR]/Rt, s=1, c = color_obs[j])
+                    
             data = np.concatenate(([snap], [tfb[i]], mwind))  
     
         csv_path = f'{abspath}/data/{folder}/wind/MdotSec_{check}{which_r_title}.csv'
@@ -125,7 +152,7 @@ if plot:
                     unpack=True)
     
     _, tfbH, MwR, MwL ,MwN, MwS = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec_{check}{which_r_title}_old.csv', 
+            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec_{check}{which_r_title}.csv', 
                     delimiter = ',', 
                     skiprows=1, 
                     unpack=True) 
@@ -141,12 +168,12 @@ if plot:
     ax1.plot(tfbH, np.abs(MwL)/Medd_sol, c = 'forestgreen', label = r'left')
     ax1.plot(tfbH, np.abs(MwR)/Medd_sol, c = 'deepskyblue', label = r'right')
     ax1.plot(tfbH, np.abs(MwN)/Medd_sol, c = 'orange', label = r'N pole')
-    ax1.plot(tfbH, np.abs(MwS)/Medd_sol, c = 'sienna', label = r'S pole')
+    # ax1.plot(tfbH, np.abs(MwS)/Medd_sol, c = 'sienna', label = r'S pole')
 
     ax2.plot(tfbH, np.abs(MwL/mfb), c = 'forestgreen')
     ax2.plot(tfbH, np.abs(MwR/mfb), c = 'deepskyblue')
     ax2.plot(tfbH, np.abs(MwN/mfb), c = 'orange')
-    ax2.plot(tfbH, np.abs(MwS/mfb), c = 'sienna')
+    # ax2.plot(tfbH, np.abs(MwS/mfb), c = 'sienna')
     
     original_ticks = ax1.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
@@ -157,7 +184,7 @@ if plot:
         ax.set_xlabel(r'$t [t_{\rm fb}]$')
         ax.set_xticks(new_ticks)
         ax.set_xticklabels(labels)  
-        ax.set_xlim(0, np.max(tfbH))
+        ax.set_xlim(0, np.max(tfbfb))
         ax.tick_params(axis='both', which='major', width=1.2, length=9)
         ax.tick_params(axis='both', which='minor', width=1, length=5)
         ax.legend(fontsize = 18)

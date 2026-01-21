@@ -101,7 +101,7 @@ if compute:
             Mdot_pos = np.pi * dim_cell_pos**2 * Den_pos * v_rad_pos  
             xyz = np.transpose([X_pos/r_chosen, Y_pos/r_chosen, Z_pos/r_chosen]) # normalize to r_chosen
             tree = KDTree(xyz) 
-            mwind = []
+            mwind = np.zeros(len(indices_axis)) #[]
             for j, indices in enumerate(indices_axis):
                 x_obs_axis = x_obs[indices]
                 y_obs_axis = y_obs[indices]
@@ -114,7 +114,7 @@ if compute:
                 # print('shape far', np.shape(far))
                 # print('shape NON zero Mdot', np.shape(Mdot_tokeep[Mdot_tokeep!=0]))
                 Mdot_tokeep[far] = 0 
-                mwind.append(4 * r_chosen**2 * np.sum(Mdot_tokeep) / np.sum(dim_cell_tokeep**2))
+                mwind[j] = 4 * r_chosen**2 * np.sum(Mdot_tokeep) / np.sum(dim_cell_tokeep**2)
             data = np.concatenate(([snap], [tfb[i]], mwind))  
     
         csv_path = f'{abspath}/data/{folder}/wind/MdotObsSec_{check}{which_r_title}.csv'
