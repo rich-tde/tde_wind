@@ -9,7 +9,8 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = False
+    compute = True
+    plot = False
 
 
 import numpy as np
@@ -100,7 +101,7 @@ def split_cells(X, Y, Z, dim_cell, r_chosen, choice):
 
     for j, cond in enumerate(cond_sec):
         # select the particles in the chosen section and at the chosen radius
-        condR = np.logical_and(np.abs(Rsph-r_chosen) < dim_cell, cond)
+        condR = cond #np.logical_and(np.abs(Rsph-r_chosen) < dim_cell, cond)
         indices_sec.append(indices[condR])
 
         if plot:
@@ -126,6 +127,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice):
 
     # select just outflowing and unbound material
     cond_wind = np.logical_and(v_rad >= 0, bern > 0)
+    cond_wind = np.logical_and(cond_wind, np.abs(Rsph - r_chosen) < dim_cell)
     X_wind, Y_wind, Z_wind, Den_wind, Rsph_wind, v_rad_wind, dim_cell_wind, Rad_den_wind = \
         make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell, Rad_den], cond_wind)
     if Den_wind.size == 0:
@@ -161,7 +163,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice):
 if compute: # compute dM/dt = dM/dE * dE/dt
     r_chosen = 0.5*amin 
     which_r_title = '05amin'
-    with_who = ''  # '' or 'Obs'
+    with_who = 'Obs'  # '' or 'Obs'
     choice = 'dark_bright_z'  
 
     observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
@@ -176,7 +178,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         if alice:
             path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         else:
-            if snap != 109:
+            if snap != 151:
                 continue
             path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
         print(snap, flush=True)
