@@ -70,11 +70,11 @@ if compute:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
     for i, snap in enumerate(snaps):
+        if snap != 151:
+            continue
         if alice:
             path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         else:
-            if snap != 151:
-                continue
             path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
 
         print(snap, flush=True)
