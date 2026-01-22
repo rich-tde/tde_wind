@@ -128,7 +128,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice):
     cond_wind = np.logical_and(v_rad >= 0, bern > 0)
     X_wind, Y_wind, Z_wind, Den_wind, Rsph_wind, v_rad_wind, dim_cell_wind, Rad_den_wind = \
         make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell, Rad_den], cond_wind)
-    if Den_wind.size != 0:
+    if Den_wind.size == 0:
         print(f'no positive', flush=True)
         data = [snap, tfb[i], *np.zeros(4)] # wathc out: you put 4 beacuse you're looking at 4 sections
 
@@ -159,8 +159,8 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice):
     return data
 
 if compute: # compute dM/dt = dM/dE * dE/dt
-    r_chosen = 5*apo #0.5*amin 
-    which_r_title = '5apo' # '05amin'
+    r_chosen = 0.5*amin 
+    which_r_title = '05amin'
     with_who = ''  # '' or 'observers'
     choice = 'dark_bright_z'  
 
