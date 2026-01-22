@@ -161,7 +161,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice):
 if compute: # compute dM/dt = dM/dE * dE/dt
     r_chosen = 0.5*amin 
     which_r_title = '05amin'
-    with_who = ''  # '' or 'observers'
+    with_who = ''  # '' or 'Obs'
     choice = 'dark_bright_z'  
 
     observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
@@ -200,15 +200,16 @@ if plot:
     from Utilities.operators import sort_list
     import matplotlib.colors as mcolors
     which_r_title = '05amin'
+    with_who = 'Obs'  # '' or 'Obs'
 
     _, tfbfb, mfb, _, _, _, _, _, _, _ = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_{check}{which_r_title}mean.csv', 
+            np.loadtxt(f'{abspath}/data/{folder}/paper1/wind/Mdot_{check}{which_r_title}mean.csv', 
                     delimiter = ',', 
                     skiprows=1, 
                     unpack=True)
     
     _, tfbH, MwR, MwL ,MwN, MwS = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec_{check}{which_r_title}.csv', 
+            np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot{with_who}Sec_{check}{which_r_title}.csv', 
                     delimiter = ',', 
                     skiprows=1, 
                     unpack=True) 
@@ -249,7 +250,7 @@ if plot:
     ax1.set_ylabel(r'$|\dot{M}_{{\rm w}}| [\dot{M}_{\rm Edd}]$')   
     ax2.set_ylim(1e-3, 2)
     ax2.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm fb}]$')
-    plt.suptitle(rf'$\dot{{M}}_{{\rm w}}$ at {which_r_title}', fontsize = 20)
+    plt.suptitle(rf'$\dot{{M}}_{{\rm w}}$ {with_who} at {which_r_title}', fontsize = 20)
     fig.tight_layout()
 
     # fig, ax = plt.subplots(1,1, figsize = (8,6))
