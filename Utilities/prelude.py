@@ -29,7 +29,7 @@ G_SI = 6.6743e-11 # SI
 Msol_SI = 2e30 #1.98847e30 # kg
 Rsol_SI = 7e8 #6.957e8 # m
 
-# Sim units
+# Sim units 
 G = 1
 solarR_to_au = 215
 

@@ -9,9 +9,7 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = True
-    plot = False
-
+    compute = False
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -175,8 +173,8 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
     for i, snap in enumerate(snaps):
-        if snap != 151:
-            continue
+        # if snap not in [109, 151]:
+        #     continue
         if alice:
             path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         else:
@@ -203,6 +201,7 @@ if plot:
     import matplotlib.colors as mcolors
     which_r_title = '05amin'
     with_who = 'Obs'  # '' or 'Obs'
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (18, 7))
 
     _, tfbfb, mfb, _, _, _, _, _, _, _ = \
             np.loadtxt(f'{abspath}/data/{folder}/paper1/wind/Mdot_{check}{which_r_title}mean.csv', 
@@ -215,6 +214,21 @@ if plot:
                     delimiter = ',', 
                     skiprows=1, 
                     unpack=True) 
+    
+    if with_who == 'Obs':
+        _, tfbH8, MwR8, MwL8 ,MwN8, MwS8 = \
+            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotObsSec_{check}{which_r_title}_npix8.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True)
+        ax1.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--')
+        ax1.plot(tfbH, np.abs(MwL)/Medd_sol, c = 'forestgreen', label = r'left')
+        ax1.scatter(tfbH8, np.abs(MwL8)/Medd_sol, c = 'forestgreen', label = r'768 obs', s = 40)
+        ax1.plot(tfbH, np.abs(MwR)/Medd_sol, c = 'deepskyblue', label = r'right')
+        ax1.scatter(tfbH8, np.abs(MwR8)/Medd_sol, c = 'deepskyblue', s = 40)
+        ax1.plot(tfbH, np.abs(MwN)/Medd_sol, c = 'orange', label = r'N pole')
+        ax1.scatter(tfbH8, np.abs(MwN8)/Medd_sol, c = 'orange', s = 40)
+        
     # integrate mwind_dimCell in tfb 
     # mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)
     # mfall_int = cumulative_trapezoid(np.abs(mfall), tfb, initial = 0)
@@ -222,7 +236,6 @@ if plot:
     # print(f'integral of Mfb at the last time: {mfall_int[-1]/mstar} Mstar')
     # print(f'End of simualation, Mw/Mfb in {check}:', np.abs(mwind_dimCell[-1]/mfall[-1]))
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (18, 7))
     ax1.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--')
     ax1.plot(tfbH, np.abs(MwL)/Medd_sol, c = 'forestgreen', label = r'left')
     ax1.plot(tfbH, np.abs(MwR)/Medd_sol, c = 'deepskyblue', label = r'right')
@@ -243,7 +256,7 @@ if plot:
         ax.set_xlabel(r'$t [t_{\rm fb}]$')
         ax.set_xticks(new_ticks)
         ax.set_xticklabels(labels)  
-        ax.set_xlim(0, np.max(tfbfb))
+        ax.set_xlim(0, 2.3)
         ax.tick_params(axis='both', which='major', width=1.2, length=9)
         ax.tick_params(axis='both', which='minor', width=1, length=5)
         ax.legend(fontsize = 18)
