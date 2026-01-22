@@ -17,9 +17,11 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import csv
 import os
+import healpy as hp
+from sklearn.neighbors import KDTree
 import Utilities.prelude as prel
 import src.orbits as orb
-from Utilities.operators import make_tree, to_spherical_components, choose_sections
+from Utilities.operators import make_tree, to_spherical_components, choose_sections, choose_observers
 from Utilities.selectors_for_snap import select_snap
 from Utilities.sections import make_slices
 
@@ -55,9 +57,118 @@ Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 
 #%%
 # MAIN
+def split_observers(X, Y, Z, dim_cell, r_chosen):
+    global x_obs, y_obs, z_obs, indices_obs
+    xyz = np.transpose([X/r_chosen, Y/r_chosen, Z/r_chosen]) # normalize to r_chosen
+    tree = KDTree(xyz) 
+    indices_sec = []
+    for j, indices in enumerate(indices_obs):
+        x_obs_sec = x_obs[indices]
+        y_obs_sec = y_obs[indices]
+        z_obs_sec = z_obs[indices]
+        dist, idx = tree.query(np.transpose([x_obs_sec, y_obs_sec, z_obs_sec]), k=1)
+        far = dist < dim_cell[idx]
+        idx = idx[far]
+        indices_sec.append(idx)
+    return indices_sec
+
+def split_cells(X, Y, Z, dim_cell, r_chosen, choice):
+    Rsph = np.sqrt(X**2 + Y**2 + Z**2)
+    indices = np.arange(len(X))
+    indices_sec = []
+    sections = choose_sections(X, Y, Z, choice)
+    cond_sec = []
+    label_obs = []
+    color_obs = []
+    for key in sections.keys():
+        cond_sec.append(sections[key]['cond'])
+        label_obs.append(sections[key]['label'])
+        color_obs.append(sections[key]['color'])
+        
+    if plot: # see what I'm selecting
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 7))
+        for ax in [ax1, ax2]:    
+                ax.set_xlabel(r'$X [r_{\rm t}]$')
+        ax1.set_xlim(-30,30)
+        ax1.set_ylim(-30,30)
+        ax2.set_xlim(-30,30)
+        ax2.set_ylim(-30,30)
+        ax1.set_ylabel(r'$Y [r_{\rm t}]$')
+        ax1.set_title('Wind cells')
+        ax2.set_title('Selected')
+        plt.tight_layout()
+
+    for j, cond in enumerate(cond_sec):
+        # select the particles in the chosen section and at the chosen radius
+        condR = np.logical_and(np.abs(Rsph-r_chosen) < dim_cell, cond)
+        indices_sec.append(indices[condR])
+
+        if plot:
+            # see what I'm selecting
+            ax1.scatter(X[cond]/Rt, Y[cond]/Rt, s=1, c = color_obs[j], label=label_obs[j])
+            ax2.scatter(X[condR]/Rt, Y[condR]/Rt, s=1, c = color_obs[j])
+    
+    return indices_sec
+    
+def Mdot_sec(path, snap, r_chosen, with_who, choice):
+    # Load data and pick the ones unbound and with positive velocity
+    data = make_tree(path, snap, energy = True)
+    X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
+        data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Press, data.VX, data.VY, data.VZ, data.IE, data.Rad
+    cut = Den > 1e-19
+    X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
+        make_slices([X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
+    dim_cell = Vol**(1/3)
+    Rsph = np.sqrt(X**2 + Y**2 + Z**2)
+    V = np.sqrt(VX**2 + VY**2 + VZ**2)
+    bern = orb.bern_coeff(Rsph, V, Den, Mass, Press, IE_den, Rad_den, params)
+    v_rad, _, _ = to_spherical_components(VX, VY, VZ, X, Y, Z)
+
+    # select just outflowing and unbound material
+    cond_wind = np.logical_and(v_rad >= 0, bern > 0)
+    X_wind, Y_wind, Z_wind, Den_wind, Rsph_wind, v_rad_wind, dim_cell_wind, Rad_den_wind = \
+        make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell, Rad_den], cond_wind)
+    if Den_wind.size != 0:
+        print(f'no positive', flush=True)
+        data = [snap, tfb[i], *np.zeros(4)] # wathc out: you put 4 beacuse you're looking at 4 sections
+
+    else:
+        Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
+        if with_who == '':
+            indices_sec = split_cells(X_wind, Y_wind, Z_wind, dim_cell_wind, r_chosen, choice)
+
+        elif with_who == 'Obs':
+            indices_sec = split_observers(X_wind, Y_wind, Z_wind, dim_cell_wind, r_chosen)
+
+        mwind = np.zeros(len(indices_sec))
+        Lum_fs = np.zeros(len(indices_sec))
+        Ekin = np.zeros(len(indices_sec))
+
+        for j, indices in enumerate(indices_sec):
+            # select the particles in the chosen section and at the chosen radius
+            mwind[j] = 4 * r_chosen**2 * np.sum(Mdot[indices]) / np.sum(dim_cell_wind[indices]**2)
+            if r_chosen > apo:
+                Lum_fs[j] = np.mean(4 * np.pi * Rsph_wind[indices]**2 * Rad_den_wind[indices] * prel.csol_cgs)
+                Ekin[j] = 0.5 * np.sum(Mdot[indices] * v_rad_wind[indices]**2)
+                
+        if r_chosen > apo:
+            data = np.concatenate(([snap], [tfb[i]], mwind, Lum_fs, Ekin))
+        else:        
+            data = np.concatenate(([snap], [tfb[i]], mwind))  
+
+    return data
+
 if compute: # compute dM/dt = dM/dE * dE/dt
-    r_chosen = 5*apo #0.5*amin # 'Rtr' for radius of the trap, value that you want for a fixed value
+    r_chosen = 5*apo #0.5*amin 
     which_r_title = '5apo' # '05amin'
+    with_who = ''  # '' or 'observers'
+    choice = 'dark_bright_z'  
+
+    observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
+    observers_xyz = np.array(observers_xyz)
+    indices_obs, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, choice)
+    observers_xyz = observers_xyz.T
+    x_obs, y_obs, z_obs = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
 
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
@@ -68,74 +179,10 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             if snap != 109:
                 continue
             path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
-
         print(snap, flush=True)
-        # Load data and pick the ones unbound and with positive velocity
-        data = make_tree(path, snap, energy = True)
-        X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
-            data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Press, data.VX, data.VY, data.VZ, data.IE, data.Rad
-        cut = Den > 1e-19
-        X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
-            make_slices([X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
-        dim_cell = Vol**(1/3)
-        Rsph = np.sqrt(X**2 + Y**2 + Z**2)
-        V = np.sqrt(VX**2 + VY**2 + VZ**2)
-        bern = orb.bern_coeff(Rsph, V, Den, Mass, Press, IE_den, Rad_den, params)
-        v_rad, _, _ = to_spherical_components(VX, VY, VZ, X, Y, Z)
-
-        # select just outflowing and unbound material
-        cond_wind = np.logical_and(v_rad >= 0, bern > 0)
-        X_wind, Y_wind, Z_wind, Den_wind, Rsph_wind, v_rad_wind, dim_cell_wind, Rad_den_wind = \
-            make_slices([X, Y, Z, Den, Rsph, v_rad, dim_cell, Rad_den], cond_wind)
-        if Den_wind.size == 0:
-            print(f'no positive', flush=True)
-            data = [snap, tfb[i], 0, 0, 0, 0]
-
-        else: 
-            # split the wind material in sections
-            sections = choose_sections(X_wind, Y_wind, Z_wind, choice = 'dark_bright_z')
-            cond_sec = []
-            label_obs = []
-            color_obs = []
-            for key in sections.keys():
-                cond_sec.append(sections[key]['cond'])
-                label_obs.append(sections[key]['label'])
-                color_obs.append(sections[key]['color'])
-            
-            mwind = np.zeros(len(cond_sec))
-            Lum_fs = np.zeros(len(cond_sec))
-            Ekin = np.zeros(len(cond_sec))
-            Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
-            if plot: # see what I'm selecting
-                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 7))
-                for ax in [ax1, ax2]:    
-                        ax.set_xlabel(r'$X [r_{\rm t}]$')
-                ax1.set_xlim(-30,30)
-                ax1.set_ylim(-30,30)
-                ax2.set_xlim(-30,30)
-                ax2.set_ylim(-30,30)
-                ax1.set_ylabel(r'$Y [r_{\rm t}]$')
-                ax1.set_title('Wind cells')
-                ax2.set_title('Selected')
-                plt.tight_layout()
-            for j, cond in enumerate(cond_sec):
-                # select the particles in the chosen section and at the chosen radius
-                condR = np.logical_and(np.abs(Rsph_wind-r_chosen) < dim_cell_wind, cond)
-                mwind[j] = 4 * r_chosen**2 * np.sum(Mdot[condR]) / np.sum(dim_cell_wind[condR]**2)
-                if r_chosen > apo:
-                    Lum_fs[j] = np.mean(4 * np.pi * Rsph_wind[condR]**2 * Rad_den_wind[condR] * prel.csol_cgs)
-                    Ekin[j] = 0.5 * np.sum(Mdot[condR] * v_rad_wind[condR]**2)
-                
-                if plot:
-                    # see what I'm selecting
-                    ax1.scatter(X_wind[cond]/Rt, Y_wind[cond]/Rt, s=1, c = color_obs[j], label=label_obs[j])
-                    ax2.scatter(X_wind[condR]/Rt, Y_wind[condR]/Rt, s=1, c = color_obs[j])
-            if r_chosen > apo:
-                data = np.concatenate(([snap], [tfb[i]], mwind, Lum_fs, Ekin))
-            else:        
-                data = np.concatenate(([snap], [tfb[i]], mwind))  
-    
-        csv_path = f'{abspath}/data/{folder}/wind/MdotSec_{check}{which_r_title}.csv'
+        
+        data_tosave = Mdot_sec(path, snap, r_chosen, with_who, choice)
+        csv_path = f'{abspath}/data/{folder}/wind/Mdot{with_who}Sec_{check}{which_r_title}.csv'
         if alice:
             with open(csv_path, 'a', newline='') as file:
                 writer = csv.writer(file)
@@ -144,7 +191,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
                         writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_obs] + [f'Lum_fs {lab}' for lab in label_obs] + [f'Ekin {lab}' for lab in label_obs])
                     else:
                         writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_obs])
-                writer.writerow(data)
+                writer.writerow(data_tosave)
             file.close()
 
 if plot:
@@ -223,5 +270,39 @@ if plot:
     # ax.grid()
     # fig.tight_layout()
 
+    #%%
+    which_r_title = '5apo'
+    _, tfbH, MwR, MwL ,MwN, MwS, Lum_fsR, Lum_fsL, Lum_fsN, Lum_fsS, EkinR, EkinL, EkinN, EkinS = \
+            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec_{check}{which_r_title}.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True) 
+    fig, ax = plt.subplots(1, 1, figsize = (10, 7))
+    ax.plot(tfbH, np.abs(Lum_fsL)/Ledd_sol, c = 'forestgreen', label = r'left')
+    ax.plot(tfbH, np.abs(EkinL)/Ledd_sol, c = 'forestgreen', ls = '--', label = r'E_{\rm kin}')
+    ax.plot(tfbH, np.abs(Lum_fsR)/Ledd_sol, c = 'deepskyblue', label = r'right')
+    ax.plot(tfbH, np.abs(EkinR)/Ledd_sol, c = 'deepskyblue', ls = '--')
+    ax.plot(tfbH, np.abs(Lum_fsN)/Ledd_sol, c = 'orange', label = r'N pole')
+    ax.plot(tfbH, np.abs(EkinN)/Ledd_sol, c = 'orange', ls = '--')
+    
+    original_ticks = ax1.get_xticks()
+    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
+    ax.set_yscale('log')
+    ax.set_xlabel(r'$t [t_{\rm fb}]$')
+    ax.set_xticks(new_ticks)
+    ax.set_xticklabels(labels)  
+    ax.tick_params(axis='both', which='major', width=1.2, length=9)
+    ax.tick_params(axis='both', which='minor', width=1, length=5)
+    ax.set_ylabel(r'$L [L_{\rm Edd}]$')   
+    ax.set_xlim(0, np.max(tfbH))
+    ax.set_ylim(1, 5e3)
+    ax.legend(fontsize = 18)
+    ax.grid()
+    plt.suptitle(rf'r = {which_r_title}', fontsize = 20)
+    fig.tight_layout()
 
     
+
+# %%

@@ -16,7 +16,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-snap = 76
+snap = 109
 x_axis = 'Temp'  # 'Freq' or 'Temp'
 
 ## Snapshots stuff
