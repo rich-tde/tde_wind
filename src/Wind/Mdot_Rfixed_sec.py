@@ -148,8 +148,8 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice):
             # select the particles in the chosen section and at the chosen radius
             mwind[j] = 4 * r_chosen**2 * np.sum(Mdot[indices]) / np.sum(dim_cell_wind[indices]**2)
             if r_chosen > apo:
-                Lum_fs[j] = np.mean(4 * np.pi * Rsph_wind[indices]**2 * Rad_den_wind[indices] * prel.csol_cgs)
-                Ekin[j] = 0.5 * np.sum(Mdot[indices] * v_rad_wind[indices]**2)
+                Lum_fs[j] = np.mean(4 * np.pi * r_chosen**2 * Rad_den_wind[indices] * prel.csol_cgs)
+                Ekin[j] = 0.5 * np.mean(Mdot[indices] * v_rad_wind[indices]**2)
                 
         if r_chosen > apo:
             data = np.concatenate(([snap], [tfb[i]], mwind, Lum_fs, Ekin))
@@ -159,8 +159,8 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice):
     return data
 
 if compute: # compute dM/dt = dM/dE * dE/dt
-    r_chosen = 0.5*amin 
-    which_r_title = '05amin'
+    r_chosen = 2*apo #0.5*amin 
+    which_r_title = '2apo'
     with_who = 'Obs'  # '' or 'Obs'
     choice = 'dark_bright_z'  
 
