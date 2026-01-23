@@ -60,6 +60,13 @@ def split_observers(X, Y, Z, dim_cell):
     global x_obs, y_obs, z_obs, indices_obs
     xyz = np.transpose([X/r_chosen, Y/r_chosen, Z/r_chosen]) # normalize to r_chosen
     tree = KDTree(xyz) 
+    sections_tocheck = choose_sections(X, Y, Z, choice)
+    indices_all = np.arange(len(X))
+    indices_sec_tocheck = []
+    for key in sections_tocheck.keys():
+        cond_sec_tocheck = sections_tocheck[key]['cond']
+        indices_sec_tocheck.append(indices_all[cond_sec_tocheck])
+
     indices_sec = []
     for j, indices in enumerate(indices_obs):
         x_obs_sec = x_obs[indices]
@@ -68,10 +75,8 @@ def split_observers(X, Y, Z, dim_cell):
         dist, idx = tree.query(np.transpose([x_obs_sec, y_obs_sec, z_obs_sec]), k = 70)
         dist = dist.flatten()
         idx = idx.flatten()
-        far = dist < dim_cell[idx]
-        print(len(idx[far])/len(idx))
-        idx = idx[far]
-        indices_sec.append(idx)
+        correct_idx = np.intersect1d(idx, indices_sec_tocheck[j])
+        indices_sec.append(correct_idx)
     return indices_sec
 
 def split_cells(X, Y, Z, choice):
@@ -183,8 +188,8 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, how = ''):
     return data
 
 if compute: # compute dM/dt = dM/dE * dE/dt
-    r_chosen = 0.5*amin 
-    which_r_title = '05amin'
+    r_chosen = 2*apo #0.5*amin 
+    which_r_title = '2apo' 
     with_who = 'Obs'  # '' or 'Obs'
     choice = 'dark_bright_z' #'arch', 'quadrants', 'ax is', 'dark_bright_z_in_out', 'all'
 
@@ -199,8 +204,8 @@ if compute: # compute dM/dt = dM/dE * dE/dt
     for i, snap in enumerate(snaps):
         if alice:
             path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-        else:
-            if snap not in [151]:
+        else: 
+            if snap not in [45]:
                 continue
             path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
         print(snap, flush=True)
