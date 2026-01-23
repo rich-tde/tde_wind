@@ -9,7 +9,7 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = False
+    compute = True
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -36,7 +36,24 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
+with_who = 'Obs'  # '' or 'Obs'
+n_obs = '_npix8' #'_npix8' or ''
+choice = 'dark_bright_z' #'arch'x, 'quadrants', 'ax is', 'dark_bright_z_in_out', 'all'
 
+if with_who == '':
+    n_obs = ''  # to avoid confusion
+    NSIDE = prel.NSIDE
+else:
+    if n_obs == '_npix8':
+        NSIDE = 8  
+    else:
+        NSIDE = prel.NSIDE
+NPIX = hp.nside2npix(NSIDE)
+observers_xyz = hp.pix2vec(NSIDE, range(NPIX))
+observers_xyz = np.array(observers_xyz)
+indices_obs, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, choice)
+observers_xyz = observers_xyz.T
+x_obs, y_obs, z_obs = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -188,30 +205,21 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, how = ''):
     return data
 
 if compute: # compute dM/dt = dM/dE * dE/dt
-    r_chosen = 2*apo #0.5*amin 
-    which_r_title = '2apo' 
-    with_who = 'Obs'  # '' or 'Obs'
-    choice = 'dark_bright_z' #'arch', 'quadrants', 'ax is', 'dark_bright_z_in_out', 'all'
-
-    observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
-    observers_xyz = np.array(observers_xyz)
-    indices_obs, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, choice)
-    observers_xyz = observers_xyz.T
-    x_obs, y_obs, z_obs = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
-
+    r_chosen = 0.5*amin 
+    which_r_title = '05amin' 
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
     for i, snap in enumerate(snaps):
         if alice:
             path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         else: 
-            if snap not in [45]:
+            if snap not in [109]:
                 continue
             path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
         print(snap, flush=True)
         
         data_tosave = Mdot_sec(path, snap, r_chosen, with_who, choice)
-        csv_path = f'{abspath}/data/{folder}/wind/Mdot{with_who}Sec_{check}{which_r_title}{choice}.csv'
+        csv_path = f'{abspath}/data/{folder}/wind/Mdot{with_who}{n_obs}Sec_{check}{which_r_title}{choice}{choice}.csv'
         if alice:
             with open(csv_path, 'a', newline='') as file:
                 writer = csv.writer(file)
@@ -229,7 +237,6 @@ if plot:
     from Utilities.operators import sort_list
     import matplotlib.colors as mcolors
     which_r_title = '05amin'
-    with_who = 'Obs'  # '' or 'Obs'
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (18, 7))
 
     fallback = \
@@ -240,26 +247,12 @@ if plot:
     tfbfb, mfb = fallback[1], fallback[2]
     
     wind = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot{with_who}Sec_{check}{which_r_title}{choice}.csv', 
+            np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot{with_who}{n_obs}Sec_{check}{which_r_title}{choice}.csv', 
                     delimiter = ',', 
                     skiprows=1, 
                     unpack=True) 
     tfbH, MwR, MwL ,MwN, MwS = wind[1], wind[3], wind[2], wind[4], wind[5]
-    
-    if with_who == 'Obs':
-        wind8 = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotObsSec_{check}{which_r_title}{choice}_npix8.csv', 
-                    delimiter = ',', 
-                    skiprows=1, 
-                    unpack=True)
-        tfbH8, MwR8, MwL8 ,MwN8, MwS8 = wind8[1], wind8[3], wind8[2], wind8[4], wind8[5]
-        ax1.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--')
-        ax1.plot(tfbH, np.abs(MwL)/Medd_sol, c = 'r', label = r'left')
-        ax1.scatter(tfbH8, np.abs(MwL8)/Medd_sol, c = 'r', label = r'768 obs', s = 40)
-        ax1.plot(tfbH, np.abs(MwR)/Medd_sol, c = 'sandybrown', label = r'right')
-        ax1.scatter(tfbH8, np.abs(MwR8)/Medd_sol, c = 'sandybrown', s = 40)
-        ax1.plot(tfbH, np.abs(MwN)/Medd_sol, c = 'deepskyblue', label = r'N pole')
-        ax1.scatter(tfbH8, np.abs(MwN8)/Medd_sol, c = 'deepskyblue', s = 40)
+
         
     # integrate mwind_dimCell in tfb 
     # mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)
@@ -269,14 +262,14 @@ if plot:
     # print(f'End of simualation, Mw/Mfb in {check}:', np.abs(mwind_dimCell[-1]/mfall[-1]))
     
     ax1.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--')
-    ax1.plot(tfbH, np.abs(MwL)/Medd_sol, c = 'r', label = r'left')
-    ax1.plot(tfbH, np.abs(MwR)/Medd_sol, c = 'sandybrown', label = r'right')
-    ax1.plot(tfbH, np.abs(MwN)/Medd_sol, c = 'deepskyblue', label = r'N pole')
-    # ax1.plot(tfbH, np.abs(MwS)/Medd_sol, c = 'sienna', label = r'S pole')
+    ax1.plot(tfbH, np.abs(MwL)/Medd_sol, c = colors_obs[0], label = label_obs[0])
+    ax1.plot(tfbH, np.abs(MwR)/Medd_sol, c = colors_obs[1], label = label_obs[1])
+    ax1.plot(tfbH, np.abs(MwN)/Medd_sol, c = colors_obs[2], label = label_obs[2])
+    # ax1.plot(tfbH, np.abs(MwS)/Medd_sol, c = 'sienna', label = label_obs[3])
 
-    ax2.plot(tfbH, np.abs(MwL/mfb), c = 'r')
-    ax2.plot(tfbH, np.abs(MwR/mfb), c = 'sandybrown')
-    ax2.plot(tfbH, np.abs(MwN/mfb), c = 'deepskyblue')
+    ax2.plot(tfbH, np.abs(MwL/mfb), c = colors_obs[0])
+    ax2.plot(tfbH, np.abs(MwR/mfb), c = colors_obs[1])
+    ax2.plot(tfbH, np.abs(MwN/mfb), c = colors_obs[2])
     # ax2.plot(tfbH, np.abs(MwS/mfb), c = 'sienna')
     
     original_ticks = ax1.get_xticks()
@@ -318,39 +311,37 @@ if plot:
     # ax.grid()
     # fig.tight_layout()
 
-# if plot:
-#     which_r_title = '2apo'
-#     with_who = ''  # '' or 'Obs'
-#     _, tfbH, MwR, MwL ,MwN, MwS, Lum_fsR, Lum_fsL, Lum_fsN, Lum_fsS, EkinR, EkinL, EkinN, EkinS = \
-#             np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot{with_who}Sec_{check}{which_r_title}.csv', 
-#                     delimiter = ',', 
-#                     skiprows=1, 
-#                     unpack=True) 
-#     fig, ax = plt.subplots(1, 1, figsize = (10, 7))
-#     ax.plot(tfbH, np.abs(Lum_fsL)/Ledd_sol, c = 'r', label = r'left')
-#     ax.plot(tfbH, np.abs(EkinL)/Ledd_sol, c = 'r', ls = '--', label = r'E_{\rm kin}')
-#     ax.plot(tfbH, np.abs(Lum_fsR)/Ledd_sol, c = 'sandybrown', label = r'right')
-#     ax.plot(tfbH, np.abs(EkinR)/Ledd_sol, c = 'sandybrown', ls = '--')
-#     ax.plot(tfbH, np.abs(Lum_fsN)/Ledd_sol, c = 'deepskyblue', label = r'N pole')
-#     ax.plot(tfbH, np.abs(EkinN)/Ledd_sol, c = 'deepskyblue', ls = '--')
+if which_r_title != '05amin':
+    _, tfbH, MwR, MwL ,MwN, MwS, Lum_fsR, Lum_fsL, Lum_fsN, Lum_fsS, EkinR, EkinL, EkinN, EkinS = \
+            np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot{with_who}{n_obs}Sec_{check}{which_r_title}{choice}.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True) 
+    fig, ax = plt.subplots(1, 1, figsize = (10, 7))
+    ax.plot(tfbH, np.abs(Lum_fsL)/Ledd_sol, c = 'r', label = r'left')
+    ax.plot(tfbH, np.abs(EkinL)/Ledd_sol, c = 'r', ls = '--', label = r'E_{\rm kin}')
+    ax.plot(tfbH, np.abs(Lum_fsR)/Ledd_sol, c = 'sandybrown', label = r'right')
+    ax.plot(tfbH, np.abs(EkinR)/Ledd_sol, c = 'sandybrown', ls = '--')
+    ax.plot(tfbH, np.abs(Lum_fsN)/Ledd_sol, c = 'deepskyblue', label = r'N pole')
+    ax.plot(tfbH, np.abs(EkinN)/Ledd_sol, c = 'deepskyblue', ls = '--')
     
-#     original_ticks = ax1.get_xticks()
-#     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-#     new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-#     labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
-#     ax.set_yscale('log')
-#     ax.set_xlabel(r'$t [t_{\rm fb}]$')
-#     ax.set_xticks(new_ticks)
-#     ax.set_xticklabels(labels)  
-#     ax.tick_params(axis='both', which='major', width=1.2, length=9)
-#     ax.tick_params(axis='both', which='minor', width=1, length=5)
-#     ax.set_ylabel(r'$L [L_{\rm Edd}]$')   
-#     ax.set_xlim(0, np.max(tfbH))
-#     ax.set_ylim(1, 5e3)
-#     ax.legend(fontsize = 18)
-#     ax.grid()
-#     plt.suptitle(rf'r = {which_r_title}', fontsize = 20)
-#     fig.tight_layout()
+    original_ticks = ax.get_xticks()
+    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
+    ax.set_yscale('log')
+    ax.set_xlabel(r'$t [t_{\rm fb}]$')
+    ax.set_xticks(new_ticks)
+    ax.set_xticklabels(labels)  
+    ax.tick_params(axis='both', which='major', width=1.2, length=9)
+    ax.tick_params(axis='both', which='minor', width=1, length=5)
+    ax.set_ylabel(r'$L [L_{\rm Edd}]$')   
+    ax.set_xlim(0, np.max(tfbH))
+    ax.set_ylim(1, 5e3)
+    ax.legend(fontsize = 18)
+    ax.grid()
+    plt.suptitle(rf'r = {which_r_title}', fontsize = 20)
+    fig.tight_layout()
 
     
 
