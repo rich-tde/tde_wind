@@ -15,7 +15,7 @@ from Utilities.sections import make_slices
 import src.orbits as orb
 from Utilities.operators import to_spherical_components, make_tree, choose_observers
 
-compute = True
+compute = False
 #
 # PARAMS
 #
@@ -326,8 +326,8 @@ for i, lab in enumerate(profiles.keys()):
     if i == 3:
         continue
     # for ax in [axMdot, axV, axd, axT, axL]:
-    #     ax.axvline(r_tr_means[i]/Rt, c = colors_obs[i], ls = ':')
-    #     ax.axvline(rph_means[i]/Rt, c = colors_obs[i], ls = '--')
+    #     ax.axvline(r_tr_means[i]/Rs, c = colors_obs[i], ls = ':')
+    #     ax.axvline(rph_means[i]/Rs, c = colors_obs[i], ls = '--')
 
     r_plot = profiles[lab]['r']
     idx_ph = np.argmin(np.abs(r_plot - rph_means[i]))
@@ -346,28 +346,28 @@ for i, lab in enumerate(profiles.keys()):
         axL.plot(r_plot, L_adv/Ledd_sol,  color = colors_obs[i])
     
     else:
-        axV.plot(r_plot/Rt, v_rad * conversion_sol_kms,  color = colors_obs[i], label = f'{lab}')
-        axd.plot(r_plot/Rt, d*prel.den_converter,  color = colors_obs[i]) #, ls = lines_obs[i] , label = f'{lab}')# Observer {lab} ({indices_sorted[i]})')
-        axMdot.plot(r_plot/Rt, np.abs(Mdot/Medd_sol),  color = colors_obs[i], label = f'{lab}')# , ls = lines_obs[i])
-        axT.plot(r_plot/Rt, t,  color = colors_obs[i], label = f'{lab}')
-        axL.plot(r_plot/Rt, L_adv/Ledd_sol,  color = colors_obs[i]) #, ls = lines_obs[i]), label = f'{lab}')]
+        axV.plot(r_plot/Rs, v_rad * conversion_sol_kms,  color = colors_obs[i], label = f'{lab}')
+        axd.plot(r_plot/Rs, d*prel.den_converter,  color = colors_obs[i]) #, ls = lines_obs[i] , label = f'{lab}')# Observer {lab} ({indices_sorted[i]})')
+        axMdot.plot(r_plot/Rs, np.abs(Mdot/Medd_sol),  color = colors_obs[i], label = f'{lab}')# , ls = lines_obs[i])
+        axT.plot(r_plot/Rs, t,  color = colors_obs[i], label = f'{lab}')
+        axL.plot(r_plot/Rs, L_adv/Ledd_sol,  color = colors_obs[i]) #, ls = lines_obs[i]), label = f'{lab}')]
         # add point where is the photosphere and trapping radius
-        axV.scatter(r_plot[idx_ph]/Rt, v_rad[idx_ph] * conversion_sol_kms, color = colors_obs[i], s = 120, marker = 'x')
-        axd.scatter(r_plot[idx_ph]/Rt, d[idx_ph]*prel.den_converter, color = colors_obs[i], s = 120, marker = 'x')
-        axT.scatter(r_plot[idx_ph]/Rt, t[idx_ph], color = colors_obs[i], s = 120, marker = 'x')
-        axL.scatter(r_plot[idx_ph]/Rt, L_adv[idx_ph]/Ledd_sol, color = colors_obs[i], s = 120, marker = 'x')
-        axMdot.scatter(r_plot[idx_ph]/Rt, np.abs(Mdot[idx_ph]/Medd_sol), color = colors_obs[i], s = 120, marker = 'x')
-        axV.scatter(r_plot[idx_tr]/Rt, v_rad[idx_tr] * conversion_sol_kms, color = colors_obs[i], s = 120, marker = 's')
-        axd.scatter(r_plot[idx_tr]/Rt, d[idx_tr]*prel.den_converter, color = colors_obs[i], s = 120, marker = 's')
-        axT.scatter(r_plot[idx_tr]/Rt, t[idx_tr], color = colors_obs[i], s = 120, marker = 's')
-        axL.scatter(r_plot[idx_tr]/Rt, L_adv[idx_tr]/Ledd_sol, color = colors_obs[i], s = 120, marker = 's')
-        axMdot.scatter(r_plot[idx_tr]/Rt, np.abs(Mdot[idx_tr]/Medd_sol), color = colors_obs[i], s = 120, marker = 's')
+        axV.scatter(r_plot[idx_ph]/Rs, v_rad[idx_ph] * conversion_sol_kms, color = colors_obs[i], s = 120, marker = 'x')
+        axd.scatter(r_plot[idx_ph]/Rs, d[idx_ph]*prel.den_converter, color = colors_obs[i], s = 120, marker = 'x')
+        axT.scatter(r_plot[idx_ph]/Rs, t[idx_ph], color = colors_obs[i], s = 120, marker = 'x')
+        axL.scatter(r_plot[idx_ph]/Rs, L_adv[idx_ph]/Ledd_sol, color = colors_obs[i], s = 120, marker = 'x')
+        axMdot.scatter(r_plot[idx_ph]/Rs, np.abs(Mdot[idx_ph]/Medd_sol), color = colors_obs[i], s = 120, marker = 'x')
+        axV.scatter(r_plot[idx_tr]/Rs, v_rad[idx_tr] * conversion_sol_kms, color = colors_obs[i], s = 120, marker = 's')
+        axd.scatter(r_plot[idx_tr]/Rs, d[idx_tr]*prel.den_converter, color = colors_obs[i], s = 120, marker = 's')
+        axT.scatter(r_plot[idx_tr]/Rs, t[idx_tr], color = colors_obs[i], s = 120, marker = 's')
+        axL.scatter(r_plot[idx_tr]/Rs, L_adv[idx_tr]/Ledd_sol, color = colors_obs[i], s = 120, marker = 's')
+        axMdot.scatter(r_plot[idx_tr]/Rs, np.abs(Mdot[idx_tr]/Medd_sol), color = colors_obs[i], s = 120, marker = 's')
 
 if norm != '_norm':
     axd.plot(x_test, y_test2, c = 'k', ls = 'dashed', label = r'$\rho \propto r^{-2}$')
     # axd.text(32, 1.2e-14, r'$\rho \propto r^{-2}$', fontsize = 20, color = 'k', rotation = -42)
     axV.axhline(v_esc_kms, c = 'k', ls = 'dashed')#
-    axV.text(35, 1.1*v_esc_kms, r'v$_{\rm esc} (r_{\rm p})$', fontsize = 20, color = 'k')
+    # axV.text(35, 1.1*v_esc_kms, r'v$_{\rm esc} (r_{\rm p})$', fontsize = 20, color = 'k')
     axT.plot(x_test, y_test23, c = 'k', ls = 'dashed')#, label = r'$T \propto r^{-2/3}$')
     # axT.text(32, 1.2e4, r'$T_{\rm rad} \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -33)
     axL.plot(x_test,1.5e-5*y_test23, c = 'k', ls = 'dashed', label = r'$L \propto r^{-2/3}$')
@@ -379,10 +379,11 @@ for ax in [axd, axV, axMdot, axT, axL]:
         ax.set_xlabel(r'$r [r_{\rm tr}]$', fontsize = 28)
         ax.set_xlim(1e-1, 5)
     else:
-        ax.set_xlabel(r'$r [r_{\rm t}]$', fontsize = 28)
-        ax.set_xlim(1, 1e2)
+        ax.axvline(apo/Rs, c = 'k', ls = ':')
+        ax.set_xlabel(r'$r [r_{\rm S}]$', fontsize = 28)
+        ax.set_xlim(Rt/Rs, 2e4)
     ax.loglog()
-    ax.grid()
+    # ax.grid()
 
 axT.legend(fontsize = 19) 
 axMdot.legend(fontsize = 19) 
@@ -442,9 +443,9 @@ plt.show()
 #                 axEdd.scatter(thetas_tick[i], Mdot/Medd_sol, color = colors_obs[i], s = 80, label = f'{label_obs[i]}')
 #                 axL.scatter(thetas_tick[i], Lum_ph_single/Ledd_cgs, c = colors_obs[i], label = f'{label_obs[i]}', ls = lines_obs[i], s = 100)
 #             else:
-#             #     axeta.scatter(r_tr/Rt, eta, color = colors_obs[i], s = 80, label = f'{label_obs[i]}')
-#             #     axEdd.scatter(r_tr/Rt, Mdot/Medd_sol, color = colors_obs[i], s = 80, label = f'{label_obs[i]}')
-#                 axL.scatter(rph_single/Rt, Lum_ph_single/Ledd_cgs, c = colors_obs[i], label = f'{label_obs[i]}', ls = lines_obs[i], s = 100)
+#             #     axeta.scatter(r_tr/Rs, eta, color = colors_obs[i], s = 80, label = f'{label_obs[i]}')
+#             #     axEdd.scatter(r_tr/Rs, Mdot/Medd_sol, color = colors_obs[i], s = 80, label = f'{label_obs[i]}')
+#                 axL.scatter(rph_single/Rs, Lum_ph_single/Ledd_cgs, c = colors_obs[i], label = f'{label_obs[i]}', ls = lines_obs[i], s = 100)
 
 #         for axis in [axeta, axEdd, axL]: 
 #             if x_as_thetas:

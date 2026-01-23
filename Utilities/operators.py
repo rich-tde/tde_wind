@@ -135,25 +135,30 @@ def choose_sections(X, Y, Z, choice = 'dark_bright_z'):
     slope = np.tan(alpha_pole)  
     cond_Npole = np.logical_and(np.abs(Z) >= slope *  R_cyl, Z > 0)
     cond_Spole = np.logical_and(np.abs(Z) >= slope *  R_cyl, Z < 0)
-    north = {'cond': cond_Npole, 'label': r'north pole', 'color': 'orange', 'line': 'dotted'}
-    south = {'cond': cond_Spole, 'label': r'south pole', 'color': 'sienna', 'line': 'dotted'}
+    north = {'cond': cond_Npole, 'label': r'north pole', 'color': 'dodgerblue', 'line': 'dotted'}
+    south = {'cond': cond_Spole, 'label': r'south pole', 'color': 'deepskyblue', 'line': 'dotted'}
+
+    if choice == 'all':
+        cond_all = X != 1e20  # all True
+        all = {'cond': cond_all, 'label': r'all', 'color': 'darkviolet', 'line': 'solid'}
+        sec = {'all': all}
 
     if choice == 'dark_bright_z_in_out':
         cond_bright_in = np.logical_and(X >= 0, np.logical_and(Y >= 0, np.abs(Z) < slope * R_cyl))
         cond_bright_out = np.logical_and(X >= 0, np.logical_and(Y < 0, np.abs(Z) < slope * R_cyl))
         cond_dark_in = np.logical_and(X < 0, np.logical_and(Y >= 0, np.abs(Z) < slope *  R_cyl))
         cond_dark_out = np.logical_and(X < 0, np.logical_and(Y < 0, np.abs(Z) < slope *  R_cyl))
-        bright_in = {'cond': cond_bright_in, 'label': r'right in', 'color': 'deepskyblue', 'line': 'dashed'}
+        bright_in = {'cond': cond_bright_in, 'label': r'right in', 'color': 'sandybrown', 'line': 'dashed'}
         bright_out = {'cond': cond_bright_out, 'label': r'right out', 'color': 'b', 'line': 'dashed'}
-        dark_in = {'cond': cond_dark_in, 'label': r'left in', 'color': 'forestgreen', 'line': 'solid'}
+        dark_in = {'cond': cond_dark_in, 'label': r'left in', 'color': 'r', 'line': 'solid'}
         dark_out = {'cond': cond_dark_out, 'label': r'left out', 'color': 'yellowgreen', 'line': 'solid'}
         sec = {'bright_in': bright_in, 'bright_out': bright_out, 'dark_in': dark_in, 'dark_out': dark_out, 'north': north, 'south': south}
      
     if choice == 'dark_bright_z':
         cond_bright = np.logical_and(X >= 0, np.abs(Z) < slope * R_cyl)
         cond_dark = np.logical_and(X < 0, np.abs(Z) < slope *  R_cyl)
-        bright = {'cond': cond_bright, 'label': r'right', 'color': 'deepskyblue', 'line': 'dashed'}
-        dark = {'cond': cond_dark, 'label': r'left', 'color': 'forestgreen', 'line': 'solid'}
+        bright = {'cond': cond_bright, 'label': r'right', 'color': 'sandybrown', 'line': 'dashed'}
+        dark = {'cond': cond_dark, 'label': r'left', 'color': 'r', 'line': 'solid'}
         sec = {'bright': bright, 'dark': dark, 'north': north, 'south': south}
     
     if choice == 'arch':
@@ -161,9 +166,9 @@ def choose_sections(X, Y, Z, choice = 'dark_bright_z'):
         cond_bright_high = np.logical_and(X >= 0, np.logical_and(np.abs(Z) >= R_cyl, np.abs(Z) < slope * R_cyl))
         cond_dark_low = np.logical_and(X < 0, np.abs(Z) < R_cyl)
         cond_dark_high = np.logical_and(X < 0, np.logical_and(np.abs(Z) >= R_cyl, np.abs(Z) < slope * R_cyl))
-        bright_low = {'cond': cond_bright_low, 'label': r'$X>0, |Z|<R$', 'color': 'deepskyblue', 'line': 'solid'}
+        bright_low = {'cond': cond_bright_low, 'label': r'$X>0, |Z|<R$', 'color': 'sandybrown', 'line': 'solid'}
         bright_high = {'cond': cond_bright_high, 'label': r'$X>0, R<|Z|<mR$', 'color': 'r', 'line': 'dashed'}
-        dark_low = {'cond': cond_dark_low, 'label': r'$X<0, |Z|<R$', 'color': 'forestgreen', 'line': 'solid'}
+        dark_low = {'cond': cond_dark_low, 'label': r'$X<0, |Z|<R$', 'color': 'r', 'line': 'solid'}
         dark_high = {'cond': cond_dark_high, 'label': r'$X<0, R<|Z|<mR$', 'color': 'k', 'line': 'dashed'}
         sec = {'bright_low': bright_low, 'bright_high': bright_high, 'dark_low': dark_low, 'dark_high': dark_high, 'north': north, 'south': south}
 
@@ -191,7 +196,7 @@ def choose_observers(observers_xyz, choice):
     
     x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
     all_idx_obs = np.arange(len(x_obs))
-    if choice == 'dark_bright_z' or choice == 'arch' or choice == 'dark_bright_z_in_out':
+    if choice == 'dark_bright_z' or choice == 'arch' or choice == 'dark_bright_z_in_out' or choice == 'all':
         indices_sorted = []
         # wanted_z_obs = [(0,0,1), (0,0,-1)]
         # tree_obs = KDTree(observers_xyz.T) 
@@ -204,7 +209,7 @@ def choose_observers(observers_xyz, choice):
         # indices_sorted.append(indices_z[0])
         # indices_sorted.append(indices_z[1])
         # label_obs = [r'$+\hat{\textbf{x}}$', r'$-\hat{\textbf{x}}$', r'$+\hat{\textbf{z}}$', r'$-\hat{\textbf{z}}$']
-        # colors_obs = ['deepskyblue', 'forestgreen', 'orange', 'sienna']
+        # colors_obs = ['sandybrown', 'r', 'dosgerblue', 'deepskyblue']
         # lines_obs = ['dashed', 'solid', 'dotted', 'dashed']
         sections_ph = choose_sections(x_obs, y_obs, z_obs, choice = choice)
         label_obs = []
@@ -292,7 +297,7 @@ def choose_observers(observers_xyz, choice):
         # tree_obs = KDTree(observers_xyz.T) # shape is N,3
         # _, indices_sorted = tree_obs.query(np.array(wanted_obs), k=4) 
         # label_obs = ['x+', '45', 'z+', '135', 'x-']
-        # colors_obs = ['k', 'green', 'orange', 'b', 'r']
+        # colors_obs = ['k', 'green', 'dosgerblue', 'b', 'r']
     
     if choice == 'hemispheres': 
         wanted_obs = [(1,0,0), 
@@ -309,12 +314,12 @@ def choose_observers(observers_xyz, choice):
         tree_obs = KDTree(observers_xyz.T) # shape is N,3
         _, indices_sorted = tree_obs.query(np.array(wanted_obs), k=4) # shape: (len(wanted_obs),k)
         label_obs = ['x', '-x', 'y', '-y', 'z', '-z', 'xz', 'x-z', '-xz', '-x-z']
-        # colors_obs = ['r', 'firebrick', 'plum', 'darkviolet', 'orange', 'sienna', 'palegreen', 'forestgreen', 'dodgerblue', 'b'] # colors for \pm z
-        colors_obs = ['r', 'firebrick', 'plum', 'darkviolet', 'orange', 'sienna', 'yellowgreen', 'deepskyblue', 'forestgreen', 'b']
+        # colors_obs = ['r', 'firebrick', 'plum', 'darkviolet', 'dosgerblue', 'deepskyblue', 'palegreen', 'r', 'dodgerblue', 'b'] # colors for \pm z
+        colors_obs = ['r', 'firebrick', 'plum', 'darkviolet', 'dosgerblue', 'deepskyblue', 'yellowgreen', 'sandybrown', 'r', 'b']
 
         lines_obs = ['solid', 'dashed', 'solid', 'dashed', 'solid', 'dashed', 'solid', 'dashed', 'solid', 'dashed']
         # label_obs = ['x', 'y', 'z', 'xz', '-xz']
-        # colors_obs = ['k', 'plum', 'orange', 'forestgreen', 'b']
+        # colors_obs = ['k', 'plum', 'dosgerblue', 'r', 'b']
 
     if choice == 'focus_axis': # 3D cartesian axis
         wanted_obs = [(1,0,0), 
@@ -327,7 +332,7 @@ def choose_observers(observers_xyz, choice):
         tree_obs = KDTree(observers_xyz.T) # shape is N,3
         _, indices_sorted = tree_obs.query(np.array(wanted_obs), k = 4) # shape: (len(wanted_obs),k)
         label_obs = ['x+', 'y+', 'x-', 'y-', 'z+', 'z-']
-        colors_obs = ['dodgerblue', 'plum', 'forestgreen', 'magenta', 'orange', 'sienna']
+        colors_obs = ['dodgerblue', 'plum', 'r', 'magenta', 'dosgerblue', 'deepskyblue']
         lines_obs = ['solid', 'solid', 'solid', 'solid', 'solid', 'solid']
     
     # if choice == 'equal_bright_right_z': # 3D cartesian axis
@@ -343,7 +348,7 @@ def choose_observers(observers_xyz, choice):
     #     indices_sorted_z = all_idx_obs_nox[indices_sorted_z_temp.flatten()]
     #     indices_sorted = indices_sorted_x #[indices_sorted_x, indices_sorted_z]
     #     label_obs = ['x+', 'x-', 'z+', 'z-']
-    #     colors_obs = ['dodgerblue', 'forestgreen', 'orange', 'sienna']
+    #     colors_obs = ['dodgerblue', 'r', 'dosgerblue', 'deepskyblue']
     #     lines_obs = ['solid', 'solid', 'solid', 'solid']
  
     if choice == 'quadrants ': # 8 3d-quadrants 
@@ -371,7 +376,7 @@ def choose_observers(observers_xyz, choice):
         indices6 = all_idx_obs[np.logical_and(z_obs>=0, np.logical_and(z_obs > np.abs(y_obs), z_obs > np.abs(x_obs)))]
 
         indices_sorted = [indices1, indices2, indices3, indices4, indices5, indices6]#, indices7, indices8]
-        colors_obs = ['forestgreen', 'deepskyblue', 'magenta', 'plum', 'sienna', 'orange']
+        colors_obs = ['r', 'sandybrown', 'magenta', 'plum', 'deepskyblue', 'dosgerblue']
         label_obs = ['-x','+x', '-y', '+y', 'z-', 'z+']
         lines_obs = ['solid', 'solid', 'solid', 'solid', 'solid', 'solid']
     

@@ -159,10 +159,10 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice):
     return data
 
 if compute: # compute dM/dt = dM/dE * dE/dt
-    r_chosen = 2*apo #0.5*amin 
-    which_r_title = '2apo'
-    with_who = 'Obs'  # '' or 'Obs'
-    choice = 'dark_bright_z'  
+    r_chosen = 0.5*amin 
+    which_r_title = '05amin'
+    with_who = ''  # '' or 'Obs'
+    choice = 'all'  
 
     observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
     observers_xyz = np.array(observers_xyz)
@@ -200,7 +200,7 @@ if plot:
     from Utilities.operators import sort_list
     import matplotlib.colors as mcolors
     which_r_title = '05amin'
-    with_who = 'Obs'  # '' or 'Obs'
+    with_who = 'all'  # '' or 'Obs'
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (18, 7))
 
     _, tfbfb, mfb, _, _, _, _, _, _, _ = \
@@ -222,12 +222,12 @@ if plot:
                     skiprows=1, 
                     unpack=True)
         ax1.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--')
-        ax1.plot(tfbH, np.abs(MwL)/Medd_sol, c = 'forestgreen', label = r'left')
-        ax1.scatter(tfbH8, np.abs(MwL8)/Medd_sol, c = 'forestgreen', label = r'768 obs', s = 40)
-        ax1.plot(tfbH, np.abs(MwR)/Medd_sol, c = 'deepskyblue', label = r'right')
-        ax1.scatter(tfbH8, np.abs(MwR8)/Medd_sol, c = 'deepskyblue', s = 40)
-        ax1.plot(tfbH, np.abs(MwN)/Medd_sol, c = 'orange', label = r'N pole')
-        ax1.scatter(tfbH8, np.abs(MwN8)/Medd_sol, c = 'orange', s = 40)
+        ax1.plot(tfbH, np.abs(MwL)/Medd_sol, c = 'r', label = r'left')
+        ax1.scatter(tfbH8, np.abs(MwL8)/Medd_sol, c = 'r', label = r'768 obs', s = 40)
+        ax1.plot(tfbH, np.abs(MwR)/Medd_sol, c = 'sandybrown', label = r'right')
+        ax1.scatter(tfbH8, np.abs(MwR8)/Medd_sol, c = 'sandybrown', s = 40)
+        ax1.plot(tfbH, np.abs(MwN)/Medd_sol, c = 'deepskyblue', label = r'N pole')
+        ax1.scatter(tfbH8, np.abs(MwN8)/Medd_sol, c = 'deepskyblue', s = 40)
         
     # integrate mwind_dimCell in tfb 
     # mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)
@@ -237,14 +237,14 @@ if plot:
     # print(f'End of simualation, Mw/Mfb in {check}:', np.abs(mwind_dimCell[-1]/mfall[-1]))
     
     ax1.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--')
-    ax1.plot(tfbH, np.abs(MwL)/Medd_sol, c = 'forestgreen', label = r'left')
-    ax1.plot(tfbH, np.abs(MwR)/Medd_sol, c = 'deepskyblue', label = r'right')
-    ax1.plot(tfbH, np.abs(MwN)/Medd_sol, c = 'orange', label = r'N pole')
+    ax1.plot(tfbH, np.abs(MwL)/Medd_sol, c = 'r', label = r'left')
+    ax1.plot(tfbH, np.abs(MwR)/Medd_sol, c = 'sandybrown', label = r'right')
+    ax1.plot(tfbH, np.abs(MwN)/Medd_sol, c = 'deepskyblue', label = r'N pole')
     # ax1.plot(tfbH, np.abs(MwS)/Medd_sol, c = 'sienna', label = r'S pole')
 
-    ax2.plot(tfbH, np.abs(MwL/mfb), c = 'forestgreen')
-    ax2.plot(tfbH, np.abs(MwR/mfb), c = 'deepskyblue')
-    ax2.plot(tfbH, np.abs(MwN/mfb), c = 'orange')
+    ax2.plot(tfbH, np.abs(MwL/mfb), c = 'r')
+    ax2.plot(tfbH, np.abs(MwR/mfb), c = 'sandybrown')
+    ax2.plot(tfbH, np.abs(MwN/mfb), c = 'deepskyblue')
     # ax2.plot(tfbH, np.abs(MwS/mfb), c = 'sienna')
     
     original_ticks = ax1.get_xticks()
@@ -294,12 +294,12 @@ if plot:
                     skiprows=1, 
                     unpack=True) 
     fig, ax = plt.subplots(1, 1, figsize = (10, 7))
-    ax.plot(tfbH, np.abs(Lum_fsL)/Ledd_sol, c = 'forestgreen', label = r'left')
-    ax.plot(tfbH, np.abs(EkinL)/Ledd_sol, c = 'forestgreen', ls = '--', label = r'E_{\rm kin}')
-    ax.plot(tfbH, np.abs(Lum_fsR)/Ledd_sol, c = 'deepskyblue', label = r'right')
-    ax.plot(tfbH, np.abs(EkinR)/Ledd_sol, c = 'deepskyblue', ls = '--')
-    ax.plot(tfbH, np.abs(Lum_fsN)/Ledd_sol, c = 'orange', label = r'N pole')
-    ax.plot(tfbH, np.abs(EkinN)/Ledd_sol, c = 'orange', ls = '--')
+    ax.plot(tfbH, np.abs(Lum_fsL)/Ledd_sol, c = 'r', label = r'left')
+    ax.plot(tfbH, np.abs(EkinL)/Ledd_sol, c = 'r', ls = '--', label = r'E_{\rm kin}')
+    ax.plot(tfbH, np.abs(Lum_fsR)/Ledd_sol, c = 'sandybrown', label = r'right')
+    ax.plot(tfbH, np.abs(EkinR)/Ledd_sol, c = 'sandybrown', ls = '--')
+    ax.plot(tfbH, np.abs(Lum_fsN)/Ledd_sol, c = 'deepskyblue', label = r'N pole')
+    ax.plot(tfbH, np.abs(EkinN)/Ledd_sol, c = 'deepskyblue', ls = '--')
     
     original_ticks = ax1.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
