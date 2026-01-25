@@ -116,6 +116,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             data = [snap, tfb[i], mfall, 0, 0, 0, 0, 0, 0, 0]
 
         else: 
+            print(f'len positive wind particles: {len(Den_pos)}', flush=True)
             tot_IE = np.sum(IE_pos)
             tot_Rad = np.sum(Rad_pos)
             Mdot_dimCell = np.pi * dim_cell_pos**2 * Den_pos * v_rad_pos  
@@ -140,7 +141,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         
             data = [snap, tfb[i], mfall, mwind_dimCell, mwind_R, mwind_R_nonzero, Vwind, Vwind_nonzero, tot_IE, tot_Rad]
     
-        csv_path = f'{abspath}/data/{folder}/wind/Mdot_{check}{which_r_title}{statist}.csv'
+        csv_path = f'{abspath}/data/{folder}/wind/Mdot_{check}{which_r_title}{statist}_oldcode.csv'
         if alice:
             with open(csv_path, 'a', newline='') as file:
                 writer = csv.writer(file)

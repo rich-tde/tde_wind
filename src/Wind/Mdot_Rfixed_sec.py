@@ -9,7 +9,7 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = True
+    compute = False
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -36,8 +36,8 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
-with_who = 'Obs'  # '' or 'Obs'
-n_obs = '_npix8' #'_npix8' or ''
+with_who = ''  # '' or 'Obs'
+n_obs = '' #'_npix8' or ''
 choice = 'dark_bright_z' #'arch'x, 'quadrants', 'ax is', 'dark_bright_z_in_out', 'all'
 
 if with_who == '':
@@ -139,6 +139,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, how = ''):
         data = [snap, tfb[i], *np.zeros(4)] # wathc out: you put 4 beacuse you're looking at 4 sections
 
     else:
+        print(f'len chosen wind particles: {len(Den_wind)}', flush=True)
         Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
         if with_who == '':
             indices_sec = split_cells(X_wind, Y_wind, Z_wind, choice)
@@ -219,7 +220,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
         print(snap, flush=True)
         
         data_tosave = Mdot_sec(path, snap, r_chosen, with_who, choice)
-        csv_path = f'{abspath}/data/{folder}/wind/Mdot{with_who}{n_obs}Sec_{check}{which_r_title}{choice}{choice}.csv'
+        csv_path = f'{abspath}/data/{folder}/wind/Mdot{with_who}{n_obs}Sec_{check}{which_r_title}{choice}.csv'
         if alice:
             with open(csv_path, 'a', newline='') as file:
                 writer = csv.writer(file)
@@ -237,7 +238,9 @@ if plot:
     from Utilities.operators import sort_list
     import matplotlib.colors as mcolors
     which_r_title = '05amin'
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (18, 7))
+    with_who = ''
+    n_obs = ''
+    fig, (axEdd, axall, axfb) = plt.subplots(1, 3, figsize = (24, 7))
 
     fallback = \
             np.loadtxt(f'{abspath}/data/{folder}/paper1/wind/Mdot_{check}05aminmean.csv', 
@@ -247,13 +250,21 @@ if plot:
     tfbfb, mfb = fallback[1], fallback[2]
     
     wind = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot{with_who}{n_obs}Sec_{check}{which_r_title}{choice}.csv', 
+            np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot{with_who}{n_obs}Sec_{check}{which_r_title}dark_bright_z.csv', 
                     delimiter = ',', 
                     skiprows=1, 
                     unpack=True) 
-    tfbH, MwR, MwL ,MwN, MwS = wind[1], wind[3], wind[2], wind[4], wind[5]
+    tfbH, MwR, MwL ,MwN, MwS = wind[1], wind[2], wind[3], wind[4], wind[5] 
 
-        
+    wind_full = \
+            np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot{with_who}{n_obs}Sec_{check}{which_r_title}all.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True) 
+    tfbH_full, Mw_full = wind_full[1], wind_full[2]
+
+    Mw_all = MwR + MwL + MwN + MwS
+
     # integrate mwind_dimCell in tfb 
     # mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)
     # mfall_int = cumulative_trapezoid(np.abs(mfall), tfb, initial = 0)
@@ -261,22 +272,28 @@ if plot:
     # print(f'integral of Mfb at the last time: {mfall_int[-1]/mstar} Mstar')
     # print(f'End of simualation, Mw/Mfb in {check}:', np.abs(mwind_dimCell[-1]/mfall[-1]))
     
-    ax1.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--')
-    ax1.plot(tfbH, np.abs(MwL)/Medd_sol, c = colors_obs[0], label = label_obs[0])
-    ax1.plot(tfbH, np.abs(MwR)/Medd_sol, c = colors_obs[1], label = label_obs[1])
-    ax1.plot(tfbH, np.abs(MwN)/Medd_sol, c = colors_obs[2], label = label_obs[2])
-    # ax1.plot(tfbH, np.abs(MwS)/Medd_sol, c = 'sienna', label = label_obs[3])
+    axEdd.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--')
+    axEdd.plot(tfbH, np.abs(MwR)/Medd_sol, c = colors_obs[0], label = label_obs[0])
+    axEdd.plot(tfbH, np.abs(MwL)/Medd_sol, c = colors_obs[1], label = label_obs[1])
+    axEdd.plot(tfbH, np.abs(MwN)/Medd_sol, c = colors_obs[2], label = label_obs[2])
+    # axEdd.plot(tfbH, np.abs(MwS)/Medd_sol, c = colors_obs[3], label = label_obs[3])
+    axEdd.plot(tfbH_full, np.abs(Mw_full)/Medd_sol, c = 'darkviolet')
 
-    ax2.plot(tfbH, np.abs(MwL/mfb), c = colors_obs[0])
-    ax2.plot(tfbH, np.abs(MwR/mfb), c = colors_obs[1])
-    ax2.plot(tfbH, np.abs(MwN/mfb), c = colors_obs[2])
-    # ax2.plot(tfbH, np.abs(MwS/mfb), c = 'sienna')
+    axall.plot(tfbH, np.abs(MwR)/Mw_all, c = colors_obs[0], label = label_obs[0])
+    axall.plot(tfbH, np.abs(MwL)/Mw_all, c = colors_obs[1], label = label_obs[1])
+    axall.plot(tfbH, np.abs(MwN)/Mw_all, c = colors_obs[2], label = label_obs[2])
+    # axall.plot(tfbH, np.abs(MwS)/Medd_sol, c = colors_obs[3], label = label_obs[3])
+
+    axfb.plot(tfbH, np.abs(MwR/mfb), c = colors_obs[0])
+    axfb.plot(tfbH, np.abs(MwR/mfb), c = colors_obs[1])
+    axfb.plot(tfbH, np.abs(MwN/mfb), c = colors_obs[2])
+    axfb.plot(tfbH, np.abs(MwS/mfb), c = colors_obs[3])
     
-    original_ticks = ax1.get_xticks()
+    original_ticks = axEdd.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
     new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
     labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
-    for ax in [ax1, ax2]:
+    for ax in [axEdd, axall, axfb]:
         ax.set_yscale('log')
         ax.set_xlabel(r'$t [t_{\rm fb}]$')
         ax.set_xticks(new_ticks)
@@ -286,10 +303,12 @@ if plot:
         ax.tick_params(axis='both', which='minor', width=1, length=5)
         ax.legend(fontsize = 18)
         ax.grid()
-    ax1.set_ylim(5e2, 5e6)
-    ax1.set_ylabel(r'$|\dot{M}_{{\rm w}}| [\dot{M}_{\rm Edd}]$')   
-    ax2.set_ylim(1e-3, 2)
-    ax2.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm fb}]$')
+    axEdd.set_ylim(5e2, 5e6)
+    axEdd.set_ylabel(r'$|\dot{M}_{{\rm w}}| [\dot{M}_{\rm Edd}]$')   
+    axall.set_ylim(5e-2, 1.1)
+    axall.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm w}]$')
+    axfb.set_ylim(1e-3, 2)
+    axfb.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm fb}]$')
     plt.suptitle(rf'$\dot{{M}}_{{\rm w}}$ {with_who} at {which_r_title}', fontsize = 20)
     fig.tight_layout()
 

@@ -139,7 +139,7 @@ def choose_sections(X, Y, Z, choice = 'dark_bright_z'):
     south = {'cond': cond_Spole, 'label': r'south pole', 'color': 'deepskyblue', 'line': 'dotted'}
 
     if choice == 'all':
-        cond_all = X != 1e20  # all True
+        cond_all = np.abs(X) != 1  # all True
         all = {'cond': cond_all, 'label': r'all', 'color': 'darkviolet', 'line': 'solid'}
         sec = {'all': all}
 

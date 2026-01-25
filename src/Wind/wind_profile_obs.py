@@ -15,7 +15,7 @@ from Utilities.sections import make_slices
 import src.orbits as orb
 from Utilities.operators import to_spherical_components, make_tree, choose_observers
 
-compute = False
+compute = True
 #
 # PARAMS
 #
