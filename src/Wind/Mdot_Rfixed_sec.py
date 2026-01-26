@@ -139,7 +139,6 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, how = ''):
         data = [snap, tfb[i], *np.zeros(4)] # wathc out: you put 4 beacuse you're looking at 4 sections
 
     else:
-        print(f'len chosen wind particles: {len(Den_wind)}', flush=True)
         Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
         if with_who == '':
             indices_sec = split_cells(X_wind, Y_wind, Z_wind, choice)
@@ -248,119 +247,127 @@ if plot:
                     skiprows=1, 
                     unpack=True)
     tfbfb, mfb = fallback[1], fallback[2]
-    
-    wind = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot{with_who}{n_obs}Sec_{check}{which_r_title}dark_bright_z.csv', 
-                    delimiter = ',', 
-                    skiprows=1, 
-                    unpack=True) 
-    tfbH, MwR, MwL ,MwN, MwS = wind[1], wind[2], wind[3], wind[4], wind[5] 
 
-    wind_full = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot{with_who}{n_obs}Sec_{check}{which_r_title}all.csv', 
-                    delimiter = ',', 
-                    skiprows=1, 
-                    unpack=True) 
-    tfbH_full, Mw_full = wind_full[1], wind_full[2]
+    if which_r_title == '05amin':
+        wind = \
+                np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot{with_who}{n_obs}Sec_{check}{which_r_title}dark_bright_z.csv', 
+                        delimiter = ',', 
+                        skiprows=1, 
+                        unpack=True) 
+        tfbH, MwR, MwL ,MwN, MwS = wind[1], wind[2], wind[3], wind[4], wind[5] 
+        Mw_sum = MwR + MwL + MwN + MwS
 
-    Mw_all = MwR + MwL + MwN + MwS
+        wind_all = \
+                np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot{with_who}{n_obs}Sec_{check}{which_r_title}all.csv', 
+                        delimiter = ',', 
+                        skiprows=1, 
+                        unpack=True) 
+        tfbH_full, Mw_full = wind_all[1], wind_all[2]
 
-    # integrate mwind_dimCell in tfb 
-    # mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)
-    # mfall_int = cumulative_trapezoid(np.abs(mfall), tfb, initial = 0)
-    # print(f'integral of Mw at the last time: {mwind_dimCell_int[-1]/mstar} Mstar')
-    # print(f'integral of Mfb at the last time: {mfall_int[-1]/mstar} Mstar')
-    # print(f'End of simualation, Mw/Mfb in {check}:', np.abs(mwind_dimCell[-1]/mfall[-1]))
-    
-    axEdd.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--')
-    axEdd.plot(tfbH, np.abs(MwR)/Medd_sol, c = colors_obs[0], label = label_obs[0])
-    axEdd.plot(tfbH, np.abs(MwL)/Medd_sol, c = colors_obs[1], label = label_obs[1])
-    axEdd.plot(tfbH, np.abs(MwN)/Medd_sol, c = colors_obs[2], label = label_obs[2])
-    # axEdd.plot(tfbH, np.abs(MwS)/Medd_sol, c = colors_obs[3], label = label_obs[3])
-    axEdd.plot(tfbH_full, np.abs(Mw_full)/Medd_sol, c = 'darkviolet')
+        data_paper1 = np.loadtxt(f'{abspath}/data/{folder}/paper1/wind/Mdot_{check}{which_r_title}mean.csv', 
+                        delimiter = ',', 
+                        skiprows=1, 
+                        unpack=True) 
+        tfbHold, mwind_dimCellHold = data_paper1[1], data_paper1[3]
+        
+        # integrate mwind_dimCell in tfb 
+        # mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)
+        # mfall_int = cumulative_trapezoid(np.abs(mfall), tfb, initial = 0)
+        # print(f'integral of Mw at the last time: {mwind_dimCell_int[-1]/mstar} Mstar')
+        # print(f'integral of Mfb at the last time: {mfall_int[-1]/mstar} Mstar')
+        # print(f'End of simualation, Mw/Mfb in {check}:', np.abs(mwind_dimCell[-1]/mfall[-1]))
+        
+        axEdd.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--')
+        axEdd.plot(tfbH, np.abs(MwR)/Medd_sol, c = colors_obs[0], label = label_obs[0])
+        axEdd.plot(tfbH, np.abs(MwL)/Medd_sol, c = colors_obs[1], label = label_obs[1])
+        axEdd.plot(tfbH, np.abs(MwN)/Medd_sol, c = colors_obs[2], label = label_obs[2])
+        # axEdd.plot(tfbH, np.abs(MwS)/Medd_sol, c = colors_obs[3], label = label_obs[3])
+        # axEdd.plot(tfbH_full, np.abs(Mw_sum)/Medd_sol, c = 'orchid', label = 'sum')
+        # axEdd.plot(tfbH_full, np.abs(Mw_full)/Medd_sol, c = 'darkviolet', label = 'all')
+        # axEdd.plot(tfbHold, np.abs(mwind_dimCellHold)/Medd_sol, c = 'gold', ls = '--', label = r'previous code')
 
-    axall.plot(tfbH, np.abs(MwR)/Mw_all, c = colors_obs[0], label = label_obs[0])
-    axall.plot(tfbH, np.abs(MwL)/Mw_all, c = colors_obs[1], label = label_obs[1])
-    axall.plot(tfbH, np.abs(MwN)/Mw_all, c = colors_obs[2], label = label_obs[2])
-    # axall.plot(tfbH, np.abs(MwS)/Medd_sol, c = colors_obs[3], label = label_obs[3])
+        axall.plot(tfbH, np.abs(MwR)/Mw_sum, c = colors_obs[0], label = label_obs[0])
+        axall.plot(tfbH, np.abs(MwL)/Mw_sum, c = colors_obs[1], label = label_obs[1])
+        axall.plot(tfbH, np.abs(MwN)/Mw_sum, c = colors_obs[2], label = label_obs[2])
+        # axall.plot(tfbH, np.abs(MwS)/Medd_sol, c = colors_obs[3], label = label_obs[3])
 
-    axfb.plot(tfbH, np.abs(MwR/mfb), c = colors_obs[0])
-    axfb.plot(tfbH, np.abs(MwR/mfb), c = colors_obs[1])
-    axfb.plot(tfbH, np.abs(MwN/mfb), c = colors_obs[2])
-    axfb.plot(tfbH, np.abs(MwS/mfb), c = colors_obs[3])
-    
-    original_ticks = axEdd.get_xticks()
-    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
-    for ax in [axEdd, axall, axfb]:
+        axfb.plot(tfbH[6:], np.abs(MwR/mfb)[6:], c = colors_obs[0])
+        axfb.plot(tfbH[6:], np.abs(MwL/mfb)[6:], c = colors_obs[1])
+        axfb.plot(tfbH[6:], np.abs(MwN/mfb)[6:], c = colors_obs[2])
+        # axfb.plot(tfbH, np.abs(MwS/mfb), c = colors_obs[3])
+        
+        original_ticks = axEdd.get_xticks()
+        midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+        new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
+        for ax in [axEdd, axall, axfb]:
+            ax.set_yscale('log')
+            ax.set_xlabel(r'$t [t_{\rm fb}]$')
+            ax.set_xticks(new_ticks)
+            ax.set_xticklabels(labels)  
+            ax.set_xlim(0, np.max(tfbH))
+            ax.tick_params(axis='both', which='major', width=1.2, length=9)
+            ax.tick_params(axis='both', which='minor', width=1, length=5)
+            ax.legend(fontsize = 18)
+            ax.grid()
+        axEdd.set_ylim(1e1, 7e6)
+        axEdd.set_ylabel(r'$|\dot{M}_{{\rm w}}| [\dot{M}_{\rm Edd}]$')   
+        axall.set_ylim(5e-2, 1.1)
+        axall.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm w}]$')
+        axfb.set_ylim(1e-3, 2)
+        axfb.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm fb}]$')
+        plt.suptitle(rf'$\dot{{M}}_{{\rm w}}$ {with_who} at {which_r_title}', fontsize = 20)
+        fig.tight_layout()
+
+        # fig, ax = plt.subplots(1,1, figsize = (8,6))
+        # ax.plot(tfbH, np.abs(mwind_dimCellH/mfallH), c = 'k')
+        # ax.set_yscale('log')
+        # ax.set_xlabel(r'$t [t_{\rm fb}]$')
+        # ax.set_ylabel(r'$|\dot{M}_{\rm w}/\dot{M}_{\rm fb}|$')
+        # original_ticks = ax.get_xticks()
+        # midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+        # new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+        # ax.set_xticks(new_ticks)
+        # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
+        # ax.set_xticklabels(labels)
+        # ax.tick_params(axis='both', which='major', width=1.2, length=9)
+        # ax.tick_params(axis='both', which='minor', width=1, length=5)
+        # ax.set_ylim(1e-2, 1)
+        # ax.set_xlim(np.min(tfbH), np.max(tfbH))
+        # ax.grid()
+        # fig.tight_layout()
+
+    else:
+        _, tfbH, MwR, MwL ,MwN, MwS, Lum_fsR, Lum_fsL, Lum_fsN, Lum_fsS, EkinR, EkinL, EkinN, EkinS = \
+                np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot{with_who}{n_obs}Sec_{check}{which_r_title}{choice}.csv', 
+                        delimiter = ',', 
+                        skiprows=1, 
+                        unpack=True) 
+        fig, ax = plt.subplots(1, 1, figsize = (10, 7))
+        ax.plot(tfbH, np.abs(Lum_fsL)/Ledd_sol, c = 'r', label = r'left')
+        ax.plot(tfbH, np.abs(EkinL)/Ledd_sol, c = 'r', ls = '--', label = r'E_{\rm kin}')
+        ax.plot(tfbH, np.abs(Lum_fsR)/Ledd_sol, c = 'sandybrown', label = r'right')
+        ax.plot(tfbH, np.abs(EkinR)/Ledd_sol, c = 'sandybrown', ls = '--')
+        ax.plot(tfbH, np.abs(Lum_fsN)/Ledd_sol, c = 'deepskyblue', label = r'N pole')
+        ax.plot(tfbH, np.abs(EkinN)/Ledd_sol, c = 'deepskyblue', ls = '--')
+        
+        original_ticks = ax.get_xticks()
+        midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+        new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+        labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
         ax.set_yscale('log')
         ax.set_xlabel(r'$t [t_{\rm fb}]$')
         ax.set_xticks(new_ticks)
         ax.set_xticklabels(labels)  
-        ax.set_xlim(0, 2.3)
         ax.tick_params(axis='both', which='major', width=1.2, length=9)
         ax.tick_params(axis='both', which='minor', width=1, length=5)
+        ax.set_ylabel(r'$L [L_{\rm Edd}]$')   
+        ax.set_xlim(0, np.max(tfbH))
+        ax.set_ylim(1, 5e3)
         ax.legend(fontsize = 18)
         ax.grid()
-    axEdd.set_ylim(5e2, 5e6)
-    axEdd.set_ylabel(r'$|\dot{M}_{{\rm w}}| [\dot{M}_{\rm Edd}]$')   
-    axall.set_ylim(5e-2, 1.1)
-    axall.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm w}]$')
-    axfb.set_ylim(1e-3, 2)
-    axfb.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm fb}]$')
-    plt.suptitle(rf'$\dot{{M}}_{{\rm w}}$ {with_who} at {which_r_title}', fontsize = 20)
-    fig.tight_layout()
-
-    # fig, ax = plt.subplots(1,1, figsize = (8,6))
-    # ax.plot(tfbH, np.abs(mwind_dimCellH/mfallH), c = 'k')
-    # ax.set_yscale('log')
-    # ax.set_xlabel(r'$t [t_{\rm fb}]$')
-    # ax.set_ylabel(r'$|\dot{M}_{\rm w}/\dot{M}_{\rm fb}|$')
-    # original_ticks = ax.get_xticks()
-    # midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-    # new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    # ax.set_xticks(new_ticks)
-    # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
-    # ax.set_xticklabels(labels)
-    # ax.tick_params(axis='both', which='major', width=1.2, length=9)
-    # ax.tick_params(axis='both', which='minor', width=1, length=5)
-    # ax.set_ylim(1e-2, 1)
-    # ax.set_xlim(np.min(tfbH), np.max(tfbH))
-    # ax.grid()
-    # fig.tight_layout()
-
-if which_r_title != '05amin':
-    _, tfbH, MwR, MwL ,MwN, MwS, Lum_fsR, Lum_fsL, Lum_fsN, Lum_fsS, EkinR, EkinL, EkinN, EkinS = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot{with_who}{n_obs}Sec_{check}{which_r_title}{choice}.csv', 
-                    delimiter = ',', 
-                    skiprows=1, 
-                    unpack=True) 
-    fig, ax = plt.subplots(1, 1, figsize = (10, 7))
-    ax.plot(tfbH, np.abs(Lum_fsL)/Ledd_sol, c = 'r', label = r'left')
-    ax.plot(tfbH, np.abs(EkinL)/Ledd_sol, c = 'r', ls = '--', label = r'E_{\rm kin}')
-    ax.plot(tfbH, np.abs(Lum_fsR)/Ledd_sol, c = 'sandybrown', label = r'right')
-    ax.plot(tfbH, np.abs(EkinR)/Ledd_sol, c = 'sandybrown', ls = '--')
-    ax.plot(tfbH, np.abs(Lum_fsN)/Ledd_sol, c = 'deepskyblue', label = r'N pole')
-    ax.plot(tfbH, np.abs(EkinN)/Ledd_sol, c = 'deepskyblue', ls = '--')
-    
-    original_ticks = ax.get_xticks()
-    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
-    ax.set_yscale('log')
-    ax.set_xlabel(r'$t [t_{\rm fb}]$')
-    ax.set_xticks(new_ticks)
-    ax.set_xticklabels(labels)  
-    ax.tick_params(axis='both', which='major', width=1.2, length=9)
-    ax.tick_params(axis='both', which='minor', width=1, length=5)
-    ax.set_ylabel(r'$L [L_{\rm Edd}]$')   
-    ax.set_xlim(0, np.max(tfbH))
-    ax.set_ylim(1, 5e3)
-    ax.legend(fontsize = 18)
-    ax.grid()
-    plt.suptitle(rf'r = {which_r_title}', fontsize = 20)
-    fig.tight_layout()
+        plt.suptitle(rf'r = {which_r_title}', fontsize = 20)
+        fig.tight_layout()
 
     
 
