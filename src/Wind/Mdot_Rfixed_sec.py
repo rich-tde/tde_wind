@@ -141,7 +141,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
         make_slices([X, Y, Z, Den, v_rad, dim_cell, Rad_den, bern, OE], cond_wind)
     if Den_wind.size == 0:
         print(f'no positive', flush=True)
-        data = [snap, tfb[i], *np.zeros(4)] # wathc out: you put 4 beacuse you're looking at 4 sections
+        data = [np.zeros(4)] # wathc out: you put 4 beacuse you're looking at 4 sections
 
     else:
         Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
@@ -245,10 +245,10 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             cbar = plt.colorbar(imgOE_yz)
             cbar.set_label(r'OE [erg/s]', fontsize=16)
 
-    if r_chosen > apo:
-        data = [mwind, Lum_fs, Ekin]
-    else:        
-        data = mwind
+        if r_chosen > apo:
+            data = [mwind, Lum_fs, Ekin]
+        else:        
+            data = mwind
 
     return data
 
