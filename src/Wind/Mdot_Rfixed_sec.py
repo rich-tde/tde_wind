@@ -245,10 +245,10 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             cbar = plt.colorbar(imgOE_yz)
             cbar.set_label(r'OE [erg/s]', fontsize=16)
 
-        if r_chosen > apo:
-            data = np.concatenate(([snap], [tfb[i]], mwind, Lum_fs, Ekin))
-        else:        
-            data = np.concatenate(([snap], [tfb[i]], mwind))  
+    if r_chosen > apo:
+        data = [mwind, Lum_fs, Ekin]
+    else:        
+        data = mwind
 
     return data
 
@@ -266,7 +266,8 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
         print(snap, flush=True)
         
-        data_tosave = Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = wind_cond)
+        data_wind = Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = wind_cond)
+        data_tosave = np.concatenate(([snap], [tfb[i]], data_wind))  
         csv_path = f'{abspath}/data/{folder}/wind/Mdot{wind_cond}{with_who}{n_obs}Sec_{check}{which_r_title}{choice}.csv'
         if alice:
             with open(csv_path, 'a', newline='') as file:
