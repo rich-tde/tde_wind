@@ -13,9 +13,9 @@ import Utilities.prelude as prel
 from Utilities.selectors_for_snap import select_prefix
 from Utilities.sections import make_slices
 import src.orbits as orb
-from Utilities.operators import to_spherical_components, make_tree, choose_observers
+from Utilities.operators import to_spherical_components, make_tree, choose_observers, choose_sections
 
-compute = False
+compute = True
 #
 # PARAMS
 #
@@ -112,7 +112,14 @@ def radial_profiles(loadpath, snap, observers_xyz, indices_sorted, r_tr, ray_par
     bern = orb.bern_coeff(R, vel, Den, Mass, Press, IE_den, Rad_den, params)
     cut = np.logical_and(Den > 1e-19, np.logical_and(bern > 0, V_r > 0)) 
     X, Y, Z, Vol, Den, Mass, VX, VY, VZ, V_r, T, Press, IE_den, Rad_den = \
-        make_slices([X, Y, Z, Vol, Den, Mass, VX, VY, VZ, V_r, T, Press, IE_den, Rad_den], cut)       
+        make_slices([X, Y, Z, Vol, Den, Mass, VX, VY, VZ, V_r, T, Press, IE_den, Rad_den], cut)     
+    
+    indices = np.arange(len(X))
+    sections = choose_sections(X, Y, Z, choice = which_obs)
+    indices_sec = []
+    for key in sections.keys():
+        cond = sections[key]['cond'] 
+        indices_sec.append(indices[cond])
 
     xyz = np.array([X, Y, Z]).T
     tree = KDTree(xyz, leaf_size = 50) 
@@ -164,7 +171,13 @@ def radial_profiles(loadpath, snap, observers_xyz, indices_sorted, r_tr, ray_par
                 xyz2 = np.array([x, y, z]).T
                 del x, y, z
 
-                dist, idx = tree.query(xyz2, k=10) 
+                dist, idx = tree.query(xyz2, k=40) 
+
+                dist = dist.flatten()
+                idx = idx.flatten()
+                dist = np.array(dist[np.isin(idx, indices_sec[j])])
+                idx = np.array(idx[np.isin(idx, indices_sec[j])])
+                
                 # dist = np.concatenate(dist)
                 # idx = np.array([ int(idx[i][0]) for i in range(len(idx))])
                 
@@ -383,7 +396,7 @@ for ax in [axd, axV, axMdot, axT, axL]:
         ax.set_xlabel(r'$r [r_{\rm S}]$', fontsize = 28)
         ax.set_xlim(Rt/Rs, 2e4)
     ax.loglog()
-    # ax.grid()
+    ax.grid()
 
 axT.legend(fontsize = 19) 
 axMdot.legend(fontsize = 19) 

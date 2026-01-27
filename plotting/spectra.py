@@ -36,14 +36,13 @@ N_obs = F_photo.shape[0]
 observers_xyz = hp.pix2vec(prel.NSIDE, range(N_obs)) #shape: (3, 192)
 observers_xyz = np.array(observers_xyz)
 
-indices_sorted, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, choice = 'focus_axis')
+indices_sorted, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, choice = 'dark_bright_z')
 # indices_sorted = np.concatenate(indices_sorted)
 
 fig, ax = plt.subplots(1, 1, figsize=(10,6))
 F_mean = []
 for i, idx_list in enumerate(indices_sorted):
     F_mean.append(np.mean(F_photo[idx_list], axis=0))
-print(np.shape(F_mean))
 
 
 for idx, lab in enumerate(label_obs):
