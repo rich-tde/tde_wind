@@ -20,7 +20,7 @@ import healpy as hp
 from sklearn.neighbors import KDTree
 import Utilities.prelude as prel
 import src.orbits as orb
-from Utilities.operators import make_tree, to_spherical_components, choose_sections, choose_observers
+from Utilities.operators import make_tree, to_spherical_components, choose_sections, choose_observers, to_cylindric
 from Utilities.selectors_for_snap import select_snap
 from Utilities.sections import make_slices
 
@@ -38,8 +38,8 @@ compton = 'Compton'
 check = 'HiResNewAMR'
 with_who = ''  # '' or 'Obs'
 n_obs = '' #'_npix8' or ''
-choice = 'dark_bright_z' #'arch'x, 'quadrants', 'ax is', 'dark_bright_z_in_out', 'all'
-wind_cond = 'OE' # '' for bernouilli coeff or 'OE' for orbital energy
+choice = 'in_out_z' #'arch'x, 'quadrants', 'ax is', 'dark_bright_z_in_out', 'all' or 'in_out_z'
+wind_cond = '' # '' for bernouilli coeff or 'OE' for orbital energy
 
 if with_who == '':
     n_obs = ''  # to avoid confusion
@@ -130,18 +130,21 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
     bern = orb.bern_coeff(Rsph, V, Den, Mass, Press, IE_den, Rad_den, params)
     v_rad, _, _ = to_spherical_components(VX, VY, VZ, X, Y, Z)
     OE = orb.orbital_energy(Rsph, V, Mass, params, prel.G)
+    OE_spec = OE / Mass
+    if (bern < OE_spec).any():
+        print('Warning: some particles have Bernoulli < OE_spec', flush=True)
 
     # select just outflowing and unbound material
     if wind_cond == '':
         cond_wind = np.logical_and(v_rad >= 0, bern > 0)
     if wind_cond == 'OE':
-        cond_wind = np.logical_and(v_rad >= 0, OE > 0)
+        cond_wind = np.logical_and(v_rad >= 0, OE_spec > 0)
     cond_wind = np.logical_and(cond_wind, np.abs(Rsph - r_chosen) < dim_cell)
-    X_wind, Y_wind, Z_wind, Den_wind, v_rad_wind, dim_cell_wind, Rad_den_wind, bern_wind, OE_wind = \
-        make_slices([X, Y, Z, Den, v_rad, dim_cell, Rad_den, bern, OE], cond_wind)
+    X_wind, Y_wind, Z_wind, Den_wind, v_rad_wind, dim_cell_wind, Rad_den_wind, bern_wind, OE_spec_wind = \
+        make_slices([X, Y, Z, Den, v_rad, dim_cell, Rad_den, bern, OE_spec], cond_wind)
     if Den_wind.size == 0:
         print(f'no positive', flush=True)
-        data = [np.zeros(4)] # wathc out: you put 4 beacuse you're looking at 4 sections
+        data = [*np.zeros(4)] # wathc out: you put 4 beacuse you're looking at 4 sections
 
     else:
         Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
@@ -160,6 +163,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             figV, axV = plt.subplots(2, 3, figsize=(21, 14))
             figB, axB = plt.subplots(2, 3, figsize=(21, 14))
             figOE, axOE = plt.subplots(2, 3, figsize=(21, 14))
+            figOEB, axOEB = plt.subplots(1,1, figsize=(8,6))
             if r_chosen > amin:
                 normaliz = apo
                 for ax in [axd, axV, axB, axOE]:
@@ -191,7 +195,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
         if choice == 'all':
             C_mult = 4
             print('C:', C_mult, flush=True)
-        elif choice == 'dark_bright_z':
+        elif choice == 'dark_bright_z' or choice == 'in_out_z':
             C_mult = 1 # 4 sections of the same area
             print('C:', C_mult, flush=True)
         else:
@@ -208,42 +212,61 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
                 Ekin[j] = 0.5 * np.mean(Mdot[indices] * v_rad_wind[indices]**2)
             
             if np.logical_and(plot, j!=3):
+                theta_ourConv, _ = to_cylindric(X_wind[indices], Y_wind[indices])
                 # see what I'm selecting
-                img_xy = axd[0][j].scatter(X_wind[indices]/normaliz, Y_wind[indices]/normaliz, s=10, c = Den_wind[indices]*prel.den_converter, norm = colors.LogNorm(vmin=1e-14, vmax=1e-9))
-                img_yz = axd[1][j].scatter(Y_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = Den_wind[indices]*prel.den_converter, norm = colors.LogNorm(vmin=1e-14, vmax=1e-9))
+                img_xy = axd[0][j].scatter(X_wind[indices]/normaliz, Y_wind[indices]/normaliz, s=10, c = Den_wind[indices]*prel.den_converter, norm = colors.LogNorm(vmin=1e-14, vmax=2e-9))
+                img_yz = axd[1][j].scatter(Y_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = Den_wind[indices]*prel.den_converter, norm = colors.LogNorm(vmin=1e-14, vmax=2e-9))
                 axd[0][j].set_title(f'Section: {label_obs[j]}', fontsize = 16)
 
-                imgV_xy = axV[0][j].scatter(X_wind[indices]/normaliz, Y_wind[indices]/normaliz, s=10, c = v_rad_wind[indices]*conversion_sol_kms, norm = colors.LogNorm(vmin=1e3, vmax=1e4))
-                imgV_yz = axV[1][j].scatter(Y_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = v_rad_wind[indices]*conversion_sol_kms, norm = colors.LogNorm(vmin=1e3, vmax=1e4))
+                imgV_xy = axV[0][j].scatter(X_wind[indices]/normaliz, Y_wind[indices]/normaliz, s=10, c = v_rad_wind[indices]*conversion_sol_kms, norm = colors.LogNorm(vmin=1e3, vmax=2e4))
+                imgV_yz = axV[1][j].scatter(Y_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = v_rad_wind[indices]*conversion_sol_kms, norm = colors.LogNorm(vmin=1e3, vmax=2e4))
                 axV[0][j].set_title(f'Section: {label_obs[j]}', fontsize = 16)
 
                 imgB_xy = axB[0][j].scatter(X_wind[indices]/normaliz, Y_wind[indices]/normaliz, s=10, c = bern_wind[indices], cmap = 'coolwarm', vmin = - 50, vmax= 50)
                 imgB_yz = axB[1][j].scatter(Y_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = bern_wind[indices], cmap = 'coolwarm', vmin = - 50, vmax= 50)
                 axB[0][j].set_title(f'Section: {label_obs[j]}', fontsize = 16)
 
-                imgOE_xy = axOE[0][j].scatter(X_wind[indices]/normaliz, Y_wind[indices]/normaliz, s=10, c = OE_wind[indices] * prel.en_converter/prel.tsol_cgs, cmap = 'coolwarm', vmin = - 50, vmax= 50)
-                imgOE_yz = axOE[1][j].scatter(Y_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = OE_wind[indices] * prel.en_converter/prel.tsol_cgs, cmap = 'coolwarm', vmin = - 50, vmax= 50)
+                imgOE_xy = axOE[0][j].scatter(X_wind[indices]/normaliz, Y_wind[indices]/normaliz, s=10, c = OE_spec_wind[indices], cmap = 'coolwarm', vmin = - 50, vmax= 50)
+                imgOE_yz = axOE[1][j].scatter(Y_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = OE_spec_wind[indices], cmap = 'coolwarm', vmin = - 50, vmax= 50)
                 axOE[0][j].set_title(f'Section: {label_obs[j]}', fontsize = 16)
+                
+                axOEB.scatter(theta_ourConv, np.abs(bern_wind[indices]/OE_spec_wind[indices]), s=10, c = colors_obs[j], label = label_obs[j])
+        
         if plot:
             cbar = plt.colorbar(img_xy)
-            cbar.set_label(r'Density [g cm$^{-3}$]', fontsize=16)
+            cbar.set_label(r'Density [g cm$^{-3}$]', fontsize = 18)
             cbar = plt.colorbar(img_yz)
-            cbar.set_label(r'Density [g cm$^{-3}$]', fontsize=16)
+            cbar.set_label(r'Density [g cm$^{-3}$]', fontsize = 18)
 
             cbar = plt.colorbar(imgV_xy)
-            cbar.set_label(r'$v_{\rm r}$ [km/s]', fontsize=16)
+            cbar.set_label(r'$v_{\rm r}$ [km/s]', fontsize = 18)
             cbar = plt.colorbar(imgV_yz)
-            cbar.set_label(r'$v_{\rm r}$ [km/s]', fontsize=16)
+            cbar.set_label(r'$v_{\rm r}$ [km/s]', fontsize = 18)
 
             cbar = plt.colorbar(imgB_xy)
-            cbar.set_label(r'$\mathcal{B}$', fontsize=16)
+            cbar.set_label(r'$\mathcal{B}$', fontsize = 18)
             cbar = plt.colorbar(imgB_yz)
-            cbar.set_label(r'$\mathcal{B}$', fontsize=16)
+            cbar.set_ticks([-50, 0, 50])
+            cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
+            cbar.set_label(r'$\mathcal{B}$', fontsize = 18)
+            cbar.set_ticks([-50, 0, 50])
+            cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
 
             cbar = plt.colorbar(imgOE_xy)
-            cbar.set_label(r'OE [erg/s]', fontsize=16)
+            cbar.set_label(r'spec OE', fontsize = 18)
             cbar = plt.colorbar(imgOE_yz)
-            cbar.set_label(r'OE [erg/s]', fontsize=16)
+            cbar.set_ticks([-50, 0, 50])
+            cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
+            cbar.set_label(r'spec OE', fontsize = 18)
+            cbar.set_ticks([-50, 0, 50])
+            cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
+
+            axOEB.axvline(-np.pi/2, c='grey', ls='--')
+            axOEB.axvline(np.pi/2, c='grey', ls='--')
+            axOEB.set_yscale('log')
+            axOEB.set_xlabel(r'$\phi$ [rad]', fontsize = 18)
+            axOEB.set_ylabel(r'$|\mathcal{B}/OE|$', fontsize = 18)
+            axOEB.legend(fontsize = 18)
 
         if r_chosen > apo:
             data = [mwind, Lum_fs, Ekin]
@@ -285,7 +308,7 @@ if plot:
     from plotting.paper.IHopeIsTheLast import ratio_BigOverSmall
     from Utilities.operators import sort_list
     import matplotlib.colors as mcolors
-    which_r_title = '5apo'
+    which_r_title = '05amin'
     fig, (axEdd, axall, axfb) = plt.subplots(1, 3, figsize = (24, 7))
 
     fallback = \
@@ -310,8 +333,15 @@ if plot:
     tfbH, MwR, MwL ,MwN, MwS = wind[1], wind[2], wind[3], wind[4], wind[5] 
     Mw_sum = MwR + MwL + MwN + MwS
     
+    wind_OE = \
+            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotOE{with_who}{n_obs}Sec_{check}{which_r_title}dark_bright_z.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True) 
+    tfbH_OE, MwR_OE, MwL_OE, MwN_OE, MwS_OE = wind_OE[1], wind_OE[2], wind_OE[3], wind_OE[4], wind_OE[5]
+
     # wind_obs = \
-    #         np.loadtxt(f'{abspath}/data/{folder}/wind/MdotObs{n_obs}Sec_{check}{which_r_title}dark_bright_z.csv', 
+    #         np.loadtxt(f'{abspath}/data/{folder}/wind/MdotObsSec_{check}{which_r_title}dark_bright_z.csv', 
     #                 delimiter = ',', 
     #                 skiprows=1, 
     #                 unpack=True) 
@@ -319,7 +349,7 @@ if plot:
     # Mw_sum_obs = MwR_obs + MwL_obs + MwN_obs + MwS_obs
 
     # wind_obs8 = \
-    #         np.loadtxt(f'{abspath}/data/{folder}/wind/MdotObs{n_obs}Sec_{check}{which_r_title}dark_bright_z.csv', 
+    #         np.loadtxt(f'{abspath}/data/{folder}/wind/MdotObs_npix8Sec_{check}{which_r_title}dark_bright_z.csv', 
     #                 delimiter = ',', 
     #                 skiprows=1, 
     #                 unpack=True) 
@@ -348,6 +378,10 @@ if plot:
     # axEdd.plot(tfbH_obs8, np.abs(MwR_obs8)/Medd_sol, c = colors_obs[0], ls = ':', label = 'Obs8')
     # axEdd.plot(tfbH_obs8, np.abs(MwL_obs8)/Medd_sol, c = colors_obs[1], ls = ':')
     # axEdd.plot(tfbH_obs8, np.abs(MwN_obs8)/Medd_sol, c = colors_obs[2], ls = ':')
+
+    axEdd.plot(tfbH_OE, np.abs(MwR_OE)/Medd_sol, c = colors_obs[0], ls = '--')
+    axEdd.plot(tfbH_OE, np.abs(MwL_OE)/Medd_sol, c = colors_obs[1], ls = '--') 
+    axEdd.plot(tfbH_OE, np.abs(MwN_OE)/Medd_sol, c = colors_obs[2], ls = '--', label = 'with OE cut')
 
     axall.plot(tfbH, np.abs(MwR)/Mw_sum, c = colors_obs[0], label = label_obs[0])
     axall.plot(tfbH, np.abs(MwL)/Mw_sum, c = colors_obs[1], label = label_obs[1])
@@ -379,7 +413,7 @@ if plot:
     axall.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm w}]$')
     axfb.set_ylim(1e-3, 2)
     axfb.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm fb}]$')
-    plt.suptitle(rf'$\dot{{M}}_{{\rm w}}$ {with_who} at {which_r_title}', fontsize = 20)
+    plt.suptitle(rf'$\dot{{M}}_{{\rm w}}$ at {which_r_title}', fontsize = 20)
     fig.tight_layout()
 
     # fig, ax = plt.subplots(1,1, figsize = (8,6))
