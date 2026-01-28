@@ -38,8 +38,9 @@ compton = 'Compton'
 check = 'HiResNewAMR'
 with_who = ''  # '' or 'Obs'
 n_obs = '' #'_npix8' or ''
-choice = 'in_out_z' #'arch'x, 'quadrants', 'ax is', 'dark_bright_z_in_out', 'all' or 'in_out_z'
+choice = 'dark_bright_z' #'arch'x, 'quadrants', 'ax is', 'dark_bright_z', 'all' or 'in_out_z'
 wind_cond = '' # '' for bernouilli coeff or 'OE' for orbital energy
+how = '' # '' for the normalized sum or 'mean' for mean of Mw of each cells
 
 if with_who == '':
     n_obs = ''  # to avoid confusion
@@ -289,9 +290,9 @@ if compute: # compute dM/dt = dM/dE * dE/dt
             path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
         print(snap, flush=True)
         
-        data_wind = Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = wind_cond)
+        data_wind = Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = wind_cond, how = how)
         data_tosave = np.concatenate(([snap], [tfb[i]], data_wind))  
-        csv_path = f'{abspath}/data/{folder}/wind/Mdot{wind_cond}{with_who}{n_obs}Sec_{check}{which_r_title}{choice}.csv'
+        csv_path = f'{abspath}/data/{folder}/wind/Mdot{wind_cond}{with_who}{n_obs}Sec{how}_{check}{which_r_title}{choice}.csv'
         if alice:
             with open(csv_path, 'a', newline='') as file:
                 writer = csv.writer(file)
