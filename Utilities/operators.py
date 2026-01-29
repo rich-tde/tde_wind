@@ -166,7 +166,7 @@ def choose_sections(X, Y, Z, choice = 'dark_bright_z'):
         cond_out = np.logical_and(Y < 0, np.abs(Z) < slope *  R_cyl)
         ins = {'cond': cond_in, 'label': r'in', 'color': 'r', 'line': 'solid'}
         out = {'cond': cond_out, 'label': r'out', 'color': 'sandybrown', 'line': 'dashed'}
-        sec = {'out': out, 'in': ins, 'north': north, 'south': south}
+        sec = {'in': ins, 'out': out, 'north': north, 'south': south}
     
     if choice == 'arch':
         cond_bright_low = np.logical_and(X >= 0, np.abs(Z) < R_cyl)
