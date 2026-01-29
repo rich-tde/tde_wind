@@ -142,7 +142,7 @@ else:
     snapL, tfbL, Rdiss_posL, Ldisstot_posL, Rdiss_negL, Ldisstot_negL =  dataL[:, 0], dataL[:, 1], dataL[:, 2], dataL[:, 3], dataL[:, 4], dataL[:, 5]
     data = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/Rdiss_NewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     snap, tfb, Rdiss_pos, Ldisstot_pos, Rdiss_neg, Ldisstot_neg = data[:,0], data[:,1], data[:,2], data[:,3], data[:,4], data[:,5]
-    dataH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
+    dataH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/paper1/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     snapH, tfbH, Rdiss_posH, Ldisstot_posH, Rdiss_negH, Ldisstot_negH = dataH[:,0], dataH[:,1], dataH[:,2], dataH[:,3], dataH[:,4], dataH[:,5]
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 14))

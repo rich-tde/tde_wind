@@ -9,7 +9,7 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = True
+    compute = False
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -40,7 +40,7 @@ with_who = ''  # '' or 'Obs'
 n_obs = '' #'_npix8' or ''
 choice = 'dark_bright_z' #'arch'x, 'quadrants', 'ax is', 'dark_bright_z', 'all' or 'in_out_z'
 wind_cond = '' # '' for bernouilli coeff or 'OE' for orbital energy
-how = '' # '' for the normalized sum or 'mean' for mean of Mw of each cells
+how = 'mean' # '' for the normalized sum or 'mean' for mean of Mw of each cells
 
 if with_who == '':
     n_obs = ''  # to avoid confusion

@@ -89,7 +89,7 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 # dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/wind/dMdE_{check}.txt')[0] # distribution just after the disruption
 # bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
 snaps, tfb, mfall, _, _, _, _, _, _, _ = \
-        np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_{check}05aminmean.csv', 
+        np.loadtxt(f'{abspath}/data/{folder}/paper1/wind/Mdot_{check}05aminmean.csv', 
                 delimiter = ',', 
                 skiprows=1, 
                 unpack=True) 
@@ -98,14 +98,15 @@ tfb_cgs = tfb * tfallback_cgs #converted to seconds
 dataLum = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
 snapsLum, tfbLum, Lum = dataLum[:, 0], dataLum[:, 1], dataLum[:, 2] 
 tfbLum, Lum, snapsLum = sort_list([tfbLum, Lum, snapsLum], snapsLum) # becuase Lum data are not ordered
-dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
-timeRDiss, RDiss = dataDiss[:,1], dataDiss[:,2] 
+dataDiss = np.loadtxt(f'{abspath}/data/{folder}/paper1/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
+timeRDiss, RDiss, Ldisstot_posH = dataDiss[:,1], dataDiss[:,2], dataDiss[:,3]
 
 eta_sh = np.zeros(len(tfb_cgs))
 R_sh = np.zeros(len(tfb_cgs))
 eta_sh_diss = np.zeros(len(tfb_cgs))
 R_ph = np.zeros(len(tfb_cgs))
 R_tr = np.zeros(len(tfb_cgs))
+Ldiss_Mdotc2 = np.zeros(len(tfb_cgs))
 
 # compute Rshock and eta_shock in the simulation time range
 for i, t in enumerate(tfb_cgs):
@@ -142,6 +143,9 @@ for i, t in enumerate(tfb_cgs):
 
     r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
     R_tr[i] = np.median(r_tr_all[r_tr_all!=0])
+
+
+    Ldiss_Mdotc2[i] = Ldisstot_posH[np.argmin(np.abs(tfb[i]-timeRDiss))] / (np.abs(mfall[i]) * prel.csol_cgs**2)
 
 # nan = np.logical_or(np.isnan(R_sh), R_sh==0)
 # R_sh = R_sh[~nan]
@@ -209,5 +213,21 @@ plt.yscale('log')
 plt.xlim(np.min(tfb), np.max(tfb))
 plt.legend(fontsize = 18)
 plt.grid()
+
+# %%
+horiz_line = 0.5 / (600 * 13**2)
+fig, ax = plt.subplots(1, 1, figsize=(14, 10))
+ax.plot(tfb, Ldiss_Mdotc2, color = 'dodgerblue', label = r'$\eta_{\rm diss} = L_{\rm diss}/(\dot{M}_{\rm fb} c^2)$')
+ax.set_ylabel(r'$\eta$', fontsize = 30)
+ax.set_xlabel(r't [$t_{\rm fb}$]', fontsize = 30)
+ax.set_yscale('log')
+ax.axhline(y=horiz_line, color = 'gray', linestyle = '--', label = r'$\eta_{\rm nz} = 0.5(r_\star/r_{\rm p})^2r_{\rm g}/r_{\rm p}$')
+ax.set_xlim(0.5, np.max(tfb))
+ax.set_ylim(1e-6, 1e-4)
+ax.legend(fontsize = 22)
+ax.tick_params(axis='both', which='major', width=1.1, length=9)
+ax.tick_params(axis='both', which='minor', width=1, length=6)
+ax.grid()
+
 
 # %%
