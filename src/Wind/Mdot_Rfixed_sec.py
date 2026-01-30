@@ -38,7 +38,7 @@ compton = 'Compton'
 check = 'HiResNewAMR'
 with_who = ''  # '' or 'Obs'
 n_obs = '' #'_npix8' or ''
-choice = 'dark_bright_z' #'arch'x, 'quadrants', 'ax is', 'dark_bright_z', 'all' or 'in_out_z'
+choice = 'in_out_z' #'arch'x, 'quadrants', 'ax is', 'dark_bright_z', 'all' or 'in_out_z'
 wind_cond = '' # '' for bernouilli coeff or 'OE' for orbital energy
 how = 'mean' # '' for the normalized sum or 'mean' for mean of Mw of each cells
 
@@ -115,7 +115,7 @@ def split_cells(X, Y, Z, choice):
         condR = cond #np.logical_and(np.abs(Rsph-r_chosen) < dim_cell, cond)
         indices_sec.append(indices[condR])
     
-    return indices_sec
+    return indices_sec, label_obs, color_obs
     
 def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
     # Load data and pick the ones unbound and with positive velocity
@@ -150,7 +150,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
     else:
         Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
         if with_who == '':
-            indices_sec = split_cells(X_wind, Y_wind, Z_wind, choice)
+            indices_sec, _, _ = split_cells(X_wind, Y_wind, Z_wind, choice)
 
         elif with_who == 'Obs':
             indices_sec = split_observers(X_wind, Y_wind, Z_wind, dim_cell_wind)
@@ -276,193 +276,201 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
 
     return data
 
-if compute: # compute dM/dt = dM/dE * dE/dt
-    r_chosen = 0.5*amin 
-    which_r_title = '05amin' 
-    snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
+if __name__ == '__main__':
+    if compute: # compute dM/dt = dM/dE * dE/dt
+        r_chosen = 0.5*amin 
+        which_r_title = '05amin' 
+        snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
-    for i, snap in enumerate(snaps):
-        if alice:
-            path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-        else: 
-            if snap not in [109]:
-                continue
-            path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
-        print(snap, flush=True)
+        for i, snap in enumerate(snaps):
+            if alice:
+                path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
+            else: 
+                if snap not in [109]:
+                    continue
+                path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
+            print(snap, flush=True)
+            
+            data_wind = Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = wind_cond, how = how)
+            data_tosave = np.concatenate(([snap], [tfb[i]], data_wind))  
+            csv_path = f'{abspath}/data/{folder}/wind/{choice}/Mdot{wind_cond}{with_who}{n_obs}Sec{how}_{check}{which_r_title}{choice}.csv'
+            if alice:
+                with open(csv_path, 'a', newline='') as file:
+                    writer = csv.writer(file)
+                    if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
+                        if r_chosen > apo:
+                            writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_obs] + [f'Lum_fs {lab}' for lab in label_obs] + [f'Ekin {lab}' for lab in label_obs])
+                        else:
+                            writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_obs])
+                    writer.writerow(data_tosave)
+                file.close()
+
+    if plot:
+        which_r_title = '05amin'
+        choice = 'dark_bright_z' # 'dark_bright_z', 'all' or 'in_out_z'
+        fig, (axEdd, axall, axfb) = plt.subplots(1, 3, figsize = (24, 7))
+
+        fallback = \
+                np.loadtxt(f'{abspath}/data/{folder}/paper1/wind/Mdot_{check}05aminmean.csv', 
+                        delimiter = ',', 
+                        skiprows=1, 
+                        unpack=True)
+        tfbfb, mfb, mwind_dimCellOld = fallback[1], fallback[2], fallback[3]
+
+        # wind_all = \
+        #         np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec_{check}{which_r_title}all.csv', 
+        #                 delimiter = ',', 
+        #                 skiprows=1, 
+        #                 unpack=True) 
+        # tfbH_full, Mw_full = wind_all[1], wind_all[2] # MW_full is the same as mwind_dimCellOld
         
-        data_wind = Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = wind_cond, how = how)
-        data_tosave = np.concatenate(([snap], [tfb[i]], data_wind))  
-        csv_path = f'{abspath}/data/{folder}/wind/Mdot{wind_cond}{with_who}{n_obs}Sec{how}_{check}{which_r_title}{choice}.csv'
-        if alice:
-            with open(csv_path, 'a', newline='') as file:
-                writer = csv.writer(file)
-                if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                    if r_chosen > apo:
-                        writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_obs] + [f'Lum_fs {lab}' for lab in label_obs] + [f'Ekin {lab}' for lab in label_obs])
-                    else:
-                        writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_obs])
-                writer.writerow(data_tosave)
-            file.close()
+        wind = \
+                np.loadtxt(f'{abspath}/data/{folder}/wind/{choice}/MdotSec_{check}{which_r_title}{choice}.csv', 
+                        delimiter = ',', 
+                        skiprows=1, 
+                        unpack=True) 
+        tfbH, MwR, MwL ,MwN, MwS = wind[1], wind[2], wind[3], wind[4], wind[5] 
+        Mw_sum = MwR + MwL + MwN + MwS
+        
+        # wind_mean = \
+        #         np.loadtxt(f'{abspath}/data/{folder}/wind/{choice}/MdotSecmean_{check}{which_r_title}{choice}.csv', 
+        #                 delimiter = ',', 
+        #                 skiprows=1, 
+        #                 unpack=True) 
+        # tfbH_mean, MwR_mean, MwL_mean, MwN_mean, MwS_mean = wind_mean[1], wind_mean[2], wind_mean[3], wind_mean[4], wind_mean[5]
 
-if plot:
-    # from scipy.integrate import cumulative_trapezoid
-    from plotting.paper.IHopeIsTheLast import ratio_BigOverSmall
-    from Utilities.operators import sort_list
-    import matplotlib.colors as mcolors
-    which_r_title = '05amin'
-    fig, (axEdd, axall, axfb) = plt.subplots(1, 3, figsize = (24, 7))
+        wind_OE = \
+                np.loadtxt(f'{abspath}/data/{folder}/wind/{choice}/MdotOESec_{check}{which_r_title}{choice}.csv', 
+                        delimiter = ',', 
+                        skiprows=1, 
+                        unpack=True) 
+        tfbH_OE, MwR_OE, MwL_OE, MwN_OE, MwS_OE = wind_OE[1], wind_OE[2], wind_OE[3], wind_OE[4], wind_OE[5]
 
-    fallback = \
-            np.loadtxt(f'{abspath}/data/{folder}/paper1/wind/Mdot_{check}05aminmean.csv', 
-                    delimiter = ',', 
-                    skiprows=1, 
-                    unpack=True)
-    tfbfb, mfb, mwind_dimCellHold = fallback[1], fallback[2], fallback[3]
+        # wind_obs = \
+        #         np.loadtxt(f'{abspath}/data/{folder}/wind/{choice}/MdotObsSec_{check}{which_r_title}{choice}.csv', 
+        #                 delimiter = ',', 
+        #                 skiprows=1, 
+        #                 unpack=True) 
+        # tfbH_obs, MwR_obs, MwL_obs ,MwN_obs, MwS_obs = wind_obs[1], wind_obs[2], wind_obs[3], wind_obs[4], wind_obs[5] 
+        # Mw_sum_obs = MwR_obs + MwL_obs + MwN_obs + MwS_obs
 
-    # wind_all = \
-    #         np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec_{check}{which_r_title}all.csv', 
-    #                 delimiter = ',', 
-    #                 skiprows=1, 
-    #                 unpack=True) 
-    # tfbH_full, Mw_full = wind_all[1], wind_all[2] # MW_full is the same as mwind_dimCellHold
-    
-    wind = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot{with_who}{n_obs}Sec_{check}{which_r_title}dark_bright_z.csv', 
-                    delimiter = ',', 
-                    skiprows=1, 
-                    unpack=True) 
-    tfbH, MwR, MwL ,MwN, MwS = wind[1], wind[2], wind[3], wind[4], wind[5] 
-    Mw_sum = MwR + MwL + MwN + MwS
-    
-    wind_OE = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotOE{with_who}{n_obs}Sec_{check}{which_r_title}dark_bright_z.csv', 
-                    delimiter = ',', 
-                    skiprows=1, 
-                    unpack=True) 
-    tfbH_OE, MwR_OE, MwL_OE, MwN_OE, MwS_OE = wind_OE[1], wind_OE[2], wind_OE[3], wind_OE[4], wind_OE[5]
+        # wind_obs8 = \
+        #         np.loadtxt(f'{abspath}/data/{folder}/wind/{choice}/MdotObs_npix8Sec_{check}{which_r_title}{choice}.csv', 
+        #                 delimiter = ',', 
+        #                 skiprows=1, 
+        #                 unpack=True) 
+        # tfbH_obs8, MwR_obs8, MwL_obs8 ,MwN_obs8, MwS_obs8 = wind_obs8[1], wind_obs8[2], wind_obs8[3], wind_obs8[4], wind_obs8[5] 
+        # Mw_sum_obs8 = MwR_obs8 + MwL_obs8 + MwN_obs8 + MwS_obs8
 
-    # wind_obs = \
-    #         np.loadtxt(f'{abspath}/data/{folder}/wind/MdotObsSec_{check}{which_r_title}dark_bright_z.csv', 
-    #                 delimiter = ',', 
-    #                 skiprows=1, 
-    #                 unpack=True) 
-    # tfbH_obs, MwR_obs, MwL_obs ,MwN_obs, MwS_obs = wind_obs[1], wind_obs[2], wind_obs[3], wind_obs[4], wind_obs[5] 
-    # Mw_sum_obs = MwR_obs + MwL_obs + MwN_obs + MwS_obs
+        # integrate mwind_dimCell in tfb 
+        # mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)
+        # mfall_int = cumulative_trapezoid(np.abs(mfall), tfb, initial = 0)
+        # print(f'integral of Mw at the last time: {mwind_dimCell_int[-1]/mstar} Mstar')
+        # print(f'integral of Mfb at the last time: {mfall_int[-1]/mstar} Mstar')
+        # print(f'End of simualation, Mw/Mfb in {check}:', np.abs(mwind_dimCell[-1]/mfall[-1]))
+        
+        axEdd.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--')
+        axEdd.plot(tfbH, (MwR/Medd_sol), c = colors_obs[0], label = label_obs[0])
+        axEdd.plot(tfbH, (MwL/Medd_sol), c = colors_obs[1], label = label_obs[1])
+        axEdd.plot(tfbH, (MwN/Medd_sol), c = colors_obs[2], label = label_obs[2])
+        # axEdd.plot(tfbH, MwS/Medd_sol, c = colors_obs[3], label = label_obs[3])
+        # axEdd.plot(tfbH_full, Mw_sum/Medd_sol, c = 'darkviolet', label = 'sum')
+        # axEdd.plot(tfbH_full, Mw_full/Medd_sol, c = 'orchid', label = 'all')
+        # axEdd.plot(tfbfb, mwind_dimCellOld/Medd_sol, c = 'gold', ls = '--', label = r'previous code')
 
-    # wind_obs8 = \
-    #         np.loadtxt(f'{abspath}/data/{folder}/wind/MdotObs_npix8Sec_{check}{which_r_title}dark_bright_z.csv', 
-    #                 delimiter = ',', 
-    #                 skiprows=1, 
-    #                 unpack=True) 
-    # tfbH_obs8, MwR_obs8, MwL_obs8 ,MwN_obs8, MwS_obs8 = wind_obs8[1], wind_obs8[2], wind_obs8[3], wind_obs8[4], wind_obs8[5] 
-    # Mw_sum_obs8 = MwR_obs8 + MwL_obs8 + MwN_obs8 + MwS_obs8
+        # axEdd.plot(tfbH_mean, np.abs(MwR_mean)/Medd_sol, c = colors_obs[0], ls = '--')
+        # axEdd.plot(tfbH_mean, np.abs(MwL_mean)/Medd_sol, c = colors_obs[1], ls = '--') 
+        # axEdd.plot(tfbH_mean, np.abs(MwN_mean)/Medd_sol, c = colors_obs[2], ls = '--', label = r'$\dot{M}_{\rm w}=\langle\dot{M}_{i}\rangle$')
+        
+        # axEdd.plot(tfbH_obs, np.abs(MwR_obs)/Medd_sol, c = colors_obs[0], ls = '--', label = 'Obs')
+        # axEdd.plot(tfbH_obs, np.abs(MwL_obs)/Medd_sol, c = colors_obs[1], ls = '--')
+        # axEdd.plot(tfbH_obs, np.abs(MwN_obs)/Medd_sol, c = colors_obs[2], ls = '--')
+        # axEdd.plot(tfbH_obs8, np.abs(MwR_obs8)/Medd_sol, c = colors_obs[0], ls = ':', label = 'Obs8')
+        # axEdd.plot(tfbH_obs8, np.abs(MwL_obs8)/Medd_sol, c = colors_obs[1], ls = ':')
+        # axEdd.plot(tfbH_obs8, np.abs(MwN_obs8)/Medd_sol, c = colors_obs[2], ls = ':')
+        # axEdd.plot(tfbH_OE, np.abs(MwR_OE)/Medd_sol, c = colors_obs[0], ls = '--')
+        # axEdd.plot(tfbH_OE, np.abs(MwL_OE)/Medd_sol, c = colors_obs[1], ls = '--') 
+        # axEdd.plot(tfbH_OE, np.abs(MwN_OE)/Medd_sol, c = colors_obs[2], ls = '--', label = 'with OE cut')
 
-    # integrate mwind_dimCell in tfb 
-    # mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)
-    # mfall_int = cumulative_trapezoid(np.abs(mfall), tfb, initial = 0)
-    # print(f'integral of Mw at the last time: {mwind_dimCell_int[-1]/mstar} Mstar')
-    # print(f'integral of Mfb at the last time: {mfall_int[-1]/mstar} Mstar')
-    # print(f'End of simualation, Mw/Mfb in {check}:', np.abs(mwind_dimCell[-1]/mfall[-1]))
-    
-    axEdd.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--')
-    axEdd.plot(tfbH, np.abs(MwR)/Medd_sol, c = colors_obs[0], label = label_obs[0])
-    axEdd.plot(tfbH, np.abs(MwL)/Medd_sol, c = colors_obs[1], label = label_obs[1])
-    axEdd.plot(tfbH, np.abs(MwN)/Medd_sol, c = colors_obs[2], label = label_obs[2])
-    # axEdd.plot(tfbH, np.abs(MwS)/Medd_sol, c = colors_obs[3], label = label_obs[3])
-    # axEdd.plot(tfbH_full, np.abs(Mw_sum)/Medd_sol, c = 'orchid', label = 'sum')
-    # axEdd.plot(tfbH_full, np.abs(Mw_full)/Medd_sol, c = 'darkviolet', label = 'all')
-    # axEdd.plot(tfbfb, np.abs(mwind_dimCellHold)/Medd_sol, c = 'gold', ls = '--', label = r'previous code')
+        axall.plot(tfbH, MwR/Mw_sum, c = colors_obs[0], label = label_obs[0])
+        axall.plot(tfbH, MwL/Mw_sum, c = colors_obs[1], label = label_obs[1])
+        axall.plot(tfbH, MwN/Mw_sum, c = colors_obs[2], label = label_obs[2])
+        # axall.plot(tfbH, np.abs(MwS)/Medd_sol, c = colors_obs[3], label = label_obs[3])
 
-    # axEdd.plot(tfbH_obs, np.abs(MwR_obs)/Medd_sol, c = colors_obs[0], ls = '--', label = 'Obs')
-    # axEdd.plot(tfbH_obs, np.abs(MwL_obs)/Medd_sol, c = colors_obs[1], ls = '--')
-    # axEdd.plot(tfbH_obs, np.abs(MwN_obs)/Medd_sol, c = colors_obs[2], ls = '--')
-    # axEdd.plot(tfbH_obs8, np.abs(MwR_obs8)/Medd_sol, c = colors_obs[0], ls = ':', label = 'Obs8')
-    # axEdd.plot(tfbH_obs8, np.abs(MwL_obs8)/Medd_sol, c = colors_obs[1], ls = ':')
-    # axEdd.plot(tfbH_obs8, np.abs(MwN_obs8)/Medd_sol, c = colors_obs[2], ls = ':')
-
-    axEdd.plot(tfbH_OE, np.abs(MwR_OE)/Medd_sol, c = colors_obs[0], ls = '--')
-    axEdd.plot(tfbH_OE, np.abs(MwL_OE)/Medd_sol, c = colors_obs[1], ls = '--') 
-    axEdd.plot(tfbH_OE, np.abs(MwN_OE)/Medd_sol, c = colors_obs[2], ls = '--', label = 'with OE cut')
-
-    axall.plot(tfbH, np.abs(MwR)/Mw_sum, c = colors_obs[0], label = label_obs[0])
-    axall.plot(tfbH, np.abs(MwL)/Mw_sum, c = colors_obs[1], label = label_obs[1])
-    axall.plot(tfbH, np.abs(MwN)/Mw_sum, c = colors_obs[2], label = label_obs[2])
-    # axall.plot(tfbH, np.abs(MwS)/Medd_sol, c = colors_obs[3], label = label_obs[3])
-
-    axfb.plot(tfbH[6:], np.abs(MwR/mfb)[6:], c = colors_obs[0])
-    axfb.plot(tfbH[6:], np.abs(MwL/mfb)[6:], c = colors_obs[1])
-    axfb.plot(tfbH[6:], np.abs(MwN/mfb)[6:], c = colors_obs[2])
-    # axfb.plot(tfbH, np.abs(MwS/mfb), c = colors_obs[3])
-    
-    original_ticks = axEdd.get_xticks()
-    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
-    for ax in [axEdd, axall, axfb]:
-        ax.set_yscale('log')
-        ax.set_xlabel(r'$t [t_{\rm fb}]$')
-        ax.set_xticks(new_ticks)
-        ax.set_xticklabels(labels)  
-        ax.set_xlim(0, np.max(tfbH))
-        ax.tick_params(axis='both', which='major', width=1.2, length=9)
-        ax.tick_params(axis='both', which='minor', width=1, length=5)
-        ax.legend(fontsize = 18)
-        ax.grid()
-    axEdd.set_ylim(1e1, 7e6)
-    axEdd.set_ylabel(r'$|\dot{M}_{{\rm w}}| [\dot{M}_{\rm Edd}]$')   
-    axall.set_ylim(5e-2, 1.1)
-    axall.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm w}]$')
-    axfb.set_ylim(1e-3, 2)
-    axfb.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm fb}]$')
-    plt.suptitle(rf'$\dot{{M}}_{{\rm w}}$ at {which_r_title}', fontsize = 20)
-    fig.tight_layout()
-
-    # fig, ax = plt.subplots(1,1, figsize = (8,6))
-    # ax.plot(tfbH, np.abs(mwind_dimCellH/mfallH), c = 'k')
-    # ax.set_yscale('log')
-    # ax.set_xlabel(r'$t [t_{\rm fb}]$')
-    # ax.set_ylabel(r'$|\dot{M}_{\rm w}/\dot{M}_{\rm fb}|$')
-    # original_ticks = ax.get_xticks()
-    # midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-    # new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    # ax.set_xticks(new_ticks)
-    # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
-    # ax.set_xticklabels(labels)
-    # ax.tick_params(axis='both', which='major', width=1.2, length=9)
-    # ax.tick_params(axis='both', which='minor', width=1, length=5)
-    # ax.set_ylim(1e-2, 1)
-    # ax.set_xlim(np.min(tfbH), np.max(tfbH))
-    # ax.grid()
-    # fig.tight_layout()
-
-    if which_r_title != '05amin': # plot energies
-        Lum_fsR, Lum_fsL, Lum_fsN, Lum_fsS, EkinR, EkinL, EkinN, EkinS = \
-            wind[6], wind[7], wind[8], wind[9], wind[10], wind[11], wind[12], wind[13]
-        fig, ax = plt.subplots(1, 1, figsize = (10, 7))
-        ax.plot(tfbH, np.abs(Lum_fsL)/(4*Ledd_sol), c = 'r', label = r'left')
-        ax.plot(tfbH, np.abs(EkinL)/(4*Ledd_sol), c = 'r', ls = '--', label = r'E_{\rm kin}')
-        ax.plot(tfbH, np.abs(Lum_fsR)/(4*Ledd_sol), c = 'sandybrown', label = r'right')
-        ax.plot(tfbH, np.abs(EkinR)/(4*Ledd_sol), c = 'sandybrown', ls = '--')
-        ax.plot(tfbH, np.abs(Lum_fsN)/(4*Ledd_sol), c = 'deepskyblue', label = r'N pole')
-        ax.plot(tfbH, np.abs(EkinN)/(4*Ledd_sol), c = 'deepskyblue', ls = '--')
-        original_ticks = ax.get_xticks()
+        axfb.plot(tfbH[6:], np.abs(MwR/mfb)[6:], c = colors_obs[0])
+        axfb.plot(tfbH[6:], np.abs(MwL/mfb)[6:], c = colors_obs[1])
+        axfb.plot(tfbH[6:], np.abs(MwN/mfb)[6:], c = colors_obs[2])
+        # axfb.plot(tfbH, np.abs(MwS/mfb), c = colors_obs[3])
+        
+        original_ticks = axEdd.get_xticks()
         midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
         new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
         labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
-        ax.set_yscale('log')
-        ax.set_xlabel(r'$t [t_{\rm fb}]$')
-        ax.set_xticks(new_ticks)
-        ax.set_xticklabels(labels)  
-        ax.tick_params(axis='both', which='major', width=1.2, length=9)
-        ax.tick_params(axis='both', which='minor', width=1, length=5)
-        ax.set_ylabel(r'$L [L_{\rm Edd}]$')   
-        ax.set_xlim(0, np.max(tfbH))
-        ax.set_ylim(1e-3, 5e3)
-        ax.legend(fontsize = 18)
-        ax.grid()
-        plt.suptitle(rf'r = {which_r_title}', fontsize = 20)
+        for ax in [axEdd, axall, axfb]:
+            ax.set_yscale('log')
+            ax.set_xlabel(r'$t [t_{\rm fb}]$')
+            ax.set_xticks(new_ticks)
+            ax.set_xticklabels(labels)  
+            ax.set_xlim(0, np.max(tfbH))
+            ax.tick_params(axis='both', which='major', width=1.2, length=9)
+            ax.tick_params(axis='both', which='minor', width=1, length=5)
+            ax.legend(fontsize = 18)
+            ax.grid()
+        axEdd.set_ylim(1e1, 7e6)
+        axEdd.set_ylabel(r'$|\dot{M}_{{\rm w}}| [\dot{M}_{\rm Edd}]$')   
+        axall.set_ylim(5e-2, 1.1)
+        axall.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm w}]$')
+        axfb.set_ylim(1e-3, 2)
+        axfb.set_ylabel(r'$|\dot{M}_{\rm w}| [\dot{M}_{\rm fb}]$')
+        plt.suptitle(rf'$\dot{{M}}_{{\rm w}}$ at {which_r_title}', fontsize = 20)
         fig.tight_layout()
 
+        # fig, ax = plt.subplots(1,1, figsize = (8,6))
+        # ax.plot(tfbH, np.abs(mwind_dimCellH/mfallH), c = 'k')
+        # ax.set_yscale('log')
+        # ax.set_xlabel(r'$t [t_{\rm fb}]$')
+        # ax.set_ylabel(r'$|\dot{M}_{\rm w}/\dot{M}_{\rm fb}|$')
+        # original_ticks = ax.get_xticks()
+        # midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+        # new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+        # ax.set_xticks(new_ticks)
+        # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
+        # ax.set_xticklabels(labels)
+        # ax.tick_params(axis='both', which='major', width=1.2, length=9)
+        # ax.tick_params(axis='both', which='minor', width=1, length=5)
+        # ax.set_ylim(1e-2, 1)
+        # ax.set_xlim(np.min(tfbH), np.max(tfbH))
+        # ax.grid()
+        # fig.tight_layout()
+
+        if which_r_title not in ['05amin', 'amin']: # plot energies
+            Lum_fsR, Lum_fsL, Lum_fsN, Lum_fsS, EkinR, EkinL, EkinN, EkinS = \
+                wind[6], wind[7], wind[8], wind[9], wind[10], wind[11], wind[12], wind[13]
+            fig, ax = plt.subplots(1, 1, figsize = (10, 7))
+            ax.plot(tfbH, np.abs(Lum_fsL)/(4*Ledd_sol), c = 'r', label = r'left')
+            ax.plot(tfbH, np.abs(EkinL)/(4*Ledd_sol), c = 'r', ls = '--', label = r'E_{\rm kin}')
+            ax.plot(tfbH, np.abs(Lum_fsR)/(4*Ledd_sol), c = 'sandybrown', label = r'right')
+            ax.plot(tfbH, np.abs(EkinR)/(4*Ledd_sol), c = 'sandybrown', ls = '--')
+            ax.plot(tfbH, np.abs(Lum_fsN)/(4*Ledd_sol), c = 'deepskyblue', label = r'N pole')
+            ax.plot(tfbH, np.abs(EkinN)/(4*Ledd_sol), c = 'deepskyblue', ls = '--')
+            original_ticks = ax.get_xticks()
+            midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+            new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+            labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
+            ax.set_yscale('log')
+            ax.set_xlabel(r'$t [t_{\rm fb}]$')
+            ax.set_xticks(new_ticks)
+            ax.set_xticklabels(labels)  
+            ax.tick_params(axis='both', which='major', width=1.2, length=9)
+            ax.tick_params(axis='both', which='minor', width=1, length=5)
+            ax.set_ylabel(r'$L [L_{\rm Edd}]$')   
+            ax.set_xlim(0, np.max(tfbH))
+            ax.set_ylim(1e-3, 5e3)
+            ax.legend(fontsize = 18)
+            ax.grid()
+            plt.suptitle(rf'r = {which_r_title}', fontsize = 20)
+            fig.tight_layout()
 
 
-# %%
+
+    # %%

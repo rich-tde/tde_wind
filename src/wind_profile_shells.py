@@ -233,11 +233,11 @@ for i, snap in enumerate(snaps):
 
     if compute:
         all_outflows = radial_profiles(path, snap, which_part, [Rt, rph, 100])
-        out_path = f"{abspath}/data/{folder}/wind/den_prof{snap}Shell{which_part}_{suffix_saveing}.npy"
+        out_path = f"{abspath}/data/{folder}/paper1/wind/den_prof{snap}Shell{which_part}_{suffix_saveing}.npy"
         np.save(out_path, all_outflows, allow_pickle=True)
 
     if plot:
-        profiles = np.load(f'{abspath}/data/{folder}/wind/den_prof{snap}Shell{which_part}_{suffix_saveing}.npy', allow_pickle=True).item()
+        profiles = np.load(f'{abspath}/data/{folder}/paper1/wind/den_prof{snap}Shell{which_part}_{suffix_saveing}.npy', allow_pickle=True).item()
         tfb = np.loadtxt(f'{path}/tfb_{snap}.txt') 
 
         # v_rad_tr = profiles['v_rad_mean'][np.argmin(np.abs(r_plot-r_tr))]
@@ -326,7 +326,7 @@ if plot:
     axV.set_ylabel(r'v$_{\rm r}$ [km/s]', fontsize = 28)
     axT.set_ylim(1e4, 1e6)
     axT.set_ylabel(r'$T_{\rm rad}$ [K]', fontsize = 28)
-    axL.set_ylabel(r'$L [L_{\rm Edd}]$', fontsize = 28)
+    axL.set_ylabel(r'$L_{\rm adv} [L_{\rm Edd}]$', fontsize = 28)
     axL.set_ylim(1, 5e2)
     fig.tight_layout()
     fig.savefig(f'{abspath}/Figs/paper/den_profShell{which_part}_{suffix_saveing}.pdf', bbox_inches = 'tight')

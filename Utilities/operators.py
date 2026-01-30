@@ -84,15 +84,21 @@ def draw_line(x_arr, alpha):
     return y_arr
 
 def to_spherical_coordinate(x, y, z):
-    """ Transform the components of a vector from cartesian to spherical coordinates with long in [0, 2pi] and lat in [0, pi]."""
+    """ Transform the components of a vector from cartesian to spherical coordinates 
+    with lat in [0, pi] with North pole at 0, orbital plane at pi/2
+    and  long in [0, 2pi] with direction of positive x at 0 and y at pi/2 (as usual)"""
     # Accept both scalars and arrays
     x = np.asarray(x)
     y = np.asarray(y)
     z = np.asarray(z)
     r = np.sqrt(x**2 + y**2 + z**2)
-    lat = np.arccos(z/r) # in [0, pi]
-    long = np.arctan2(y, x) # in [-pi, pi]. 
-    long = np.where(long < 0, long + 2*np.pi, long)
+    if np.logical_and(x==0, np.logical_and(y==0, z==0)).any():
+        lat = np.pi/2
+        long = 0
+    else:
+        lat = np.arccos(z/r) # in [0, pi]
+        long = np.arctan2(y, x) # in [-pi, pi]. 
+        long = np.where(long < 0, long + 2*np.pi, long)
     return r, lat, long
 
 def to_spherical_components(vec_x, vec_y, vec_z, x, y, z):
@@ -101,10 +107,15 @@ def to_spherical_components(vec_x, vec_y, vec_z, x, y, z):
     # Accept both scalars and arrays
     lat_arr = np.asarray(lat)
     long_arr = np.asarray(long)
- 
-    vec_r = np.sin(lat_arr) * (vec_x * np.cos(long_arr) + vec_y * np.sin(long_arr)) + vec_z * np.cos(lat_arr)
-    vec_theta = np.cos(lat_arr) * (vec_x * np.cos(long_arr) + vec_y * np.sin(long_arr)) - vec_z * np.sin(lat_arr)
-    vec_phi = - vec_x * np.sin(long_arr) + vec_y * np.cos(long_arr)
+    if np.logical_and(x==0, np.logical_and(y==0, z==0)).any():
+        vec_r = np.sqrt(vec_x**2 + vec_y**2 + vec_z**2)
+        vec_theta = 0
+        vec_phi = 0
+
+    else:
+        vec_r = np.sin(lat_arr) * (vec_x * np.cos(long_arr) + vec_y * np.sin(long_arr)) + vec_z * np.cos(lat_arr)
+        vec_theta = np.cos(lat_arr) * (vec_x * np.cos(long_arr) + vec_y * np.sin(long_arr)) - vec_z * np.sin(lat_arr)
+        vec_phi = - vec_x * np.sin(long_arr) + vec_y * np.cos(long_arr)
     return vec_r, vec_theta, vec_phi
 
 def J_cart_in_sphere(lat, long):
@@ -898,17 +909,30 @@ if __name__ == '__main__':
     n = 1.5
     check = 'HiResNewAMR'
     compton = 'Compton'
-    snap = 0
-    print('Computing curl for snapshot', snap, flush=True)
+    snap = 109
 
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-    data = make_tree(path, snap, energy = True)
-    cut = data.Den > 1e-19
-    X, Y, Z, vol, vx, vy, vz= \
-        make_slices([data.X, data.Y, data.Z, data.Vol, data.VX, data.VY, data.VZ], cut)
-    curl = compute_curl(X, Y, Z, vol, vx, vy, vz)
-    np.save(f'{path}/curl_{snap}.npy', curl)
+    # data = make_tree(path, snap, energy = True)
+    # cut = data.Den > 1e-19
+    # X, Y, Z, vol, vx, vy, vz= \
+    #     make_slices([data.X, data.Y, data.Z, data.Vol, data.VX, data.VY, data.VZ], cut)
+    
+    # check radial velocity
+    XYZ = [[1, 0, 1]]
+    X, Y, Z = np.array(XYZ).T
+    r, lat, lon = to_spherical_coordinate(X, Y, Z) 
+    print('Position in spherical coord:', r, lat, lon)
+    V_XYZ = [[0, 0, -1]] 
+    vx, vy, vz = np.array(V_XYZ).T
+    v_rad, _, _ = to_spherical_components(vx, vy, vz, X, Y, Z)
+    print(v_rad)
+    plt.figure()
+    plt.scatter(X, Y)
+    plt.quiver(X, Y, vx, vy, color='k', angles='xy', scale_units='xy', scale=1)
+    plt.xlim(-5, 5)
+    plt.ylim(-5, 5)
+    plt.show()
 
 
     
