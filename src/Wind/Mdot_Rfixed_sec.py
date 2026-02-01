@@ -9,7 +9,7 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = False
+    compute = True
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -40,7 +40,7 @@ with_who = ''  # '' or 'Obs'
 n_obs = '' #'_npix8' or ''
 choice = 'in_out_z' #'arch'x, 'quadrants', 'ax is', 'dark_bright_z', 'all' or 'in_out_z'
 wind_cond = '' # '' for bernouilli coeff or 'OE' for orbital energy
-how = 'mean' # '' for the normalized sum or 'mean' for mean of Mw of each cells
+how = '' # '' for the normalized sum or 'mean' for mean of Mw of each cells
 
 if with_who == '':
     n_obs = ''  # to avoid confusion
@@ -193,15 +193,8 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             #     plt.suptitle(f'Selected Healpix observers at snap {snap}', fontsize = 18)
             plt.tight_layout()
 
-        if choice == 'all':
-            C_mult = 4
-            print('C:', C_mult, flush=True)
-        elif choice == 'dark_bright_z' or choice == 'in_out_z':
-            C_mult = 1 # 4 sections of the same area
-            print('C:', C_mult, flush=True)
-        else:
-            print('You need to set the correct C_mult for your sections choice', flush=True)
-
+        C_mult = 4/len(indices_sec) # to have the right normalization in all cases
+        print('C:', C_mult, flush=True)
         for j, indices in enumerate(indices_sec):
             # select the particles in the chosen section and at the chosen radius
             if how == '':  
@@ -307,7 +300,6 @@ if __name__ == '__main__':
 
     if plot:
         which_r_title = '05amin'
-        choice = 'dark_bright_z' # 'dark_bright_z', 'all' or 'in_out_z'
         fig, (axEdd, axall, axfb) = plt.subplots(1, 3, figsize = (24, 7))
 
         fallback = \
@@ -374,9 +366,9 @@ if __name__ == '__main__':
         axEdd.plot(tfbH, (MwL/Medd_sol), c = colors_obs[1], label = label_obs[1])
         axEdd.plot(tfbH, (MwN/Medd_sol), c = colors_obs[2], label = label_obs[2])
         # axEdd.plot(tfbH, MwS/Medd_sol, c = colors_obs[3], label = label_obs[3])
-        # axEdd.plot(tfbH_full, Mw_sum/Medd_sol, c = 'darkviolet', label = 'sum')
+        # axEdd.plot(tfbH, Mw_sum/Medd_sol, c = 'darkviolet', label = 'sum')
         # axEdd.plot(tfbH_full, Mw_full/Medd_sol, c = 'orchid', label = 'all')
-        # axEdd.plot(tfbfb, mwind_dimCellOld/Medd_sol, c = 'gold', ls = '--', label = r'previous code')
+        # axEdd.plot(tfbfb, mwind_dimCellOld/Medd_sol, c = 'gold', ls = '--', label = r'paper1')
 
         # axEdd.plot(tfbH_mean, np.abs(MwR_mean)/Medd_sol, c = colors_obs[0], ls = '--')
         # axEdd.plot(tfbH_mean, np.abs(MwL_mean)/Medd_sol, c = colors_obs[1], ls = '--') 
@@ -388,9 +380,10 @@ if __name__ == '__main__':
         # axEdd.plot(tfbH_obs8, np.abs(MwR_obs8)/Medd_sol, c = colors_obs[0], ls = ':', label = 'Obs8')
         # axEdd.plot(tfbH_obs8, np.abs(MwL_obs8)/Medd_sol, c = colors_obs[1], ls = ':')
         # axEdd.plot(tfbH_obs8, np.abs(MwN_obs8)/Medd_sol, c = colors_obs[2], ls = ':')
-        # axEdd.plot(tfbH_OE, np.abs(MwR_OE)/Medd_sol, c = colors_obs[0], ls = '--')
-        # axEdd.plot(tfbH_OE, np.abs(MwL_OE)/Medd_sol, c = colors_obs[1], ls = '--') 
-        # axEdd.plot(tfbH_OE, np.abs(MwN_OE)/Medd_sol, c = colors_obs[2], ls = '--', label = 'with OE cut')
+        
+        axEdd.plot(tfbH_OE, np.abs(MwR_OE)/Medd_sol, c = colors_obs[0], ls = '--')
+        axEdd.plot(tfbH_OE, np.abs(MwL_OE)/Medd_sol, c = colors_obs[1], ls = '--') 
+        axEdd.plot(tfbH_OE, np.abs(MwN_OE)/Medd_sol, c = colors_obs[2], ls = '--', label = 'with OE cut')
 
         axall.plot(tfbH, MwR/Mw_sum, c = colors_obs[0], label = label_obs[0])
         axall.plot(tfbH, MwL/Mw_sum, c = colors_obs[1], label = label_obs[1])

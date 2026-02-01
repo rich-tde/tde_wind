@@ -11,7 +11,7 @@ else:
     import k3match
     abspath = '/Users/paolamartire/shocks'
     save = False
-    compute = False
+    compute = True
 
 #%%
 import gc
@@ -38,7 +38,6 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-which_part = 'outflow' # 'outflow' or ''
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 pre_saving = f'{abspath}/data/{folder}'
@@ -62,9 +61,10 @@ Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
 _, _, scatter2 = opacity_linear(T_cool, Rho_cool, scattering, slope_length = 7, highT_slope = 0)
-T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, scatter = scatter2, slope_length = 7, highT_slope = 0)
+T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, which_opacity = 'rossland', scatter = scatter2)
 
-def r_trapp(loadpath, snap, which_part = 'outflow'):
+def r_trapp(loadpath, snap, ray_params):
+    rmin, Nray = ray_params
     observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) #shape: (3, 192)
     observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 
@@ -74,22 +74,19 @@ def r_trapp(loadpath, snap, which_part = 'outflow'):
         data.X, data.Y, data.Z, data.Temp, data.Den, data.Vol, data.VX, data.VY, data.VZ, data.Press, data.IE, data.Rad
     v_rad, _, _ = to_spherical_components(VX, VY, VZ, X, Y, Z)
     vel = np.sqrt(VX**2 + VY**2 + VZ**2)
-    if which_part == 'outflow':
-        R = np.sqrt(X**2 + Y**2 + Z**2)
-        mass = Den * Vol
-        bern = orb.bern_coeff(R, vel, Den, mass, Press, IE_den, Rad_den, params)
-        mask = np.logical_and(Den > 1e-19, np.logical_and(bern > 0, v_rad >= 0)) 
-    elif which_part == '': 
-        mask = Den > 1e-19
+    R = np.sqrt(X**2 + Y**2 + Z**2)
+    mass = Den * Vol
+    bern = orb.bern_coeff(R, vel, Den, mass, Press, IE_den, Rad_den, params)
+    mask = np.logical_and(Den > 1e-19, np.logical_and(bern > 0, v_rad >= 0)) 
+
     X, Y, Z, T, Den, Vol, vel, v_rad, Press, IE_den, Rad_den = \
         make_slices([X, Y, Z, T, Den, Vol, vel, v_rad, Press, IE_den, Rad_den], mask)
     xyz = np.array([X, Y, Z]).T
-    tree = KDTree(xyz, leaf_size=50)
-    N_ray = 5000
+    tree = KDTree(xyz, leaf_size = 50)
 
-    xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, _, _, _, _ = \
-        np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
-    denph/= prel.den_converter #it was saved in cgs
+    data_ph = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
+    # denph/= prel.den_converter #it was saved in cgs
+    xph, yph, zph = data_ph[0], data_ph[1], data_ph[2]
     rph = np.sqrt(xph**2 + yph**2 + zph**2)
 
     x_tr = np.zeros(len(observers_xyz))
@@ -103,15 +100,11 @@ def r_trapp(loadpath, snap, which_part = 'outflow'):
     P_tr = np.zeros(len(observers_xyz))
     IEden_tr = np.zeros(len(observers_xyz))
     Rad_den_tr = np.zeros(len(observers_xyz))
-    M_dot_tr = np.zeros(len(observers_xyz))
 
-    count_i = 0
+    # count_i = 0
     for i in range(len(observers_xyz)):
-        if not alice:
-            if i not in test_idx:
+        if i not in test_idx:
                 continue
-            else:
-                print(i, flush=True)
         mu_x = observers_xyz[i][0]
         mu_y = observers_xyz[i][1]
         mu_z = observers_xyz[i][2]
@@ -129,7 +122,7 @@ def r_trapp(loadpath, snap, which_part = 'outflow'):
             rmax = min(rmax, box[2] / mu_z)
         else:
             rmax = min(rmax, box[5] / mu_z)
-        r = np.logspace(np.log10(Rt), np.log10(rmax), N_ray)
+        r = np.logspace(np.log10(rmin), np.log10(rmax), Nray)
         x = r*mu_x
         y = r*mu_y
         z = r*mu_z
@@ -143,14 +136,14 @@ def r_trapp(loadpath, snap, which_part = 'outflow'):
 
         # pick them just if near enough and iterate
         # check_dist = np.abs(r_sim - radii2) < Vol[idx]**(1/3)
-        r_sim = np.sqrt(X[idx]**2 + Y[idx]**2 + Z[idx]**2)
-        check_dist = np.logical_and(dist <= Vol[idx]**(1/3), r_sim >= Rt)
+        # r_sim = np.sqrt(X[idx]**2 + Y[idx]**2 + Z[idx]**2)
+        check_dist = dist <= Vol[idx]**(1/3) #np.logical_and(dist <= Vol[idx]**(1/3), r_sim >= Rt)
         idx = idx[check_dist]
         ray_r = r[check_dist] 
 
         if len(idx) <= 1:
-            print(f'No points found for observer {i}', flush=True)
-            count_i += 1
+            print(f'No wind cells for observers {i}', flush=True)
+            # count_i += 1
             continue
  
         ray_x = X[idx]
@@ -169,28 +162,26 @@ def r_trapp(loadpath, snap, which_part = 'outflow'):
         idx = np.array(idx)
 
         # check which points your are taking
-        if plot:
-            plt.figure()
-            x_plot = xyz2[:,0]
-            y_plot = xyz2[:,1]
-            z_plot = xyz2[:,2]
-            if label_obs[count_i] in ['z', '-z']:
-                plt.plot(x_plot[check_dist]/apo, z_plot[check_dist]/apo, c = 'k', label = 'wanted')
-                img = plt.scatter(ray_x/apo, ray_z/apo, c = np.abs(y_plot[check_dist]/ray_y), s = 8, cmap = 'rainbow', norm = colors.LogNorm(vmin = 5e-1, vmax = 5), label = 'sim')
-                plt.colorbar(img, label = r'$|y_{\rm wanted}/y_{\rm sim}|$')
-                plt.xlabel(r'$x/R_{\rm a}$')
-                plt.ylabel(r'$z/R_{\rm a}$')
-            else:
-                plt.plot(x_plot[check_dist]/apo, y_plot[check_dist]/apo, c = 'k', label = 'wanted')
-                img = plt.scatter(ray_x/apo, ray_y/apo, c = np.abs(z_plot[check_dist]/ray_z), s = 8, cmap = 'rainbow', norm = colors.LogNorm(vmin = 5e-1, vmax = 5), label = 'sim')
-                plt.colorbar(img, label = r'$|z_{\rm wanted}/z_{\rm sim}|$')
-                plt.xlabel(r'$x/R_{\rm a}$')
-                plt.ylabel(r'$y/R_{\rm a}$')
+        # if plot:
+        #     plt.figure()
+        #     x_plot = xyz2[:,0]
+        #     y_plot = xyz2[:,1]
+        #     z_plot = xyz2[:,2]
+        #     if i in test_idx:
+        #         plt.plot(x_plot[check_dist]/apo, z_plot[check_dist]/apo, c = 'k', label = 'wanted')
+        #         img = plt.scatter(ray_x/apo, ray_z/apo, c = np.abs(y_plot[check_dist]/ray_y), s = 8, cmap = 'rainbow', norm = colors.LogNorm(vmin = 5e-1, vmax = 5), label = 'sim')
+        #         plt.colorbar(img, label = r'$|y_{\rm wanted}/y_{\rm sim}|$')
+        #         plt.xlabel(r'$x/R_{\rm a}$')
+        #         plt.ylabel(r'$z/R_{\rm a}$')
+                # plt.plot(x_plot[check_dist]/apo, y_plot[check_dist]/apo, c = 'k', label = 'wanted')
+                # img = plt.scatter(ray_x/apo, ray_y/apo, c = np.abs(z_plot[check_dist]/ray_z), s = 8, cmap = 'rainbow', norm = colors.LogNorm(vmin = 5e-1, vmax = 5), label = 'sim')
+                # plt.colorbar(img, label = r'$|z_{\rm wanted}/z_{\rm sim}|$')
+                # plt.xlabel(r'$x/R_{\rm a}$')
+                # plt.ylabel(r'$y/R_{\rm a}$')
             # plt.xlim(-8, 8)
             # plt.ylim(-8, 8)
-            plt.legend(fontsize = 16)
-            plt.title(label_obs[count_i], fontsize = 16)
-            plt.tight_layout()
+            # plt.legend(fontsize = 16)
+            # plt.tight_layout()
 
         # Interpolate ----------------------------------------------------------
         alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(ray_t), np.log(ray_d), 'linear', 0)
@@ -217,32 +208,36 @@ def r_trapp(loadpath, snap, which_part = 'outflow'):
             tdiff_single = tau * ray_r * prel.Rsol_cgs / prel.c_cgs # cgs
 
             fig, ax1 = plt.subplots(1,1,figsize = (8,6))
-            ax1.plot(ray_r/apo, tdyn_single/tfallback_cgs, c = 'k', label = r'$t_{\rm dyn}=R/v_R$')
+            ax1.plot(ray_r/Rt, tdyn_single/tfallback_cgs, c = 'k', label = r'$t_{\rm dyn}=r/v_r$')
             # add a twin y axis to show ray_vr 
             # ax2 = ax1.twinx()
-            # ax2.plot(ray_r/apo, ray_vr, c = 'r')
+            # ax2.plot(ray_r/Rt, ray_vr, c = 'r')
             # ax2.set_ylabel(r'$v_R$ [cm/s]', fontsize = 20, c = 'r')
             # ax2.tick_params(axis='y', labelcolor='r')
             # ax2.set_yscale('log')                
-            img = ax1.scatter(ray_r/apo, tdiff_single/tfallback_cgs, c = tau, cmap = 'turbo', s = 10, norm = colors.LogNorm(5e-1, 1e2)) #np.percentile(tau, 5), np.percentile(tau, 95)))
+            img = ax1.scatter(ray_r/Rt, tdiff_single/tfallback_cgs, c = tau, cmap = 'turbo', s = 10, label = r'$t_{\rm diff}=\tau r/c$' , norm = colors.LogNorm(5e-1, 1e2)) #np.percentile(tau, 5), np.percentile(tau, 95)))
             cbar = plt.colorbar(img)#, orientation = 'horizontal')
             cbar.set_label(r'$\tau$', fontsize = 20)
-            ax1.axvline(Rt/apo, c = 'k', linestyle = '-.', label = r'$R_{\rm t}$')
-            ax1.set_xlabel(r'$R [R_{\rm a}]$')
+            cbar.ax.tick_params(which = 'major', length=6, width=1)
+            cbar.ax.tick_params(which = 'minor', length=4, width=0.8)
+            ax1.axvline(Rt/Rt, c = 'k', linestyle = '-.', label = r'$r_{\rm t}$')
+            ax1.set_xlabel(r'$r [r_{\rm t}]$')
             ax1.set_ylabel(r'$t [t_{\rm fb}]$')
             ax1.loglog()    
-            ax1.set_xlim(R0/apo, 1.2*rph[i]/apo)
+            ax1.set_xlim(R0/Rt, 1.2*rph[i]/Rt)
+            # ax1.set_xlim(1e-5, 8)
             # ax1.set_ylim(1e-5, 8)
             ax1.tick_params(axis='both', which='major', length=8, width=1.2)
             ax1.tick_params(axis='both', which='minor', length=5, width=1)
             ax1.legend(fontsize = 14)
-            plt.suptitle(f'Snap {snap}, observer {label_obs[count_i]} (number {i})', fontsize = 16)
+            # plt.suptitle(f'Snap {snap}, observer {label_obs[count_i]} (number {i})', fontsize = 16)
+            plt.suptitle(f'Snap {snap}, observer {i}', fontsize = 16)
             plt.tight_layout()
         
         # select the inner part, where tau big --> c/tau < v (i.e. tdyn<tdiff)
         Rtr_idx_all = np.where(c_tau/np.abs(ray_vr)<=1)[0]
         if len(Rtr_idx_all) == 0:
-            count_i += 1
+            # count_i += 1
             print(f'For obs {i}, tdiff < tdyn always, no Rtr', flush=True)
             continue
         else: # take the one most outside 
@@ -250,14 +245,14 @@ def r_trapp(loadpath, snap, which_part = 'outflow'):
 
         # check you don't have a huge gap, otherwise it's just numerics: you don't really have 2 regimes
         if ray_vol[Rtr_idx+1]/ray_vol[Rtr_idx] > 1e3:
-            count_i += 1
+            # count_i += 1
             print(f'For obs {i}, huge gap, so I skip, vol ratio: {int(ray_vol[Rtr_idx+1]/ray_vol[Rtr_idx])}', flush=True)
             continue
 
         if ray_r[Rtr_idx]/rph[i] >= 1:
             print(f'For obs {i}, Rtr is outside Rph, so I skip', flush=True)
-            count_i += 1
-            continue
+            # count_i += 1
+            # continue
             # v_rad_ph, _, _ = to_spherical_components(Vxph[i], Vyph[i], Vzph[i], xph[i], yph[i], zph[i])
             # V_ph = np.sqrt(Vxph[i]**2 + Vyph[i]**2 + Vzph[i]**2)
             # mass_ph = denph[i] * volph[i] 
@@ -267,14 +262,14 @@ def r_trapp(loadpath, snap, which_part = 'outflow'):
             #     x_tr[i], y_tr[i], z_tr[i], vol_tr[i], den_tr[i], Temp_tr[i], Vr_tr[i], V_tr[i], P_tr[i], IEden_tr[i], Rad_den_tr[i] = \
             #         xph[i], yph[i], zph[i], volph[i], denph[i], Tempph[i], v_rad_ph, V_ph, Pressph[i], IE_denph[i], Rad_denph[i]
             #     if plot:
-            #         ax1.axvline(rph[i]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
+            #         ax1.axvline(rph[i]/Rt, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
             #         ax1.legend(fontsize = 14)
-            #         plt.savefig(f'{abspath}/Figs/next_meeting/tdiff_{which_part}{snap}{label_obs[count_i]}.png')
+            #         plt.savefig(f'{abspath}/Figs/next_meeting/tdiff_{snap}{label_obs[count_i]}.png')
             # else:
             #     print(f'For obs {i}, Rtr is outside Rph and Rph is not outflowing. I skip.')
             #     if plot:
             #         ax1.legend(fontsize = 14)
-            #         plt.savefig(f'{abspath}/Figs/next_meeting/tdiff_{which_part}{snap}{label_obs[count_i]}.png')
+            #         plt.savefig(f'{abspath}/Figs/next_meeting/tdiff_{snap}{label_obs[count_i]}.png')
         x_tr[i] = ray_x[Rtr_idx]
         y_tr[i] = ray_y[Rtr_idx]
         z_tr[i] = ray_z[Rtr_idx]
@@ -288,13 +283,13 @@ def r_trapp(loadpath, snap, which_part = 'outflow'):
         Rad_den_tr[i] = ray_radDen[Rtr_idx]
         # M_dot_tr[i] = 4 * np.pi * ray_r[Rtr_idx]**2 * np.abs(Vr_tr[i]) * prel.Rsol_cgs**3/prel.tsol_cgs * den_tr[i] # den is already in cgs
         if plot:
-            print(label_obs[count_i], ray_r[Rtr_idx]/rph[i])
-            ax1.axvline(ray_r[Rtr_idx]/apo, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
-            ax1.axvline(rph[i]/apo, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
+            ax1.axvline(ray_r[Rtr_idx]/Rt, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
+            ax1.axvline(rph[i]/Rt, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
             ax1.legend(fontsize = 14)
-            plt.savefig(f'{abspath}/Figs/next_meeting/{check}/tdiff_{which_part}{snap}{label_obs[count_i]}.png')
+            # plt.savefig(f'{abspath}/Figs/next_meeting/{check}/tdiff_{snap}{label_obs[count_i]}.png')
         
-        count_i += 1
+        # count_i += 1
+        del ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, alpha_rossland_eval, tau, ray_P, ray_ieDen, ray_radDen, idx
  
     r_trapp = {
         'x_tr': x_tr,
@@ -309,7 +304,7 @@ def r_trapp(loadpath, snap, which_part = 'outflow'):
         'IE_den_tr': IEden_tr,
         'Rad_den_tr': Rad_den_tr,
     }
-    del X, Y, Z, T, Den, Vol, vel, v_rad, Press, IE_den, Rad_den, ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, ray_P, ray_ieDen, ray_radDen
+    del X, Y, Z, T, Den, Vol, vel, v_rad, Press, IE_den, Rad_den
     gc.collect()
 
     return r_trapp
@@ -318,32 +313,30 @@ def r_trapp(loadpath, snap, which_part = 'outflow'):
 # MAIN
 ## 
 #%% matlab
-if compute:
+if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True)
 else:
-    snaps = [109, 151]
+    snaps = [109]
 
-for snap in snaps:
+for snap in snaps: 
     if compute:
         eng = matlab.engine.start_matlab()
         if alice:
             loadpath = f'{pre}/snap_{snap}'
             print(snap, flush=True)
         else: 
-            if snap != 318:
-                continue
             loadpath = f'{pre}/{snap}'
             observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
-            indices_sorted, label_obs, colors_obs, _ = choose_observers(observers_xyz, 'hemispheres')
-            test_idx = indices_sorted[:,1]
+            indices_sorted, label_obs, colors_obs, _ = choose_observers(observers_xyz, 'in_out_z')
+            test_idx = indices_sorted[2]
             # take just the first one for each direction
-            label_obs = np.array(label_obs)
-            colors_obs = np.array(colors_obs)
-            test_idx = np.array(test_idx)
-            label_obs, colors_obs, test_idx = sort_list([label_obs, colors_obs, test_idx], test_idx)
-        r_tr = r_trapp(loadpath, snap)
+            # label_obs = np.array(label_obs)
+            # colors_obs = np.array(colors_obs)
+            # test_idx = np.array(test_idx)
+            # label_obs, colors_obs, test_idx = sort_list([label_obs, colors_obs, test_idx], test_idx)
+            r_tr = r_trapp(loadpath, snap, [Rt, 5000])
 
-        if save:
+        if alice:
             np.savez(f"{pre_saving}/trap/{check}_Rtr{snap}.npz", **r_tr)
         eng.exit()
 

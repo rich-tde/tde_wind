@@ -283,7 +283,6 @@ for i, idx_list in enumerate(indices_sorted):
     # rph_means[i] = np.mean(rph[idx_list])
     # r_tr_means[i] = np.mean(r_tr[idx_list])
 
-    
     nonzero = r_tr[idx_list] != 0
     if nonzero.any():
         print(f'{label_obs[i]}: no Rtr in {np.sum(~nonzero)/len(r_tr[idx_list])*100:.2f}%')

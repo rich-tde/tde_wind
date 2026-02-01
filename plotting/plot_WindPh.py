@@ -19,7 +19,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-which_obs = 'dark_bright_z' #'dark_bright_z' #'arch', 'quadrants', 'ax is'
+which_obs = 'in_out_z' #'dark_bright_z' #'arch', 'quadrants', 'ax is'
 check = 'HiResNewAMR' 
 
 params = [Mbh, Rstar, mstar, beta]
@@ -65,8 +65,12 @@ x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
 Lum_ph_allSum = np.zeros(len(snaps))
 ratio_Rtr = np.zeros((len(indices_axis), len(snaps)))
 r_tr_sec = np.zeros((len(indices_axis), len(snaps)))
+r_tr_perc16sec = np.zeros((len(indices_axis), len(snaps)))
+r_tr_perc84sec = np.zeros((len(indices_axis), len(snaps)))
 r_trnonzero_sec = np.zeros((len(indices_axis), len(snaps)))
 r_ph_sec = np.zeros((len(indices_axis), len(snaps)))
+r_ph_perc16sec = np.zeros((len(indices_axis), len(snaps)))
+r_ph_perc84sec = np.zeros((len(indices_axis), len(snaps)))
 r_phnonzero_sec = np.zeros((len(indices_axis), len(snaps)))
 Mdot_sec = np.zeros((len(indices_axis), len(snaps)))
 Vr_tr_sec = np.zeros((len(indices_axis), len(snaps)))  
@@ -128,7 +132,7 @@ for s, snap in enumerate(snaps):
                                 # cbar.set_label(r'$L_{\rm ph}$ [L$_{\rm Edd}$]')
                 # Rtr > 1.5*Rt to avoid spurious point at the beginning
                 
-                exist_rtr = np.logical_and(r_tr[observer] > 1.5*Rt, x_tr[observer]*x[observer]>0) # second condition to have only the observers in the wanted region
+                exist_rtr = np.logical_and(r_tr[observer] > 1.5*Rt, y_tr[observer]*y[observer]>0) # second condition to have only the observers in the wanted region
                 obs_tr = observer[exist_rtr]
                 ratio_Rtr[i][s] = len(r_tr[obs_tr]) / len(r_tr[observer])
                 # photo_wind = np.logical_and(bern_ph[observer]>0, Vr_ph[observer]>0)
@@ -136,8 +140,10 @@ for s, snap in enumerate(snaps):
                 Vr_ph_sec[i][s] = np.sum(Vr_ph[observer] * mass_ph[observer]) / np.sum(mass_ph[observer])
                 den_ph_sec[i][s] = np.sum(den_ph[observer] * mass_ph[observer]) / np.sum(mass_ph[observer])
                 Temp_ph_sec[i][s] = np.sum(Temprad_ph[observer] * vol_ph[observer]) / np.sum(vol_ph[observer])              
-                r_ph_sec[i][s] = np.mean(r_ph[observer])  
-                r_phnonzero_sec[i][s] = np.mean(r_ph[obs_tr])
+                r_ph_sec[i][s] = np.median(r_ph[observer])  
+                r_ph_perc16sec[i][s] = np.percentile(r_ph[observer], 16)
+                r_ph_perc84sec[i][s] = np.percentile(r_ph[observer], 84)
+                r_phnonzero_sec[i][s] = np.median(r_ph[obs_tr])
                 Lum_allph_secSum[i][s] = np.sum(Lum_ph[observer]) # CGS
                 Lum_allph_secmean[i][s] = np.mean(Lum_ph[observer]) # CGS
                 Lum_windph_secSum[i][s] = np.sum(Lum_ph[obs_tr]) # CGS
@@ -147,15 +153,18 @@ for s, snap in enumerate(snaps):
                 Temp_tr_sec[i][s] = np.sum(Temprad_tr[observer] * vol_tr[observer]) / np.sum(vol_tr[observer])                 
                 Lum_adv_tr_sec[i][s] = np.sum(Lum_adv_tr[obs_tr]) * prel.en_converter/prel.tsol_cgs
 
-                r_tr_sec[i][s] = np.mean(r_tr[observer])  
-                r_trnonzero_sec[i][s] = np.mean(r_tr[obs_tr]) 
+                r_tr_sec[i][s] = np.median(r_tr[observer])  
+                r_tr_perc16sec[i][s] = np.percentile(r_tr[observer], 16)
+                r_tr_perc84sec[i][s] = np.percentile(r_tr[observer], 84)
+                r_trnonzero_sec[i][s] = np.median(r_tr[obs_tr]) 
                 Temp_tr_sec[i][s] = np.sum(Temprad_tr[obs_tr] * vol_tr[obs_tr]) / np.sum(vol_tr[obs_tr])
                 Mdot_sec[i][s] = (np.mean(r_tr[obs_tr]))**2 /np.sum(dim_tr[obs_tr]**2) * np.sum(Mdot_tr[obs_tr])
 # 
 
 # ax[0].set_ylabel(r'z [r$_{\rm t}$]')
 # Plot
-figTr, ((axTr, axTrnonzero), (axNtr, axratio)) = plt.subplots(2, 2, figsize=(18, 15))
+figTr, axTr = plt.subplots(1, 1, figsize=(10, 8))
+figratios, (axTrnonzero, axNtr, axratio) = plt.subplots(1, 3, figsize=(24, 6))
 fig, (axVph, axdph, axTph) = plt.subplots(1, 3, figsize=(27, 6))
 figL, (axL, axLmean) = plt.subplots(1, 2, figsize=(18, 6))
 figM, (axMdotobs, axLtrph) = plt.subplots(1, 2, figsize=(18, 6))
@@ -163,11 +172,13 @@ figM, (axMdotobs, axLtrph) = plt.subplots(1, 2, figsize=(18, 6))
 for i, observer in enumerate(indices_axis):
         if i ==3:
                continue
-        axTr.plot(tfbs, r_tr_sec[i]/Rt, c = colors_axis[i], ls = ':', label = r'$r_{\rm tr}$' if i == 1 else '')
-        axTr.plot(tfbs, r_ph_sec[i]/Rt, c = colors_axis[i], label = r'$r_{\rm ph}$' if i == 1 else '')
+        axTr.plot(tfbs, r_tr_sec[i]/Rt, c = colors_axis[i], ls = ':')
+        # axTr.fill_between(tfbs, r_tr_perc16sec[i]/Rt, r_tr_perc84sec[i]/Rt, color=colors_axis[i], alpha=0.3)
+        axTr.plot(tfbs, r_ph_sec[i]/Rt, c = colors_axis[i], label = label_axis[i])
+        # axTr.fill_between(tfbs, r_ph_perc16sec[i]/Rt, r_ph_perc84sec[i]/Rt, color=colors_axis[i], alpha=0.3)
         
-        axTrnonzero.plot(tfbs, r_trnonzero_sec[i]/Rt, c = colors_axis[i], ls=':', label = r'$r_{\rm tr}$' if i == 1 else '')
-        axTrnonzero.plot(tfbs, r_phnonzero_sec[i]/Rt, c = colors_axis[i], label = r'$r_{\rm ph}$' if i == 1 else '')
+        axTrnonzero.plot(tfbs, r_trnonzero_sec[i]/Rt, c = colors_axis[i], ls=':', label = r'$r_{\rm tr}$' if i == 0 else '')
+        axTrnonzero.plot(tfbs, r_phnonzero_sec[i]/Rt, c = colors_axis[i], label = r'$r_{\rm ph}$' if i == 0 else '')
         
         axNtr.plot(tfbs, ratio_Rtr[i], c = colors_axis[i], label = label_axis[i])
         axratio.plot(tfbs, r_phnonzero_sec[i]/r_trnonzero_sec[i], c = colors_axis[i]) #, label = label_axis[i])
@@ -223,6 +234,8 @@ axL.set_ylim(1e-2, 2)
 axLmean.set_ylim(1e38, 5e43)
 axMdotobs.set_ylim(7e2, 5e5)
 axLtrph.set_ylim(1e-2, 2)
+figTr.suptitle(r'Dotted line: $r_{\rm tr}$, solid line: $r_{\rm ph}$', fontsize=22)
+figTr.tight_layout()
 fig.tight_layout()
 
 
