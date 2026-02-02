@@ -1,4 +1,4 @@
-""" Total energies (orbital, internal and radiation) at each snapshot.
+""" Volume integrated energies (orbital, kinetic, internal and radiation) at each snapshot.
 Cut in density (at 1e-19 code units), but not for radiation."""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')

@@ -33,6 +33,7 @@ params = [Mbh, Rstar, mstar, beta]
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 Rs = things['Rs']
+Rg = things['Rg']
 Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
@@ -101,9 +102,9 @@ tfbLum, Lum, snapsLum = sort_list([tfbLum, Lum, snapsLum], snapsLum) # becuase L
 dataDiss = np.loadtxt(f'{abspath}/data/{folder}/paper1/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
 timeRDiss, RDiss, Ldisstot_posH = dataDiss[:,1], dataDiss[:,2], dataDiss[:,3]
 
-eta_sh = np.zeros(len(tfb_cgs))
-R_sh = np.zeros(len(tfb_cgs))
+eta_sh_FLD = np.zeros(len(tfb_cgs))
 eta_sh_diss = np.zeros(len(tfb_cgs))
+R_sh = np.zeros(len(tfb_cgs))
 R_ph = np.zeros(len(tfb_cgs))
 R_tr = np.zeros(len(tfb_cgs))
 Ldiss_Mdotc2 = np.zeros(len(tfb_cgs))
@@ -126,8 +127,10 @@ for i, t in enumerate(tfb_cgs):
     # Find the luminosity at time t
     idx = np.argmin(np.abs(tfb[i]-tfbLum)) # just to be sure that you match the data
     Lum_t = Lum[idx]
-    eta_sh[i] = efficiency_shock(Lum_t, mdot_cgs, prel.c_cgs) # [CGS]
-    R_sh[i] = R_shock(Mbh_cgs, eta_sh[i], prel.G_cgs, prel.c_cgs) # [CGS]
+    eta_sh_FLD[i] = efficiency_shock(Lum_t, mdot_cgs, prel.c_cgs) # [CGS]
+    idx_diss = np.argmin(np.abs(tfb[i]-timeRDiss))
+    eta_sh_diss[i] = efficiency_shock(Ldisstot_posH[idx_diss], mdot, prel.csol_cgs)
+    R_sh[i] = R_shock(Mbh_cgs, eta_sh_FLD[i], prel.G_cgs, prel.c_cgs) # [CGS]
 
     snapR = int(snaps[i])
     photo = \
@@ -149,7 +152,7 @@ for i, t in enumerate(tfb_cgs):
 
 # nan = np.logical_or(np.isnan(R_sh), R_sh==0)
 # R_sh = R_sh[~nan]
-# eta_sh = eta_sh[~nan]
+# eta_sh_FLD = eta_sh_FLD[~nan]
 # R_ph = R_ph[~nan]
 # R_tr = R_tr[~nan]
 # tfb = tfb[~nan]
@@ -200,36 +203,32 @@ plt.tight_layout()
 plt.savefig(f'{abspath}/Figs/paper/Reta.pdf', bbox_inches = 'tight')
 
 #%% eta
+match_paper1 = False # reverse the ticks to match Fig. 12 in paper 1
+
+horiz_line = 0.5 * (Rstar/Rp)**2 * Rg/Rp 
 eta_checkRsh = [eta_from_R(Mbh, R_sh[i], prel.G, prel.csol_cgs) for i in range(len(R_sh))] # i.e. you imagine that all the kinetic energy of returning material is converted into energy and released at Rshock
 eta_checkRdiss = [eta_from_R(Mbh, RDiss[i], prel.G, prel.csol_cgs) for i in range(len(RDiss))] # same as above but at Rdiss
-plt.figure(figsize=(9, 6))
-plt.plot(tfb, eta_sh, color = 'dodgerblue', label = r'$\eta_{\rm sh} = L_{\rm FLD}/(|\dot{M}_{\rm fb}|c^2)$') 
-plt.plot(tfb, eta_checkRsh, color = 'k', ls = '--', label = r'$\eta_{\rm sh} = GM/(r_{\rm sh}c^2)=r_{\rm g}/(r_{\rm sh})$')
-plt.plot(tfb, 0.5*Rs/R_sh, color = 'gold', ls = ':', label = r'$r_{\rm g}/(r_{\rm sh})$')
-plt.plot(timeRDiss, eta_checkRdiss, color = 'magenta', label = r'$\eta_{\rm diss}= GM/(r_{\rm diss}c^2)=r_{\rm g}/(r_{\rm diss})$')
-plt.yticks(eta_ticks)
-plt.ylim(etalim_max, etalim_min)
-plt.ylabel(r'$\eta_{\rm sh}$')#, fontsize = 18)
-plt.yscale('log')
-plt.xlim(np.min(tfb), np.max(tfb))
-plt.legend(fontsize = 18)
-plt.suptitle(r'$\dot{M}_{\rm fb}$ is computed at $0.5a_{\rm mb}$', fontsize = 24)
-plt.grid()
-
-# %%
-horiz_line = 0.5 / (600 * 13**2)
-fig, ax = plt.subplots(1, 1, figsize=(14, 10))
-ax.plot(tfb, Ldiss_Mdotc2, color = 'dodgerblue', label = r'$\eta_{\rm diss} = L_{\rm diss}/(\dot{M}_{\rm fb} c^2)$')
-ax.set_ylabel(r'$\eta$', fontsize = 30)
+fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+# ax.plot(tfb, eta_sh_FLD, color = 'dodgerblue', label = r'$\eta_{\rm sh} = L_{\rm FLD}/(|\dot{M}_{\rm fb}|c^2)$') 
+# ax.plot(tfb, 0.5*Rs/R_sh, color = 'gold', ls = ':', label = r'$r_{\rm g}/(r_{\rm sh})$')
+ax.plot(tfb, eta_checkRsh, color = 'k', ls = '--', label = r'$\eta_{\rm sh} = L_{\rm FLD}/(|\dot{M}_{\rm fb}|c^2) = GM/(r_{\rm sh}c^2)=r_{\rm g}/r_{\rm sh}$')
+ax.plot(timeRDiss, eta_checkRdiss, color = 'magenta', label = r'$\eta_{\rm diss}= GM/(r_{\rm diss}c^2)=r_{\rm g}/r_{\rm diss}$')
+ax.plot(tfb, eta_sh_diss, color = 'b', label = r'$\eta_{\rm diss} = L_{\rm diss}/(|\dot{M}_{\rm fb}| c^2)$')
+ax.axhline(y=horiz_line, color = 'gray', linestyle = ':', label = r'$\eta_{\rm nz} = 0.5(r_\star/r_{\rm p})^2r_{\rm g}/r_{\rm p}$')
+ax.set_ylabel(r'$\eta_{\rm num}$', fontsize = 30)
 ax.set_xlabel(r't [$t_{\rm fb}$]', fontsize = 30)
 ax.set_yscale('log')
-ax.axhline(y=horiz_line, color = 'gray', linestyle = '--', label = r'$\eta_{\rm nz} = 0.5(r_\star/r_{\rm p})^2r_{\rm g}/r_{\rm p}$')
-ax.set_xlim(0.5, np.max(tfb))
-ax.set_ylim(1e-6, 1e-4)
-ax.legend(fontsize = 22)
+ax.set_xlim(np.min(tfb), np.max(tfb))
+ax.legend(fontsize = 18)
 ax.tick_params(axis='both', which='major', width=1.1, length=9)
 ax.tick_params(axis='both', which='minor', width=1, length=6)
-ax.grid()
-
+if match_paper1:
+    ax.set_yticks(eta_ticks)
+    ax.set_ylim(etalim_max, etalim_min)
+else:
+    ax.set_ylim(1e-7, 1e-2)
+plt.suptitle(r'$\dot{M}_{\rm fb}$ is computed at $0.5a_{\rm mb}$', fontsize = 24)
+plt.tight_layout()
+plt.grid()
 
 # %%

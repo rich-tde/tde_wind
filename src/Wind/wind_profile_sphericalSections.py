@@ -32,10 +32,10 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-snap = 151
+snap = 109
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-choice = 'dark_bright_z' # 'dark_bright_z', 'all' or 'in_out_z'
+choice = 'in_out_z' # 'dark_bright_z', 'all' or 'in_out_z'
 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -306,7 +306,7 @@ if plot:
     axd.set_ylabel(r'$\rho$ [g/cm$^3]$', fontsize = 28)
     axV.set_ylabel(r'v$_{\rm r}$ [km/s]', fontsize = 28)
     axT.set_ylabel(r'$T_{\rm rad}$ [K]', fontsize = 28)
-    axLadv.set_ylabel(r'$L [L_{\rm Edd}]$', fontsize = 28)
+    axLadv.set_ylabel(r'$L_{\rm adv} [L_{\rm Edd}]$', fontsize = 28)
     axLkin.set_ylabel(r'$L_{\rm kin} [L_{\rm Edd}]$', fontsize = 28)
     fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 20)
     figM.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 20)

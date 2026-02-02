@@ -204,7 +204,7 @@ def r_trapp(loadpath, snap, ray_params):
         c_tau = prel.csol_cgs/tau # code units, since tau is adimensional
 
         if plot:
-            tdyn_single = ray_r / np.abs(ray_vr) * prel.tsol_cgs # cgs
+            tdyn_single = ray_r / ray_vr * prel.tsol_cgs # cgs
             tdiff_single = tau * ray_r * prel.Rsol_cgs / prel.c_cgs # cgs
 
             fig, ax1 = plt.subplots(1,1,figsize = (8,6))
@@ -224,10 +224,10 @@ def r_trapp(loadpath, snap, ray_params):
             ax1.set_xlabel(r'$r [r_{\rm t}]$')
             ax1.set_ylabel(r'$t [t_{\rm fb}]$')
             ax1.loglog()    
-            ax1.set_xlim(R0/Rt, 1.2*rph[i]/Rt)
+            ax1.set_xlim(R0/Rt, 2*rph[i]/Rt)
             ax1.axvline(rph[i]/Rt, c = 'k', linestyle = 'dotted', label =  r'$r_{\rm ph}$')
             # ax1.set_xlim(1e-5, 8)
-            ax1.set_ylim(1e-5, 2)
+            ax1.set_ylim(1e-5, 5)
             ax1.tick_params(axis='both', which='major', length=8, width=1.2)
             ax1.tick_params(axis='both', which='minor', length=5, width=1)
             ax1.legend(fontsize = 14)
@@ -251,7 +251,7 @@ def r_trapp(loadpath, snap, ray_params):
             continue
 
         if ray_r[Rtr_idx]/rph[i] >= 1:
-            print(f'For obs {i}, Rtr is outside Rph, so I skip', flush=True)
+            print(f'For obs {i}, Rtr is outside Rph', flush=True)
             # count_i += 1
             # continue
             # v_rad_ph, _, _ = to_spherical_components(Vxph[i], Vyph[i], Vzph[i], xph[i], yph[i], zph[i])
