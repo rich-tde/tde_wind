@@ -200,18 +200,20 @@ plt.tight_layout()
 plt.savefig(f'{abspath}/Figs/paper/Reta.pdf', bbox_inches = 'tight')
 
 #%% eta
-eta_checkRsh = [eta_from_R(Mbh, R_sh[i], prel.G, prel.csol_cgs) for i in range(len(R_sh))]
-eta_checkRdiss = [eta_from_R(Mbh, RDiss[i], prel.G, prel.csol_cgs) for i in range(len(RDiss))]
+eta_checkRsh = [eta_from_R(Mbh, R_sh[i], prel.G, prel.csol_cgs) for i in range(len(R_sh))] # i.e. you imagine that all the kinetic energy of returning material is converted into energy and released at Rshock
+eta_checkRdiss = [eta_from_R(Mbh, RDiss[i], prel.G, prel.csol_cgs) for i in range(len(RDiss))] # same as above but at Rdiss
 plt.figure(figsize=(9, 6))
-plt.plot(tfb, eta_sh, color = 'dodgerblue', label = r'$\eta_{\rm sh}$')
-plt.plot(tfb, eta_checkRsh, color = 'k', ls = ':', label = r'$\eta_{\rm sh}$')
-plt.plot(timeRDiss, eta_checkRdiss, color = 'magenta', ls = '--', label = r'$\eta_{\rm diss}$')
+plt.plot(tfb, eta_sh, color = 'dodgerblue', label = r'$\eta_{\rm sh} = L_{\rm FLD}/(|\dot{M}_{\rm fb}|c^2)$') 
+plt.plot(tfb, eta_checkRsh, color = 'k', ls = '--', label = r'$\eta_{\rm sh} = GM/(r_{\rm sh}c^2)=r_{\rm g}/(r_{\rm sh})$')
+plt.plot(tfb, 0.5*Rs/R_sh, color = 'gold', ls = ':', label = r'$r_{\rm g}/(r_{\rm sh})$')
+plt.plot(timeRDiss, eta_checkRdiss, color = 'magenta', label = r'$\eta_{\rm diss}= GM/(r_{\rm diss}c^2)=r_{\rm g}/(r_{\rm diss})$')
 plt.yticks(eta_ticks)
 plt.ylim(etalim_max, etalim_min)
 plt.ylabel(r'$\eta_{\rm sh}$')#, fontsize = 18)
 plt.yscale('log')
 plt.xlim(np.min(tfb), np.max(tfb))
 plt.legend(fontsize = 18)
+plt.suptitle(r'$\dot{M}_{\rm fb}$ is computed at $0.5a_{\rm mb}$', fontsize = 24)
 plt.grid()
 
 # %%

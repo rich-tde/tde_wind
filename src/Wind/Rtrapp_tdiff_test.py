@@ -225,8 +225,9 @@ def r_trapp(loadpath, snap, ray_params):
             ax1.set_ylabel(r'$t [t_{\rm fb}]$')
             ax1.loglog()    
             ax1.set_xlim(R0/Rt, 1.2*rph[i]/Rt)
+            ax1.axvline(rph[i]/Rt, c = 'k', linestyle = 'dotted', label =  r'$r_{\rm ph}$')
             # ax1.set_xlim(1e-5, 8)
-            # ax1.set_ylim(1e-5, 8)
+            ax1.set_ylim(1e-5, 2)
             ax1.tick_params(axis='both', which='major', length=8, width=1.2)
             ax1.tick_params(axis='both', which='minor', length=5, width=1)
             ax1.legend(fontsize = 14)
@@ -283,8 +284,7 @@ def r_trapp(loadpath, snap, ray_params):
         Rad_den_tr[i] = ray_radDen[Rtr_idx]
         # M_dot_tr[i] = 4 * np.pi * ray_r[Rtr_idx]**2 * np.abs(Vr_tr[i]) * prel.Rsol_cgs**3/prel.tsol_cgs * den_tr[i] # den is already in cgs
         if plot:
-            ax1.axvline(ray_r[Rtr_idx]/Rt, c = 'k', linestyle = '--', label =  r'$R_{\rm tr}$')
-            ax1.axvline(rph[i]/Rt, c = 'k', linestyle = 'dotted', label =  r'$R_{\rm ph}$')
+            ax1.axvline(ray_r[Rtr_idx]/Rt, c = 'k', linestyle = '--', label =  r'$r_{\rm tr}$')
             ax1.legend(fontsize = 14)
             # plt.savefig(f'{abspath}/Figs/next_meeting/{check}/tdiff_{snap}{label_obs[count_i]}.png')
         

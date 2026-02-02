@@ -9,7 +9,7 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = True
+    compute = False
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -263,7 +263,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             axOEB.legend(fontsize = 18)
 
         if r_chosen > apo:
-            data = [mwind, Lum_fs, Ekin]
+            data = np.concatenate([mwind, Lum_fs, Ekin])
         else:        
             data = mwind
 
@@ -271,8 +271,8 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
 
 if __name__ == '__main__':
     if compute: # compute dM/dt = dM/dE * dE/dt
-        r_chosen = 0.5*amin 
-        which_r_title = '05amin' 
+        r_chosen = 2*apo
+        which_r_title = '2apo' 
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
         for i, snap in enumerate(snaps):

@@ -1,6 +1,5 @@
-""" Total energies (orbital, internal and radiation) at each snapshot, both with cut in coordinates and not.
-Cut in density (at 1e-19 code units) is done in both the cases, but not for radiation.
-Written to be run on alice"""
+""" Total energies (orbital, internal and radiation) at each snapshot.
+Cut in density (at 1e-19 code units), but not for radiation."""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 from Utilities.isalice import isalice
@@ -93,9 +92,9 @@ if alice:
 else:
     import matplotlib.pyplot as plt
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-    data = np.loadtxt(f'{abspath}/data/{folder}/convE_{check}.csv', delimiter=',', dtype=float, skiprows=1)
+    data = np.loadtxt(f'{abspath}/data/{folder}/paper1/convE_{check}.csv', delimiter=',', dtype=float, skiprows=1)
     snaps, tfb, IE, OEpos, OEEneg, Rad, Kinpos, Kinneg = data[:, 0], data[:, 1], data[:, 2], data[:, 3], data[:, 4], data[:, 5], data[:, 6], data[:, 7]
-    dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
+    dataDiss = np.loadtxt(f'{abspath}/data/{folder}/paper1/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
     tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3] *  prel.en_converter/prel.tsol_cgs
     totalK = Kinneg + Kinpos
 
