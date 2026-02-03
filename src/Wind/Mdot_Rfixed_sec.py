@@ -2,7 +2,6 @@
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 
-from Test.wind_test.Mdot_Rfixed_sec import Lum_fs
 from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
@@ -205,13 +204,13 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
                 mwind[j] = C_mult * r_chosen**2 * np.sum(Mdot[indices]) / np.sum(dim_cell_wind[indices]**2)
             elif how == 'mean':
                 mwind[j] = C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices])
-            if r_chosen > apo: # when plotting you will have to divide for 4
+            if r_chosen > apo: 
                 if how == '':  
-                    Lum_fs[j] = C_mult * r_chosen**2 * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2 * prel.csol_cgs) / np.sum(dim_cell_wind[indices]**2)
+                    Lum_fs[j] = C_mult * r_chosen**2 * np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs / np.sum(dim_cell_wind[indices]**2)
                     Lkin[j] = 0.5 * C_mult * r_chosen**2 * np.sum(Mdot[indices] * v_rad_wind[indices]**2) / np.sum(dim_cell_wind[indices]**2)
             
                 elif how == 'mean':
-                    Lum_fs[j] = C_mult * np.pi * r_chosen**2 * np.mean(Rad_den_wind[indices] * prel.csol_cgs)
+                    Lum_fs[j] = C_mult * np.pi * r_chosen**2 * np.mean(Rad_den_wind[indices]) * prel.csol_cgs
                     # Lkin[j] = 0.5 * np.mean(Mdot[indices] * v_rad_wind[indices]**2)
                     Lkin[j] = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices]**3) 
             

@@ -12,7 +12,7 @@ else:
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
     import matplotlib.cm as cm
-    compute = False
+    compute = True
 
 import numpy as np
 import Utilities.prelude as prel
@@ -32,7 +32,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-snap = 109
+snap = 76
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 choice = 'in_out_z' # 'dark_bright_z', 'all' or 'in_out_z'
