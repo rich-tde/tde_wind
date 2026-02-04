@@ -9,7 +9,7 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = False
+    compute = True
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -163,33 +163,38 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
         Lkin = np.zeros(len(indices_sec))
 
         if plot: # see what I'm selecting
-            figd, axd = plt.subplots(2, 3, figsize=(21, 14))
-            figV, axV = plt.subplots(2, 3, figsize=(21, 14))
-            figB, axB = plt.subplots(2, 3, figsize=(21, 14))
-            figOE, axOE = plt.subplots(2, 3, figsize=(21, 14))
+            figd, axd = plt.subplots(3, 3, figsize=(21, 21))
+            figV, axV = plt.subplots(3, 3, figsize=(21, 21))
+            figB, axB = plt.subplots(3, 3, figsize=(21, 21))
+            figOE, axOE = plt.subplots(3, 3, figsize=(21, 21))
             figOEB, axOEB = plt.subplots(1,1, figsize=(8,6))
             if r_chosen > amin:
                 normaliz = apo
                 for ax in [axd, axV, axB, axOE]:
                     for j in range(3):
-                        for i in range(2):
+                        for i in range(3):
                             ax[i, j].set_xlim(-3,3)
                             ax[i, j].set_ylim(-3,3)
                         ax[0, j].set_xlabel(r'$X [r_{\rm a}]$')
                         ax[1, j].set_xlabel(r'$Y [r_{\rm a}]$')
+                        ax[2, j].set_xlabel(r'$X [r_{\rm a}]$')
                     ax[0, 0].set_ylabel(r'$Y [r_{\rm a}]$')
                     ax[1, 0].set_ylabel(r'$Z [r_{\rm a}]$')
+                    ax[2, 0].set_ylabel(r'$Z [r_{\rm a}]$')
             else:
                 normaliz = Rt
                 for ax in [axd, axV, axB, axOE]:
                     for j in range(3):
-                        for i in range(2):
-                            ax[i, j].set_xlim(-15,15)
-                            ax[i, j].set_ylim(-15,15)
+                        for i in range(3):
+                            ax[i, j].set_xlim(-10,10)
+                            ax[i, j].set_ylim(-10,10)
                         ax[0, j].set_xlabel(r'$X [r_{\rm t}]$')
                         ax[1, j].set_xlabel(r'$Y [r_{\rm t}]$')
+                        ax[2, j].set_xlabel(r'$X [r_{\rm t}]$')
                     ax[0, 0].set_ylabel(r'$Y [r_{\rm t}]$')
                     ax[1, 0].set_ylabel(r'$Z [r_{\rm t}]$')
+                    ax[2, 0].set_ylabel(r'$Z [r_{\rm t}]$')
+
             # if with_who == '':
             #     plt.suptitle(f'Selected with spherical sections at snap {snap}', fontsize = 18)
             # elif with_who == 'Obs':
@@ -219,18 +224,22 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
                 # see what I'm selecting
                 img_xy = axd[0][j].scatter(X_wind[indices]/normaliz, Y_wind[indices]/normaliz, s=10, c = Den_wind[indices]*prel.den_converter, norm = colors.LogNorm(vmin=1e-14, vmax=2e-9))
                 img_yz = axd[1][j].scatter(Y_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = Den_wind[indices]*prel.den_converter, norm = colors.LogNorm(vmin=1e-14, vmax=2e-9))
+                img_xz = axd[2][j].scatter(X_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = Den_wind[indices]*prel.den_converter, norm = colors.LogNorm(vmin=1e-14, vmax=2e-9))
                 axd[0][j].set_title(f'Section: {label_obs[j]}', fontsize = 16)
 
                 imgV_xy = axV[0][j].scatter(X_wind[indices]/normaliz, Y_wind[indices]/normaliz, s=10, c = v_rad_wind[indices]*conversion_sol_kms, norm = colors.LogNorm(vmin=1e3, vmax=2e4))
                 imgV_yz = axV[1][j].scatter(Y_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = v_rad_wind[indices]*conversion_sol_kms, norm = colors.LogNorm(vmin=1e3, vmax=2e4))
+                imgV_xz = axV[2][j].scatter(X_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = v_rad_wind[indices]*conversion_sol_kms, norm = colors.LogNorm(vmin=1e3, vmax=2e4))
                 axV[0][j].set_title(f'Section: {label_obs[j]}', fontsize = 16)
 
                 imgB_xy = axB[0][j].scatter(X_wind[indices]/normaliz, Y_wind[indices]/normaliz, s=10, c = bern_wind[indices], cmap = 'coolwarm', vmin = - 50, vmax= 50)
                 imgB_yz = axB[1][j].scatter(Y_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = bern_wind[indices], cmap = 'coolwarm', vmin = - 50, vmax= 50)
+                imgB_xz = axB[2][j].scatter(X_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = bern_wind[indices], cmap = 'coolwarm', vmin = - 50, vmax= 50)
                 axB[0][j].set_title(f'Section: {label_obs[j]}', fontsize = 16)
 
                 imgOE_xy = axOE[0][j].scatter(X_wind[indices]/normaliz, Y_wind[indices]/normaliz, s=10, c = OE_spec_wind[indices], cmap = 'coolwarm', vmin = - 50, vmax= 50)
                 imgOE_yz = axOE[1][j].scatter(Y_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = OE_spec_wind[indices], cmap = 'coolwarm', vmin = - 50, vmax= 50)
+                imgOE_xz = axOE[2][j].scatter(X_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = OE_spec_wind[indices], cmap = 'coolwarm', vmin = - 50, vmax= 50)
                 axOE[0][j].set_title(f'Section: {label_obs[j]}', fontsize = 16)
                 
                 axOEB.scatter(theta_ourConv, np.abs(bern_wind[indices]/OE_spec_wind[indices]), s=10, c = colors_obs[j], label = label_obs[j])
@@ -240,10 +249,14 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             cbar.set_label(r'Density [g cm$^{-3}$]', fontsize = 18)
             cbar = plt.colorbar(img_yz)
             cbar.set_label(r'Density [g cm$^{-3}$]', fontsize = 18)
+            cbar = plt.colorbar(img_xz)
+            cbar.set_label(r'Density [g cm$^{-3}$]', fontsize = 18)
 
             cbar = plt.colorbar(imgV_xy)
             cbar.set_label(r'$v_{\rm r}$ [km/s]', fontsize = 18)
             cbar = plt.colorbar(imgV_yz)
+            cbar.set_label(r'$v_{\rm r}$ [km/s]', fontsize = 18)
+            cbar = plt.colorbar(imgV_xz)
             cbar.set_label(r'$v_{\rm r}$ [km/s]', fontsize = 18)
 
             cbar = plt.colorbar(imgB_xy)
@@ -254,6 +267,9 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             cbar.set_label(r'$\mathcal{B}$', fontsize = 18)
             cbar.set_ticks([-50, 0, 50])
             cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
+            cbar = plt.colorbar(imgB_xz)
+            cbar.set_ticks([-50, 0, 50])
+            cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
 
             cbar = plt.colorbar(imgOE_xy)
             cbar.set_label(r'spec OE', fontsize = 18)
@@ -261,6 +277,9 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             cbar.set_ticks([-50, 0, 50])
             cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
             cbar.set_label(r'spec OE', fontsize = 18)
+            cbar.set_ticks([-50, 0, 50])
+            cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
+            cbar = plt.colorbar(imgOE_xz)
             cbar.set_ticks([-50, 0, 50])
             cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
 

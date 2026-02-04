@@ -154,16 +154,16 @@ def choose_sections(X, Y, Z, choice = 'dark_bright_z'):
         all = {'cond': cond_all, 'label': r'all', 'color': 'darkviolet', 'line': 'solid'}
         sec = {'all': all}
 
-    if choice == 'dark_bright_z_in_out':
-        cond_dark_in = np.logical_and(X < 0, np.logical_and(Y >= 0, np.abs(Z) < slope *  R_cyl))
-        cond_dark_out = np.logical_and(X < 0, np.logical_and(Y < 0, np.abs(Z) < slope *  R_cyl))
-        cond_bright_in = np.logical_and(X >= 0, np.logical_and(Y >= 0, np.abs(Z) < slope * R_cyl))
-        cond_bright_out = np.logical_and(X >= 0, np.logical_and(Y < 0, np.abs(Z) < slope * R_cyl))
-        dark_in = {'cond': cond_dark_in, 'label': r'left in', 'color': 'r', 'line': 'solid'}
-        dark_out = {'cond': cond_dark_out, 'label': r'left out', 'color': 'yellowgreen', 'line': 'solid'}
-        bright_in = {'cond': cond_bright_in, 'label': r'right in', 'color': 'sandybrown', 'line': 'dashed'}
-        bright_out = {'cond': cond_bright_out, 'label': r'right out', 'color': 'b', 'line': 'dashed'}
-        sec = {'dark_in': dark_in, 'dark_out': dark_out, 'bright_in': bright_in, 'bright_out': bright_out, 'north': north, 'south': south}
+    if choice == 'left_right_z_in_out':
+        cond_left_in = np.logical_and(X < 0, np.logical_and(Y > 0, np.abs(Z) < slope *  R_cyl))
+        cond_left_out = np.logical_and(X < 0, np.logical_and(Y <= 0, np.abs(Z) < slope *  R_cyl))
+        cond_right_in = np.logical_and(X >= 0, np.logical_and(Y > 0, np.abs(Z) < slope * R_cyl))
+        cond_right_out = np.logical_and(X >= 0, np.logical_and(Y <= 0, np.abs(Z) < slope * R_cyl))
+        left_in = {'cond': cond_left_in, 'label': r'left in', 'color': 'r', 'line': 'solid'}
+        left_out = {'cond': cond_left_out, 'label': r'left out', 'color': 'yellowgreen', 'line': 'solid'}
+        right_in = {'cond': cond_right_in, 'label': r'right in', 'color': 'sandybrown', 'line': 'dashed'}
+        right_out = {'cond': cond_right_out, 'label': r'right out', 'color': 'b', 'line': 'dashed'}
+        sec = {'left_in': left_in, 'left_out': left_out, 'right_in': right_in, 'right_out': right_out, 'north': north, 'south': south}
      
     if choice == 'dark_bright_z':
         cond_dark = np.logical_and(X < 0, np.abs(Z) < slope *  R_cyl)
@@ -173,8 +173,8 @@ def choose_sections(X, Y, Z, choice = 'dark_bright_z'):
         sec = {'dark': dark, 'bright': bright, 'north': north, 'south': south}
     
     if choice == 'in_out_z': 
-        cond_in = np.logical_and(Y >= 0, np.abs(Z) < slope * R_cyl)
-        cond_out = np.logical_and(Y < 0, np.abs(Z) < slope *  R_cyl)
+        cond_in = np.logical_and(Y > 0, np.abs(Z) < slope * R_cyl)
+        cond_out = np.logical_and(Y <= 0, np.abs(Z) < slope *  R_cyl)
         ins = {'cond': cond_in, 'label': r'in', 'color': 'r', 'line': 'solid'}
         out = {'cond': cond_out, 'label': r'out', 'color': 'sandybrown', 'line': 'dashed'}
         sec = {'in': ins, 'out': out, 'north': north, 'south': south}
@@ -214,7 +214,7 @@ def choose_observers(observers_xyz, choice):
     
     x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
     all_idx_obs = np.arange(len(x_obs))
-    if choice == 'dark_bright_z' or choice == 'in_out_z' or choice == 'arch' or choice == 'dark_bright_z_in_out' or choice == 'all':
+    if choice == 'dark_bright_z' or choice == 'in_out_z' or choice == 'arch' or choice == 'left_right_z_in_out' or choice == 'all':
         indices_sorted = []
         # wanted_z_obs = [(0,0,1), (0,0,-1)]
         # tree_obs = KDTree(observers_xyz.T) 
@@ -256,12 +256,12 @@ def choose_observers(observers_xyz, choice):
                 # find distances from the pole and all the one who has the maximum distance
                 distances = np.sqrt(x_obs_north**2 + y_obs_north**2 + (z_obs_north - 1)**2)
                 indices_to_change = np.where(np.isclose(distances, np.max(distances)))[0]
-                indices_to_change_dark = indices_to_change[x_obs_north[indices_to_change] < 0 if choice == 'dark_bright_z' else y_obs_north[indices_to_change] >= 0]
+                indices_to_change_dark = indices_to_change[x_obs_north[indices_to_change] < 0 if choice == 'dark_bright_z' else y_obs_north[indices_to_change] > 0]
                 indices_to_change_dark = indices_north[indices_to_change_dark]
                 indices_to_change_dark = indices_to_change_dark[::2]
                 sections_ph['north']['cond'][indices_to_change_dark] = False
                 sections_ph[second_key]['cond'][indices_to_change_dark] = True
-                indices_to_change_bright = indices_to_change[x_obs_north[indices_to_change] >= 0 if choice == 'dark_bright_z' else y_obs_north[indices_to_change] < 0]
+                indices_to_change_bright = indices_to_change[x_obs_north[indices_to_change] >= 0 if choice == 'dark_bright_z' else y_obs_north[indices_to_change] <= 0]
                 indices_to_change_bright = indices_north[indices_to_change_bright]
                 indices_to_change_bright = indices_to_change_bright[::2]
                 sections_ph['north']['cond'][indices_to_change_bright] = False
@@ -273,12 +273,12 @@ def choose_observers(observers_xyz, choice):
                 # find distances from the pole and all the one who has the maximum distance
                 distances = np.sqrt(x_obs_south**2 + y_obs_south**2 + (z_obs_south + 1)**2)
                 indices_to_change = np.where(np.isclose(distances, np.max(distances)))[0]
-                indices_to_change_dark = indices_to_change[x_obs_south[indices_to_change] < 0 if choice == 'dark_bright_z' else y_obs_south[indices_to_change] >= 0]
+                indices_to_change_dark = indices_to_change[x_obs_south[indices_to_change] < 0 if choice == 'dark_bright_z' else y_obs_south[indices_to_change] > 0]
                 indices_to_change_dark = indices_south[indices_to_change_dark]
                 indices_to_change_dark = indices_to_change_dark[::2]
                 sections_ph['south']['cond'][indices_to_change_dark] = False
                 sections_ph[second_key]['cond'][indices_to_change_dark] = True
-                indices_to_change_bright = indices_to_change[x_obs_south[indices_to_change] >= 0 if choice == 'dark_bright_z' else y_obs_south[indices_to_change] < 0]
+                indices_to_change_bright = indices_to_change[x_obs_south[indices_to_change] >= 0 if choice == 'dark_bright_z' else y_obs_south[indices_to_change] <= 0]
                 indices_to_change_bright = indices_south[indices_to_change_bright]
                 indices_to_change_bright = indices_to_change_bright[::2]
                 sections_ph['south']['cond'][indices_to_change_bright] = False

@@ -32,10 +32,10 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-snap = 76
+snap = 109
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-choice = 'in_out_z' # 'dark_bright_z', 'all' or 'in_out_z'
+choice = 'left_right_z_in_out' # 'dark_bright_z', 'all' or 'in_out_z'
 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -93,8 +93,8 @@ def radial_profiles(loadpath, snap, ray_params, choice):
     # cond_sec = choose_sections(X, Y, Z)
     # cond_dark = cond_sec['dark']['cond']
     # colors_dark = cond_sec['dark']['color']
-    # fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,7))
     # mid_dark = np.logical_and(cond_dark, np.abs(Z) < dim_cell)
+    # fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,7))
     # ax1.scatter(X[mid_dark]/Rp, Y[mid_dark]/Rp, c = colors_dark, s = 2, label = 'Dark side')
     # ax1.set_xlim(-120, 50) 
     # ax1.set_ylim(-50, 50)
@@ -115,8 +115,9 @@ def radial_profiles(loadpath, snap, ray_params, choice):
     rmin, rmax, Nray = ray_params
     r_array = np.logspace(np.log10(rmin), np.log10(rmax), Nray)
 
-
     all_outflows = {}
+    # fig, (axtot, axsph) = plt.subplots(1,2, figsize = (15,7))
+    # fig, (axtot_yz, axsph_yz) = plt.subplots(1,2, figsize = (15,7))
     for j, ind in enumerate(ind_sec):
         t_prof = np.zeros(Nray)
         v_prof = np.zeros(Nray)
@@ -132,6 +133,7 @@ def radial_profiles(loadpath, snap, ray_params, choice):
             const_C = 4/len(ind_sec)
             ind_r = indices_all[cond_r]
             ind_sec_r = np.intersect1d(ind_r, ind)
+            # axtot.scatter(X[ind_sec_r]/Rp, Y[ind_sec_r]/Rp, color=colors_obs[j])
             if len(ind_sec_r) == 0:
                 continue
             ray_V = vel[ind_sec_r]
@@ -227,8 +229,8 @@ if plot:
     # Load profiles
     profiles = np.load(f'{abspath}/data/{folder}/wind/{choice}/rad_profSec{snap}_{choice}.npy', allow_pickle=True).item()
     for i, lab in enumerate(profiles.keys()):
-        if i == 3:
-            continue
+        # if i == 3:
+        #     continue
         r_plot = profiles[lab]['r'] 
         d = profiles[lab]['d_prof']
         v_tot = profiles[lab]['v_prof']

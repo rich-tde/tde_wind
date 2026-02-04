@@ -19,7 +19,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-which_obs = 'in_out_z' #'dark_bright_z' #'arch', 'quadrants', 'ax is'
+which_obs = 'left_right_z_in_out' #'dark_bright_z' #'arch', 'quadrants', 'ax is'
 check = 'HiResNewAMR' 
 
 params = [Mbh, Rstar, mstar, beta]
@@ -79,7 +79,7 @@ den_tr_sec = np.zeros((len(indices_axis), len(snaps)))
 den_ph_sec = np.zeros((len(indices_axis), len(snaps)))
 Temp_tr_sec = np.zeros((len(indices_axis), len(snaps))) 
 Temp_ph_sec = np.zeros((len(indices_axis), len(snaps)))   
-# TempGas_ph_sec = np.zeros((len(indices_axis), len(snaps))) 
+TempGas_ph_sec = np.zeros((len(indices_axis), len(snaps))) 
 Lum_allph_secSum = np.zeros((len(indices_axis), len(snaps)))
 Lum_allph_secmean = np.zeros((len(indices_axis), len(snaps)))
 Lum_adv_tr_sec = np.zeros((len(indices_axis), len(snaps)))
@@ -123,7 +123,7 @@ for s, snap in enumerate(snaps):
                 Vr_ph_sec[i][s] = np.sum(Vr_ph[observer] * mass_ph[observer]) / np.sum(mass_ph[observer])
                 den_ph_sec[i][s] = np.sum(den_ph[observer] * mass_ph[observer]) / np.sum(mass_ph[observer])
                 Temp_ph_sec[i][s] = np.sum(Temprad_ph[observer] * vol_ph[observer]) / np.sum(vol_ph[observer])   
-                # TempGas_ph_sec[i][s] = np.sum(Temp_ph[observer] * vol_ph[observer]) / np.sum(vol_ph[observer])           
+                TempGas_ph_sec[i][s] = np.sum(Temp_ph[observer] * vol_ph[observer]) / np.sum(vol_ph[observer])           
                 r_ph_sec[i][s] = np.median(r_ph[observer])  
                 r_ph_perc16sec[i][s] = np.percentile(r_ph[observer], 16)
                 r_ph_perc84sec[i][s] = np.percentile(r_ph[observer], 84)
@@ -141,27 +141,28 @@ for s, snap in enumerate(snaps):
                 r_tr_perc84sec[i][s] = np.percentile(r_tr[observer], 84)
                 r_trnonzero_sec[i][s] = np.median(r_tr[obs_tr]) 
                 Temp_tr_sec[i][s] = np.sum(Temprad_tr[obs_tr] * vol_tr[obs_tr]) / np.sum(vol_tr[obs_tr])
-                Mdot_sec[i][s] = (np.mean(r_tr[obs_tr]))**2 /np.sum(dim_tr[obs_tr]**2) * np.sum(Mdot_tr[obs_tr])
-# 
+                # Mdot_sec[i][s] = (np.mean(r_tr[obs_tr]))**2 /np.sum(dim_tr[obs_tr]**2) * np.sum(Mdot_tr[obs_tr])
+                Mdot_sec[i][s] = np.pi * (np.median(r_tr[obs_tr]**2 * den_tr[obs_tr] * Vr_tr[obs_tr]))
+
 
 # ax[0].set_ylabel(r'z [r$_{\rm t}$]')
 # Plot
 figTr, axTr = plt.subplots(1, 1, figsize=(10, 8))
-figratios, (axTrnonzero, axNtr, axratio) = plt.subplots(1, 3, figsize=(24, 6))
-fig, (axVph, axdph, axTph) = plt.subplots(1, 3, figsize=(27, 6))
+figratios, (axTrnonzero, axNtr, axratio) = plt.subplots(1, 3, figsize=(27, 6))
+fig, (axVph, axdph, axTph) = plt.subplots(1, 3, figsize=(26, 6))
 figL, (axL, axLmean) = plt.subplots(2, 1, figsize=(9, 13))
 figM, (axMdotobs, axLtrph) = plt.subplots(1, 2, figsize=(18, 6))
 
 for i, observer in enumerate(indices_axis):
-        if i == 3:
-               continue
+        # if i == 3:
+        #        continue
         axTr.plot(tfbs, r_tr_sec[i]/Rt, c = colors_axis[i], ls = ':')
-        axTr.fill_between(tfbs, r_tr_perc16sec[i]/Rt, r_tr_perc84sec[i]/Rt, color=colors_axis[i], alpha=0.2)
+        # axTr.fill_between(tfbs, r_tr_perc16sec[i]/Rt, r_tr_perc84sec[i]/Rt, color=colors_axis[i], alpha=0.2)
         axTr.plot(tfbs, r_ph_sec[i]/Rt, c = colors_axis[i], label = label_axis[i])
         # axTr.fill_between(tfbs, r_ph_perc16sec[i]/Rt, r_ph_perc84sec[i]/Rt, color=colors_axis[i], alpha=0.3)
         
-        axTrnonzero.plot(tfbs, r_trnonzero_sec[i]/Rt, c = colors_axis[i], ls=':', label = r'$r_{\rm tr}$' if i == 0 else '')
-        axTrnonzero.plot(tfbs, r_phnonzero_sec[i]/Rt, c = colors_axis[i], label = r'$r_{\rm ph}$' if i == 0 else '')
+        axTrnonzero.plot(tfbs, r_trnonzero_sec[i]/Rt, c = colors_axis[i]) #, label = r'$r_{\rm tr}$' if i == 0 else '')
+        # axTrnonzero.plot(tfbs, r_phnonzero_sec[i]/Rt, c = colors_axis[i], label = r'$r_{\rm ph}$' if i == 0 else '')
         
         axNtr.plot(tfbs, ratio_Rtr[i], c = colors_axis[i], label = label_axis[i])
         axratio.plot(tfbs, r_phnonzero_sec[i]/r_trnonzero_sec[i], c = colors_axis[i]) #, label = label_axis[i])
@@ -177,12 +178,14 @@ for i, observer in enumerate(indices_axis):
         axLmean.plot(tfbs, Lum_allph_secmean[i], c = colors_axis[i])
         
         axMdotobs.plot(tfbs, Mdot_sec[i]/Medd_sol, c = colors_axis[i], label = label_axis[i])
+        if i == 1:
+               axMdotobs.plot(tfbs, r_trnonzero_sec[i]/Rg, c = colors_axis[i], ls = '--', label = r'$r_{\rm tr}/r_{\rm g}$' if i ==0 else '')
         axLtrph.plot(tfbs, Lum_allph_secSum[i]/Lum_ph_allSum, c = colors_axis[i], label =r'$L_{\rm FLD} (r_{\rm ph})$' if i == 0 else '')
         axLtrph.plot(tfbs, Lum_adv_tr_sec[i]/Lum_ph_allSum, c = colors_axis[i], ls = ':', label =r'$L_{\rm adv} (r_{\rm tr})$' if i == 0 else '')
 
 axLmean.plot(tfbs, Lums, c = 'k', ls = '--', label = r'Total')       
 axTr.set_ylabel(r'median $r_{\rm obs} [r_{\rm t}]$')
-axTrnonzero.set_ylabel(r'median $r_{\rm adv obs} [r_{\rm t}]$')
+axTrnonzero.set_ylabel(r'median nonzero $r_{\rm tr} [r_{\rm t}]$')
 axNtr.set_ylabel(r'Fraction of obs with adv region')
 axratio.set_ylabel(r'$r_{\rm ph}/r_{\rm tr}$ in adv. region')
 axVph.set_ylabel(r'v$_{\rm ph}$ [km/s]')
