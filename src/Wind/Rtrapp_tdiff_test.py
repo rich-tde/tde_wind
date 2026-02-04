@@ -302,7 +302,7 @@ def r_trapp(loadpath, snap, ray_params):
                 ax1.axvline(check_line_alpha/Rt, c = 'gold', ls = '--', label =  r'$\frac{c}{\alpha v_{\rm r}}$')
                 ax1.axvline(r_tr[i]/Rt, c = 'k', linestyle = '--', label =  r'$r_{\rm tr}$')
                 ax1.legend(fontsize = 14)
-                fig.savefig(f'{abspath}/Figs/{folder}/Wind/{label_obs[j]}/tdiff_{snap}Obs{i}.png')
+                fig.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/{label_obs[j]}/tdiff_{snap}Obs{i}.png')
             
             # count_i += 1
             del ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, alpha_rossland_eval, tau, ray_P, ray_ieDen, ray_radDen, idx, ray_kappa
@@ -317,7 +317,7 @@ def r_trapp(loadpath, snap, ray_params):
     if plot:  
         ax_all[0].set_ylabel(r'$\kappa$ [cm$^2$/g]') 
         fig_all.tight_layout()
-        fig_all.savefig(f'{abspath}/Figs/{folder}/Wind/kappa_all_{snap}.png')
+        fig_all.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/kappa_all_{snap}.png')
     
     r_trapp = {
         'x_tr': x_tr,
@@ -355,9 +355,10 @@ for snap in snaps:
             loadpath = f'{pre}/snap_{snap}'
             print(snap, flush=True)
         else: 
+            choice = 'in_out_z'
             loadpath = f'{pre}/{snap}'
             observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
-            indices_sorted, label_obs, colors_obs, _ = choose_observers(observers_xyz, 'in_out_z')
+            indices_sorted, label_obs, colors_obs, _ = choose_observers(observers_xyz, choice)
             # test_idx = indices_sorted[1]
             # take just the first one for each direction
             # label_obs = np.array(label_obs)

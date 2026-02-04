@@ -38,7 +38,7 @@ compton = 'Compton'
 check = 'HiResNewAMR'
 with_who = ''  # '' or 'Obs'
 n_obs = '' #'_npix8' or ''
-choice = 'in_out_z' #'arch'x, 'quadrants', 'ax is', 'dark_bright_z', 'all' or 'in_out_z'
+choice = 'left_right_in_out_z' #'arch'x, 'quadrants', 'ax is', 'left_right_z', 'all' or 'in_out_z'
 wind_cond = '' # '' for bernouilli coeff or 'OE' for orbital energy
 how = '' # '' for the normalized sum or 'mean' for mean of Mw of each cells
 
@@ -251,6 +251,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             cbar.set_label(r'Density [g cm$^{-3}$]', fontsize = 18)
             cbar = plt.colorbar(img_xz)
             cbar.set_label(r'Density [g cm$^{-3}$]', fontsize = 18)
+            figd.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/Den_scatter{snap}.png', dpi = 150)
 
             cbar = plt.colorbar(imgV_xy)
             cbar.set_label(r'$v_{\rm r}$ [km/s]', fontsize = 18)
@@ -258,6 +259,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             cbar.set_label(r'$v_{\rm r}$ [km/s]', fontsize = 18)
             cbar = plt.colorbar(imgV_xz)
             cbar.set_label(r'$v_{\rm r}$ [km/s]', fontsize = 18)
+            figV.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/Vrad_scatter{snap}.png', dpi = 150)
 
             cbar = plt.colorbar(imgB_xy)
             cbar.set_label(r'$\mathcal{B}$', fontsize = 18)
@@ -270,6 +272,8 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             cbar = plt.colorbar(imgB_xz)
             cbar.set_ticks([-50, 0, 50])
             cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
+            cbar.set_label(r'$\mathcal{B}$', fontsize = 18)
+            figB.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/Bernoulli_scatter{snap}.png', dpi = 150)
 
             cbar = plt.colorbar(imgOE_xy)
             cbar.set_label(r'spec OE', fontsize = 18)
@@ -282,6 +286,8 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             cbar = plt.colorbar(imgOE_xz)
             cbar.set_ticks([-50, 0, 50])
             cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
+            cbar.set_label(r'spec OE', fontsize = 18)
+            figOE.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/OEspec_scatter{snap}.png', dpi = 150)
 
             axOEB.axvline(-np.pi/2, c='grey', ls='--')
             axOEB.axvline(np.pi/2, c='grey', ls='--')
@@ -402,7 +408,7 @@ if __name__ == '__main__':
         axEdd.plot(tfbH, (MwO/Medd_sol), c = colors_obs[1], label = label_obs[1])
         axEdd.plot(tfbH, (MwN/Medd_sol), c = colors_obs[2], label = label_obs[2])
         # axEdd.plot(tfbH, MwS/Medd_sol, c = colors_obs[3], label = label_obs[3])
-        # axEdd.plot(tfbH, Mw_sum/Medd_sol, c = 'darkviolet', label = 'sum')
+        # axEdd.plot(tfbH, Mw_sum/Medd_sol, c = 'leftviolet', label = 'sum')
         # axEdd.plot(tfbH_full, Mw_full/Medd_sol, c = 'orchid', label = 'all')
         # axEdd.plot(tfbfb, mwind_dimCellOld/Medd_sol, c = 'gold', ls = '--', label = r'paper1')
 

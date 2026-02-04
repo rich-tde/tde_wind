@@ -35,7 +35,7 @@ check = 'HiResNewAMR'
 snap = 109
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-choice = 'left_right_z_in_out' # 'dark_bright_z', 'all' or 'in_out_z'
+choice = 'left_right_z_in_out' # 'left_right_z', 'all' or 'in_out_z'
 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -91,17 +91,17 @@ def radial_profiles(loadpath, snap, ray_params, choice):
 
     # cut_mid = np.abs(Z) > dim_cell #np.logical_and(X<-10*Rt, np.abs(Z) > 50) #dim_cell)
     # cond_sec = choose_sections(X, Y, Z)
-    # cond_dark = cond_sec['dark']['cond']
-    # colors_dark = cond_sec['dark']['color']
-    # mid_dark = np.logical_and(cond_dark, np.abs(Z) < dim_cell)
+    # cond_left = cond_sec['left']['cond']
+    # colors_left = cond_sec['left']['color']
+    # mid_left = np.logical_and(cond_left, np.abs(Z) < dim_cell)
     # fig, (ax1, ax2) = plt.subplots(1,2, figsize = (15,7))
-    # ax1.scatter(X[mid_dark]/Rp, Y[mid_dark]/Rp, c = colors_dark, s = 2, label = 'Dark side')
+    # ax1.scatter(X[mid_left]/Rp, Y[mid_left]/Rp, c = colors_left, s = 2, label = 'left side')
     # ax1.set_xlim(-120, 50) 
     # ax1.set_ylim(-50, 50)
     # ax1.legend(fontsize = 18)
     # ax1.set_xlabel(r'X [$r_{\rm p}$]')
     # ax1.set_ylabel(r'Y [$r_{\rm p}$]')
-    # img = ax2.scatter(np.sqrt(X[cond_dark]**2 + Y[cond_dark]**2)/Rp, Z[cond_dark]/Rp, c = Den[cond_dark]*prel.den_converter, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-8), s = 2, label = 'Dark side')
+    # img = ax2.scatter(np.sqrt(X[cond_left]**2 + Y[cond_left]**2)/Rp, Z[cond_left]/Rp, c = Den[cond_left]*prel.den_converter, cmap = 'rainbow', norm = colors.LogNorm(vmin = 1e-10, vmax = 1e-8), s = 2, label = 'left side')
     # cbar = fig.colorbar(img)
     # cbar.set_label(r'Density [g cm$^{-3}$]', fontsize=16)
     # ax2.set_xlim(0, 30) 

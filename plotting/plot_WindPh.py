@@ -19,7 +19,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-which_obs = 'left_right_z_in_out' #'dark_bright_z' #'arch', 'quadrants', 'ax is'
+which_obs = 'left_right_in_out_z' #'left_right_z' #'arch', 'quadrants', 'ax is'
 check = 'HiResNewAMR' 
 
 params = [Mbh, Rstar, mstar, beta]
@@ -59,6 +59,7 @@ def mean_nonzero(arr, axis=1):
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
 observers_xyz = np.array(observers_xyz)
 indices_axis, label_axis, colors_axis, lines_axis = choose_observers(observers_xyz, which_obs)
+print([len(indices_axis[i]) for i in range(len(indices_axis))], flush=True)
 observers_xyz = observers_xyz.T
 x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
 
@@ -154,8 +155,8 @@ figL, (axL, axLmean) = plt.subplots(2, 1, figsize=(9, 13))
 figM, (axMdotobs, axLtrph) = plt.subplots(1, 2, figsize=(18, 6))
 
 for i, observer in enumerate(indices_axis):
-        # if i == 3:
-        #        continue
+        if label_axis[i] == 'south pole':
+               continue
         axTr.plot(tfbs, r_tr_sec[i]/Rt, c = colors_axis[i], ls = ':')
         # axTr.fill_between(tfbs, r_tr_perc16sec[i]/Rt, r_tr_perc84sec[i]/Rt, color=colors_axis[i], alpha=0.2)
         axTr.plot(tfbs, r_ph_sec[i]/Rt, c = colors_axis[i], label = label_axis[i])
