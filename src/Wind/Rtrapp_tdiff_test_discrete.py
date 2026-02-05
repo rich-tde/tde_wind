@@ -8,7 +8,7 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = True
+    compute = False
 
 #%%
 import gc
@@ -101,10 +101,9 @@ def r_trapp(loadpath, snap, ray_params):
     Rad_den_tr = np.zeros(len(observers_xyz))
     kappa_tr = np.zeros(len(observers_xyz))
 
-    fig_all, ax_all = plt.subplots(1, 3, figsize = (18,6))
-    for j in range(3): 
+    fig_all, ax_all = plt.subplots(1, len(indices_sorted), figsize = (5*len(indices_sorted),6))
+    for j in range(len(indices_sorted)): 
         list_obs = indices_sorted[j] 
-        print(len(list_obs), flush=True)
         for i in range(len(observers_xyz)):
             if i not in list_obs:
                     continue
@@ -215,10 +214,12 @@ def r_trapp(loadpath, snap, ray_params):
 
             if plot:
                 tdyn_single = ray_r / ray_vr * prel.tsol_cgs # cgs
-                tdiff_single = tau * ray_r * prel.Rsol_cgs / prel.c_cgs # cgs                
+                tdiff_single = tau * ray_r * prel.Rsol_cgs / prel.c_cgs # cgs   
+                r_sim = np.sqrt(ray_x**2 + ray_y**2 + ray_z**2)             
+                cross_line = r_sim[np.argmin(np.abs(tdiff_single - tdyn_single))] 
 
                 fig, ax1 = plt.subplots(1,1,figsize = (8,6))
-                ax1.plot(ray_r/Rt, tdyn_single/tfallback_cgs, c = 'k', label = r'$t_{\rm dyn}=r/v_r$')
+                ax1.plot(ray_r/Rt, tdyn_single/tfallback_cgs, '.', c = 'k', label = r'$t_{\rm dyn}=r/v_r$')
                 # add a twin y axis to show ray_vr 
                 # ax2 = ax1.twinx()
                 # ax2.plot(ray_r/Rt, ray_vr, c = 'r')
@@ -230,17 +231,17 @@ def r_trapp(loadpath, snap, ray_params):
                 cbar.set_label(r'$\tau$', fontsize = 20)
                 cbar.ax.tick_params(which = 'major', length=6, width=1)
                 cbar.ax.tick_params(which = 'minor', length=4, width=0.8)
+                ax1.axvline(cross_line/Rt, c = 'dodgerblue', label =  r'num $t_{\rm diff} = t_{\rm dyn}$')
                 ax1.axvline(Rt/Rt, c = 'k', linestyle = '-.', label = r'$r_{\rm t}$')
                 ax1.set_xlabel(r'$r [r_{\rm t}]$')
                 ax1.set_ylabel(r'$t [t_{\rm fb}]$')
-                ax1.loglog()    
                 ax1.set_xlim(R0/Rt, 2*rph[i]/Rt)
-                ax1.axvline(rph[i]/Rt, c = 'k', linestyle = 'dotted', label =  r'$r_{\rm ph}$')
                 # ax1.set_xlim(1e-5, 8)
                 ax1.set_ylim(1e-5, 10)
                 ax1.tick_params(axis='both', which='major', length=8, width=1.2)
                 ax1.tick_params(axis='both', which='minor', length=5, width=1)
                 ax1.legend(fontsize = 14)
+                ax1.loglog()    
                 # plt.suptitle(f'Snap {snap}, observer {label_obs[count_i]} (number {i})', fontsize = 16)
                 plt.suptitle(f'Section: {label_obs[j]}, ' + r'$(\theta, \phi)$ = ' + f'({theta:.2f}, {phi:.2f})', fontsize = 16) #phi according to pur convention (apocenter at -pi, clockwise), \theta from Npole to Spole 
                 plt.tight_layout()
@@ -252,7 +253,8 @@ def r_trapp(loadpath, snap, ray_params):
             if len(Rtr_idx_all) == 0:
                 # count_i += 1
                 print(f'For obs {i}, tdiff < tdyn always, no Rtr', flush=True)
-                fig.savefig(f'{abspath}/Figs/{folder}/Wind/discrete/{label_obs[j]}/tdiff_{snap}Obs{i}.png')
+                fig.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/discrete/{snap}/tdiff_{snap}Obs{i}.png')
+                plt.close(fig)
                 continue
             else: # take the one most outside 
                 Rtr_idx = Rtr_idx_all[-1] # so if you have a gap, it takes the next point
@@ -261,7 +263,8 @@ def r_trapp(loadpath, snap, ray_params):
             if ray_vol[Rtr_idx+1]/ray_vol[Rtr_idx] > 1e3:
                 # count_i += 1
                 print(f'For obs {i}, huge gap, so I skip, vol ratio: {int(ray_vol[Rtr_idx+1]/ray_vol[Rtr_idx])}', flush=True)
-                fig.savefig(f'{abspath}/Figs/{folder}/Wind/discrete/{label_obs[j]}/tdiff_{snap}Obs{i}.png')
+                fig.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/discrete/{snap}/tdiff_{snap}Obs{i}.png')
+                plt.close(fig)
                 continue
 
             if ray_r[Rtr_idx]/rph[i] >= 1:
@@ -300,15 +303,15 @@ def r_trapp(loadpath, snap, ray_params):
             kappa_tr[i] = ray_kappa[Rtr_idx]/prel.Rsol_cgs**2 * prel.Msol_cgs # to have it in sol units
             # M_dot_tr[i] = 4 * np.pi * ray_r[Rtr_idx]**2 * np.abs(Vr_tr[i]) * prel.Rsol_cgs**3/prel.tsol_cgs * den_tr[i] # den is already in cgs
             if plot:
-                r_sim = np.sqrt(x_tr[i]**2 + y_tr[i]**2 + z_tr[i]**2)
+                ax1.axvline(r_sim[Rtr_idx]/Rt, c = 'k', linestyle = '--', label =  r'$r_{\rm tr}$')
                 alpha_rossland_eval_sol = alpha_rossland_eval[Rtr_idx] * prel.Rsol_cgs # to have it in 1/[sol length]
-                check_line = prel.csol_cgs/(den_tr[i]*kappa_tr[i]*Vr_tr[i]) 
+                # check_line = prel.csol_cgs/(den_tr[i]*kappa_tr[i]*Vr_tr[i]) 
                 check_line_alpha = prel.csol_cgs/(alpha_rossland_eval_sol*Vr_tr[i]) 
-                ax1.axvline(check_line/Rt, c = 'r', label =  r'$\frac{c}{\rho \kappa v_{\rm r}}$')
-                ax1.axvline(check_line_alpha/Rt, c = 'gold', ls = '--', label =  r'$\frac{c}{\alpha v_{\rm r}}$')
-                ax1.axvline(r_sim/Rt, c = 'k', linestyle = '--', label =  r'$r_{\rm tr}$')
+                # ax1.axvline(check_line/Rt, c = 'r', label =  r'$\frac{c}{\rho \kappa v_{\rm r}}$')
+                ax1.axvline(check_line_alpha/Rt, c = 'gold', ls = ':', label =  r'$\frac{c}{\alpha v_{\rm r}}$')
                 ax1.legend(fontsize = 14)
-                fig.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/discrete/{label_obs[j]}/tdiff_{snap}Obs{i}.png')
+                fig.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/discrete/{snap}/tdiff_{snap}Obs{i}.png')
+                plt.close(fig)
             
             # count_i += 1
             del ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, alpha_rossland_eval, tau, ray_P, ray_ieDen, ray_radDen, idx, ray_kappa
@@ -323,7 +326,7 @@ def r_trapp(loadpath, snap, ray_params):
     if plot:  
         ax_all[0].set_ylabel(r'$\kappa$ [cm$^2$/g]') 
         fig_all.tight_layout()
-        fig_all.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/discrete/kappa_all_{snap}.png')
+        fig_all.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/discrete/{snap}/kappa_all_{snap}.png')
     
     r_trapp = {
         'x_tr': x_tr,
@@ -357,11 +360,11 @@ else:
 for snap in snaps: 
     if compute:
         eng = matlab.engine.start_matlab()
-        if alice:
+        if alice: 
             loadpath = f'{pre}/snap_{snap}'
             print(snap, flush=True)
         else: 
-            choice ='in_out_z'
+            choice ='left_right_in_out_z'
             loadpath = f'{pre}/{snap}'
             observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
             indices_sorted, label_obs, colors_obs, _ = choose_observers(observers_xyz, choice)
@@ -374,17 +377,18 @@ for snap in snaps:
             # label_obs, colors_obs, test_idx = sort_list([label_obs, colors_obs, test_idx], test_idx)
             r_tr = r_trapp(loadpath, snap, [Rt, 5000])
 
-        np.savez(f"{pre_saving}/trap/{check}_Rtr{snap}_test.npz", **r_tr)
+        np.savez(f"{pre_saving}/trap/{check}_Rtr{snap}_discrete.npz", **r_tr)
         # if alice:
         eng.exit()
 
     if plot:
-        almost = [109]
-        dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}_test.npz")
+        choice ='left_right_in_out_z'
+        almost = [2, 56]
+        dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}_discrete.npz")
         x_tr, y_tr, z_tr , den_tr, Vr_tr, kappa_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['kappa_tr']
         radius_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
         Mdot_w = 4 * np.pi * radius_tr**2 * Vr_tr * den_tr
-        Mdot_Edd_k = 4 * np.pi * prel.G * Mbh / kappa_tr
+        Mdot_Edd_k = 4 * np.pi * prel.G * Mbh / (kappa_tr * prel.csol_cgs) 
         # Mdot_w_cgs = Mdot_w * prel.Msol_cgs/prel.tsol_cgs
         # t_dyn = radius_tr / np.abs(Vr_tr)
         fig, ax = plt.subplots(1, 1, figsize = (8, 8)) 
@@ -392,7 +396,7 @@ for snap in snaps:
         # ax.set_xlabel(r'Observer index')
         # ax.set_ylabel(r'$t_{\rm dyn}$ [t$_{\rm fb}$]')
         ax.scatter(radius_tr/Rg, Mdot_w/Mdot_Edd_k, s = 10, c = 'k')
-        ax.scatter(radius_tr[almost]/Rg, (Mdot_w/Mdot_Edd_k)[almost], s = 20, c = 'r')
+        ax.scatter(radius_tr[almost]/Rg, (Mdot_w/Mdot_Edd_k)[almost], s = 40, c = 'r')
         ax.set_xlabel(r'$r_{\rm tr} / r_{\rm g}$')
         ax.set_ylabel(r'$\dot{M}_{\rm w} / \dot{M}_{\rm Edd}$')
         ax.set_xlim(1e2, 1e7)
@@ -403,6 +407,7 @@ for snap in snaps:
         ax.tick_params(axis='both', which='minor', length=6, width=1)
         ax.tick_params(axis='both', which='major', length=10, width=1.5)
         plt.tight_layout()
+        plt.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/discrete/{snap}/Mdot_tr{snap}.png')
     
 
 #%%

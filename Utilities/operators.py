@@ -179,8 +179,8 @@ def choose_sections(X, Y, Z, choice):
         cond_right_out = np.logical_and(X >= 0, np.logical_and(Y < 0, np.abs(Z) <= slope * R_cyl))
         left_in = {'cond': cond_left_in, 'label': r'left in', 'color': 'r', 'line': 'solid'}
         right_in = {'cond': cond_right_in, 'label': r'right in', 'color': 'sandybrown', 'line': 'dashed'}
-        left_out = {'cond': cond_left_out, 'label': r'left out', 'color': 'yellowgreen', 'line': 'solid'}
-        right_out = {'cond': cond_right_out, 'label': r'right out', 'color': 'forestgreen', 'line': 'dashed'}
+        left_out = {'cond': cond_left_out, 'label': r'left out', 'color': 'forestgreen', 'line': 'solid'}
+        right_out = {'cond': cond_right_out, 'label': r'right out', 'color': 'yellowgreen', 'line': 'dashed'}
         sec = {'left_in': left_in, 'right_in': right_in, 'left_out': left_out, 'right_out': right_out, 'north': north, 'south': south}
     
     if choice == 'arch':

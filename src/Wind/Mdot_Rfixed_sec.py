@@ -9,7 +9,7 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = True
+    compute = False
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -38,7 +38,7 @@ compton = 'Compton'
 check = 'HiResNewAMR'
 with_who = ''  # '' or 'Obs'
 n_obs = '' #'_npix8' or ''
-choice = 'left_right_in_out_z' #'arch'x, 'quadrants', 'ax is', 'left_right_z', 'all' or 'in_out_z'
+choice = 'left_right_in_out_z' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z'
 wind_cond = '' # '' for bernouilli coeff or 'OE' for orbital energy
 how = '' # '' for the normalized sum or 'mean' for mean of Mw of each cells
 
@@ -333,7 +333,7 @@ if __name__ == '__main__':
                 file.close()
 
     if plot:
-        which_r_title = '2apo'
+        which_r_title = '05amin'
         fig, (axEdd, axall, axfb) = plt.subplots(1, 3, figsize = (24, 7))
 
         fallback = \
@@ -355,91 +355,83 @@ if __name__ == '__main__':
                         delimiter = ',', 
                         skiprows=1, 
                         unpack=True) 
-        tfbH, MwI, MwO ,MwN, MwS = wind[1], wind[2], wind[3], wind[4], wind[5] 
-        Mw_sum = MwI + MwO + MwN + MwS
-        
-        # wind_mean = \
-        #         np.loadtxt(f'{abspath}/data/{folder}/wind/{choice}/MdotSecmean_{check}{which_r_title}{choice}.csv', 
-        #                 delimiter = ',', 
-        #                 skiprows=1, 
-        #                 unpack=True) 
-        # tfbH_mean, MwI_mean, MwO_mean, MwN_mean, MwS_mean = wind_mean[1], wind_mean[2], wind_mean[3], wind_mean[4], wind_mean[5]
+        tfbH = wind[1]
+        rest = wind[2:]
+
+        wind_NOnorm = \
+                np.loadtxt(f'{abspath}/data/{folder}/wind/{choice}/MdotNOnormSec_{check}{which_r_title}{choice}.csv', 
+                        delimiter = ',', 
+                        skiprows=1, 
+                        unpack=True) 
+        tfbH_NOnorm = wind_NOnorm[1]
+        rest_NOnorm = wind_NOnorm[2:]
+
+        wind_mean = \
+                np.loadtxt(f'{abspath}/data/{folder}/wind/{choice}/MdotSecmean_{check}{which_r_title}{choice}.csv', 
+                        delimiter = ',', 
+                        skiprows=1, 
+                        unpack=True) 
+        tfbH_mean = wind_mean[1]
+        rest_mean = wind_mean[2:]
 
         # wind_OE = \
         #         np.loadtxt(f'{abspath}/data/{folder}/wind/{choice}/MdotOESec_{check}{which_r_title}{choice}.csv', 
         #                 delimiter = ',', 
         #                 skiprows=1, 
         #                 unpack=True) 
-        # tfbH_OE, MwI_OE, MwO_OE, MwN_OE, MwS_OE = wind_OE[1], wind_OE[2], wind_OE[3], wind_OE[4], wind_OE[5]
+        # tfbH_OE = wind_OE[1]
+        # rest_OE = wind_OE[2:]
 
         # wind_obs = \
         #         np.loadtxt(f'{abspath}/data/{folder}/wind/{choice}/MdotObsSec_{check}{which_r_title}{choice}.csv', 
         #                 delimiter = ',', 
         #                 skiprows=1, 
         #                 unpack=True) 
-        # tfbH_obs, MwI_obs, MwO_obs ,MwN_obs, MwS_obs = wind_obs[1], wind_obs[2], wind_obs[3], wind_obs[4], wind_obs[5] 
-        # Mw_sum_obs = MwI_obs + MwO_obs + MwN_obs + MwS_obs
+        # tfbH_obs = wind_obs[1]
+        # rest_obs = wind_obs[2:]
 
         # wind_Bound = \
         #         np.loadtxt(f'{abspath}/data/{folder}/wind/{choice}/MdotBoundSec_{check}{which_r_title}{choice}.csv', 
         #                 delimiter = ',', 
         #                 skiprows=1, 
         #                 unpack=True) 
-        # tfbH_Bound, MwI_Bound, MwO_Bound ,MwN_Bound, MwS_Bound = wind_Bound[1], wind_Bound[2], wind_Bound[3], wind_Bound[4], wind_Bound[5] 
-        # Mw_sum_Bound = MwI_Bound + MwO_Bound + MwN_Bound + MwS_Bound
+        # tfbH_Bound = wind_Bound[1]
+        # rest_Bound = wind_Bound[2:] 
 
         # wind_obs8 = \
         #         np.loadtxt(f'{abspath}/data/{folder}/wind/{choice}/MdotObs_npix8Sec_{check}{which_r_title}{choice}.csv', 
         #                 delimiter = ',', 
         #                 skiprows=1, 
         #                 unpack=True) 
-        # tfbH_obs8, MwI_obs8, MwO_obs8 ,MwN_obs8, MwS_obs8 = wind_obs8[1], wind_obs8[2], wind_obs8[3], wind_obs8[4], wind_obs8[5] 
-        # Mw_sum_obs8 = MwI_obs8 + MwO_obs8 + MwN_obs8 + MwS_obs8
+        # tfbH_obs8 = wind_obs8[1]
+        # rest_obs8 = wind_obs8[2:]
 
+        # Plot
+        axEdd.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--', label = r'$|\dot{M}_{\rm fb}|$')
+        Mw_sum = np.zeros(len(tfbH))
+        for i in range(len(rest)):
+            axEdd.plot(tfbH, rest[i]/Medd_sol, c = colors_obs[i], label = label_obs[i])
+            Mw_sum += rest[i]
+            # axEdd.plot(tfbH_Bound, rest_Bound[i]/Medd_sol, c = colors_obs[0], ls = '--', label = r'$\dot{M}_{\rm out, b}$')
+            # axEdd.plot(tfbH_mean, rest_mean[i]/Medd_sol, c = colors_obs[i], ls = '--', label = f'Mean' if i==0 else None)
+            axEdd.plot(tfbH_NOnorm, rest_NOnorm[i]/Medd_sol, c = colors_obs[i], ls = ':', label = f'No norm' if i==0 else None)
+            # axEdd.plot(tfbH_obs, rest_obs[i]/Medd_sol, c = colors_obs[i], ls = ':', label = f'Obs' if i==0 else None)
+            # axEdd.plot(tfbH_obs8, rest_obs8[i]/Medd_sol, c = colors_obs[i], ls = '-.', label = f'Obs8' if i==0 else None)
+            # axEdd.plot(tfbH_OE, rest_OE[i]/Medd_sol, c = colors_obs[i], ls = '--', label = f'OE cut' if i==0 else None)
+        # axEdd.plot(tfbH, Mw_sum/Medd_sol, c = 'black', ls = '-', label = 'Total')
+        # axEdd.plot(tfbH_full, Mw_full/Medd_sol, c = 'orchid', label = 'all')
+        # axEdd.plot(tfbfb, mwind_dimCellOld/Medd_sol, c = 'gold', ls = '--', label = r'paper1')
+
+        for i in range(len(rest)):
+            axall.plot(tfbH, rest[i]/Mw_sum, c = colors_obs[i], label = label_obs[i])
+            axfb.plot(tfbH[6:], np.abs(rest[i]/mfb)[6:], c = colors_obs[i], label = label_obs[i])
+        
         # integrate mwind_dimCell in tfb 
         # mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)
         # mfall_int = cumulative_trapezoid(np.abs(mfall), tfb, initial = 0)
         # print(f'integral of Mw at the last time: {mwind_dimCell_int[-1]/mstar} Mstar')
         # print(f'integral of Mfb at the last time: {mfall_int[-1]/mstar} Mstar')
         # print(f'End of simualation, Mw/Mfb in {check}:', np.abs(mwind_dimCell[-1]/mfall[-1]))
-        
-        axEdd.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--', label = r'$|\dot{M}_{\rm fb}|$')
-        axEdd.plot(tfbH, (MwI/Medd_sol), c = colors_obs[0], label = label_obs[0])
-        axEdd.plot(tfbH, (MwO/Medd_sol), c = colors_obs[1], label = label_obs[1])
-        axEdd.plot(tfbH, (MwN/Medd_sol), c = colors_obs[2], label = label_obs[2])
-        # axEdd.plot(tfbH, MwS/Medd_sol, c = colors_obs[3], label = label_obs[3])
-        # axEdd.plot(tfbH, Mw_sum/Medd_sol, c = 'leftviolet', label = 'sum')
-        # axEdd.plot(tfbH_full, Mw_full/Medd_sol, c = 'orchid', label = 'all')
-        # axEdd.plot(tfbfb, mwind_dimCellOld/Medd_sol, c = 'gold', ls = '--', label = r'paper1')
-
-        # axEdd.plot(tfbH_Bound, np.abs(MwI_Bound)/Medd_sol, c = colors_obs[0], ls = '--', label = r'$\dot{M}_{\rm out, b}$')
-        # axEdd.plot(tfbH_Bound, np.abs(MwO_Bound)/Medd_sol, c = colors_obs[1], ls = '--')
-        # axEdd.plot(tfbH_Bound, np.abs(MwN_Bound)/Medd_sol, c = colors_obs[2], ls = '--')
-
-        # axEdd.plot(tfbH_mean, np.abs(MwI_mean)/Medd_sol, c = colors_obs[0], ls = '--')
-        # axEdd.plot(tfbH_mean, np.abs(MwO_mean)/Medd_sol, c = colors_obs[1], ls = '--') 
-        # axEdd.plot(tfbH_mean, np.abs(MwN_mean)/Medd_sol, c = colors_obs[2], ls = '--', label = r'$\dot{M}_{\rm w}=\langle\dot{M}_{i}\rangle$')
-        
-        # axEdd.plot(tfbH_obs, np.abs(MwI_obs)/Medd_sol, c = colors_obs[0], ls = '--', label = 'Obs')
-        # axEdd.plot(tfbH_obs, np.abs(MwO_obs)/Medd_sol, c = colors_obs[1], ls = '--')
-        # axEdd.plot(tfbH_obs, np.abs(MwN_obs)/Medd_sol, c = colors_obs[2], ls = '--')
-        # axEdd.plot(tfbH_obs8, np.abs(MwI_obs8)/Medd_sol, c = colors_obs[0], ls = ':', label = 'Obs8')
-        # axEdd.plot(tfbH_obs8, np.abs(MwO_obs8)/Medd_sol, c = colors_obs[1], ls = ':')
-        # axEdd.plot(tfbH_obs8, np.abs(MwN_obs8)/Medd_sol, c = colors_obs[2], ls = ':')
-        
-        # axEdd.plot(tfbH_OE, np.abs(MwI_OE)/Medd_sol, c = colors_obs[0], ls = '--')
-        # axEdd.plot(tfbH_OE, np.abs(MwO_OE)/Medd_sol, c = colors_obs[1], ls = '--') 
-        # axEdd.plot(tfbH_OE, np.abs(MwN_OE)/Medd_sol, c = colors_obs[2], ls = '--', label = 'with OE cut')
-
-        axall.plot(tfbH, MwI/Mw_sum, c = colors_obs[0], label = label_obs[0])
-        axall.plot(tfbH, MwO/Mw_sum, c = colors_obs[1], label = label_obs[1])
-        axall.plot(tfbH, MwN/Mw_sum, c = colors_obs[2], label = label_obs[2])
-        # axall.plot(tfbH, np.abs(MwS)/Medd_sol, c = colors_obs[3], label = label_obs[3])
-
-        axfb.plot(tfbH[6:], np.abs(MwI/mfb)[6:], c = colors_obs[0])
-        axfb.plot(tfbH[6:], np.abs(MwO/mfb)[6:], c = colors_obs[1])
-        axfb.plot(tfbH[6:], np.abs(MwN/mfb)[6:], c = colors_obs[2])
-        # axfb.plot(tfbH, np.abs(MwS/mfb), c = colors_obs[3])
         
         original_ticks = axEdd.get_xticks()
         midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
