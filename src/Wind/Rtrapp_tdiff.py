@@ -229,12 +229,12 @@ def r_trapp(loadpath, snap, ray_params):
             # plt.close(fig)
             continue
         else: # take the one most outside 
-            Rtr_idx = Rtr_idx_all[-1]+1 # so if you have a gap, it takes the next point
+            Rtr_idx = Rtr_idx_all[-1] # so if you have a gap, it takes the before point
 
         # check you don't have a huge gap, otherwise it's just numerics: you don't really have 2 regimes
-        if ray_vol[Rtr_idx]/ray_vol[Rtr_idx-1] > 1e3:
+        if ray_vol[Rtr_idx+1]/ray_vol[Rtr_idx] > 1e3:
             indices_bigVol.append(i)
-            print(f'For obs {i}, huge gap, so I skip, vol ratio: {int(ray_vol[Rtr_idx]/ray_vol[Rtr_idx-1])}', flush=True)
+            print(f'For obs {i}, huge gap, so I skip, vol ratio: {int(ray_vol[Rtr_idx+1]/ray_vol[Rtr_idx])}', flush=True)
 
         if ray_r[Rtr_idx]/rph[i] >= 1:
             indices_overRph.append(i)
@@ -337,7 +337,7 @@ if compute:
         r_trap = r_trapp(loadpath, snap, [Rt, 5000])
 
         if alice:
-            np.savez(f"{pre_saving}/wind/trap/{check}_Rtr{snap}.npz", **r_trap)
+            np.savez(f"{pre_saving}/wind/trap_SMALLchoice/{check}_Rtr{snap}.npz", **r_trap)
     eng.exit()
 
 if plot:
