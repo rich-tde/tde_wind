@@ -99,6 +99,7 @@ def r_trapp(loadpath, snap, ray_params):
     IEden_tr = np.zeros(len(observers_xyz))
     Rad_den_tr = np.zeros(len(observers_xyz))
     kappa_tr = np.zeros(len(observers_xyz))
+    ratio_kept = np.zeros(len(observers_xyz))
 
     if plot:
         fig_all, ax_all = plt.subplots(1, len(indices_sorted), figsize = (len(indices_sorted)*5,6))
@@ -139,7 +140,7 @@ def r_trapp(loadpath, snap, ray_params):
         # check_dist = np.abs(r_sim - radii2) < Vol[idx]**(1/3)
         # r_sim = np.sqrt(X[idx]**2 + Y[idx]**2 + Z[idx]**2)
         check_dist = dist <= Vol[idx]**(1/3) #np.logical_and(dist <= Vol[idx]**(1/3), r_sim >= Rt)
-        # discarded_idx = initial_r_indices[~check_dist]
+        ratio_kept[i] = np.sum(check_dist)/len(check_dist)
         idx = idx[check_dist]
         ray_r = r[check_dist] 
 
@@ -231,9 +232,9 @@ def r_trapp(loadpath, snap, ray_params):
             Rtr_idx = Rtr_idx_all[-1]+1 # so if you have a gap, it takes the next point
 
         # check you don't have a huge gap, otherwise it's just numerics: you don't really have 2 regimes
-        if ray_vol[Rtr_idx+1]/ray_vol[Rtr_idx] > 1e3:
+        if ray_vol[Rtr_idx]/ray_vol[Rtr_idx-1] > 1e3:
             indices_bigVol.append(i)
-            print(f'For obs {i}, huge gap, so I skip, vol ratio: {int(ray_vol[Rtr_idx+1]/ray_vol[Rtr_idx])}', flush=True)
+            print(f'For obs {i}, huge gap, so I skip, vol ratio: {int(ray_vol[Rtr_idx]/ray_vol[Rtr_idx-1])}', flush=True)
 
         if ray_r[Rtr_idx]/rph[i] >= 1:
             indices_overRph.append(i)
@@ -298,6 +299,7 @@ def r_trapp(loadpath, snap, ray_params):
         'Rad_den_tr': Rad_den_tr,
         'indices_bigVol': indices_bigVol,
         'indices_overRph': indices_overRph,
+        'ratio_kept': ratio_kept
     }
     del X, Y, Z, T, Den, Vol, vel, v_rad, Press, IE_den, Rad_den
     gc.collect()
