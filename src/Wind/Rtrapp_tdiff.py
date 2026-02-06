@@ -8,13 +8,12 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = True
+    import matplotlib.pyplot as plt
+    import matplotlib.colors as colors
+    compute = False
 
-#%%
 import gc
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
 from scipy.integrate import cumulative_trapezoid
 import healpy as hp
 import matlab.engine
@@ -314,9 +313,11 @@ if alice:
 else:
     snaps = [109]
 
-for snap in snaps: 
-    if compute:
-        eng = matlab.engine.start_matlab()
+if compute:
+    eng = matlab.engine.start_matlab()
+    for snap in snaps: 
+        if snap <= 120:
+            continue
         if alice:
             loadpath = f'{pre}/snap_{snap}'
             print(snap, flush=True)
@@ -331,83 +332,121 @@ for snap in snaps:
             # colors_obs = np.array(colors_obs)
             # test_idx = np.array(test_idx)
             # label_obs, colors_obs, test_idx = sort_list([label_obs, colors_obs, test_idx], test_idx)
-            r_tr = r_trapp(loadpath, snap, [Rt, 5000])
+        r_trap = r_trapp(loadpath, snap, [Rt, 5000])
 
-        np.savez(f"{pre_saving}/wind/trap/{check}_Rtr{snap}_test.npz", **r_tr)
-        # if alice:
-        eng.exit()
+        if alice:
+            np.savez(f"{pre_saving}/wind/trap/{check}_Rtr{snap}.npz", **r_trap)
+    eng.exit()
 
-    if plot:
-        almost = [109]
-        dataRtr = np.load(f"{abspath}/data/{folder}/wind/trap/{check}_Rtr{snap}_test.npz")
-        x_tr, y_tr, z_tr , den_tr, Vr_tr, kappa_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['kappa_tr']
-        radius_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-        Mdot_w = 4 * np.pi * radius_tr**2 * Vr_tr * den_tr
-        Mdot_Edd_k = 4 * np.pi * prel.G * Mbh / kappa_tr
-        # Mdot_w_cgs = Mdot_w * prel.Msol_cgs/prel.tsol_cgs
-        # t_dyn = radius_tr / np.abs(Vr_tr)
-        fig, ax = plt.subplots(1, 1, figsize = (8, 8)) 
-        # ax.scatter(np.arange(len(radius_tr)), t_dyn/t_fb_sol, s = 5, c = 'k')
-        # ax.set_xlabel(r'Observer index')
-        # ax.set_ylabel(r'$t_{\rm dyn}$ [t$_{\rm fb}$]')
-        ax.scatter(radius_tr/Rg, Mdot_w/Mdot_Edd_k, s = 10, c = 'k')
-        ax.scatter(radius_tr[almost]/Rg, (Mdot_w/Mdot_Edd_k)[almost], s = 20, c = 'r')
-        ax.set_xlabel(r'$r_{\rm tr} / r_{\rm g}$')
-        ax.set_ylabel(r'$\dot{M}_{\rm w} / \dot{M}_{\rm Edd}$')
-        ax.set_xlim(1e2, 1e7)
-        ax.set_ylim(1e2, 1e7)
-        ax.loglog()
-        ax.set_title(f'Snap {snap}')
-        ax.grid()
-        ax.tick_params(axis='both', which='minor', length=6, width=1)
-        ax.tick_params(axis='both', which='major', length=10, width=1.5)
-        plt.tight_layout()
+if plot:
+    data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
+    snaps, tfbs, Lums = data[:, 0], data[:, 1], data[:, 2]
+    tfbs, snaps, Lums = sort_list([tfbs, snaps, Lums], snaps, unique=True)
+    snaps = snaps.astype(int)
+    observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
+    observers_xyz = np.array(observers_xyz)
+    indices_axis, label_axis, colors_axis, lines_axis = choose_observers(observers_xyz, 'left_right_in_out_z')
+
+    # almost = [109]
+    # dataRtr = np.load(f"{abspath}/data/{folder}/wind/trap/{check}_Rtr{snap}.npz")
+    # x_tr, y_tr, z_tr , den_tr, Vr_tr, kappa_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['kappa_tr']
+    # radius_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+    # Mdot_w = 4 * np.pi * radius_tr**2 * Vr_tr * den_tr
+    # Mdot_Edd_k = 4 * np.pi * prel.G * Mbh / kappa_tr
+    # # Mdot_w_cgs = Mdot_w * prel.Msol_cgs/prel.tsol_cgs
+    # # t_dyn = radius_tr / np.abs(Vr_tr)
+    # fig, ax = plt.subplots(1, 1, figsize = (8, 8)) 
+    # # ax.scatter(np.arange(len(radius_tr)), t_dyn/t_fb_sol, s = 5, c = 'k')
+    # # ax.set_xlabel(r'Observer index')
+    # # ax.set_ylabel(r'$t_{\rm dyn}$ [t$_{\rm fb}$]')
+    # ax.scatter(radius_tr/Rg, Mdot_w/Mdot_Edd_k, s = 10, c = 'k')
+    # ax.scatter(radius_tr[almost]/Rg, (Mdot_w/Mdot_Edd_k)[almost], s = 20, c = 'r')
+    # ax.set_xlabel(r'$r_{\rm tr} / r_{\rm g}$')
+    # ax.set_ylabel(r'$\dot{M}_{\rm w} / \dot{M}_{\rm Edd}$')
+    # ax.set_xlim(1e2, 1e7)
+    # ax.set_ylim(1e2, 1e7)
+    # ax.loglog()
+    # ax.set_title(f'Snap {snap}')
+    # ax.grid()
+    # ax.tick_params(axis='both', which='minor', length=6, width=1)
+    # ax.tick_params(axis='both', which='major', length=10, width=1.5)
+    # plt.tight_layout()
     
+    r_tr_sec = np.zeros((len(indices_axis), len(snaps)))
+    r_trnonzero_sec = np.zeros((len(indices_axis), len(snaps)))
+    NbigV_sec = np.zeros((len(indices_axis), len(snaps)))
+    r_trBigV_sec = np.zeros((len(indices_axis), len(snaps)))
+    r_trnonzeroBigV_sec = np.zeros((len(indices_axis), len(snaps)))
+    NoverRph_sec = np.zeros((len(indices_axis), len(snaps)))
+    r_trOverRph_sec = np.zeros((len(indices_axis), len(snaps)))
+    r_trnonzeroOverRph_sec = np.zeros((len(indices_axis), len(snaps)))
+    r_tr_tokeep = np.zeros((len(indices_axis), len(snaps)))
 
-#%%
-# if plot:
-#     photo = np.loadtxt(f'{pre_saving}/photo/{check}_photo{snap}.txt')
-#     xph, yph, zph = photo[0], photo[1], photo[2]
-#     rph = np.sqrt(xph**2 + yph**2 + zph**2)
-#     rph = rph[test_idx]
+    for s, snap in enumerate(snaps): 
+        # if snap != 109:
+        #     continue
+        dataRtr = np.load(f"{abspath}/data/{folder}/wind/trap_BIGchoice/{check}_Rtr{snap}.npz") # NB it is selected to be only done by wind cells
+        x_tr, y_tr, z_tr, den_tr, Vr_tr, Temp_tr, Rad_den_tr, vol_tr = \
+                dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['Temp_tr'], dataRtr['Rad_den_tr'], dataRtr['vol_tr']
+        indices_bigVol, indices_overRph = dataRtr['indices_bigVol'], dataRtr['indices_overRph']
+        r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
 
-#     dataRtrNOun = np.load(f"{pre_saving}/Rtrap_tests/{check}_Rtr{snap}_NOunique.npz")
-#     x_tr_i_NOun, y_tr_i_NOun, z_tr_i_NOun = \
-#         dataRtrNOun['x_tr'], dataRtrNOun['y_tr'], dataRtrNOun['z_tr']
-#     R_tr_i_NOun = np.sqrt(x_tr_i_NOun**2 + y_tr_i_NOun**2 + z_tr_i_NOun**2)
-#     R_tr_i_NOun = R_tr_i_NOun[test_idx]
+        for i, observer in enumerate(indices_axis):                
+                exist_rtr = r_tr[observer] > 1.5*Rt 
+                indices_nonzero = observer[exist_rtr]
+                r_tr_sec[i][s] = np.median(r_tr[observer])  
+                r_trnonzero_sec[i][s] = np.median(r_tr[indices_nonzero]) 
 
-#     dataRtr = np.load(f"{pre_saving}/Rtrap_tests/{check}_Rtr{snap}.npz")
-#     x_tr_i, y_tr_i, z_tr_i, idx_tr = \
-#         dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['idx_tr']
-#     R_tr_i = np.sqrt(x_tr_i**2 + y_tr_i**2 + z_tr_i**2)
-#     R_tr_i = R_tr_i[test_idx]
+                indices_sec_bigVol = np.array(np.intersect1d(observer, indices_bigVol), dtype = int)
+                NbigV_sec[i][s] = len(indices_sec_bigVol)
+                r_trBigV_sec[i][s] = np.median(r_tr[~indices_sec_bigVol] if len(indices_sec_bigVol) >0 else r_tr[observer])
+                indices_sec_bigVol_nonzero = np.concatenate([~indices_sec_bigVol,indices_nonzero], dtype = int)
+                r_trnonzeroBigV_sec[i][s] = np.median(r_tr[indices_sec_bigVol_nonzero]) 
+                
+                indices_sec_overRph = np.array(np.intersect1d(observer, indices_overRph), dtype = int)
+                NoverRph_sec[i][s] = len(indices_sec_overRph)
+                r_trOverRph_sec[i][s] = np.median(r_tr[~indices_sec_overRph]) 
+                indices_sec_overRph_nonzero = np.concatenate([~indices_sec_overRph,indices_nonzero], dtype = int)
+                r_trnonzeroOverRph_sec[i][s] = np.median(r_tr[indices_sec_overRph_nonzero]) 
+                
+                indices_excess = np.array(np.concatenate([indices_sec_bigVol, indices_sec_overRph]), dtype = int)
+                r_tr_tokeep[i][s] = np.median(r_tr[~indices_excess])  
 
-#     plt.figure(figsize = (8, 6))
-#     plt.axvline(R_tr_i_NOun[4]/apo, label = r'$R_{\rm tr}$ without unique/sort', c = 'b')
-#     plt.axvline(R_tr_i[4]/apo, label = r'$R_{\rm tr}$ with unique/sort', ls = '--', c = 'C1')
-#     plt.axvline(rph[4]/apo, label = r'$R_{\rm ph}$', c = 'k')
-#     plt.legend(fontsize = 16)
-#     plt.xlim(0, 2.5)
-#     plt.xlabel(r'$R [R_{\rm a}]$')
-#     plt.title(f'Snap {snap}, observer {test_idx[1]}')
+fig, (axr, axnonzero) = plt.subplots(1, 2, figsize=(16, 6))
+figBigV, (axBigVperc, axBigV, axnonzeroBigV) = plt.subplots(1, 3, figsize=(24, 6))
+figOverRph, (axOverRphperc, axOverRph, axnonzeroOverRph) = plt.subplots(1, 3, figsize=(24, 6))
+for i, observer in enumerate(indices_axis):
+        if label_axis[i] == 'south pole':
+               continue
+        axr.plot(tfbs, r_tr_sec[i]/Rt, c = colors_axis[i], label = label_axis[i])
+        axnonzero.plot(tfbs, r_trnonzero_sec[i]/Rt, c = colors_axis[i]) #, label = r'$r_{\rm tr}$' if i == 0 else '')
 
+        axBigVperc.plot(tfbs, NbigV_sec[i]/len(observer), c = colors_axis[i], label = label_axis[i])
+        axBigV.plot(tfbs, r_trBigV_sec[i]/Rt, c = colors_axis[i])
+        axnonzeroBigV.plot(tfbs, r_trnonzeroBigV_sec[i]/Rt, c = colors_axis[i]) 
 
-    # to check that the indices are correct are correct
-    # idx_tr = np.array([int(idx_tr[i]) for i in range(len(idx_tr))])
-    ## where_zero = np.where(idx_tr == 0)[0]
-    # loadpath = f'{pre}/{snap}'
-    # data = make_tree(loadpath, snap)
-    # X, Y, Z, Den = data.X, data.Y, data.Z, data.Den
-    # cut = Den > 1e-19   
-    # X, Y, Z = make_slices([X, Y, Z], cut)
-    # x_sim, y_sim, z_sim = X[idx_tr], Y[idx_tr], Z[idx_tr]
+        axOverRphperc.plot(tfbs, NoverRph_sec[i]/len(observer), c = colors_axis[i], label = label_axis[i])
+        axOverRph.plot(tfbs, r_trOverRph_sec[i]/Rt, c = colors_axis[i])
+        axnonzeroOverRph.plot(tfbs, r_trnonzeroOverRph_sec[i]/Rt, c = colors_axis[i])
 
-    # plt.scatter(np.arange(len(x_tr_i)), x_tr_i/x_sim, label = 'x')
-    # plt.scatter(np.arange(len(y_tr_i)), y_tr_i/y_sim, label = 'y')
-    # plt.scatter(np.arange(len(z_tr_i)), z_tr_i/z_sim, label = 'z')
-    # plt.legend() 
-
-
-
-
+for ax in [axr, axnonzero, axBigVperc, axBigV, axnonzeroBigV, axOverRphperc, axOverRph, axnonzeroOverRph]:
+    ax.set_xlabel(r'$t/t_{\rm fb}$')
+    ax.tick_params(axis='both', which='major', width=1.2, length=9, color = 'k')
+    ax.tick_params(axis='both', which='minor', width=1, length=7, color = 'k')
+    ax.set_xlim(0, np.max(tfbs))
+    ax.grid()
+    if ax in [axr, axBigV, axOverRph]:
+        ax.set_title(r'All observers', fontsize = 20)
+        ax.set_ylabel(r'median $r_{\rm tr} / r_{\rm t}$')
+    elif ax in [axnonzero, axnonzeroBigV, axnonzeroOverRph]:
+        ax.set_title(r'Non zeros', fontsize = 20)
+        ax.legend(fontsize = 16)
+    if ax not in [axBigVperc, axOverRphperc]:
+        ax.set_yscale('log')
+        ax.set_ylim(1, 100)
+        ax.legend(fontsize = 16)
+axBigVperc.set_ylabel('Ratio obs with big gap', fontsize = 20)
+axOverRphperc.set_ylabel(r'Ratio obs with $r_{\rm tr} > r_{\rm ph}$', fontsize = 20)
+fig.tight_layout()
+figBigV.tight_layout()
+figOverRph.tight_layout()

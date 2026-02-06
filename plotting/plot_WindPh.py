@@ -215,6 +215,7 @@ for ax in [axTrnonzero, axTr, axratio, axNtr, axVph, axdph, axL, axLmean, axMdot
         #     ax.set_title(r'Mean on observers (NON discarding the one with $r_{\rm tr}=0$)')
 
 axTr.set_ylim(1, 100)
+axTrnonzero.set_ylim(1, 100)
 axratio.set_ylim(1, 10)
 axdph.set_ylim(1e-14, 1e-10)
 axVph.set_ylim(1e3, 2e4)
