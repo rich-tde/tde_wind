@@ -334,33 +334,19 @@ if __name__ == '__main__':
     ln_T_extr, ln_Rho_extr, ln_scatter = opacity_linear(ln_T_tab, ln_Rho_tab, ln_scatt_tab, slope_length = 7, highT_slope = 0)
     T_ext = np.exp(ln_T_extr)
     Rho_ext = np.exp(ln_Rho_extr)
-    scatter_extr = np.exp(ln_scatter) # 1/cm
-    # Old extrapoaltion
-    _, _, ln_rossland_Oldextr = \
-        opacity_extrap(ln_T_tab, ln_Rho_tab, ln_rossland_tab, scatter = ln_scatter, slope_length = 5, highT_slope=-3.5)
-    ross_Oldext = np.exp(ln_rossland_Oldextr)
-    # lin A = q
-    _, _, ln_ross_lin = \
-        opacity_linear(ln_T_tab, ln_Rho_tab, ln_rossland_tab, scatter = ln_scatter, slope_length = 7, highT_slope=0)
-    ross_lin = np.exp(ln_ross_lin)
+    scatter_extr = np.exp(ln_scatter) # 1/cm)
     # Last extrapolation
     _, _, ln_rossland_final = \
-        opacity_extrap(ln_T_tab, ln_Rho_tab, ln_rossland_tab, scatter = ln_scatter, slope_length = 7, highT_slope= 0)
+        opacity_extrap(ln_T_tab, ln_Rho_tab, ln_rossland_tab, which_opacity= 'rosseland', scatter = ln_scatter, slope_length = 7)
     ross_final = np.exp(ln_rossland_final)
     
     # find kappa
     kappa_scatter = []
-    kappa_ross_Oldext = []
-    kappa_ross_lin = []
     kappa_ross_final = []
     for i in range(len(T_ext)):
         kappa_scatter.append(scatter_extr[i, :]/Rho_ext)
-        kappa_ross_Oldext.append(ross_Oldext[i, :]/Rho_ext)
-        kappa_ross_lin.append(ross_lin[i, :]/Rho_ext)
         kappa_ross_final.append(ross_final[i, :]/Rho_ext)
     kappa_scatter = np.array(kappa_scatter)
-    kappa_ross_Oldext = np.array(kappa_ross_Oldext)
-    kappa_ross_lin = np.array(kappa_ross_lin)
     kappa_ross_final = np.array(kappa_ross_final)
 
     # Plot at fixed T
@@ -375,7 +361,6 @@ if __name__ == '__main__':
         # print the angular coefficien of the line above
         # idx_overcome = np.where(Rho_ext>np.max(Rho_tab))[0][0]
         # print(np.gradient(np.log(kappa_ross_Oldext[iT_4, idx_overcome:]), np.log(Rho_ext[idx_overcome:])))
-        ax[i].plot(Rho_ext, kappa_ross_lin[iT_ext, :], ':', c = 'C1', label = r' $\kappa_R$ linear in $\rho$ A=1')
         # ax[i].set_ylim(.2, 1e4)
         # ax[i].set_xlim(5e-1, 1e-12)
         ax[i].plot(Rho_ext, kappa_scatter[iT_ext, :], c = 'dodgerblue', ls = '--', label = r' $\kappa_{\rm scatt}$')
@@ -401,7 +386,6 @@ if __name__ == '__main__':
             ax[i].plot(T__tab, kappa_ross_tab[:, irho], c = 'k', linewidth = 2.5, label = 'original')
         i_Rho = np.argmin(np.abs(Rho_ext - chosenRho))
         ax[i].plot(T_ext, kappa_ross_final[:, i_Rho], c = 'yellowgreen', ls = '--', label = r'final extrapolation')
-        ax[i].plot(T_ext, kappa_ross_lin[:, i_Rho], c = 'C1', ls = ':', label = r'linear in $\rho$ A =1')
         ax[i].set_xlabel(r'T [K]')
         ax[i].set_xlim(1e1,2e8)
         ax[i].set_ylim(1e-1, 2e2) #the axis from 7e-4 to 2e1 m2/g
@@ -417,25 +401,18 @@ if __name__ == '__main__':
     plt.tight_layout()
 
     #%% Mesh
-    fig, (ax0, axfin, ax1,ax2) = plt.subplots(1,4, figsize = (25,7))
+    fig, (ax0, axfin) = plt.subplots(1,2, figsize = (15,10))
     img = ax0.pcolormesh(np.log10(T_ext), np.log10(Rho_ext), kappa_scatter.T,  norm = LogNorm(vmin = 1e-4, vmax=1), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
-    cbar = plt.colorbar(img)
+    cbar = plt.colorbar(img, orientation = 'horizontal')
     ax0.set_title('Scattering')
     cbar.set_label(r'$\kappa$ [cm$^2$/g]')
 
     img = axfin.pcolormesh(np.log10(T_ext), np.log10(Rho_ext), kappa_ross_final.T,  norm = LogNorm(vmin = 1e-5, vmax=1e4), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
-    cbar = plt.colorbar(img)
-    axfin.set_title('Final extrap')
+    cbar = plt.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'$\kappa$ [cm$^2$/g]')
+    axfin.set_title('Rosseland')
 
-    img = ax1.pcolormesh(np.log10(T_ext), np.log10(Rho_ext), kappa_ross_lin.T,  norm = LogNorm(vmin = 1e-5, vmax=1e4), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
-    cbar = plt.colorbar(img)
-    ax1.set_title('Old extrapolation')
-    ax0.set_ylabel(r'$\log_{10} \rho$ [g/cm$^3$]')
-    img = ax2.pcolormesh(np.log10(T_ext), np.log10(Rho_ext), kappa_ross_Oldext.T, norm = LogNorm(vmin = 1e-5, vmax=1e4), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
-    cbar = plt.colorbar(img)
-    ax2.set_title('A=1 extrapolation')
-
-    for ax in [ax0, ax1, ax2, axfin]:
+    for ax in [ax0, axfin]:
         ax.axvline(np.log10(min_T), color = 'grey', linestyle = '--', label = 'lim table')
         ax.axvline(np.log10(max_T), color = 'grey', linestyle = '--')
         ax.axhline(np.log10(min_Rho), color = 'grey', linestyle = '--')
@@ -465,6 +442,7 @@ if __name__ == '__main__':
         ax.set_xlabel(r'$\log_{10} T$ [K]')
         ax.set_xlim(0.8,11)
         ax.set_ylim(-19.5,11)
+        ax.set_ylabel(r'$\log_{10} \rho$ [g/cm$^3$]')
     ax0.legend(fontsize=12, loc='center right')
     plt.tight_layout()
     if save:

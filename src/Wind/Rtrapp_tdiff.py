@@ -105,6 +105,7 @@ def r_trapp(loadpath, snap, ray_params):
         fig_all, ax_all = plt.subplots(1, len(indices_sorted), figsize = (len(indices_sorted)*5,6))
     indices_bigVol = []
     indices_overRph = []
+    
     for i in range(len(observers_xyz)):
         mu_x = observers_xyz[i][0]
         mu_y = observers_xyz[i][1]
@@ -186,6 +187,7 @@ def r_trapp(loadpath, snap, ray_params):
         ray_kappa = alpha_rossland_eval/ray_d
 
         if plot:
+            j = next(j for j in range(len(indices_sorted)) if i in indices_sorted[j])
             _, theta, phi = to_spherical_coordinate(mu_x, mu_y, mu_z)
             phi = np.where(phi > np.pi, phi - 2*np.pi, phi)
             phi = -phi
@@ -193,7 +195,7 @@ def r_trapp(loadpath, snap, ray_params):
             tdiff_single = tau * ray_r * prel.Rsol_cgs / prel.c_cgs # cgs                
 
             fig, ax1 = plt.subplots(1,1,figsize = (8,6))
-            ax1.plot(ray_r/Rt, tdyn_single/tfallback_cgs, '.', c = 'k', label = r'$t_{\rm dyn}=r/v_r$')
+            ax1.plot(ray_r/Rt, tdyn_single/tfallback_cgs, c = 'k', label = r'$t_{\rm dyn}=r/v_r$')
             # add a twin y axis to show ray_vr 
             # ax2 = ax1.twinx()
             # ax2.plot(ray_r/Rt, ray_vr, c = 'r')
@@ -212,11 +214,10 @@ def r_trapp(loadpath, snap, ray_params):
             ax1.set_xlim(R0/Rt, 2*rph[i]/Rt)
             # ax1.axvline(rph[i]/Rt, c = 'k', linestyle = 'dotted', label =  r'$r_{\rm ph}$')
             # ax1.set_xlim(1e-5, 8)
-            ax1.set_ylim(1e-5, 5)
+            ax1.set_ylim(1e-6, 1e2)
             ax1.tick_params(axis='both', which='major', length=8, width=1.2)
             ax1.tick_params(axis='both', which='minor', length=5, width=1)
             ax1.legend(fontsize = 14)
-            # plt.suptitle(f'Snap {snap}, observer {label_obs[count_i]} (number {i})', fontsize = 16)
             plt.suptitle(f'Section: {label_obs[j]}, ' + r'$(\theta, \phi)$ = ' + f'({theta:.2f}, {phi:.2f})', fontsize = 16) #phi according to pur convention (apocenter at -pi, clockwise), \theta from Npole to Spole 
             plt.tight_layout()
 
@@ -226,7 +227,8 @@ def r_trapp(loadpath, snap, ray_params):
         Rtr_idx_all = np.where(c_tau/ray_vr <= 1)[0]
         if len(Rtr_idx_all) == 0:
             print(f'For obs {i}, tdiff < tdyn always, no Rtr', flush=True)
-            # plt.close(fig)
+            fig.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/{snap}/{label_axis[j]}_tdiff_Obs{i}.png')
+            plt.close(fig)
             continue
         else: # take the one most outside 
             Rtr_idx = Rtr_idx_all[-1] # so if you have a gap, it takes the before point
@@ -262,8 +264,8 @@ def r_trapp(loadpath, snap, ray_params):
             # ax1.axvline(check_line_alpha/Rt, c = 'gold', ls = '--', label =  r'$\frac{c}{\alpha v_{\rm r}}$')
             ax1.axvline(r_tr[i]/Rt, c = 'k', linestyle = '--', label =  r'$r_{\rm tr}$')
             ax1.legend(fontsize = 14)
-            # fig.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/{snap}/tdiff_{snap}Obs{i}.png')
-            # plt.close(fig)
+            fig.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/{snap}/{label_axis[j]}_tdiff_Obs{i}.png')
+            plt.close(fig)
             
             # count_i += 1
             del ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, alpha_rossland_eval, tau, ray_P, ray_ieDen, ray_radDen, idx, ray_kappa
@@ -313,13 +315,13 @@ def r_trapp(loadpath, snap, ray_params):
 if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True)
 else:
-    snaps = [109]
+    snaps = [109, 151]
 
 if compute:
     eng = matlab.engine.start_matlab()
     for snap in snaps: 
-        if snap <= 120:
-            continue
+        # if snap <= 120:
+        #     continue
         if alice:
             loadpath = f'{pre}/snap_{snap}'
             print(snap, flush=True)
@@ -383,45 +385,50 @@ if plot:
     r_trOverRph_sec = np.zeros((len(indices_axis), len(snaps)))
     r_trnonzeroOverRph_sec = np.zeros((len(indices_axis), len(snaps)))
     r_tr_tokeep = np.zeros((len(indices_axis), len(snaps)))
+    unbound_ratio = np.zeros((len(indices_axis), len(snaps)))
 
     for s, snap in enumerate(snaps): 
         # if snap != 109:
         #     continue
-        dataRtr = np.load(f"{abspath}/data/{folder}/wind/trap_BIGchoice/{check}_Rtr{snap}.npz") # NB it is selected to be only done by wind cells
+        dataRtr = np.load(f"{abspath}/data/{folder}/wind/trap_SMALLchoice/{check}_Rtr{snap}.npz") # NB it is selected to be only done by wind cells
         x_tr, y_tr, z_tr, den_tr, Vr_tr, Temp_tr, Rad_den_tr, vol_tr = \
                 dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['Temp_tr'], dataRtr['Rad_den_tr'], dataRtr['vol_tr']
-        indices_bigVol, indices_overRph = dataRtr['indices_bigVol'], dataRtr['indices_overRph']
+        indices_bigVol, indices_overRph, ratio_kept = dataRtr['indices_bigVol'], dataRtr['indices_overRph'], dataRtr['ratio_kept']
         r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
 
-        for i, observer in enumerate(indices_axis):                
+        for i, observer in enumerate(indices_axis):  
+                unbound_ratio[i][s] = np.median(ratio_kept[observer])      
                 exist_rtr = r_tr[observer] > 1.5*Rt 
                 indices_nonzero = observer[exist_rtr]
                 r_tr_sec[i][s] = np.median(r_tr[observer])  
                 r_trnonzero_sec[i][s] = np.median(r_tr[indices_nonzero]) 
 
-                indices_sec_bigVol = np.array(np.intersect1d(observer, indices_bigVol), dtype = int)
-                NbigV_sec[i][s] = len(indices_sec_bigVol)
-                r_trBigV_sec[i][s] = np.median(r_tr[~indices_sec_bigVol] if len(indices_sec_bigVol) >0 else r_tr[observer])
-                indices_sec_bigVol_nonzero = np.concatenate([~indices_sec_bigVol,indices_nonzero], dtype = int)
-                r_trnonzeroBigV_sec[i][s] = np.median(r_tr[indices_sec_bigVol_nonzero]) 
+                sec_bigVol = np.array(np.intersect1d(indices_bigVol, observer), dtype = int)
+                NbigV_sec[i][s] = len(sec_bigVol)
+                r_tr[sec_bigVol] = 0  # to compare with old results, where you were skipping the big vol, and so was 0
+                r_trBigV_sec[i][s] = np.median(r_tr[observer])
+                indices_sec_NObigVol_nonzero = observer[r_tr[observer] > 1.5*Rt]
+                r_trnonzeroBigV_sec[i][s] = np.median(r_tr[indices_sec_NObigVol_nonzero]) 
                 
-                indices_sec_overRph = np.array(np.intersect1d(observer, indices_overRph), dtype = int)
-                NoverRph_sec[i][s] = len(indices_sec_overRph)
-                r_trOverRph_sec[i][s] = np.median(r_tr[~indices_sec_overRph]) 
-                indices_sec_overRph_nonzero = np.concatenate([~indices_sec_overRph,indices_nonzero], dtype = int)
-                r_trnonzeroOverRph_sec[i][s] = np.median(r_tr[indices_sec_overRph_nonzero]) 
+                sec_overRph = np.array(np.intersect1d(indices_overRph, observer), dtype = int)
+                NoverRph_sec[i][s] = len(sec_overRph)
+                r_tr[sec_overRph] = 0  # to compare with old results, where you were skipping the over Rph, and so was 0
+                r_trOverRph_sec[i][s] = np.median(r_tr[observer])
+                indices_sec_NOoverRph_nonzero = observer[r_tr[observer] > 1.5*Rt]
+                r_trnonzeroOverRph_sec[i][s] = np.median(r_tr[indices_sec_NOoverRph_nonzero]) 
                 
-                indices_excess = np.array(np.concatenate([indices_sec_bigVol, indices_sec_overRph]), dtype = int)
-                r_tr_tokeep[i][s] = np.median(r_tr[~indices_excess])  
+                r_tr_tokeep[i][s] = np.median(r_tr[observer])  
 
-fig, (axr, axnonzero) = plt.subplots(1, 2, figsize=(16, 6))
+fig, (axratiokept, axr, axnonzero) = plt.subplots(1, 3, figsize=(24, 6))
 figBigV, (axBigVperc, axBigV, axnonzeroBigV) = plt.subplots(1, 3, figsize=(24, 6))
 figOverRph, (axOverRphperc, axOverRph, axnonzeroOverRph) = plt.subplots(1, 3, figsize=(24, 6))
+figfin, axfin = plt.subplots(1, 1, figsize=(8, 6))
 for i, observer in enumerate(indices_axis):
         if label_axis[i] == 'south pole':
                continue
+        axratiokept.plot(tfbs, unbound_ratio[i], c = colors_axis[i], label = label_axis[i])
         axr.plot(tfbs, r_tr_sec[i]/Rt, c = colors_axis[i], label = label_axis[i])
-        axnonzero.plot(tfbs, r_trnonzero_sec[i]/Rt, c = colors_axis[i]) #, label = r'$r_{\rm tr}$' if i == 0 else '')
+        axnonzero.plot(tfbs, r_trnonzero_sec[i]/Rt, c = colors_axis[i]) 
 
         axBigVperc.plot(tfbs, NbigV_sec[i]/len(observer), c = colors_axis[i], label = label_axis[i])
         axBigV.plot(tfbs, r_trBigV_sec[i]/Rt, c = colors_axis[i])
@@ -431,7 +438,9 @@ for i, observer in enumerate(indices_axis):
         axOverRph.plot(tfbs, r_trOverRph_sec[i]/Rt, c = colors_axis[i])
         axnonzeroOverRph.plot(tfbs, r_trnonzeroOverRph_sec[i]/Rt, c = colors_axis[i])
 
-for ax in [axr, axnonzero, axBigVperc, axBigV, axnonzeroBigV, axOverRphperc, axOverRph, axnonzeroOverRph]:
+        axfin.plot(tfbs, r_tr_tokeep[i]/Rt, c = colors_axis[i], label = label_axis[i])
+
+for ax in [axratiokept, axr, axnonzero, axBigVperc, axBigV, axnonzeroBigV, axOverRphperc, axOverRph, axnonzeroOverRph, axfin]:
     ax.set_xlabel(r'$t/t_{\rm fb}$')
     ax.tick_params(axis='both', which='major', width=1.2, length=9, color = 'k')
     ax.tick_params(axis='both', which='minor', width=1, length=7, color = 'k')
@@ -443,10 +452,11 @@ for ax in [axr, axnonzero, axBigVperc, axBigV, axnonzeroBigV, axOverRphperc, axO
     elif ax in [axnonzero, axnonzeroBigV, axnonzeroOverRph]:
         ax.set_title(r'Non zeros', fontsize = 20)
         ax.legend(fontsize = 16)
-    if ax not in [axBigVperc, axOverRphperc]:
+    if ax not in [axratiokept, axBigVperc, axOverRphperc]:
         ax.set_yscale('log')
         ax.set_ylim(1, 100)
-        ax.legend(fontsize = 16)
+    ax.legend(fontsize = 16)
+axratiokept.set_ylabel('Rationbound material along the ray', fontsize = 20)
 axBigVperc.set_ylabel('Ratio obs with big gap', fontsize = 20)
 axOverRphperc.set_ylabel(r'Ratio obs with $r_{\rm tr} > r_{\rm ph}$', fontsize = 20)
 fig.tight_layout()
