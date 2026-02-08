@@ -34,6 +34,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
+wind_cond = 'OE' # '' for bernouilli coeff or 'OE' for orbital energy
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 pre_saving = f'{abspath}/data/{folder}'
@@ -73,9 +74,15 @@ def r_trapp(loadpath, snap, ray_params):
     vel = np.sqrt(VX**2 + VY**2 + VZ**2)
     R = np.sqrt(X**2 + Y**2 + Z**2)
     mass = Den * Vol
-    bern = orb.bern_coeff(R, vel, Den, mass, Press, IE_den, Rad_den, params)
-    mask = np.logical_and(Den > 1e-19, np.logical_and(bern > 0, v_rad >= 0)) 
 
+    # select just outflowing and unbound material
+    if wind_cond == '':
+        bern = orb.bern_coeff(R, vel, Den, mass, Press, IE_den, Rad_den, params)
+        mask = np.logical_and(Den > 1e-19, np.logical_and(v_rad >= 0, bern > 0)) 
+    if wind_cond == 'OE':
+        OE = orb.orbital_energy(R, vel, mass, params, prel.G)
+        mask = np.logical_and(Den > 1e-19, np.logical_and(v_rad >= 0, OE > 0))
+    
     X, Y, Z, T, Den, Vol, vel, v_rad, Press, IE_den, Rad_den = \
         make_slices([X, Y, Z, T, Den, Vol, vel, v_rad, Press, IE_den, Rad_den], mask)
     xyz = np.array([X, Y, Z]).T
@@ -339,7 +346,7 @@ if compute:
         r_trap = r_trapp(loadpath, snap, [Rt, 5000])
 
         if alice:
-            np.savez(f"{pre_saving}/wind/trap_SMALLchoice/{check}_Rtr{snap}.npz", **r_trap)
+            np.savez(f"{pre_saving}/wind/trap{wind_cond}_SMALLchoice/{check}_Rtr{snap}.npz", **r_trap)
     eng.exit()
 
 if plot:
