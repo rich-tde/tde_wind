@@ -10,7 +10,7 @@ else:
     abspath = '/Users/paolamartire/shocks'
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
-    compute = False
+    compute = True
 
 import gc
 import numpy as np
@@ -284,7 +284,7 @@ def r_trapp(loadpath, snap, ray_params):
     if plot:  
         ax_all[0].set_ylabel(r'$\kappa$ [cm$^2$/g]') 
         fig_all.tight_layout()
-        # fig_all.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/{snap}/kappa_all_{snap}.png')
+        fig_all.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/{snap}/kappa_all_{snap}.png')
     
     r_trapp = {
         'x_tr': x_tr,
@@ -315,7 +315,7 @@ def r_trapp(loadpath, snap, ray_params):
 if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True)
 else:
-    snaps = [109, 151]
+    snaps = [45]
 
 if compute:
     eng = matlab.engine.start_matlab()
@@ -390,7 +390,7 @@ if plot:
     for s, snap in enumerate(snaps): 
         # if snap != 109:
         #     continue
-        dataRtr = np.load(f"{abspath}/data/{folder}/wind/trap_SMALLchoice/{check}_Rtr{snap}.npz") # NB it is selected to be only done by wind cells
+        dataRtr = np.load(f"{abspath}/data/{folder}/wind/trap_BIGchoice/{check}_Rtr{snap}.npz") # NB it is selected to be only done by wind cells
         x_tr, y_tr, z_tr, den_tr, Vr_tr, Temp_tr, Rad_den_tr, vol_tr = \
                 dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['Temp_tr'], dataRtr['Rad_den_tr'], dataRtr['vol_tr']
         indices_bigVol, indices_overRph, ratio_kept = dataRtr['indices_bigVol'], dataRtr['indices_overRph'], dataRtr['ratio_kept']
@@ -456,7 +456,7 @@ for ax in [axratiokept, axr, axnonzero, axBigVperc, axBigV, axnonzeroBigV, axOve
         ax.set_yscale('log')
         ax.set_ylim(1, 100)
     ax.legend(fontsize = 16)
-axratiokept.set_ylabel('Rationbound material along the ray', fontsize = 20)
+axratiokept.set_ylabel('Ratio unbound material', fontsize = 20)
 axBigVperc.set_ylabel('Ratio obs with big gap', fontsize = 20)
 axOverRphperc.set_ylabel(r'Ratio obs with $r_{\rm tr} > r_{\rm ph}$', fontsize = 20)
 fig.tight_layout()
