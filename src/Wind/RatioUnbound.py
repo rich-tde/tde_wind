@@ -87,25 +87,21 @@ def Mdot_sec(path, snap, r_chosen, choice, wind_cond = ''):
     data = make_tree(path, snap, energy = True)
     X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
         data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Press, data.VX, data.VY, data.VZ, data.IE, data.Rad
-    cut = Den > 1e-19
-    X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
-        make_slices([X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
     dim_cell = Vol**(1/3)
     Rsph = np.sqrt(X**2 + Y**2 + Z**2)
+    cut = np.logical_and(Den > 1e-19, np.abs(Rsph - r_chosen) < dim_cell)
+    X, Y, Z, Rsph, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
+        make_slices([X, Y, Z, Rsph, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
     V = np.sqrt(VX**2 + VY**2 + VZ**2)
     bern = orb.bern_coeff(Rsph, V, Den, Mass, Press, IE_den, Rad_den, params)
     v_rad, _, _ = to_spherical_components(VX, VY, VZ, X, Y, Z)
     OE = orb.orbital_energy(Rsph, V, Mass, params, prel.G)
-    OE_spec = OE / Mass
-    if (bern < OE_spec).any():
-        print('Warning: some particles have Bernoulli < OE_spec', flush=True)
 
     # select just outflowing and unbound material
     if wind_cond == '':
         cond_wind = np.logical_and(v_rad >= 0, bern > 0)
-    if wind_cond == 'OE':
-        cond_wind = np.logical_and(v_rad >= 0, OE_spec > 0)
-    cond_wind = np.logical_and(cond_wind, np.abs(Rsph - r_chosen) < dim_cell)
+    if wind_cond == 'OE': 
+        cond_wind = np.logical_and(v_rad >= 0, OE > 0)
     X_wind, Y_wind, Z_wind = make_slices([X, Y, Z], cond_wind)
     
     indices_sec, _, _ = split_cells(X_wind, Y_wind, Z_wind, choice)
