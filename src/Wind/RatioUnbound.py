@@ -61,7 +61,7 @@ Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
-#%%
+
 # MAIN
 def split_cells(X, Y, Z, choice):
     indices = np.arange(len(X))
@@ -113,7 +113,7 @@ def Mdot_sec(path, snap, r_chosen, choice, wind_cond = ''):
 
     for j, indices in enumerate(indices_sec):
     # select the particles in the chosen section and at the chosen radius
-        ratio_u[j] = np.len(X_wind) / np.len(X)
+        ratio_u[j] = len(X_wind[indices]) / len(X)
         
     return ratio_u
 
