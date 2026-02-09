@@ -39,7 +39,7 @@ check = 'HiResNewAMR'
 with_who = ''  # '' or 'Obs'
 n_obs = '' #'_npix8' or ''
 choice = 'left_right_in_out_z' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z'
-wind_cond = '' # '' for bernouilli coeff or 'OE' for orbital energy
+wind_cond = 'OE' # '' for bernouilli coeff or 'OE' for orbital energy
 how = '' # '' for the normalized sum or 'mean' for mean of Mw of each cells
 
 if with_who == '':
@@ -167,7 +167,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             figV, axV = plt.subplots(3, 3, figsize=(21, 21))
             figB, axB = plt.subplots(3, 3, figsize=(21, 21))
             figOE, axOE = plt.subplots(3, 3, figsize=(21, 21))
-            figOEB, axOEB = plt.subplots(1,1, figsize=(8,6))
+            # figOEB, axOEB = plt.subplots(1,1, figsize=(8,6))
             if r_chosen > amin:
                 normaliz = apo
                 for ax in [axd, axV, axB, axOE]:
@@ -219,7 +219,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
                     # Lkin[j] = 0.5 * np.mean(Mdot[indices] * v_rad_wind[indices]**2)
                     Lkin[j] = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices]**3) 
             
-            if np.logical_and(plot, j!=3):
+            if np.logical_and(plot, j < 3):
                 theta_ourConv, _ = to_cylindric(X_wind[indices], Y_wind[indices])
                 # see what I'm selecting
                 img_xy = axd[0][j].scatter(X_wind[indices]/normaliz, Y_wind[indices]/normaliz, s=10, c = Den_wind[indices]*prel.den_converter, norm = colors.LogNorm(vmin=1e-14, vmax=2e-9))
@@ -242,7 +242,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
                 imgOE_xz = axOE[2][j].scatter(X_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = OE_spec_wind[indices], cmap = 'coolwarm', vmin = - 50, vmax= 50)
                 axOE[0][j].set_title(f'Section: {label_obs[j]}', fontsize = 16)
                 
-                axOEB.scatter(theta_ourConv, np.abs(bern_wind[indices]/OE_spec_wind[indices]), s=10, c = colors_obs[j], label = label_obs[j])
+                # axOEB.scatter(theta_ourConv, np.abs(bern_wind[indices]/OE_spec_wind[indices]), s=10, c = colors_obs[j], label = label_obs[j])
         
         if plot:
             cbar = plt.colorbar(img_xy)
@@ -251,7 +251,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             cbar.set_label(r'Density [g cm$^{-3}$]', fontsize = 18)
             cbar = plt.colorbar(img_xz)
             cbar.set_label(r'Density [g cm$^{-3}$]', fontsize = 18)
-            figd.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/Den_scatter{snap}.png', dpi = 150)
+            figd.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/{wind_cond}scatter/Den_scatter{snap}_first3.png', dpi = 150)
 
             cbar = plt.colorbar(imgV_xy)
             cbar.set_label(r'$v_{\rm r}$ [km/s]', fontsize = 18)
@@ -259,7 +259,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             cbar.set_label(r'$v_{\rm r}$ [km/s]', fontsize = 18)
             cbar = plt.colorbar(imgV_xz)
             cbar.set_label(r'$v_{\rm r}$ [km/s]', fontsize = 18)
-            figV.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/Vrad_scatter{snap}.png', dpi = 150)
+            figV.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/{wind_cond}scatter/rad_scatter{snap}_first3.png', dpi = 150)
 
             cbar = plt.colorbar(imgB_xy)
             cbar.set_label(r'$\mathcal{B}$', fontsize = 18)
@@ -273,7 +273,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             cbar.set_ticks([-50, 0, 50])
             cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
             cbar.set_label(r'$\mathcal{B}$', fontsize = 18)
-            figB.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/Bernoulli_scatter{snap}.png', dpi = 150)
+            figB.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/{wind_cond}scatter/Bernoulli_scatter{snap}_first3.png', dpi = 150)
 
             cbar = plt.colorbar(imgOE_xy)
             cbar.set_label(r'spec OE', fontsize = 18)
@@ -287,14 +287,14 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             cbar.set_ticks([-50, 0, 50])
             cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
             cbar.set_label(r'spec OE', fontsize = 18)
-            figOE.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/OEspec_scatter{snap}.png', dpi = 150)
+            figOE.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/{wind_cond}scatter/OEspec_scatter{snap}_first3.png', dpi = 150)
 
-            axOEB.axvline(-np.pi/2, c='grey', ls='--')
-            axOEB.axvline(np.pi/2, c='grey', ls='--')
-            axOEB.set_yscale('log')
-            axOEB.set_xlabel(r'$\phi$ [rad]', fontsize = 18)
-            axOEB.set_ylabel(r'$|\mathcal{B}/OE|$', fontsize = 18)
-            axOEB.legend(fontsize = 18)
+            # axOEB.axvline(-np.pi/2, c='grey', ls='--')
+            # axOEB.axvline(np.pi/2, c='grey', ls='--')
+            # axOEB.set_yscale('log')
+            # axOEB.set_xlabel(r'$\phi$ [rad]', fontsize = 18)
+            # axOEB.set_ylabel(r'$|\mathcal{B}/OE|$', fontsize = 18)
+            # axOEB.legend(fontsize = 18)
 
         if r_chosen > apo:
             data = np.concatenate([mwind, Lum_fs, Lkin])
@@ -313,7 +313,7 @@ if __name__ == '__main__':
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
             else: 
-                if snap not in [109]:
+                if snap not in [109, 151]:
                     continue
                 path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
             print(snap, flush=True)

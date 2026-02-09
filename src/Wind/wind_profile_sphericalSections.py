@@ -12,7 +12,7 @@ else:
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
     import matplotlib.cm as cm
-    compute = True
+    compute = True 
 
 import numpy as np
 import Utilities.prelude as prel
@@ -32,10 +32,10 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-snap = 109
+snap = 76
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-choice = 'left_right_z_in_out' # 'left_right_z', 'all' or 'in_out_z'
+choice = 'left_right_in_out_z' # 'left_right_z', 'all' or 'in_out_z'
 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -229,8 +229,8 @@ if plot:
     # Load profiles
     profiles = np.load(f'{abspath}/data/{folder}/wind/{choice}/rad_profSec{snap}_{choice}.npy', allow_pickle=True).item()
     for i, lab in enumerate(profiles.keys()):
-        # if i == 3:
-        #     continue
+        if lab == 'south pole':
+            continue
         r_plot = profiles[lab]['r'] 
         d = profiles[lab]['d_prof']
         v_tot = profiles[lab]['v_prof']

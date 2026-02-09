@@ -1,4 +1,5 @@
 """Compute trapping radius i.e. R: tau(R) = c/v(R) and diffusion and dynamical time in the radial direction"""
+from operator import lt
 import sys
 sys.path.append('/Users/paolamartire/shocks')
 from Utilities.isalice import isalice
@@ -10,7 +11,7 @@ else:
     abspath = '/Users/paolamartire/shocks'
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
-    compute = True
+    compute = False
 
 import gc
 import numpy as np
@@ -234,8 +235,9 @@ def r_trapp(loadpath, snap, ray_params):
         Rtr_idx_all = np.where(c_tau/ray_vr <= 1)[0]
         if len(Rtr_idx_all) == 0:
             print(f'For obs {i}, tdiff < tdyn always, no Rtr', flush=True)
-            fig.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/{snap}/{label_axis[j]}_tdiff_Obs{i}.png')
-            plt.close(fig)
+            if plot:
+                fig.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/{snap}/{label_axis[j]}_tdiff_Obs{i}.png')
+                plt.close(fig)
             continue
         else: # take the one most outside 
             Rtr_idx = Rtr_idx_all[-1] # so if you have a gap, it takes the before point
@@ -397,7 +399,7 @@ if plot:
     for s, snap in enumerate(snaps): 
         # if snap != 109:
         #     continue
-        dataRtr = np.load(f"{abspath}/data/{folder}/wind/trap_BIGchoice/{check}_Rtr{snap}.npz") # NB it is selected to be only done by wind cells
+        dataRtr = np.load(f"{abspath}/data/{folder}/wind/trapOE_SMALLchoice/{check}_Rtr{snap}.npz") # NB it is selected to be only done by wind cells
         x_tr, y_tr, z_tr, den_tr, Vr_tr, Temp_tr, Rad_den_tr, vol_tr = \
                 dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['Temp_tr'], dataRtr['Rad_den_tr'], dataRtr['vol_tr']
         indices_bigVol, indices_overRph, ratio_kept = dataRtr['indices_bigVol'], dataRtr['indices_overRph'], dataRtr['ratio_kept']
