@@ -245,7 +245,7 @@ if what == 'polar':
         _, idx = tree.query(np.array([[Rp, 0, 0]])) 
         idx = np.concatenate(idx)
         print(idx)
-        norm = (Rp, Den[idx]) 
+        norm = (Rp, Den[idx])  
 
         profiles = np.load(f'{abspath}/data/{folder}/wind/theta_prof{snap}{which_material}_{rchose_lab}.npy', allow_pickle=True).item()
         fig, ((axO, axd), (axV, axT)) = plt.subplots(2, 2, figsize=(16, 12)) 
