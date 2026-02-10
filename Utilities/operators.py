@@ -97,7 +97,7 @@ def to_spherical_coordinate(x, y, z, r_frame = 'math'):
     # Accept both scalars and arrays
     x = np.asarray(x)
     y = np.asarray(y)
-    z = np.asarray(z)
+    z = np.asarray(z) 
     r = np.sqrt(x**2 + y**2 + z**2)
     if np.logical_and(x==0, np.logical_and(y==0, z==0)).any():
         lat = np.pi/2
