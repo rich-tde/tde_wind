@@ -7,6 +7,7 @@ abspath = '/Users/paolamartire/shocks'
 import sys
 sys.path.append(abspath)
 import numpy as np
+import Utilities.operators as op
 import Utilities.prelude as prel
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
@@ -73,6 +74,35 @@ def bern_coeff(Rsph, vel, den, mass, Press, IE_den, Rad_den, params, G = prel.G)
     Press_spec = (Rad_den/3 + Press) / den
     B = orb_en_spec + IE_spec + Press_spec
     return B
+
+def pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params):
+    """ select the points that are in the wind, according to the Bernoulli criterion.
+    Parameters
+    ----------
+    X, Y, Z : array
+        Coordinates of the points in code units
+    VX, VY, VZ : array
+        Velocities of the points in code units
+    Den, Mass, Press, IE_den, Rad_den : array
+        Density, mass, pressure, internal energy density and radiation energy density of the points in code units
+    params : array
+        Parameters of the simulation [Mbh, Rstar, mstar, beta]
+    Returns
+    -------
+    cond_wind : array
+        Boolean array that is True for the points that are in the wind and False for the points that are not in the wind
+    bern : array
+        Bernoulli coefficient of (ALL) the points in code units
+    V_r : array
+        Radial velocity of (ALL) the points in code units
+    """
+    Rsph = np.sqrt(X**2 + Y**2 + Z**2)
+    vel = np.sqrt(VX**2 + VY**2 + VZ**2)
+    V_r, _, _ = op.to_spherical_components(VX, VY, VZ, X, Y, Z)
+    bern = bern_coeff(Rsph, vel, Den, Mass, Press, IE_den, Rad_den, params)
+    cond_wind = np.logical_and(V_r >= 0, bern > 0)
+
+    return cond_wind, bern, V_r
 
 def R_grav(Mbh, c, G):
     """ Gravitational radius of the black hole."""

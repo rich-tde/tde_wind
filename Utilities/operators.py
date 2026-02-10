@@ -66,27 +66,34 @@ def format_pi_frac(x, pos): # write colorbar ticks in terms of pi fractions
             return label
     return r'${0:.2g}\pi$'.format(frac)
 
-def draw_line(x_arr, alpha):
+def draw_line(x_arr, params, what):
     """ Draw a line in the x-y plane with slope tg(alpha).
     Parameters
     ----------
     x_arr: array.
         x coordinates of the points where you want to draw the line.
-    alpha: float.
-        Angle in radians of the line you want to draw. 
-        You use your own convention for the angle, so it has to be flipped (use -alpha) for numpy
+    params: array or float.
+        parameters of the line. If what == 'line', params is the angle alpha. 
+        If what == 'powerlaw', params is an array with the constant and the exponent of the power law.
     Returns
     -------
     y_arr: array.
         y coordinates of the points where you want to draw the line.
     """
-    y_arr = np.tan(-alpha) * x_arr
+    if what == 'line':
+        alpha = params
+        y_arr = np.tan(-alpha) * x_arr
+    if what == 'powerlaw':
+        const, alpha = params
+        y_arr = const * np.power(x_arr, alpha)
     return y_arr
 
-def to_spherical_coordinate(x, y, z):
+def to_spherical_coordinate(x, y, z, r_frame = 'math'):
     """ Transform the components of a vector from cartesian to spherical coordinates 
-    with lat in [0, pi] with North pole at 0, orbital plane at pi/2
-    and  long in [0, 2pi] with direction of positive x at 0 and y at pi/2 (as usual)"""
+    lat in [0, pi] with North pole at 0, orbital plane at pi/2
+    if r_frame == 'math': long in [0, 2pi] with direction of positive x at 0 and y at pi/2 (as usual)
+    if r_frame == 'us': long in [-pi, pi] clockwise with direction of positive x at 0 and y at -pi/2.
+    """
     # Accept both scalars and arrays
     x = np.asarray(x)
     y = np.asarray(y)
@@ -98,12 +105,15 @@ def to_spherical_coordinate(x, y, z):
     else:
         lat = np.arccos(z/r) # in [0, pi]
         long = np.arctan2(y, x) # in [-pi, pi]. 
-        long = np.where(long < 0, long + 2*np.pi, long)
+        if r_frame == 'math':
+            long = np.where(long < 0, long + 2*np.pi, long) # in [0, 2pi] counterclockwise with direction of positive x at 0 and y at pi/2 (as usual)
+        if r_frame == 'us':
+            long = -long # in [-pi, pi] clockwise with direction of positive x at 0 and y at -pi/2. 
     return r, lat, long
 
 def to_spherical_components(vec_x, vec_y, vec_z, x, y, z):
     """ Transform the components of a vector from cartesian to spherical coordinates."""
-    _, lat, long = to_spherical_coordinate(x, y, z)
+    _, lat, long = to_spherical_coordinate(x, y, z, r_frame = 'math')
     # Accept both scalars and arrays
     lat_arr = np.asarray(lat)
     long_arr = np.asarray(long)

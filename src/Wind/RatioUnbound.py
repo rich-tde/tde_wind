@@ -9,7 +9,7 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = True
+    compute = False
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -141,7 +141,7 @@ if __name__ == '__main__':
 
     if plot:
         which_r_title = '05amin'
-        fig, ax = plt.subplots(1, 1, figsize = (10, 7))
+        fig, (axB, axOE) = plt.subplots(1, 2, figsize = (21, 7))
 
         wind = \
                 np.loadtxt(f'{abspath}/data/{folder}/wind/{choice}/RatioUnbSec_{check}{which_r_title}{choice}.csv', 
@@ -151,89 +151,28 @@ if __name__ == '__main__':
         tfbH = wind[1]
         rest = wind[2:]
 
-        # wind_OE = \
-        #         np.loadtxt(f'{abspath}/data/{folder}/wind/{choice}/MdotOESec_{check}{which_r_title}{choice}.csv', 
-        #                 delimiter = ',', 
-        #                 skiprows=1, 
-        #                 unpack=True) 
-        # tfbH_OE = wind_OE[1]
-        # rest_OE = wind_OE[2:]
+        wind_OE = \
+                np.loadtxt(f'{abspath}/data/{folder}/wind/{choice}/RatioUnbOESec_{check}{which_r_title}{choice}.csv', 
+                        delimiter = ',', 
+                        skiprows=1, 
+                        unpack=True) 
+        tfbH_OE = wind_OE[1]
+        rest_OE = wind_OE[2:]
 
-    
         # Plot
-
         for i in range(len(rest)):
-            ax.plot(tfbH, rest[i], c = colors_obs[i], label = label_obs[i])
-            
-        # midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-        # new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-        # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
-        # for ax in [axEdd, axall, axfb]:
-        #     ax.set_yscale('log')
-        #     ax.set_xlabel(r'$t [t_{\rm fb}]$')
-        #     ax.set_xticks(new_ticks)
-        #     ax.set_xticklabels(labels)  
-        #     ax.set_xlim(0, np.max(tfbH))
-        #     ax.tick_params(axis='both', which='major', width=1.2, length=9)
-        #     ax.tick_params(axis='both', which='minor', width=1, length=5)
-        #     ax.legend(fontsize = 18)
-        #     ax.grid()
-        # axEdd.set_ylim(1e1, 7e6)
-        # axEdd.set_ylabel(r'$\dot{M}_{{\rm w}} [\dot{M}_{\rm Edd}]$')   
-        # axall.set_ylim(5e-2, 1.1)
-        # axall.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm w}]$')
-        # axfb.set_ylim(1e-3, 2)
-        # axfb.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm fb}]$')
-        # plt.suptitle(rf'$\dot{{M}}_{{\rm w}}$ at {which_r_title}', fontsize = 20)
-        # fig.tight_layout()
-
-        # fig, ax = plt.subplots(1,1, figsize = (8,6))
-        # ax.plot(tfbH, np.abs(mwind_dimCellH/mfallH), c = 'k')
-        # ax.set_yscale('log')
-        # ax.set_xlabel(r'$t [t_{\rm fb}]$')
-        # ax.set_ylabel(r'$|\dot{M}_{\rm w}/\dot{M}_{\rm fb}|$')
-        # original_ticks = ax.get_xticks()
-        # midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-        # new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-        # ax.set_xticks(new_ticks)
-        # labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
-        # ax.set_xticklabels(labels)
-        # ax.tick_params(axis='both', which='major', width=1.2, length=9)
-        # ax.tick_params(axis='both', which='minor', width=1, length=5)
-        # ax.set_ylim(1e-2, 1)
-        # ax.set_xlim(np.min(tfbH), np.max(tfbH))
-        # ax.grid()
-        # fig.tight_layout()
-
-        if which_r_title not in ['05amin', 'amin']: # plot energies
-            Lum_fsI, Lum_fsO, Lum_fsN, Lum_fsS, LkinI, LkinO, LkinN, LkinS = \
-                wind[6], wind[7], wind[8], wind[9], wind[10], wind[11], wind[12], wind[13]
-            fig, ax = plt.subplots(1, 1, figsize = (10, 7))
-            ax.plot(tfbH, np.abs(Lum_fsO)/(4*Ledd_sol), c = colors_obs[0], label = r'$L_{\rm fs}$')
-            ax.plot(tfbH, np.abs(Lum_fsO)/(4*Ledd_sol), c = colors_obs[0], label = label_obs[0])
-            ax.plot(tfbH, np.abs(Lum_fsI)/(4*Ledd_sol), c = colors_obs[1], label = label_obs[1])
-            ax.plot(tfbH, np.abs(Lum_fsN)/(4*Ledd_sol), c = colors_obs[2], label = label_obs[2])
-            ax.plot(tfbH, np.abs(LkinO)/(4*Ledd_sol), c = colors_obs[0], ls = '--', label = r'$L_{\rm kin}$')
-            ax.plot(tfbH, np.abs(LkinI)/(4*Ledd_sol), c = colors_obs[1], ls = '--')
-            ax.plot(tfbH, np.abs(LkinN)/(4*Ledd_sol), c = colors_obs[2], ls = '--')
-            original_ticks = ax.get_xticks()
-            midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-            new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-            labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
-            ax.set_yscale('log')
+            if label_obs[i] in ['south pole']:
+                continue
+            axB.plot(tfbH, rest[i], c = colors_obs[i], label = label_obs[i])
+            axOE.plot(tfbH_OE, rest_OE[i], c = colors_obs[i], label = label_obs[i])
+        
+        for ax in [axB, axOE]:  
             ax.set_xlabel(r'$t [t_{\rm fb}]$')
-            ax.set_xticks(new_ticks)
-            ax.set_xticklabels(labels)  
             ax.tick_params(axis='both', which='major', width=1.2, length=9)
             ax.tick_params(axis='both', which='minor', width=1, length=5)
-            ax.set_ylabel(r'$L [L_{\rm Edd}]$')   
-            ax.set_xlim(0, np.max(tfbH))
-            ax.set_ylim(1e-4, 1e3)
             ax.legend(fontsize = 18)
+            ax.set_yscale('log')
             ax.grid()
-            plt.suptitle(rf'r = {which_r_title}', fontsize = 20)
-            fig.tight_layout()
 
+            
 
-
-    # %%

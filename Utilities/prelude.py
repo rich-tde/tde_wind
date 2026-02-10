@@ -83,7 +83,10 @@ plt.rcParams['axes.labelsize'] = 25
 plt.rcParams['xtick.top'] = True
 plt.rcParams['ytick.right'] = True
 # plt.rcParams['text.usetex'] = False
-AEK = '#F1C410'
+name = "Accent"
+cmap = mpl.colormaps['Dark2']  # type: matplotlib.colors.ListedColormap
+colors_cy = cmap.colors  # type: list
+mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=colors_cy)
 
 if __name__ == '__main__':
     # it's the same converting from cgs ans SI ... of course lol
