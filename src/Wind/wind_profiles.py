@@ -233,22 +233,32 @@ if what == 'polar':
     
     else:
         from Utilities.basic_units import radians
+        figd, (ax0, axd, axs) = plt.subplots(1, 3, figsize=(25, 7)) 
+        figVT, (axV, axT) = plt.subplots(1, 2, figsize=(14, 7)) 
+        # Load data and search for cell at cirularization radius = 2Rp
         path = f'{pre}/{snap}'
         tfb = np.loadtxt(f'{path}/tfb_{snap}.txt') 
-
         data = make_tree(path, snap, energy = False)
-        X, Y, Z, Den = data.X, data.Y, data.Z, data.Den
+        X, Y, Z, Den, Vol = data.X, data.Y, data.Z, data.Den, data.Vol
         cut = Den > 1e-19
-        X, Y, Z, Den = make_slices([X, Y, Z, Den], cut)
+        X, Y, Z, Den, Vol = make_slices([X, Y, Z, Den, Vol], cut)
+        dim_cell = Vol**(1/3)
         xyz = np.array([X, Y, Z]).T
         tree = KDTree(xyz, leaf_size = 50) 
-        _, idx = tree.query(np.array([[Rp, 0, 0]])) 
+        _, idx = tree.query(np.array([[2*Rp, 0, 0]])) 
         idx = np.concatenate(idx)
-        print(idx)
         norm = (Rp, Den[idx])   
 
+        # plot xz plane
+        y_cut = np.abs(Y) < dim_cell
+        X_cut, Z_cut, Den_cut = X[y_cut], Z[y_cut], Den[y_cut]
+        img = axs.scatter(X_cut/Rt, Z_cut/Rt, c = Den_cut * prel.den_converter, norm = colors.LogNorm(vmin=1e-13, vmax=1e-8), cmap = 'rainbow', s = 1)
+        cbar = figd.colorbar(img)
+        cbar.set_label(r'$\rho$ (g/cm$^3)$')
+        axs.set_xlabel(r'x ($r_{\rm t}$)')
+        axs.set_ylabel(r'z ($r_{\rm t}$)')
+
         profiles = np.load(f'{abspath}/data/{folder}/wind/theta_prof{snap}{which_material}_{rchose_lab}.npy', allow_pickle=True).item()
-        fig, ((axO, axd), (axV, axT)) = plt.subplots(2, 2, figsize=(16, 12)) 
         for i, num in enumerate(profiles.keys()):
             phi = profiles[num]['phi']
             x_phi, y_phi = from_cylindric(phi, 1)
@@ -257,16 +267,15 @@ if what == 'polar':
             v_rad = profiles[num]['v_rad_prof'] 
             t = profiles[num]['t_prof']
 
-            axO.scatter(x_phi, y_phi, s = 100, linewidth = 2, label = r'$\phi = $' + f'{phi:.2f} rad')
+            ax0.scatter(x_phi, y_phi, s = 100, linewidth = 2, label = r'$\phi = $' + f'{phi:.2f} rad')
             axd.plot(theta_plot * radians, d * prel.den_converter, linewidth = 2, label = r'$\phi = $' + f'{phi:.2f} rad')
             axV.plot(theta_plot[v_rad>0] * radians, v_rad[v_rad>0] * conversion_sol_kms, linewidth = 2, label = r'$\phi = $' + f'{phi:.2f} rad')
             axT.plot(theta_plot * radians, t, linewidth = 2, label = r'$\phi = $' + f'{phi:.2f} rad')
         
         rho_Cou = CouBegel(rchosen, theta_plot, 0, norm, gamma=4/3)
-        print(Den[idx] * prel.den_converter)
         axd.plot(theta_plot * radians, rho_Cou * prel.den_converter, ls = ':', c = 'k', label = 'Coughlin+14')
         
-        for ax in [axO, axd, axV, axT]:
+        for ax in [ax0, axd, axV, axT]:
             ax.legend()
             ax.tick_params(axis='both', which='minor', length = 6, width = 1)
             ax.tick_params(axis='both', which='major', length = 10, width = 1.5)
@@ -282,9 +291,13 @@ if what == 'polar':
         axd.set_ylabel(r'$\rho$ [g/cm$^3]$')
         axV.set_ylabel(r'v$_{\rm r}$ [km/s]')
         axT.set_ylabel(r'$T_{\rm rad}$ [K]')
-        fig.suptitle(f'{which_material} at t = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 20)
-        fig.tight_layout()
-        fig.savefig(f'{abspath}/Figs/{folder}/Wind/polar_view/theta_prof{snap}{which_material}_{rchose_lab}.png', dpi = 300)
+        figd.suptitle(f'{which_material} at t = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 20)
+        figd.tight_layout()
+        figd.savefig(f'{abspath}/Figs/{folder}/Wind/polar_view/thetaD_prof{snap}{which_material}_{rchose_lab}.png', dpi = 300)
+        figVT.suptitle(f'{which_material} at t = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 20)
+        figVT.tight_layout()
+        figVT.savefig(f'{abspath}/Figs/{folder}/Wind/polar_view/thetaVT_prof{snap}{which_material}_{rchose_lab}.png', dpi = 300)
+
 
 if what == 'radial':
     choice = 'left_right_in_out_z' # 'left_right_z', 'all' or 'in_out_z'
