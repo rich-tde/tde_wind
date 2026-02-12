@@ -1,6 +1,6 @@
-""" Make slices of the orbital plane.
-If alice: make the section (with density cut 1e-19) and save it: coordinates, T, Den, cells size, ie density, oe density, rad density, 3 components of velocity.
-If not alice: load the section and plot it in 3 (density/specific energies in CGS) or 6 panels (density, T, cells size, energies all in CGS except mass/size).
+""" Make/plot slices at a fixed coordinate (choose x,y,z).
+If alice: make the section (with density cut 1e-19) and save it: X, Y, Z, vol, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, Press
+If not alice: load the section and plot the slice with color = chosen quantity.
 """
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
@@ -17,8 +17,6 @@ from Utilities.selectors_for_snap import select_snap, select_prefix
 import src.orbits as orb
 import Utilities.prelude as prel
 import Utilities.sections as sec
-from Utilities.isalice import isalice
-alice, plot = isalice()
 from Utilities.operators import make_tree
 
 #
@@ -33,6 +31,8 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' # 'LowRes' or 'HiRes'
+coord_to_cut = 'z' # 'x', 'y', 'z'
+cut_chosen = 0
 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -40,18 +40,15 @@ Rs = things['Rs']
 Rt = things['Rt']
 Rp = things['Rp']
 apo = things['apo']
-coord_to_cut = 'z' # 'x', 'y', 'z'
-cut_chosen = 0
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 if cut_chosen == Rp:
     cut_name = 'Rp'
 else:
-    cut_name =  int(cut_chosen)
+    cut_name =  cut_chosen
 
 if alice:
     # get ready to slice and save
-    do = True
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
     with open(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}_time.txt','w') as file:
         file.write('#Snap \n') 
@@ -62,7 +59,6 @@ if alice:
 else:
     # get ready to plot
     import healpy as hp
-    do = False
     time = np.loadtxt(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}_time.txt')
     snaps = time[0]
     snaps = [int(snap) for snap in snaps]
@@ -78,17 +74,17 @@ else:
     indecesorbital = np.concatenate(np.where(latitude_moll==0))
 
 for idx, snap in enumerate(snaps):
-    # if snap != 0:
-    #         continue
+    if snap > 50:
+            continue
     print(snap, flush=True)
-    if do:
+    if alice:
         # you are in alice
         path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
         path = f'{path}/snap_{snap}'
 
         data = make_tree(path, snap, energy = True)
-        X, Y, Z, vol, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, IE_den, Press = \
-            data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Temp, data.IE, data.Rad, data.VX, data.VY, data.VZ, data.Diss, data.IE, data.Press
+        X, Y, Z, vol, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, Press = \
+            data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Temp, data.IE, data.Rad, data.VX, data.VY, data.VZ, data.Diss, data.Press
         Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
         dim_cell = vol**(1/3)
         if coord_to_cut == 'x':
@@ -102,13 +98,25 @@ for idx, snap in enumerate(snaps):
         density_cut = den > 1e-19
         coordinate_cut = np.abs(cutcoord-cut_chosen) < dim_cell
         cut = np.logical_and(density_cut, coordinate_cut)
-        x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut, temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut, IE_den_cut, Press_cut = \
-            sec.make_slices([X, Y, Z, dim_cell, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, IE_den, Press], cut)
+        x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut, temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, Diss_den_cut, Press_cut = \
+            sec.make_slices([X, Y, Z, dim_cell, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, Press], cut)
 
-        slice_data = [x_cut, y_cut, z_cut, dim_cut, den_cut, mass_cut, \
-                      temp_cut, ie_den_cut, Rad_den_cut, VX_cut, VY_cut, VZ_cut, \
-                        Diss_den_cut, IE_den_cut, Press_cut]
-        np.save(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy', slice_data)
+        np.savez(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npz',
+                    x=x_cut,
+                    y=y_cut,
+                    z=z_cut,
+                    dim=dim_cut,
+                    density=den_cut,
+                    mass=mass_cut,
+                    temperature=temp_cut,
+                    ie_density=ie_den_cut,
+                    rad_density=Rad_den_cut,
+                    vx=VX_cut,
+                    vy=VY_cut,
+                    vz=VZ_cut,
+                    diss_density=Diss_den_cut,
+                    pressure=Press_cut,
+                )
         
     else:
         # you are not in alice
