@@ -34,11 +34,9 @@ Rstar = .47
 n = 1.5 
 compton = 'Compton'
 check = 'HiResNewAMR' # '' or 'LowRes' or 'HiRes' 
-save = False
 which_cut = 'high' #if 'high' cut density at 1e-12, if '' cut density at 1e-19
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 Rs = things['Rs']
@@ -47,7 +45,6 @@ Rp = things['Rp']
 R0 = things['R0']
 apo = things['apo']
 ecc_mb = things['ecc_mb']
-print(ecc_mb)
 Rstart = 0.4 * Rt
 
 if alice: 

@@ -82,7 +82,7 @@ def draw_line(x_arr, params, what):
     """
     if what == 'line':
         alpha = params
-        y_arr = np.tan(-alpha) * x_arr
+        y_arr = np.tan(alpha) * x_arr
     if what == 'powerlaw':
         const, alpha = params
         y_arr = const * np.power(x_arr, alpha)

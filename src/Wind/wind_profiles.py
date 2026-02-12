@@ -1,5 +1,5 @@
 """ Find/plot radial profiles as weighted average on spherical sections. 
-Find/plot polar profiles (as weighted average on spherical sections) for fixed r and phi_array. 
+Find/plot polar profiles for fixed r and phi_array. 
 Written to be run locally."""
 
 import sys
@@ -16,7 +16,7 @@ import Utilities.prelude as prel
 from Utilities.selectors_for_snap import select_prefix
 from Utilities.sections import make_slices
 import src.orbits as orb
-from Utilities.operators import make_tree, choose_sections, choose_observers, draw_line, to_spherical_coordinate, from_cylindric, to_spherical_components
+import Utilities.operators as op
 
 #
 # PARAMS
@@ -60,7 +60,7 @@ def CouBegel(r, theta, n, norm, gamma=4/3):
 def radial_profiles(loadpath, snap, ray_params, choice):
     rmin, rmax, Nray = ray_params
     r_array = np.logspace(np.log10(rmin), np.log10(rmax), Nray)
-    data = make_tree(loadpath, snap, energy = True)
+    data = op.make_tree(loadpath, snap, energy = True)
     X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
         data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Temp, data.Press, data.IE, data.Rad
     cut = Den > 1e-19
@@ -70,7 +70,7 @@ def radial_profiles(loadpath, snap, ray_params, choice):
     dim_cell = Vol**(1/3)
     
     # split in sections all the cells
-    sections_in = choose_sections(X, Y, Z, choice = choice)
+    sections_in = op.choose_sections(X, Y, Z, choice = choice)
     Rsph_initial = []
     dim_cell_initial = []
     for key in sections_in.keys():
@@ -84,7 +84,7 @@ def radial_profiles(loadpath, snap, ray_params, choice):
     indices_all = np.arange(len(X))
     
     # split in sections yhe wind cells
-    sections = choose_sections(X, Y, Z, choice = choice)
+    sections = op.choose_sections(X, Y, Z, choice = choice)
     ind_sec = []
     colors_obs = []
     label_obs = []
@@ -96,11 +96,8 @@ def radial_profiles(loadpath, snap, ray_params, choice):
         label_obs.append(sections[key]['label'])
         lines_obs.append(sections[key]['line'])
 
-
     all_outflows = {}
     const_C = 4/len(ind_sec)
-    # fig, (axtot, axsph) = plt.subplots(1,2, figsize = (15,7))
-    # fig, (axtot_yz, axsph_yz) = plt.subplots(1,2, figsize = (15,7))
     for j, ind in enumerate(ind_sec):
         t_prof = np.zeros(Nray)
         v_rad_prof = np.zeros(Nray)
@@ -160,7 +157,7 @@ def radial_profiles(loadpath, snap, ray_params, choice):
 def polar_profiles(loadpath, snap, ray_params, which_material = 'wind'):
     r_chosen, phis, Nray = ray_params
     theta_array = np.linspace(0, np.pi/2, Nray)
-    data = make_tree(loadpath, snap, energy = True)
+    data = op.make_tree(loadpath, snap, energy = True)
     X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
         data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Temp, data.Press, data.IE, data.Rad
     Rsph = np.sqrt(X**2 + Y**2 + Z**2)      
@@ -168,17 +165,21 @@ def polar_profiles(loadpath, snap, ray_params, which_material = 'wind'):
     cut = np.logical_and(Den > 1e-19, np.abs(Rsph - r_chosen) < dim_cell)
     X, Y, Z, Rsph, Vol, dim_cell, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
         make_slices([X, Y, Z, Rsph, Vol, dim_cell, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den], cut)
+    len_allX_neg = len(X[X < 0])
+    len_allX_pos = len(X[X >= 0])
     
     if which_material == 'wind':
         cut, bern, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params)
         X, Y, Z, Rsph, Vol, dim_cell, Den, Mass, V_r, T, Press, IE_den, Rad_den, bern = \
             make_slices([X, Y, Z, Rsph, Vol, dim_cell, Den, Mass, V_r, T, Press, IE_den, Rad_den, bern], cut)  
     else:
-        V_r, _, _ = to_spherical_components(VX, VY, VZ, X, Y, Z)    
-    _, lat, long = to_spherical_coordinate(X, Y, Z, r_frame = 'us') #lat in [0, pi] with North pole at 0, orbital plane at pi/2, long counterclockwise in [0, 2pi] with direction of positive x at 0 
+        V_r, _, _ = op.to_spherical_components(VX, VY, VZ, X, Y, Z)    
+    _, lat, long = op.to_spherical_coordinate(X, Y, Z, r_frame = 'us') #lat in [0, pi] with North pole at 0, orbital plane at pi/2, long counterclockwise in [0, 2pi] with direction of positive x at 0 
     
-
     all_outflows = {}  
+    if which_material == 'wind':
+        unbound_ratio_Nhemi = np.zeros(Nray)
+        unbound_ratio_Phemi = np.zeros(Nray)
     for j, phi in enumerate(phis):
         t_prof = np.zeros(Nray)
         v_rad_prof = np.zeros(Nray)
@@ -186,7 +187,8 @@ def polar_profiles(loadpath, snap, ray_params, which_material = 'wind'):
         cut_phi = np.abs(long - phi) < 0.1
 
         for i, theta in enumerate(theta_array): 
-            cut_angles = np.logical_and(np.abs(lat - theta) < 0.1, cut_phi)
+            cut_theta = np.abs(lat - theta) < 0.1
+            cut_angles = np.logical_and(cut_theta, cut_phi)
             if len(cut_angles) == 0:
                 continue
             ray_V_r = V_r[cut_angles] 
@@ -199,10 +201,12 @@ def polar_profiles(loadpath, snap, ray_params, which_material = 'wind'):
             t_prof[i] = np.sum(ray_t*ray_vol) / np.sum(ray_vol)
             v_rad_prof[i] = np.sum(ray_V_r*ray_m) / np.sum(ray_m)
             d_prof[i] = np.sum(ray_d*ray_m)/ np.sum(ray_m)
+            if np.logical_and(j==0, which_material == 'wind'): # so you do it just once, since there's no dependece on phi
+                unbound_ratio_Nhemi[i] = len(X[np.logical_and(X<0, cut_theta)]) / len_allX_neg
+                unbound_ratio_Phemi[i] = len(X[np.logical_and(X>=0, cut_theta)]) / len_allX_pos
         
         outflow = {
             'phi': phi,
-            'theta_array': theta_array,
             't_prof': t_prof,
             'v_rad_prof': v_rad_prof,
             'd_prof': d_prof,
@@ -211,6 +215,12 @@ def polar_profiles(loadpath, snap, ray_params, which_material = 'wind'):
         key = f"{j}"
         all_outflows[key] = outflow
     
+    all_outflows['theta_array'] = theta_array
+    if which_material == 'wind':
+        all_outflows['unbound_ratio_Nhemi'] = unbound_ratio_Nhemi 
+        all_outflows['unbound_ratio_Phemi'] = unbound_ratio_Phemi 
+
+
     return all_outflows
 
 #
@@ -218,7 +228,7 @@ def polar_profiles(loadpath, snap, ray_params, which_material = 'wind'):
 #
 compute = False
 what = 'polar'
-snap = 109
+snap = 151
 
 if what == 'polar':
     which_material = 'wind' # 'wind' or ''
@@ -233,70 +243,105 @@ if what == 'polar':
     
     else:
         from Utilities.basic_units import radians
-        figd, (ax0, axd, axs) = plt.subplots(1, 3, figsize=(25, 7)) 
-        figVT, (axV, axT) = plt.subplots(1, 2, figsize=(14, 7)) 
+        figd, (ax0, axd, axs) = plt.subplots(1, 3, figsize=(28, 7)) 
+        figVT, (axV, axT) = plt.subplots(1, 2, figsize=(18, 7)) 
+        x_line = np.arange(-40*Rt, 40*Rt, dtype=complex)
+        line_xz = op.draw_line(x_line, np.arcsin(2/3), 'line')
+        line_xz_neg = op.draw_line(x_line, np.pi-np.arcsin(2/3), 'line')
         # Load data and search for cell at cirularization radius = 2Rp
         path = f'{pre}/{snap}'
         tfb = np.loadtxt(f'{path}/tfb_{snap}.txt') 
-        data = make_tree(path, snap, energy = False)
-        X, Y, Z, Den, Vol = data.X, data.Y, data.Z, data.Den, data.Vol
-        cut = Den > 1e-19
+        data = op.make_tree(path, snap, energy = True)
+        if which_material == 'wind':
+            X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
+                data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Temp, data.Press, data.IE, data.Rad
+            Rsph = np.sqrt(X**2 + Y**2 + Z**2)  
+            cut, _, _ = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params)
+            cut = np.logical_and(cut, Den > 1e-19)
+        if which_material == '':
+            X, Y, Z, Den, Vol  = data.X, data.Y, data.Z, data.Den, data.Vol
+            cut = Den > 1e-19
+            
         X, Y, Z, Den, Vol = make_slices([X, Y, Z, Den, Vol], cut)
         dim_cell = Vol**(1/3)
+        if which_material == 'wind':
+            dmax_plot = 5*np.max(Den[np.abs(Y)<dim_cell]) * prel.den_converter    
+            figU, axunb = plt.subplots(1, 1, figsize = (10, 6))
+        if which_material == '':
+            dmax_plot = 1e-6
         xyz = np.array([X, Y, Z]).T
         tree = KDTree(xyz, leaf_size = 50) 
-        _, idx = tree.query(np.array([[2*Rp, 0, 0]])) 
+        Rc = 2*Rp
+        _, idx = tree.query(np.array([[Rc, 0, 0]])) 
         idx = np.concatenate(idx)
-        norm = (Rp, Den[idx])   
+        norm = (Rc, Den[idx])   
 
         # plot xz plane
         y_cut = np.abs(Y) < dim_cell
         X_cut, Z_cut, Den_cut = X[y_cut], Z[y_cut], Den[y_cut]
-        img = axs.scatter(X_cut/Rt, Z_cut/Rt, c = Den_cut * prel.den_converter, norm = colors.LogNorm(vmin=1e-13, vmax=1e-8), cmap = 'rainbow', s = 1)
+        img = axs.scatter(X_cut/Rt, Z_cut/Rt, c = Den_cut * prel.den_converter, norm = colors.LogNorm(vmin = 1e-15, vmax = dmax_plot), cmap = 'rainbow', s = 1)
         cbar = figd.colorbar(img)
+        axs.plot(x_line, line_xz, c = 'k', ls = 'dashed')
+        axs.plot(x_line, line_xz_neg, c = 'k', ls = 'dashed')
         cbar.set_label(r'$\rho$ (g/cm$^3)$')
         axs.set_xlabel(r'x ($r_{\rm t}$)')
         axs.set_ylabel(r'z ($r_{\rm t}$)')
+        axs.set_xlim(-apo/Rt, apo/Rt)
+        axs.set_ylim(-apo/Rt, apo/Rt)
 
         profiles = np.load(f'{abspath}/data/{folder}/wind/theta_prof{snap}{which_material}_{rchose_lab}.npy', allow_pickle=True).item()
-        for i, num in enumerate(profiles.keys()):
-            phi = profiles[num]['phi']
-            x_phi, y_phi = from_cylindric(phi, 1)
-            theta_plot = profiles[num]['theta_array'] 
-            d = profiles[num]['d_prof']
-            v_rad = profiles[num]['v_rad_prof'] 
-            t = profiles[num]['t_prof']
+        theta_plot = profiles['theta_array']
+        if which_material == 'wind':
+            unbound_ratio_Nhemi = profiles['unbound_ratio_Nhemi']
+            unbound_ratio_Phemi = profiles['unbound_ratio_Phemi']
+            axunb.plot(theta_plot * radians, unbound_ratio_Nhemi, linewidth = 2, label = r'$X<0$')
+            axunb.plot(theta_plot * radians, unbound_ratio_Phemi, linewidth = 2, label = r'$X>0$')
 
-            ax0.scatter(x_phi, y_phi, s = 100, linewidth = 2, label = r'$\phi = $' + f'{phi:.2f} rad')
-            axd.plot(theta_plot * radians, d * prel.den_converter, linewidth = 2, label = r'$\phi = $' + f'{phi:.2f} rad')
-            axV.plot(theta_plot[v_rad>0] * radians, v_rad[v_rad>0] * conversion_sol_kms, linewidth = 2, label = r'$\phi = $' + f'{phi:.2f} rad')
-            axT.plot(theta_plot * radians, t, linewidth = 2, label = r'$\phi = $' + f'{phi:.2f} rad')
+        for key in profiles.keys():
+            if key not in ['theta_array', 'unbound_ratio_Nhemi', 'unbound_ratio_Phemi']:
+                phi = profiles[key]['phi']
+                x_phi, y_phi = op.from_cylindric(phi, 1)
+                d = profiles[key]['d_prof']
+                v_rad = profiles[key]['v_rad_prof'] 
+                t = profiles[key]['t_prof']
+
+                ax0.scatter(x_phi, y_phi, s = 100, linewidth = 2, label = r'$\phi = $' + f'{phi:.2f} rad')
+                axd.plot(theta_plot * radians, d * prel.den_converter, linewidth = 2, label = r'$\phi = $' + f'{phi:.2f} rad')
+                axV.plot(theta_plot * radians, v_rad * conversion_sol_kms, linewidth = 2, label = r'$\phi = $' + f'{phi:.2f} rad')
+                axT.plot(theta_plot * radians, t, linewidth = 2, label = r'$\phi = $' + f'{phi:.2f} rad')
         
-        rho_Cou = CouBegel(rchosen, theta_plot, 0, norm, gamma=4/3)
-        axd.plot(theta_plot * radians, rho_Cou * prel.den_converter, ls = ':', c = 'k', label = 'Coughlin+14')
+        # rho_Cou = CouBegel(rchosen, theta_plot, 0, norm, gamma=4/3)
+        # axd.plot(theta_plot * radians, rho_Cou * prel.den_converter, ls = ':', c = 'k', label = 'Coughlin+14')
         
-        for ax in [ax0, axd, axV, axT]:
-            ax.legend()
+        for ax in [ax0, axd, axV, axT, axunb]:
+            ax.legend(fontsize = 16)
             ax.tick_params(axis='both', which='minor', length = 6, width = 1)
             ax.tick_params(axis='both', which='major', length = 10, width = 1.5)
-            if ax != axO:
+            if ax != ax0:
                 ax.set_xlabel(r'$\theta$')
                 ax.set_yscale('log')
                 ax.axvline(np.arcsin(2/3), c = 'k', ls = 'dashed')
                 ax.grid()
 
-        axd.set_ylim(1e-15, 1e-9)
+        axd.set_ylim(1e-15, dmax_plot)
         axV.set_ylim(2e3, 1e5)
-        axT.set_ylim(1e3, 5e5)
+        axT.set_ylim(5e3, 5e5)
         axd.set_ylabel(r'$\rho$ [g/cm$^3]$')
         axV.set_ylabel(r'v$_{\rm r}$ [km/s]')
         axT.set_ylabel(r'$T_{\rm rad}$ [K]')
+        axunb.set_ylabel(r'Ratio unbound materal')
+        axunb.set_ylim(5e-3, 1)
         figd.suptitle(f'{which_material} at t = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 20)
         figd.tight_layout()
         figd.savefig(f'{abspath}/Figs/{folder}/Wind/polar_view/thetaD_prof{snap}{which_material}_{rchose_lab}.png', dpi = 300)
         figVT.suptitle(f'{which_material} at t = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 20)
         figVT.tight_layout()
         figVT.savefig(f'{abspath}/Figs/{folder}/Wind/polar_view/thetaVT_prof{snap}{which_material}_{rchose_lab}.png', dpi = 300)
+        
+        if which_material == 'wind':
+            figU.suptitle(f'{which_material} at t = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 20)
+            figU.tight_layout()
+            figU.savefig(f'{abspath}/Figs/{folder}/Wind/polar_view/thetaUnb_prof{snap}{which_material}_{rchose_lab}.png', dpi = 300)
 
 
 if what == 'radial':
@@ -315,7 +360,7 @@ if what == 'radial':
         # To have an idea of where is the trapping radius
         observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
         x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
-        indices_obs, label_obs, colors_obs, _ = choose_observers(observers_xyz, choice)
+        indices_obs, label_obs, colors_obs, _ = op.choose_observers(observers_xyz, choice)
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5))
         ax1.scatter(x_obs, y_obs, facecolor = 'none', edgecolors = 'k', linewidths = 1)
         ax2.scatter(x_obs, z_obs, facecolor = 'none', edgecolors = 'k', linewidths = 1)
@@ -330,7 +375,7 @@ if what == 'radial':
         dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz")
         x_tr, y_tr, z_tr, den_tr, vol_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['vol_tr'] 
         r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-        # sections_ph = choose_sections(xph, yph, zph, choice)
+        # sections_ph = op.choose_sections(xph, yph, zph, choice)
         rph_medians = []
         rtr_medians = []
         for i, idx_list in enumerate(indices_obs): 
@@ -345,10 +390,10 @@ if what == 'radial':
         plt.tight_layout()
 
         x_test = np.arange(1., 300)
-        y_testplus1 = draw_line(x_test, [3.5, 1], 'powerlaw')
-        y_test1 = draw_line(x_test, [9e4, -1], 'powerlaw')
-        y_test23 = draw_line(x_test, [3.5e5, -2/3], 'powerlaw')
-        y_test2 = draw_line(x_test, [1e-8, -2], 'powerlaw')
+        y_testplus1 = op.draw_line(x_test, [3.5, 1], 'powerlaw')
+        y_test1 = op.draw_line(x_test, [9e4, -1], 'powerlaw')
+        y_test23 = op.draw_line(x_test, [3.5e5, -2/3], 'powerlaw')
+        y_test2 = op.draw_line(x_test, [1e-8, -2], 'powerlaw')
         fig, (axd, axV, axT) = plt.subplots(1, 3, figsize=(26, 7)) 
         figM, (axMdot, axLadv, axLkin) = plt.subplots(1, 3, figsize=(26, 7))
         figr, axratio = plt.subplots(1, 1, figsize=(10, 7))
