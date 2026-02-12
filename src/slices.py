@@ -2,6 +2,7 @@
 If alice: make the section (with density cut 1e-19) and save it: X, Y, Z, vol, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, Press
 If not alice: load the section and plot the slice with color = chosen quantity.
 """
+from fileinput import filename
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 
@@ -33,6 +34,7 @@ compton = 'Compton'
 check = 'HiResNewAMR' # 'LowRes' or 'HiRes'
 coord_to_cut = 'z' # 'x', 'y', 'z'
 cut_chosen = 0
+print(f'cut at {coord_to_cut} = {cut_chosen}', flush=True)
 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -119,122 +121,43 @@ for idx, snap in enumerate(snaps):
                 )
         
     else:
-        # you are not in alice
         import matplotlib.pyplot as plt
         import matplotlib.colors as colors
         # choose what to plot
-        npanels = 2 # 3 or 6
-
+        if snap != 30:
+            continue
         # load the data
-        x_mid, y_mid, z_mid, dim_mid, den_mid, mass_mid, temp_mid, ie_den_mid, Rad_den_mid, VX_mid, VY_mid, VZ_mid, Diss_den_mid, IE_den_mid, Press_mid = \
-            np.load(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npy', allow_pickle=True)
-        Diss_mid = Diss_den_mid * dim_mid**3 * prel.en_converter
-        Temp_rad_mid = (Rad_den_mid * prel.en_den_converter/prel.alpha_cgs)**(0.25)
-        vel_mid = np.sqrt(VX_mid**2 + VY_mid**2 + VZ_mid**2)
-        cs_mid = Press_mid/den_mid
+        data = np.load(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npz')
+        x = data["x"]
+        y = data["y"]
+        z = data["z"]
+        dim = data["dim"]
+        den = data["density"]
+        mass = data["mass"]
+        temp = data["temperature"]
+        ie_den = data["ie_density"]
+        Rad_den = data["rad_density"]
+        VX = data["vx"]
+        VY = data["vy"]
+        VZ = data["vz"]
+        Diss_den = data["diss_density"]
+        Press = data["pressure"]
 
-        if npanels == 2:
-            fig, ax = plt.subplots(1,2, figsize = (14,8))
-            img = ax[0].scatter(x_mid, y_mid, c = den_mid*prel.den_converter, cmap = 'plasma', s= .1, \
-                        norm = colors.LogNorm(vmin = 5e-9, vmax = 1e-4))
-            cb = plt.colorbar(img, orientation='horizontal')
-            cb.set_label(r'Density [g/cm$^3$]')
-            cb.ax.tick_params(which='major', length=7, width=1.2)
-            cb.ax.tick_params(which='minor', length=4, width=1)
-            ax[0].set_ylabel(r'$Y/R_\odot$')
- 
-            img = ax[1].scatter(x_mid, y_mid, c = Diss_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = 1e38, vmax = 8e40))
-            cb = plt.colorbar(img, orientation='horizontal')
-            cb.set_label(r'Dissipation [erg/s]')
-            cb.ax.tick_params(which='major', length=7, width=1.2)
-            cb.ax.tick_params(which='minor', length=4, width=1)
+        fig, ax = plt.subplots(1,1, figsize = (14,8))
+        img = ax.scatter(x/Rt, y/Rt, c = den*prel.den_converter, cmap = 'plasma', s= .1, \
+                    norm = colors.LogNorm(vmin = 5e-9, vmax = 1e-4))
+        cb = plt.colorbar(img)
+        cb.set_label(r'Density [g/cm$^3$]')
+        cb.ax.tick_params(which='major', length=7, width=1.2)
+        cb.ax.tick_params(which='minor', length=4, width=1)
+        ax.set_ylabel(r'$ y [r_{\rm t}]$')
+        ax.set_xlabel(r'$x [r_{\rm t}]$')
+        ax.set_xlim(-50, 50)#(-340,25)
+        ax.set_ylim(-50, 50)#(-70,70)
 
-        
-        if npanels == 3:
-            fig, ax = plt.subplots(1,3, figsize = (20,5))
-            img = ax[0].scatter(x_mid, y_mid, c = np.abs(DivV), cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = 1e-1, vmax = 1e2))
-            cb = plt.colorbar(img)
-            cb.set_label(r'$|\nabla \cdot \mathbf{v}|$', fontsize = 16)
-            ax[0].set_ylabel(r'$Y/R_{\rm a}$')
-
-            img = ax[1].scatter(x_mid, y_mid, c = cs_mid/vel_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = 1e-1, vmax = 10))
-            cb = plt.colorbar(img)
-            cb.set_label(r'$c_{\rm s}/v$ [erg/g]')
-
-            img = ax[2].scatter(x_mid, y_mid, c = Temp_rad_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = 1e4, vmax = 1e6))
-            cb = plt.colorbar(img)
-            cb.set_label(r'$T_{\rm rad}$ [K]')
-        
-        if npanels == 6:
-            orb_en_mid = np.abs(orb_en_den_mid * dim_mid**3) * prel.en_converter
-            ie_mid = (ie_den_mid * dim_mid**3) * prel.en_converter
-            Rad_mid = (Rad_den_mid * dim_mid**3) * prel.en_converter
-
-            vminden = 2e-9 #np.percentile(den_mid, 5)
-            vmaxden = 5e-6 #np.percentile(den_mid, 99)
-            vminT = 1e4 #np.percentile(temp_mid, 5)
-            vmaxT = 4e6 #np.percentile(temp_mid, 99)
-            vminDim = 2e-2 ##np.percentile(dim_mid, 5)
-            vmaxDim = 1.2 #np.percentile(dim_mid, 99)
-            vminOrb = 5e39 #np.percentile(orb_en_mid, 5)
-            vmaxOrb = 7e42 #np.percentile(orb_en_mid, 99)
-            vminIE = 2e36 #np.percentile(ie_mid, 5)
-            vmaxIE = 2e39 #np.percentile(ie_mid, 99)
-            vminRad = 2e32 #np.percentile(Rad_mid, 5)
-            vmaxRad = 2e40 #np.percentile(Rad_mid, 99)
-
-            fig, ax = plt.subplots(2,3, figsize = (20,10))
-            img = ax[0][0].scatter(x_mid/apo, y_mid/apo, c = den_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = vminden, vmax = vmaxden))
-            cb = plt.colorbar(img)
-            cb.set_label(r'Density [$M_\odot/R_\odot^3$]', fontsize = 14)
-
-            img = ax[0][1].scatter(x_mid/apo, y_mid/apo, c = temp_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = vminT, vmax = vmaxT))
-            cb = plt.colorbar(img)
-            cb.set_label(r'T [K]', fontsize = 14)
-
-            img = ax[0][2].scatter(x_mid/apo, y_mid/apo, c = dim_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = vminDim, vmax = vmaxDim))
-            cb = plt.colorbar(img)
-            cb.set_label(r'Cell size [$R_\odot$]', fontsize = 14)
-
-            img = ax[1][0].scatter(x_mid/apo, y_mid/apo, c = orb_en_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = vminOrb, vmax = vmaxOrb))
-            cb = plt.colorbar(img)
-            cb.set_label(r'Absolute specific orbital energy [erg]', fontsize = 14)
-
-            img = ax[1][1].scatter(x_mid/apo, y_mid/apo, c = ie_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = vminIE, vmax = vmaxIE))
-            cb = plt.colorbar(img)
-            cb.set_label(r'Specific IE [erg]', fontsize = 14)
-
-            img = ax[1][2].scatter(x_mid/apo, y_mid/apo, c = Rad_mid, cmap = 'viridis', s= .1, \
-                        norm = colors.LogNorm(vmin = vminRad, vmax = vmaxRad))
-            cb = plt.colorbar(img)
-            cb.set_label(r'Radiation energy density [erg]', fontsize = 14)
-
-        plt.suptitle(f't = {np.round(tfb[idx], 4)}' + r'$t_{\rm fb}$', fontsize = 20)
+        plt.suptitle(f't = {np.round(tfb[idx], 2)}' + r'$t_{\rm fb}$', fontsize = 20)
         plt.tight_layout()
-        if npanels == 6:
-            for i in range(2):
-                ax[i][0].set_ylabel(r'$Y/R_{\rm a}$', fontsize = 20)
-                for j in range(3):
-                    ax[i][j].set_xlabel(r'$X/R_{\rm a}$', fontsize = 20)
-                    ax[i][j].set_xlim(-1.2, 0.1)#(-340,25)
-                    ax[i][j].set_ylim(-0.5, 0.5)#(-70,70)
-        if npanels == 2 or npanels == 3:
-            ax[0].set_ylabel(r'$ [R_\odot]$')
-            for i in range(npanels):
-                ax[i].set_xlabel(r'$X [R_\odot]$')
-                ax[i].set_xlim(-1, 1)#(-340,25)
-                ax[i].set_ylim(-1, 1)#(-70,70)
-                ax[i].set_aspect('equal', 'box')
-        # ax[0][0].text(-1.05, 0.38, f'snap {int(snaps[idx])}', fontsize = 16)
 
-        plt.savefig(f'{abspath}Figs/{folder}/slices/Panel{npanels}Slice{snap}.png')
+        # plt.savefig(f'{abspath}Figs/{folder}/slices/Panel{npanels}Slice{snap}.png')
         # plt.close()
+ 
