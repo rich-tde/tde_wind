@@ -38,7 +38,7 @@ compton = 'Compton'
 check = 'HiResNewAMR'
 with_who = ''  # '' or 'Obs'
 n_obs = '' #'_npix8' or ''
-choice = 'thirties' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
+choice = 'tenths' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
 wind_cond = '' # '' for bernouilli coeff or 'OE' for orbital energy
 how = '' # '' for the normalized sum or 'mean' for mean of Mw of each cells
 
@@ -201,23 +201,23 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             #     plt.suptitle(f'Selected Healpix observers at snap {snap}', fontsize = 18)
             plt.tight_layout()
 
-        C_mult = 4/len(indices_sec) # to have the right normalization in all cases
-        print('C:', C_mult, flush=True)
+        # C_mult = 4/len(indices_sec) # to have the right normalization in all cases
+        # print('C:', C_mult, flush=True)
         for j, indices in enumerate(indices_sec):
             # select the particles in the chosen section and at the chosen radius
             if how == '':  
-                mwind[j] = C_mult * r_chosen**2 * np.sum(Mdot[indices]) / np.sum(dim_cell_wind[indices]**2)
+                mwind[j] = 4 * r_chosen**2 * np.sum(Mdot[indices]) / np.sum(dim_cell_wind[indices]**2)
             elif how == 'mean':
-                mwind[j] = C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices])
+                mwind[j] = 4 * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices])
             if r_chosen > apo: 
                 if how == '':  
-                    Lum_fs[j] = C_mult * r_chosen**2 * np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs / np.sum(dim_cell_wind[indices]**2)
-                    Lkin[j] = 0.5 * C_mult * r_chosen**2 * np.sum(Mdot[indices] * v_rad_wind[indices]**2) / np.sum(dim_cell_wind[indices]**2)
+                    Lum_fs[j] = 4 * r_chosen**2 * np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs / np.sum(dim_cell_wind[indices]**2)
+                    Lkin[j] = 0.5 * 4 * r_chosen**2 * np.sum(Mdot[indices] * v_rad_wind[indices]**2) / np.sum(dim_cell_wind[indices]**2)
             
                 elif how == 'mean':
-                    Lum_fs[j] = C_mult * np.pi * r_chosen**2 * np.mean(Rad_den_wind[indices]) * prel.csol_cgs
+                    Lum_fs[j] = 4 * np.pi * r_chosen**2 * np.mean(Rad_den_wind[indices]) * prel.csol_cgs
                     # Lkin[j] = 0.5 * np.mean(Mdot[indices] * v_rad_wind[indices]**2)
-                    Lkin[j] = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices]**3) 
+                    Lkin[j] = 0.5 * 4 * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices]**3) 
             
             if np.logical_and(plot, j < 3):
                 theta_ourConv, _ = to_cylindric(X_wind[indices], Y_wind[indices])
@@ -305,8 +305,8 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
 
 if __name__ == '__main__':
     if compute: # compute dM/dt = dM/dE * dE/dt
-        r_chosen = 0.5*amin 
-        which_r_title = '05amin' 
+        r_chosen = apo
+        which_r_title = 'apo' 
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
         for i, snap in enumerate(snaps):

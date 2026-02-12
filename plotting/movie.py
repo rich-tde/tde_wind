@@ -11,12 +11,16 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+what = 'Outflow' # 'projection', 'slices', 'testOpac', 'Outflow', 'stream'
+how_many = ''
+figs_path = f'{abspath}/Figs/{folder}/{what}' 
 
 start = 21
 slow_down_factor = 3 # Increase this value to make the video slower
 
 # Get the height of the first image to calculate the scale
 def get_image_size(image_path):
+    print(image_path)
     result = subprocess.run(['ffprobe', '-v', 'error', '-show_entries',
                              'stream=width,height', '-of', 'default=noprint_wrappers=1', image_path],
         stdout=subprocess.PIPE,
@@ -26,31 +30,18 @@ def get_image_size(image_path):
     height = int(output.split("height=")[1].split("\n")[0])
     return width, height
 
-# For Denproj
-how_many = ''
-path = f'{abspath}/Figs/{folder}/projection{how_many}/denproj_%d.png' 
-output_path = f'{abspath}/Figs/{folder}/projection{how_many}/denproj_{how_many}{check}.mp4'
-first_image_path = f'{abspath}/Figs/{folder}/projection{how_many}/denproj_{start}.png'
+if what == f'projection{how_many}': 
+    sub_path = f'denproj' 
+if what == f'slices{how_many}':
+    sub_path = f'slice' 
+if what == 'Outflow':
+    sub_path = f'B_slice'  
+if what == 'stream':
+    sub_path = f'WH_theta'
 
-# For Slices 
-# path = f'{abspath}/Figs/{folder}/slices/Panel6Slice%d.png' 
-# output_path = f'{abspath}/Figs/{folder}/slices/movie6Panels_{check}.mp4'
-# first_image_path = f'{abspath}/Figs/{folder}/slices/Panel6Slice%d{start}.png'
-
-# For Opacity
-# path = f'{abspath}/Figs/{folder}/testOpac/{check}_TestOpac%d.png' 
-# output_path = f'{abspath}/Figs/{folder}/testOpac/TestOpac_movie.mp4'
-# first_image_path = f'{abspath}/Figs/{folder}/testOpac/{check}_TestOpac{start}.png'
-
-# For outflow
-# path = f'{abspath}/Figs/{folder}/Outflow/B_slice_%d.png' 
-# output_path = f'{abspath}/Figs/{folder}/Outflow/B_{check}.mp4'
-# first_image_path = f'{abspath}/Figs/{folder}/Outflow/B_slice_{start}.png'
-
-# For stream
-# path = f'{abspath}/Figs/{folder}/stream/WH_theta%d.png'
-# output_path = f'{abspath}/Figs/{folder}/stream/WH_theta.mp4'
-# first_image_path = f'{abspath}/Figs/{folder}/stream/WH_theta{start}.png'
+path = f'{figs_path}/{sub_path}_%d.png'
+output_path = f'{figs_path}/{sub_path}_{check}.mp4'
+first_image_path = f'{figs_path}/{sub_path}_{start}.png'  
 
 
 width, height = get_image_size(first_image_path)

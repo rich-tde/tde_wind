@@ -208,11 +208,24 @@ def choose_sections(X, Y, Z, choice):
         left_3060 = {'cond': cond_left_3060, 'label': r'$X<0, \tan(\pi/6)R \le |Z| < \tan(\pi/3)R$', 'color': 'forestgreen', 'line': 'dashed'}
         left_6090 = {'cond': cond_left_6090, 'label': r'$X<0, |Z| \ge \tan(\pi/3)R$', 'color': 'deepskyblue', 'line': 'dashed'}
         sec = {'right_030': right_030, 'right_3060': right_3060, 'right_6090': right_6090, 'left_030': left_030, 'left_3060': left_3060, 'left_6090': left_6090}
+    
+    if choice == 'tenths': 
+        sec = {}
+        step = 10
+        for alpha in np.arange(0, 190, step):
+            slope = np.tan(alpha * np.pi/180) 
+            slope_next = np.tan((alpha + step) * np.pi/180)
+            if alpha < 90:
+                cond = np.logical_and(X >= 0, np.logical_and(np.abs(Z) >= slope * R_cyl, np.abs(Z) < slope_next * R_cyl))
+                sec[f'right_{alpha}-{alpha + step}'] = {'cond': cond, 'label': f'{alpha}-{alpha + step}', 'line': 'solid'}
+            else: 
+                cond = np.logical_and(X < 0, np.logical_and(np.abs(Z) >= np.abs(slope_next) * R_cyl, np.abs(Z) < np.abs(slope) * R_cyl))
+                sec[f'left_{alpha}-{alpha + step}'] = {'cond': cond, 'label': f'{alpha}-{alpha +step}', 'line': 'dashed'}
 
     return sec
     
 def choose_observers(observers_xyz, choice):
-    """ Choose observers based on the choice string. 
+    """ Choose observers based on the choice string.  
     Parameters
     ----------
     observers_xyz : np.ndarray
