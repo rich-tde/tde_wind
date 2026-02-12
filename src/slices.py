@@ -12,6 +12,8 @@ if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
 else:
     abspath = '/Users/paolamartire/shocks/'
+    import matplotlib.pyplot as plt
+    import matplotlib.colors as colors
 
 import numpy as np
 from Utilities.selectors_for_snap import select_snap, select_prefix
@@ -60,20 +62,10 @@ if alice:
         file.close()
 else:
     # get ready to plot
-    import healpy as hp
     time = np.loadtxt(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}_time.txt')
     snaps = time[0]
     snaps = [int(snap) for snap in snaps]
     tfb = time[1]
-    observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
-    observers_xyz = np.array(observers_xyz).T
-    x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
-    r = np.sqrt(x**2 + y**2 + z**2)   # Radius (should be 1 for unit vectors)
-    theta = np.arctan2(y, x)          # Azimuthal angle in radians
-    phi = np.arccos(z / r)            # Elevation angle in radians
-    longitude_moll = theta              
-    latitude_moll = np.pi / 2 - phi 
-    indecesorbital = np.concatenate(np.where(latitude_moll==0))
 
 for idx, snap in enumerate(snaps):
     if snap > 50:
@@ -121,11 +113,10 @@ for idx, snap in enumerate(snaps):
                 )
         
     else:
-        import matplotlib.pyplot as plt
-        import matplotlib.colors as colors
         # choose what to plot
         if snap != 30:
             continue
+
         # load the data
         data = np.load(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npz')
         x = data["x"]

@@ -193,16 +193,21 @@ def choose_sections(X, Y, Z, choice):
         right_out = {'cond': cond_right_out, 'label': r'right out', 'color': 'yellowgreen', 'line': 'dashed'}
         sec = {'left_in': left_in, 'right_in': right_in, 'left_out': left_out, 'right_out': right_out, 'north': north, 'south': south}
     
-    if choice == 'arch':
-        cond_right_low = np.logical_and(X >= 0, np.abs(Z) < R_cyl)
-        cond_right_high = np.logical_and(X >= 0, np.logical_and(np.abs(Z) >= R_cyl, np.abs(Z) < slope * R_cyl))
-        cond_left_low = np.logical_and(X < 0, np.abs(Z) < R_cyl)
-        cond_left_high = np.logical_and(X < 0, np.logical_and(np.abs(Z) >= R_cyl, np.abs(Z) < slope * R_cyl))
-        right_low = {'cond': cond_right_low, 'label': r'$X>0, |Z|<R$', 'color': 'sandybrown', 'line': 'solid'}
-        right_high = {'cond': cond_right_high, 'label': r'$X>0, R<|Z|<mR$', 'color': 'r', 'line': 'dashed'}
-        left_low = {'cond': cond_left_low, 'label': r'$X<0, |Z|<R$', 'color': 'r', 'line': 'solid'}
-        left_high = {'cond': cond_left_high, 'label': r'$X<0, R<|Z|<mR$', 'color': 'k', 'line': 'dashed'}
-        sec = {'right_low': right_low, 'right_high': right_high, 'left_low': left_low, 'left_high': left_high, 'north': north, 'south': south}
+    if choice == 'thirties': 
+        cond_right_030 = np.logical_and(X >= 0, np.abs(Z) < np.tan(np.pi/6) * R_cyl)
+        cond_right_3060 = np.logical_and(X >= 0, np.logical_and(np.abs(Z) >= np.tan(np.pi/6) * R_cyl, np.abs(Z) < np.tan(np.pi/3) * R_cyl))
+        cond_right_6090 = np.logical_and(X >= 0, np.abs(Z) >= np.tan(np.pi/3) * R_cyl)
+        cond_left_030 = np.logical_and(X < 0, np.abs(Z) < np.tan(np.pi/6) * R_cyl)
+        cond_left_3060 = np.logical_and(X < 0, np.logical_and(np.abs(Z) >= np.tan(np.pi/6) * R_cyl, np.abs(Z) < np.tan(np.pi/3) * R_cyl))
+        cond_left_6090 = np.logical_and(X < 0, np.abs(Z) >= np.tan(np.pi/3) * R_cyl)
+        
+        right_030 = {'cond': cond_right_030, 'label': r'$X>0, |Z|<\tan(\pi/6)R$', 'color': 'sandybrown', 'line': 'solid'}
+        right_3060 = {'cond': cond_right_3060, 'label': r'$X>0, \tan(\pi/6)R \le |Z| < \tan(\pi/3)R$', 'color': 'firebrick', 'line': 'solid'}
+        right_6090 = {'cond': cond_right_6090, 'label': r'$X>0, |Z| \ge \tan(\pi/3)R$', 'color': 'orchid', 'line': 'solid'}
+        left_030 = {'cond': cond_left_030, 'label': r'$X<0, |Z|<\tan(\pi/6)R$', 'color': 'yellowgreen', 'line': 'dashed'}
+        left_3060 = {'cond': cond_left_3060, 'label': r'$X<0, \tan(\pi/6)R \le |Z| < \tan(\pi/3)R$', 'color': 'forestgreen', 'line': 'dashed'}
+        left_6090 = {'cond': cond_left_6090, 'label': r'$X<0, |Z| \ge \tan(\pi/3)R$', 'color': 'deepskyblue', 'line': 'dashed'}
+        sec = {'right_030': right_030, 'right_3060': right_3060, 'right_6090': right_6090, 'left_030': left_030, 'left_3060': left_3060, 'left_6090': left_6090}
 
     return sec
     

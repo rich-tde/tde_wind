@@ -38,8 +38,8 @@ compton = 'Compton'
 check = 'HiResNewAMR'
 with_who = ''  # '' or 'Obs'
 n_obs = '' #'_npix8' or ''
-choice = 'left_right_in_out_z' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z'
-wind_cond = 'OE' # '' for bernouilli coeff or 'OE' for orbital energy
+choice = 'thirties' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
+wind_cond = '' # '' for bernouilli coeff or 'OE' for orbital energy
 how = '' # '' for the normalized sum or 'mean' for mean of Mw of each cells
 
 if with_who == '':

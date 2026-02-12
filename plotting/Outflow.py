@@ -25,7 +25,7 @@ Rstar = .47
 n = 1.5 
 compton = 'Compton'
 check = 'HiResNewAMR'
-kind_of_plot = 'convergencebern' # 'ratioE' or 'convergenceOE' or 'convergencebern' or 'velocity_components' or 'time_evolution'
+kind_of_plot = 'ratioE' # 'ratioE' or 'convergenceOE' or 'convergencebern' or 'velocity_components' or 'time_evolution'
 
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 params = [Mbh, Rstar, mstar, beta]
@@ -101,9 +101,10 @@ ratio_unbound_ph = np.zeros(len(snaps))
 median_rph = np.zeros(len(snaps))
 percentile_vel_ph_16 = np.zeros(len(snaps))
 percentile_vel_ph_84 = np.zeros(len(snaps))
-xlim_min, xlim_max = -55, 55
-ylim_min, ylim_max = -55, 55
-scale_v = 40
+xlim_min, xlim_max = -70, 70
+ylim_min, ylim_max = -70, 70
+color_min, color_max = -1e2, 1e2
+scale_v = 2
 for i, snap in enumerate(snaps):
     # print(snap)
     x_ph, y_ph, z_ph, vol_ph, den_ph, Temp_ph, Rad_den_ph, Vx_ph, Vy_ph, Vz_ph, Press_ph, IE_den_ph, _, _, _, _ = \
@@ -113,7 +114,8 @@ for i, snap in enumerate(snaps):
     mass_ph = den_ph * vol_ph
 
     oe_ph = orb.orbital_energy(r_ph, vel_ph, mass_ph, params, prel.G)
-    bern_ph = orb.bern_coeff(r_ph, vel_ph, den_ph, mass_ph, Press_ph, IE_den_ph, Rad_den_ph, params)
+    _, bern_ph, _ = orb.pick_wind(x_ph, y_ph, z_ph, Vx_ph, Vy_ph, Vz_ph, den_ph, mass_ph, Press_ph, IE_den_ph, Rad_den_ph, params)
+
     mean_vel[i] = np.mean(vel_ph)
     if kind_of_plot == 'convergenceOE':
         ratio_unbound_ph[i] = len(oe_ph[np.logical_and(oe_ph>=0, r_ph!=0)]) / len(oe_ph)  
@@ -126,99 +128,116 @@ for i, snap in enumerate(snaps):
     percentile84[i] = np.percentile(r_ph, 84)
     # Plot
     if kind_of_plot == 'ratioE': # slides of boundness/unboundness with velocity arrows, (if how_amy==3, also time evolution of velocity)
-        if snap < 85:
+        if snap < 83:
             continue
-        # x_mid, y_mid, z_mid, dim_mid, den_mid, temp_mid, IE_den_mid, Rad_den_mid, VX_mid, VY_mid, VZ_mid, Diss_den_mid, IE_den_mid, Press_mid =\
-        #     np.load(f'{abspath}/data/{folder}/slices/z/z0slice_{snap}.npy')
-        # r_mid = np.sqrt(x_mid**2 + y_mid**2 + z_mid**2)
-        # vel_mid = np.sqrt(VX_mid**2 + VY_mid**2 + VZ_mid**2)
-        # mass_mid = den_mid * dim_mid**3 
-        # bern_mid = orb.bern_coeff(r_mid, vel_mid, den_mid, mass_mid, Press_mid, IE_den_mid, Rad_den_mid, params)
-        # # print(np.max(bern_mid), np.min(bern_mid))
-        # xph_mid, yph_mid, zph_mid, rph_mid = \
-        #     x_ph[indecesorbital], y_ph[indecesorbital], z_ph[indecesorbital], r_ph[indecesorbital]
+        data_mid = np.load(f'{abspath}/data/{folder}/slices/z/z0slice_{snap}.npz')
+        x_mid = data_mid["x"]
+        y_mid = data_mid["y"]
+        z_mid = data_mid["z"]
+        dim_mid = data_mid["dim"] 
+        den_mid = data_mid["density"]
+        mass_mid = data_mid["mass"]
+        ie_den_mid = data_mid["ie_density"]
+        Rad_den_mid = data_mid["rad_density"]
+        VX_mid = data_mid["vx"]
+        VY_mid = data_mid["vy"]
+        VZ_mid = data_mid["vz"]
+        Press_mid = data_mid["pressure"]
+        cond_wind_mid, bern_mid, _ = orb.pick_wind(x_mid, y_mid, z_mid, VX_mid, VY_mid, VZ_mid, den_mid, mass_mid, Press_mid, ie_den_mid, Rad_den_mid, params)
 
-        x_yz, y_yz, z_yz, dim_yz, den_yz, temp_yz, ie_den_yz, Rad_den_yz, VX_yz, VY_yz, VZ_yz, Diss_den_yz, IE_den_yz, Press_yz =\
-            np.load(f'{abspath}/data/{folder}/slices/x/xRpslice_{snap}.npy')
-        r_yz = np.sqrt(x_yz**2 + y_yz**2 + z_yz**2)
-        vel_yz = np.sqrt(VX_yz**2 + VY_yz**2 + VZ_yz**2)
-        mass_yz = den_yz * dim_yz**3
-        bern_yz = orb.bern_coeff(r_yz, vel_yz, den_yz, mass_yz, Press_yz, ie_den_yz, Rad_den_yz, params)
-        oe_yz = orb.orbital_energy(r_yz, vel_yz, mass_yz, params, prel.G)
+        data_xz = np.load(f'{abspath}/data/{folder}/slices/y/y0slice_{snap}.npz')
+        x_xz = data_xz["x"]
+        y_xz = data_xz["y"]
+        z_xz = data_xz["z"]
+        dim_xz = data_xz["dim"]
+        den_xz = data_xz["density"]
+        mass_xz = data_xz["mass"]
+        ie_den_xz = data_xz["ie_density"]
+        Rad_den_xz = data_xz["rad_density"]
+        VX_xz = data_xz["vx"]
+        VY_xz = data_xz["vy"]
+        VZ_xz = data_xz["vz"]
+        Press_xz = data_xz["pressure"]
+        cond_wind_xz, bern_xz, _ = orb.pick_wind(x_xz, y_xz, z_xz, VX_xz, VY_xz, VZ_xz, den_xz, mass_xz, Press_xz, ie_den_xz, Rad_den_xz, params)
+        # oe_xz = orb.orbital_energy(r_xz, vel_xz, mass_xz, params, prel.G)
 
-        yz_ph = np.abs(x_ph-Rt) < vol_ph**(1/3)
-        yph_yz, zph_yz, Vy_ph_yz, Vz_ph_yz, rph_yz = make_slices([y_ph, z_ph, Vy_ph, Vz_ph, r_ph], yz_ph)
-        # ratio_bound_ph_mid = len(energy_mid[energy_mid<0]) / len(energy_mid[energy_mid>0])
-        # long_ph_mid = np.arctan2(yph_mid, xph_mid)          # Azimuthal angle in radians
-        falselong_ph_yz = np.arctan2(zph_yz, yph_yz)                # Elevation angle in radians
+        ph_mid = np.abs(z_ph-0) < vol_ph**(1/3)
+        xph_mid, yph_mid, Vx_ph_mid, Vy_ph_mid = make_slices([x_ph, y_ph, Vx_ph, Vy_ph], ph_mid)
+        xz_ph = np.abs(y_ph-0) < vol_ph**(1/3)
+        xph_xz, zph_xz, Vx_ph_xz, Vz_ph_xz = make_slices([x_ph, z_ph, Vx_ph, Vz_ph], xz_ph)
 
         fig = plt.figure(figsize=(30, 15))
-        gs = gridspec.GridSpec(2, 2, width_ratios=[1,1], height_ratios=[1, 0.05], hspace=0.3, wspace = 0.2)
-        # ax1 = fig.add_subplot(gs[0, 0])
-        # sorted_indices = np.argsort(long_ph_mid)  # Sorting by y-coordinate
-        # xph_mid_sorted = xph_mid[sorted_indices]
-        # yph_mid_sorted = yph_mid[sorted_indices] 
-        # img = ax1.scatter(x_mid/apo, y_mid/apo, c = bern_mid, s = 20, cmap = 'coolwarm', alpha = 0.5, vmin = -5e2, vmax = 5e2)
-        # ax1.scatter(xph_mid/apo, yph_mid/apo, facecolor = 'none', s = 60, edgecolors = 'k')
-        # ax1.plot(xph_mid_sorted/apo, yph_mid_sorted/apo, c = 'k')
-        # # connect the last and first point
-        # ax1.plot([xph_mid_sorted[-1]/apo, xph_mid_sorted[0]/apo], [yph_mid_sorted[-1]/apo, yph_mid_sorted[0]/apo], c = 'k', linewidth = 1.5)
-        # ax1.quiver(xph_mid/apo, yph_mid/apo, Vx_ph[indecesorbital]/scale_v, Vy_ph[indecesorbital]/scale_v, angles='xy', scale_units='xy', scale=0.7, color="k", width=0.003, headwidth = 6)
-        # ax1.set_xlabel(r'X [$r_{\rm a}$]', fontsize = 35)
-        # ax1.set_ylabel(r'Y [$r_{\rm a}$]', fontsize = 35)
-        # ax1.set_xlim(xlim_min, xlim_max)
-        # ax1.set_ylim(ylim_min, ylim_max)
-        # ax1.text(.9*xlim_min, 0.85*ylim_max, f't = {np.round(tfb[i],2)}' + r' t$_{\rm fb}$', color = 'k', fontsize = 26)
-        # ax1.text(.9*xlim_min, 0.85*ylim_min, r'z = 0', fontsize = 35)
+        gs = gridspec.GridSpec(2, 2, width_ratios=[1,1], hspace=0.3,  height_ratios=[1, 0.05], wspace = 0.2)
+        ax1 = fig.add_subplot(gs[0, 0])
+        img = ax1.scatter(x_mid/Rt, y_mid/Rt, c = bern_mid, s = 20, cmap = 'coolwarm', alpha = 0.5, vmin = color_min, vmax = color_max)
+        falselong_ph_mid = np.arctan2(yph_mid, xph_mid)               
+        sorted_indices_mid = np.argsort(falselong_ph_mid)  
+        xph_mid_sorted = xph_mid[sorted_indices_mid] 
+        yph_mid_sorted = yph_mid[sorted_indices_mid]
+        ax1.scatter(xph_mid_sorted/Rt, yph_mid_sorted/Rt, facecolor = 'none', s = 60, edgecolors = 'k')
+        ax1.plot(xph_mid_sorted/Rt, yph_mid_sorted/Rt, c = 'k')
+        # connect the last and first point
+        ax1.plot([xph_mid_sorted[-1]/Rt, xph_mid_sorted[0]/Rt], [yph_mid_sorted[-1]/Rt, yph_mid_sorted[0]/Rt], c = 'k', linewidth = 1.5)
+        if snap > 30:
+            ax1.quiver(xph_mid/Rt, yph_mid/Rt, Vx_ph_mid/scale_v, Vy_ph_mid/scale_v, angles='xy', scale_units='xy', color="k", width=0.003, headwidth = 6)
+        ax1.set_xlabel(r'X ($r_{\rm t}$)', fontsize = 35)
+        ax1.set_ylabel(r'Y ($r_{\rm t}$)', fontsize = 35)
+        ax1.set_xlim(xlim_min, xlim_max)
+        ax1.set_ylim(ylim_min, ylim_max)
+        ax1.set_aspect('equal') 
+        ax1.text(.9*xlim_min, 0.85*ylim_max, f't = {np.round(tfb[i],2)}' + r' t$_{\rm fb}$', color = 'k', fontsize = 35)
+        ax1.text(.9*xlim_min, 0.85*ylim_min, r'z = 0', fontsize = 35)
 
-        ax2 = fig.add_subplot(gs[0, 0])
-        # # Apply sorting
-        sorted_indices_yz = np.argsort(falselong_ph_yz)  # Sorting by y-coordinate
-        yph_yz_sorted = yph_yz[sorted_indices_yz]
-        zph_yz_sorted = zph_yz[sorted_indices_yz]
-        img = ax2.scatter(y_yz/Rt, z_yz/Rt, c = oe_yz, s = 20, cmap = 'coolwarm', alpha = 0.5, vmin = -1e-10, vmax = 1e-10) #-5e2, vmax = 5e2)
-        ax2.scatter(yph_yz/Rt, zph_yz/Rt, facecolor = 'none', s = 60, edgecolors = 'k')
-        ax2.plot(yph_yz_sorted/Rt, zph_yz_sorted/Rt, c = 'k')
-        # if yph_yz_sorted is not empty, connect the last and first point
-        if len(yph_yz_sorted) > 0:
-            ax2.plot([yph_yz_sorted[-1]/Rt, yph_yz_sorted[0]/Rt], [zph_yz_sorted[-1]/Rt, zph_yz_sorted[0]/Rt], c = 'k', linewidth = 2)
-        # ax2.quiver(yph_yz/Rt, zph_yz/Rt, Vy_ph_yz/scale_v, Vz_ph_yz/scale_v, angles='xy', scale_units='xy', scale=0.7, color="k", width=0.003, headwidth = 6)
-        ax2.set_xlabel(r'Y [$r_{\rm t}$]', fontsize = 35)
-        ax2.set_ylabel(r'Z [$r_{\rm t}$]', fontsize = 38)
+        # Apply sorting
+        falselong_ph_xz = np.arctan2(zph_xz, xph_xz)                # Elevation angle in radians
+        sorted_indices_xz = np.argsort(falselong_ph_xz)  # Sorting by y-coordinate
+        xph_xz_sorted = xph_xz[sorted_indices_xz] 
+        zph_xz_sorted = zph_xz[sorted_indices_xz]
+        ax2 = fig.add_subplot(gs[0, 1])
+        img = ax2.scatter(x_xz/Rt, z_xz/Rt, c = bern_xz, s = 20, cmap = 'coolwarm', alpha = 0.5, vmin = color_min, vmax = color_max) #-5e2, vmax = 5e2)
+        ax2.scatter(xph_xz/Rt, zph_xz/Rt, facecolor = 'none', s = 60, edgecolors = 'k')
+        ax2.plot(xph_xz_sorted/Rt, zph_xz_sorted/Rt, c = 'k')
+        # if xph_xz_sorted is not empty, connect the last and first point
+        if len(xph_xz_sorted) > 0:
+            ax2.plot([xph_xz_sorted[-1]/Rt, xph_xz_sorted[0]/Rt], [zph_xz_sorted[-1]/Rt, zph_xz_sorted[0]/Rt], c = 'k', linewidth = 2)
+        if snap > 30:
+            ax2.quiver(xph_xz/Rt, zph_xz/Rt, Vx_ph_xz/scale_v, Vz_ph_xz/scale_v, angles='xy', scale_units='xy', color="k", width=0.003, headwidth = 6)
+        ax2.set_xlabel(r'X ($r_{\rm t}$)', fontsize = 35)
+        ax2.set_ylabel(r'Z ($r_{\rm t}$)', fontsize = 38)
         ax2.set_xlim(xlim_min, xlim_max) 
         ax2.set_ylim(ylim_min, ylim_max)
-        ax2.text(.9*xlim_min, 0.85*ylim_max, f't = {np.round(tfb[i],2)}' + r' t$_{\rm fb}$', color = 'k', fontsize = 35)
-        ax2.text(.9*xlim_min, 0.85*ylim_min, r'x = r$_{\rm p}$', fontsize = 35)
-        cbar_ax = fig.add_subplot(gs[1, 0])  # Colorbar subplot below the first two
+        ax2.text(.9*xlim_min, 0.85*ylim_min, r'y = 0', fontsize = 35)
+        cbar_ax = fig.add_subplot(gs[1, 0:2])  # Colorbar subplot below the first two
         cb = fig.colorbar(img, orientation='horizontal', cax=cbar_ax)
         # cb.set_label(r'$\mathcal{B}$', fontsize = 35)
         cb.ax.tick_params(labelsize=30)
-        cb.set_ticks([-1e-10, 0, 1e-10])
+        cb.set_ticks([color_min, 0, color_max])
         cb.set_ticklabels(['Bound', '', 'Unbound'])
         ax2.set_aspect('equal')
 
-        gs = gridspec.GridSpec(2, 2, width_ratios=[1,1], height_ratios=[1, 0.05], hspace=0.2, wspace = 0.2)
-        ax3 = fig.add_subplot(gs[0, 1])
-        img = ax3.scatter(tfb[:i+1], np.array(median_rph[:i+1])/Rt, s = 65, c = ratio_unbound_ph[:i+1], cmap = 'viridis', vmin = 0, vmax = 0.8)
-        cbar_ax = fig.add_subplot(gs[1, 1])
-        cb = fig.colorbar(img, orientation='horizontal', cax=cbar_ax)
-        cb.set_label(r'f$_{\rm unb}$', fontsize = 35)
-        cb.ax.tick_params(labelsize=30) 
-        ax3.fill_between(tfb[:i+1], np.array(percentile16[:i+1])/Rt, np.array(percentile84[:i+1])/Rt, color = 'gray', alpha = 0.2)
-        ax3.set_xlabel(r't $[t_{\rm fb}]$', fontsize = 35)
-        ax3.set_ylabel(r'Median r$_{\rm ph}$ [$r_{\rm t}$]', fontsize = 38)
-        ax3.set_xlim(0.35, 1.55)
-        ax3.set_ylim(1, 50)
-        ax3.set_yscale('log')
-        ax3.grid()       
+        # gs = gridspec.GridSpec(2, 2, width_ratios=[1,1], height_ratios=[1, 0.05], hspace=0.2, wspace = 0.2)
+        # ax3 = fig.add_subplot(gs[0, 1])
+        # img = ax3.scatter(tfb[:i+1], np.array(median_rph[:i+1])/Rt, s = 65, c = ratio_unbound_ph[:i+1], cmap = 'viridis', vmin = 0, vmax = 0.8)
+        # cbar_ax = fig.add_subplot(gs[1, 1])
+        # cb = fig.colorbar(img, orientation='horizontal', cax=cbar_ax)
+        # cb.set_label(r'f$_{\rm unb}$', fontsize = 35)
+        # cb.ax.tick_params(labelsize=30) 
+        # ax3.fill_between(tfb[:i+1], np.array(percentile16[:i+1])/Rt, np.array(percentile84[:i+1])/Rt, color = 'gray', alpha = 0.2)
+        # ax3.set_xlabel(r't $[t_{\rm fb}]$', fontsize = 35)
+        # ax3.set_ylabel(r'Median r$_{\rm ph}$ [$r_{\rm t}$]', fontsize = 38)
+        # ax3.set_xlim(0.35, 1.55)
+        # ax3.set_ylim(1, 50)
+        # ax3.set_yscale('log')
+        # ax3.grid()       
         # ax3.text(.4, 32, f't = {np.round(tfb[i]*t_fall_hour,1)}' + r' hours', color = 'k', fontsize = 35)
     
-        for ax in [ax2, ax3]:
+        for ax in [ax1, ax2]:
             ax.tick_params(axis='both', which='major', width=1.5, length=12, color = 'k', labelsize = 35)
             ax.tick_params(axis='both', which='minor', width=1, length=9, color = 'k')
-            if ax != ax3:
-                ax.scatter(0,0, c= 'k', marker = 'x', s=100)
-
+            # if ax != ax3:
+            ax.scatter(0,0, c= 'k', marker = 'x', s=100)
+        
+        plt.tight_layout()
         plt.savefig(f'{abspath}/Figs/{folder}/Outflow/B_slice_{snap}.png', bbox_inches='tight')
         plt.close() 
 
