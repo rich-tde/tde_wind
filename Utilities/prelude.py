@@ -83,8 +83,7 @@ plt.rcParams['axes.labelsize'] = 25
 plt.rcParams['xtick.top'] = True
 plt.rcParams['ytick.right'] = True
 # plt.rcParams['text.usetex'] = False
-name = "Accent"
-cmap = mpl.colormaps['Dark2']  # type: matplotlib.colors.ListedColormap
+cmap = mpl.colormaps['tab20']  # nice, but only 8:Dark2
 colors_cy = cmap.colors  # type: list
 mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=colors_cy)
 

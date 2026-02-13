@@ -212,7 +212,7 @@ def choose_sections(X, Y, Z, choice):
     if choice == 'tenths': 
         sec = {}
         step = 10
-        for alpha in np.arange(0, 190, step):
+        for alpha in np.arange(0, 180, step):
             slope = np.tan(alpha * np.pi/180) 
             slope_next = np.tan((alpha + step) * np.pi/180)
             if alpha < 90:

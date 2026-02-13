@@ -13,6 +13,8 @@ check = 'HiResNewAMR'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 what = 'Outflow' # 'projection', 'slices', 'testOpac', 'Outflow', 'stream'
 how_many = ''
+coord_to_cut = 'z' # 'x', 'y', 'z'
+cut_name = 0
 figs_path = f'{abspath}/Figs/{folder}/{what}' 
 
 start = 21
@@ -32,8 +34,8 @@ def get_image_size(image_path):
 
 if what == f'projection{how_many}': 
     sub_path = f'denproj' 
-if what == f'slices{how_many}':
-    sub_path = f'slice' 
+if what == f'slices':
+    sub_path = f'{coord_to_cut}/{coord_to_cut}{cut_name}slice' 
 if what == 'Outflow':
     sub_path = f'B_slice'  
 if what == 'stream':
