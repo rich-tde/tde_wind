@@ -1,6 +1,9 @@
 """ Make/plot slices at a fixed coordinate (choose x,y,z).
 If alice: make the section (with density cut 1e-19) and save it: X, Y, Z, vol, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, Press
-If not alice: load the section and plot the slice with color = chosen quantity.
+If not alice: load the section and plot the slice with color = chosen quantity. 
+You can choose to plot:
+- a single snap (for movie)
+- 3 snapshots with streamlines/velocity arrows (you can pick the wind or all the material)
 """
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
