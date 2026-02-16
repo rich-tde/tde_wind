@@ -6,8 +6,10 @@ Measure the width and the height of the stream.
 abspath = '/Users/paolamartire/shocks'
 import sys
 sys.path.append(abspath)
+
 import numpy as np
 import Utilities.operators as op
+from scipy.interpolate import griddata
 import Utilities.prelude as prel
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
@@ -103,6 +105,29 @@ def pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params):
     cond_wind = np.logical_and(V_r >= 0, bern > 0)
 
     return cond_wind, bern, V_r
+
+def streamlines(x, y, vx, vy, params_x, params_y, color_plot = None):
+    xmin, xmax, nx = params_x
+    ymin, ymax, ny = params_y
+    x_uniform = np.linspace(xmin, xmax, nx)
+    y_uniform = np.linspace(ymin, ymax, ny)
+    X_grid, Y_grid = np.meshgrid(x_uniform, y_uniform)
+
+    Vx_grid = griddata((x, y), vx,
+                    (X_grid, Y_grid), method = 'nearest')
+
+    Vy_grid = griddata((x, y), vy,
+                    (X_grid, Y_grid), method = 'nearest')
+    
+    if color_plot is not None:
+        color_grid = griddata((x, y), color_plot,
+                        (X_grid, Y_grid), method = 'nearest')
+        
+        return X_grid, Y_grid, Vx_grid, Vy_grid, color_grid
+    
+    else:
+        return X_grid, Y_grid, Vx_grid, Vy_grid
+
 
 def R_grav(Mbh, c, G):
     """ Gravitational radius of the black hole."""

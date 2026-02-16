@@ -416,7 +416,6 @@ if __name__ == '__main__':
         # rest_obs8 = wind_obs8[2:]
 
         # Plot
-        axEdd_pos.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--', label = r'$|\dot{M}_{\rm fb}|$')
         for i in range(len(rest)):
             if label_obs[i] in ['0-10',  '10-20',  '20-30',  '30-40',  '40-50',  '50-60',  '60-70',  '70-80',  '80-90']:
                 pos_scatt.scatter(X[sec[i]]/Rt, Z[sec[i]]/Rt, s = 2, label = lab_scat[i])
@@ -459,16 +458,18 @@ if __name__ == '__main__':
             ax.tick_params(axis='both', which='major', width=1.2, length=9)
             ax.tick_params(axis='both', which='minor', width=1, length=5)
             ax.grid()
-            ax.set_ylim(1e1, 7e6)
             ax.set_ylabel(r'$\dot{M}_{{\rm w}} [\dot{M}_{\rm Edd}]$')  
 
+        axEdd_neg.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--', label = r'$|\dot{M}_{\rm fb}|$')
+        axEdd_pos.set_ylim(1e1, 7e3)
+        axEdd_neg.set_ylim(1e1, 7e6)
         # axall.set_ylim(5e-2, 1.1)
         # axall.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm w}]$')
         # axfb.set_ylim(1e-3, 2)
         # axfb.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm fb}]$')
-        axEdd_pos.legend(loc='upper right', bbox_to_anchor=(1, 1))
-        axEdd_neg.legend(loc='upper right', bbox_to_anchor=(1, 1))
-        pos_scatt.legend()
+        pos_scatt.legend(fontsize = 18)
+        neg_scatt.legend(fontsize = 18)
+        # pos_scatt.legend()
         pos_scatt.set_xlim(-100, 100)
         pos_scatt.set_ylim(-100, 100)
         neg_scatt.set_xlim(-100, 100)
@@ -479,6 +480,7 @@ if __name__ == '__main__':
         neg_scatt.set_ylabel(r'$Z (r_{\rm t})$')
         fig.suptitle(rf'$\dot{{M}}_{{\rm w}}$ at {which_r_title}', fontsize = 20)
         fig.tight_layout()
+        fig.savefig(f'{abspath}/Figs/{folder}/Wind/MdotSec_{which_r_title}{choice}.png', dpi = 150)
 
         # fig, ax = plt.subplots(1,1, figsize = (8,6))
         # ax.plot(tfbH, np.abs(mwind_dimCellH/mfallH), c = 'k')

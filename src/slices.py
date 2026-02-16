@@ -2,7 +2,6 @@
 If alice: make the section (with density cut 1e-19) and save it: X, Y, Z, vol, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, Press
 If not alice: load the section and plot the slice with color = chosen quantity.
 """
-from fileinput import filename
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 
@@ -63,8 +62,8 @@ if alice:
         file.close()
 
     for idx, snap in enumerate(snaps):
-        if snap > 50:
-                continue
+        # if snap > 50:
+        #         continue
         print(snap, flush=True)
         path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
         path = f'{path}/snap_{snap}'
@@ -111,7 +110,7 @@ else:
     snaps = np.array([int(snap) for snap in snaps])
     tfb = time[1]
 
-    if single_plot:
+    if single_plot: # slice for a single snap for the movie
         for idx, snap in enumerate(snaps):
             if snap > 50:
                     continue
@@ -139,8 +138,8 @@ else:
             cb.set_label(r'Density [g/cm$^3$]')
             cb.ax.tick_params(which='major', length=7, width=1.2)
             cb.ax.tick_params(which='minor', length=4, width=1)
-            ax.set_ylabel(r'$ y [r_{\rm t}]$')
-            ax.set_xlabel(r'$x [r_{\rm t}]$')
+            ax.set_ylabel(r'$ y (r_{\rm t})$')
+            ax.set_xlabel(r'$x (r_{\rm t})$')
             ax.set_xlim(-50, 50)#(-340,25)
             ax.set_ylim(-50, 50)#(-70,70)
 
@@ -151,9 +150,13 @@ else:
         
     else:
         from matplotlib import gridspec
+        what = '' # '' or '_wind' (if you want to pick the wind and plot only the streamlines that belong to the wind)
+        how = '_arrows' # '' if you want streamlines, '_arrows' if you want arrows 
         idx_wanted = [np.argmin(np.abs(snaps - 76)), 
                       np.argmin(np.abs(snaps - 109)), 
                       np.argmin(np.abs(snaps - 151))]
+        lim_plot = apo
+        N_arrows = 200
         
         fig = plt.figure(figsize=(12*len(idx_wanted), 12))
         gs = gridspec.GridSpec(2, len(idx_wanted), width_ratios=[1]*len(idx_wanted), hspace=0.3,  height_ratios=[1, 0.05], wspace = 0.2)
@@ -176,30 +179,69 @@ else:
             VZ = data["vz"]
             Press = data["pressure"]
 
-            cut, bern, V_r = orb.pick_wind(x, y, z, VX, VY, VZ, den, mass, Press, ie_den, Rad_den, params)
-            x, y, z, V_r, den, mass, Press, ie_den, Rad_den, dim, bern = \
-                sec.make_slices([x, y, z, V_r, den, mass, Press, ie_den, Rad_den, dim, bern], cut)      
-            wind_cond = np.logical_and(V_r >= 0, bern > 0)
-
+            if coord_to_cut == 'x':
+                x_toplot = y
+                VX_toplot = VY
+                y_toplot = z
+                VY_toplot = VZ
+                xlabel = r'$y (r_{\rm t})$'
+                ylabel = r'$z (r_{\rm t})$'
             if coord_to_cut == 'y':
+                x_toplot = x
+                VX_toplot = VX
+                y_toplot = z
+                VY_toplot = VZ
                 xlabel = r'$x (r_{\rm t})$'
-                y_to_plot = z
                 ylabel = r'$z (r_{\rm t})$'
             elif coord_to_cut == 'z':
+                x_toplot = x
+                VX_toplot = VX
+                y_toplot = y
+                VY_toplot = VY
                 xlabel = r'$x (r_{\rm t})$'
-                y_to_plot = y
                 ylabel = r'$y (r_{\rm t})$'
 
+            if what == '_wind':
+                print(f'Picking wind for snap {snap}', flush=True)
+                cut, bern, V_r = orb.pick_wind(x, y, z, VX, VY, VZ, den, mass, Press, ie_den, Rad_den, params)
+            else:
+                cut = den > 1e-19
+            
+            x_toplot, y_toplot, VX_toplot, VY_toplot, den, dim = \
+                sec.make_slices([x_toplot, y_toplot, VX_toplot, VY_toplot, den, dim], cut)      
+            
+
+            params_x = [-lim_plot, lim_plot, 400]
+            params_y = [-lim_plot, lim_plot, 400]
+
             ax = fig.add_subplot(gs[0, i])
-            img = ax.scatter(x[wind_cond]/Rt, y_to_plot[wind_cond]/Rt, c = den[wind_cond]*prel.den_converter, cmap = 'rainbow', s= .1,
-                             norm = colors.LogNorm(vmin = 1e-15, vmax = 1e-8))
+            if what == '_wind':
+                img = ax.scatter(x_toplot/Rt, y_toplot/Rt, c = den * prel.den_converter, cmap = 'rainbow', s = 4, norm=colors.LogNorm(vmin=1e-15, vmax=1e-8))
+                if how == '_arrows': 
+                    step = max(1, len(x_toplot) // N_arrows) 
+                    print(f'Plotting {len(x_toplot[::step])} arrows out of {len(x_toplot)} points.')
+                    ax.quiver(x_toplot[::step]/Rt, y_toplot[::step]/Rt, VX_toplot[::step], VY_toplot[::step], color='k', angles='xy', scale_units='xy', width=0.002)
+                else:
+                    x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y)
+            else:
+                x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, Den_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, den)
+                img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, Den_grid * prel.den_converter, cmap='rainbow', norm=colors.LogNorm(vmin=1e-15, vmax=1e-8))
+                if how == '_arrows': 
+                    step = max(1, len(x_toplot) // N_arrows) 
+                    print(f'Plotting {len(x_toplot[::step])} arrows out of {len(x_toplot)} points.')
+                    ax.quiver(x_toplot[::step]/Rt, y_toplot[::step]/Rt, VX_toplot[::step], VY_toplot[::step], color='k', angles='xy', scale_units='xy', width=0.002)
+            
+            if how == '':
+                ax.streamplot(x_toplot_grid/Rt, y_toplot_grid/Rt, Vx_toplot_grid, Vy_toplot_grid, density = 1.5, linewidth = 1, color = 'k')
+            
             ax.set_xlabel(xlabel, fontsize = 35)
             if i == 0:
                 ax.set_ylabel(ylabel, fontsize = 35)
-            ax.set_xlim(-50, 50)
-            ax.set_ylim(-50, 50)
+            ax.set_xlim(-lim_plot/Rt, lim_plot/Rt)
+            ax.set_ylim(-lim_plot/Rt, lim_plot/Rt)
             ax.set_title(f't = {np.round(time, 2)}' + r'$t_{\rm fb}$', fontsize = 25)
             ax.tick_params(axis='both', which='major', width=1.2, length=9)
+            plt.gca().set_aspect('equal')
 
         cbar_ax = fig.add_subplot(gs[1, 0:len(idx_wanted)])  # Colorbar subplot below the first two
         cb = fig.colorbar(img, orientation='horizontal', cax=cbar_ax)
@@ -209,4 +251,4 @@ else:
         cb.ax.tick_params(which='minor', length=6, width=1.2)
 
         plt.tight_layout()
-        plt.savefig(f'{abspath}Figs/{folder}/Wind{coord_to_cut}{cut_name}slices_wind.png')
+        plt.savefig(f'{abspath}Figs/{folder}/Wind{coord_to_cut}{cut_name}slices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
