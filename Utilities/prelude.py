@@ -86,6 +86,8 @@ plt.rcParams['ytick.right'] = True
 cmap = mpl.colormaps['tab20']  # nice, but only 8:Dark2
 colors_cy = cmap.colors  # type: list
 mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=colors_cy)
+# colors_cy = plt.get_cmap('tab20').colors[:10] + plt.get_cmap('tab20_r').colors[:10]
+# mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=colors_cy)
 
 if __name__ == '__main__':
     # it's the same converting from cgs ans SI ... of course lol

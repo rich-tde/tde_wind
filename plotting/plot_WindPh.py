@@ -19,7 +19,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-which_obs = 'left_right_in_out_z' #'left_right_z' #'arch', 'quadrants', 'ax is'
+which_obs = 'tenths' #'left_right_z' #'arch', 'quadrants', 'ax is'
 check = 'HiResNewAMR' 
 
 params = [Mbh, Rstar, mstar, beta]

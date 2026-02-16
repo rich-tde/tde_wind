@@ -9,6 +9,8 @@ from -pi in -x to second, first, fourth and third (pi) quadrant.
 6) Compute the div/grad for old stuff.
 """
 import sys
+
+from matplotlib import cm
 sys.path.append('/Users/paolamartire/shocks')
 
 from Utilities.isalice import isalice
@@ -210,17 +212,19 @@ def choose_sections(X, Y, Z, choice):
         sec = {'right_030': right_030, 'right_3060': right_3060, 'right_6090': right_6090, 'left_030': left_030, 'left_3060': left_3060, 'left_6090': left_6090}
     
     if choice == 'tenths': 
+        cm = plt.get_cmap('tab20')       
+        ncolors = cm.N
         sec = {}
         step = 10
-        for alpha in np.arange(0, 180, step):
+        for i, alpha in enumerate(np.arange(0, 180, step)):
             slope = np.tan(alpha * np.pi/180) 
             slope_next = np.tan((alpha + step) * np.pi/180)
             if alpha < 90:
                 cond = np.logical_and(X >= 0, np.logical_and(np.abs(Z) >= slope * R_cyl, np.abs(Z) < slope_next * R_cyl))
-                sec[f'right_{alpha}-{alpha + step}'] = {'cond': cond, 'label': f'{alpha}-{alpha + step}', 'line': 'solid'}
+                sec[f'right_{alpha}-{alpha + step}'] = {'cond': cond, 'label': f'{alpha}-{alpha + step}', 'line': 'solid', 'color': cm(i % ncolors)}
             else: 
                 cond = np.logical_and(X < 0, np.logical_and(np.abs(Z) >= np.abs(slope_next) * R_cyl, np.abs(Z) < np.abs(slope) * R_cyl))
-                sec[f'left_{alpha}-{alpha + step}'] = {'cond': cond, 'label': f'{alpha}-{alpha +step}', 'line': 'dashed'}
+                sec[f'left_{alpha}-{alpha + step}'] = {'cond': cond, 'label': f'{alpha}-{alpha +step}', 'line': 'dashed', 'color': cm(i % ncolors)}
 
     return sec
     
@@ -246,7 +250,7 @@ def choose_observers(observers_xyz, choice):
     
     x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
     all_idx_obs = np.arange(len(x_obs))
-    if choice == 'left_right_z' or choice == 'in_out_z' or choice == 'arch' or choice == 'left_right_in_out_z' or choice == 'all':
+    if choice == 'left_right_z' or choice == 'in_out_z' or choice == 'arch' or choice == 'left_right_in_out_z' or choice == 'all' or choice == 'tenths':
         indices_sorted = []
         sections_ph = choose_sections(x_obs, y_obs, z_obs, choice = choice)
         label_obs = []
@@ -427,6 +431,10 @@ def choose_observers(observers_xyz, choice):
             ax.set_xlabel(r'$X$')
             ax.set_xlim(-1.5, 1.5)
             ax.set_ylim(-1.5, 1.5)
+        # x_line = np.arange(-4, 4, dtype=complex)
+        # for a, alpha in enumerate(np.arange(0, 180, 10)):
+        #     line = draw_line(x_line, alpha*np.pi/180, 'line')
+        #     ax2.plot(x_line, line, c = 'k', ls = 'dashed')
         ax1.set_ylabel(r'$Y$')
         ax2.set_ylabel(r'$Z$')
         plt.suptitle(f'Selected observers', fontsize=15)

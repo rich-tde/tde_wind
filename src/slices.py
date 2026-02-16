@@ -153,12 +153,12 @@ else:
         
     else:
         from matplotlib import gridspec
-        what = '' # '' or '_wind' (if you want to pick the wind and plot only the streamlines that belong to the wind)
-        how = '_arrows' # '' if you want streamlines, '_arrows' if you want arrows 
+        what = '_wind' # '' or '_wind' (if you want to pick the wind and plot only the streamlines that belong to the wind)
+        how = '' # '' if you want streamlines, '_arrows' if you want arrows 
         idx_wanted = [np.argmin(np.abs(snaps - 76)), 
                       np.argmin(np.abs(snaps - 109)), 
                       np.argmin(np.abs(snaps - 151))]
-        lim_plot = apo
+        lim_plot = 2*apo
         N_arrows = 200
         
         fig = plt.figure(figsize=(12*len(idx_wanted), 12))
@@ -219,7 +219,7 @@ else:
 
             ax = fig.add_subplot(gs[0, i])
             if what == '_wind':
-                img = ax.scatter(x_toplot/Rt, y_toplot/Rt, c = den * prel.den_converter, cmap = 'rainbow', s = 4, norm=colors.LogNorm(vmin=1e-15, vmax=1e-8))
+                img = ax.scatter(x_toplot/Rt, y_toplot/Rt, c = den * prel.den_converter, cmap = 'brg_r', s = 6, norm=colors.LogNorm(vmin=1e-16, vmax=2e-8))
                 if how == '_arrows': 
                     step = max(1, len(x_toplot) // N_arrows) 
                     print(f'Plotting {len(x_toplot[::step])} arrows out of {len(x_toplot)} points.')
@@ -228,7 +228,7 @@ else:
                     x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y)
             else:
                 x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, Den_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, den)
-                img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, Den_grid * prel.den_converter, cmap='rainbow', norm=colors.LogNorm(vmin=1e-15, vmax=1e-8))
+                img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, Den_grid * prel.den_converter, cmap='brg_r', norm=colors.LogNorm(vmin=1e-16, vmax=2e-8))
                 if how == '_arrows': 
                     step = max(1, len(x_toplot) // N_arrows) 
                     print(f'Plotting {len(x_toplot[::step])} arrows out of {len(x_toplot)} points.')

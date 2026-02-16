@@ -416,13 +416,16 @@ if __name__ == '__main__':
         # rest_obs8 = wind_obs8[2:]
 
         # Plot
+        # cm = plt.get_cmap('tab20')[0:10]        # 20 discrete colors
+        # ncolors = cm.N 
         for i in range(len(rest)):
-            if label_obs[i] in ['0-10',  '10-20',  '20-30',  '30-40',  '40-50',  '50-60',  '60-70',  '70-80',  '80-90']:
-                pos_scatt.scatter(X[sec[i]]/Rt, Z[sec[i]]/Rt, s = 2, label = lab_scat[i])
-                axEdd_pos.plot(tfbH, rest[i]/Medd_sol,  label = label_obs[i])
-            else:
-                neg_scatt.scatter(X[sec[i]]/Rt, Z[sec[i]]/Rt, s = 2, label = lab_scat[i])
-                axEdd_neg.plot(tfbH, rest[i]/Medd_sol, label = label_obs[i])
+            # if label_obs[i] in ['0-10',  '10-20',  '20-30',  '30-40',  '40-50',  '50-60',  '60-70',  '70-80',  '80-90']:
+            pos_scatt.scatter(X[sec[i]]/Rt, Z[sec[i]]/Rt, s = 2, label = lab_scat[i])
+            axEdd_pos.plot(tfbH, rest[i]/Medd_sol,  label = label_obs[i])
+            # else:
+            #     neg_scatt.scatter(X[sec[i]]/Rt, Z[sec[i]]/Rt, s = 2, label = lab_scat[i])
+            #     axEdd_neg.plot(tfbH, rest[i]/Medd_sol, label = label_obs[i])
+            
             # Mw_sum += rest[i]
             # axEdd.plot(tfbH_Bound, rest_Bound[i]/Medd_sol, c = colors_obs[0], ls = '--', label = r'$\dot{M}_{\rm out, b}$')
             # axEdd.plot(tfbH_mean, rest_mean[i]/Medd_sol, c = colors_obs[i], ls = '--', label = f'Mean' if i==0 else None)
@@ -461,7 +464,7 @@ if __name__ == '__main__':
             ax.set_ylabel(r'$\dot{M}_{{\rm w}} [\dot{M}_{\rm Edd}]$')  
 
         axEdd_neg.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--', label = r'$|\dot{M}_{\rm fb}|$')
-        axEdd_pos.set_ylim(1e1, 7e3)
+        axEdd_pos.set_ylim(1e1, 7e6)
         axEdd_neg.set_ylim(1e1, 7e6)
         # axall.set_ylim(5e-2, 1.1)
         # axall.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm w}]$')
