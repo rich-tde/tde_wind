@@ -335,7 +335,6 @@ for idx_s, snap in enumerate(snaps):
 
     Lphoto_snap = np.mean(Lph) # take the mean
     print(Lphoto_snap, flush=True)
-    # sys.stdout.flush()
 
     if save:
         # Save red of the single snap
@@ -349,32 +348,32 @@ for idx_s, snap in enumerate(snaps):
         # save Rph index and fluxes for each observer in the snapshot
         time_rph = np.concatenate([[snap,tfb[idx_s]], ph_idx])
         time_fluxes = np.concatenate([[snap,tfb[idx_s]], fluxes])
-        # with open(f'{pre_saving}/{check}_phidx_fluxes.txt', 'a') as fileph:
-        #     fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
-        #     fileph.write(' '.join(map(str, time_rph)) + '\n')
-        #     fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes [cgs] for each obs \n')
-        #     fileph.write(' '.join(map(str, time_fluxes)) + '\n')
-        #     fileph.close()
+        with open(f'{pre_saving}/{check}_phidx_fluxes.txt', 'a') as fileph:
+            fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the photosphere indices \n')
+            fileph.write(' '.join(map(str, time_rph)) + '\n')
+            fileph.write(f'# {folder}_{check}. First data is snap, second time (in t_fb), the rest are the fluxes [cgs] for each obs \n')
+            fileph.write(' '.join(map(str, time_fluxes)) + '\n')
+            fileph.close()
         
-        # with open(f'{pre_saving}/photo/{check}_photo{snap}.txt', 'w') as f:
-        #     f.write('# Data for the photospere.\n')
-        #     f.write('# xph\n' + ' '.join(map(str, xph)) + '\n')
-        #     f.write('# yph\n' + ' '.join(map(str, yph)) + '\n')
-        #     f.write('# zph\n' + ' '.join(map(str, zph)) + '\n')
-        #     f.write('# volph\n' + ' '.join(map(str, volph)) + '\n')
-        #     f.write('# denph CGS\n' + ' '.join(map(str, denph)) + '\n')
-        #     f.write('# Tempph\n' + ' '.join(map(str, Tempph)) + '\n')
-        #     f.write('# Rad_denph\n' + ' '.join(map(str, Rad_denph)) + '\n')
-        #     f.write('# Vxph\n' + ' '.join(map(str, Vxph)) + '\n')
-        #     f.write('# Vyph\n' + ' '.join(map(str, Vyph)) + '\n')
-        #     f.write('# Vzph\n' + ' '.join(map(str, Vzph)) + '\n')
-        #     f.write('# Pressph\n' + ' '.join(map(str, Pressph)) + '\n')
-        #     f.write('# IE_denph\n' + ' '.join(map(str, IE_denph)) + '\n')
-        #     f.write('# alpha CGS\n' + ' '.join(map(str, alphaph)) + '\n')
-        #     f.write('# rph\n' + ' '.join(map(str, rph)) + '\n')
-        #     f.write('# Lph CGS\n' + ' '.join(map(str, Lph)) + '\n')
-        #     f.write('# indices\n' + ' '.join(map(str, ph_idx)) + '\n')
-        #     f.close()
+        with open(f'{pre_saving}/photo/{check}_photo{snap}.txt', 'w') as f:
+            f.write('# Data for the photospere.\n')
+            f.write('# xph\n' + ' '.join(map(str, xph)) + '\n')
+            f.write('# yph\n' + ' '.join(map(str, yph)) + '\n')
+            f.write('# zph\n' + ' '.join(map(str, zph)) + '\n')
+            f.write('# volph\n' + ' '.join(map(str, volph)) + '\n')
+            f.write('# denph CGS\n' + ' '.join(map(str, denph)) + '\n')
+            f.write('# Tempph\n' + ' '.join(map(str, Tempph)) + '\n')
+            f.write('# Rad_denph\n' + ' '.join(map(str, Rad_denph)) + '\n')
+            f.write('# Vxph\n' + ' '.join(map(str, Vxph)) + '\n')
+            f.write('# Vyph\n' + ' '.join(map(str, Vyph)) + '\n')
+            f.write('# Vzph\n' + ' '.join(map(str, Vzph)) + '\n')
+            f.write('# Pressph\n' + ' '.join(map(str, Pressph)) + '\n')
+            f.write('# IE_denph\n' + ' '.join(map(str, IE_denph)) + '\n')
+            f.write('# alpha CGS\n' + ' '.join(map(str, alphaph)) + '\n')
+            f.write('# rph\n' + ' '.join(map(str, rph)) + '\n')
+            f.write('# Lph CGS\n' + ' '.join(map(str, Lph)) + '\n')
+            f.write('# indices\n' + ' '.join(map(str, ph_idx)) + '\n')
+            f.close()
 
         # Save spectrum
         np.savetxt(f'{pre_saving}/spectra/freqs.txt', prel.freqs)

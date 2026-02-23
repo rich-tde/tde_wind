@@ -5,9 +5,12 @@ Created on Fri Feb 24 17:06:56 2023
 
 File structure is: box, cycle, time, mpi, rank0 ... rank99. 
 extractor iterates over all the ranks
-keys for each rank: ['CMx', 'CMy', 'CMz', 'Density', 'Dissipation', 'DpDx', 'DpDy', 'DpDz', 'DrhoDx', 'DrhoDy', 'DrhoDz', 'DsieDx', 'DsieDy', 'DsieDz', 'Eg_0', 'Erad', 'ID', 'InternalEnergy', 'Pressure', 'Temperature', 'Volume', 'Vx', 'Vy', 'Vz', 'X', 'Y', 'Z', 'divV', 'stickers', 'tracers']
-keys in tracers: ['Entropy', 'Star', 'WasRemoved']
-keys in stickers: []
+FLD scheme: 
+    - keys for each rank in: ['CMx', 'CMy', 'CMz', 'Density', 'Dissipation', 'DpDx', 'DpDy', 'DpDz', 'DrhoDx', 'DrhoDy', 'DrhoDz', 'DsieDx', 'DsieDy', 'DsieDz', 'Eg_0', 'Erad', 'ID', 'InternalEnergy', 'Pressure', 'Temperature', 'Volume', 'Vx', 'Vy', 'Vz', 'X', 'Y', 'Z', 'divV', 'stickers', 'tracers']
+    - keys in tracers: ['Entropy', 'Star', 'WasRemoved']
+Multiband scheme: [
+    - keys: ['CMx', 'CMy', 'CMz', 'Density', 'Dissipation', 'DpDx', 'DpDy', 'DpDz', 'DrhoDx', 'DrhoDy', 'DrhoDz', 'DsieDx', 'DsieDy', 'DsieDz', 'Eg_0', 'Eg_1', 'Eg_2', 'Eg_3', 'Eg_4', 'Eg_5', 'Eg_6', 'Eg_7', 'Eg_8', 'Eg_9', 'Erad', 'ID', 'InternalEnergy', 'Pressure', 'Temperature', 'Volume', 'Vx', 'Vy', 'Vz', 'X', 'Y', 'Z', 'divV', 'stickers', 'tracers']
+    - keys in tracers: ['Entropy', 'Star']
 """
 import sys
 sys.path.append('/Users/paolamartire/shocks')
@@ -32,11 +35,11 @@ def days_since_distruption(time, m, mstar, rstar, choose = 'day'):
     t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(rstar, 3/2)
     # print(f'days after disruption: {days} // t_fall: {t_fall} // sim_time: {time}')
     if choose == 'tfb':
-        print('Time in tfb')
+        # print('Time in tfb')
         days /= t_fall
     return days
 
-def extractor(filename, extended = False):
+def extractor(filename, extended = False, MG = False):
     '''
     Loads the file, extracts quantites from it. 
     '''
@@ -70,6 +73,17 @@ def extractor(filename, extended = False):
         DpDy = []
         DpDz = []
         DivV = []
+    if MG:
+        Eg_0 = []
+        Eg_1 = []
+        Eg_2 = []
+        Eg_3 = []           
+        Eg_4 = []
+        Eg_5 = []
+        Eg_6 = []
+        Eg_7 = []
+        Eg_8 = []
+        Eg_9 = []
     
     # Iterate over ranks
     for key in keys:
@@ -128,12 +142,29 @@ def extractor(filename, extended = False):
                     DpDy.append(DpDy_data[i])
                     DpDz.append(DpDz_data[i])
                     DivV.append(DivV_data[i])
-
+                if MG:
+                    Eg_0.append(f[key]['Eg_0'][i])
+                    Eg_1.append(f[key]['Eg_1'][i])
+                    Eg_2.append(f[key]['Eg_2'][i])
+                    Eg_3.append(f[key]['Eg_3'][i])           
+                    Eg_4.append(f[key]['Eg_4'][i])
+                    Eg_5.append(f[key]['Eg_5'][i])
+                    Eg_6.append(f[key]['Eg_6'][i])
+                    Eg_7.append(f[key]['Eg_7'][i])
+                    Eg_8.append(f[key]['Eg_8'][i])
+                    Eg_9.append(f[key]['Eg_9'][i])
+ 
     f.close()
-    if extended:
-        return tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz, DivV
+    if MG:
+        if extended:
+            return tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Eg_0, Eg_1, Eg_2, Eg_3, Eg_4, Eg_5, Eg_6, Eg_7, Eg_8, Eg_9, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz, DivV
+        else: 
+            return tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Eg_0, Eg_1, Eg_2, Eg_3, Eg_4, Eg_5, Eg_6, Eg_7, Eg_8, Eg_9, Erad, T, P, Star, Diss, Entropy
     else:
-        return tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy 
+        if extended:
+            return tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz, DivV
+        else:
+            return tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy 
 
 
 ##
@@ -147,13 +178,13 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiResNewAMR'
+check = 'MG'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 print(f'We are in folder: {folder}', flush=True)
 prepath_all = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 
 snaps = select_snap(m, check, mstar, Rstar, beta, n, time = False)
-print(snaps)
+
 for i, snap in enumerate(snaps):
     # if snap != 21:
     #     continue
@@ -163,7 +194,10 @@ for i, snap in enumerate(snaps):
         prepath = f'{prepath_all}/{snap}'
     file = f'{prepath}/snap_{snap}.h5'
 
-    tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy = extractor(file, extended = False)
+    if check == 'MG':
+        tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Eg_0, Eg_1, Eg_2, Eg_3, Eg_4, Eg_5, Eg_6, Eg_7, Eg_8, Eg_9, Erad, T, P, Star, Diss, Entropy = extractor(file, extended = False, MG = True)
+    else:
+        tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy = extractor(file, extended = False, MG = False)
    
    # Save to another file.
     np.save(f'{prepath}/box_{snap}', box) 
@@ -184,11 +218,24 @@ for i, snap in enumerate(snaps):
     np.save(f'{prepath}/Diss_{snap}', Diss)
     np.save(f'{prepath}/Entropy_{snap}', Entropy) 
     np.savetxt(f'{prepath}/tfb_{snap}.txt', [tfb])
+    if check == 'MG':
+        np.save(f'{prepath}/Eg_0_{snap}', Eg_0) 
+        np.save(f'{prepath}/Eg_1_{snap}', Eg_1) 
+        np.save(f'{prepath}/Eg_2_{snap}', Eg_2) 
+        np.save(f'{prepath}/Eg_3_{snap}', Eg_3) 
+        np.save(f'{prepath}/Eg_4_{snap}', Eg_4) 
+        np.save(f'{prepath}/Eg_5_{snap}', Eg_5) 
+        np.save(f'{prepath}/Eg_6_{snap}', Eg_6) 
+        np.save(f'{prepath}/Eg_7_{snap}', Eg_7) 
+        np.save(f'{prepath}/Eg_8_{snap}', Eg_8) 
+        np.save(f'{prepath}/Eg_9_{snap}', Eg_9)
     # np.save(f'{prepath}/DpDx_{snap}', DpDx)
     # np.save(f'{prepath}/DpDy_{snap}', DpDy)
     # np.save(f'{prepath}/DpDz_{snap}', DpDz)
     # np.save(f'{prepath}/DivV_{snap}', DivV)
 
     del box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy #, DpDx, DpDy, DpDz, DivV
+    if check == 'MG':
+        del Eg_0, Eg_1, Eg_2, Eg_3, Eg_4, Eg_5, Eg_6, Eg_7, Eg_8, Eg_9
     print(f'Done {snap}', flush = True)
                 

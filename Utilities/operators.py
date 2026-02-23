@@ -195,21 +195,6 @@ def choose_sections(X, Y, Z, choice):
         right_out = {'cond': cond_right_out, 'label': r'right out', 'color': 'yellowgreen', 'line': 'dashed'}
         sec = {'left_in': left_in, 'right_in': right_in, 'left_out': left_out, 'right_out': right_out, 'north': north, 'south': south}
     
-    if choice == 'fiftheenths': 
-        cm = plt.get_cmap('tab20')       
-        ncolors = cm.N
-        sec = {}
-        step = 15
-        for i, alpha in enumerate(np.arange(0, 180, step)):
-            slope = np.tan(alpha * np.pi/180) if np.abs(alpha) > 1e-5 else 0
-            slope_next = np.tan((alpha + step) * np.pi/180) if np.abs(alpha + step - 180) > 1e-5 else 0
-            if alpha < 90: 
-                cond = np.logical_and(X >= 0, np.logical_and(np.abs(Z) >= slope * R_cyl, np.abs(Z) <= slope_next * R_cyl))
-                sec[f'{alpha}-{alpha + step}'] = {'cond': cond, 'label': f'{alpha}-{alpha + step}', 'line': 'solid', 'color': cm(i % ncolors)}
-            else: 
-                cond = np.logical_and(X <= 0, np.logical_and(np.abs(Z) >= np.abs(slope_next) * R_cyl, np.abs(Z) <= np.abs(slope) * R_cyl))
-                sec[f'{alpha}-{alpha + step}'] = {'cond': cond, 'label': f'{alpha}-{alpha +step}', 'line': 'dashed', 'color': cm(i % ncolors)}
-
     if choice == 'tenths': 
         cm = plt.get_cmap('tab20')       
         ncolors = cm.N
@@ -219,10 +204,10 @@ def choose_sections(X, Y, Z, choice):
             slope = np.tan(alpha * np.pi/180) if np.abs(alpha) > 1e-5 else 0
             slope_next = np.tan((alpha + step) * np.pi/180) if np.abs(alpha + step - 180) > 1e-5 else 0
             if alpha < 90: 
-                cond = np.logical_and(X >= 0, np.logical_and(np.abs(Z) >= slope * R_cyl, np.abs(Z) <= slope_next * R_cyl))
+                cond = np.logical_and(X >= 0, np.logical_and(np.abs(Z) >= slope * R_cyl, np.abs(Z) < slope_next * R_cyl))
                 sec[f'{alpha}-{alpha + step}'] = {'cond': cond, 'label': f'{alpha}-{alpha + step}', 'line': 'solid', 'color': cm(i % ncolors)}
             else: 
-                cond = np.logical_and(X <= 0, np.logical_and(np.abs(Z) >= np.abs(slope_next) * R_cyl, np.abs(Z) <= np.abs(slope) * R_cyl))
+                cond = np.logical_and(X <= 0, np.logical_and(np.abs(Z) >= np.abs(slope_next) * R_cyl, np.abs(Z) < np.abs(slope) * R_cyl))
                 sec[f'{alpha}-{alpha + step}'] = {'cond': cond, 'label': f'{alpha}-{alpha +step}', 'line': 'dashed', 'color': cm(i % ncolors)}
 
     return sec
@@ -351,16 +336,16 @@ def choose_observers(observers_xyz, choice):
         import matplotlib.pyplot as plt
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 5))
         for j, idx_list in enumerate(indices_sorted):
-            ax1.scatter(x_obs[idx_list], y_obs[idx_list], s = 50, c = colors_obs[j], label = label_obs[j])
-            ax2.scatter(x_obs[idx_list], z_obs[idx_list], s = 50, c = colors_obs[j], label = label_obs[j])
+            ax1.scatter(x_obs[idx_list], y_obs[idx_list], s = 20, c = colors_obs[j], label = label_obs[j])
+            ax2.scatter(x_obs[idx_list], z_obs[idx_list], s = 20, c = colors_obs[j], label = label_obs[j])
         for ax in [ax1, ax2]:
             ax.set_xlabel(r'$X$')
             ax.set_xlim(-1.5, 1.5)
             ax.set_ylim(-1.5, 1.5)
-        # x_line = np.arange(-4, 4, dtype=complex)
-        # for a, alpha in enumerate(np.arange(0, 180, 10)):
-        #     line = draw_line(x_line, alpha*np.pi/180, 'line')
-        #     ax2.plot(x_line, line, c = 'k', ls = 'dashed')
+        x_line = np.arange(-4, 4, dtype=complex)
+        for a, alpha in enumerate(np.arange(0, 180, 10)):
+            line = draw_line(x_line, alpha*np.pi/180, 'line')
+            ax2.plot(x_line, line, c = 'k', ls = 'dashed')
         ax1.set_ylabel(r'$Y$')
         ax2.set_ylabel(r'$Z$')
         plt.suptitle(f'Selected observers', fontsize=15)

@@ -487,10 +487,10 @@ if what == 'radial':
         # x_tr, y_tr, z_tr, den_tr, vol_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['vol_tr'] 
         # r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
         # sections_ph = op.choose_sections(xph, yph, zph, choice)
-        # rph_medians = []
+        rph_medians = []
         # rtr_medians = []
-        # for i, idx_list in enumerate(indices_obs): 
-        #     rph_medians.append(np.median(rph_all[idx_list]))
+        for i, idx_list in enumerate(indices_obs): 
+            rph_medians.append(np.median(rph_all[idx_list]))
         #     non_zero = idx_list[r_tr_all[idx_list]!=0]
         #     # if non_zero.any():
         #     print(f'{label_obs[i]}: Rtr in {len(non_zero)/len(idx_list)*100:.2f}%')
@@ -506,7 +506,7 @@ if what == 'radial':
         y_test23 = op.draw_line(x_test, [3.5e5, -2/3], 'powerlaw')
         y_test2 = op.draw_line(x_test, [1e-8, -2], 'powerlaw')
         fig, ax = plt.subplots(3, 2, figsize=(22, 22)) 
-        figM, (axMdot, axLadv, axLkin) = plt.subplots(1, 3, figsize=(26, 7))
+        figM, axML = plt.subplots(3, 2, figsize=(22, 22))
         figr, axratio = plt.subplots(1, 1, figsize=(10, 7))
         # Load profiles
         profiles = np.load(f'{abspath}/data/{folder}/wind/{choice}/rad_profSec{snap}_{choice}.npy', allow_pickle=True).item()
@@ -525,49 +525,55 @@ if what == 'radial':
             colors_sec = profiles[lab]['colors_obs']
             # Mdot = d * r_plot**2 * v_rad
             # idx_rtr = np.argmin(np.abs(r_plot - rtr_medians[i]))
-            # idx_rph = np.argmin(np.abs(r_plot - rph_medians[i]))
+            idx_rph = np.argmin(np.abs(r_plot - rph_medians[i]))
             
             if label_obs[i] in ['0-10',  '10-20',  '20-30',  '30-40',  '40-50',  '50-60',  '60-70',  '70-80',  '80-90']:
                 i_plot = 1
-                cm = plt.get_cmap('tab20')          # 20 discrete colors
-                ncolors = cm.N 
+                col = prel.wanted_colors[i]
             else:
                 i_plot = 0
-                cm = plt.get_cmap('tab20_r')          # 20 discrete colors
-                ncolors = cm.N 
+                col = prel.reverse_colors[i-9]
 
-            ax[0, i_plot].plot(r_plot/Rt, d * prel.den_converter, label = f'{lab}')
+            ax[0, i_plot].plot(r_plot/Rt, d * prel.den_converter, label = f'{lab}', color = col)
             # axd.scatter(r_plot[idx_rtr]/Rt, d[idx_rtr] * prel.den_converter marker = 's', s = 100)
             # axd.scatter(r_plot[idx_rph]/Rt, d[idx_rph] * prel.den_converter marker = 'o', s = 100)
-            ax[1, i_plot].plot(r_plot/Rt, v_rad * conversion_sol_kms, label = f'{lab}')
+            ax[1, i_plot].plot(r_plot/Rt, v_rad * conversion_sol_kms, label = f'{lab}', color = col)
             # axV.scatter(r_plot[idx_rtr]/Rt, v_rad[idx_rtr] * conversion_sol_kms marker = 's', s = 100)
             # axV.scatter(r_plot[idx_rph]/Rt, v_rad[idx_rph] * conversion_sol_kms marker = 'o', s = 100)
-            ax[2, i_plot].plot(r_plot/Rt, t, label = f'{lab}')
+            ax[2, i_plot].plot(r_plot/Rt, t, label = f'{lab}', color = col)
             # axT.scatter(r_plot[idx_rtr]/Rt, t[idx_rtr] marker = 's', s = 100)
             # axT.scatter(r_plot[idx_rph]/Rt, t[idx_rph] marker = 'o', s = 100)
-            axratio.plot(r_plot/Rt, ratio_un, label = f'{lab}')
+            axratio.plot(r_plot/Rt, ratio_un, label = f'{lab}', color = col)
 
-            axMdot.plot(r_plot/Rt, Mdot/Medd_sol, label = f'{lab}')
+            axML[0, i_plot].plot(r_plot/Rt, Mdot/Medd_sol, label = f'{lab}', color = col)
             # axMdot.scatter(r_plot[idx_rtr]/Rt, Mdot[idx_rtr]/Medd_sol marker = 's', s = 100)
             # axMdot.scatter(r_plot[idx_rph]/Rt, Mdot[idx_rph]/Medd_sol marker = 'o', s = 100)
-            axLadv.plot(r_plot/Rt, L_adv/Ledd_sol, label = f'{lab}')
+            axML[1, i_plot].plot(r_plot/Rt, L_adv/Ledd_sol, label = f'{lab}', color = col)
             # axLadv.scatter(r_plot[idx_rtr]/Rt, L_adv[idx_rtr]/Ledd_sol marker = 's', s = 100)
-            # axLadv.scatter(r_plot[idx_rph]/Rt, L_adv[idx_rph]/Ledd_sol marker = 'o', s = 100)
-            axLkin.plot(r_plot/Rt, L_kin/Ledd_sol, label = f'{lab}')
+            axML[1, i_plot].scatter(r_plot[idx_rph]/Rt, L_adv[idx_rph]/Ledd_sol, marker = 'o', s = 100, color = col)
+            axML[2, i_plot].plot(r_plot/Rt, L_kin/Ledd_sol, label = f'{lab}', color = col)
             # axLkin.scatter(r_plot[idx_rtr]/Rt, L_kin[idx_rtr]/Ledd_sol marker = 's', s = 100)
-            # axLkin.scatter(r_plot[idx_rph]/Rt, L_kin[idx_rph]/Ledd_sol marker = 'o', s = 100)
-
+            # axML[2, i_plot].scatter(r_plot[idx_rph]/Rt, L_kin[idx_rph]/Ledd_sol, marker = 'o', s = 100)
 
         for j in range(2): 
             ax[2, j].set_xlabel(r'$r [r_{\rm t}]$', fontsize = 28)
             ax[0, j].set_ylim(1e-14, 1e-7)
-            ax[1, j].set_ylim(1e4, 4e5) 
+            ax[1, j].set_ylim(1e4, 4e5)
+            ax[0, j].legend(fontsize = 18)
+            axML[0, j].set_ylim(1e1, 1e6)
+            axML[2, j].set_xlabel(r'$r [r_{\rm t}]$', fontsize = 28)
+            axML[1, j].set_ylim(1e-2, 1e1)
+            axML[2, j].set_ylim(1e-1, 5e1) 
+            axML[0, j].legend(fontsize = 18)
             for i in range(3): 
                 ax[i, j].tick_params(axis='both', which='minor', length = 6, width = 1)
                 ax[i, j].tick_params(axis='both', which='major', length = 10, width = 1.5)
                 ax[i, j].loglog()
-                ax[i, j].set_xlim(1, 1e2)
+                ax[i, j].set_xlim(1.5, 1e2)
+                axML[i, j].set_xlim(1.5, 1e2)
                 ax[i, j].grid()
+                ax[i, j].axvline(apo/Rt, color = 'k', ls = 'dashed')
+                axML[i, j].axvline(apo/Rt, color = 'k', ls = 'dashed')
                 # for j, rtr_cond in enumerate(rtr_medians):
                 #     if j == 3 or j ==2:
                 #         continue
@@ -575,41 +581,35 @@ if what == 'radial':
                 #     ax.axvline(rph_profs[j]/Rt, color = colors_sec[j], ls = 'dashed')
                 #     ax.axvspan(np.min(rph_all[cond_ph[j]]/Rt), np.max(rph_all[cond_ph[j]]/Rt), color = colors_sec[j], ls = 'dotted', alpha = 0.2)
         for j in range(2):        
-            ax[0, 0].set_ylim(1e-13, 1e-7)
-            ax[1, 0].set_ylim(2e3, 3e4)
-            ax[2, 0].set_ylim(2e4, 1e6)
-            ax[0, j].plot(x_test, y_test2, c = 'k', ls = 'dashed') #, label = r'$\rho \propto r^{-2}$')
+            ax[0, j].set_ylim(1e-13, 1e-7)
+            ax[1, j].set_ylim(2e3, 3e4)
+            ax[2, j].set_ylim(2e4, 1e6)
             # axd.text(35, 1.1e-11, r'$\rho \propto r^{-2}$', fontsize = 20, color = 'k', rotation = -42)
             ax[1, j].axhline(v_esc_kms, c = 'k', ls = 'dashed')# 
             # axV.text(35, 1.1*0.2*v_esc_kms, r'0.2v$_{\rm esc} (r_{\rm p})$', fontsize = 20, color = 'k')
             ax[2, j].plot(x_test, y_test23, c = 'k', ls = 'dashed', label = r'$T \propto r^{-2/3}$')
             # axT.text(1.2, 2.4e5, r'$T_{\rm rad} \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -24)
-            axLadv.plot(x_test, 5e-5*y_test23, c = 'k', ls = 'dashed', label = r'$L \propto r^{-2/3}$')
+            axML[1, j].plot(x_test, 1e-5*y_test23, c = 'k', ls = 'dashed', label = r'$L \propto r^{-2/3}$')
             # axLadv.text(1.2, 5.6e1, r'$L \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -18)
 
-        ax[0, j].legend(fontsize = 18)
-        axMdot.set_ylim(1e2, 1e6)
-        axMdot.set_xlim(1, 1e2)
-        axMdot.grid()
-        axLadv.set_ylim(1e-1, 1e1)
-        axLkin.set_ylim(1e-1, 5e1)
-        axMdot.loglog()
-        axLadv.loglog()
-        axLkin.loglog()
-        axMdot.legend(fontsize = 18)
-        axMdot.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm Edd}]$', fontsize = 28)
-        ax[0, j].set_ylabel(r'$\rho$ [g/cm$^3]$', fontsize = 28)
-        ax[1, j].set_ylabel(r'v$_{\rm r}$ [km/s]', fontsize = 28)
-        ax[2, j].set_ylabel(r'$T_{\rm rad}$ [K]', fontsize = 28)
-        axLadv.set_ylabel(r'$L_{\rm adv} [L_{\rm Edd}]$', fontsize = 28)
-        axLkin.set_ylabel(r'$L_{\rm kin} [L_{\rm Edd}]$', fontsize = 28)
+        ax[0, 0].plot(x_test, y_test2, c = 'k', ls = 'dashed') #, label = r'$\rho \propto r^{-2}$')
+        ax[0, 1].plot(x_test, 1e-2*y_test2, c = 'k', ls = 'dashed') #, label = r'$\rho \propto r^{-2}$')
+        for i in range(3):
+            for j in range(2):
+                axML[i,j].loglog()
+                axML[i,j].grid()
+        ax[0, 0].set_ylabel(r'$\rho$ [g/cm$^3]$', fontsize = 28)
+        ax[1, 0].set_ylabel(r'v$_{\rm r}$ [km/s]', fontsize = 28)
+        ax[2, 0].set_ylabel(r'$T_{\rm rad}$ [K]', fontsize = 28)
+        axML[0, 0].set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm Edd}]$', fontsize = 28)
+        axML[1, 0].set_ylabel(r'$L_{\rm adv} [L_{\rm Edd}]$', fontsize = 28)
+        axML[2, 0].set_ylabel(r'$L_{\rm kin} [L_{\rm Edd}]$', fontsize = 28)
         axratio.set_ylabel(r'ratio unbound', fontsize = 28)
         axratio.axvline(0.5*amin/Rt, color = 'k', ls = 'dashed')
-        fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 20)
-        figM.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 20)
+        # fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 20)
+        # figM.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 20)
         fig.tight_layout()
         figM.tight_layout()
-        # fig.savefig(f'{abspath}/Figs/paper/den_profShell{which_part}_{suffix_saveing}.pdf', bbox_inches = 'tight')
-        # figM_dim.savefig(f'{abspath}/Figs/paper/MwShell{which_part}.pdf', bbox_inches = 'tight')
-        # figL.savefig(f'{abspath}/Figs/paper/LShell{which_part}.pdf', bbox_inches = 'tight')
+        fig.savefig(f'{abspath}/Figs/den_prof_{snap}.pdf', bbox_inches = 'tight')
+        figM.savefig(f'{abspath}/Figs/MwL_{snap}.pdf', bbox_inches = 'tight')
         plt.show()
