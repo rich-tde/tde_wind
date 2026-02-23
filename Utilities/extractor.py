@@ -16,7 +16,7 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 import numpy as np
 import h5py
-import prelude as prel
+import Utilities.prelude as prel
 from Utilities.selectors_for_snap import select_snap, select_prefix
 
 def days_since_distruption(time, m, mstar, rstar, choose = 'day'):
@@ -155,8 +155,8 @@ prepath_all = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 snaps = select_snap(m, check, mstar, Rstar, beta, n, time = False)
 print(snaps)
 for i, snap in enumerate(snaps):
-    if snap != 21:
-        continue
+    # if snap != 21:
+    #     continue
     if alice:
         prepath = f'{prepath_all}/snap_{snap}'
     else: 
