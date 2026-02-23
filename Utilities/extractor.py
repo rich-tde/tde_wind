@@ -7,6 +7,7 @@ File structure is: box, cycle, time, mpi, rank0 ... rank99.
 extractor iterates over all the ranks
 FLD scheme: 
     - keys for each rank in: ['CMx', 'CMy', 'CMz', 'Density', 'Dissipation', 'DpDx', 'DpDy', 'DpDz', 'DrhoDx', 'DrhoDy', 'DrhoDz', 'DsieDx', 'DsieDy', 'DsieDz', 'Eg_0', 'Erad', 'ID', 'InternalEnergy', 'Pressure', 'Temperature', 'Volume', 'Vx', 'Vy', 'Vz', 'X', 'Y', 'Z', 'divV', 'stickers', 'tracers']
+    NB: Eg_0 = 0 for FLD
     - keys in tracers: ['Entropy', 'Star', 'WasRemoved']
 Multiband scheme: [
     - keys: ['CMx', 'CMy', 'CMz', 'Density', 'Dissipation', 'DpDx', 'DpDy', 'DpDz', 'DrhoDx', 'DrhoDy', 'DrhoDz', 'DsieDx', 'DsieDy', 'DsieDz', 'Eg_0', 'Eg_1', 'Eg_2', 'Eg_3', 'Eg_4', 'Eg_5', 'Eg_6', 'Eg_7', 'Eg_8', 'Eg_9', 'Erad', 'ID', 'InternalEnergy', 'Pressure', 'Temperature', 'Volume', 'Vx', 'Vy', 'Vz', 'X', 'Y', 'Z', 'divV', 'stickers', 'tracers']
@@ -178,7 +179,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'MG'
+check = 'HiResNewAMR'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 print(f'We are in folder: {folder}', flush=True)
 prepath_all = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -186,7 +187,7 @@ prepath_all = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 snaps = select_snap(m, check, mstar, Rstar, beta, n, time = False)
 
 for i, snap in enumerate(snaps):
-    # if snap != 21:
+    # if snap != 109:
     #     continue
     if alice:
         prepath = f'{prepath_all}/snap_{snap}'
@@ -194,6 +195,7 @@ for i, snap in enumerate(snaps):
         prepath = f'{prepath_all}/{snap}'
     file = f'{prepath}/snap_{snap}.h5'
 
+    print(snap, flush = True)
     if check == 'MG':
         tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Eg_0, Eg_1, Eg_2, Eg_3, Eg_4, Eg_5, Eg_6, Eg_7, Eg_8, Eg_9, Erad, T, P, Star, Diss, Entropy = extractor(file, extended = False, MG = True)
     else:
@@ -237,5 +239,5 @@ for i, snap in enumerate(snaps):
     del box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy #, DpDx, DpDy, DpDz, DivV
     if check == 'MG':
         del Eg_0, Eg_1, Eg_2, Eg_3, Eg_4, Eg_5, Eg_6, Eg_7, Eg_8, Eg_9
-    print(f'Done {snap}', flush = True)
+    print(f'Done', flush = True)
                 
