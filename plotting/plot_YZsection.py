@@ -12,7 +12,7 @@ from Utilities.operators import make_tree
 import Utilities.sections as sec
 import src.orbits as orb
 import colorcet
-from Utilities.time_extractor import days_since_distruption
+from Utilities.extractor import days_since_distruption
 
 #
 ## CONSTANTS

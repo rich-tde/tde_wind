@@ -3,8 +3,6 @@ Find/plot polar profiles for fixed r and phi_array.
 Written to be run locally."""
 
 import sys
-
-from sklearn.neighbors import KDTree
 sys.path.append('/Users/paolamartire/shocks')
 abspath = '/Users/paolamartire/shocks'
 import numpy as np
@@ -12,6 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.cm as cm
 import healpy as hp
+from sklearn.neighbors import KDTree
 import Utilities.prelude as prel
 from Utilities.selectors_for_snap import select_prefix
 from Utilities.sections import make_slices
@@ -537,26 +536,26 @@ if what == 'radial':
                 cm = plt.get_cmap('tab20_r')          # 20 discrete colors
                 ncolors = cm.N 
 
-            ax[0, i_plot].plot(r_plot/Rt, d * prel.den_converter,  color = colors_sec, label = f'{lab}')
-            # axd.scatter(r_plot[idx_rtr]/Rt, d[idx_rtr] * prel.den_converter, color = colors_sec, marker = 's', s = 100)
-            # axd.scatter(r_plot[idx_rph]/Rt, d[idx_rph] * prel.den_converter, color = colors_sec, marker = 'o', s = 100)
-            ax[1, i_plot].plot(r_plot/Rt, v_rad * conversion_sol_kms,  color = colors_sec, label = f'{lab}')
-            # axV.scatter(r_plot[idx_rtr]/Rt, v_rad[idx_rtr] * conversion_sol_kms, color = colors_sec, marker = 's', s = 100)
-            # axV.scatter(r_plot[idx_rph]/Rt, v_rad[idx_rph] * conversion_sol_kms, color = colors_sec, marker = 'o', s = 100)
-            ax[2, i_plot].plot(r_plot/Rt, t,  color = colors_sec, label = f'{lab}')
-            # axT.scatter(r_plot[idx_rtr]/Rt, t[idx_rtr], color = colors_sec, marker = 's', s = 100)
-            # axT.scatter(r_plot[idx_rph]/Rt, t[idx_rph], color = colors_sec, marker = 'o', s = 100)
-            axratio.plot(r_plot/Rt, ratio_un, color = colors_sec, label = f'{lab}')
+            ax[0, i_plot].plot(r_plot/Rt, d * prel.den_converter, label = f'{lab}')
+            # axd.scatter(r_plot[idx_rtr]/Rt, d[idx_rtr] * prel.den_converter marker = 's', s = 100)
+            # axd.scatter(r_plot[idx_rph]/Rt, d[idx_rph] * prel.den_converter marker = 'o', s = 100)
+            ax[1, i_plot].plot(r_plot/Rt, v_rad * conversion_sol_kms, label = f'{lab}')
+            # axV.scatter(r_plot[idx_rtr]/Rt, v_rad[idx_rtr] * conversion_sol_kms marker = 's', s = 100)
+            # axV.scatter(r_plot[idx_rph]/Rt, v_rad[idx_rph] * conversion_sol_kms marker = 'o', s = 100)
+            ax[2, i_plot].plot(r_plot/Rt, t, label = f'{lab}')
+            # axT.scatter(r_plot[idx_rtr]/Rt, t[idx_rtr] marker = 's', s = 100)
+            # axT.scatter(r_plot[idx_rph]/Rt, t[idx_rph] marker = 'o', s = 100)
+            axratio.plot(r_plot/Rt, ratio_un, label = f'{lab}')
 
-            axMdot.plot(r_plot/Rt, Mdot/Medd_sol,  color = colors_sec, label = f'{lab}')
-            # axMdot.scatter(r_plot[idx_rtr]/Rt, Mdot[idx_rtr]/Medd_sol, color = colors_sec, marker = 's', s = 100)
-            # axMdot.scatter(r_plot[idx_rph]/Rt, Mdot[idx_rph]/Medd_sol, color = colors_sec, marker = 'o', s = 100)
-            axLadv.plot(r_plot/Rt, L_adv/Ledd_sol,  color = colors_sec, label = f'{lab}')
-            # axLadv.scatter(r_plot[idx_rtr]/Rt, L_adv[idx_rtr]/Ledd_sol, color = colors_sec, marker = 's', s = 100)
-            # axLadv.scatter(r_plot[idx_rph]/Rt, L_adv[idx_rph]/Ledd_sol, color = colors_sec, marker = 'o', s = 100)
-            axLkin.plot(r_plot/Rt, L_kin/Ledd_sol,  color = colors_sec, label = f'{lab}')
-            # axLkin.scatter(r_plot[idx_rtr]/Rt, L_kin[idx_rtr]/Ledd_sol, color = colors_sec, marker = 's', s = 100)
-            # axLkin.scatter(r_plot[idx_rph]/Rt, L_kin[idx_rph]/Ledd_sol, color = colors_sec, marker = 'o', s = 100)
+            axMdot.plot(r_plot/Rt, Mdot/Medd_sol, label = f'{lab}')
+            # axMdot.scatter(r_plot[idx_rtr]/Rt, Mdot[idx_rtr]/Medd_sol marker = 's', s = 100)
+            # axMdot.scatter(r_plot[idx_rph]/Rt, Mdot[idx_rph]/Medd_sol marker = 'o', s = 100)
+            axLadv.plot(r_plot/Rt, L_adv/Ledd_sol, label = f'{lab}')
+            # axLadv.scatter(r_plot[idx_rtr]/Rt, L_adv[idx_rtr]/Ledd_sol marker = 's', s = 100)
+            # axLadv.scatter(r_plot[idx_rph]/Rt, L_adv[idx_rph]/Ledd_sol marker = 'o', s = 100)
+            axLkin.plot(r_plot/Rt, L_kin/Ledd_sol, label = f'{lab}')
+            # axLkin.scatter(r_plot[idx_rtr]/Rt, L_kin[idx_rtr]/Ledd_sol marker = 's', s = 100)
+            # axLkin.scatter(r_plot[idx_rph]/Rt, L_kin[idx_rph]/Ledd_sol marker = 'o', s = 100)
 
 
         for j in range(2): 
@@ -564,14 +563,11 @@ if what == 'radial':
             ax[0, j].set_ylim(1e-14, 1e-7)
             ax[1, j].set_ylim(1e4, 4e5) 
             for i in range(3): 
-                
                 ax[i, j].tick_params(axis='both', which='minor', length = 6, width = 1)
                 ax[i, j].tick_params(axis='both', which='major', length = 10, width = 1.5)
                 ax[i, j].loglog()
                 ax[i, j].set_xlim(1, 1e2)
                 ax[i, j].grid()
-                if ax[i, j] == axMdot or ax[i, j] == axd:
-                    ax[i, j].legend(fontsize = 18)
                 # for j, rtr_cond in enumerate(rtr_medians):
                 #     if j == 3 or j ==2:
                 #         continue
@@ -579,6 +575,9 @@ if what == 'radial':
                 #     ax.axvline(rph_profs[j]/Rt, color = colors_sec[j], ls = 'dashed')
                 #     ax.axvspan(np.min(rph_all[cond_ph[j]]/Rt), np.max(rph_all[cond_ph[j]]/Rt), color = colors_sec[j], ls = 'dotted', alpha = 0.2)
         for j in range(2):        
+            ax[0, 0].set_ylim(1e-13, 1e-7)
+            ax[1, 0].set_ylim(2e3, 3e4)
+            ax[2, 0].set_ylim(2e4, 1e6)
             ax[0, j].plot(x_test, y_test2, c = 'k', ls = 'dashed') #, label = r'$\rho \propto r^{-2}$')
             # axd.text(35, 1.1e-11, r'$\rho \propto r^{-2}$', fontsize = 20, color = 'k', rotation = -42)
             ax[1, j].axhline(v_esc_kms, c = 'k', ls = 'dashed')# 
@@ -588,22 +587,20 @@ if what == 'radial':
             axLadv.plot(x_test, 5e-5*y_test23, c = 'k', ls = 'dashed', label = r'$L \propto r^{-2/3}$')
             # axLadv.text(1.2, 5.6e1, r'$L \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -18)
 
+        ax[0, j].legend(fontsize = 18)
         axMdot.set_ylim(1e2, 1e6)
         axMdot.set_xlim(1, 1e2)
         axMdot.grid()
-        axd.set_ylim(1e-13, 1e-7)
-        axV.set_ylim(2e3, 3e4)
-        axT.set_ylim(2e4, 1e6)
         axLadv.set_ylim(1e-1, 1e1)
         axLkin.set_ylim(1e-1, 5e1)
         axMdot.loglog()
         axLadv.loglog()
         axLkin.loglog()
-
+        axMdot.legend(fontsize = 18)
         axMdot.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm Edd}]$', fontsize = 28)
-        ax[0, 0].set_ylabel(r'$\rho$ [g/cm$^3]$', fontsize = 28)
-        ax[1, 0].set_ylabel(r'v$_{\rm r}$ [km/s]', fontsize = 28)
-        ax[2, 0].set_ylabel(r'$T_{\rm rad}$ [K]', fontsize = 28)
+        ax[0, j].set_ylabel(r'$\rho$ [g/cm$^3]$', fontsize = 28)
+        ax[1, j].set_ylabel(r'v$_{\rm r}$ [km/s]', fontsize = 28)
+        ax[2, j].set_ylabel(r'$T_{\rm rad}$ [K]', fontsize = 28)
         axLadv.set_ylabel(r'$L_{\rm adv} [L_{\rm Edd}]$', fontsize = 28)
         axLkin.set_ylabel(r'$L_{\rm kin} [L_{\rm Edd}]$', fontsize = 28)
         axratio.set_ylabel(r'ratio unbound', fontsize = 28)

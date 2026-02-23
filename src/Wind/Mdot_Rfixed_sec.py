@@ -127,8 +127,8 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
     dim_cell = Vol**(1/3)
     Rsph = np.sqrt(X**2 + Y**2 + Z**2)
     V = np.sqrt(VX**2 + VY**2 + VZ**2)
-    bern = orb.bern_coeff(Rsph, V, Den, Mass, Press, IE_den, Rad_den, params)
-    v_rad, _, _ = to_spherical_components(VX, VY, VZ, X, Y, Z)
+    cut, bern, v_rad = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params)
+    
     OE = orb.orbital_energy(Rsph, V, Mass, params, prel.G)
     OE_spec = OE / Mass
     if (bern < OE_spec).any():
@@ -136,7 +136,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
 
     # select just outflowing and unbound material
     if wind_cond == '':
-        cond_wind = np.logical_and(v_rad >= 0, bern > 0)
+        cond_wind = cut
     if wind_cond == 'OE':
         cond_wind = np.logical_and(v_rad >= 0, OE_spec > 0)
     cond_wind = np.logical_and(cond_wind, np.abs(Rsph - r_chosen) < dim_cell)
@@ -336,11 +336,18 @@ if __name__ == '__main__':
         
         snap_for_scatter = 109
         path_scat = f'/Users/paolamartire/shocks/TDE/{folder}/{snap_for_scatter}'
-        data = make_tree(path_scat, snap_for_scatter, energy = False)
-        X, Y, Z, Vol, Den = data.X, data.Y, data.Z, data.Vol, data.Den
+        data = make_tree(path_scat, snap_for_scatter, energy = True)
+        X, Y, Z, VX, VY, VZ, Vol, Den, Mass, Press, IE_den, Rad_den = \
+            data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Vol, data.Den, data.Mass, data.Press, data.IE, data.Rad
         cut = np.logical_and(Den > 1e-19, np.abs(Y) < Vol**(1/3)) 
-        X, Y, Z, Vol, Den = make_slices([X, Y, Z, Vol, Den], cut)
+        X, Y, Z, VX, VY, VZ, Vol, Den, Mass, Press, IE_den, Rad_den = make_slices([X, Y, Z, VX, VY, VZ, Vol, Den, Mass, Press, IE_den, Rad_den], cut)
+        cut, bern, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params)
+        # X, Y, Z, V_r, Den = make_slices([X, Y, Z, V_r, Den], cut)
+        Mdot_approx = 4 * np.pi * (X**2 + Y**2 + Z**2) * Den * V_r 
         sec, lab_scat = split_cells(X, Y, Z, choice)
+
+        figM, axM =plt.subplots(1,1, figsize = (10,10))
+        axM.scatter(X/Rt, Z/Rt, c = Mdot_approx/Medd_sol, s = 2, norm = colors.LogNorm(vmin = 1e3, vmax = 1e6), cmap = 'rainbow',)
         
         fig, ((pos_scatt, axEdd_pos), (neg_scatt, axEdd_neg)) = plt.subplots(2, 2, figsize = (15, 15))
         # fig, (axall, axfb) = plt.subplots(1, 2, figsize = (15, 7))
@@ -419,12 +426,14 @@ if __name__ == '__main__':
         # cm = plt.get_cmap('tab20')[0:10]        # 20 discrete colors
         # ncolors = cm.N 
         for i in range(len(rest)):
-            # if label_obs[i] in ['0-10',  '10-20',  '20-30',  '30-40',  '40-50',  '50-60',  '60-70',  '70-80',  '80-90']:
-            pos_scatt.scatter(X[sec[i]]/Rt, Z[sec[i]]/Rt, s = 2, label = lab_scat[i])
-            axEdd_pos.plot(tfbH, rest[i]/Medd_sol,  label = label_obs[i])
-            # else:
-            #     neg_scatt.scatter(X[sec[i]]/Rt, Z[sec[i]]/Rt, s = 2, label = lab_scat[i])
-            #     axEdd_neg.plot(tfbH, rest[i]/Medd_sol, label = label_obs[i])
+            if label_obs[i] in ['0-10',  '10-20',  '20-30',  '30-40',  '40-50',  '50-60',  '60-70',  '70-80',  '80-90']:
+                pos_scatt.scatter(X[sec[i]]/Rt, Z[sec[i]]/Rt, s = 10, label = lab_scat[i])
+                axEdd_pos.plot(tfbH, rest[i]/Medd_sol,  label = label_obs[i])
+            else:
+                neg_scatt.scatter(X[sec[i]]/Rt, Z[sec[i]]/Rt, s = 10, label = lab_scat[i], c = prel.reverse_colors[i-9])
+                if np.sum(np.isnan(rest[i])) > 0.35 * len(rest[i]):
+                    continue
+                axEdd_neg.plot(tfbH, rest[i]/Medd_sol, label = label_obs[i],  c = prel.reverse_colors[i-9])
             
             # Mw_sum += rest[i]
             # axEdd.plot(tfbH_Bound, rest_Bound[i]/Medd_sol, c = colors_obs[0], ls = '--', label = r'$\dot{M}_{\rm out, b}$')
@@ -470,21 +479,17 @@ if __name__ == '__main__':
         # axall.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm w}]$')
         # axfb.set_ylim(1e-3, 2)
         # axfb.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm fb}]$')
-        pos_scatt.legend(fontsize = 18)
-        neg_scatt.legend(fontsize = 18)
-        # pos_scatt.legend()
-        pos_scatt.set_xlim(-100, 100)
-        pos_scatt.set_ylim(-100, 100)
-        neg_scatt.set_xlim(-100, 100)
-        neg_scatt.set_ylim(-100, 100)
-        pos_scatt.set_xlabel(r'$X (r_{\rm t})$')
-        pos_scatt.set_ylabel(r'$Z (r_{\rm t})$')
-        neg_scatt.set_xlabel(r'$X (r_{\rm t})$')
-        neg_scatt.set_ylabel(r'$Z (r_{\rm t})$')
+        for ax in [pos_scatt, neg_scatt, axM]:
+            ax.legend(fontsize = 18)
+            ax.set_xlim(-100, 100)
+            ax.set_ylim(-100, 100)
+            ax.set_xlabel(r'$X (r_{\rm t})$')
+            ax.set_ylabel(r'$Z (r_{\rm t})$')
         fig.suptitle(rf'$\dot{{M}}_{{\rm w}}$ at {which_r_title}', fontsize = 20)
         fig.tight_layout()
         fig.savefig(f'{abspath}/Figs/{folder}/Wind/MdotSec_{which_r_title}{choice}.png', dpi = 150)
 
+        
         # fig, ax = plt.subplots(1,1, figsize = (8,6))
         # ax.plot(tfbH, np.abs(mwind_dimCellH/mfallH), c = 'k')
         # ax.set_yscale('log')

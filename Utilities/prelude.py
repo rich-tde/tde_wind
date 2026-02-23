@@ -71,7 +71,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import colorcet
 mpl.rcParams['figure.dpi'] = 300
-plt.rcParams['text.usetex'] = True
+# plt.rcParams['text.usetex'] = True
+mpl.rcParams["text.usetex"] = False
+mpl.rcParams["mathtext.fontset"] = "cm"
 plt.rcParams['figure.figsize'] = [8 , 6]
 plt.rcParams['font.family'] = 'Times New Roman'
 plt.rcParams['axes.facecolor']= 'whitesmoke'
@@ -86,8 +88,12 @@ plt.rcParams['ytick.right'] = True
 cmap = mpl.colormaps['tab20']  # nice, but only 8:Dark2
 colors_cy = cmap.colors  # type: list
 mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=colors_cy)
-# colors_cy = plt.get_cmap('tab20').colors[:10] + plt.get_cmap('tab20_r').colors[:10]
+# colors_cy = plt.get_cmap('tab20').colors[:10] + plt.get_cmap('tab20').colors[:10]
 # mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=colors_cy)
+wanted_colors = ['firebrick', 'coral', 'sandybrown', 'darkviolet', 'orchid', 'yellowgreen', 'forestgreen', 'dodgerblue', 'navy']
+reverse_colors = wanted_colors[::-1]
+wanted_colors = np.concatenate([wanted_colors, reverse_colors])
+mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color = wanted_colors)
 
 if __name__ == '__main__':
     # it's the same converting from cgs ans SI ... of course lol

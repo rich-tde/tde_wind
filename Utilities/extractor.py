@@ -2,10 +2,12 @@
 Created on Fri Feb 24 17:06:56 2023
 
 @author: konstantinos, paola 
+
+File structure is: box, cycle, time, mpi, rank0 ... rank99. 
+extractor iterates over all the ranks
 keys for each rank: ['CMx', 'CMy', 'CMz', 'Density', 'Dissipation', 'DpDx', 'DpDy', 'DpDz', 'DrhoDx', 'DrhoDy', 'DrhoDz', 'DsieDx', 'DsieDy', 'DsieDz', 'Eg_0', 'Erad', 'ID', 'InternalEnergy', 'Pressure', 'Temperature', 'Volume', 'Vx', 'Vy', 'Vz', 'X', 'Y', 'Z', 'divV', 'stickers', 'tracers']
 keys in tracers: ['Entropy', 'Star', 'WasRemoved']
 keys in stickers: []
-
 """
 import sys
 sys.path.append('/Users/paolamartire/shocks')
@@ -14,17 +16,27 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 import numpy as np
 import h5py
-import os
+import prelude as prel
 from Utilities.selectors_for_snap import select_snap, select_prefix
-from Utilities.time_extractor import days_since_distruption
 
+def days_since_distruption(time, m, mstar, rstar, choose = 'day'):
+    """ Loads the file, extracts time """
+    # Read File
+    # f = h5py.File(filename, "r")
+    # time = np.array(file['Time'])
+    t = np.sqrt(prel.Rsol_SI**3 / (prel.Msol_SI* prel.G_SI )) # Follows from G=1
+    Mbh = 10**m # * Msol
+    time = np.array(time)
+    time = time.sum()
+    days = time * t / (24 * 60 * 60)
+    t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(rstar, 3/2)
+    # print(f'days after disruption: {days} // t_fall: {t_fall} // sim_time: {time}')
+    if choose == 'tfb':
+        print('Time in tfb')
+        days /= t_fall
+    return days
 
-## File structure is
-# box, cycle, time, mpi, rank0 ... rank99.
-# This iterates over all the ranks
-
-
-def extractor(filename):
+def extractor(filename, extended = False):
     '''
     Loads the file, extracts quantites from it. 
     '''
@@ -34,7 +46,7 @@ def extractor(filename):
     # HDF5 are dicts, get the keys.
     keys = f.keys() 
     # List with keys that don't hold relevant data
-    not_ranks = ['Box', 'Cycle', 'Time', 'mpi']
+    not_ranks = ['Box', 'Cycle', 'Time', 'mpi'] # mpi doesn't exist anymore in the new data
     
     box = np.zeros(6)
     X = []
@@ -53,25 +65,24 @@ def extractor(filename):
     Star = []
     Entropy = []
     Diss = []
-    DpDx = []
-    DpDy = []
-    DpDz = []
-    DivV = []
+    if extended:
+        DpDx = []
+        DpDy = []
+        DpDz = []
+        DivV = []
     
-    #print('tot ranks: ', len(keys))
     # Iterate over ranks
     for key in keys:
         if key in not_ranks:
             # Skip whatever is not a mpi rank
             if key == 'Box':
-                #print(key)
                 for i in range(len(box)):
                     box[i] = f[key][i]
+            elif key == 'Time':
+                tfb = days_since_distruption(f[key], m, mstar, Rstar, choose = 'tfb')
             else:
                 continue
         else:
-            #print(key)
-
             x_data = f[key]['CMx']
             y_data = f[key]['CMy']
             z_data = f[key]['CMz']
@@ -86,13 +97,14 @@ def extractor(filename):
             rad_data = f[key]['Erad']
             T_data = f[key]['Temperature']
             P_data = f[key]['Pressure']
-            star_data = f[key]['tracers']['Star']
             Diss_data = f[key]['Dissipation']
+            star_data = f[key]['tracers']['Star']
             entropy_data = f[key]['tracers']['Entropy']
-            # DpDx_data = f[key]['DpDx']
-            # DpDy_data = f[key]['DpDy']
-            # DpDz_data = f[key]['DpDz']
-            # DivV_data = f[key]['divV']
+            if extended:
+                DpDx_data = f[key]['DpDx']
+                DpDy_data = f[key]['DpDy']
+                DpDz_data = f[key]['DpDz']
+                DivV_data = f[key]['divV']
 
             for i in range(len(entropy_data)):
                 X.append(x_data[i])
@@ -111,14 +123,18 @@ def extractor(filename):
                 Star.append(star_data[i]) #mass of the disrupted star for TDE
                 Diss.append(Diss_data[i])
                 Entropy.append(entropy_data[i])
-                # DpDx.append(DpDx_data[i])
-                # DpDy.append(DpDy_data[i])
-                # DpDz.append(DpDz_data[i])
-                # DivV.append(DivV_data[i])
+                if extended:
+                    DpDx.append(DpDx_data[i])
+                    DpDy.append(DpDy_data[i])
+                    DpDz.append(DpDz_data[i])
+                    DivV.append(DivV_data[i])
 
-    # Close the file
     f.close()
-    return box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy #, DpDx, DpDy, DpDz, DivV
+    if extended:
+        return tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz, DivV
+    else:
+        return tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy 
+
 
 ##
 # MAIN
@@ -132,28 +148,22 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
-if m == 6:
-    folder = f'R{Rstar}M{mstar}BH1e+0{m}beta{beta}S60n{n}{compton}{check}'
-else: 
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+print(f'We are in folder: {folder}', flush=True)
+prepath_all = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 
 snaps = select_snap(m, check, mstar, Rstar, beta, n, time = False)
-print(f'We are in folder: {folder}', flush=True)
-
+print(snaps)
 for i, snap in enumerate(snaps):
-    if snap != 10:
+    if snap != 21:
         continue
-    prepath = select_prefix(m, check, mstar, Rstar, beta, n, compton)
     if alice:
-        prepath = f'{prepath}/snap_{snap}'
+        prepath = f'{prepath_all}/snap_{snap}'
     else: 
-        prepath = f'{prepath}/{snap}'
+        prepath = f'{prepath_all}/{snap}'
     file = f'{prepath}/snap_{snap}.h5'
 
-    print(snap, flush=True)
-
-    tfb = days_since_distruption(file, m, mstar, Rstar, choose = 'tfb')
-    box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy = extractor(file)
+    tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy = extractor(file, extended = False)
    
    # Save to another file.
     np.save(f'{prepath}/box_{snap}', box) 
@@ -179,6 +189,6 @@ for i, snap in enumerate(snaps):
     # np.save(f'{prepath}/DpDz_{snap}', DpDz)
     # np.save(f'{prepath}/DivV_{snap}', DivV)
 
-    del box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz, DivV
-print('Done')
+    del box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy #, DpDx, DpDy, DpDz, DivV
+    print(f'Done {snap}', flush = True)
                 

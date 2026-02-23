@@ -11,11 +11,11 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-what = 'Outflow' # 'projection', 'slices', 'testOpac', 'Outflow', 'stream'
-how_many = ''
-coord_to_cut = 'z' # 'x', 'y', 'z'
+what = 'projection' # 'projection', 'slices', 'testOpac', 'Outflow', 'stream'
+how_many = '2'
+coord_to_cut = '' # 'x', 'y', 'z'
 cut_name = 0
-figs_path = f'{abspath}/Figs/{folder}/{what}' 
+figs_path = f'{abspath}/Figs/{folder}/{what}{how_many}' 
 
 start = 21
 slow_down_factor = 3 # Increase this value to make the video slower
@@ -32,7 +32,7 @@ def get_image_size(image_path):
     height = int(output.split("height=")[1].split("\n")[0])
     return width, height
 
-if what == f'projection{how_many}': 
+if what == f'projection': 
     sub_path = f'denproj' 
 if what == f'slices':
     sub_path = f'{coord_to_cut}/{coord_to_cut}{cut_name}slice' 

@@ -195,36 +195,35 @@ def choose_sections(X, Y, Z, choice):
         right_out = {'cond': cond_right_out, 'label': r'right out', 'color': 'yellowgreen', 'line': 'dashed'}
         sec = {'left_in': left_in, 'right_in': right_in, 'left_out': left_out, 'right_out': right_out, 'north': north, 'south': south}
     
-    if choice == 'thirties': 
-        cond_right_030 = np.logical_and(X >= 0, np.abs(Z) < np.tan(np.pi/6) * R_cyl)
-        cond_right_3060 = np.logical_and(X >= 0, np.logical_and(np.abs(Z) >= np.tan(np.pi/6) * R_cyl, np.abs(Z) < np.tan(np.pi/3) * R_cyl))
-        cond_right_6090 = np.logical_and(X >= 0, np.abs(Z) >= np.tan(np.pi/3) * R_cyl)
-        cond_left_030 = np.logical_and(X < 0, np.abs(Z) < np.tan(np.pi/6) * R_cyl)
-        cond_left_3060 = np.logical_and(X < 0, np.logical_and(np.abs(Z) >= np.tan(np.pi/6) * R_cyl, np.abs(Z) < np.tan(np.pi/3) * R_cyl))
-        cond_left_6090 = np.logical_and(X < 0, np.abs(Z) >= np.tan(np.pi/3) * R_cyl)
-        
-        right_030 = {'cond': cond_right_030, 'label': r'$X>0, |Z|<\tan(\pi/6)R$', 'color': 'sandybrown', 'line': 'solid'}
-        right_3060 = {'cond': cond_right_3060, 'label': r'$X>0, \tan(\pi/6)R \le |Z| < \tan(\pi/3)R$', 'color': 'firebrick', 'line': 'solid'}
-        right_6090 = {'cond': cond_right_6090, 'label': r'$X>0, |Z| \ge \tan(\pi/3)R$', 'color': 'orchid', 'line': 'solid'}
-        left_030 = {'cond': cond_left_030, 'label': r'$X<0, |Z|<\tan(\pi/6)R$', 'color': 'yellowgreen', 'line': 'dashed'}
-        left_3060 = {'cond': cond_left_3060, 'label': r'$X<0, \tan(\pi/6)R \le |Z| < \tan(\pi/3)R$', 'color': 'forestgreen', 'line': 'dashed'}
-        left_6090 = {'cond': cond_left_6090, 'label': r'$X<0, |Z| \ge \tan(\pi/3)R$', 'color': 'deepskyblue', 'line': 'dashed'}
-        sec = {'right_030': right_030, 'right_3060': right_3060, 'right_6090': right_6090, 'left_030': left_030, 'left_3060': left_3060, 'left_6090': left_6090}
-    
+    if choice == 'fiftheenths': 
+        cm = plt.get_cmap('tab20')       
+        ncolors = cm.N
+        sec = {}
+        step = 15
+        for i, alpha in enumerate(np.arange(0, 180, step)):
+            slope = np.tan(alpha * np.pi/180) if np.abs(alpha) > 1e-5 else 0
+            slope_next = np.tan((alpha + step) * np.pi/180) if np.abs(alpha + step - 180) > 1e-5 else 0
+            if alpha < 90: 
+                cond = np.logical_and(X >= 0, np.logical_and(np.abs(Z) >= slope * R_cyl, np.abs(Z) <= slope_next * R_cyl))
+                sec[f'{alpha}-{alpha + step}'] = {'cond': cond, 'label': f'{alpha}-{alpha + step}', 'line': 'solid', 'color': cm(i % ncolors)}
+            else: 
+                cond = np.logical_and(X <= 0, np.logical_and(np.abs(Z) >= np.abs(slope_next) * R_cyl, np.abs(Z) <= np.abs(slope) * R_cyl))
+                sec[f'{alpha}-{alpha + step}'] = {'cond': cond, 'label': f'{alpha}-{alpha +step}', 'line': 'dashed', 'color': cm(i % ncolors)}
+
     if choice == 'tenths': 
         cm = plt.get_cmap('tab20')       
         ncolors = cm.N
         sec = {}
         step = 10
         for i, alpha in enumerate(np.arange(0, 180, step)):
-            slope = np.tan(alpha * np.pi/180) 
-            slope_next = np.tan((alpha + step) * np.pi/180)
-            if alpha < 90:
-                cond = np.logical_and(X >= 0, np.logical_and(np.abs(Z) >= slope * R_cyl, np.abs(Z) < slope_next * R_cyl))
-                sec[f'right_{alpha}-{alpha + step}'] = {'cond': cond, 'label': f'{alpha}-{alpha + step}', 'line': 'solid', 'color': cm(i % ncolors)}
+            slope = np.tan(alpha * np.pi/180) if np.abs(alpha) > 1e-5 else 0
+            slope_next = np.tan((alpha + step) * np.pi/180) if np.abs(alpha + step - 180) > 1e-5 else 0
+            if alpha < 90: 
+                cond = np.logical_and(X >= 0, np.logical_and(np.abs(Z) >= slope * R_cyl, np.abs(Z) <= slope_next * R_cyl))
+                sec[f'{alpha}-{alpha + step}'] = {'cond': cond, 'label': f'{alpha}-{alpha + step}', 'line': 'solid', 'color': cm(i % ncolors)}
             else: 
-                cond = np.logical_and(X < 0, np.logical_and(np.abs(Z) >= np.abs(slope_next) * R_cyl, np.abs(Z) < np.abs(slope) * R_cyl))
-                sec[f'left_{alpha}-{alpha + step}'] = {'cond': cond, 'label': f'{alpha}-{alpha +step}', 'line': 'dashed', 'color': cm(i % ncolors)}
+                cond = np.logical_and(X <= 0, np.logical_and(np.abs(Z) >= np.abs(slope_next) * R_cyl, np.abs(Z) <= np.abs(slope) * R_cyl))
+                sec[f'{alpha}-{alpha + step}'] = {'cond': cond, 'label': f'{alpha}-{alpha +step}', 'line': 'dashed', 'color': cm(i % ncolors)}
 
     return sec
     
@@ -250,18 +249,24 @@ def choose_observers(observers_xyz, choice):
     
     x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
     all_idx_obs = np.arange(len(x_obs))
-    if choice == 'left_right_z' or choice == 'in_out_z' or choice == 'arch' or choice == 'left_right_in_out_z' or choice == 'all' or choice == 'tenths':
+
+    if choice != '':
         indices_sorted = []
         sections_ph = choose_sections(x_obs, y_obs, z_obs, choice = choice)
-        label_obs = []
-        colors_obs = []
-        lines_obs = []
-        for key in sections_ph.keys(): 
-            cond_single = sections_ph[key]['cond'] 
-            label_obs.append(sections_ph[key]['label'])
-            colors_obs.append(sections_ph[key]['color'])
-            lines_obs.append(sections_ph[key]['line'])
-        if choice == 'left_right_z' or choice == 'in_out_z':
+
+        print(f"Choice: {choice}")
+        print("Sections:", list(sections_ph.keys()))
+        coverage = np.sum([np.sum(sec['cond']) for sec in sections_ph.values()])
+        print(f"Total coverage: {coverage}/{len(x_obs)}")
+        overlaps = np.sum(np.any([sec['cond'] for sec in sections_ph.values()], axis=0) > 1)
+        print(f"Overlaps: {overlaps}")
+
+        indices_sorted = [all_idx_obs[sections_ph[key]['cond']] for key in sections_ph]
+        label_obs = [sections_ph[key]['label'] for key in sections_ph]
+        colors_obs = [sections_ph[key]['color'] for key in sections_ph]
+        lines_obs = [sections_ph[key]['line'] for key in sections_ph]
+
+        if choice in ['left_right_z', 'in_out_z']:
             if choice == 'left_right_z':
                 first_key = 'right'
                 second_key = 'left'
@@ -330,90 +335,11 @@ def choose_observers(observers_xyz, choice):
                 sections_ph['left_in']['cond'][indices_to_change] = False
                 sections_ph['left_out']['cond'][indices_to_change] = True
 
-        for key in sections_ph.keys(): 
-            cond_single = sections_ph[key]['cond']
-            indices_sorted.append(all_idx_obs[cond_single])
-    
-    if choice == 'hemispheres': 
-        wanted_obs = [(1,0,0), 
-                    (-1,0,0),
-                    (0,1,0),  
-                    (0,-1,0),
-                    (0,0,1),
-                    (0,0,-1),
-                    (1/np.sqrt(2), 0 , 1/np.sqrt(2)),
-                    (1/np.sqrt(2), 0 , -1/np.sqrt(2)),
-                    (-1/np.sqrt(2), 0 , 1/np.sqrt(2)),
-                    (-1/np.sqrt(2), 0 , -1/np.sqrt(2))] 
-
-        tree_obs = KDTree(observers_xyz.T) # shape is N,3
-        _, indices_sorted = tree_obs.query(np.array(wanted_obs), k=4) # shape: (len(wanted_obs),k)
-        label_obs = ['x', '-x', 'y', '-y', 'z', '-z', 'xz', 'x-z', '-xz', '-x-z']
-        # colors_obs = ['r', 'firebrick', 'plum', 'leftviolet', 'dosgerblue', 'deepskyblue', 'palegreen', 'r', 'dodgerblue', 'b'] # colors for \pm z
-        colors_obs = ['r', 'firebrick', 'plum', 'leftviolet', 'dosgerblue', 'deepskyblue', 'yellowgreen', 'sandybrown', 'r', 'b']
-
-        lines_obs = ['solid', 'dashed', 'solid', 'dashed', 'solid', 'dashed', 'solid', 'dashed', 'solid', 'dashed']
-        # label_obs = ['x', 'y', 'z', 'xz', '-xz']
-        # colors_obs = ['k', 'plum', 'dosgerblue', 'r', 'b']
-
-    if choice == 'focus_axis': # 3D cartesian axis
-        wanted_obs = [(1,0,0), 
-                    (0,1,0),  
-                    (-1,0,0),
-                    (0,-1,0),
-                    (0,0,1),
-                    (0,0,-1)] 
-
-        tree_obs = KDTree(observers_xyz.T) # shape is N,3
-        _, indices_sorted = tree_obs.query(np.array(wanted_obs), k = 4) # shape: (len(wanted_obs),k)
-        label_obs = ['x+', 'y+', 'x-', 'y-', 'z+', 'z-']
-        colors_obs = ['dodgerblue', 'plum', 'r', 'magenta', 'dosgerblue', 'deepskyblue']
-        lines_obs = ['solid', 'solid', 'solid', 'solid', 'solid', 'solid']
-    
-    # if choice == 'equal_right_right_z': # 3D cartesian axis
-    #     wanted_obs_x = [(1,0,0), (-1,0,0)]  
-    #     wanted_obs_z = [(0,0,1), (0,0,-1)] 
-
-    #     tree_obs = KDTree(observers_xyz.T) # shape is N,3
-    #     _, indices_sorted_x = tree_obs.query(np.array(wanted_obs_x), k = 64) # shape: (len(wanted_obs),k)
-    #     x_obs_nox, y_obs_nox, z_obs_nox, all_idx_obs_nox = x_obs[~indices_sorted_x.flatten()], y_obs[~indices_sorted_x.flatten()], z_obs[~indices_sorted_x.flatten()], all_idx_obs[~indices_sorted_x.flatten()]
-    #     tree_obs_nox = KDTree(np.array([x_obs_nox, y_obs_nox, z_obs_nox]).T)
-    #     print(len(x_obs_nox))
-    #     _, indices_sorted_z_temp = tree_obs_nox.query(np.array(wanted_obs_z), k = 32) # shape: (len(wanted_obs),k)
-    #     indices_sorted_z = all_idx_obs_nox[indices_sorted_z_temp.flatten()]
-    #     indices_sorted = indices_sorted_x #[indices_sorted_x, indices_sorted_z]
-    #     label_obs = ['x+', 'x-', 'z+', 'z-']
-    #     colors_obs = ['dodgerblue', 'r', 'dosgerblue', 'deepskyblue']
-    #     lines_obs = ['solid', 'solid', 'solid', 'solid']
- 
-    if choice == 'quadrants ': # 8 3d-quadrants 
-        # Cartesian view    
-        indices1 = all_idx_obs[np.logical_and(z_obs>=0, np.logical_and(x_obs >= 0, y_obs >= 0))]
-        indices2 = all_idx_obs[np.logical_and(z_obs>=0, np.logical_and(x_obs < 0, y_obs >= 0))]
-        indices3 = all_idx_obs[np.logical_and(z_obs>=0, np.logical_and(x_obs < 0, y_obs < 0))]
-        indices4 = all_idx_obs[np.logical_and(z_obs>=0, np.logical_and(x_obs >= 0, y_obs < 0))]
-        indices5 = all_idx_obs[np.logical_and(z_obs<0, np.logical_and(x_obs >= 0, y_obs >= 0))]
-        indices6 = all_idx_obs[np.logical_and(z_obs<0, np.logical_and(x_obs < 0, y_obs >= 0))]
-        indices7 = all_idx_obs[np.logical_and(z_obs<0, np.logical_and(x_obs < 0, y_obs < 0))]
-        indices8 = all_idx_obs[np.logical_and(z_obs<0, np.logical_and(x_obs >= 0, y_obs < 0))]
-        indices_sorted = [indices1, indices2, indices3, indices4, indices5, indices6, indices7, indices8]
-        label_obs = ['+x+y+z', '-x+y+z', '-x-y+z', '+x-y+z',
-                    '+x+y-z', '-x+y-z', '-x-y-z', '+x-y-z',]
-        colors_obs = plt.cm.rainbow(np.linspace(0, 1, len(indices_sorted)))
-
-    if choice == 'chunky_axis': # centered on the cartesian axes
-        indices1 = all_idx_obs[np.logical_and(np.abs(z_obs) < np.abs(x_obs), np.logical_and(x_obs < 0, np.abs(y_obs) < np.abs(x_obs)))]
-        indices2 = all_idx_obs[np.logical_and(np.abs(z_obs) < np.abs(x_obs), np.logical_and(x_obs >= 0, np.abs(y_obs) < x_obs))]
-        indices3 = all_idx_obs[np.logical_and(np.abs(z_obs) < np.abs(y_obs), np.logical_and(y_obs < 0, np.abs(y_obs) > np.abs(x_obs)))]
-        indices4 = all_idx_obs[np.logical_and(np.abs(z_obs) < np.abs(y_obs), np.logical_and(y_obs >= 0, y_obs > np.abs(x_obs)))]
-        
-        indices5 = all_idx_obs[np.logical_and(z_obs<0, np.logical_and(np.abs(z_obs) > np.abs(y_obs), np.abs(z_obs) > np.abs(x_obs)))]
-        indices6 = all_idx_obs[np.logical_and(z_obs>=0, np.logical_and(z_obs > np.abs(y_obs), z_obs > np.abs(x_obs)))]
-
-        indices_sorted = [indices1, indices2, indices3, indices4, indices5, indices6]#, indices7, indices8]
-        colors_obs = ['r', 'sandybrown', 'magenta', 'plum', 'deepskyblue', 'dosgerblue']
-        label_obs = ['-x','+x', '-y', '+y', 'z-', 'z+']
-        lines_obs = ['solid', 'solid', 'solid', 'solid', 'solid', 'solid']
+        # for key in sections_ph.keys(): 
+        #     cond_single = sections_ph[key]['cond']
+        #     indices_sorted.append(all_idx_obs[cond_single])
+        if choice in ['left_right_z', 'in_out_z', 'left_right_in_out_z']:
+            indices_sorted = [all_idx_obs[sections_ph[key]['cond']] for key in sections_ph]
     
     if choice == '':
         indices_sorted = [np.arange(len(x_obs))]

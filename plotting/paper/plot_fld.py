@@ -7,7 +7,7 @@ alice, plot = isalice()
 if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
 else:
-    abspath = '/Users/paolamartire/shocks/'
+    abspath = '/Users/paolamartire/shocks'
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
@@ -46,12 +46,12 @@ snaps, tfb, Lum = data[:, 0], data[:, 1], data[:, 2]
 snaps, Lum, tfb = sort_list([snaps, Lum, tfb], tfb, unique=True) 
 snaps = snaps.astype(int)
 idx_maxLum = np.argmax(Lum)
-dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
+dataDiss = np.loadtxt(f'{abspath}/data/{folder}/paper1/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
 snapdiss, tfbdiss, LDiss, LDissNeg = dataDiss[:,0], dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs, dataDiss[:,5] * prel.en_converter/prel.tsol_cgs
-dataDissIon = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}ionizationHe.csv', delimiter=',', dtype=float, skiprows=1)
+dataDissIon = np.loadtxt(f'{abspath}/data/{folder}/paper1/Rdiss_{check}ionizationHe.csv', delimiter=',', dtype=float, skiprows=1)
 tfbdiss_split, LDissAb, LdissBl =  dataDissIon[:,1], dataDissIon[:,3] * prel.en_converter/prel.tsol_cgs, dataDissIon[:,5] * prel.en_converter/prel.tsol_cgs
 _, tfbmdot, mfallH, _, _, _, _, _, tot_IE_H, tot_Rad_H = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_HiResNewAMR05aminmean.csv', 
+            np.loadtxt(f'{abspath}/data/{folder}/paper1/wind/Mdot_HiResNewAMR05aminmean.csv', 
                     delimiter = ',', 
                     skiprows=1, 
                     unpack=True) 
@@ -129,12 +129,12 @@ axR.text(0.11, 1.1*apo/Rt, r'$r_{\rm a}$', fontsize = 20)
 
 img = axL.scatter(tfb, Lum, s = 12, c = medianTemprad_ph*1e-4, cmap = 'viridis', vmin = 1, vmax = 5)
 cbar = fig.colorbar(img, orientation = 'horizontal')
-cbar.set_label(r'median $T_{\rm rad, ph} [10^4 K]$')#, fontsize = 20)
+cbar.set_label(r'median $T_{\rm rad, ph} (10^4 K)$')#, fontsize = 20)
 cbar.ax.tick_params(which='major', length = 5)
 cbar.ax.tick_params(which='minor', length = 3)
-axL.plot(tfbdiss, LDiss, '--', c= 'gray')
+axL.plot(tfbdiss, LDiss, '--', c= 'gray', label = r'$L_{\rm diss}$')
 axL.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
-axL.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd}$', fontsize = 20)
+axL.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', fontsize = 20)
 original_ticks = axR.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
@@ -142,14 +142,15 @@ labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in ne
 for ax in [axR, axL]:
     ax.set_yscale('log')
     ax.set_xticks(new_ticks)
-    ax.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 20)
+    ax.set_xlabel(r'$t (t_{\rm fb})$')#, fontsize = 20)
     ax.set_xticklabels(labels)
     ax.tick_params(axis='both', which='major', width = 1, length = 7, color = 'k')
     ax.tick_params(axis='y', which='minor', width = 1, length = 4, color = 'k')
     ax.set_xlim(-.1, np.max(tfb))
     ax.grid()
+axL.legend(fontsize = 22)
 axR.set_ylim(1, 1.5e2)
-axL.set_ylabel(r'Luminosity [erg/s]')#, fontsize = 20)
+axL.set_ylabel(r'Luminosity (erg/s)')#, fontsize = 20)
 axL.set_ylim(9e37, 2e43)
 plt.tight_layout()
 plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld.pdf', bbox_inches='tight')

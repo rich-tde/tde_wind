@@ -13,7 +13,7 @@ alice, plot = isalice()
 if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
 else:
-    abspath = '/Users/paolamartire/shocks/'
+    abspath = '/Users/paolamartire/shocks'
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
 
@@ -35,7 +35,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiResNewAMR' # 'LowRes' or 'HiRes'
+check = 'HiResNewAMR' 
 coord_to_cut = 'y' # 'x', 'y', 'z'
 cut_chosen = 0
 single_plot = False
@@ -47,6 +47,9 @@ Rs = things['Rs']
 Rt = things['Rt']
 Rp = things['Rp']
 apo = things['apo']
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
+Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
+Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 if cut_chosen == Rp:
@@ -108,18 +111,18 @@ if alice:
                 )
 
 else:
-    time = np.loadtxt(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}_time.txt')
+    time = np.loadtxt(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}_time.txt')
     snaps = time[0]
     snaps = np.array([int(snap) for snap in snaps])
     tfb = time[1]
 
     if single_plot: # slice for a single snap for the movie
         for idx, snap in enumerate(snaps):
-            if snap > 50:
+            if snap != 151:
                     continue
             fig, ax = plt.subplots(1,1, figsize = (14,8))
             # load the data
-            data = np.load(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npz')
+            data = np.load(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npz')
             x = data["x"]
             y = data["y"]
             z = data["z"]
@@ -134,22 +137,40 @@ else:
             VZ = data["vz"]
             Diss_den = data["diss_density"]
             Press = data["pressure"]
+            V_r, _, _ = to_spherical_components(VX, VY, VZ, x, y, z)
+            Mdot = den * V_r * (x**2 + y**2 + z**2) 
 
-            img = ax.scatter(x/Rt, y/Rt, c = den*prel.den_converter, cmap = 'plasma', s= .1, \
-                        norm = colors.LogNorm(vmin = 5e-9, vmax = 1e-4))
+            if coord_to_cut == 'x':
+                x_toplot = y
+                y_toplot = z
+                xlabel = r'$y (r_{\rm t})$'
+                ylabel = r'$z (r_{\rm t})$'
+            if coord_to_cut == 'y':
+                x_toplot = x
+                y_toplot = z
+                xlabel = r'$x (r_{\rm t})$'
+                ylabel = r'$z (r_{\rm t})$'
+            elif coord_to_cut == 'z':
+                x_toplot = x
+                y_toplot = y
+                xlabel = r'$x (r_{\rm t})$'
+                ylabel = r'$y (r_{\rm t})$'
+
+            img = ax.scatter(x_toplot/Rt, y_toplot/Rt, c = Mdot/Medd_sol, cmap = 'brg', s= .1, \
+                        norm = colors.LogNorm(vmin = 1e1, vmax = 1e6))
             cb = plt.colorbar(img)
-            cb.set_label(r'Density [g/cm$^3$]')
+            cb.set_label(r'$\dot{M} (M_{\rm Edd})$')
             cb.ax.tick_params(which='major', length=7, width=1.2)
             cb.ax.tick_params(which='minor', length=4, width=1)
-            ax.set_ylabel(r'$ y (r_{\rm t})$')
-            ax.set_xlabel(r'$x (r_{\rm t})$')
+            ax.set_ylabel(ylabel)
+            ax.set_xlabel(xlabel)
             ax.set_xlim(-50, 50)#(-340,25)
             ax.set_ylim(-50, 50)#(-70,70)
 
             plt.suptitle(f't = {np.round(tfb[idx], 2)}' + r'$t_{\rm fb}$', fontsize = 20)
             plt.tight_layout()
-            plt.savefig(f'{abspath}Figs/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.png')
-            plt.close()
+            # plt.savefig(f'{abspath}Figs/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.png')
+            # plt.close()
         
     else:
         from matplotlib import gridspec
@@ -168,7 +189,7 @@ else:
             snap = snaps[idx]
             time = tfb[idx]
             # load the data
-            data = np.load(f'{abspath}data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npz')
+            data = np.load(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npz')
             x = data["x"]
             y = data["y"]
             z = data["z"]
@@ -212,7 +233,6 @@ else:
             
             x_toplot, y_toplot, VX_toplot, VY_toplot, den, dim = \
                 sec.make_slices([x_toplot, y_toplot, VX_toplot, VY_toplot, den, dim], cut)      
-            
 
             params_x = [-lim_plot, lim_plot, 400]
             params_y = [-lim_plot, lim_plot, 400]
@@ -235,11 +255,11 @@ else:
                     ax.quiver(x_toplot[::step]/Rt, y_toplot[::step]/Rt, VX_toplot[::step], VY_toplot[::step], color='k', angles='xy', scale_units='xy', width=0.002)
             
             if how == '':
-                ax.streamplot(x_toplot_grid/Rt, y_toplot_grid/Rt, Vx_toplot_grid, Vy_toplot_grid, density = 1.5, linewidth = 1, color = 'k')
+                ax.streamplot(x_toplot_grid/Rt, y_toplot_grid/Rt, Vx_toplot_grid, Vy_toplot_grid, density = 1.5, linewidth = 1, color = 'k', arrowsize=1.5, arrowstyle='-|>')
             
-            ax.set_xlabel(xlabel, fontsize = 35)
+            ax.set_xlabel(xlabel, fontsize = 40)
             if i == 0:
-                ax.set_ylabel(ylabel, fontsize = 35)
+                ax.set_ylabel(ylabel, fontsize = 40)
             ax.set_xlim(-lim_plot/Rt, lim_plot/Rt)
             ax.set_ylim(-lim_plot/Rt, lim_plot/Rt)
             ax.set_title(f't = {np.round(time, 2)}' + r'$t_{\rm fb}$', fontsize = 25)
@@ -248,10 +268,10 @@ else:
 
         cbar_ax = fig.add_subplot(gs[1, 0:len(idx_wanted)])  # Colorbar subplot below the first two
         cb = fig.colorbar(img, orientation='horizontal', cax=cbar_ax)
-        cb.set_label(r'$\rho$ (g/cm$^3)$', fontsize = 40)
-        cb.ax.tick_params(labelsize=30)
+        cb.set_label(r'$\rho$ (g/cm$^3)$', fontsize = 50)
+        cb.ax.tick_params(labelsize=35)
         cb.ax.tick_params(which='major', length=9, width=1.4)
         cb.ax.tick_params(which='minor', length=6, width=1.2)
 
         plt.tight_layout()
-        plt.savefig(f'{abspath}Figs/{folder}/Wind{coord_to_cut}{cut_name}slices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
+        plt.savefig(f'{abspath}/Figs/{folder}/Wind{coord_to_cut}{cut_name}slices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)

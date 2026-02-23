@@ -5,7 +5,6 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 import numpy as np
 import os
-from Utilities.time_extractor import days_since_distruption
 
 def select_prefix(m, check, mstar, rstar, beta, n, compton):
     Mbh = 10**m
