@@ -115,7 +115,7 @@ if __name__ == '__main__':
     tfbdissL, LDissL = dataDissL[:,1], dataDissL[:,3] *  prel.en_converter/prel.tsol_cgs
     dataDiss = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/Rdiss_NewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs
-    dataDissH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
+    dataDissH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/paper1/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     tfbdissH, LDissH = dataDissH[:,1], dataDissH[:,3] *  prel.en_converter/prel.tsol_cgs
 
     ######## Plot ########
@@ -154,7 +154,7 @@ if __name__ == '__main__':
     
     # Luminosity
     axL.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
-    axL.text(0.15, 1.3*Ledd_cgs, r'$L_{\rm Edd}$', fontsize = 20)
+    axL.text(0.15, 1.3*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', fontsize = 20)
     axL.plot(tfbL, LumL, c = 'C1', label = 'Low')
     axL.plot(tfbdissL, LDissL, ls = '--', c = 'C1')
     axL.plot(tfb, Lum, c = 'yellowgreen', label = 'Middle')
@@ -221,7 +221,7 @@ if __name__ == '__main__':
     data = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/convE_NewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     tfb_oe, col_ie, col_orb_en_pos, col_orb_en_neg, col_rad = data[:, 1], data[:, 2], data[:, 3], data[:, 4], data[:, 5]
     col_orb_en = col_orb_en_pos + col_orb_en_neg
-    dataH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/convE_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
+    dataH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/paper1/convE_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     tfb_oeH, col_ieH, col_orb_en_posH, col_orb_en_negH, col_radH = dataH[:, 1], dataH[:, 2], dataH[:, 3], dataH[:, 4], dataH[:, 5]
     col_orb_enH = col_orb_en_posH + col_orb_en_negH
 

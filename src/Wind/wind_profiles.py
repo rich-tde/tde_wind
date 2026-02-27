@@ -47,7 +47,7 @@ Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 
-# FUNCTIONS
+#%% FUNCTIONS
 def CouBegel(r, theta, n, norm, gamma=4/3):
     """Coughlin+14, eq.4"""
     r0, rho0 = norm
@@ -338,7 +338,7 @@ def polar_profiles(loadpath, snap, ray_params, which_material = 'wind'):
 ## MAIN
 #
 compute = False
-what = 'radial'
+what = 'polar'
 snap = 109
 
 if what == 'polar':
@@ -354,51 +354,51 @@ if what == 'polar':
     
     else:
         from Utilities.basic_units import radians
-        figd, (ax0, axd, axs) = plt.subplots(1, 3, figsize=(28, 7)) 
+        figd, (ax0, axd) = plt.subplots(1, 2, figsize=(18, 7)) 
         figVT, (axV, axT) = plt.subplots(1, 2, figsize=(18, 7)) 
+        figU, axunb = plt.subplots(1, 1, figsize = (10, 6))
         x_line = np.arange(-40*Rt, 40*Rt, dtype=complex)
         line_xz = op.draw_line(x_line, np.arcsin(2/3), 'line')
         line_xz_neg = op.draw_line(x_line, np.pi-np.arcsin(2/3), 'line')
         # Load data and search for cell at cirularization radius = 2Rp
         path = f'{pre}/{snap}'
         tfb = np.loadtxt(f'{path}/tfb_{snap}.txt') 
-        data = op.make_tree(path, snap, energy = True)
-        if which_material == 'wind':
-            X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
-                data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Temp, data.Press, data.IE, data.Rad
-            Rsph = np.sqrt(X**2 + Y**2 + Z**2)  
-            cut, _, _ = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params)
-            cut = np.logical_and(cut, Den > 1e-19)
-        if which_material == '':
-            X, Y, Z, Den, Vol  = data.X, data.Y, data.Z, data.Den, data.Vol
-            cut = Den > 1e-19
+        # data = op.make_tree(path, snap, energy = True)
+        # if which_material == 'wind':
+        #     X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
+        #         data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Temp, data.Press, data.IE, data.Rad
+        #     Rsph = np.sqrt(X**2 + Y**2 + Z**2)  
+        #     cut, _, _ = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params)
+        #     cut = np.logical_and(cut, Den > 1e-19)
+        # if which_material == '':
+        #     X, Y, Z, Den, Vol  = data.X, data.Y, data.Z, data.Den, data.Vol
+        #     cut = Den > 1e-19
             
-        X, Y, Z, Den, Vol = make_slices([X, Y, Z, Den, Vol], cut)
-        dim_cell = Vol**(1/3)
-        if which_material == 'wind':
-            dmax_plot = 5*np.max(Den[np.abs(Y)<dim_cell]) * prel.den_converter    
-            figU, axunb = plt.subplots(1, 1, figsize = (10, 6))
-        if which_material == '':
-            dmax_plot = 1e-6
-        xyz = np.array([X, Y, Z]).T
-        tree = KDTree(xyz, leaf_size = 50) 
-        Rc = 2*Rp
-        _, idx = tree.query(np.array([[Rc, 0, 0]])) 
-        idx = np.concatenate(idx)
-        norm = (Rc, Den[idx])   
+        # X, Y, Z, Den, Vol = make_slices([X, Y, Z, Den, Vol], cut)
+        # dim_cell = Vol**(1/3)
+        # if which_material == 'wind':
+        #     dmax_plot = 5*np.max(Den[np.abs(Y)<dim_cell]) * prel.den_converter    
+        # if which_material == '':
+        #     dmax_plot = 1e-6
+        # xyz = np.array([X, Y, Z]).T
+        # tree = KDTree(xyz, leaf_size = 50) 
+        # Rc = 2*Rp
+        # _, idx = tree.query(np.array([[Rc, 0, 0]])) 
+        # idx = np.concatenate(idx)
+        # norm = (Rc, Den[idx])   
 
         # plot xz plane
-        y_cut = np.abs(Y) < dim_cell
-        X_cut, Z_cut, Den_cut = X[y_cut], Z[y_cut], Den[y_cut]
-        img = axs.scatter(X_cut/Rt, Z_cut/Rt, c = Den_cut * prel.den_converter, norm = colors.LogNorm(vmin = 1e-15, vmax = dmax_plot), cmap = 'rainbow', s = 1)
-        cbar = figd.colorbar(img)
-        axs.plot(x_line, line_xz, c = 'k', ls = 'dashed')
-        axs.plot(x_line, line_xz_neg, c = 'k', ls = 'dashed')
-        cbar.set_label(r'$\rho$ (g/cm$^3)$')
-        axs.set_xlabel(r'x ($r_{\rm t}$)')
-        axs.set_ylabel(r'z ($r_{\rm t}$)')
-        axs.set_xlim(-apo/Rt, apo/Rt)
-        axs.set_ylim(-apo/Rt, apo/Rt)
+        # y_cut = np.abs(Y) < dim_cell
+        # X_cut, Z_cut, Den_cut = X[y_cut], Z[y_cut], Den[y_cut]
+        # img = axs.scatter(X_cut/Rt, Z_cut/Rt, c = Den_cut * prel.den_converter, norm = colors.LogNorm(vmin = 1e-15, vmax = dmax_plot), cmap = 'rainbow', s = 1)
+        # cbar = figd.colorbar(img)
+        # axs.plot(x_line, line_xz, c = 'k', ls = 'dashed')
+        # axs.plot(x_line, line_xz_neg, c = 'k', ls = 'dashed')
+        # cbar.set_label(r'$\rho$ (g/cm$^3)$')
+        # axs.set_xlabel(r'x ($r_{\rm t}$)')
+        # axs.set_ylabel(r'z ($r_{\rm t}$)')
+        # axs.set_xlim(-apo/Rt, apo/Rt)
+        # axs.set_ylim(-apo/Rt, apo/Rt)
 
         profiles = np.load(f'{abspath}/data/{folder}/wind/theta_prof{snap}{which_material}_{rchose_lab}.npy', allow_pickle=True).item()
         theta_plot = profiles['theta_array']
@@ -431,10 +431,8 @@ if what == 'polar':
             if ax != ax0:
                 ax.set_xlabel(r'$\theta$')
                 ax.set_yscale('log')
-                ax.axvline(np.arcsin(2/3), c = 'k', ls = 'dashed')
                 ax.grid()
 
-        axd.set_ylim(1e-15, dmax_plot)
         axV.set_ylim(2e3, 1e5)
         axT.set_ylim(5e3, 5e5)
         axd.set_ylabel(r'$\rho$ [g/cm$^3]$')

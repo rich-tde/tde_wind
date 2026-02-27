@@ -190,13 +190,13 @@ if plot:
     LumsH, tfbsH_lum = sort_list([LumsH, tfbsH_lum], tfbsH_lum, unique=True)
     tfbH_max = tfbsH_lum[np.argmax(LumsH)]
     _, tfbH, mfallH, mwind_dimCellH, mwind_RH, mwind_R_nonzeroH, _, _, tot_IE_H, tot_Rad_H = \
-            np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/wind/Mdot_HiResNewAMR{which_r_title}{statist}.csv', 
+            np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/paper1/wind/Mdot_HiResNewAMR{which_r_title}{statist}.csv', 
                     delimiter = ',', 
                     skiprows=1, 
                     unpack=True) 
     MdotHmax = mwind_dimCellH[np.argmin(np.abs(tfbH - tfbH_max))]
     tfb_ratioH, ratioH, rel_errH  = ratio_BigOverSmall(tfbM, mwind_RM, tfbH, mwind_RH)
-    data_E = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/convE_{check}.csv', delimiter=',', dtype=float, skiprows=1)    
+    data_E = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/paper1/convE_{check}.csv', delimiter=',', dtype=float, skiprows=1)    
     # tfb_E, IE, Rad = data_E[:, 1], data_E[:, 2], data_E[:, 5]
     ratio_RadIE = tot_Rad_H/tot_IE_H #Rad/IE
     # not the best way to do it, but Mdot starts later than energies
@@ -205,13 +205,6 @@ if plot:
 
     print('Naive estimate L with max Mdot:', 0.1 * np.max(np.abs(mfallH))* prel.Msol_cgs/prel.tsol_cgs * prel.c_cgs**2)
 
-    # integrate mwind_dimCell in tfb 
-    # mwind_dimCell_int = cumulative_trapezoid(np.abs(mwind_dimCell), tfb, initial = 0)
-    # mfall_int = cumulative_trapezoid(np.abs(mfall), tfb, initial = 0)
-    # print(f'integral of Mw at the last time: {mwind_dimCell_int[-1]/mstar} Mstar')
-    # print(f'integral of Mfb at the last time: {mfall_int[-1]/mstar} Mstar')
-    # print(f'End of simualation, Mw/Mfb in {check}:', np.abs(mwind_dimCell[-1]/mfall[-1]))
-    
     ax1.plot(tfbH, np.abs(mfallH)/Medd_sol, ls = '--', c = 'k', label = r'$\dot{M}_{\rm fb}$')
     img = ax1.scatter(tfbH, np.abs(mwind_dimCellH)/Medd_sol, c = ratio_RadIE, cmap = 'PuOr', edgecolors = 'gray', norm = colors.LogNorm(vmin=3e-2, vmax=5e1) ,label = r'$\dot{M}_{\rm w}$')
     cbar = fig.colorbar(img, ax = ax1)
@@ -283,7 +276,7 @@ if plot:
 # %%
 print('naive L from dotM_fb: ', 0.1 * np.max(np.abs(mfallH)) * prel.Msol_cgs/prel.tsol_cgs * prel.c_cgs**2)
 # %% compute constant wind
-dataDiss = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
+dataDiss = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/paper1/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
 timeRDiss, RDiss = dataDiss[:,1], dataDiss[:,2] 
 print('predicted Ltr at tfbH_max tfb (in Ledd) from Eq.15: ', (Rg*mwind_dimCellH[np.argmax(LumsH)]/(Rp*Medd_sol))**(1/3))
 print('Rdiss at max lum', RDiss[np.argmax(LumsH)]/Rp, ' Rp')
@@ -322,4 +315,7 @@ for massBH in Mbhs:
 predWD = Ltr_Ledd(massBH, mstar, Rstar, beta, 1, 0.34, 0.04)
 print('predicted Ltr at 1.5 tfb for WD (in Ledd) from new Eq.: ', predWD)
 
+# %%
+pred = Ltr_Ledd(Mbh = 1e8, mstar = 1e2, Rstar = 1, beta = 1, t_over_tfb = 1, kappa = 0.34, zeta = 0.1)
+print('predicted Ltr at tfbH_max tfb (in Ledd) from new Eq.: ', pred)
 # %%

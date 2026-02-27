@@ -148,7 +148,7 @@ for ax in [axR, axL]:
     ax.tick_params(axis='y', which='minor', width = 1, length = 4, color = 'k')
     ax.set_xlim(-.1, np.max(tfb))
     ax.grid()
-axL.legend(fontsize = 22)
+# axL.legend(fontsize = 22)
 axR.set_ylim(1, 1.5e2)
 axL.set_ylabel(r'Luminosity (erg/s)')#, fontsize = 20)
 axL.set_ylim(9e37, 2e43)
