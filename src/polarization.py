@@ -9,7 +9,7 @@ if alice:
     save = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    save = True
+    save = False
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
 
@@ -355,9 +355,8 @@ def compute_polarization(xph, yph, zph,
     k = k / np.linalg.norm(k)
 
     # Positions
-    r_vec = np.vstack((xph, yph, zph)).T
+    r_vec = np.vstack((xph, yph, zph)).T # shape: (192,3)
     r_mag = np.linalg.norm(r_vec, axis=1)
-    print(r_vec)
     n_hat = r_vec / r_mag[:, None]   # surface normal (radial approx)
 
     # Flux vectors
@@ -374,19 +373,13 @@ def compute_polarization(xph, yph, zph,
     visible = mu_surface > 0
 
     # Keep only visible patches
-    F_hat = F_hat[visible]
-    F_mag = F_mag[visible]
-    mu_surface = mu_surface[visible]
-    r_mag = r_mag[visible]
+    F_hat, F_mag, mu_surface, r_mag = make_slices([F_hat, F_mag, mu_surface, r_mag], visible)
 
     # Scattering angle
     cos_theta = np.dot(F_hat, k)
 
     # Thomson polarization fraction
-    P_local = (1 - cos_theta**2) / (1 + cos_theta**2 + 1e-15)
-
-    # Optional cap (more realistic for atmospheres)
-    P_local = np.minimum(P_local, 0.15)
+    P_local = (1 - cos_theta**2) / (1 + cos_theta**2)
 
     # --- Define sky plane basis vectors ---
     # Choose arbitrary reference axis not parallel to k
@@ -433,7 +426,6 @@ def compute_polarization(xph, yph, zph,
 
 photo = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo109POL.txt')
 xph, yph, zph, Fxph, Fyph, Fzph = photo[0], photo[1], photo[2], photo[-3], photo[-2], photo[-1]
-print(xph)
 xph, yph, zph, Fxph, Fyph, Fzph = xph[xph!=0], yph[xph!=0], zph[xph!=0], Fxph[xph!=0], Fyph[xph!=0], Fzph[xph!=0]
 
 k_obs = [0, 0, 1]  # face-on observer
