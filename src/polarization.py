@@ -67,8 +67,8 @@ apo = orb.apocentre(Rstar, mstar, Mbh, beta)
 eng = matlab.engine.start_matlab()
 Lphoto_all = np.zeros(len(snaps))
 for idx_s, snap in enumerate(snaps):
-    if snap != 109:
-        continue
+    # if snap != 109:
+    #     continue
     print('\n Snapshot: ', snap, '\n', flush=True)
     box = np.zeros(6)
     # Load data -----------------------------------------------------------------
@@ -300,7 +300,7 @@ for idx_s, snap in enumerate(snaps):
         # Save red of the single snap
         pre_saving = f'{abspath}/data/{folder}'
         
-        with open(f'{pre_saving}/photo/{check}_photo{snap}POL.txt', 'w') as f:
+        with open(f'{pre_saving}/photo/{check}_photo{snap}.txt', 'w') as f:
             f.write('# Data for the photospere.\n')
             f.write('# xph\n' + ' '.join(map(str, xph)) + '\n')
             f.write('# yph\n' + ' '.join(map(str, yph)) + '\n')
@@ -331,113 +331,114 @@ eng.exit()
 # print(f"Peak RAM usage: {usage.ru_maxrss / 1024**2:.2f} MB")
 #%%
 
-def compute_polarization(xph, yph, zph,
-                        Fxph, Fyph, Fzph,
-                        k_obs):
-    """
-    Compute polarization for a single observer direction k_obs.
+# def compute_polarization(xph, yph, zph, dimph,
+#                         Fxph, Fyph, Fzph,
+#                         k_obs):
+#     """
+#     Compute polarization for a single observer direction k_obs.
 
-    Inputs:
-        xph, yph, zph : photosphere positions
-        Fxph, Fyph, Fzph : flux vector components at photosphere
-        k_obs : observer direction (3-vector, not necessarily normalized)
+#     Inputs:
+#         xph, yph, zph : photosphere positions
+#         Fxph, Fyph, Fzph : flux vector components at photosphere
+#         k_obs : observer direction (3-vector, not necessarily normalized)
 
-    Returns:
-        P : polarization fraction
-        Q, U : Stokes parameters (normalized to total intensity)
-    """
+#     Returns:
+#         P : polarization fraction
+#         Q, U : Stokes parameters (normalized to total intensity)
+#     """
 
-    # Number of surface elements
-    N = len(xph)
+#     # Number of surface elements
+#     N = len(xph)
 
-    # Normalize observer direction
-    k = np.array(k_obs)
-    k = k / np.linalg.norm(k)
+#     # Normalize observer direction
+#     k = np.array(k_obs)
+#     k = k / np.linalg.norm(k)
 
-    # Positions
-    r_vec = np.vstack((xph, yph, zph)).T # shape: (192,3)
-    r_mag = np.linalg.norm(r_vec, axis=1)
-    n_hat = r_vec / r_mag[:, None]   # surface normal (radial approx)
+#     # Positions
+#     r_vec = np.vstack((xph, yph, zph)).T # shape: (192,3)
+#     r_mag = np.linalg.norm(r_vec, axis=1)
+#     n_hat = r_vec / r_mag[:, None]   # surface normal (radial approx)
 
-    # Flux vectors
-    F_vec = np.vstack((Fxph, Fyph, Fzph)).T
-    F_mag = np.linalg.norm(F_vec, axis=1)
+#     # Flux vectors
+#     F_vec = np.vstack((Fxph, Fyph, Fzph)).T
+#     F_mag = np.linalg.norm(F_vec, axis=1)
 
-    # Avoid division by zero
-    valid = F_mag > 0
-    F_hat = np.zeros_like(F_vec)
-    F_hat[valid] = F_vec[valid] / F_mag[valid][:, None]
+#     # Avoid division by zero
+#     valid = F_mag > 0
+#     F_hat = np.zeros_like(F_vec)
+#     F_hat[valid] = F_vec[valid] / F_mag[valid][:, None]
 
-    # Visibility condition
-    mu_surface = np.dot(n_hat, k)
-    visible = mu_surface > 0
+#     # Visibility condition
+#     mu_surface = np.dot(n_hat, k)
+#     visible = mu_surface > 0
 
-    # Keep only visible patches
-    F_hat, F_mag, mu_surface, r_mag = make_slices([F_hat, F_mag, mu_surface, r_mag], visible)
+#     # Keep only visible patches
+#     F_hat, F_mag, mu_surface, r_mag, dimph = make_slices([F_hat, F_mag, mu_surface, r_mag, dimph], visible)
 
-    # Scattering angle
-    cos_theta = np.dot(F_hat, k)
+#     # Scattering angle
+#     cos_theta = np.dot(F_hat, k)
 
-    # Thomson polarization fraction
-    P_local = (1 - cos_theta**2) / (1 + cos_theta**2)
+#     # Thomson polarization fraction
+#     P_local = (1 - cos_theta**2) / (1 + cos_theta**2)
 
-    # --- Define sky plane basis vectors ---
-    # Choose arbitrary reference axis not parallel to k
-    tmp = np.array([1.0, 0.0, 0.0])
-    if np.allclose(np.abs(np.dot(tmp, k)), 1.0):
-        tmp = np.array([0.0, 1.0, 0.0])
+#     # --- Define sky plane basis vectors: k, e1, e2 ---
+#     # Choose arbitrary reference axis not parallel to k to find e1
+#     tmp = np.array([1.0, 0.0, 0.0])
+#     if np.allclose(np.abs(np.dot(tmp, k)), 1.0):
+#         tmp = np.array([0.0, 1.0, 0.0])
+#     e1 = np.cross(k, tmp)
+#     e1 /= np.linalg.norm(e1)
+#     e2 = np.cross(k, e1)
 
-    e1 = np.cross(k, tmp)
-    e1 /= np.linalg.norm(e1)
-    e2 = np.cross(k, e1)
+#     # Polarization direction vector
+#     # e_p ∝ k × (F × k)
+#     cross1 = np.cross(F_hat, k)
+#     e_pol = np.cross(k, cross1)
 
-    # Polarization direction vector
-    # e_p ∝ k × (F × k)
-    cross1 = np.cross(F_hat, k)
-    e_pol = np.cross(k, cross1)
+#     # Project polarization direction onto sky plane
+#     e_pol_mag = np.linalg.norm(e_pol, axis=1)
+#     nonzero = e_pol_mag > 0
+#     e_pol[nonzero] /= e_pol_mag[nonzero][:, None]
 
-    # Project polarization direction onto sky plane
-    e_pol_mag = np.linalg.norm(e_pol, axis=1)
-    nonzero = e_pol_mag > 0
-    e_pol[nonzero] /= e_pol_mag[nonzero][:, None]
+#     # Compute cos(2phi) and sin(2phi)
+#     cos_phi = np.dot(e_pol, e1)
+#     sin_phi = np.dot(e_pol, e2)
 
-    # Compute cos(2phi) and sin(2phi)
-    cos_phi = np.dot(e_pol, e1)
-    sin_phi = np.dot(e_pol, e2)
+#     cos2phi = cos_phi**2 - sin_phi**2
+#     sin2phi = 2 * cos_phi * sin_phi
 
-    cos2phi = cos_phi**2 - sin_phi**2
-    sin2phi = 2 * cos_phi * sin_phi
+#     # Surface area weight (uniform sphere sampling assumption)
+#     # dOmega = 4*np.pi / N
+#     # dA = r_mag**2 * dOmega
+#     dA = np.pi * dimph**2  
 
-    # Surface area weight (uniform sphere sampling assumption)
-    dOmega = 4*np.pi / N
-    dA = r_mag**2 * dOmega
+#     # Intensity weight
+#     I_local = F_mag * mu_surface * dA
 
-    # Intensity weight
-    I_local = F_mag * mu_surface * dA
+#     # Stokes parameters
+#     Q = np.sum(I_local * P_local * cos2phi)
+#     U = np.sum(I_local * P_local * sin2phi)
+#     I = np.sum(I_local)
 
-    # Stokes parameters
-    Q = np.sum(I_local * P_local * cos2phi)
-    U = np.sum(I_local * P_local * sin2phi)
-    I = np.sum(I_local)
+#     P = np.sqrt(Q**2 + U**2) / (I + 1e-20)
 
-    P = np.sqrt(Q**2 + U**2) / (I + 1e-20)
+#     return P, Q/I, U/I
 
-    return P, Q/I, U/I
+# photo = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo109POL.txt')
+# xph, yph, zph, volph, Fxph, Fyph, Fzph = photo[0], photo[1], photo[2], photo[3], photo[-3], photo[-2], photo[-1]
+# dimph = (volph)**(1/3)
+# xph, yph, zph, dimph, Fxph, Fyph, Fzph = xph[xph!=0], yph[xph!=0], zph[xph!=0], dimph[xph!=0], Fxph[xph!=0], Fyph[xph!=0], Fzph[xph!=0]
 
-photo = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo109POL.txt')
-xph, yph, zph, Fxph, Fyph, Fzph = photo[0], photo[1], photo[2], photo[-3], photo[-2], photo[-1]
-xph, yph, zph, Fxph, Fyph, Fzph = xph[xph!=0], yph[xph!=0], zph[xph!=0], Fxph[xph!=0], Fyph[xph!=0], Fzph[xph!=0]
+# k_obs = [0, 0, 1]  # face-on observer
+# P, Qnorm, Unorm = compute_polarization(
+#     xph, yph, zph, dimph,
+#     Fxph, Fyph, Fzph,
+#     k_obs
+# )
 
-k_obs = [0, 0, 1]  # face-on observer
-P, Qnorm, Unorm = compute_polarization(
-    xph, yph, zph,
-    Fxph, Fyph, Fzph,
-    k_obs
-)
-
-print("Polarization:", P)
+# print("Polarization:", P)
 
 
 
 
-# %%
+# # %%
