@@ -41,7 +41,8 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiResNewAMR' # 
+check = 'HiResNewAMR' 
+N_ray = 5_000
 
 ## Snapshots stuff
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -49,7 +50,7 @@ snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True)
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 print('we are in: ', pre, flush=True)
 
-# Opacities: load and interpolate ----------------------------------------------------------------
+#%% Opacities: load and interpolate ----------------------------------------------------------------
 opac_path = f'{abspath}/src/Opacity'
 T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
@@ -59,45 +60,37 @@ scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
 _, _, scatter2 = opacity_linear(T_cool, Rho_cool, scattering)
 T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, which_opacity = 'rossland', scatter = scatter2)
 _, _, planck2 = opacity_extrap(T_cool, Rho_cool, planck, which_opacity = 'planck', scatter = None)
+# observers 
+num_obs = prel.NPIX
+observers_xyz = hp.pix2vec(prel.NSIDE, range(num_obs)) # shape: (3, 192)
+observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 
-N_ray = 5_000
-apo = orb.apocentre(Rstar, mstar, Mbh, beta)
-
-#%% MATLAB GOES WHRRRR, thanks Cindy.
+#%% MATLAB, thanks Cindy.
 eng = matlab.engine.start_matlab()
-Lphoto_all = np.zeros(len(snaps))
 for idx_s, snap in enumerate(snaps):
-    if snap != 109:
-        continue
+    # if snap != 109:
+    #     continue
     print('\n Snapshot: ', snap, '\n', flush=True)
-    box = np.zeros(6)
-    # Load data -----------------------------------------------------------------
+    # Load data and avoid fluff -----------------------------------------------------------------
     if alice:
         loadpath = f'{pre}/snap_{snap}'
     else:
         loadpath = f'{pre}/{snap}'
-     
     data = make_tree(loadpath, snap, energy = True)
     box = np.load(f'{loadpath}/box_{snap}.npy')
     X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ, Press, IE_den = \
         data.X, data.Y, data.Z, data.Temp, data.Den, data.Rad, data.Vol, data.VX, data.VY, data.VZ, data.Press, data.IE
-
     denmask = Den > 1e-19
     X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ, Press, IE_den = \
         make_slices([X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ, Press, IE_den], denmask)
-
     xyz = np.array([X, Y, Z]).T
     R = np.sqrt(X**2 + Y**2 + Z**2)
-    # Cross dot -----------------------------------------------------------------
-    num_obs = prel.NPIX # you'll use it for the mean of the observers. It's 192, unless you don't find the photosphere for someone and so decrease of 1
-    observers_xyz = hp.pix2vec(prel.NSIDE, range(num_obs)) #shape: (3, 192)
-    observers_xyz = np.array(observers_xyz).T#[:,:,0] # shape: (192, 3)
 
+    # Cross dot -----------------------------------------------------------------
     cross_dot = np.matmul(observers_xyz,  observers_xyz.T)
     cross_dot[cross_dot<0] = 0
     cross_dot *= 4/192
 
-    # Dynamic Box 
     F_photo = np.zeros((prel.NPIX, len(prel.freqs)))
     F_photo_temp = np.zeros((prel.NPIX, len(prel.freqs)))
     ph_idx = np.zeros(num_obs)
@@ -116,13 +109,14 @@ for idx_s, snap in enumerate(snaps):
     fluxes = np.zeros(num_obs)
     rph = np.zeros(num_obs) 
     alphaph = np.zeros(num_obs) 
+    Fxph = np.zeros(num_obs)
+    Fyph = np.zeros(num_obs)
+    Fzph = np.zeros(num_obs)
     Lph = np.zeros(num_obs) 
     r_initial = np.zeros(num_obs) # initial starting point for Rph
     colorsphere = {'idx': [], 'x': [], 'y': [], 'z': [], 'vol': [], 'den': [], 'temp': [], 'radden': [], 'vx': [], 'vy': [], 'vz': [], 'P': [], 'ieden': [], 'alpha_eff': []}
     for i in range(num_obs):
-        # Progress 
         print(f'Snap: {snap}, Obs: {i}', flush=True)
-        # sys.stdout.flush()
 
         mu_x = observers_xyz[i][0]
         mu_y = observers_xyz[i][1]
@@ -132,23 +126,16 @@ for idx_s, snap in enumerate(snaps):
         # box gives -x, -y, -z, +x, +y, +z. 
         if mu_x < 0:
             rmax = box[0] / mu_x
-            # print('x-', rmax)
         else:
             rmax = box[3] / mu_x
-            # print('x+', rmax)
         if mu_y < 0:
             rmax = min(rmax, box[1] / mu_y)
-            # print('y-', rmax)
         else:
             rmax = min(rmax, box[4] / mu_y)
-            # print('y+', rmax)
-
         if mu_z < 0:
             rmax = min(rmax, box[2] / mu_z)
-            # print('z-', rmax)
         else:
             rmax = min(rmax, box[5] / mu_z)
-            # print('z+', rmax)
 
         r = np.logspace(-0.25, np.log10(rmax), N_ray)
         r_initial[i] = rmax # this is true if the observers are nomalized to have |R|=1
@@ -190,7 +177,7 @@ for idx_s, snap in enumerate(snaps):
         del ln_alpha_rossland, ln_alpha_planck
         gc.collect()
 
-        # Optical Depth
+        # Optical depth
         r_fuT = np.flipud(r) #.T
         alpha_rossland_fuT = np.flipud(alpha_rossland) 
         # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
@@ -202,7 +189,7 @@ for idx_s, snap in enumerate(snaps):
                                                          r_fuT, initial = 0)) * prel.Rsol_cgs
         los_effective[los_effective>30] = 30
 
-        # Red 
+        # FLD curve 
         # Get 20 unique nearest neighbors to each cell in the wanted ray and use them to compute the gradient along the ray
         xyz3 = np.array([ray_x, ray_y, ray_z]).T
         _, idxnew = tree.query(xyz3, k=20)
@@ -236,7 +223,6 @@ for idx_s, snap in enumerate(snaps):
 
         grad = np.sqrt(gradx**2 + grady**2 + gradz**2) # grad = |grad|
         gradr = (mu_x * gradx) + (mu_y*grady) + (mu_z*gradz) # projection of the gradient along the radial direction
-        del gradx, grady, gradz
         gc.collect()
 
         # Eq.(28) from Krumholz07.
@@ -244,19 +230,19 @@ for idx_s, snap in enumerate(snaps):
         R_lamda[R_lamda < 1e-10] = 1e-10
         # Eq.(27) from Krumholz07.
         fld_factor = (1/np.tanh(R_lamda) - 1/R_lamda) / R_lamda 
-        # Eq.(26) from Krumholz07. You miss a c, but it's in Lphoto2 for computational reasons.
-        # Before it was r.T
-        smoothed_flux = -uniform_filter1d(r**2 * fld_factor * gradr / alpha_rossland, 7) #r^2 is here (but it's for the flux) otherwise you get annoying errors in the if. 
+        # Eq.(26) from Krumholz07. 
+        smoothed_flux_r2 = -prel.c_cgs * uniform_filter1d(r**2 * fld_factor * gradr / alpha_rossland, 7) #r^2 is here (but it's for the flux) otherwise you get annoying errors in the if. 
+        Fx = -prel.c_cgs * fld_factor * gradx * (prel.en_den_converter/prel.Rsol_cgs)/ alpha_rossland # CGS
+        Fy = -prel.c_cgs * fld_factor * grady * (prel.en_den_converter/prel.Rsol_cgs)/ alpha_rossland
+        Fz = -prel.c_cgs * fld_factor * gradz * (prel.en_den_converter/prel.Rsol_cgs)/ alpha_rossland
+        del gradx, grady, gradz
 
-        # You can have numerical errors at early times
         try: 
-            photosphere = np.where( ((smoothed_flux>0) & (los<2/3) ))[0][0] 
+            photosphere = np.where( ((smoothed_flux_r2>0) & (los<2/3) ))[0][0] 
         except IndexError: # if you don't find the photosphere, skip the observer
-            # num_obs -= 1 # you don't have light from there, but the observers are still 192
             print(f'No photosphere found for observer {i}', flush=True)
-            # sys.stdout.flush()
             continue
-        Lphoto2 = 4*np.pi * prel.c_cgs*smoothed_flux[photosphere] * prel.Msol_cgs / (prel.tsol_cgs**2) # you have to convert ray_radDen*r^2/lenght = energy/lenght^2 = mass/time^2
+        Lphoto2 = 4*np.pi * smoothed_flux_r2[photosphere] * prel.Msol_cgs / (prel.tsol_cgs**2) # you have to convert ray_radDen*r^2/lenght = energy/lenght^2 = mass/time^2
         if Lphoto2 < 0:
             Lphoto2 = 1e100 # it means that it will always pick max_length for the negatives
         # free streaming emission
@@ -275,10 +261,16 @@ for idx_s, snap in enumerate(snaps):
         Vzph[i] = ray_vz[photosphere]
         Pressph[i] = ray_press[photosphere]
         IE_denph[i] = ray_ie_den[photosphere]
-        rph[i] = r[photosphere] 
+        rph[i] = r[photosphere]  
         alphaph[i] = alpha_rossland[photosphere]
         fluxes[i] = Lphoto / (4*np.pi*(r[photosphere]*prel.Rsol_cgs)**2)
+        Fxph[i] = Fx[photosphere]
+        Fyph[i] = Fy[photosphere] 
+        Fzph[i] = Fz[photosphere]
         Lph[i] = Lphoto 
+
+        ## SANITY CHECK
+        print('sum flux/flux rad: ', np.sqrt(Fxph[i]**2 + Fyph[i]**2 + Fzph[i]**2)/fluxes[i])
 
         # Spectra
         color_idx = np.argmin(np.abs(los_effective-5))
@@ -311,30 +303,31 @@ for idx_s, snap in enumerate(snaps):
         F_photo_temp[i,:] *= norm
         F_photo[i,:] = np.dot(cross_dot[i,:], F_photo_temp)    
          
-        if plot:
-            kappa = alpha_rossland/d
-            plt.figure(figsize = (10, 6))
-            img = plt.scatter(r/apo, kappa, c = los, s = 10, norm = colors.LogNorm(vmin = 1e-1, vmax = 5), cmap = 'rainbow')
-            cb = plt.colorbar(img)
-            cb.set_label(r'$\tau$', fontsize = 16)
-            plt.axvline(rph[i]/apo, c = 'firebrick', ls = '--')
-            # plt.xlim(0.1*rph[i]/apo, 2*rph[i]/apo)
-            plt.loglog()
-            plt.xlabel(r'$R/R_{\rm a}$')
-            plt.ylabel(r'$\kappa$ [cm$^2$/g]')
-            plt.ylim(1e-2, 10) 
-            plt.grid()
-            plt.tight_layout() 
-            plt.tick_params(axis='both', which='major',length=10, width=1.5)
-            plt.tick_params(axis='both', which='minor',length=5, width=1)
+        # if plot:
+        #     apo = orb.apocentre(Rstar, mstar, Mbh, beta)
+        #     kappa = alpha_rossland/d
+        #     plt.figure(figsize = (10, 6))
+        #     img = plt.scatter(r/apo, kappa, c = los, s = 10, norm = colors.LogNorm(vmin = 1e-1, vmax = 5), cmap = 'rainbow')
+        #     cb = plt.colorbar(img)
+        #     cb.set_label(r'$\tau$', fontsize = 16)
+        #     plt.axvline(rph[i]/apo, c = 'firebrick', ls = '--')
+        #     # plt.xlim(0.1*rph[i]/apo, 2*rph[i]/apo)
+        #     plt.loglog()
+        #     plt.xlabel(r'$R/R_{\rm a}$')
+        #     plt.ylabel(r'$\kappa$ [cm$^2$/g]')
+        #     plt.ylim(1e-2, 10) 
+        #     plt.grid()
+        #     plt.tight_layout() 
+        #     plt.tick_params(axis='both', which='major',length=10, width=1.5)
+        #     plt.tick_params(axis='both', which='minor',length=5, width=1)
             # plt.savefig(f'{abspath}/Figs/{folder}/Test/{snap}/alphai_{snap}_{i}.png')
             # plt.close()
 
-        del smoothed_flux, R_lamda, fld_factor, ray_radDen
+        del smoothed_flux_r2, R_lamda, fld_factor, ray_radDen
         gc.collect()
 
     Lphoto_snap = np.mean(Lph) # take the mean
-    print(Lphoto_snap, flush=True)
+    print('L :', Lphoto_snap, flush=True)
 
     if save:
         # Save red of the single snap
@@ -373,6 +366,9 @@ for idx_s, snap in enumerate(snaps):
             f.write('# rph\n' + ' '.join(map(str, rph)) + '\n')
             f.write('# Lph CGS\n' + ' '.join(map(str, Lph)) + '\n')
             f.write('# indices\n' + ' '.join(map(str, ph_idx)) + '\n')
+            f.write('# Fxph CGS\n' + ' '.join(map(str, Fxph)) + '\n')
+            f.write('# Fyph CGS\n' + ' '.join(map(str, Fyph)) + '\n')
+            f.write('# Fzph CGS\n' + ' '.join(map(str, Fzph)) + '\n')
             f.close()
 
         # Save spectrum

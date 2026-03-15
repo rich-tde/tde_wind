@@ -12,7 +12,7 @@ from src import orbits as orb
 from Utilities import sections as sec
 from Utilities.operators import make_tree
 import matplotlib.gridspec as gridspec
-from Utilities.time_extractor import days_since_distruption
+# from Utilities.time_extractor import days_since_distruption
 
 ##
 # CONSTANTS
@@ -315,8 +315,8 @@ for ax in [ax1, ax2]:
     ax.set_ylim(0,1.1)
     ax.grid()
     ax.set_ylabel('CDF') #, fontsize = 30)
-ax1.set_xlabel(r'Cell mass [$M_\odot$]') #, fontsize = 30)
-ax2.set_xlabel(r'Cell size [$R_\odot$]') #, fontsize = 30)
+ax1.set_xlabel(r'Cell mass ($M_\odot$)') #, fontsize = 30)
+ax2.set_xlabel(r'Cell size ($R_\odot$)') #, fontsize = 30)
 ax1.set_xlim(5e-13, 3e-7)
 ax2.set_xlim(6e-2, 2)
 # plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)

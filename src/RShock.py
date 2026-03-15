@@ -169,7 +169,7 @@ ax1.plot(tfb, R_ph/Rt, color = 'darkviolet', label = r'$r_{\rm ph}$')
 
 ax1.axhline(y=apo/Rt, color = 'gray', linestyle = '-.')
 ax1.text(0.92*np.max(tfb), 1.18* apo/Rt, r'$r_{\rm a}$', fontsize = 20, color = 'k')
-ax1.set_ylabel(r'$r [r_{\rm t}$]')#, fontsize = 18)
+ax1.set_ylabel(r'$r / r_{\rm t}$')#, fontsize = 18)
 ax1.set_ylim(Rlim_min, Rlim_max)
 # Set primary y-axis ticks
 R_ticks = np.logspace(np.log10(Rlim_min), np.log10(Rlim_max), num=5)
@@ -190,7 +190,7 @@ new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
 labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
 for ax in [ax1, ax2]:
     ax.set_yscale('log')
-    ax.set_xlabel(r't [$t_{\rm fb}$]')#, fontsize = 20)
+    ax.set_xlabel(r't / t$_{\rm fb}$', fontsize = 30)
     ax.grid()
     ax.set_xticks(new_ticks)
     ax.set_xticklabels(labels)
@@ -216,7 +216,7 @@ ax.plot(timeRDiss, eta_checkRdiss, color = 'magenta', label = r'$\eta_{\rm diss}
 ax.plot(tfb, eta_sh_diss, color = 'b', label = r'$\eta_{\rm diss} = L_{\rm diss}/(|\dot{M}_{\rm fb}| c^2)$')
 ax.axhline(y=horiz_line, color = 'gray', linestyle = ':', label = r'$\eta_{\rm nz} = 0.5(r_\star/r_{\rm p})^2r_{\rm g}/r_{\rm p}$')
 ax.set_ylabel(r'$\eta_{\rm num}$', fontsize = 30)
-ax.set_xlabel(r't [$t_{\rm fb}$]', fontsize = 30)
+ax.set_xlabel(r't / t$_{\rm fb}$', fontsize = 30)
 ax.set_yscale('log')
 ax.set_xlim(np.min(tfb), np.max(tfb))
 ax.legend(fontsize = 18)

@@ -26,7 +26,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
-proj_movie = True
+proj_movie = False
 n_panels = 2
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
@@ -159,7 +159,7 @@ if not proj_movie:
             ax.text(-5.5, 2.35, f't = {np.round(tfb_single,1)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 16)
         else:
             ax.text(-5.5, 2.35, f't = {np.round(tfb_single,2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 16)
-        ax.set_ylabel(r'$Y [r_{\rm a}]$')#, fontsize = 20)
+        ax.set_ylabel(r'$Y / r_{\rm a}$')#, fontsize = 20)
         ax.tick_params(axis='x', which='major', width = .7, length = 7, color = 'white')
         ax.tick_params(axis='y', which='major', width = .7, length = 7, color = 'white')
         ax.set_xlim(-6, 2.5)
@@ -175,8 +175,8 @@ if not proj_movie:
     cb = fig.colorbar(img, cax=cbar_ax, orientation='vertical')
     cb.ax.tick_params(which='major',length = 5)
     cb.ax.tick_params(which='minor',length = 3)
-    cb.set_label(r'Column density [g/cm$^2$]', fontsize = 20)
-    ax.set_xlabel(r'$X [r_{\rm a}]$')#, fontsize = 20)
+    cb.set_label(r'Column density (g/cm$^2$)', fontsize = 20)
+    ax.set_xlabel(r'$X / r_{\rm a}$')#, fontsize = 20)
     plt.tight_layout()
 
     plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/3denprojph.png', bbox_inches='tight')
@@ -184,7 +184,7 @@ if not proj_movie:
 
 
     # with diss proj as well
-    dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
+    dataDiss = np.loadtxt(f'{abspath}/data/{folder}/paper1/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
     tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs
     time = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/projection/bigDentime_proj.txt')
     snaps = [int(i) for i in time[0]]
@@ -272,7 +272,7 @@ if not proj_movie:
         for j in range(len(radii_grid)):
             ax.contour(xcfr_grid[j], ycfr_grid[j], cfr_grid[j], levels=[0], colors='white', alpha = 0.5)
         
-        ax.set_ylabel(r'$Y [r_{\rm a}]$')#, fontsize = 20)
+        ax.set_ylabel(r'$Y / r_{\rm a}$')#, fontsize = 20)
         ax.tick_params(axis='x', which='major', width = .9, length = 7, color = 'white')
         ax.tick_params(axis='y', which='major', width = .9, length = 7, color = 'white')
         ax.set_xlim(-6, 2.5)
@@ -287,7 +287,7 @@ if not proj_movie:
             ax.text(-0.9 * 6, 0.8 * 3, f't = {np.round(tfb_single,1)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 22)
         else:
             ax.text(-0.9 * 6, 0.8 * 3, f't = {np.round(tfb_single,2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 22)
-        axDiss.text(0.9 * x_min, 0.8 * y_max, r'$\dot{E}_{\rm irr}$ = ' + f'{LDiss[np.argmin(np.abs(tfbdiss-tfb_single))]:.1e} erg/s', color = 'white', fontsize = 18)
+        # axDiss.text(0.9 * x_min, 0.8 * y_max, r'$\dot{E}_{\rm irr}$ = ' + f'{LDiss[np.argmin(np.abs(tfbdiss-tfb_single))]:.1e} erg/s', color = 'white', fontsize = 18)
 
         if i == 2:
             ax.text(Rt/apo + 0.02, 0.05, r'$r_{\rm t}$', color = 'white', fontsize = 16)
@@ -302,13 +302,13 @@ if not proj_movie:
     cb.ax.tick_params(which='major',length = 5)
     cb.ax.tick_params(which='minor',length = 3)
     cb.set_label(r'Column density (g cm$^{-2}$)', fontsize = 20)
-    ax.set_xlabel(r'$X [r_{\rm a}]$')#, fontsize = 20)
+    ax.set_xlabel(r'$X / r_{\rm a}$')#, fontsize = 20)
     cbar_axDiss = fig.add_subplot(gs[3, 1])  # Colorbar subplot below the first 3 panels
     cbDiss = fig.colorbar(imgDiss, cax=cbar_axDiss, orientation='horizontal')
     cbDiss.ax.tick_params(which='major',length = 5)
     cbDiss.ax.tick_params(which='minor',length = 3)
-    cbDiss.set_label(r'Dissipation rate column density [erg s$^{-1}$cm$^{-2}]$', fontsize = 20)
-    axDiss.set_xlabel(r'$X [r_{\rm a}]$')#, fontsize = 20)
+    cbDiss.set_label(r'Dissipation rate column density (erg s$^{-1}$cm$^{-2}$)', fontsize = 20)
+    axDiss.set_xlabel(r'$X / r_{\rm a}$')#, fontsize = 20)
     plt.tight_layout()
 
     plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/3DenDissprojph.png', bbox_inches='tight', dpi = 300)

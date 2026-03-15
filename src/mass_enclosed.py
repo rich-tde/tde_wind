@@ -136,15 +136,15 @@ else:
             ax.tick_params(axis='both', which='major', length=7, width=1)
             ax.tick_params(axis='both', which='minor', length=4, width=1)
             ax.set_xlim(0.01, 2.5)
-            ax.set_xlabel(r't [t$_{\rm fb}$]')  
+            ax.set_xlabel(r't / t$_{\rm fb}$')  
             ax.grid()
             if ax in [axM1, axM2, axM3]:
                 ax.set_ylim(1e-6, 1e-3)
-                ax.set_ylabel(r'Mass enclosed $[M_\star]$')
+                ax.set_ylabel(r'Mass enclosed / $M_\star$')
                 ax.legend(fontsize = 16)
             if ax in [axDiss1, axDiss2, axDiss3]:
                 ax.set_ylim(1e38, 2e43)
-                ax.set_ylabel(r'Dissipation rate enclosed [erg/s]')
+                ax.set_ylabel(r'Dissipation rate enclosed (erg/s)')
             ax.set_yscale('log')
 
         fig1.suptitle(Rchecklab[0], fontsize = 20)
@@ -164,7 +164,7 @@ else:
 
         # Plot mass and dissipation rate enclosed in a sphere of radius Rcheck: 
         # load and covert
-        dataencl = np.loadtxt(f'{abspath}/data/{folder}/{check}Mass_encl.csv', delimiter=',', skiprows = 1)
+        dataencl = np.loadtxt(f'{abspath}/data/{folder}/paper1/{check}Mass_encl.csv', delimiter=',', skiprows = 1)
         tfb_encl = dataencl[:, 1]
         Mass_encl = dataencl[:, 2:5]
         Diss_pos_encl = dataencl[:, 5:8] * prel.en_converter/prel.tsol_cgs
@@ -179,11 +179,11 @@ else:
         plt.figure(figsize = (10,6))
         plt.plot(tfb_encl[:-1], dMdt0/Medd_sol, c = 'k')
         plt.yscale('log') 
-        plt.xlabel(r't [t$_{\rm fb}$]')
+        plt.xlabel(r't / t$_{\rm fb}$')
         plt.ylabel(r'dM/dt $(r\leq r_0)[M_{\rm Edd}$]')
         plt.grid()
         plt.savefig(f'{abspath}/Figs/paper/dMdt0.pdf', bbox_inches='tight')
-        dataall = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows = 1)
+        dataall = np.loadtxt(f'{abspath}/data/{folder}/paper1/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows = 1)
         tfb_all, Ldisstot_pos, Ldisstot_neg = dataall[:,1], dataall[:,3], dataall[:,5]
         Ldisstot_pos *= prel.en_converter/prel.tsol_cgs
         Ldisstot_neg *= prel.en_converter/prel.tsol_cgs
@@ -194,9 +194,9 @@ else:
             axDiss.plot(tfb_encl, Diss_pos_encl[:,j], c = colorcheck[j])#, label = labelcheck[j])
 
         axDiss.plot(tfb_all, Ldisstot_pos, c = 'gray', ls = '--', label = r'Total $\dot{E}_{\rm irr}$')
-        axM.set_ylabel(r'Mass enclosed $[M_\star]$')
+        axM.set_ylabel(r'Mass enclosed / $M_\star$')
         axM.set_ylim(1e-6, 1e-1)
-        axDiss.set_ylabel(r'Dissipation rate enclosed [erg/s]')
+        axDiss.set_ylabel(r'Dissipation rate enclosed (erg/s)')
         axDiss.set_ylim(1e38, 2e43)
         original_ticks = axM.get_xticks()
         midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
@@ -210,7 +210,7 @@ else:
             ax.set_xlim(0.01, np.max(tfb_encl))
             ax.grid()
             ax.set_yscale('log')
-            ax.set_xlabel(r't [t$_{\rm fb}$]')  
+            ax.set_xlabel(r't /t$_{\rm fb}$')  
             ax.legend(fontsize = 18)
         
         fig.savefig(f'{abspath}/Figs/paper/ME_encl.pdf', bbox_inches='tight')

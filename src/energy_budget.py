@@ -110,7 +110,7 @@ else:
     ax2.plot(tfb, prel.en_converter * Rad, c = 'darkviolet', label = 'Radiation energy')
     ax2.plot(tfb, prel.en_converter * Kinpos, c = 'plum', label = 'Kinetic energy unbound gas')
     ax2.plot(tfb, np.abs(prel.en_converter * Kinneg), c = 'plum', ls = ':', label = 'Kinetic energy bound gas (abs value)')
-    ax2.set_title(r'Thermal and radiation [erg]', fontsize = 24) 
+    ax2.set_title(r'Thermal and radiation (erg)', fontsize = 24) 
 
     # compute rates 
     dtH = np.diff(tfb * t_fall_cgs)
@@ -129,7 +129,7 @@ else:
     # axL.plot(tfb[:-1], np.abs(dKinpos)/dtH, c = 'plum', label = 'Kinetic energy unbound gas')
     # axL.plot(tfb[:-1], np.abs(dKinneg)/dtH, c = 'plum', ls = ':', label = 'Kinetic energy bound gas (abs value)')
     # axL.plot(tfb[:-1], np.abs(dTotalK)/dtH, c = 'brown', label = 'Total Kinetic energy')
-    axL.set_ylabel(r'Luminosity [erg/s]') 
+    axL.set_ylabel(r'Luminosity (erg/s)') 
     axL.set_ylim(1e39, 1e44)
 
     orginal_ticks = axL.get_xticks()
@@ -141,7 +141,7 @@ else:
         ax.tick_params(axis='both', which='minor', width=0.9, length=5)
         ax.set_xticks(new_ticks)
         ax.set_xticklabels(labels)
-        ax.set_xlabel(r'$t [t_{\rm fb}]$')
+        ax.set_xlabel(r't / t$_{\rm fb}$')
         if ax != ax1:
             ax.set_yscale('log')
         ax.legend(fontsize = 18)

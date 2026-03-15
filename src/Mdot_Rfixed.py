@@ -228,7 +228,7 @@ if plot:
         if ax != axerr:
             ax.set_yscale('log')
             ax.set_ylim(10, 9e6)
-            ax.set_ylabel(r'$|\dot{M}| [\dot{M}_{\rm Edd}]$')   
+            ax.set_ylabel(r'$|\dot{M} / \dot{M}_{\rm Edd}|$')   
             ax.legend(fontsize = 20)
         else:
             ax.set_ylim(0.9, 4)
@@ -241,7 +241,7 @@ if plot:
         labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]    
         ax.set_xticklabels(labels)  
         if ax != axCon:  
-            ax.set_xlabel(r'$t [t_{\rm fb}]$')
+            ax.set_xlabel(r't / t$_{\rm fb}$')
         ax.tick_params(axis='both', which='major', width=1.2, length=9)
         ax.tick_params(axis='both', which='minor', width=1, length=5)
         ax.grid()
@@ -256,7 +256,7 @@ if plot:
     fig, ax = plt.subplots(1,1, figsize = (8,6))
     ax.plot(tfbH, np.abs(mwind_dimCellH/mfallH), c = 'k')
     ax.set_yscale('log')
-    ax.set_xlabel(r'$t [t_{\rm fb}]$')
+    ax.set_xlabel(r't / t$_{\rm fb}$')
     ax.set_ylabel(r'$|\dot{M}_{\rm w}/\dot{M}_{\rm fb}|$')
     original_ticks = ax.get_xticks()
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2

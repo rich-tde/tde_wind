@@ -25,7 +25,7 @@ Rstar = .47
 n = 1.5 
 compton = 'Compton'
 check = 'HiResNewAMR'
-kind_of_plot = 'ratioE' # 'ratioE' or 'convergenceOE' or 'convergencebern' or 'velocity_components' or 'time_evolution'
+kind_of_plot = 'convergencebern' # 'ratioE' or 'convergenceOE' or 'convergencebern' or 'velocity_components' or 'time_evolution'
 
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 params = [Mbh, Rstar, mstar, beta]
@@ -255,7 +255,7 @@ if kind_of_plot == 'time_evolution' or kind_of_plot == 'convergenceOE' or kind_o
     # cbar = plt.colorbar(img)
     # cbar.set_label(r'mean velocity [v$_{\rm esc} (r_{\rm p})$]')
     ax.set_xlim(-0.09, 1.8)
-    ax.set_xlabel(r'$t [t_{\rm fb}]$')
+    ax.set_xlabel(r't / $t_{\rm fb}$')
     ax.set_ylabel(r'$f\equiv N_{\rm ph, unb}/N_{\rm ph, obs}$')
     # plt.title(f'Photospheric cells', fontsize = 20)
     ax.grid() 

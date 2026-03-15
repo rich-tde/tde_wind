@@ -122,8 +122,8 @@ else:
         for i in range(len(radii_grid)):
             ax.contour(xcfr_grid[i]/Rt, ycfr_grid[i]/Rt, cfr_grid[i]/Rt, levels = [0], color = 'k', linestyle = styles[i], linewidth = 2)
         cb.set_label(r'Eccentricity')
-        ax.set_xlabel(r'$X [r_{\rm t}]$')
-        ax.set_ylabel(r'$Y [r_{\rm t}]$')
+        ax.set_xlabel(r'$X / r_{\rm t}$')
+        ax.set_ylabel(r'$Y / r_{\rm t}$')
         ax.set_xlim(-3, 3)
         ax.set_ylim(-3, 3)
         plt.tight_layout()
@@ -131,7 +131,7 @@ else:
 
     if space_time:
         check = 'HiResNewAMR' # '' or 'LowRes' or 'HiRes'
-        path = f'{abspath}/data/{folder}'
+        path = f'{abspath}/data/{folder}/paper1'
         ecc2 = np.load(f'{path}/Ecc2_{which_cut}_{check}.npy') 
         ecc = np.sqrt(ecc2)
         tfb_data= np.loadtxt(f'{path}/Ecc_{which_cut}_{check}_days.txt')
@@ -152,8 +152,8 @@ else:
         ax.axvline(x=Rt/apo, color = 'k', linestyle = 'dashed', linewidth = 2)
         ax.text(1.05*Rt/apo, 0.9*np.max(tfb), r'$r_{\rm t}$', fontsize = 24, color = 'k')
         ax.set_xscale('log')
-        ax.set_xlabel(r'$r [r_{\rm a}]$')#, fontsize = 30)
-        ax.set_ylabel(r'$t [t_{\rm fb}]$')#, fontsize = 30)
+        ax.set_xlabel(r'$r / r_{\rm a}$')#, fontsize = 30)
+        ax.set_ylabel(r't / t$_{\rm fb}$')#, fontsize = 30)
         original_ticks = ax.get_yticks()
         mid_ticks = (original_ticks[1:] + original_ticks[:-1]) / 2
         all_ticks = np.concatenate(([original_ticks, mid_ticks]))
@@ -181,9 +181,9 @@ else:
         tfb_data = np.loadtxt(f'{commonpath}NewAMR/Ecc_{which_cut}_NewAMR_days.txt')
         snap, tfb = tfb_data[0], tfb_data[1]
 
-        ecc_quadH = np.load(f'{commonpath}HiResNewAMR/Ecc2_{which_cut}_HiResNewAMR.npy') 
+        ecc_quadH = np.load(f'{commonpath}HiResNewAMR/paper1/Ecc2_{which_cut}_HiResNewAMR.npy') 
         eccH = np.sqrt(ecc_quadH)
-        tfb_dataH = np.loadtxt(f'{commonpath}HiResNewAMR/Ecc_{which_cut}_HiResNewAMR_days.txt')
+        tfb_dataH = np.loadtxt(f'{commonpath}HiResNewAMR/paper1/Ecc_{which_cut}_HiResNewAMR_days.txt')
         snapH, tfbH = tfb_dataH[0], tfb_dataH[1]
 
         # relative difference L and middle
@@ -216,7 +216,7 @@ else:
         img = ax1.pcolormesh(radii/apo, tfbL, rel_diffL, cmap = 'Oranges', vmin = vmin, vmax = vmax, rasterized = True)
         ax1.set_xscale('log')
         ax1.text(0.5, .9*np.max(tfbL), r'$\frac{e_{\rm Middle}}{e_{\rm Low}}$', fontsize = 28, color = 'k')
-        ax1.set_ylabel(r'$t [t_{\rm fb}]$')
+        ax1.set_ylabel(r't / t$_{\rm fb}$')
         
         img = ax2.pcolormesh(radii/apo, tfbH, rel_diffH, cmap = 'Oranges', vmin = vmin, vmax = vmax, rasterized = True)
         ax2.set_xscale('log')
@@ -239,7 +239,7 @@ else:
             # ax.axvline(x=R0/apo, color = 'white', linestyle = ':', linewidth = 2)
             ax.tick_params(axis='y', which='major', width=1.4, length=12, color = 'white')
             ax.tick_params(axis='x', which='minor', width=1.1, length=7, color = 'k')
-            ax.set_xlabel(r'$r [r_{\rm a}]$')
+            ax.set_xlabel(r'$r / r_{\rm a}$')
             ax.set_xlim(R0/apo, np.max(radii)/apo)
 
         ax1.text(1.05*Rt/apo, 0.9*np.max(tfbL), r'$r_{\rm t}$', fontsize = 25, color = 'k')
@@ -266,7 +266,7 @@ else:
         ax3.set_ylim(-0.01, 0.08)
         ax3.set_ylabel(r'$|$1 - ratio eccentricity$|$')
         ax3.grid()
-        ax3.set_xlabel(r'$t [t_{\rm fb}]$')#, fontsize = 25)
+        ax3.set_xlabel(r'$t / t_{\rm fb}$')#, fontsize = 25)
         ax3.legend(fontsize = 25)
 
 

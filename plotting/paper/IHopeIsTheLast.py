@@ -138,7 +138,7 @@ if __name__ == '__main__':
     axR.fill_between(tfbH, percentile16H/Rt, percentile84H/Rt, color = 'darkviolet', alpha = 0.2)
     axR.axhline(apo/Rt, c = 'k', linestyle = '-.', linewidth = 2)
     axR.text(0.11, 1.1*apo/Rt, r'$r_{\rm a}$', fontsize = 20)
-    axR.set_ylabel(r'median $r_{\rm ph} [r_{\rm t}]$')
+    axR.set_ylabel(r'median $(r_{\rm ph} /r_{\rm t})$')
     axR.set_yscale('log')
     axR.set_ylim(1, 250)
     axR.legend(fontsize = 18)
@@ -161,7 +161,7 @@ if __name__ == '__main__':
     axL.plot(tfbdiss, LDiss, ls = '--', c = 'yellowgreen')
     axL.plot(tfbH, LumH, c = 'darkviolet', label = 'High')
     axL.plot(tfbdissH, LDissH, ls = '--', c = 'darkviolet')
-    axL.set_ylabel(r'Luminosity [erg/s]')
+    axL.set_ylabel(r'Luminosity (erg/s)')
     axL.set_yscale('log')
     axL.set_ylim(7e37, 7e43)
 
@@ -207,7 +207,7 @@ if __name__ == '__main__':
             labels = [str(np.round(tick,2)) if tick in original_ticks_y else "" for tick in new_ticks_y]       
             ax.set_yticklabels(labels)
             ax.set_ylim(.9, 2.5) # you need to repeat it
-            ax.set_xlabel(r'$t [t_{\rm fb}]$')
+            ax.set_xlabel(r't / t$_{\rm fb}$')
         ax.grid()
 
     plt.tight_layout()
@@ -243,24 +243,24 @@ if __name__ == '__main__':
     ax1.plot(tfb_oeL, col_orb_en_negL*prel.en_converter*1e-49, label = r'Low', c = 'darkorange')
     ax1.plot(tfb_oe, col_orb_en_neg*prel.en_converter*1e-49, label = r'Middle', c = 'yellowgreen')
     ax1.plot(tfb_oeH, col_orb_en_negH*prel.en_converter*1e-49, label = r'High', c = 'darkviolet')
-    ax1.set_title(r'Orbital Energy [$10^{49}$ erg] bound gas', fontsize = 30)
+    ax1.set_title(r'Orbital Energy ($10^{49}$ erg) bound gas', fontsize = 30)
     ax1.set_ylabel(r'Energy', fontsize = 40) 
     ax1.legend(fontsize = 15)
 
     ax2.plot(tfb_oeL, col_orb_en_posL*prel.en_converter*1e-49, label = r'Low', c = 'darkorange')
     ax2.plot(tfb_oe, col_orb_en_pos*prel.en_converter*1e-49, label = r'Middle', c = 'yellowgreen')
     ax2.plot(tfb_oeH, col_orb_en_posH*prel.en_converter*1e-49, label = r'High', c = 'darkviolet')
-    ax2.set_title(r'Orbital Energy [$10^{49}$ erg] unbound gas', fontsize = 30)
+    ax2.set_title(r'Orbital Energy ($10^{49}$ erg) unbound gas', fontsize = 30)
 
     ax3.plot(tfb_oeL, col_ieL*prel.en_converter*1e-46, label = r'Low', c = 'darkorange')
     ax3.plot(tfb_oe, col_ie*prel.en_converter*1e-46, label = r'Middle', c = 'yellowgreen')
     ax3.plot(tfb_oeH, col_ieH*prel.en_converter*1e-46, label = r'High', c = 'darkviolet')
-    ax3.set_title(r'Thermal energy [$10^{46}$ erg]', fontsize = 30)  
+    ax3.set_title(r'Thermal energy ($10^{46}$ erg)', fontsize = 30)  
 
     axR.plot(tfb_oeL, col_radL*prel.en_converter, label = r'Low', c = 'darkorange')
     axR.plot(tfb_oe, col_rad*prel.en_converter, label = r'Middle', c = 'yellowgreen')
     axR.plot(tfb_oeH, col_radH*prel.en_converter, label = r'High', c = 'darkviolet')
-    axR.set_title(r'Radiation energy [erg]', fontsize = 30)
+    axR.set_title(r'Radiation energy (erg)', fontsize = 30)
     axR.set_yscale('log')
     axR.set_ylim(5e43, 2e48)
     
@@ -301,7 +301,7 @@ if __name__ == '__main__':
         ax.grid()
         ax.set_xlim(np.min(tfbH), np.max(tfb)) 
         if ax in [ax4, ax5, ax6, ax7]:
-            ax.set_xlabel(r'$t [t_{\rm fb}]$', fontsize = 40)
+            ax.set_xlabel(r't /t$_{\rm fb}$', fontsize = 40)
     plt.tight_layout()
     plt.savefig(f'{abspath}/Figs/paper/OeIeRad.pdf', bbox_inches='tight')
 
