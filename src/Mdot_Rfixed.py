@@ -316,6 +316,6 @@ predWD = Ltr_Ledd(massBH, mstar, Rstar, beta, 1, 0.34, 0.04)
 print('predicted Ltr at 1.5 tfb for WD (in Ledd) from new Eq.: ', predWD)
 
 # %%
-pred = Ltr_Ledd(Mbh = 1e8, mstar = 1e2, Rstar = 1, beta = 1, t_over_tfb = 1, kappa = 0.34, zeta = 0.1)
+pred = Ltr_Ledd(Mbh = 1e2, mstar = 1, Rstar = 1, beta = 1, t_over_tfb = 1, kappa = 0.34, zeta = 0.1)
 print('predicted Ltr at tfbH_max tfb (in Ledd) from new Eq.: ', pred)
 # %%

@@ -287,7 +287,7 @@ if not proj_movie:
             ax.text(-0.9 * 6, 0.8 * 3, f't = {np.round(tfb_single,1)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 22)
         else:
             ax.text(-0.9 * 6, 0.8 * 3, f't = {np.round(tfb_single,2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 22)
-        # axDiss.text(0.9 * x_min, 0.8 * y_max, r'$\dot{E}_{\rm irr}$ = ' + f'{LDiss[np.argmin(np.abs(tfbdiss-tfb_single))]:.1e} erg/s', color = 'white', fontsize = 18)
+        axDiss.text(0.9 * x_min, 0.8 * y_max, r'$\dot{E}_{\rm irr}$ = ' + f'{LDiss[np.argmin(np.abs(tfbdiss-tfb_single))]:.1e} erg/s', color = 'white', fontsize = 18)
 
         if i == 2:
             ax.text(Rt/apo + 0.02, 0.05, r'$r_{\rm t}$', color = 'white', fontsize = 16)

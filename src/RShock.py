@@ -42,6 +42,8 @@ amin = things['a_mb']
 norm_dMdE = things['E_mb']
 tfallback = things['t_fb_days']
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
+Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
+Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 
 #
 ## FUNCTIONS
@@ -72,23 +74,10 @@ def Rtr_out(params, Mdot, fout, fv):
 ##
 # MAIN
 #%%
-# time_array_yr = np.linspace(1e-1,2, 100) # yr
-# time_yr_cgs = time_array_yr * 365 * 24 * 3600 # converted to seconds
-
 check = 'HiResNewAMR' #['LowResNewAMR', 'NewAMR', 'HiResNewAMR' ]
-
 
 # Load data
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-# datadays = np.loadtxt(f'{abspath}/data/{folder}/wind/dMdE_{check}_days.txt')
-# snaps, tfb = datadays[0], datadays[1]
-
-# tfb_cgs = tfb * tfallback_cgs #converted to seconds
-# bins = np.loadtxt(f'{abspath}/data/{folder}/wind/dMdE_{check}_bins.txt')
-# max_bin_negative = np.abs(np.min(bins))
-# mid_points = (bins[:-1]+bins[1:]) * norm_dMdE/2  # get rid of the normalization
-# dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/wind/dMdE_{check}.txt')[0] # distribution just after the disruption
-# bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
 snaps, tfb, mfall, _, _, _, _, _, _, _ = \
         np.loadtxt(f'{abspath}/data/{folder}/paper1/wind/Mdot_{check}05aminmean.csv', 
                 delimiter = ',', 
@@ -102,6 +91,7 @@ tfbLum, Lum, snapsLum = sort_list([tfbLum, Lum, snapsLum], snapsLum) # becuase L
 dataDiss = np.loadtxt(f'{abspath}/data/{folder}/paper1/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
 timeRDiss, RDiss, Ldisstot_posH = dataDiss[:,1], dataDiss[:,2], dataDiss[:,3]
 
+#%%
 eta_sh_FLD = np.zeros(len(tfb_cgs))
 eta_sh_diss = np.zeros(len(tfb_cgs))
 R_sh = np.zeros(len(tfb_cgs))
@@ -128,9 +118,9 @@ for i, t in enumerate(tfb_cgs):
     idx = np.argmin(np.abs(tfb[i]-tfbLum)) # just to be sure that you match the data
     Lum_t = Lum[idx]
     eta_sh_FLD[i] = efficiency_shock(Lum_t, mdot_cgs, prel.c_cgs) # [CGS]
+    R_sh[i] = R_shock(Mbh_cgs, eta_sh_FLD[i], prel.G_cgs, prel.c_cgs) # [CGS]
     idx_diss = np.argmin(np.abs(tfb[i]-timeRDiss))
     eta_sh_diss[i] = efficiency_shock(Ldisstot_posH[idx_diss], mdot, prel.csol_cgs)
-    R_sh[i] = R_shock(Mbh_cgs, eta_sh_FLD[i], prel.G_cgs, prel.c_cgs) # [CGS]
 
     snapR = int(snaps[i])
     photo = \
@@ -205,16 +195,16 @@ plt.savefig(f'{abspath}/Figs/paper/Reta.pdf', bbox_inches = 'tight')
 #%% eta
 match_paper1 = False # reverse the ticks to match Fig. 12 in paper 1
 
-horiz_line = 0.5 * (Rstar/Rp)**2 * Rg/Rp 
+eta_max = 0.5 * (Rstar/Rp)**2 * Rg/Rp 
 eta_checkRsh = [eta_from_R(Mbh, R_sh[i], prel.G, prel.csol_cgs) for i in range(len(R_sh))] # i.e. you imagine that all the kinetic energy of returning material is converted into energy and released at Rshock
 eta_checkRdiss = [eta_from_R(Mbh, RDiss[i], prel.G, prel.csol_cgs) for i in range(len(RDiss))] # same as above but at Rdiss
 fig, ax = plt.subplots(1, 1, figsize=(10, 8))
 # ax.plot(tfb, eta_sh_FLD, color = 'dodgerblue', label = r'$\eta_{\rm sh} = L_{\rm FLD}/(|\dot{M}_{\rm fb}|c^2)$') 
-# ax.plot(tfb, 0.5*Rs/R_sh, color = 'gold', ls = ':', label = r'$r_{\rm g}/(r_{\rm sh})$')
+# ax.plot(tfb, 0.5*Rs/R_sh, color = 'gold', ls = '--', label = r'$r_{\rm g}/(r_{\rm sh})$')
 ax.plot(tfb, eta_checkRsh, color = 'k', ls = '--', label = r'$\eta_{\rm sh} = L_{\rm FLD}/(|\dot{M}_{\rm fb}|c^2) = GM/(r_{\rm sh}c^2)=r_{\rm g}/r_{\rm sh}$')
 ax.plot(timeRDiss, eta_checkRdiss, color = 'magenta', label = r'$\eta_{\rm diss}= GM/(r_{\rm diss}c^2)=r_{\rm g}/r_{\rm diss}$')
-ax.plot(tfb, eta_sh_diss, color = 'b', label = r'$\eta_{\rm diss} = L_{\rm diss}/(|\dot{M}_{\rm fb}| c^2)$')
-ax.axhline(y=horiz_line, color = 'gray', linestyle = ':', label = r'$\eta_{\rm nz} = 0.5(r_\star/r_{\rm p})^2r_{\rm g}/r_{\rm p}$')
+# ax.plot(tfb, eta_sh_diss, color = 'b', label = r'$\eta_{\rm diss} = L_{\rm diss}/(|\dot{M}_{\rm fb}| c^2)$')
+ax.axhline(y=eta_max, color = 'gray', linestyle = ':', label = r'$\eta_{\rm nz} = 0.5(r_\star/r_{\rm p})^2r_{\rm g}/r_{\rm p}$')
 ax.set_ylabel(r'$\eta_{\rm num}$', fontsize = 30)
 ax.set_xlabel(r't / t$_{\rm fb}$', fontsize = 30)
 ax.set_yscale('log')
@@ -231,4 +221,16 @@ plt.suptitle(r'$\dot{M}_{\rm fb}$ is computed at $0.5a_{\rm mb}$', fontsize = 24
 plt.tight_layout()
 plt.grid()
 
+# %%
+plt.figure(figsize=(10, 8))
+maxLdiss = eta_max * np.abs(mfall) * prel.csol_cgs**2
+plt.plot(timeRDiss, Ldisstot_posH/Ledd_sol, c = 'k', label = r'$L_{\rm diss, RICH}$')
+plt.plot(tfb, maxLdiss/Ledd_sol, color = 'gray', linestyle = '--', label = r'$L_{\rm diss, max} = \eta_{\rm nz} |\dot{M}_{\rm fb}| c^2$')
+plt.yscale('log')
+plt.xlabel(r't / t$_{\rm fb}$')
+plt.ylabel(r'$L_{\rm diss}$ [erg/s]')
+plt.xlim(0.05, np.max(timeRDiss))
+plt.ylim(1e-4, 1e2)
+plt.legend(fontsize = 18)
+plt.grid()
 # %%

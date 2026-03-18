@@ -6,10 +6,8 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
-    save = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    save = True
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
 
@@ -102,6 +100,7 @@ def compute_polarization(xph, yph, zph, dimph,
     if np.allclose(np.abs(np.dot(tmp, k)), 1.0):
         tmp = np.array([0.0, 1.0, 0.0])
     e1 = np.cross(k, tmp)
+
     e1 /= np.linalg.norm(e1)
     e2 = np.cross(k, e1)
 
@@ -135,49 +134,58 @@ def compute_polarization(xph, yph, zph, dimph,
     U = np.sum(I_local * P_local * sin2phi)
     I = np.sum(I_local)
 
-    P = np.sqrt(Q**2 + U**2) / (I + 1e-20)
+    P = np.sqrt(Q**2 + U**2) / (I + 1e-20) #if you do sum(P_local) you have a number exceeding 1
 
     return P, Q, U, I
 
 # TEST1: single cell at the photosphere, with flux along x and observer along z.
-# So theta =90, cos(theta)=0, P_local = 1, and the polarization direction should be along x 
-# So P=1, Q=1, U=0.
+print("TEST one wave with incident/observer direction parallel to scattered.")
 ph_obs = np.array([0, 0, 1]) # observer along z
-F_obs = np.array([1, 0, 0]) # flux along x
+F_obs = ph_obs # flux along x
+k_obs = ph_obs
 dim_obs = np.array([1])
-k_obs = [0, 0, 1]  
-
 P, Q, U, I = compute_polarization(
     ph_obs[0], ph_obs[1], ph_obs[2], dim_obs,
     F_obs[0], F_obs[1], F_obs[2],
-    k_obs
-)
-print("Polarization TEST1:", P)
-
-#%%
-# photo = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo109POL.txt')
-# xph, yph, zph, volph, Fxph, Fyph, Fzph = photo[0], photo[1], photo[2], photo[3], photo[-3], photo[-2], photo[-1]
-# dimph = (volph)**(1/3)
-# xph, yph, zph, dimph, Fxph, Fyph, Fzph = xph[xph!=0], yph[xph!=0], zph[xph!=0], dimph[xph!=0], Fxph[xph!=0], Fyph[xph!=0], Fzph[xph!=0]
-
-
-# %%
-num_obs = prel.NPIX # you'll use it for the mean of the observers. It's 192, unless you don't find the photosphere for someone and so decrease of 1
-observers_xyz = hp.pix2vec(prel.NSIDE, range(num_obs)) #shape: (3, 192)
-x_obs = observers_xyz[0]
-y_obs = observers_xyz[1]
-z_obs = observers_xyz[2]
-r_obs = np.sqrt(x_obs**2 + y_obs**2 + z_obs**2)
-phi_obs = y_obs/np.sqrt(x_obs**2 + y_obs**2)
-theta_obs = z_obs/r_obs
-k_obs = [0, 1, 0] 
-Fx_test = np.ones(192)#np.sin(theta_obs) * np.cos(phi_obs) 
-Fy_test = np.zeros(192)#np.sin(theta_obs) * np.sin(phi_obs)
-Fz_test = np.zeros(192)#np.cos(theta_obs)
+    k_obs)
+print("P =", P)
+##
+print("TEST one wave. incident/observer direction perpendicular to scattered.")
+ph_obs = np.array([0, 0, 1]) # observer along z
+F_obs = np.array([0, 1, 0]) # flux along y
+k_obs = ph_obs
+dim_obs = np.array([1])
 P, Q, U, I = compute_polarization(
-    observers_xyz[0], observers_xyz[1], observers_xyz[2], np.ones(192),
-    Fx_test, Fy_test, Fz_test,
+    ph_obs[0], ph_obs[1], ph_obs[2], dim_obs,
+    F_obs[0], F_obs[1], F_obs[2],
+    k_obs)
+print("P =", P)
+##
+print("TEST of symmetry (all radial fluxes)")
+num_obs = prel.NPIX
+observers_xyz = hp.pix2vec(prel.NSIDE, range(num_obs)) # shape: (3, 192)
+x_obs, y_obs, z_obs = observers_xyz
+dim_obs = np.ones_like(x_obs) * 192
+Fr_obs = np.ones_like(x_obs) * 2
+Fx_obs = Fr_obs * x_obs
+Fy_obs = Fr_obs * y_obs
+Fz_obs = Fr_obs * z_obs
+k_obs = [1, 1, 1]  
+P, Q, U, I = compute_polarization(
+    x_obs, y_obs, z_obs, dim_obs,
+    Fx_obs, Fy_obs, Fz_obs,
+    k_obs)
+print("P = ", P)
+#%%
+photo = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo109POL.txt')
+xph, yph, zph, volph, Fxph, Fyph, Fzph = photo[0], photo[1], photo[2], photo[3], photo[-3], photo[-2], photo[-1]
+dimph = (volph)**(1/3)
+xph, yph, zph, dimph, Fxph, Fyph, Fzph = xph[xph!=0], yph[xph!=0], zph[xph!=0], dimph[xph!=0], Fxph[xph!=0], Fyph[xph!=0], Fzph[xph!=0]
+k_obs = [0, 0, 1] 
+P, Q, U, I = compute_polarization(
+    xph, yph, zph, dimph,
+    Fxph, Fyph, Fzph,
     k_obs
 )
-print(Q, U)
+print(P)
 # %%
