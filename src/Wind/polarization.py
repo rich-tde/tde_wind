@@ -50,22 +50,22 @@ print('we are in: ', pre, flush=True)
 
 def compute_polarization(xph, yph, zph, dimph,
                         Fxph, Fyph, Fzph,
-                        k_obs):
+                        n_obs):
     """
-    Compute polarization for a single observer direction k_obs.
+    Compute polarization for a single observer direction n_obs.
 
     Inputs:
         xph, yph, zph : photosphere positions
         Fxph, Fyph, Fzph : flux vector components at photosphere
-        k_obs : observer direction (3-vector, not necessarily normalized)
+        n_obs : observer direction (3-vector, not necessarily normalized)
 
     Returns:
         P : polarization fraction
         Q, U : Stokes parameters (normalized to total intensity)
     """
     # Normalize observer direction
-    k = np.array(k_obs)
-    k = k / np.linalg.norm(k)
+    n = np.array(n_obs)
+    n = n / np.linalg.norm(n)
 
     # Positions
     r_vec = np.vstack((xph, yph, zph)).T # shape: (192,3)
@@ -76,20 +76,19 @@ def compute_polarization(xph, yph, zph, dimph,
     F_vec = np.vstack((Fxph, Fyph, Fzph)).T
     F_mag = np.linalg.norm(F_vec, axis=1)
 
-    # Flux vectors avoiding division by zero. F_hat and k will define the scattering plane
+    # Flux vectors avoiding division by zero. F_hat and n will define the scattering plane
     valid = F_mag > 0
     F_hat = np.zeros_like(F_vec)
     F_hat[valid] = F_vec[valid] / F_mag[valid][:, None]
 
     # Visibility condition
-    mu_surface = np.dot(n_hat, k)
+    mu_surface = np.dot(n_hat, n)
     visible = mu_surface > 0
-
     # Keep only visible patches
     F_hat, F_mag, mu_surface, r_mag, dimph = make_slices([F_hat, F_mag, mu_surface, r_mag, dimph], visible)
 
     # Scattering angle
-    cos_theta = np.dot(F_hat, k)
+    cos_theta = np.dot(F_hat, n)
 
     # Thomson polarization fraction for the  cell
     P_local = (1 - cos_theta**2) / (1 + cos_theta**2)
@@ -97,17 +96,16 @@ def compute_polarization(xph, yph, zph, dimph,
     # --- Define sky plane basis vectors: k, e1, e2 ---
     # Choose arbitrary reference axis not parallel to k to find e1
     tmp = np.array([1.0, 0.0, 0.0])
-    if np.allclose(np.abs(np.dot(tmp, k)), 1.0):
+    if np.allclose(np.abs(np.dot(tmp, n)), 1.0):
         tmp = np.array([0.0, 1.0, 0.0])
-    e1 = np.cross(k, tmp)
+    e1 = np.cross(n, tmp)
 
     e1 /= np.linalg.norm(e1)
-    e2 = np.cross(k, e1)
+    e2 = np.cross(n, e1)
 
-    # Polarization direction vector, perpendicular to the scattering plane (so to Fhat x k)
-    # e_p ∝ k × (F × k)
-    cross1 = np.cross(F_hat, k)
-    e_pol = np.cross(k, cross1)
+    # Polarization direction vector, perpendicular to the scattering plane
+    e_pol = np.cross(F_hat, n)
+    # e_pol = np.cross(n, cross1)
 
     # Project polarization direction onto sky plane
     e_pol_mag = np.linalg.norm(e_pol, axis=1)
@@ -170,7 +168,7 @@ Fr_obs = np.ones_like(x_obs) * 2
 Fx_obs = Fr_obs * x_obs
 Fy_obs = Fr_obs * y_obs
 Fz_obs = Fr_obs * z_obs
-k_obs = [1, 1, 1]  
+k_obs = [1, 2, 0.5]  
 P, Q, U, I = compute_polarization(
     x_obs, y_obs, z_obs, dim_obs,
     Fx_obs, Fy_obs, Fz_obs,
