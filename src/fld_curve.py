@@ -9,7 +9,7 @@ if alice:
     save = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    save = True
+    save = False
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
 
@@ -72,8 +72,8 @@ cross_dot /= 192
 #%% MATLAB, thanks Cindy.
 eng = matlab.engine.start_matlab()
 for idx_s, snap in enumerate(snaps):
-    if snap != 109:
-        continue
+    # if snap != 109:
+    #     continue
     print('\n Snapshot: ', snap, '\n', flush=True)
     # Load data and avoid fluff -----------------------------------------------------------------
     if alice:
@@ -303,7 +303,7 @@ for idx_s, snap in enumerate(snaps):
             dr = r[k]-r[k-1]
             Vcell =  r[k]**2 * dr # there should be a (4 * np.pi / 192)*, but doesn't matter because we normalize
             wien = np.exp(prel.h_cgs * prel.freqs / (prel.Kb_cgs * t[k])) - 1
-            black_body = 2 * prel.h_cgs * prel.freqs**3 / (prel.c_cgs**2 * wien) # erg/s/cm^2/Hz/ster
+            black_body = prel.freqs**3 / wien # There should be a 2 * prel.h_cgs/c^2, but it doesn't matter because we normalize. BB udm: erg/s/cm^2/Hz/ster. 
             L_col_temp[i,:] += alpha_planck[k] * Vcell * np.exp(-los_effective[k]) * black_body # erg/s/Hz.
         
         norm = Lphoto / np.trapezoid(L_col_temp[i,:], prel.freqs)
@@ -356,10 +356,10 @@ for idx_s, snap in enumerate(snaps):
         # Save red of the single snap
         pre_saving = f'{abspath}/data/{folder}'
         data = [snap, tfb[idx_s], Lphoto_snap]
-        # with open(f'{pre_saving}/{check}_red_newF.csv', 'a', newline='') as file:
-        #     writer = csv.writer(file)
-        #     writer.writerow(data)
-        # file.close()
+        with open(f'{pre_saving}/{check}_red_newF.csv', 'a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(data)
+        file.close()
 
         # save Rph index and fluxes for each observer in the snapshot
         # time_rph = np.concatenate([[snap,tfb[idx_s]], ph_idx])
@@ -371,33 +371,33 @@ for idx_s, snap in enumerate(snaps):
         #     fileph.write(' '.join(map(str, time_fluxes)) + '\n')
         #     fileph.close()
         
-        # with open(f'{pre_saving}/photo/{check}_photo{snap}POL.txt', 'w') as f:
-        #     f.write('# Data for the photospere.\n')
-        #     f.write('# xph\n' + ' '.join(map(str, xph)) + '\n')
-        #     f.write('# yph\n' + ' '.join(map(str, yph)) + '\n')
-        #     f.write('# zph\n' + ' '.join(map(str, zph)) + '\n')
-        #     f.write('# volph\n' + ' '.join(map(str, volph)) + '\n')
-        #     f.write('# denph CGS\n' + ' '.join(map(str, denph)) + '\n')
-        #     f.write('# Tempph\n' + ' '.join(map(str, Tempph)) + '\n')
-        #     f.write('# Rad_denph\n' + ' '.join(map(str, Rad_denph)) + '\n')
-        #     f.write('# Vxph\n' + ' '.join(map(str, Vxph)) + '\n')
-        #     f.write('# Vyph\n' + ' '.join(map(str, Vyph)) + '\n')
-        #     f.write('# Vzph\n' + ' '.join(map(str, Vzph)) + '\n')
-        #     f.write('# Pressph\n' + ' '.join(map(str, Pressph)) + '\n')
-        #     f.write('# IE_denph\n' + ' '.join(map(str, IE_denph)) + '\n')
-        #     f.write('# alpha CGS\n' + ' '.join(map(str, alphaph)) + '\n')
-        #     f.write('# rph\n' + ' '.join(map(str, rph)) + '\n')
-        #     f.write('# Lph CGS\n' + ' '.join(map(str, Lph)) + '\n')
-        #     f.write('# indices\n' + ' '.join(map(str, ph_idx)) + '\n')
-        #     f.write('# Fxph CGS\n' + ' '.join(map(str, Fxph)) + '\n')
-        #     f.write('# Fyph CGS\n' + ' '.join(map(str, Fyph)) + '\n')
-        #     f.write('# Fzph CGS\n' + ' '.join(map(str, Fzph)) + '\n')
-        #     f.close()
+        with open(f'{pre_saving}/photo/{check}_photo{snap}POL.txt', 'w') as f:
+            f.write('# Data for the photospere.\n')
+            f.write('# xph\n' + ' '.join(map(str, xph)) + '\n')
+            f.write('# yph\n' + ' '.join(map(str, yph)) + '\n')
+            f.write('# zph\n' + ' '.join(map(str, zph)) + '\n')
+            f.write('# volph\n' + ' '.join(map(str, volph)) + '\n')
+            f.write('# denph CGS\n' + ' '.join(map(str, denph)) + '\n')
+            f.write('# Tempph\n' + ' '.join(map(str, Tempph)) + '\n')
+            f.write('# Rad_denph\n' + ' '.join(map(str, Rad_denph)) + '\n')
+            f.write('# Vxph\n' + ' '.join(map(str, Vxph)) + '\n')
+            f.write('# Vyph\n' + ' '.join(map(str, Vyph)) + '\n')
+            f.write('# Vzph\n' + ' '.join(map(str, Vzph)) + '\n')
+            f.write('# Pressph\n' + ' '.join(map(str, Pressph)) + '\n')
+            f.write('# IE_denph\n' + ' '.join(map(str, IE_denph)) + '\n')
+            f.write('# alpha CGS\n' + ' '.join(map(str, alphaph)) + '\n')
+            f.write('# rph\n' + ' '.join(map(str, rph)) + '\n')
+            f.write('# Lph CGS\n' + ' '.join(map(str, Lph)) + '\n')
+            f.write('# indices\n' + ' '.join(map(str, ph_idx)) + '\n')
+            f.write('# Fxph CGS\n' + ' '.join(map(str, Fxph)) + '\n')
+            f.write('# Fyph CGS\n' + ' '.join(map(str, Fyph)) + '\n')
+            f.write('# Fzph CGS\n' + ' '.join(map(str, Fzph)) + '\n')
+            f.close()
 
         # Save spectrum
-        np.savetxt(f'{pre_saving}/spectra_cos/freqs.txt', prel.freqs)
-        np.savetxt(f'{pre_saving}/spectra_cos/{check}_spectra{snap}.txt', L_col)
-        np.savez(f"{pre_saving}/spectra_cos/{check}_Rcol{snap}.npz", **colorsphere)
+        np.savetxt(f'{pre_saving}/spectra/freqs.txt', prel.freqs)
+        np.savetxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt', L_col)
+        np.savez(f"{pre_saving}/spectra/{check}_Rcol{snap}.npz", **colorsphere)
         
             
     del xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, rph, alphaph, Lph, ph_idx

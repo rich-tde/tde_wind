@@ -170,3 +170,15 @@ plt.xlabel(r'$\phi$')
 plt.ylabel(r'$\theta$')
 plt.legend(fontsize = 16)
 # %%
+# to check the new FLD code
+data_newF = np.loadtxt(f'{abspath}/data/{folder}/{check}_red_newF.csv', delimiter=',', dtype=float)
+_, tfb_newF, Lum_newF = data_newF[:, 0], data_newF[:, 1], data_newF[:, 2]
+Lum_newF, tfb_newF = sort_list([Lum_newF, tfb_newF], tfb_newF, unique=True) 
+plt.figure(figsize=(8,6))
+plt.plot(tfb, Lum, label = 'old F')
+plt.scatter(tfb_newF, Lum_newF, label = 'new F')
+plt.xlabel(r'$t / t_{\rm fb}$')
+plt.ylabel(r'Luminosity (erg/s)')
+plt.yscale('log')
+plt.legend()
+plt.grid()
