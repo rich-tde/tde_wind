@@ -48,111 +48,6 @@ Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 
 #%% FUNCTIONS
-def CouBegel(r, theta, n, norm, gamma=4/3):
-    """Coughlin+14, eq.4"""
-    r0, rho0 = norm
-    q = 3/2 - n
-    alpha = (1-q*(gamma-1))/(gamma-1)
-    rho = rho0 *(r/r0)**(-q) * np.sin(theta)**(2*alpha)
-    return rho
-
-def radial_profiles_old(loadpath, snap, ray_params, choice):
-    rmin, rmax, Nray = ray_params
-    r_array = np.logspace(np.log10(rmin), np.log10(rmax), Nray)
-    data = op.make_tree(loadpath, snap, energy = True)
-    X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
-        data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Temp, data.Press, data.IE, data.Rad
-    cut = Den > 1e-19
-    X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
-        make_slices([X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den], cut)
-    Rsph = np.sqrt(X**2 + Y**2 + Z**2)  
-    dim_cell = Vol**(1/3)
-    
-    # split in sections all the cells
-    sections_in = op.choose_sections(X, Y, Z, choice = choice)
-    Rsph_initial = []
-    dim_cell_initial = []
-    for key in sections_in.keys():
-        cond_sec = sections_in[key]['cond']
-        Rsph_initial.append(Rsph[cond_sec])
-        dim_cell_initial.append(dim_cell[cond_sec])
-
-    cut, bern, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params)
-    X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell, bern = \
-        make_slices([X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell, bern], cut)       
-    indices_all = np.arange(len(X))
-    
-    # split in sections yhe wind cells
-    sections = op.choose_sections(X, Y, Z, choice = choice)
-    ind_sec = []
-    colors_obs = []
-    label_obs = []
-    lines_obs = []
-    for key in sections.keys():
-        cond_sec = sections[key]['cond']
-        ind_sec.append(indices_all[cond_sec])
-        colors_obs.append(sections[key]['color'])
-        label_obs.append(sections[key]['label'])
-        lines_obs.append(sections[key]['line'])
-
-    all_outflows = {}
-    const_C = 4/len(ind_sec)
-    for j, ind in enumerate(ind_sec):
-        t_prof = np.zeros(Nray)
-        v_rad_prof = np.zeros(Nray)
-        d_prof = np.zeros(Nray)
-        Mdot_prof = np.zeros(Nray)
-        Mdotmean_prof = np.zeros(Nray)
-        L_kin_prof = np.zeros(Nray)
-        L_adv_prof = np.zeros(Nray)
-        ratio_un = np.zeros(Nray)
-
-        Rsph_initial_j = Rsph_initial[j]
-        dim_cell_initial_j = dim_cell_initial[j]
-        
-        for i, r in enumerate(r_array): 
-            # find cells at r
-            cond_r_initial = np.abs(Rsph_initial_j-r) < dim_cell_initial_j
-            ind_r = indices_all[np.abs(Rsph-r) < dim_cell]
-            ind_sec_r = np.intersect1d(ind_r, ind)
-            if len(ind_sec_r) == 0:
-                continue
-            ray_V_r = V_r[ind_sec_r] 
-            ray_d = Den[ind_sec_r] 
-            ray_m = Mass[ind_sec_r]
-            ray_rad_den = Rad_den[ind_sec_r]
-            ray_vol = Vol[ind_sec_r]
-            ray_dim = dim_cell[ind_sec_r]
-            ray_t = (ray_rad_den * prel.en_den_converter / prel.alpha_cgs)**(1/4) 
-            L_adv =  ray_V_r * ray_rad_den
-            t_prof[i] = np.sum(ray_t*ray_vol) / np.sum(ray_vol)
-            v_rad_prof[i] = np.sum(ray_V_r*ray_m) / np.sum(ray_m)
-            d_prof[i] = np.sum(ray_d*ray_m)/ np.sum(ray_m)
-            Mdot_prof[i] = const_C * r**2 / np.sum(ray_dim**2) * np.pi * np.sum(ray_dim**2 * ray_d * ray_V_r)
-            Mdotmean_prof[i] = 4 * np.pi * r**2 * np.mean(ray_d * ray_V_r) if ray_V_r.size > 0 else 0 
-            L_kin_prof[i] = const_C * r**2 / np.sum(ray_dim**2)* 0.5 * np.pi *np.sum(ray_dim**2 * ray_d * ray_V_r**3)
-            L_adv_prof[i] = const_C * np.pi * r**2 * np.mean(L_adv)
-            ratio_un[i] = len(ray_d) / len(Rsph_initial_j[cond_r_initial]) if len(Rsph_initial_j[cond_r_initial]) > 0 else 0
-
-        outflow = {
-            'r': r_array,
-            't_prof': t_prof,
-            'v_rad_prof': v_rad_prof,
-            'd_prof': d_prof,
-            'Mdot_prof': Mdot_prof,
-            'Mdotmean_prof': Mdotmean_prof,
-            'L_adv_prof': L_adv_prof,
-            'L_kin_prof': L_kin_prof,
-            'ratio_un': ratio_un,
-            'colors_obs': colors_obs[j],
-            'lines_obs': lines_obs[j]
-        }
-
-        key = f"{label_obs[j]}"
-        all_outflows[key] = outflow
-    
-    return all_outflows
-
 def radial_profiles(loadpath, snap, ray_params, choice):
     rmin, rmax, Nray = ray_params
     r_array = np.logspace(np.log10(rmin), np.log10(rmax), Nray)
@@ -164,15 +59,6 @@ def radial_profiles(loadpath, snap, ray_params, choice):
         make_slices([X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den], cut)
     Rsph = np.sqrt(X**2 + Y**2 + Z**2)  
     dim_cell = Vol**(1/3)
-    
-    # split in sections all the cells
-    sections_in = op.choose_sections(X, Y, Z, choice = choice)
-    Rsph_initial = []
-    dim_cell_initial = []
-    for key in sections_in.keys():
-        cond_sec = sections_in[key]['cond']
-        Rsph_initial.append(Rsph[cond_sec])
-        dim_cell_initial.append(dim_cell[cond_sec])
 
     cut, bern, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params)
     X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell, bern = \
@@ -191,7 +77,7 @@ def radial_profiles(loadpath, snap, ray_params, choice):
         label_obs.append(sections[key]['label'])
         lines_obs.append(sections[key]['line'])
 
-    shell_indices = [[] for _ in range(Nray)]
+    shell_indices = [0, 191]
     for i, r in enumerate(r_array): 
         # find cells at r
         ind_r = np.abs(Rsph-r) < dim_cell

@@ -55,10 +55,11 @@ def opacity_extrap(x, y, K, which_opacity, scatter = None, slope_length = 7,  ex
                 if ysel < y[0]: # Too rarefied
                     deltay = y[slope_length - 1] - y[0]
                     Kxslope = (K[slope_length - 1, 0] - K[0, 0]) / deltax
-                    if which_opacity == 'planck':
-                        Kyslope = special_rho_slope
-                    else:
-                        Kyslope = (K[0, slope_length - 1] - K[0, 0]) / deltay
+                    # if which_opacity == 'planck':
+                    #     Kyslope = special_rho_slope
+                    # else:
+                    #     Kyslope = (K[0, slope_length - 1] - K[0, 0]) / deltay
+                    Kyslope = (K[0, slope_length - 1] - K[0, 0]) / deltay
                     Kn[ix][iy] = K[0, 0] + Kxslope * (xsel - x[0]) + Kyslope * (ysel - y[0])
                 
                     if scatter is not None:
@@ -82,10 +83,10 @@ def opacity_extrap(x, y, K, which_opacity, scatter = None, slope_length = 7,  ex
                 Kxslope = highT_slope 
                 if ysel < y[0]: # Too rarefied
                     deltay = y[slope_length - 1] - y[0]
-                    if which_opacity == 'planck':
-                        Kyslope = special_rho_slope
-                    else:
-                        Kyslope = (K[-1, slope_length - 1] - K[-1, 0]) / deltay
+                    # if which_opacity == 'planck':
+                    #     Kyslope = special_rho_slope
+                    # else:
+                    Kyslope = (K[-1, slope_length - 1] - K[-1, 0]) / deltay
                     Kn[ix][iy] = K[-1, 0] + Kxslope * (xsel - x[-1]) + Kyslope * (ysel - y[0])
                     
                     if scatter is not None:
@@ -101,7 +102,6 @@ def opacity_extrap(x, y, K, which_opacity, scatter = None, slope_length = 7,  ex
                     iy_inK = np.argmin(np.abs(y - ysel))
                     Kn[ix][iy] = K[-1, iy_inK] + Kxslope * (xsel - x[-1])
                 
-
             else: 
                 ix_inK = np.argmin(np.abs(x - xsel))
                 if ysel < y[0]: # Too rarefied, Temperature is inside table

@@ -70,7 +70,7 @@ def compute_polarization(xph, yph, zph, dimph,
     # Positions
     r_vec = np.vstack((xph, yph, zph)).T # shape: (192,3)
     r_mag = np.linalg.norm(r_vec, axis=1)
-    n_hat = r_vec / r_mag[:, None]   # surface normal (radial approx)
+    r_hat = r_vec / r_mag[:, None]   # surface normal (radial approx)
 
     # Flux vectors
     F_vec = np.vstack((Fxph, Fyph, Fzph)).T
@@ -82,7 +82,7 @@ def compute_polarization(xph, yph, zph, dimph,
     F_hat[valid] = F_vec[valid] / F_mag[valid][:, None]
 
     # Visibility condition
-    mu_surface = np.dot(n_hat, n)
+    mu_surface = np.dot(r_hat, n)
     visible = mu_surface > 0
     # Keep only visible patches
     F_hat, F_mag, mu_surface, r_mag, dimph = make_slices([F_hat, F_mag, mu_surface, r_mag, dimph], visible)
@@ -93,19 +93,19 @@ def compute_polarization(xph, yph, zph, dimph,
     # Thomson polarization fraction for the  cell
     P_local = (1 - cos_theta**2) / (1 + cos_theta**2)
 
-    # --- Define sky plane basis vectors: k, e1, e2 ---
-    # Choose arbitrary reference axis not parallel to k to find e1
+    # --- Define a (fixed, arbitrary) sky basis with a plane perpendicular to the line-of-sight direction n
+    # vectors: n, e1, e2
     tmp = np.array([1.0, 0.0, 0.0])
-    if np.allclose(np.abs(np.dot(tmp, n)), 1.0):
-        tmp = np.array([0.0, 1.0, 0.0])
     e1 = np.cross(n, tmp)
-
+    if np.linalg.norm(e1) < 1e-6:   # avoid degeneracy if n || tmp
+        tmp = np.array([0.0, 1.0, 0.0])
+        e1 = np.cross(n, tmp)
     e1 /= np.linalg.norm(e1)
     e2 = np.cross(n, e1)
 
-    # Polarization direction vector, perpendicular to the scattering plane
-    e_pol = np.cross(F_hat, n)
-    # e_pol = np.cross(n, cross1)
+    # Polarization direction vector, in the scattering plane, orthogonal to n
+    cross1 = np.cross(F_hat, n)
+    e_pol = np.cross(n, cross1)
 
     # Project polarization direction onto sky plane
     e_pol_mag = np.linalg.norm(e_pol, axis=1)
@@ -119,15 +119,17 @@ def compute_polarization(xph, yph, zph, dimph,
     cos2phi = cos_phi**2 - sin_phi**2
     sin2phi = 2 * cos_phi * sin_phi
 
-    # Surface area weight (uniform sphere sampling assumption)
-    # dOmega = 4*np.pi / N
-    # dA = r_mag**2 * dOmega
-    dA = np.pi * dimph**2  
+    # Surface area weight 
+    # uniform sphere sampling assumption: dOmega = 4*np.pi / N,  dA = r_mag**2 * dOmega
+    # dA = np.pi * dimph**2  
+    # dA_proj = dA * mu_surface  # projected area toward observer
 
     # Intensity weighted by the area projected toward the observer
-    I_local = F_mag * mu_surface * dA
+    # I_local = F_mag * dA_proj
+    I_local = F_mag # otherwise I has the wrong units
 
-    # Stokes parameters
+    # Stokes parameters. 
+    # I_local * P_local make you consider only the light that is locally scattered
     Q = np.sum(I_local * P_local * cos2phi)
     U = np.sum(I_local * P_local * sin2phi)
     I = np.sum(I_local)

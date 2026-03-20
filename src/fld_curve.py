@@ -31,7 +31,7 @@ import Utilities.prelude as prel
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
 import src.orbits as orb
-from Utilities.operators import make_tree, to_spherical_components
+from Utilities.operators import make_tree
 
 #%% Choose parameters -----------------------------------------------------------------
 m = 4
@@ -59,7 +59,8 @@ planck = np.loadtxt(f'{opac_path}/planck.txt')
 scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
 _, _, scatter2 = opacity_linear(T_cool, Rho_cool, scattering)
 T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, which_opacity = 'rossland', scatter = scatter2)
-_, _, planck2 = opacity_extrap(T_cool, Rho_cool, planck, which_opacity = 'planck', scatter = None)
+_, _, planck2 = opacity_extrap(T_cool, Rho_cool, planck, which_opacity = 'planck', slope_length = 10, scatter = None)
+
 # observers 
 num_obs = prel.NPIX
 observers_xyz = hp.pix2vec(prel.NSIDE, range(num_obs)) # shape: (3, 192)
@@ -67,11 +68,11 @@ observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 # Cross dot -----------------------------------------------------------------
 cross_dot = np.matmul(observers_xyz,  observers_xyz.T)
 cross_dot[cross_dot<0] = 0
-cross_dot *= 4/192
+cross_dot /= 192
 #%% MATLAB, thanks Cindy.
 eng = matlab.engine.start_matlab()
 for idx_s, snap in enumerate(snaps):
-    if snap not in [74, 75,76, 77]:
+    if snap != 109:
         continue
     print('\n Snapshot: ', snap, '\n', flush=True)
     # Load data and avoid fluff -----------------------------------------------------------------
@@ -294,7 +295,6 @@ for idx_s, snap in enumerate(snaps):
         colorsphere['P'].append(ray_press[color_idx])
         colorsphere['ieden'].append(ray_ie_den[color_idx])
         colorsphere['alpha_eff'].append(alpha_effective[color_idx])
-        # print(Lphoto, r[color_idx])
 
         # Spectra ---
         for k in range(color_idx, len(r)):
@@ -308,33 +308,47 @@ for idx_s, snap in enumerate(snaps):
         
         norm = Lphoto / np.trapezoid(L_col_temp[i,:], prel.freqs)
         L_col_temp[i,:] *= norm
-        L_col[i,:] = np.dot(cross_dot[i,:], L_col_temp)
+        # L_col[i,:] = np.dot(cross_dot[i,:], L_col_temp)
          
         # if plot:
         #     Rt = 13
-        #     plt.figure(figsize = (8, 6))
-        #     plt.plot(r/Rt, los, label = f'obs {i}, photo', ls = '--', c = 'b')
-        #     plt.plot(r/Rt, los_effective, label = f'obs {i}, col')
-        #     plt.axvline(rph[i]/Rt, ls = '--', c = 'b')
-        #     plt.axvline(r[color_idx]/Rt)
-        #     plt.axhline(5, color = 'grey', linestyle = '--')
-        #     plt.xlim(2,80)
-        #     plt.loglog()
-        #     plt.xlabel(r'$r/r_{\rm t}$')
-        #     plt.ylabel(r'$\kappa$ [cm$^2$/g]')
-        #     plt.ylim(1e-1, 1e2) 
-        #     plt.grid()
+        #     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize = (8, 16))
+        #     ax1.plot(r/Rt, los, label = f'obs {i}, photo', ls = '--', c = 'b')
+        #     ax1.plot(r/Rt, los_effective, label = f'obs {i}, col', c = 'r')
+        #     ax1.axvline(rph[i]/Rt, ls = '--', c = 'b')
+        #     ax1.axvline(r[color_idx]/Rt, c = 'r')
+        #     ax1.axhline(5, color = 'grey', linestyle = '--')
+        #     ax1.set_ylabel(r'$\kappa$ [cm$^2$/g]')
+        #     ax1.set_ylim(1e-1, 5e2)
+
+        #     ax2.plot(r/Rt, t, label = f'obs {i}, photo', c = 'k')
+        #     ax2.axvline(rph[i]/Rt, ls = '--', c = 'b', label = f'obs {i}, photo')
+        #     ax2.axvline(r[color_idx]/Rt, c = 'r',  label = f'obs {i}, col')
+        #     ax2.set_ylabel(r'T [K]')
+        #     ax2.set_ylim(2e4, 1e9)
+
+        #     ax3.plot(r/Rt, d, label = f'obs {i}, photo', c = 'k')
+        #     ax3.axvline(rph[i]/Rt, ls = '--', c = 'b', label = f'obs {i}, photo')
+        #     ax3.axvline(r[color_idx]/Rt, c = 'r', label = f'obs {i}, col')
+        #     ax3.set_ylabel(r'Den [g/cm$^3$]')
+        #     ax3.set_ylim(1e-15, 1e-12)
+
+        #     for ax in [ax1, ax2, ax3]:
+        #         ax.set_xlim(2,80)
+        #         ax.loglog()
+        #         ax.set_xlabel(r'$r/r_{\rm t}$')
+        #         ax.grid()
+        #         ax.legend(fontsize = 16)
+        #         ax.tick_params(axis='both', which='major',length=10, width=1.5)
+        #         ax.tick_params(axis='both', which='minor',length=5, width=1)
         #     plt.tight_layout() 
-        #     plt.legend(fontsize = 16)
-        #     plt.tick_params(axis='both', which='major',length=10, width=1.5)
-        #     plt.tick_params(axis='both', which='minor',length=5, width=1)
             # plt.savefig(f'{abspath}/Figs/{folder}/Test/{snap}/alphai_{snap}_{i}.png')
             # plt.close()
 
         del smoothed_flux_r2, R_lamda, fld_factor, ray_radDen
         gc.collect()
 
-    # L_col = np.matmul(cross_dot, L_col_temp)
+    L_col = np.matmul(cross_dot, L_col_temp)
     Lphoto_snap = np.mean(Lph) # take the mean
     print('L :', Lphoto_snap, flush=True)
 
@@ -381,9 +395,9 @@ for idx_s, snap in enumerate(snaps):
         #     f.close()
 
         # Save spectrum
-        np.savetxt(f'{pre_saving}/spectra/freqs.txt', prel.freqs)
-        np.savetxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt', L_col)
-        np.savez(f"{pre_saving}/spectra/{check}_Rcol{snap}.npz", **colorsphere)
+        np.savetxt(f'{pre_saving}/spectra_cos/freqs.txt', prel.freqs)
+        np.savetxt(f'{pre_saving}/spectra_cos/{check}_spectra{snap}.txt', L_col)
+        np.savez(f"{pre_saving}/spectra_cos/{check}_Rcol{snap}.npz", **colorsphere)
         
             
     del xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, rph, alphaph, Lph, ph_idx
