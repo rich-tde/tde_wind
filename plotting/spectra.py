@@ -30,18 +30,21 @@ snaps = snaps.astype(int)
 time = tfb[snaps == snap][0]
 freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt')
 Temp = freqs * prel.Hz_toK
-F_photo = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
-N_obs = F_photo.shape[0] 
+L_photo = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
+N_obs = L_photo.shape[0] 
 
 observers_xyz = hp.pix2vec(prel.NSIDE, range(N_obs)) #shape: (3, 192)
 observers_xyz = np.array(observers_xyz)
-
+cross_dot = np.matmul(observers_xyz.T,  observers_xyz)
+cross_dot[cross_dot<0] = 0
+cross_dot /= 192
+L_photo = np.matmul(cross_dot, L_photo)
 # indices_sorted, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, choice = 'left_right_in_out_z')
 
 # fig, ax = plt.subplots(1, 1, figsize=(8,6))
 # F_mean = []
 # for i, idx_list in enumerate(indices_sorted):
-#     F_mean.append(np.mean(F_photo[idx_list], axis=0))
+#     F_mean.append(np.mean(L_photo[idx_list], axis=0))
 
 # for idx, lab in enumerate(label_obs):
 #     if x_axis == 'Freq':
@@ -62,7 +65,7 @@ observers_xyz = np.array(observers_xyz)
 # plt.tight_layout()
 
 fig, ax = plt.subplots(1, 1, figsize=(10,6))
-for idx, F in enumerate(F_photo):
+for idx, F in enumerate(L_photo):
     if idx not in [0, 191]:
         continue
     if x_axis == 'Freq':
