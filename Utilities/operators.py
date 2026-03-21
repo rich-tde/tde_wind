@@ -235,7 +235,7 @@ def choose_observers(observers_xyz, choice):
     x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
     all_idx_obs = np.arange(len(x_obs))
 
-    if choice != '':
+    if choice in ['left_right_z', 'in_out_z', 'left_right_in_out_z', 'all', 'tenths']:
         indices_sorted = []
         sections_ph = choose_sections(x_obs, y_obs, z_obs, choice = choice)
 
@@ -332,28 +332,39 @@ def choose_observers(observers_xyz, choice):
         colors_obs = ['leftviolet']
         lines_obs = ['solid']
 
+    if choice == 'single_axis':
+        cart_axis = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]
+        tree = KDTree(observers_xyz.T)
+        indices_sorted = []
+        for axis in cart_axis:
+            _, idx = tree.query([axis], k=1)
+            indices_sorted.append(idx[0])
+        label_obs = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
+        colors_obs = ['darkorange', 'r', 'yellowgreen', 'darkgreen', 'dodgerblue', 'b']
+        lines_obs = ['solid', 'dashed', 'solid', 'dashed', 'solid', 'dashed']
+
     if plot:
         import matplotlib.pyplot as plt
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 5))
+        fig_obs, (ax1_obs, ax2_obs) = plt.subplots(1, 2, figsize=(11, 5))
         for j, idx_list in enumerate(indices_sorted):
-            ax1.scatter(x_obs[idx_list], y_obs[idx_list], s = 20, c = colors_obs[j], label = label_obs[j])
-            ax2.scatter(x_obs[idx_list], z_obs[idx_list], s = 20, c = colors_obs[j], label = label_obs[j])
-        for ax in [ax1, ax2]:
+            ax1_obs.scatter(x_obs[idx_list], y_obs[idx_list], s = 20, c = colors_obs[j], label = label_obs[j])
+            ax2_obs.scatter(x_obs[idx_list], z_obs[idx_list], s = 20, c = colors_obs[j], label = label_obs[j])
+        for ax in [ax1_obs, ax2_obs]:
             ax.set_xlabel(r'$X$')
             ax.set_xlim(-1.5, 1.5)
             ax.set_ylim(-1.5, 1.5)
         x_line = np.arange(-4, 4, dtype=complex)
-        for a, alpha in enumerate(np.arange(0, 180, 10)):
-            line = draw_line(x_line, alpha*np.pi/180, 'line')
-            ax2.plot(x_line, line, c = 'k', ls = 'dashed')
-        ax1.set_ylabel(r'$Y$')
-        ax2.set_ylabel(r'$Z$')
+        # for a, alpha in enumerate(np.arange(0, 180, 10)):
+        #     line = draw_line(x_line, alpha*np.pi/180, 'line')
+        #     ax2_obs.plot(x_line, line, c = 'k', ls = 'dashed')
+        ax1_obs.set_ylabel(r'$Y$')
+        ax2_obs.set_ylabel(r'$Z$')
         plt.suptitle(f'Selected observers', fontsize=15)
-        # ax1.legend(fontsize = 12)
+        # ax1_obs.legend(fontsize = 12)
         # put the legend outside
         plt.legend(fontsize = 12, loc='upper right', bbox_to_anchor=(1.5, 1), ncol=1)
         plt.tight_layout()
-        plt.show()
+        # plt.show()
 
     return indices_sorted, label_obs, colors_obs, lines_obs
 
