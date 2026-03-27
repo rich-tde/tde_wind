@@ -262,7 +262,7 @@ else:
                 ax.set_ylabel(ylabel, fontsize = 40)
             ax.set_xlim(-lim_plot/Rt, lim_plot/Rt)
             ax.set_ylim(-lim_plot/Rt, lim_plot/Rt)
-            ax.set_title(f't = {np.round(time, 2)}' + r'$t_{\rm fb}$', fontsize = 25)
+            ax.set_title(f't = {np.round(time, 2)}' + r'$t_{\rm fb}$', fontsize = 28)
             ax.tick_params(axis='both', which='major', width=1.2, length=9)
             plt.gca().set_aspect('equal')
 
@@ -274,4 +274,4 @@ else:
         cb.ax.tick_params(which='minor', length=6, width=1.2)
 
         plt.tight_layout()
-        plt.savefig(f'{abspath}/Figs/{folder}/Wind{coord_to_cut}{cut_name}slices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
+        # plt.savefig(f'{abspath}/Figs/{folder}/Wind{coord_to_cut}{cut_name}slices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)

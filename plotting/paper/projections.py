@@ -26,8 +26,8 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
-proj_movie = False
-n_panels = 2
+proj_movie = True
+n_panels = 3
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
 params = [Mbh, Rstar, mstar, beta]
@@ -338,6 +338,8 @@ if proj_movie:
     median_tempph = np.zeros(len(snaps))
 
     for i, snap in enumerate(snaps):
+        # if snap != 151:
+        #     continue
         print(snap)
         photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
         xph, yph, zph, volph, denph, Rad_denph, alphaph = photo[0], photo[1], photo[2], photo[3], photo[4], photo[6], photo[-4]
@@ -368,12 +370,13 @@ if proj_movie:
             img = axDiss.pcolormesh(x_denproj/Rt, y_denproj/Rt, flat_diss_cgs.T, \
                             cmap = 'viridis', norm = colors.LogNorm(vmin = 1e14, vmax = 1e19))
             cbar = plt.colorbar(img, orientation = 'horizontal', pad = 0.15)
-            cbar.set_label(r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$')
-            cbar.ax.tick_params(which='major', labelsize=25, width = 1, length = 12, pad = 10)
-            cbar.ax.tick_params(which='minor',  width = .8, length = 8, pad = 10)
+            cbar.set_label(r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$', fontsize = 50)
+            cbar.ax.tick_params(which='major', labelsize= 50, width = 1, length = 12)
+            cbar.ax.tick_params(which='minor',  width = .8, length = 8)
             axLC.plot(tfbdiss[:i+1], LDiss[:i+1], ls = '--', c = 'k', label = r'L$_{\rm diss}$')
             axDiss.set_xlim(-40, 10)
             axDiss.set_ylim(-15, 15)
+            axDiss.tick_params(axis='both', which='major', width = 1.5, length = 12, labelsize = 40)
         
         elif n_panels == 2:
             fig, (axd, axLC) = plt.subplots(1,2, figsize = (45,21))        
@@ -383,8 +386,8 @@ if proj_movie:
         img = axd.pcolormesh(x_denproj/Rt, y_denproj/Rt, flat_den_cgs.T, cmap = 'plasma', \
                           norm = colors.LogNorm(vmin=5e-2, vmax=1e7))
         cbar = plt.colorbar(img, orientation = 'horizontal', pad = 0.14 if n_panels == 2 else 0.14)
-        cbar.set_label(r'Column density (g cm$^{-2}$)', fontsize = 60 if n_panels != 3 else 25)
-        cbar.ax.tick_params(which='major', labelsize= 45, width = 1.2, length = 17)
+        cbar.set_label(r'Column density (g cm$^{-2}$)', fontsize = 60 if n_panels != 3 else 50)
+        cbar.ax.tick_params(which='major',width = 1.2, length = 17, labelsize= 45 if n_panels != 3 else 50)
         cbar.ax.tick_params(which='major', width = 1, length = 10)
         if n_panels != '':
             axd.plot(xph[indecesorbital]/Rt, yph[indecesorbital]/Rt, c = 'white', markersize = 12, marker = 'H', label = r'$R_{\rm ph}$')
@@ -394,10 +397,10 @@ if proj_movie:
             cbar.ax.tick_params(which='major', labelsize=60, width = 2, length = 16, pad = 10)
             cbar.ax.tick_params(which='minor',  width = 1.5, length = 11, pad = 10)
         if n_panels == 3:
-            cbar.ax.tick_params(which='major', labelsize=25, width = 1, length = 12, pad = 10)
+            cbar.ax.tick_params(which='major', labelsize=40, width = 1, length = 12, pad = 10)
             cbar.ax.tick_params(which='minor',  width = .8, length = 8, pad = 10)
-        axd.set_ylabel(r'Y ($r_{\rm t}$)', fontsize = 70 if n_panels != 3 else 25)
-        axd.tick_params(axis='both', which='major', width = 1.5, length = 12, labelsize = 65 if n_panels != 3 else 25)
+        axd.set_ylabel(r'Y ($r_{\rm t}$)', fontsize = 70 if n_panels != 3 else 50)
+        axd.tick_params(axis='both', which='major', width = 1.5, length = 12, labelsize = 65 if n_panels != 3 else 40)
         axd.text(-60, 41, f't = {np.round(tfb[i],2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 65 if n_panels != 3 else 25)
         
         if n_panels != '': 
@@ -415,25 +418,25 @@ if proj_movie:
             else: 
                 imgLC = axLC.scatter(tfb[:i+1], Lum[:i+1], s = 25, label = r'L$_{\rm FLD}$', c = 'k')
                 for ax in [axd, axDiss]:
-                    ax.set_xlabel(r'X ($r_{\rm t}$)', fontsize = 25)
-                axLC.legend(fontsize = 25)
-                axLC.tick_params(axis='both', which='major', width = 1, length = 12)
-                axLC.tick_params(axis='y', which='minor', width = .8, length = 10)
+                    ax.set_xlabel(r'X ($r_{\rm t}$)', fontsize = 50)
+                axLC.legend(fontsize = 40, loc = 'lower right')
+                axLC.tick_params(axis='both', which='major', width = 1, length = 12, labelsize = 40)
+                axLC.tick_params(axis='y', which='minor', width = .8, length = 10, labelsize = 40)
                 # fig.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection3/denproj_diss{snap}.png')
-            axLC.set_xlabel(r't $(t_{\rm fb})$', fontsize = 72 if n_panels != 3 else 25)
+            axLC.set_xlabel(r't / $t_{\rm fb}$', fontsize = 72 if n_panels != 3 else 50)
             axLC.set_ylabel(r'L (erg/s)', fontsize = 70 if n_panels != 3 else 25)
             axLC.set_yscale('log')
             axLC.set_xlim(0.06, 2.25)
-            axLC.text(0.15, 3e42, f't = {np.round(tfb[i]*t_fall_hour,1)}' + r' hours', fontsize = 65 if n_panels != 3 else 25)
+            axLC.text(0.15, 5e42, f't = {np.round(tfb[i]*t_fall_hour,1)}' + r' hours', fontsize = 65 if n_panels != 3 else 35)
             axLC.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
-            # axLC.text(0.1, 0.9*Ledd, r'$L_{\rm Edd}$', fontsize = 35)
+            axLC.text(0.15, 1.2*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', fontsize = 35)
         
-            axLC.set_ylim(1e38, 8e42)
+            axLC.set_ylim(1e38, 1.2e43)
         # axd.contour(xcfr_grid[0], ycfr_grid[0], cfr_grid[0], levels=[0], colors='white')
         axd.scatter(0,0,c= 'k', marker = 'x', s = 120)
         axd.set_xlim(-65, 15)
         axd.set_ylim(-50, 50)
-        axd.set_xlabel(r'X ($r_{\rm t}$)', fontsize = 72 if n_panels != 3 else 25)
+        axd.set_xlabel(r'X ($r_{\rm t}$)', fontsize = 72 if n_panels != 3 else 50)
 
         plt.tight_layout()
         fig.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection{n_panels}/denproj_{snap}.png')
