@@ -136,8 +136,8 @@ def compute_polarization(nx, ny, nz,
     I_hat = I_vec / np.maximum(I_mag[:, None], 1e-20)
 
     # Visibility condition
-    mu_surface = np.dot(norm_surf_hat, n)
-    visible = mu_surface > 0
+    mu_surface = np.dot(I_hat, n)
+    visible = mu_surface >= 0
     # weights = np.maximum(mu_surface, 0) 
     # Surface area weight under uniform sphere sampling assumption: 
     # dOmega = 4*np.pi / Nall_obs  # solid angle per cell
@@ -299,7 +299,7 @@ n_obs_all = [params[0] for params in n_obs_all_params]
 
 P_HR_n = np.zeros((len(c_all), len(n_obs_all)))
 for h_idx, c in enumerate(c_all):
-    x_obs, y_obs, z_obs = ellipsoid_surface(4, a, b, c, healpix=True)
+    x_obs, y_obs, z_obs = ellipsoid_surface(8, a, b, c, healpix=True)
     I_vec = ellipsoid_normal(x_obs, y_obs, z_obs, a, b, c)
     Ix_obs, Iy_obs, Iz_obs = I_vec[:,0], I_vec[:,1], I_vec[:,2]
     if not np.allclose(np.sum(x_obs), 0, atol=1e-10):
@@ -309,18 +309,18 @@ for h_idx, c in enumerate(c_all):
     if not np.allclose(np.sum(z_obs), 0, atol=1e-10):
         print(f"Warning: z-coordinates not symmetric for c={c}. sum(z) = {np.sum(z_obs)}")
 
-    if c == 1:
-        print(f"For c = {c}:")
-        print(np.max(x_obs), np.min(x_obs))
-        print(np.max(y_obs), np.min(y_obs))
-        print(np.max(z_obs), np.min(z_obs))
-        fig = plt.figure(figsize=(10, 10))
-        ax = fig.add_subplot(111, projection = '3d')
-        ax.scatter(x_obs, y_obs, z_obs, s = 40)
-        ax.quiver(x_obs, y_obs, z_obs, Ix_obs, Iy_obs, Iz_obs, length=0.1, color='k')
-        ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
-        ax.set_xlim(-1.45, 1.45); ax.set_ylim(-1.45, 1.45); ax.set_zlim(-1.45, 1.45)
-        plt.tight_layout()
+    # if c == 1:
+        # print(f"For c = {c}:")
+        # print(np.max(x_obs), np.min(x_obs))
+        # print(np.max(y_obs), np.min(y_obs))
+        # print(np.max(z_obs), np.min(z_obs))
+        # fig = plt.figure(figsize=(10, 10))
+        # ax = fig.add_subplot(111, projection = '3d')
+        # ax.scatter(x_obs, y_obs, z_obs, s = 40)
+        # ax.quiver(x_obs, y_obs, z_obs, Ix_obs, Iy_obs, Iz_obs, length=0.1, color='k')
+        # ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
+        # ax.set_xlim(-1.45, 1.45); ax.set_ylim(-1.45, 1.45); ax.set_zlim(-1.45, 1.45)
+        # plt.tight_layout()
 
     for n_idx in range(len(n_obs_all)):
         n_obs = n_obs_all[n_idx]
@@ -415,7 +415,7 @@ for m_idx, mult in enumerate(mult_fact):
 plt.xlabel(r'latitude obs [rad]')
 plt.ylabel('Polarization Fraction P')
 plt.legend(fontsize=16)
-ax.set_xlim(-1.8, 1.8)
-ax.set_ylim(-0.02, 1)
+plt.xlim(-1.8, 1.8)
+plt.ylim(-0.02, 1)
 # plt.title('Increasing I with z')
 # %%
