@@ -155,17 +155,22 @@ axL.set_ylim(9e37, 2e43)
 plt.tight_layout()
 plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld.pdf', bbox_inches='tight')
 # %% check where observers are with respect to healpix directions
+snap = 151
 import healpy as hp
 from Utilities.operators import to_spherical_coordinate
 num_obs = prel.NPIX
 observers_xyz = hp.pix2vec(prel.NSIDE, range(num_obs)) # shape: (3, 192)
 observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 _, theta_hp, phi_hp = to_spherical_coordinate(observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2], r_frame = 'math')
+x_ph, y_ph, z_ph, _, _, _, _, _, _, _, _, _, _, _, _, _, Fx_ph, Fy_ph, Fz_ph = \
+        np.loadtxt(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}POL.txt')
 _, theta_photo, phi_photo = to_spherical_coordinate(x_ph, y_ph, z_ph, r_frame = 'math')
+_, theta_photo_F, phi_photo_F = to_spherical_coordinate(Fx_ph, Fy_ph, Fz_ph, r_frame = 'math')
 
 plt.figure(figsize=(8,6))
 plt.scatter(phi_photo, theta_photo, c = np.arange(192), marker = 's', cmap = 'rainbow', edgecolors= 'k',label = 'photo cells')
 plt.scatter(phi_hp, theta_hp, c = np.arange(192), cmap = 'rainbow', edgecolors= 'k',label = 'healpix observers')
+plt.scatter(phi_photo_F, theta_photo_F, c = np.arange(192), marker = '*',  cmap = 'rainbow', edgecolors= 'k', label = 'photo F')
 plt.xlabel(r'$\phi$')
 plt.ylabel(r'$\theta$')
 plt.legend(fontsize = 16)
