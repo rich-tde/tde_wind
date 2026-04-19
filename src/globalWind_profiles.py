@@ -200,7 +200,7 @@ def radial_profiles(loadpath, snap, which_part, ray_params):
 ## MAIN
 #
 snaps = [76, 109, 151]
-colors_snaps = ['plum', 'magenta', 'darkviolet']
+colors_snaps = ['#fbb4b9', '#f768a1', '#7a0177'] #['plum', 'magenta', 'darkviolet']
 
 if plot:
     x_test = np.arange(1., 300)
@@ -298,7 +298,7 @@ if plot:
     # axV.axhline(0.2*v_esc_kms, c = 'k', ls = 'dashed')# 
     # axV.text(35, 1.1*0.2*v_esc_kms, r'0.2v$_{\rm esc} (r_{\rm p})$', fontsize = 20, color = 'k')
     axT.plot(x_test, y_test23, c = 'k', ls = 'dashed') #, label = r'$T \propto r^{-2/3}$')
-    axT.text(1.2, 2.4e5, r'$T_{\rm rad} \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -24)
+    axT.text(1.2, 2.7e5, r'$T_{\rm rad} \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -20)
     axL.plot(x_test, 2e-4*y_test23, c = 'k', ls = 'dashed') #, label = r'$L \propto r^{-2/3}$')
     axL.text(1.2, 5.6e1, r'$L \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -18)
 

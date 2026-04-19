@@ -77,11 +77,11 @@ def radial_profiles(loadpath, snap, ray_params, choice):
         label_obs.append(sections[key]['label'])
         lines_obs.append(sections[key]['line'])
 
-    shell_indices = [0, 191]
+    shell_indices = []
     for i, r in enumerate(r_array): 
         # find cells at r
         ind_r = np.abs(Rsph-r) < dim_cell
-        shell_indices[i] = indices_all[ind_r]
+        shell_indices.append(indices_all[ind_r])
     # Convert to arrays for faster later indexing
     shell_indices = [np.asarray(s, dtype=int) for s in shell_indices]
 
@@ -97,12 +97,12 @@ def radial_profiles(loadpath, snap, ray_params, choice):
         L_adv_prof = np.zeros(Nray)
         ratio_un = np.zeros(Nray)
 
-        Rsph_initial_j = Rsph_initial[j]
-        dim_cell_initial_j = dim_cell_initial[j]
+        # Rsph_initial_j = Rsph_initial[j]
+        # dim_cell_initial_j = dim_cell_initial[j]
         
         for i, r in enumerate(r_array): 
             # find cells at r
-            cond_r_initial = np.abs(Rsph_initial_j-r) < dim_cell_initial_j
+            # cond_r_initial = np.abs(Rsph_initial_j-r) < dim_cell_initial_j
 
             shell = shell_indices[i]
             if shell.size == 0:
@@ -112,7 +112,6 @@ def radial_profiles(loadpath, snap, ray_params, choice):
             mask = cond[shell]
             if not np.any(mask):
                 continue
-
             idx = shell[mask]
 
             ray_V_r = V_r[idx] 
@@ -129,8 +128,8 @@ def radial_profiles(loadpath, snap, ray_params, choice):
             Mdot_prof[i] = const_C * r**2 / np.sum(ray_dim**2) * np.pi * np.sum(ray_dim**2 * ray_d * ray_V_r)
             Mdotmean_prof[i] = 4 * np.pi * r**2 * np.mean(ray_d * ray_V_r) if ray_V_r.size > 0 else 0 
             L_kin_prof[i] = const_C * r**2 / np.sum(ray_dim**2)* 0.5 * np.pi *np.sum(ray_dim**2 * ray_d * ray_V_r**3)
-            L_adv_prof[i] = const_C * np.pi * r**2 * np.mean(L_adv)
-            ratio_un[i] = len(ray_d) / len(Rsph_initial_j[cond_r_initial]) if len(Rsph_initial_j[cond_r_initial]) > 0 else 0
+            L_adv_prof[i] = 4 * np.pi * r**2 * np.mean(L_adv)
+            ratio_un[i] = len(ray_d) / len(Rsph[shell]) if len(Rsph[shell]) > 0 else 0
 
         outflow = {
             'r': r_array,
@@ -224,8 +223,8 @@ def polar_profiles(loadpath, snap, ray_params, which_material = 'wind'):
 ## MAIN
 #
 compute = False
-what = 'polar'
-snap = 109
+what = 'radial'
+snap = 76
 
 if what == 'polar':
     which_material = 'wind' # 'wind' or ''
@@ -340,7 +339,7 @@ if what == 'polar':
 
 
 if what == 'radial':
-    choice = 'tenths' # 'left_right_z', 'all' or 'in_out_z'
+    choice = 'left_right_in_out_z' # 'left_right_z', 'all' or 'in_out_z'
 
     if compute:
         path = f'{pre}/{snap}'
@@ -402,7 +401,7 @@ if what == 'radial':
             d = profiles[lab]['d_prof']
             v_rad = profiles[lab]['v_rad_prof'] 
             t = profiles[lab]['t_prof']
-            Mdot = profiles[lab]['Mdot_prof']
+            Mdot = profiles[lab]['Mdot_prof'] #Mdotmean_prof
             L_adv = profiles[lab]['L_adv_prof']
             L_kin = profiles[lab]['L_kin_prof']
             ratio_un = profiles[lab]['ratio_un']
@@ -411,12 +410,16 @@ if what == 'radial':
             # idx_rtr = np.argmin(np.abs(r_plot - rtr_medians[i]))
             idx_rph = np.argmin(np.abs(r_plot - rph_medians[i]))
             
-            if label_obs[i] in ['0-10',  '10-20',  '20-30',  '30-40',  '40-50',  '50-60',  '60-70',  '70-80',  '80-90']:
-                i_plot = 1
-                col = prel.wanted_colors[i]
+            if choice == 'tenths':
+                if label_obs[i] in ['0-10',  '10-20',  '20-30',  '30-40',  '40-50',  '50-60',  '60-70',  '70-80',  '80-90']:
+                    i_plot = 1
+                    col = prel.wanted_colors[i]
+                else:
+                    i_plot = 0
+                    col = prel.reverse_colors[i-9]            
             else:
                 i_plot = 0
-                col = prel.reverse_colors[i-9]
+                col = colors_sec
 
             ax[0, i_plot].plot(r_plot/Rt, d * prel.den_converter, label = f'{lab}', color = col)
             # axd.scatter(r_plot[idx_rtr]/Rt, d[idx_rtr] * prel.den_converter marker = 's', s = 100)
@@ -446,12 +449,12 @@ if what == 'radial':
             ax[0, j].legend(fontsize = 18)
             axML[0, j].set_ylim(1e1, 1e6)
             axML[2, j].set_xlabel(r'$r [r_{\rm t}]$', fontsize = 28)
-            axML[1, j].set_ylim(1e-2, 1e1)
+            axML[1, j].set_ylim(4e-1, 4e1)
             axML[2, j].set_ylim(1e-1, 5e1) 
             axML[0, j].legend(fontsize = 18)
             for i in range(3): 
-                ax[i, j].tick_params(axis='both', which='minor', length = 6, width = 1)
-                ax[i, j].tick_params(axis='both', which='major', length = 10, width = 1.5)
+                ax[i, j].tick_params(axis='both', which='minor', length = 8, width = 1)
+                ax[i, j].tick_params(axis='both', which='major', length = 15, width = 1.5)
                 ax[i, j].loglog()
                 ax[i, j].set_xlim(1.5, 1e2)
                 axML[i, j].set_xlim(1.5, 1e2)
@@ -482,6 +485,8 @@ if what == 'radial':
             for j in range(2):
                 axML[i,j].loglog()
                 axML[i,j].grid()
+                axML[i, j].tick_params(axis='both', which='minor', length = 8, width = 1)
+                axML[i, j].tick_params(axis='both', which='major', length = 15, width = 1.5)
         ax[0, 0].set_ylabel(r'$\rho$ [g/cm$^3]$', fontsize = 28)
         ax[1, 0].set_ylabel(r'v$_{\rm r}$ [km/s]', fontsize = 28)
         ax[2, 0].set_ylabel(r'$T_{\rm rad}$ [K]', fontsize = 28)
@@ -494,6 +499,6 @@ if what == 'radial':
         # figM.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 20)
         fig.tight_layout()
         figM.tight_layout()
-        fig.savefig(f'{abspath}/Figs/den_prof_{snap}.pdf', bbox_inches = 'tight')
-        figM.savefig(f'{abspath}/Figs/MwL_{snap}.pdf', bbox_inches = 'tight')
+        # fig.savefig(f'{abspath}/Figs/den_prof_{snap}.pdf', bbox_inches = 'tight')
+        # figM.savefig(f'{abspath}/Figs/MwL_{snap}.pdf', bbox_inches = 'tight')
         plt.show()

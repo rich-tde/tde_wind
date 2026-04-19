@@ -77,8 +77,8 @@ def bern_coeff(Rsph, vel, den, mass, Press, IE_den, Rad_den, params, G = prel.G)
     B = orb_en_spec + IE_spec + Press_spec
     return B
 
-def pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params):
-    """ select the points that are in the wind, according to the Bernoulli criterion.
+def pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, G = prel.G, cond = 'bern'):
+    """ select the points that are in the wind, according to the Bernoulli criterion/orbital energy.
     Parameters
     ----------
     X, Y, Z : array
@@ -89,22 +89,30 @@ def pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params):
         Density, mass, pressure, internal energy density and radiation energy density of the points in code units
     params : array
         Parameters of the simulation [Mbh, Rstar, mstar, beta]
+    G : float
+        Gravitational constant in code units
+    cond : str
+        Condition to select the wind. It can be 'bern' for Bernoulli criterion or 'orb_en' for orbital energy criterion.
     Returns
     -------
     cond_wind : array
         Boolean array that is True for the points that are in the wind and False for the points that are not in the wind
-    bern : array
-        Bernoulli coefficient of (ALL) the points in code units
+    param_wind : array
+        Wind parameter (bern or orbital energy) of (ALL) the points in code units
     V_r : array
         Radial velocity of (ALL) the points in code units
     """
     Rsph = np.sqrt(X**2 + Y**2 + Z**2)
     vel = np.sqrt(VX**2 + VY**2 + VZ**2)
     V_r, _, _ = op.to_spherical_components(VX, VY, VZ, X, Y, Z)
-    bern = bern_coeff(Rsph, vel, Den, Mass, Press, IE_den, Rad_den, params)
-    cond_wind = np.logical_and(V_r >= 0, bern > 0)
+    if cond == 'bern':
+        param_wind = bern_coeff(Rsph, vel, Den, Mass, Press, IE_den, Rad_den, params)
+    if cond == 'orb_en':
+        param_wind = orbital_energy(Rsph, vel, Mass, params, G)
+        param_wind = param_wind / Mass # specific orbital energy
+    cond_wind = np.logical_and(V_r >= 0, param_wind > 0)
 
-    return cond_wind, bern, V_r
+    return cond_wind, param_wind, V_r
 
 def streamlines(x, y, vx, vy, params_x, params_y, color_plot = None):
     xmin, xmax, nx = params_x

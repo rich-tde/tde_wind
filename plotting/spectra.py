@@ -13,6 +13,7 @@ import matplotlib.gridspec as gridspec
 import matplotlib.colors as colors
 import Utilities.prelude as prel
 from Utilities.operators import choose_observers, sort_list
+from scipy.interpolate import griddata
 
 m = 4
 Mbh = 10**m
@@ -22,96 +23,124 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-snap = 55
+snaps = [109, 151]
 x_axis = 'Temp'  # 'Freq' or 'Temp'
+# Visible: 4.8e14-7.5e14 Hz  // UV: 7.5e14-3e15 // Xray: 3e15-3e19 Hz (tera:1e12, peta: 1e14, exa: 1e18)
+low_freq_optical = 4.8e14
+high_freq_optical = 7.5e14
+high_freq_UV = 3e15
+high_freq_Xray = 3e19
+L_min = 1e38
+L_max = 4e42
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-def plot_spectra(folder, check, snap, x_axis, choice = 'single_axis'):
+def plot_spectra(folder, check, snaps, x_axis, choice = 'left_right_in_out_z'):
     # Load
     pre_saving = f'{abspath}/data/{folder}'
     freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt')
-    L_photo = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
+    idx_opt = np.where(np.logical_and(freqs > low_freq_optical, freqs < high_freq_optical))[0][0]
+    idx_UV = np.where(np.logical_and(freqs > high_freq_optical, freqs < high_freq_UV))[0][0]
+    idx_Xray = np.where(np.logical_and(freqs > high_freq_UV, freqs < high_freq_Xray))[0][0]
+
     data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
-    snaps, tfb, Lum = data[:, 0], data[:, 1], data[:, 2]
-    snaps, Lum, tfb = sort_list([snaps, Lum, tfb], tfb, unique=True) 
-    snaps = snaps.astype(int)
-    time = tfb[snaps == snap][0]
-    # Plot
-    fig = plt.figure(figsize=(24,10))
-    gs = gridspec.GridSpec(2, 2, width_ratios=[1,1], height_ratios=[1, .05], hspace=0.4, wspace = 0.2)
-    ax1 = fig.add_subplot(gs[0, 0], projection='mollweide')
-    ax1.grid(True)
-    ax1.set_xticks(np.radians(np.arange(-180, 181, 90))) 
-    ax1.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
-    ax1.set_yticks(np.radians(np.arange(-90, 91, 45))) 
-    ax1.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
-    ax = fig.add_subplot(gs[0, 1]) 
+    snaps_fld, tfb, Lum_fld = data[:, 0], data[:, 1], data[:, 2]
+    snaps_fld, Lum_fld, tfb = sort_list([snaps_fld, Lum_fld, tfb], tfb, unique=True) 
+    snaps_fld = snaps_fld.astype(int)
 
-    plt.suptitle(f't = {time:.2f}'+ r' t$_{\rm fb}$', fontsize=24)
-    if x_axis == 'Temp':
-        x_value = freqs * prel.Hz_toK
-        ax.set_xlabel('Temperature [K]')
-        ax.set_xlim(1e3, 5e7)
-    else:
-        x_value = freqs
-        ax.set_xlabel('Frequency [Hz]')
-        ax.set_xlim(1e14, 1e19)
-    N_obs = L_photo.shape[0] 
-    observers_xyz = hp.pix2vec(prel.NSIDE, range(N_obs)) #shape: (3, 192)
+    # observers
+    observers_xyz = hp.pix2vec(prel.NSIDE, np.arange(prel.NPIX)) #shape: (3, 192)
     observers_xyz = np.array(observers_xyz)
-    longitude_moll_h = np.arctan2(observers_xyz[1], observers_xyz[0])
+    longitude_moll = np.arctan2(observers_xyz[1], observers_xyz[0])
     theta_obs = np.arccos(observers_xyz[2])
-    latitude_moll_h = np.pi/2 - theta_obs
-
+    latitude_moll = np.pi/2 - theta_obs
     cross_dot = np.matmul(observers_xyz.T,  observers_xyz)
     cross_dot[cross_dot<0] = 0
     cross_dot /= 192
-    Xray_obs2 = []
-    Xray_obs5 = []
-    idx_2e6 = np.where(freqs * prel.Hz_toK > 2e6)[0][0]
-    idx_5e6 = np.where(freqs * prel.Hz_toK > 5e6)[0][0]
-    for i in range(len(L_photo)):
-        check = L_photo[i, idx_2e6:] * freqs[idx_2e6:] 
-        if np.any(check > 1e39):
-            Xray_obs2.append(i)
-        check = L_photo[i, idx_5e6:] * freqs[idx_5e6:] 
-        if np.any(check > 1e39):
-            Xray_obs5.append(i)
-    Xray_obs2 = np.array(Xray_obs2)
-    Xray_obs5 = np.array(Xray_obs5)
-    
-    ax1.scatter(longitude_moll_h, latitude_moll_h, s = 100, facecolors='None', edgecolors='k') #color by intensity
-    if len(Xray_obs2)>0:
-        ax1.scatter(longitude_moll_h[Xray_obs2], latitude_moll_h[Xray_obs2], c = 'red', s = 100, edgecolors='k', label = r'$\nu F_{\nu} > 10^{39}$ erg s$^{-1}$ at $T > 2 \times 10^6$ K') 
-        if len(Xray_obs5)>0:
-            ax1.scatter(longitude_moll_h[Xray_obs5], latitude_moll_h[Xray_obs5], c = 'dodgerblue', s = 100, edgecolors='k', label = r'$\nu F_{\nu} > 10^{39}$ erg s$^{-1}$ at $T > 5 \times 10^6$ K') 
-    # cbar_ax = fig.add_subplot(gs[1, 0]) 
-    # cbar = fig.colorbar(img, cax=cbar_ax, orientation='horizontal', label =r'I')
-    # cbar.ax.tick_params(which='major',length = 5)
-    # cbar.ax.tick_params(which='minor',length = 3)
-    # move the legend outside the plot
-    ax1.legend(loc='lower left', bbox_to_anchor=(-0.1, -0.4), fontsize=20)
-    ax1.set_title('Observers with X-ray emission', fontsize=20, pad=50)
-    
-    L_photo = np.matmul(cross_dot, L_photo)
     indices_sorted, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, choice = choice)
-    for i_idx, idx in enumerate(indices_sorted):
-        Lum = np.concatenate(L_photo[idx])
-        ax.plot(x_value, freqs * Lum, label = f'Obs {idx} ({label_obs[i_idx]})', c = colors_obs[i_idx], ls = lines_obs[i_idx])
-                        
-    ax.tick_params(axis='both', which='major', length=8, width=1.2)
-    ax.tick_params(axis='both', which='minor', length=5, width=1)
-    ax.loglog()
-    ax.set_ylim(1e38, 4e41)
-    ax.set_ylabel(r'$\nu F_{\nu}$ [erg s$^{-1}$]')
-    ax.legend(fontsize=16)
-    ax.set_title('(Weighted) spectra', fontsize=20)
-    
-    plt.tight_layout()
-    plt.show()
-    
 
-plot_spectra(folder, check, snap, x_axis)
+    # For colomesh
+    lon_1d = longitude_moll
+    lat_1d = latitude_moll
+    lon_grid = np.linspace(lon_1d.min(), lon_1d.max(), 360)
+    lat_grid = np.linspace(lat_1d.min(), lat_1d.max(), 180)
+    lon_mesh, lat_mesh = np.meshgrid(lon_grid, lat_grid)
+    
+    fig_moll = plt.figure(figsize=(22,len(snaps)*10))
+    gs = gridspec.GridSpec(len(snaps), 3, width_ratios=[1,1,1], height_ratios=[1]*len(snaps), hspace=0.0, wspace = 0.2)
+    for s, snap in enumerate(snaps):
+        time = tfb[snaps_fld == snap][0]
+        L_photo = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
+        
+        ax_op = fig_moll.add_subplot(gs[s, 0], projection='mollweide')
+        ax_uv = fig_moll.add_subplot(gs[s, 1], projection='mollweide')
+        ax_x = fig_moll.add_subplot(gs[s, 2], projection='mollweide')
+        for ax in [ax_op, ax_uv, ax_x]:
+            ax.set_xticks(np.radians(np.arange(-180, 181, 90))) 
+            ax.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
+            ax.set_yticks(np.radians(np.arange(-90, 91, 45))) 
+            ax.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
+
+        Lum_op, Lum_UV, Lum_Xray = np.zeros(len(L_photo)), np.zeros(len(L_photo)), np.zeros(len(L_photo))
+        for i in range(len(L_photo)):
+            Lum_freq = freqs * L_photo[i]
+            Lum_op[i] = np.sum(Lum_freq[idx_opt])
+            Lum_UV[i] = np.sum(Lum_freq[idx_UV])
+            Lum_Xray[i] = np.sum(Lum_freq[idx_Xray])
+
+        data_grid_op = griddata(
+        points=(lon_1d, lat_1d),
+        values=Lum_op,
+        xi=(lon_mesh, lat_mesh),
+        method='linear')
+        ax_op.pcolormesh(lon_mesh, lat_mesh, data_grid_op, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=L_max))
+
+        data_grid_uv = griddata(
+        points=(lon_1d, lat_1d),
+        values=Lum_UV,
+        xi=(lon_mesh, lat_mesh),
+        method='linear')
+        ax_uv.pcolormesh(lon_mesh, lat_mesh, data_grid_uv, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=L_max))
+    
+        data_grid_x = griddata(
+        points=(lon_1d, lat_1d),
+        values=Lum_Xray,
+        xi=(lon_mesh, lat_mesh),
+        method='linear')
+        img = ax_x.pcolormesh(lon_mesh, lat_mesh, data_grid_x, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=L_max))
+        
+        L_photo = np.matmul(cross_dot, L_photo)
+        fig_sp, ax = plt.subplots(1, 1, figsize=(8,6))
+        if x_axis == 'Temp':
+            x_value = freqs * prel.Hz_toK
+            ax.set_xlabel('Temperature [K]')
+            ax.set_xlim(1e3, 5e7)
+        else:
+            x_value = freqs
+            ax.set_xlabel('Frequency [Hz]')
+            ax.set_xlim(1e14, 1e19)
+        for i_idx, idx in enumerate(indices_sorted):
+            if len(idx) == 1:
+                Lum = np.concatenate(L_photo[idx])
+            else:
+                Lum = np.median(L_photo[idx], axis = 0)
+            ax.plot(x_value, freqs * Lum, label = f'Obs {label_obs[i_idx]}', c = colors_obs[i_idx], ls = lines_obs[i_idx])
+                        
+        ax.tick_params(axis='both', which='major', length=8, width=1.2)
+        ax.tick_params(axis='both', which='minor', length=5, width=1)
+        ax.loglog()
+        ax.set_ylim(L_min, L_max)
+        ax.set_ylabel(r'$\nu F_{\nu}$ [erg s$^{-1}$]')
+        ax.legend(fontsize=16)
+        ax.set_title(f'SED at t = {np.round(time, 2)}' + r't$_{\rm fb}$', fontsize=20)
+        
+        plt.tight_layout()
+    
+    cbar = fig_moll.colorbar(img, ax=[ax_op, ax_uv, ax_x],  label =r'$\nu L_\nu$ [erg s$^{-1}$]', orientation='horizontal', aspect=45, pad=0.01)
+    cbar.ax.tick_params(which='major',length = 6)
+    cbar.ax.tick_params(which='minor',length = 4)
+    fig_moll.tight_layout()
+
+plot_spectra(folder, check, snaps, x_axis)
 
 # indices_sorted, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, choice = 'left_right_in_out_z')
 

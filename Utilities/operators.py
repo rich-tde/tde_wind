@@ -192,7 +192,7 @@ def choose_sections(X, Y, Z, choice):
         left_in = {'cond': cond_left_in, 'label': r'left in', 'color': 'r', 'line': 'solid'}
         right_in = {'cond': cond_right_in, 'label': r'right in', 'color': 'sandybrown', 'line': 'dashed'}
         left_out = {'cond': cond_left_out, 'label': r'left out', 'color': 'forestgreen', 'line': 'solid'}
-        right_out = {'cond': cond_right_out, 'label': r'right out', 'color': 'yellowgreen', 'line': 'dashed'}
+        right_out = {'cond': cond_right_out, 'label': r'right out', 'color': '#b2df8a', 'line': 'dashed'}
         sec = {'left_in': left_in, 'right_in': right_in, 'left_out': left_out, 'right_out': right_out, 'north': north, 'south': south}
     
     if choice == 'tenths': 
@@ -340,7 +340,7 @@ def choose_observers(observers_xyz, choice):
             _, idx = tree.query([axis], k=1)
             indices_sorted.append(idx[0])
         label_obs = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
-        colors_obs = ['darkorange', 'r', 'yellowgreen', 'darkgreen', 'dodgerblue', 'b']
+        colors_obs = ['darkorange', 'r', '#b2df8a', 'darkgreen', 'dodgerblue', 'b']
         lines_obs = ['solid', 'dashed', 'solid', 'dashed', 'solid', 'dashed']
 
     if plot:
@@ -395,7 +395,8 @@ def find_ratio(L1, L2):
 
 class data_snap:
     # create a class to be used in make_tree so that it gives just one output.
-    def __init__(self, sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, time, IE = None, Rad =None, Diss = None, Entropy = None):
+    def __init__(self, sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, time, IE, Rad, Diss, 
+                 Eg0 = None, Eg1 = None, Eg2 = None, Eg3 = None, Eg4 = None, Eg5 = None, Eg6 = None, Eg7 = None, Eg8 = None, Eg9 = None):
         self.sim_tree = sim_tree
         self.X = X
         self.Y = Y
@@ -411,10 +412,20 @@ class data_snap:
         self.IE = IE
         self.Rad = Rad
         self.Diss = Diss
-        self.Entropy = Entropy
+        # self.Entropy = Entropy
         self.time = time
+        self.Eg0 = Eg0
+        self.Eg1 = Eg1
+        self.Eg2 = Eg2
+        self.Eg3 = Eg3
+        self.Eg4 = Eg4
+        self.Eg5 = Eg5
+        self.Eg6 = Eg6
+        self.Eg7 = Eg7
+        self.Eg8 = Eg8
+        self.Eg9 = Eg9
 
-def make_tree(filename, snap, energy = False):
+def make_tree(filename, snap, MG = False):
     """ Load data from simulation and build the tree. """
     X = np.load(f'{filename}/CMx_{snap}.npy')
     Y = np.load(f'{filename}/CMy_{snap}.npy')
@@ -426,14 +437,35 @@ def make_tree(filename, snap, energy = False):
     Den = np.load(f'{filename}/Den_{snap}.npy')
     Mass = np.load(f'{filename}/Mass_{snap}.npy')
     time = np.loadtxt(f'{filename}/tfb_{snap}.txt') 
-    if energy:
-        IE = np.load(f'{filename}/IE_{snap}.npy')
-        Rad = np.load(f'{filename}/Rad_{snap}.npy')
-        # convert from energy/mass to energy density
-        IE *= Den  
-        Rad *= Den
-        Diss = np.load(f'{filename}/Diss_{snap}.npy') # Dissipation rate density [energy/time/volume]
-        # Entropy = np.load(f'{filename}/Entropy_{snap}.npy')
+    Diss = np.load(f'{filename}/Diss_{snap}.npy') # Dissipation rate density [energy/time/volume]
+    # Entropy = np.load(f'{filename}/Entropy_{snap}.npy')
+    IE = np.load(f'{filename}/IE_{snap}.npy')
+    Rad = np.load(f'{filename}/Rad_{snap}.npy')
+    # convert from energy/mass to energy density
+    IE *= Den  
+    Rad *= Den
+
+    if MG:
+        Eg0 = np.load(f'{filename}/Eg_0_{snap}.npy')
+        Eg0 *= Den
+        Eg1 = np.load(f'{filename}/Eg_1_{snap}.npy')
+        Eg1 *= Den
+        Eg2 = np.load(f'{filename}/Eg_2_{snap}.npy')
+        Eg2 *= Den
+        Eg3 = np.load(f'{filename}/Eg_3_{snap}.npy')
+        Eg3 *= Den
+        Eg4 = np.load(f'{filename}/Eg_4_{snap}.npy')
+        Eg4 *= Den
+        Eg5 = np.load(f'{filename}/Eg_5_{snap}.npy')
+        Eg5 *= Den
+        Eg6 = np.load(f'{filename}/Eg_6_{snap}.npy')
+        Eg6 *= Den
+        Eg7 = np.load(f'{filename}/Eg_7_{snap}.npy')
+        Eg7 *= Den
+        Eg8 = np.load(f'{filename}/Eg_8_{snap}.npy')
+        Eg8 *= Den
+        Eg9 = np.load(f'{filename}/Eg_9_{snap}.npy')
+        Eg9 *= Den
              
     P = np.load(f'{filename}/P_{snap}.npy')
     T = np.load(f'{filename}/T_{snap}.npy')
@@ -450,10 +482,11 @@ def make_tree(filename, snap, energy = False):
     sim_value = np.transpose(sim_value) #array of shape (number_points, 3)
     sim_tree = KDTree(sim_value)#, leaf_size=50) #avoid leaf_size
 
-    if energy:
+    if MG:
+        data = data_snap(sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, time, IE, Rad, Diss, Eg0, Eg1, Eg2, Eg3, Eg4, Eg5, Eg6, Eg7, Eg8, Eg9)
+    else:
         data = data_snap(sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, time, IE, Rad, Diss)
-    else: 
-        data = data_snap(sim_tree, X, Y, Z, Vol, VX, VY, VZ, Mass, Den, P, T, time)
+        
     return data
 
 def compute_curl(X, Y, Z, Vol, VX, VY, VZ):

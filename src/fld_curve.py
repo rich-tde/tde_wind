@@ -76,7 +76,7 @@ for idx_s, snap in enumerate(snaps):
         loadpath = f'{pre}/snap_{snap}'
     else:
         loadpath = f'{pre}/{snap}'
-    data = make_tree(loadpath, snap, energy = True)
+    data = make_tree(loadpath, snap)
     box = np.load(f'{loadpath}/box_{snap}.npy')
     X, Y, Z, T, Den, Rad_den, Vol, VX, VY, VZ, Press, IE_den = \
         data.X, data.Y, data.Z, data.Temp, data.Den, data.Rad, data.Vol, data.VX, data.VY, data.VZ, data.Press, data.IE

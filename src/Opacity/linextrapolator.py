@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Tue Nov 26 15:12:06 2024
-
-@author: konstantinos
+You can find opacity tables at https://gitlab.com/eladtan/RICH/-/tree/master/data/STA
+For multigroup: 
+- sigma_rossland_  is the rossland mean opacity (absorption+scattering). This is used to find the photosphere
+- sigma_rossland_ total  is the gray group integrated opacity
+- sigma_absorption_rossland_ is the rossland opacity in a given group.
 """ 
 import numpy as np
 
@@ -11,8 +11,7 @@ def opacity_extrap(x, y, K, which_opacity, scatter = None, slope_length = 7,  ex
                  extrarowsy = 100):
     ''' 
     Extra/Interpolation for opacity both in density and temperature.
-    Look at:
-    - https://gitlab.com/eladtan/RICH/-/blob/master/source/misc/utils.cpp 
+    Look at: https://gitlab.com/eladtan/RICH/-/blob/master/source/misc/utils.cpp 
     x: array of ln(T)
     y: array of ln(rho)
     K: array of ln(kappa) [1/cm]

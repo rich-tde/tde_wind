@@ -214,14 +214,14 @@ if plot:
     ax1.axvline(tfbH_max, ls = ':', c = 'gray')
     ax1.text(0.011+tfbH_max, 20, r'$t=t_{\rm p}$', rotation = 90, fontsize = 20) 
 
-    axCon.plot(tfbL, np.abs(mwind_dimCellL)/Medd_sol, c = 'C1', label = 'Low') 
-    axCon.plot(tfbM, np.abs(mwind_dimCellM)/Medd_sol, c = 'yellowgreen', label = 'Middle') 
-    axCon.plot(tfbH, np.abs(mwind_dimCellH)/Medd_sol, c = 'darkviolet', label = 'High') 
-    axCon.scatter([tfbL_max, tfbM_max, tfbH_max], np.array([MdotLmax, MdotMmax, MdotHmax])/Medd_sol, c = ['C1', 'yellowgreen', 'darkviolet'], s = 90, marker = 'd')
-    axerr.plot(tfb_ratioL, ratioL, c = 'C1')
-    axerr.plot(tfb_ratioL, ratioL, c = 'yellowgreen', ls = (0, (5, 10)))
-    axerr.plot(tfb_ratioH, ratioH, c = 'darkviolet')
-    axerr.plot(tfb_ratioH, ratioH, c = 'yellowgreen', ls = (0, (5, 10)))
+    axCon.plot(tfbL, np.abs(mwind_dimCellL)/Medd_sol, c = '#d95f02', label = 'Low') 
+    axCon.plot(tfbM, np.abs(mwind_dimCellM)/Medd_sol, c = '#b2df8a', label = 'Middle') 
+    axCon.plot(tfbH, np.abs(mwind_dimCellH)/Medd_sol, c = '#7570b3', label = 'High') 
+    axCon.scatter([tfbL_max, tfbM_max, tfbH_max], np.array([MdotLmax, MdotMmax, MdotHmax])/Medd_sol, c = ['#d95f02', '#b2df8a', '#7570b3'], s = 90, marker = 'd')
+    axerr.plot(tfb_ratioL, ratioL, c = '#d95f02')
+    axerr.plot(tfb_ratioL, ratioL, c = '#b2df8a', ls = (0, (5, 10)))
+    axerr.plot(tfb_ratioH, ratioH, c = '#7570b3')
+    axerr.plot(tfb_ratioH, ratioH, c = '#b2df8a', ls = (0, (5, 10)))
     
     original_ticks = ax1.get_xticks()
     for ax in (axCon, ax1, axerr):

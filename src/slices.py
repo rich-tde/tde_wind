@@ -36,20 +36,21 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-coord_to_cut = 'y' # 'x', 'y', 'z'
-cut_chosen = 0
-single_plot = False
-print(f'cut at {coord_to_cut} = {cut_chosen}', flush=True)
-
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 Rs = things['Rs']
 Rt = things['Rt']
 Rp = things['Rp']
 apo = things['apo']
+E_mb = things['E_mb']
 Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
+
+single_plot = False
+coord_to_cut = 'y' # 'x', 'y', 'z'
+cut_chosen = 0
+print(f'cut at {coord_to_cut} = {cut_chosen}', flush=True)
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 if cut_chosen == Rp:
@@ -162,8 +163,8 @@ else:
             cb.set_label(r'$\dot{M} (M_{\rm Edd})$')
             cb.ax.tick_params(which='major', length=7, width=1.2)
             cb.ax.tick_params(which='minor', length=4, width=1)
-            ax.set_ylabel(ylabel)
-            ax.set_xlabel(xlabel)
+            ax.set_ylabel(ylabel, fontisize = 40)
+            ax.set_xlabel(xlabel, fontisize = 40)
             ax.set_xlim(-50, 50)#(-340,25)
             ax.set_ylim(-50, 50)#(-70,70)
 
@@ -183,7 +184,7 @@ else:
         N_arrows = 200
         
         fig = plt.figure(figsize=(12*len(idx_wanted), 12))
-        gs = gridspec.GridSpec(2, len(idx_wanted), width_ratios=[1]*len(idx_wanted), hspace=0.3,  height_ratios=[1, 0.05], wspace = 0.2)
+        gs = gridspec.GridSpec(2, len(idx_wanted), width_ratios=[1]*len(idx_wanted), height_ratios=[1, 0.05])
         
         for i, idx in enumerate(idx_wanted):
             snap = snaps[idx]
@@ -215,19 +216,21 @@ else:
                 VX_toplot = VX
                 y_toplot = z
                 VY_toplot = VZ
-                xlabel = r'$x (r_{\rm t})$'
-                ylabel = r'$z (r_{\rm t})$'
+                xlabel = r'$x / r_{\rm t}$'
+                ylabel = r'$z / r_{\rm t}$'
             elif coord_to_cut == 'z':
                 x_toplot = x
                 VX_toplot = VX
                 y_toplot = y
                 VY_toplot = VY
-                xlabel = r'$x (r_{\rm t})$'
-                ylabel = r'$y (r_{\rm t})$'
+                xlabel = r'$x / r_{\rm t}$'
+                ylabel = r'$y / r_{\rm t}$'
 
+            cut_wind, param_wind, V_r = orb.pick_wind(x, y, z, VX, VY, VZ, den, mass, Press, ie_den, Rad_den, params, cond = 'bern')
+            
             if what == '_wind':
+                cut = cut_wind
                 print(f'Picking wind for snap {snap}', flush=True)
-                cut, bern, V_r = orb.pick_wind(x, y, z, VX, VY, VZ, den, mass, Press, ie_den, Rad_den, params)
             else:
                 cut = den > 1e-19
             
@@ -247,8 +250,10 @@ else:
                 else:
                     x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y)
             else:
-                x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, Den_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, den)
-                img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, Den_grid * prel.den_converter, cmap='brg_r', norm=colors.LogNorm(vmin=1e-16, vmax=2e-8))
+                # x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, Den_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, den)
+                # img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, Den_grid * prel.den_converter, cmap='brg_r', norm=colors.LogNorm(vmin=1e-16, vmax=2e-8))
+                x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, param_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, param_wind)
+                img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, param_grid/E_mb, cmap='coolwarm', norm=colors.SymLogNorm(linthresh=0.01, vmin=-1e2, vmax=1e2))
                 if how == '_arrows': 
                     step = max(1, len(x_toplot) // N_arrows) 
                     print(f'Plotting {len(x_toplot[::step])} arrows out of {len(x_toplot)} points.')
@@ -257,21 +262,36 @@ else:
             if how == '':
                 ax.streamplot(x_toplot_grid/Rt, y_toplot_grid/Rt, Vx_toplot_grid, Vy_toplot_grid, density = 1.5, linewidth = 1, color = 'k', arrowsize=1.5, arrowstyle='-|>')
             
-            ax.set_xlabel(xlabel, fontsize = 40)
+            ax.set_xlabel(xlabel, fontsize = 45)
             if i == 0:
-                ax.set_ylabel(ylabel, fontsize = 40)
+                ax.set_ylabel(ylabel, fontsize = 45)
             ax.set_xlim(-lim_plot/Rt, lim_plot/Rt)
             ax.set_ylim(-lim_plot/Rt, lim_plot/Rt)
-            ax.set_title(f't = {np.round(time, 2)}' + r'$t_{\rm fb}$', fontsize = 28)
-            ax.tick_params(axis='both', which='major', width=1.2, length=9)
+            ax.set_title(f't = {np.round(time, 2)}' + r'$t_{\rm fb}$', fontsize = 35)
+            ax.tick_params(axis='both', which='major', width=1.2, length=9, labelsize=35)
             plt.gca().set_aspect('equal')
 
-        cbar_ax = fig.add_subplot(gs[1, 0:len(idx_wanted)])  # Colorbar subplot below the first two
-        cb = fig.colorbar(img, orientation='horizontal', cax=cbar_ax)
+        # cbar_ax = fig.add_subplot(gs[1, :len(idx_wanted)])  # Colorbar subplot below the first two
+        first_ax = fig.axes[0]      # first subplot
+        last_ax = fig.axes[-1]      # last subplot (before cbar_ax)
+
+        cbar_left = first_ax.get_position().x0
+        cbar_right = last_ax.get_position().x1
+        cbar_width = cbar_right - cbar_left
+        cbar_bottom = 0.025
+        cbar_height = 0.035
+        cbar_ax = fig.add_axes([cbar_left, cbar_bottom, cbar_width, cbar_height])
+        # cbar_ax.axis("off") # if you want to hide the axis of the colorbar but keep the colorbar space
+        
+        cb = fig.colorbar(img, orientation='horizontal', cax=cbar_ax, aspect=100, pad=0.02)
         cb.set_label(r'$\rho$ (g/cm$^3)$', fontsize = 50)
-        cb.ax.tick_params(labelsize=35)
+        # cb.set_label(r'$\mathcal{B}/\Delta\varepsilon$', fontsize = 50)
+        cb.ax.tick_params(labelsize=38)
         cb.ax.tick_params(which='major', length=9, width=1.4)
         cb.ax.tick_params(which='minor', length=6, width=1.2)
 
-        plt.tight_layout()
-        # plt.savefig(f'{abspath}/Figs/{folder}/Wind{coord_to_cut}{cut_name}slices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
+        if what == '_wind':
+            plt.savefig(f'{abspath}/Figs/wind_paper/Wind{coord_to_cut}{cut_name}slices{what}{how}.pdf', bbox_inches='tight', pad_inches=0.05)
+        else:
+            plt.savefig(f'{abspath}/Figs/wind_paper/Wind{coord_to_cut}{cut_name}slices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
+            

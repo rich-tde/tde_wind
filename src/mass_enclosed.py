@@ -159,7 +159,7 @@ else:
         check = 'HiResNewAMR'
         Rcheck = np.array([R0, Rt, a_mb])
         labelcheck = [r'$r<r_0$', r'$r<r_{\rm t}$', r'$r<a_{\rm mb}$']
-        colorcheck = ['magenta', 'darkviolet', 'k']
+        colorcheck = ['#fbb4b9', '#f768a1', '#7a0177'] #['magenta', 'darkviolet', 'k']
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
         # Plot mass and dissipation rate enclosed in a sphere of radius Rcheck: 
@@ -190,10 +190,10 @@ else:
     
         fig , (axM, axDiss) = plt.subplots(1, 2, figsize = (21,7)) 
         for j in range(3):
-            axM.plot(tfb_encl, Mass_encl[:,j]/mstar, c = colorcheck[j], label = labelcheck[j])
-            axDiss.plot(tfb_encl, Diss_pos_encl[:,j], c = colorcheck[j])#, label = labelcheck[j])
+            axM.plot(tfb_encl, Mass_encl[:,j]/mstar, linewidth = 2, c = colorcheck[j], label = labelcheck[j])
+            axDiss.plot(tfb_encl, Diss_pos_encl[:,j], linewidth = 2, c = colorcheck[j])#, label = labelcheck[j])
 
-        axDiss.plot(tfb_all, Ldisstot_pos, c = 'gray', ls = '--', label = r'Total $\dot{E}_{\rm irr}$')
+        axDiss.plot(tfb_all, Ldisstot_pos, linewidth = 2, c = 'gray', ls = '--', label = r'Total $\dot{E}_{\rm irr}$')
         axM.set_ylabel(r'Mass enclosed / $M_\star$')
         axM.set_ylim(1e-6, 1e-1)
         axDiss.set_ylabel(r'Dissipation rate enclosed (erg/s)')
