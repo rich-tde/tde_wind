@@ -129,7 +129,7 @@ else:
     # axL.plot(tfb[:-1], np.abs(dKinpos)/dtH, c = '#fbb4b9', label = 'Kinetic energy unbound gas')
     # axL.plot(tfb[:-1], np.abs(dKinneg)/dtH, c = '#fbb4b9', ls = ':', label = 'Kinetic energy bound gas (abs value)')
     # axL.plot(tfb[:-1], np.abs(dTotalK)/dtH, c = 'brown', label = 'Total Kinetic energy')
-    axL.set_ylabel(r'Luminosity (erg/s)') 
+    axL.set_ylabel(r'$|\dot{E}|$ (erg/s)') 
     axL.set_ylim(1e39, 1e44)
 
     orginal_ticks = axL.get_xticks()

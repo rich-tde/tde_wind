@@ -3,7 +3,6 @@ for wind photospheric cells."""
 abspath = '/Users/paolamartire/shocks'
 import sys
 sys.path.append(abspath)
-from matplotlib.pylab import choice
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -20,7 +19,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-which_obs = 'left_right_z' #'left_right_z' #'arch', 'quadrants', 'tenths'
+which_obs = 'tenths' #'left_right_z' #'arch', 'quadrants', 'tenths'
 check = 'HiResNewAMR' 
 
 params = [Mbh, Rstar, mstar, beta]
@@ -155,33 +154,36 @@ fig, (axVph, axdph, axTph) = plt.subplots(1, 3, figsize=(26, 6))
 figL, axL = plt.subplots(2, 2, figsize=(16, 14))
 
 for i, observer in enumerate(indices_axis):
-        if choice == 'tenth':
+        if which_obs == 'tenths':
                 if label_axis[i] in ['0-10',  '10-20',  '20-30',  '30-40',  '40-50',  '50-60',  '60-70',  '70-80',  '80-90']:
                         i_plot = 1
                         col = prel.wanted_colors[i]
                 else:
                         i_plot = 0
                         col = prel.reverse_colors[i-9]
-        axTr.plot(tfbs, r_tr_sec[i]/Rt, c = colors_axis[i], ls = ':')
-        # axTr.fill_between(tfbs, r_tr_perc16sec[i]/Rt, r_tr_perc84sec[i]/Rt, color=colors_axis[i], alpha=0.2)
-        axTr.plot(tfbs, r_ph_sec[i]/Rt, c = colors_axis[i], label = label_axis[i])
-        # axTr.fill_between(tfbs, r_ph_perc16sec[i]/Rt, r_ph_perc84sec[i]/Rt, color=colors_axis[i], alpha=0.3)
+        else:
+                i_plot = 0
+                col = colors_axis[i]
+        axTr.plot(tfbs, r_tr_sec[i]/Rt, c = col, ls = ':')
+        # axTr.fill_between(tfbs, r_tr_perc16sec[i]/Rt, r_tr_perc84sec[i]/Rt, color=col, alpha=0.2)
+        axTr.plot(tfbs, r_ph_sec[i]/Rt, c = col, label = label_axis[i])
+        # axTr.fill_between(tfbs, r_ph_perc16sec[i]/Rt, r_ph_perc84sec[i]/Rt, color=col, alpha=0.3)
         
-        axTrnonzero.plot(tfbs, r_trnonzero_sec[i]/Rt, c = colors_axis[i]) #, label = r'$r_{\rm tr}$' if i == 0 else '')
-        # axTrnonzero.plot(tfbs, r_phnonzero_sec[i]/Rt, c = colors_axis[i], label = r'$r_{\rm ph}$' if i == 0 else '')
+        axTrnonzero.plot(tfbs, r_trnonzero_sec[i]/Rt, c = col) #, label = r'$r_{\rm tr}$' if i == 0 else '')
+        # axTrnonzero.plot(tfbs, r_phnonzero_sec[i]/Rt, c = col, label = r'$r_{\rm ph}$' if i == 0 else '')
         
-        axNtr.plot(tfbs, ratio_Rtr[i], c = colors_axis[i])
-        axratio.plot(tfbs, r_phnonzero_sec[i]/r_trnonzero_sec[i], c = colors_axis[i], label = label_axis[i])
+        axNtr.plot(tfbs, ratio_Rtr[i], c = col)
+        axratio.plot(tfbs, r_phnonzero_sec[i]/r_trnonzero_sec[i], c = col, label = label_axis[i])
         
-        axVph.plot(tfbs, Vr_ph_sec[i] * conversion_sol_kms, c = colors_axis[i])
-        # axVph.plot(tfbs, Vr_tr_sec[i] * conversion_sol_kms, c = colors_axis[i],  label = label_axis[i])
-        axdph.plot(tfbs, den_ph_sec[i] * prel.den_converter, c = colors_axis[i])
-        # axdph.plot(tfbs, den_tr_sec[i] * prel.den_converter, c = colors_axis[i])
-        axTph.plot(tfbs, Temp_ph_sec[i]/Rp, c = colors_axis[i], label = label_axis[i])
-        # axTph.plot(tfbs, TempGas_ph_sec[i]/Rp, c = colors_axis[i], ls = '--')
-        # axTph.plot(tfbs, Temp_tr_sec[i]/Rp, c = colors_axis[i])
-        axL[0, i_plot].plot(tfbs, Lum_allph_secSum[i]/Lum_ph_allSum, c = colors_axis[i], label = label_axis[i])#,   label =r'$L_{\rm FLD} (r_{\rm ph, all})$' if i ==0 else '')
-        axL[1, i_plot].plot(tfbs, Lum_allph_secmean[i], c = colors_axis[i], label = label_axis[i])
+        axVph.plot(tfbs, Vr_ph_sec[i] * conversion_sol_kms, c = col)
+        # axVph.plot(tfbs, Vr_tr_sec[i] * conversion_sol_kms, c = col,  label = label_axis[i])
+        axdph.plot(tfbs, den_ph_sec[i] * prel.den_converter, c = col)
+        # axdph.plot(tfbs, den_tr_sec[i] * prel.den_converter, c = col)
+        axTph.plot(tfbs, Temp_ph_sec[i]/Rp, c = col, label = label_axis[i])
+        # axTph.plot(tfbs, TempGas_ph_sec[i]/Rp, c = col, ls = '--')
+        # axTph.plot(tfbs, Temp_tr_sec[i]/Rp, c = col)
+        axL[0, i_plot].plot(tfbs, Lum_allph_secSum[i]/Lum_ph_allSum, c = col, label = label_axis[i])#,   label =r'$L_{\rm FLD} (r_{\rm ph, all})$' if i ==0 else '')
+        axL[1, i_plot].plot(tfbs, Lum_allph_secmean[i], c = col, label = label_axis[i])
         
 axTr.set_ylabel(r'median $r_{\rm obs} [r_{\rm t}]$')
 axTrnonzero.set_ylabel(r'median nonzero $r_{\rm tr} [r_{\rm t}]$')

@@ -20,6 +20,7 @@ compton = 'Compton'
 check = 'HiResNewAMR' 
 avg_in_los = True
 avg_in_time = True
+which_obs = 'left_right_z' 
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
@@ -33,7 +34,7 @@ x_obs, y_obs, z_obs = observers_xyz
 
 if avg_in_los:
     from Utilities.operators import choose_observers
-    indices_sorted, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, choice = 'tenths')
+    indices_sorted, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, choice = which_obs)
     # n_obs_all = [observers_xyz[idx] for idx in indices_sorted]
     len_obs = len(indices_sorted)
     
@@ -44,7 +45,7 @@ else:
                 [[0, -1, 0], 'dashed', '-y', 'r'],
                 [[0, 0, 1], 'solid', '+z', 'forestgreen'],
                 [[0, 0, -1], 'dashed', '-z', 'yellowgreen']]
-
+    
     n_obs_all = [params[0] for params in n_obs_all_params]
     len_obs = len(n_obs_all)
     lines_obs = [params[1] for params in n_obs_all_params]
@@ -66,7 +67,7 @@ for s, snap in enumerate(snaps):
                 n_obs = n_obs_ray[i_r]
                 P, I, Q, U = compute_polarization(Fx, Fy, Fz, n_obs, flux=True)
                 P_ray[i_r] = P
-            P_all[s, i_o] = np.median(P_ray)
+            P_all[s, i_o] = np.median(P_ray, axis=0)
         else:
             n_obs = n_obs_all[i_o]
             P, I, Q, U = compute_polarization(Fx, Fy, Fz, n_obs, flux=True)
@@ -76,20 +77,29 @@ for s, snap in enumerate(snaps):
 #%%
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18,6))
 for n_idx in range(len_obs):
-    if n_idx > 9:
-        ax = ax2
+    # if n_idx > 2:
+    #     continue
+    if which_obs == 'tenths':
+        if n_idx > 9:
+            ax = ax1
+            col = prel.wanted_colors[n_idx]
+        else:
+            ax = ax2
+            col = prel.reverse_colors[n_idx-9]         
     else:
         ax = ax1
+        col = colors_obs[n_idx]
     P_idx = P_all[:, n_idx]
     if avg_in_time:
         smoothed_P_idx = uniform_filter1d(P_idx, 3) 
     else:
         smoothed_P_idx = P_idx
     
-    ax.plot(tfb, smoothed_P_idx, label=f"{label_obs[n_idx]}", color=colors_obs[n_idx])
+    ax.plot(tfb, smoothed_P_idx, label=f"{label_obs[n_idx]}", color=col)
 ax1.set_ylabel('Polarization fraction')
 for ax in [ax1, ax2]:
     ax.set_xlabel(r't$/t_{\rm fb}$')
     ax.legend()
     ax.set_ylim(0, 1)
+    ax.grid()
 # %%

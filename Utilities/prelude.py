@@ -22,6 +22,7 @@ Msol_cgs = 2e33 #1.98847e33 [g]
 ev_toK = 11604.505 # [K/eV] conversion factor from eV to K
 ev_to_erg = 1.602176634e-12 # conversion factor from eV to erg
 Hz_toK = 4.799e-11 # Hz to K
+ev_toHz = 2.417989e14 # eV to Hz
 
 # Solar and SI units
 c_SI = 2.99e8 #m

@@ -52,15 +52,8 @@ print('we are in: ', pre, flush=True)
 
 #%% Opacities: load and interpolate ----------------------------------------------------------------
 opac_path = f'{abspath}/src/Opacity/MG'
-T_cool = np.loadtxt(f'{opac_path}/T.txt')
-Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
-for e_idx in range(10):
-    rossland = np.loadtxt(f'{opac_path}/ln_alpha_rossland_{e_idx}.txt') # this is the interpolation for the rossland opacity, which is the one we need for the photosphere. We save it as a txt to avoid doing the interpolation every time, which is very expensive.
-rossland = np.loadtxt(f'{opac_path}/ross.txt')
-scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
-_, _, scatter2 = opacity_linear(T_cool, Rho_cool, scattering)
-T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, which_opacity = 'rossland', scatter = scatter2)
-# _, _, planck2 = opacity_extrap(T_cool, Rho_cool, planck, which_opacity = 'planck', slope_length = 10, scatter = None)
+T_cool2 = np.loadtxt(f'{opac_path}/T.txt')
+Rho_cool2 = np.loadtxt(f'{opac_path}/rho.txt')
 
 # observers 
 num_obs = prel.NPIX
@@ -152,9 +145,12 @@ for idx_s, snap in enumerate(snaps):
         
         for e_idx, Eg in enumerate(Egs):
             ray_Eg = ray_Egs[e_idx]
+            rossland2 = np.loadtxt(f'{opac_path}/sigma_rossland_{e_idx}.txt') 
+            ######
             ln_alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
             ln_alpha_rossland = np.array(ln_alpha_rossland)[0]
             underflow_mask = ln_alpha_rossland != 0.0
+            ######
             d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ray_Eg, volume, idx = \
                 make_slices([d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ray_Eg, volume, idx], underflow_mask)
             idx = np.array(idx)

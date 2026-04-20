@@ -1,6 +1,7 @@
 """
 You can find opacity tables at https://gitlab.com/eladtan/RICH/-/tree/master/data/STA
-For multigroup: 
+For multigroup:
+- the density should be in g/cc and the temperature now is in eV. 
 - sigma_rossland_  is the rossland mean opacity (absorption+scattering). This is used to find the photosphere
 - sigma_rossland_ total  is the gray group integrated opacity
 - sigma_absorption_rossland_ is the rossland opacity in a given group.
@@ -12,6 +13,7 @@ def opacity_extrap(x, y, K, which_opacity, scatter = None, slope_length = 7,  ex
     ''' 
     Extra/Interpolation for opacity both in density and temperature.
     Look at: https://gitlab.com/eladtan/RICH/-/blob/master/source/misc/utils.cpp 
+    https://gitlab.com/eladtan/RICH/-/blob/master/source/Radiation/MultigroupDiffusionCoefficientCalculator.cpp 
     x: array of ln(T)
     y: array of ln(rho)
     K: array of ln(kappa) [1/cm]

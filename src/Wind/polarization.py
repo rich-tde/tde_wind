@@ -142,7 +142,8 @@ def polarization_for_disk(obs, angle):
 
 def compute_polarization(Ix, Iy, Iz,
                         n_obs,
-                        flux = False):
+                        flux = False,
+                        nx=None, ny=None, nz=None,):
     """
     Compute polarization for a single observer direction n_obs.
 
@@ -180,8 +181,8 @@ def compute_polarization(Ix, Iy, Iz,
 
     # Find intensity from flux through surface (i.e. radial projection of flux)
     if flux:
-        dOmega = 4*np.pi / Nall_obs  # solid angle per cell
         # cos_theta_geom = np.dot(norm_surf_hat, n)
+        dOmega = 4*np.pi / Nall_obs  # solid angle per cell
         # dA_proj = dOmega * cos_theta_scat  # projected area toward observer nobs or use cos_theta_geom?
         # I_local = I_mag / dA_proj # I_mag is the flux in this case
         # I_local[cos_theta_scat==0] = 0 # cosTheta=0 menas theta=90, so max polarization
@@ -231,13 +232,12 @@ def compute_polarization(Ix, Iy, Iz,
 if __name__ == "__main__":
     from scipy.optimize import least_squares
     # test if fluxes work
-    print("TEST of symmetry (all radial equal intensities) with healpix and fluxes")
-    n_obs = [0, 0, 1]
-    n_obs_hat = n_obs / np.linalg.norm(n_obs)
-    x_k, y_k, z_k = 1, 1, -1
-    Fx_k, Fy_k, Fz_k = 1, 0, 0
-    P, _, _, _ = compute_polarization(Fx_k, Fy_k, Fz_k, n_obs, flux=True)
-    print(P)
+    # n_obs = [0, 0, 1]
+    # n_obs_hat = n_obs / np.linalg.norm(n_obs)
+    # x_k, y_k, z_k = 1, 1, -1
+    # Fx_k, Fy_k, Fz_k = 1, 0, 0
+    # P, _, _, _ = compute_polarization(Fx_k, Fy_k, Fz_k, n_obs, flux=True)
+    # print(P)
 
     m = 4
     Mbh = 10**m
@@ -274,7 +274,7 @@ if __name__ == "__main__":
 
     for idx in range(len(x)):
         n_obs = [x[idx], y[idx], z[idx]]
-        P, I, Q, U = compute_polarization(Fx, Fy, Fz, n_obs, flux=True)
+        P, I, Q, U = compute_polarization(Fx, Fy, Fz, n_obs, flux=True, nx = x, ny = y, nz = z)
         P_all[idx] = P
     # print(f"n_obs: {n_obs}, P = {P}\n---------")
     if few_obs:
@@ -397,38 +397,36 @@ if __name__ == "__main__":
     # axx.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
 
     #%% what if it's radial
-    x_heal, y_heal, z_heal = x/r_ph, y/r_ph, z/r_ph 
-    F_x_rad = F_mag_median * x_heal
-    F_y_rad = F_mag_median * y_heal
-    F_z_rad = F_mag_median * z_heal
-    F_r_vec = np.vstack((F_x_rad, F_y_rad, F_z_rad)).T
-    F_r_hat = F_r_vec / np.maximum(np.linalg.norm(F_r_vec, axis=1)[:, None], 1e-20)
-    cos_Fhat_r_rad = np.sum(F_r_hat * r_hat, axis=1)
-    P_radial = np.zeros(len(x_heal))
+    # print('Same flux, but all in the healpix direction')
+    # x_heal, y_heal, z_heal = x/r_ph, y/r_ph, z/r_ph 
+    # F_x_rad = F_mag_median * x_heal
+    # F_y_rad = F_mag_median * y_heal
+    # F_z_rad = F_mag_median * z_heal
+    # F_r_vec = np.vstack((F_x_rad, F_y_rad, F_z_rad)).T
+    # P_radial = np.zeros(len(x_heal))
 
-    for idx in range(len(x)):
-        n_obs = [x[idx], y[idx], z[idx]]
-        P, I, Q, U = compute_polarization(F_x_rad, F_y_rad, F_z_rad, n_obs, flux=True)
-        P_radial[idx] = P
+    # for idx in range(len(x)):
+    #     n_obs = [x[idx], y[idx], z[idx]]
+    #     P, I, Q, U = compute_polarization(F_x_rad, F_y_rad, F_z_rad, n_obs, flux=True)
+    #     P_radial[idx] = P
 
-    data_1d= np.abs(P_radial) 
-    data_grid_Pr = griddata(
-    points=(lon_1d, lat_1d),
-    values=data_1d,
-    xi=(lon_mesh, lat_mesh),
-    method='linear')
+    # data_grid_Pr = griddata(
+    # points=(lon_1d, lat_1d),
+    # values=P_radial,
+    # xi=(lon_mesh, lat_mesh),
+    # method='linear')
 
-    fig = plt.figure(figsize=(30,10))
-    axx = fig.add_subplot(gs[0, 0], projection='mollweide')
-    img = axx.pcolormesh(lon_mesh, lat_mesh, data_grid_Pr, cmap='rainbow', vmin = 0, vmax = 1)  #color by intensity
-    cbar = plt.colorbar(img, orientation='horizontal', label =r'P')
-    cbar.ax.tick_params(which='major',length = 5)
-    cbar.ax.tick_params(which='minor',length = 3)
-    axx.grid(True)
-    axx.set_xticks(np.radians(np.arange(-180, 181, 90))) 
-    axx.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
-    axx.set_yticks(np.radians(np.arange(-90, 91, 45))) 
-    axx.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
-    axx.set_title('If flux', fontsize=16)
+    # fig = plt.figure(figsize=(30,10))
+    # axx = fig.add_subplot(gs[0, 0], projection='mollweide')
+    # img = axx.pcolormesh(lon_mesh, lat_mesh, data_grid_Pr, cmap='rainbow', vmin = 0, vmax = 1)  #color by intensity
+    # cbar = plt.colorbar(img, orientation='horizontal', label =r'P')
+    # cbar.ax.tick_params(which='major',length = 5)
+    # cbar.ax.tick_params(which='minor',length = 3)
+    # axx.grid(True)
+    # axx.set_xticks(np.radians(np.arange(-180, 181, 90))) 
+    # axx.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
+    # axx.set_yticks(np.radians(np.arange(-90, 91, 45))) 
+    # axx.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
+    # axx.set_title('If flux', fontsize=16)
 
 # %%

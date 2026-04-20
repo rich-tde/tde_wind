@@ -23,23 +23,24 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-snaps = [109, 151]
+snaps = [76, 109, 151] #[49, 64, 142] #0.4tfb, 0.78, 2.08 fb are snaps 49, 64, 142
 x_axis = 'Temp'  # 'Freq' or 'Temp'
 # Visible: 4.8e14-7.5e14 Hz  // UV: 7.5e14-3e15 // Xray: 3e15-3e19 Hz (tera:1e12, peta: 1e14, exa: 1e18)
-low_freq_optical = 4.8e14
-high_freq_optical = 7.5e14
-high_freq_UV = 3e15
-high_freq_Xray = 3e19
-L_min = 1e38
-L_max = 4e42
+low_freq_optical = 1.6767 * prel.ev_toHz #4.8e14
+high_freq_optical = 3.358 * prel.ev_toHz #7.5e14
+high_freq_UV = 7.748 * prel.ev_toHz #3e15
+low_freq_Xray = 300 * prel.ev_toHz 
+high_freq_Xray = 2e4 * prel.ev_toHz #3e19
+L_min = 1e39
+L_max = 1e42
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-def plot_spectra(folder, check, snaps, x_axis, choice = 'left_right_in_out_z'):
+def plot_spectra(folder, check, snaps, x_axis, choice = 'left_right_z'):
     # Load
     pre_saving = f'{abspath}/data/{folder}'
     freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt')
-    idx_opt = np.where(np.logical_and(freqs > low_freq_optical, freqs < high_freq_optical))[0][0]
-    idx_UV = np.where(np.logical_and(freqs > high_freq_optical, freqs < high_freq_UV))[0][0]
+    idx_opt = np.where(np.logical_and(freqs > low_freq_optical, freqs < high_freq_UV))[0][0]
+    # idx_UV = np.where(np.logical_and(freqs > high_freq_optical, freqs < high_freq_UV))[0][0]
     idx_Xray = np.where(np.logical_and(freqs > high_freq_UV, freqs < high_freq_Xray))[0][0]
 
     data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
@@ -65,16 +66,26 @@ def plot_spectra(folder, check, snaps, x_axis, choice = 'left_right_in_out_z'):
     lat_grid = np.linspace(lat_1d.min(), lat_1d.max(), 180)
     lon_mesh, lat_mesh = np.meshgrid(lon_grid, lat_grid)
     
-    fig_moll = plt.figure(figsize=(22,len(snaps)*10))
-    gs = gridspec.GridSpec(len(snaps), 3, width_ratios=[1,1,1], height_ratios=[1]*len(snaps), hspace=0.0, wspace = 0.2)
+    fig_moll = plt.figure(figsize=(22,len(snaps)*6))
+    gs = gridspec.GridSpec(len(snaps), 2, hspace=0.2, wspace = 0.0)
+
     for s, snap in enumerate(snaps):
         time = tfb[snaps_fld == snap][0]
         L_photo = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
         
         ax_op = fig_moll.add_subplot(gs[s, 0], projection='mollweide')
-        ax_uv = fig_moll.add_subplot(gs[s, 1], projection='mollweide')
-        ax_x = fig_moll.add_subplot(gs[s, 2], projection='mollweide')
-        for ax in [ax_op, ax_uv, ax_x]:
+        # ax_uv = fig_moll.add_subplot(gs[s, 1], projection='mollweide')
+        ax_x = fig_moll.add_subplot(gs[s, 1], projection='mollweide')
+
+        if s == 0:
+            ax_op.set_title("Optical + UV", fontsize=24, y = 1.15)
+            ax_x.set_title("X-ray", fontsize=24, y = 1.15)
+        # else:
+        #     # invisible title to keep the same padding
+        #     ax_op.set_title(" ", fontsize=1, y = 1.1)
+        #     ax_x.set_title(" ", fontsize=1, y = 1.1)
+
+        for ax in [ax_op,ax_x]:
             ax.set_xticks(np.radians(np.arange(-180, 181, 90))) 
             ax.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
             ax.set_yticks(np.radians(np.arange(-90, 91, 45))) 
@@ -84,7 +95,7 @@ def plot_spectra(folder, check, snaps, x_axis, choice = 'left_right_in_out_z'):
         for i in range(len(L_photo)):
             Lum_freq = freqs * L_photo[i]
             Lum_op[i] = np.sum(Lum_freq[idx_opt])
-            Lum_UV[i] = np.sum(Lum_freq[idx_UV])
+            # Lum_UV[i] = np.sum(Lum_freq[idx_UV])
             Lum_Xray[i] = np.sum(Lum_freq[idx_Xray])
 
         data_grid_op = griddata(
@@ -94,12 +105,12 @@ def plot_spectra(folder, check, snaps, x_axis, choice = 'left_right_in_out_z'):
         method='linear')
         ax_op.pcolormesh(lon_mesh, lat_mesh, data_grid_op, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=L_max))
 
-        data_grid_uv = griddata(
-        points=(lon_1d, lat_1d),
-        values=Lum_UV,
-        xi=(lon_mesh, lat_mesh),
-        method='linear')
-        ax_uv.pcolormesh(lon_mesh, lat_mesh, data_grid_uv, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=L_max))
+        # data_grid_uv = griddata(
+        # points=(lon_1d, lat_1d),
+        # values=Lum_UV,
+        # xi=(lon_mesh, lat_mesh),
+        # method='linear')
+        # ax_uv.pcolormesh(lon_mesh, lat_mesh, data_grid_uv, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=L_max))
     
         data_grid_x = griddata(
         points=(lon_1d, lat_1d),
@@ -123,22 +134,23 @@ def plot_spectra(folder, check, snaps, x_axis, choice = 'left_right_in_out_z'):
                 Lum = np.concatenate(L_photo[idx])
             else:
                 Lum = np.median(L_photo[idx], axis = 0)
-            ax.plot(x_value, freqs * Lum, label = f'Obs {label_obs[i_idx]}', c = colors_obs[i_idx], ls = lines_obs[i_idx])
+            ax.plot(x_value, freqs * Lum, label = f'{label_obs[i_idx]}', c = colors_obs[i_idx], ls = lines_obs[i_idx])
                         
         ax.tick_params(axis='both', which='major', length=8, width=1.2)
         ax.tick_params(axis='both', which='minor', length=5, width=1)
         ax.loglog()
         ax.set_ylim(L_min, L_max)
-        ax.set_ylabel(r'$\nu F_{\nu}$ [erg s$^{-1}$]')
+        ax.set_ylabel(r'$\nu L_{\nu}$ [erg s$^{-1}$]')
         ax.legend(fontsize=16)
         ax.set_title(f'SED at t = {np.round(time, 2)}' + r't$_{\rm fb}$', fontsize=20)
         
         plt.tight_layout()
     
-    cbar = fig_moll.colorbar(img, ax=[ax_op, ax_uv, ax_x],  label =r'$\nu L_\nu$ [erg s$^{-1}$]', orientation='horizontal', aspect=45, pad=0.01)
+    cbar = fig_moll.colorbar(img, ax=[ax_op, ax_x],  label =r'$\nu L_\nu$ [erg s$^{-1}$]', orientation='horizontal', aspect=45, pad=0.08)
     cbar.ax.tick_params(which='major',length = 6)
     cbar.ax.tick_params(which='minor',length = 4)
-    fig_moll.tight_layout()
+    fig_moll.subplots_adjust(top=0.90, bottom=0.2, left=0.06, right=0.96)
+    # fig_moll.tight_layout()
 
 plot_spectra(folder, check, snaps, x_axis)
 
