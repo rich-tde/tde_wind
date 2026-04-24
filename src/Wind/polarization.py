@@ -24,7 +24,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-snap = 151
+snap = 109
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 
@@ -150,14 +150,15 @@ def I_plane_parall(F_mag, cos_theta):
 
 def compute_polarization(Ix, Iy, Iz,
                         n_obs,
-                        flux = False,
-                        kappa_tot = None):
+                        kappa,
+                        flux = False,):
     """
     Compute polarization for a single observer direction n_obs.
 
     Inputs:
         Ix, Iy, Iz : intensity/flux vector components
         n_obs : observer direction (3-vector, not necessarily normalized)
+        kappa: absorption+scattering coefficient 
         flux : if True, (Ix, Iy, Iz) are fluxes and not intensities, 
         so you need to divide by the projected area toward the observer to get the local intensity before computing Stokes parameters.
         r_mag : radial distance magnitude (optional, used for flux calculations)
@@ -203,8 +204,12 @@ def compute_polarization(Ix, Iy, Iz,
 
     # Thomson polarization fraction for the  cell
     P_local = (1 - cos_theta_scat**2) / (1 + cos_theta_scat**2)
-    if kappa_tot is not None:
-        P_local *= 0.34/kappa_tot[visible]
+    if type(kappa) != float:
+        # print('kappa different from 0.34')
+        kappa = kappa[visible]
+    
+    P_local *= 0.34/kappa
+    # print(0.34/kappa)
 
     # --- Define a (fixed, arbitrary) sky basis with a plane perpendicular to the line-of-sight direction n
     # vectors: (e1, e2, n). e1 is the first, it will give you the cos(2\phi) which define Q param
@@ -356,7 +361,7 @@ if __name__ == "__main__":
 
     for idx in range(len(x)):
         n_obs = [x[idx], y[idx], z[idx]]
-        P, I, Q, U = compute_polarization(Fx, Fy, Fz, n_obs, flux=True)
+        P, I, Q, U = compute_polarization(Fx, Fy, Fz, n_obs, kappa = kappa, flux=True)
         P_all[idx] = P
     # print(f"n_obs: {n_obs}, P = {P}\n---------")
     if few_obs:
@@ -417,7 +422,7 @@ if __name__ == "__main__":
 
     for idx in range(len(x)):
         n_obs = [x[idx], y[idx], z[idx]]
-        P, I, Q, U = compute_polarization(F_x_rad, F_y_rad, F_z_rad, n_obs, flux=True)#, kappa_tot = kappa)
+        P, I, Q, U = compute_polarization(F_x_rad, F_y_rad, F_z_rad, n_obs, kappa = kappa, flux=True)
         P_radial[idx] = P
 
     data_grid_Pr = griddata(
