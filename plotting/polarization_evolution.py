@@ -64,7 +64,8 @@ if time_evolution:
     P_all = np.zeros((len(snaps_lum), len_obs))
     for s, snap in enumerate(snaps_lum): 
         photo = np.loadtxt(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}POL.txt')
-        x, y, z, Lum, Fx, Fy, Fz = photo[0], photo[1], photo[2], photo[14], photo[16], photo[17], photo[18]
+        x, y, z, den, alpha, Lum, Fx, Fy, Fz = photo[0], photo[1], photo[2], photo[4], photo[12], photo[14], photo[16], photo[17], photo[18]
+        kappa = alpha/den
         for i_o in range(len_obs):
             if avg_in_los:
                 indices_ray = np.array(indices_sorted[i_o], dtype=int)
@@ -72,16 +73,16 @@ if time_evolution:
                 n_obs_ray = [[x_obs[idx], y_obs[idx], z_obs[idx]] for idx in indices_ray]
                 for i_r in range(len(indices_ray)):
                     n_obs = n_obs_ray[i_r]
-                    P, I, Q, U = compute_polarization(Fx, Fy, Fz, n_obs, flux=True)
+                    P, I, Q, U = compute_polarization(Fx, Fy, Fz, kappa, n_obs, flux=True)
                     P_ray[i_r] = P
                 P_all[s, i_o] = np.median(P_ray, axis=0)
             else:
                 n_obs = n_obs_all[i_o]
-                P, I, Q, U = compute_polarization(Fx, Fy, Fz, n_obs, flux=True)
+                P, I, Q, U = compute_polarization(Fx, Fy, Fz, kappa, n_obs, flux=True)
                 P_all[s, i_o] = P
         for i_o_all in range(len(healp_obs)):
             n_healp = healp_obs[i_o_all]
-            P, I, Q, U = compute_polarization(Fx, Fy, Fz, n_healp, flux=True)
+            P, I, Q, U = compute_polarization(Fx, Fy, Fz, kappa, n_healp, flux=True)
             P_all_median[s, i_o_all] = P
 
     P_all_median = np.median(P_all_median, axis=1)
@@ -90,7 +91,6 @@ if time_evolution:
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18,6))
     else:
         fig, ax1 = plt.subplots(1, 1, figsize=(10,6))
-        ax2 = ax1
     for n_idx in range(len_obs):
         # if n_idx > 2:
         #     continue
@@ -117,11 +117,14 @@ if time_evolution:
     ax.plot(tfb_lum, P_all_median, color='k', linestyle='dashed', label='median over all obs')
     
     ax1.set_ylabel('Polarization fraction P')
-    for ax in [ax1, ax2]:
-        ax.set_xlabel(r't$/t_{\rm fb}$')
-        ax.legend()
-        ax.set_ylim(0, 1)
-        ax.grid()
+    # for ax in [ax1, ax2]:
+    ax1.set_xlabel(r't$/t_{\rm fb}$')
+    ax1.legend(fontsize = 16)
+    ax1.set_ylim(1e-2, 1)
+    ax1.set_xlim(0.02, 2.25)
+    ax1.set_yscale('log')
+    ax1.tick_params(axis = 'both', which = 'major', length = 8, width = 1.5)
+    ax1.tick_params(axis = 'both', which = 'minor', length = 5, width = 1)
     ax1.grid()
     plt.savefig(f'{abspath}/Figs/wind_paper/P_time_evolution_{which_obs}.pdf', dpi=300, bbox_inches='tight')
 
@@ -141,8 +144,8 @@ if angle_evolution:
     for snap in snaps:
         time = tfb_lum[np.argmin(np.abs(snaps_lum - snap))]
         photo = np.loadtxt(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}POL.txt')
-        x, y, z, Lum, Fx, Fy, Fz = photo[0], photo[1], photo[2], photo[14], photo[16], photo[17], photo[18]
-
+        x, y, z, den, alpha, Lum, Fx, Fy, Fz = photo[0], photo[1], photo[2], photo[4], photo[12], photo[14], photo[16], photo[17], photo[18]
+        kappa = alpha/den
         r_obs = np.linalg.norm(n_obs_all, axis=1)
         n_obs_all = n_obs_all / r_obs[:, np.newaxis]
         len_obs = len(n_obs_all)
@@ -151,12 +154,12 @@ if angle_evolution:
         P_all = np.zeros(len_obs)
         for i_o in range(len_obs):
             n_obs = n_obs_all[i_o]
-            P, I, Q, U = compute_polarization(Fx, Fy, Fz, n_obs, flux=True)
+            P, I, Q, U = compute_polarization(Fx, Fy, Fz, kappa, n_obs, flux=True)
             P_all[i_o] = P
         ax.plot(angle_x * radians, P_all, marker = 'o', linestyle = '-', label = f't = {time:.2f}' + r' $t_{\rm fb}$')
         ax.set_ylabel('Polarization fraction P')
         ax.set_xlabel('Observer angle (rad) in xz plane')
-        ax.set_ylim(0.01, 1)
+        ax.set_ylim(-0.01, 1)
         ax.grid()
     ax.set_title(f'y=0', fontsize = 18) #t = {time:.2f}' + r'$t_{\rm fb}$', fontsize=18)
     plt.legend(fontsize = 16)

@@ -149,16 +149,16 @@ def I_plane_parall(F_mag, cos_theta):
     return I_parallel
 
 def compute_polarization(Ix, Iy, Iz,
-                        n_obs,
                         kappa,
+                        n_obs,
                         flux = False,):
     """
     Compute polarization for a single observer direction n_obs.
 
     Inputs:
         Ix, Iy, Iz : intensity/flux vector components
-        n_obs : observer direction (3-vector, not necessarily normalized)
         kappa: absorption+scattering coefficient 
+        n_obs : observer direction (3-vector, not necessarily normalized)
         flux : if True, (Ix, Iy, Iz) are fluxes and not intensities, 
         so you need to divide by the projected area toward the observer to get the local intensity before computing Stokes parameters.
         r_mag : radial distance magnitude (optional, used for flux calculations)
@@ -245,7 +245,7 @@ def compute_polarization(Ix, Iy, Iz,
 
 
 if __name__ == "__main__":
-    few_obs = False
+    flux_fromS = True
 
     data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
     snaps_lum, tfb_lum, Lum = data[:, 0], data[:, 1], data[:, 2]
@@ -253,9 +253,17 @@ if __name__ == "__main__":
     snaps_lum = snaps_lum.astype(int)
     time = tfb_lum[np.argmin(np.abs(snaps_lum - snap))]
  
-    photo = np.loadtxt(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}POL.txt')
-    x, y, z, den, alpha, Lum, Fx, Fy, Fz = photo[0], photo[1], photo[2], photo[4], photo[12], photo[14], photo[16], photo[17], photo[18]
-    kappa = alpha/den
+    
+    if flux_fromS:
+        print('Using the flux computed only from scattering')
+        photo = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}POLscatt.txt')
+        x, y, z, Lum, Fx, Fy, Fz = photo[0], photo[1], photo[2], photo[14], photo[16], photo[17], photo[18]
+        kappa = 0.34
+    else:
+        photo = np.loadtxt(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}POL.txt')
+        x, y, z, den, alpha, Lum, Fx, Fy, Fz = photo[0], photo[1], photo[2], photo[4], photo[12], photo[14], photo[16], photo[17], photo[18]
+        kappa = alpha/den
+
     r_vec = np.vstack((x, y, z)).T
     r_ph = np.linalg.norm(r_vec, axis=1)
     r_hat = r_vec / np.maximum(r_ph[:, None], 1e-20)
@@ -361,17 +369,13 @@ if __name__ == "__main__":
 
     for idx in range(len(x)):
         n_obs = [x[idx], y[idx], z[idx]]
-        P, I, Q, U = compute_polarization(Fx, Fy, Fz, n_obs, kappa = kappa, flux=True)
+        P, I, Q, U = compute_polarization(Fx, Fy, Fz, kappa, n_obs, flux=True)
         P_all[idx] = P
     # print(f"n_obs: {n_obs}, P = {P}\n---------")
-    if few_obs:
-        cut = np.abs(longitude_moll)<4e-1
-    else:
-        cut = latitude_moll > -20 #i.e. all obs
 
     ##
     fig, ax = plt.subplots(1,1,figsize=(10, 8))
-    img = ax.scatter(theta_obs[cut]*radians, P_all[cut], c = longitude_moll[cut]*radians, cmap='rainbow', edgecolors='k', s = 70, vmin = -np.pi, vmax = np.pi) #color by phi
+    img = ax.scatter(theta_obs*radians, P_all, c = longitude_moll*radians, cmap='rainbow', edgecolors='k', s = 70, vmin = -np.pi, vmax = np.pi) #color by phi
     cbar = fig.colorbar(img, label=r'$\phi_{\rm obs}$ [rad]', orientation='horizontal')
     ax.set_xlabel(r'$\theta_{\rm obs}$ [rad]')
     ax.set_ylabel('Polarization Fraction P')
@@ -400,7 +404,7 @@ if __name__ == "__main__":
     cbar.ax.tick_params(which='major',length = 6)
     cbar.ax.tick_params(which='minor',length = 4)
     axP = fig.add_subplot(gs[0, 1], projection='mollweide')
-    img = axP.pcolormesh(lon_mesh, lat_mesh, data_grid_P, cmap='rainbow', vmin = 0, vmax = 1)  #color by intensity
+    img = axP.pcolormesh(lon_mesh, lat_mesh, data_grid_P, cmap='rainbow', vmin = 0, vmax = .5)  #color by intensity
     cbar = plt.colorbar(img, orientation='horizontal', pad = 0.1, label =r'P')
     cbar.ax.tick_params(which='major',length = 6)
     for ax in [axf, axP]:
@@ -422,7 +426,7 @@ if __name__ == "__main__":
 
     for idx in range(len(x)):
         n_obs = [x[idx], y[idx], z[idx]]
-        P, I, Q, U = compute_polarization(F_x_rad, F_y_rad, F_z_rad, n_obs, kappa = kappa, flux=True)
+        P, I, Q, U = compute_polarization(F_x_rad, F_y_rad, F_z_rad, kappa, n_obs, flux=True)
         P_radial[idx] = P
 
     data_grid_Pr = griddata(
@@ -433,7 +437,7 @@ if __name__ == "__main__":
 
     fig = plt.figure(figsize=(30,15))
     axx = fig.add_subplot(gs[0, 0], projection='mollweide')
-    img = axx.pcolormesh(lon_mesh, lat_mesh, data_grid_Pr, cmap='rainbow', vmin = 0, vmax = 1)  #color by intensity
+    img = axx.pcolormesh(lon_mesh, lat_mesh, data_grid_Pr, cmap='rainbow', vmin = 0, vmax = .5)  #color by intensity
     cbar = plt.colorbar(img, orientation='horizontal', label =r'P')
     cbar.ax.tick_params(which='major',length = 5)
     cbar.ax.tick_params(which='minor',length = 3)
