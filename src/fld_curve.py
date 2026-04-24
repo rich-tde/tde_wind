@@ -68,7 +68,7 @@ observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 #%% MATLAB, thanks Cindy.
 eng = matlab.engine.start_matlab()
 for idx_s, snap in enumerate(snaps):
-    if snap not in np.arange(51, 100, 5): 
+    if snap not in [109, 151]: 
         continue
     print('\n Snapshot: ', snap, '\n', flush=True)
     # Load data and avoid fluff -----------------------------------------------------------------
@@ -110,8 +110,8 @@ for idx_s, snap in enumerate(snaps):
     r_initial = np.zeros(num_obs) # initial starting point for Rph
     colorsphere = {'idx': [], 'x': [], 'y': [], 'z': [], 'vol': [], 'den': [], 'temp': [], 'radden': [], 'vx': [], 'vy': [], 'vz': [], 'P': [], 'ieden': [], 'alpha_eff': []}
     for i in range(num_obs):
-        # if i not in [0, 191]:
-        #     continue
+        if i not in [0]:
+            continue
         print(f'Obs: {i}', flush=True)
 
         mu_x = observers_xyz[i][0]
@@ -166,7 +166,8 @@ for idx_s, snap in enumerate(snaps):
         ray_ie_den = IE_den[idx]
         
         # Interpolate opacity 
-        ln_alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
+        # ln_alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
+        ln_alpha_rossland = eng.interp2(T_cool2, Rho_cool2, scatter2.T, np.log(t), np.log(d), 'linear', 0)
         ln_alpha_rossland = np.array(ln_alpha_rossland)[0]
         ln_alpha_planck = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t), np.log(d), 'linear', 0)
         ln_alpha_planck = np.array(ln_alpha_planck)[0]
@@ -349,10 +350,10 @@ for idx_s, snap in enumerate(snaps):
         # Save red of the single snap
         pre_saving = f'{abspath}/data/{folder}'
         data = [snap, tfb[idx_s], Lphoto_snap]
-        with open(f'{pre_saving}/{check}_red_newF.csv', 'a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(data)
-        file.close()
+        # with open(f'{pre_saving}/{check}_red_newF.csv', 'a', newline='') as file:
+        #     writer = csv.writer(file)
+        #     writer.writerow(data)
+        # file.close()
 
         # save Rph index and fluxes for each observer in the snapshot
         # time_rph = np.concatenate([[snap,tfb[idx_s]], ph_idx])
@@ -364,7 +365,7 @@ for idx_s, snap in enumerate(snaps):
         #     fileph.write(' '.join(map(str, time_fluxes)) + '\n')
         #     fileph.close()
         
-        with open(f'{pre_saving}/photo/{check}_photo{snap}POL.txt', 'w') as f:
+        with open(f'{pre_saving}/photo/{check}_photo{snap}POLscatt.txt', 'w') as f:
             f.write('# Data for the photospere.\n')
             f.write('# xph\n' + ' '.join(map(str, xph)) + '\n')
             f.write('# yph\n' + ' '.join(map(str, yph)) + '\n')
@@ -388,9 +389,9 @@ for idx_s, snap in enumerate(snaps):
             f.close()
 
         # Save spectrum
-        np.savetxt(f'{pre_saving}/spectra/freqs.txt', prel.freqs)
-        np.savetxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt', L_col)
-        np.savez(f"{pre_saving}/spectra/{check}_Rcol{snap}.npz", **colorsphere)
+        # np.savetxt(f'{pre_saving}/spectra/freqs.txt', prel.freqs)
+        # np.savetxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt', L_col)
+        # np.savez(f"{pre_saving}/spectra/{check}_Rcol{snap}.npz", **colorsphere)
         
              
     del xph, yph, zph, volph, denph, Tempph, Rad_denph, Vxph, Vyph, Vzph, Pressph, IE_denph, rph, alphaph, Lph, ph_idx
