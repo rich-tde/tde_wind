@@ -337,10 +337,10 @@ def choose_observers(observers_xyz, choice):
         tree = KDTree(observers_xyz.T)
         indices_sorted = []
         for axis in cart_axis:
-            _, idx = tree.query([axis], k=1)
+            _, idx = tree.query([axis], k=4)
             indices_sorted.append(idx[0])
         label_obs = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
-        colors_obs = ['darkorange', 'r', '#b2df8a', 'darkgreen', 'dodgerblue', 'b']
+        colors_obs = ['darkorange', 'r', '#b2df8a', 'darkgreen', 'dodgerblue', 'deepskyblue']
         lines_obs = ['solid', 'dashed', 'solid', 'dashed', 'solid', 'dashed']
 
     if plot:

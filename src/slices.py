@@ -175,7 +175,7 @@ else:
         
     else:
         from matplotlib import gridspec
-        what = '_wind' # '' or '_wind' (if you want to pick the wind and plot only the streamlines that belong to the wind)
+        what = '' # '' or '_wind' (if you want to pick the wind and plot only the streamlines that belong to the wind)
         how = '' # '' if you want streamlines, '_arrows' if you want arrows 
         idx_wanted = [np.argmin(np.abs(snaps - 76)), 
                       np.argmin(np.abs(snaps - 109)), 
@@ -253,7 +253,7 @@ else:
                 # x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, Den_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, den)
                 # img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, Den_grid * prel.den_converter, cmap='brg_r', norm=colors.LogNorm(vmin=1e-16, vmax=2e-8))
                 x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, param_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, param_wind)
-                img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, param_grid/E_mb, cmap='coolwarm', norm=colors.SymLogNorm(linthresh=0.01, vmin=-1e2, vmax=1e2))
+                img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, param_grid/E_mb, cmap='coolwarm', norm=colors.SymLogNorm(linthresh=0.1, vmin=-1e2, vmax=1e2))
                 if how == '_arrows': 
                     step = max(1, len(x_toplot) // N_arrows) 
                     print(f'Plotting {len(x_toplot[::step])} arrows out of {len(x_toplot)} points.')
@@ -284,8 +284,8 @@ else:
         # cbar_ax.axis("off") # if you want to hide the axis of the colorbar but keep the colorbar space
         
         cb = fig.colorbar(img, orientation='horizontal', cax=cbar_ax, aspect=100, pad=0.02)
-        cb.set_label(r'$\rho$ (g/cm$^3)$', fontsize = 50)
-        # cb.set_label(r'$\mathcal{B}/\Delta\varepsilon$', fontsize = 50)
+        # cb.set_label(r'$\rho$ (g/cm$^3)$', fontsize = 50)
+        cb.set_label(r'$\mathcal{B}/\Delta\varepsilon$', fontsize = 50)
         cb.ax.tick_params(labelsize=38)
         cb.ax.tick_params(which='major', length=9, width=1.4)
         cb.ax.tick_params(which='minor', length=6, width=1.2)

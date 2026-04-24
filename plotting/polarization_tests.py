@@ -434,8 +434,8 @@ print('Polarization using flux:', P_f)
 print("TEST ellipsoid surface (from modified healpix observers) and asymmetric intensities")
 a = 1.0
 b = a
-nside = 16
-c_all = np.concatenate([[1e-3], np.arange(0.1, 1.2, 0.2)])
+nside = 4
+c_all = np.concatenate([[1e-3], np.arange(0.1, 1.2, 0.1)])
 n_obs_all_params = [[[1, 0, 0], 'solid', 'navy'],
             [[-1, 0, 0], 'dashed', 'dodgerblue'],
             [[0, 1, 0], 'solid', 'darkorange'],
@@ -451,8 +451,7 @@ P_HR_n = np.zeros((len(c_all), len(n_obs_all)))
 for h_idx, c in enumerate(c_all):
     x_obs, y_obs, z_obs = ellipsoid_surface(nside, a, b, c, healpix=True)
     I_vec = ellipsoid_normal(x_obs, y_obs, z_obs, a, b, c)
-    I_vec[x_obs>0.5] *= 10
-    I_vec[x_obs<0.5] /= 10
+    I_vec[x_obs<-0.5] /= 5
     I_vec[np.abs(y_obs)<0.5] *= 10
     Ix_obs, Iy_obs, Iz_obs = I_vec[:,0], I_vec[:,1], I_vec[:,2]
     if not np.allclose(np.sum(x_obs), 0, atol=1e-10):
@@ -462,18 +461,16 @@ for h_idx, c in enumerate(c_all):
     if not np.allclose(np.sum(z_obs), 0, atol=1e-10):
         print(f"Warning: z-coordinates not symmetric for c={c}. sum(z) = {np.sum(z_obs)}")
 
-    # if np.logical_and(nside <= 4, len(c_all)<= 5): # check points and fluxes for the most symmetric case
-    #     print(f"For c = {c}:")
-    #     print(np.max(x_obs), np.min(x_obs))
-    #     print(np.max(y_obs), np.min(y_obs))
-    #     print(np.max(z_obs), np.min(z_obs))
-    #     fig = plt.figure(figsize=(10, 10))
-    #     ax = fig.add_subplot(111, projection = '3d')
-    #     ax.scatter(x_obs, y_obs, z_obs, s = 40)
-    #     ax.quiver(x_obs, y_obs, z_obs, Ix_obs, Iy_obs, Iz_obs, length=0.1, color='k')
-    #     ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
-    #     ax.set_xlim(-1.45, 1.45); ax.set_ylim(-1.45, 1.45); ax.set_zlim(-1.45, 1.45)
-    #     plt.tight_layout()
+    if np.logical_and(nside <= 4, c == 1.0): # check points and fluxes for the most symmetric case
+        print(f"For c = {c}:")
+        I_obs = np.linalg.norm(I_vec, axis=1)
+        fig = plt.figure(figsize=(10, 10))
+        ax = fig.add_subplot(111, projection = '3d')
+        img = ax.scatter(x_obs, y_obs, z_obs, c = I_obs, cmap='rainbow', vmin = 0, vmax = 10)
+        cbar = plt.colorbar(img, ax=ax, label='Intensity')
+        ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
+        ax.set_xlim(-1.45, 1.45); ax.set_ylim(-1.45, 1.45); ax.set_zlim(-1.45, 1.45)
+        plt.tight_layout()
 
     for n_idx in range(len(n_obs_all)):
         n_obs = n_obs_all[n_idx]
@@ -488,6 +485,4 @@ plt.xlabel('c/a')
 plt.ylabel('Polarization Fraction P')
 plt.legend(fontsize=16)
 plt.ylim(-0.1, 1.1)
-plt.title(r'Ellipsoid with $I_{x+}=10I$ and $I_{y-}=I/5$', fontsize=20)
-
 # %%

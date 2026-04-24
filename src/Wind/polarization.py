@@ -13,6 +13,7 @@ from Utilities.sections import make_slices
 from Utilities.basic_units import radians
 from matplotlib import gridspec
 from scipy.interpolate import griddata
+from Utilities.operators import sort_list
 #%% Choose parameters -----------------------------------------------------------------
 # test = True
 m = 4
@@ -23,6 +24,9 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
+snap = 151
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+
 
 def ellipsoid_surface(n_bins, a, b, c, healpix = False):
     """Sample uniform points on ellipsoid surface x²/a² + y²/b² + z²/c² = 1"""
@@ -140,10 +144,14 @@ def polarization_for_disk(obs, angle):
     
     return P
 
+def I_plane_parall(F_mag, cos_theta):
+    I_parallel = F_mag/np.pi * (1 + 3/4 * cos_theta)
+    return I_parallel
+
 def compute_polarization(Ix, Iy, Iz,
                         n_obs,
                         flux = False,
-                        nx=None, ny=None, nz=None,):
+                        kappa_tot = None):
     """
     Compute polarization for a single observer direction n_obs.
 
@@ -181,13 +189,13 @@ def compute_polarization(Ix, Iy, Iz,
 
     # Find intensity from flux through surface (i.e. radial projection of flux)
     if flux:
-        # cos_theta_geom = np.dot(norm_surf_hat, n)
+        # cos_theta_geom = np.dot(norm_surf_hat[visible], n)
         dOmega = 4*np.pi / Nall_obs  # solid angle per cell
         # dA_proj = dOmega * cos_theta_scat  # projected area toward observer nobs or use cos_theta_geom?
         # I_local = I_mag / dA_proj # I_mag is the flux in this case
+        I_local =  I_plane_parall(I_mag, cos_theta_scat) 
         # I_local[cos_theta_scat==0] = 0 # cosTheta=0 menas theta=90, so max polarization
-        dA_proj = dOmega * cos_theta_scat
-        I_local = I_mag / np.maximum(dA_proj, 1e-15)
+        # I_local =  I_mag / np.maximum(dA_proj, 1e-15)
         I_local[cos_theta_scat == 0] = 0 # only consider cells that are locally visible (i.e. cosTheta>0) for polarization. Otherwise, you consider also the light that is scattered toward the observer but then absorbed by the disk itself, which is not what you want.
     else:
         I_local = I_mag
@@ -195,6 +203,8 @@ def compute_polarization(Ix, Iy, Iz,
 
     # Thomson polarization fraction for the  cell
     P_local = (1 - cos_theta_scat**2) / (1 + cos_theta_scat**2)
+    if kappa_tot is not None:
+        P_local *= 0.34/kappa_tot[visible]
 
     # --- Define a (fixed, arbitrary) sky basis with a plane perpendicular to the line-of-sight direction n
     # vectors: (e1, e2, n). e1 is the first, it will give you the cos(2\phi) which define Q param
@@ -230,29 +240,17 @@ def compute_polarization(Ix, Iy, Iz,
 
 
 if __name__ == "__main__":
-    from scipy.optimize import least_squares
-    # test if fluxes work
-    # n_obs = [0, 0, 1]
-    # n_obs_hat = n_obs / np.linalg.norm(n_obs)
-    # x_k, y_k, z_k = 1, 1, -1
-    # Fx_k, Fy_k, Fz_k = 1, 0, 0
-    # P, _, _, _ = compute_polarization(Fx_k, Fy_k, Fz_k, n_obs, flux=True)
-    # print(P)
-
-    m = 4
-    Mbh = 10**m
-    beta = 1
-    mstar = .5
-    Rstar = .47
-    n = 1.5
-    compton = 'Compton'
-    check = 'HiResNewAMR' 
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-    snap = 151
     few_obs = False
+
+    data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
+    snaps_lum, tfb_lum, Lum = data[:, 0], data[:, 1], data[:, 2]
+    snaps_lum, Lum, tfb_lum = sort_list([snaps_lum, Lum, tfb_lum], tfb_lum, unique=True) 
+    snaps_lum = snaps_lum.astype(int)
+    time = tfb_lum[np.argmin(np.abs(snaps_lum - snap))]
  
     photo = np.loadtxt(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}POL.txt')
-    x, y, z, Lum, Fx, Fy, Fz = photo[0], photo[1], photo[2], photo[14], photo[16], photo[17], photo[18]
+    x, y, z, den, alpha, Lum, Fx, Fy, Fz = photo[0], photo[1], photo[2], photo[4], photo[12], photo[14], photo[16], photo[17], photo[18]
+    kappa = alpha/den
     r_vec = np.vstack((x, y, z)).T
     r_ph = np.linalg.norm(r_vec, axis=1)
     r_hat = r_vec / np.maximum(r_ph[:, None], 1e-20)
@@ -272,18 +270,33 @@ if __name__ == "__main__":
     longitude_moll = phi_obs 
     latitude_moll = np.pi/2 - theta_obs
 
-    for idx in range(len(x)):
-        n_obs = [x[idx], y[idx], z[idx]]
-        P, I, Q, U = compute_polarization(Fx, Fy, Fz, n_obs, flux=True, nx = x, ny = y, nz = z)
-        P_all[idx] = P
-    # print(f"n_obs: {n_obs}, P = {P}\n---------")
-    if few_obs:
-        cut = np.abs(longitude_moll)<4e-1
-    else:
-        cut = latitude_moll > -20 #i.e. all obs
-    
-    lon_1d = longitude_moll[cut]
-    lat_1d = latitude_moll[cut]
+    # abs_logFx = np.sign(Fx) * np.log10(np.abs(Fx) + 1e-10)
+    # abs_logFy = np.sign(Fy) * np.log10(np.abs(Fy) + 1e-10)
+    # abs_logFz = np.sign(Fz) * np.log10(np.abs(Fz) + 1e-10)
+
+    # visualize the flux field
+    fig = plt.figure(figsize=(30,20))
+    gs = gridspec.GridSpec(3, 3, width_ratios=[1,1,1], height_ratios=[1,1,.05], hspace=0.1, wspace = 0.2)
+    axx_hist = fig.add_subplot(gs[0, 0])
+    axy_hist = fig.add_subplot(gs[0, 1])
+    axz_hist = fig.add_subplot(gs[0, 2])
+
+    axx_hist.hist(Fx/F_mag_median, bins=30, color='navy', alpha=0.7)
+    axx_hist.set_title('Fx distribution', fontsize=16)
+    axy_hist.hist(Fy/F_mag_median, bins=30, color='darkorange', alpha=0.7)
+    axy_hist.set_title('Fy distribution', fontsize=16)
+    axz_hist.hist(Fz/F_mag_median, bins=30, color='forestgreen', alpha=0.7)
+    axz_hist.set_title('Fz distribution', fontsize=16)
+    axx_hist.set_xlabel(r'$F_x/|F_{\rm med}|$')
+    axy_hist.set_xlabel(r'$F_y/|F_{\rm med}|$')
+    axz_hist.set_xlabel(r'$F_z/|F_{\rm med}|$')
+    for ax in [axx_hist, axy_hist, axz_hist]:
+        ax.set_xlim(0,8)
+        ax.set_ylim(0, 30)
+    plt.tight_layout()
+
+    lon_1d = longitude_moll
+    lat_1d = latitude_moll
     # Define a regular grid in (lon, lat) for visualization
     nlon = 360
     nlat = 180
@@ -291,83 +304,131 @@ if __name__ == "__main__":
     lat_grid = np.linspace(lat_1d.min(), lat_1d.max(), nlat)
     lon_mesh, lat_mesh = np.meshgrid(lon_grid, lat_grid)
     
-    data_1d = np.abs(Fx[cut]) / F_mag_median
+    data_1d = np.abs(Fx) / F_mag_median
     data_grid = griddata(
     points=(lon_1d, lat_1d),
     values=data_1d,
     xi=(lon_mesh, lat_mesh),
     method='linear')
 
-    fig = plt.figure(figsize=(30,10))
-    gs = gridspec.GridSpec(2, 3, width_ratios=[1,1,1], height_ratios=[1,.05], hspace=0.01, wspace = 0.2)
-    axx = fig.add_subplot(gs[0, 0], projection='mollweide')
+    axx = fig.add_subplot(gs[1, 0], projection='mollweide')
     axx.pcolormesh(lon_mesh, lat_mesh, data_grid, cmap='rainbow', norm = colors.LogNorm(vmin = 1e-1, vmax = 1e1))  #color by intensity
-    # axx.scatter(longitude_moll[cut], latitude_moll[cut], c=np.abs(Fx[cut]) / F_mag_median, cmap='rainbow', norm = colors.LogNorm(vmin = 1e-1, vmax = 1e1))  #color by intensity
     axx.grid(True)
     axx.set_xticks(np.radians(np.arange(-180, 181, 90))) 
     axx.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
     axx.set_yticks(np.radians(np.arange(-90, 91, 45))) 
-    axx.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
-    axx.set_title('Fx', fontsize = 20)
+    axx.set_yticklabels(['180°','135°', '90°', '45°', '0°']) #['-90°', '-45°', '0°', '45°','90°'])
 
-    data_1d = np.abs(Fy[cut]) / F_mag_median
+    data_1d = np.abs(Fy) / F_mag_median
     data_grid = griddata(
     points=(lon_1d, lat_1d),
     values=data_1d,
     xi=(lon_mesh, lat_mesh),
     method='linear')
 
-    axy = fig.add_subplot(gs[0, 1], projection='mollweide')
+    axy = fig.add_subplot(gs[1, 1], projection='mollweide')
     axy.pcolormesh(lon_mesh, lat_mesh, data_grid, cmap='rainbow', norm = colors.LogNorm(vmin = 1e-1, vmax = 1e1))  #color by intensity
     axy.grid(True)
     axy.set_xticks(np.radians(np.arange(-180, 181, 90))) 
     axy.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
     axy.set_yticks(np.radians(np.arange(-90, 91, 45))) 
-    axy.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
-    axy.set_title('Fy', fontsize = 20)
+    axy.set_yticklabels(['180°','135°', '90°', '45°', '0°']) #['-90°', '-45°', '0°', '45°','90°'])
 
-    data_1d = np.abs(Fz[cut]) / F_mag_median
+    data_1d = np.abs(Fz) / F_mag_median
     data_grid = griddata(
     points=(lon_1d, lat_1d),
     values=data_1d,
     xi=(lon_mesh, lat_mesh),
     method='linear')
-
-    axz = fig.add_subplot(gs[0, 2], projection='mollweide')
+    
+    axz = fig.add_subplot(gs[1, 2], projection='mollweide')
     img = axz.pcolormesh(lon_mesh, lat_mesh, data_grid, cmap='rainbow', norm = colors.LogNorm(vmin = 1e-1, vmax = 1e1))  #color by intensity
     axz.grid(True)
     axz.set_xticks(np.radians(np.arange(-180, 181, 90))) 
     axz.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
     axz.set_yticks(np.radians(np.arange(-90, 91, 45))) 
-    axz.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
-    axz.set_title('Fz', fontsize = 20)
-
-    cbar_ax = fig.add_subplot(gs[1, 0:3]) 
+    axz.set_yticklabels(['180°','135°', '90°', '45°', '0°']) #['-90°', '-45°', '0°', '45°','90°'])
+    
+    cbar_ax = fig.add_subplot(gs[2, 0:3]) 
     cbar = fig.colorbar(img, cax=cbar_ax, orientation='horizontal', label =r'|F$_{\rm i}|$/F$_{\rm r, med}$')
     cbar.ax.tick_params(which='major',length = 5)
     cbar.ax.tick_params(which='minor',length = 3)
-    
+
+    for idx in range(len(x)):
+        n_obs = [x[idx], y[idx], z[idx]]
+        P, I, Q, U = compute_polarization(Fx, Fy, Fz, n_obs, flux=True)
+        P_all[idx] = P
+    # print(f"n_obs: {n_obs}, P = {P}\n---------")
+    if few_obs:
+        cut = np.abs(longitude_moll)<4e-1
+    else:
+        cut = latitude_moll > -20 #i.e. all obs
+
+    ##
     fig, ax = plt.subplots(1,1,figsize=(10, 8))
-    img = ax.scatter(latitude_moll[cut]*radians, P_all[cut], c = longitude_moll[cut]*radians, cmap='rainbow', edgecolors='k', s = 70, vmin = -np.pi, vmax = np.pi) #color by phi
+    img = ax.scatter(theta_obs[cut]*radians, P_all[cut], c = longitude_moll[cut]*radians, cmap='rainbow', edgecolors='k', s = 70, vmin = -np.pi, vmax = np.pi) #color by phi
     cbar = fig.colorbar(img, label=r'$\phi_{\rm obs}$ [rad]', orientation='horizontal')
     ax.set_xlabel(r'$\theta_{\rm obs}$ [rad]')
     ax.set_ylabel('Polarization Fraction P')
-    ax.set_xlim(-1.6, 1.6)
+    ax.set_xlim(0, 3.2)
     ax.set_ylim(0, np.max(P_all)+0.02)
     plt.suptitle(f'Snap {snap}', fontsize=16)
     plt.tight_layout()
-    print(np.median(P_all))
 
-    data_1d = P_all 
-    data_grid_P = griddata(
+    data_grid_F = griddata(
     points=(lon_1d, lat_1d),
-    values=data_1d,
+    values=F_mag/F_mag_median,
     xi=(lon_mesh, lat_mesh),
     method='linear')
 
-    fig = plt.figure(figsize=(30,10))
+    data_grid_P = griddata(
+    points=(lon_1d, lat_1d),
+    values=P_all,
+    xi=(lon_mesh, lat_mesh),
+    method='linear')
+    
+    fig = plt.figure(figsize=(20,10))
+    gs = gridspec.GridSpec(1, 2, hspace=0.1, wspace = 0.2)
+    axf = fig.add_subplot(gs[0, 0], projection='mollweide')
+    img = axf.pcolormesh(lon_mesh, lat_mesh, data_grid_F, cmap='rainbow', norm = colors.LogNorm(vmin = 1e-1, vmax = 5e2))  #color by intensity
+    cbar = plt.colorbar(img, orientation='horizontal', pad = 0.1, label =r'$|\,\vec{F}\,|/|\,\vec{F}\,|_{\rm med}$ ')
+    cbar.ax.tick_params(which='major',length = 6)
+    cbar.ax.tick_params(which='minor',length = 4)
+    axP = fig.add_subplot(gs[0, 1], projection='mollweide')
+    img = axP.pcolormesh(lon_mesh, lat_mesh, data_grid_P, cmap='rainbow', vmin = 0, vmax = 1)  #color by intensity
+    cbar = plt.colorbar(img, orientation='horizontal', pad = 0.1, label =r'P')
+    cbar.ax.tick_params(which='major',length = 6)
+    for ax in [axf, axP]:
+        ax.grid(True)
+        ax.set_xticks(np.radians(np.arange(-180, 181, 90))) 
+        ax.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
+        ax.set_yticks(np.radians(np.arange(-90, 91, 45))) 
+        ax.set_yticklabels(['180°','135°', '90°', '45°', '0°']) #['-90°', '-45°', '0°', '45°','90°'])
+    plt.suptitle(f't = {time:.1f} ' + r'$t_{\rm fb}$', fontsize=20, x = 0.5, y = .71)
+    plt.savefig(f'{abspath}/Figs/wind_paper/FP_map{snap}.png', dpi=300, bbox_inches='tight')
+
+    #%% what if it's radial
+    x_heal, y_heal, z_heal = x/r_ph, y/r_ph, z/r_ph 
+    F_x_rad = F_mag * x_heal
+    F_y_rad = F_mag * y_heal
+    F_z_rad = F_mag * z_heal
+    F_r_vec = np.vstack((F_x_rad, F_y_rad, F_z_rad)).T
+    P_radial = np.zeros(len(x_heal))
+
+    for idx in range(len(x)):
+        n_obs = [x[idx], y[idx], z[idx]]
+        P, I, Q, U = compute_polarization(F_x_rad, F_y_rad, F_z_rad, n_obs, flux=True)#, kappa_tot = kappa)
+        P_radial[idx] = P
+
+    data_grid_Pr = griddata(
+    points=(lon_1d, lat_1d),
+    values=P_radial,
+    xi=(lon_mesh, lat_mesh),
+    method='linear')
+
+    fig = plt.figure(figsize=(30,15))
     axx = fig.add_subplot(gs[0, 0], projection='mollweide')
-    img = axx.pcolormesh(lon_mesh, lat_mesh, data_grid_P, cmap='rainbow', vmin = 0, vmax = 1)  #color by intensity
+    img = axx.pcolormesh(lon_mesh, lat_mesh, data_grid_Pr, cmap='rainbow', vmin = 0, vmax = 1)  #color by intensity
     cbar = plt.colorbar(img, orientation='horizontal', label =r'P')
     cbar.ax.tick_params(which='major',length = 5)
     cbar.ax.tick_params(which='minor',length = 3)
@@ -375,58 +436,19 @@ if __name__ == "__main__":
     axx.set_xticks(np.radians(np.arange(-180, 181, 90))) 
     axx.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
     axx.set_yticks(np.radians(np.arange(-90, 91, 45))) 
-    axx.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
+    axx.set_yticklabels(['180°','135°', '90°', '45°', '0°']) #['-90°', '-45°', '0°', '45°','90°'])
+    axx.set_title('If flux is radial', fontsize=16, y = 1.2)
 
-    # data_1d = np.abs(r_ph/330) 
-    # data_grid = griddata(
-    # points=(lon_1d, lat_1d),
-    # values=data_1d,
-    # xi=(lon_mesh, lat_mesh),
-    # method='linear')
-
-    # fig = plt.figure(figsize=(30,10))
-    # axx = fig.add_subplot(gs[0, 0], projection='mollweide')
-    # img = axx.pcolormesh(lon_mesh, lat_mesh, data_grid, cmap='rainbow', vmin = 0, vmax = 6)  #color by intensity
-    # cbar = plt.colorbar(img, orientation='horizontal', label =r'r$_{\rm ph}/r_{\rm a}$ ')
-    # cbar.ax.tick_params(which='major',length = 5)
-    # cbar.ax.tick_params(which='minor',length = 3)
-    # axx.grid(True)
-    # axx.set_xticks(np.radians(np.arange(-180, 181, 90))) 
-    # axx.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
-    # axx.set_yticks(np.radians(np.arange(-90, 91, 45))) 
-    # axx.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
-
-    #%% what if it's radial
-    # print('Same flux, but all in the healpix direction')
-    # x_heal, y_heal, z_heal = x/r_ph, y/r_ph, z/r_ph 
-    # F_x_rad = F_mag_median * x_heal
-    # F_y_rad = F_mag_median * y_heal
-    # F_z_rad = F_mag_median * z_heal
-    # F_r_vec = np.vstack((F_x_rad, F_y_rad, F_z_rad)).T
-    # P_radial = np.zeros(len(x_heal))
-
-    # for idx in range(len(x)):
-    #     n_obs = [x[idx], y[idx], z[idx]]
-    #     P, I, Q, U = compute_polarization(F_x_rad, F_y_rad, F_z_rad, n_obs, flux=True)
-    #     P_radial[idx] = P
-
-    # data_grid_Pr = griddata(
-    # points=(lon_1d, lat_1d),
-    # values=P_radial,
-    # xi=(lon_mesh, lat_mesh),
-    # method='linear')
-
-    # fig = plt.figure(figsize=(30,10))
-    # axx = fig.add_subplot(gs[0, 0], projection='mollweide')
-    # img = axx.pcolormesh(lon_mesh, lat_mesh, data_grid_Pr, cmap='rainbow', vmin = 0, vmax = 1)  #color by intensity
-    # cbar = plt.colorbar(img, orientation='horizontal', label =r'P')
-    # cbar.ax.tick_params(which='major',length = 5)
-    # cbar.ax.tick_params(which='minor',length = 3)
-    # axx.grid(True)
-    # axx.set_xticks(np.radians(np.arange(-180, 181, 90))) 
-    # axx.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
-    # axx.set_yticks(np.radians(np.arange(-90, 91, 45))) 
-    # axx.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
-    # axx.set_title('If flux', fontsize=16)
+    fig = plt.figure(figsize=(30,15))
+    axx = fig.add_subplot(gs[0, 0], projection='mollweide')
+    img = axx.pcolormesh(lon_mesh, lat_mesh, data_grid_Pr/data_grid_P, cmap='coolwarm', norm = colors.LogNorm(vmin=1e-1, vmax=10))  #color by intensity
+    cbar = plt.colorbar(img, orientation='horizontal', label =r'P$_{\rm r}$/P')
+    cbar.ax.tick_params(which='major',length = 5)
+    cbar.ax.tick_params(which='minor',length = 3)
+    axx.grid(True)
+    axx.set_xticks(np.radians(np.arange(-180, 181, 90))) 
+    axx.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
+    axx.set_yticks(np.radians(np.arange(-90, 91, 45))) 
+    axx.set_yticklabels(['180°','135°', '90°', '45°', '0°']) #['-90°', '-45°', '0°', '45°','90°'])
 
 # %%

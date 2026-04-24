@@ -19,7 +19,7 @@ Rstar = .47
 n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
-which_obs = 'tenths' #'left_right_z' #'arch', 'quadrants', 'tenths'
+which_obs = 'left_right_z' #'left_right_z' #'arch', 'quadrants', 'tenths'
 check = 'HiResNewAMR' 
 
 params = [Mbh, Rstar, mstar, beta]
@@ -151,7 +151,7 @@ for s, snap in enumerate(snaps):
 figTr, axTr = plt.subplots(1, 1, figsize=(10, 8))
 figratios, (axTrnonzero, axNtr, axratio) = plt.subplots(1, 3, figsize=(27, 6))
 fig, (axVph, axdph, axTph) = plt.subplots(1, 3, figsize=(26, 6))
-figL, axL = plt.subplots(2, 2, figsize=(16, 14))
+figL, axL = plt.subplots(2, 2, figsize=(20, 14))
 
 for i, observer in enumerate(indices_axis):
         if which_obs == 'tenths':
@@ -183,7 +183,7 @@ for i, observer in enumerate(indices_axis):
         # axTph.plot(tfbs, TempGas_ph_sec[i]/Rp, c = col, ls = '--')
         # axTph.plot(tfbs, Temp_tr_sec[i]/Rp, c = col)
         axL[0, i_plot].plot(tfbs, Lum_allph_secSum[i]/Lum_ph_allSum, c = col, label = label_axis[i])#,   label =r'$L_{\rm FLD} (r_{\rm ph, all})$' if i ==0 else '')
-        axL[1, i_plot].plot(tfbs, Lum_allph_secmean[i], c = col, label = label_axis[i])
+        axL[1, i_plot].plot(tfbs, Lum_adv_tr_sec[i], c = col, label = label_axis[i])
         
 axTr.set_ylabel(r'median $r_{\rm obs} [r_{\rm t}]$')
 axTrnonzero.set_ylabel(r'median nonzero $r_{\rm tr} [r_{\rm t}]$')

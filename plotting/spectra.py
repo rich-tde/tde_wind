@@ -35,7 +35,7 @@ L_min = 1e39
 L_max = 1e42
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-def plot_spectra(folder, check, snaps, x_axis, choice = 'left_right_z'):
+def plot_spectra(folder, check, snaps, x_axis, choice = 'single_axis'):
     # Load
     pre_saving = f'{abspath}/data/{folder}'
     freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt')
@@ -66,25 +66,26 @@ def plot_spectra(folder, check, snaps, x_axis, choice = 'left_right_z'):
     lat_grid = np.linspace(lat_1d.min(), lat_1d.max(), 180)
     lon_mesh, lat_mesh = np.meshgrid(lon_grid, lat_grid)
     
-    fig_moll = plt.figure(figsize=(22,len(snaps)*6))
-    gs = gridspec.GridSpec(len(snaps), 2, hspace=0.2, wspace = 0.0)
+    fig_mollop = plt.figure(figsize=(len(snaps)*11, 7))
+    gs_op = gridspec.GridSpec(2, len(snaps), wspace = 0.1, hspace = 0, height_ratios=[1, 0.08])
+    fig_mollx = plt.figure(figsize=(len(snaps)*11, 7))
+    gs_x = gridspec.GridSpec(2, len(snaps), wspace = 0.1, hspace = 0, height_ratios=[1, 0.08])
 
     for s, snap in enumerate(snaps):
         time = tfb[snaps_fld == snap][0]
         L_photo = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
         
-        ax_op = fig_moll.add_subplot(gs[s, 0], projection='mollweide')
-        # ax_uv = fig_moll.add_subplot(gs[s, 1], projection='mollweide')
-        ax_x = fig_moll.add_subplot(gs[s, 1], projection='mollweide')
+        ax_op = fig_mollop.add_subplot(gs_op[0, s], projection='mollweide')
+        # ax_uv = fig_moll.add_subplot(gs_uv[0, s], projection='mollweide')
+        ax_x = fig_mollx.add_subplot(gs_x[0, s], projection='mollweide')
 
-        if s == 0:
-            ax_op.set_title("Optical + UV", fontsize=24, y = 1.15)
-            ax_x.set_title("X-ray", fontsize=24, y = 1.15)
-        # else:
+        ax_op.set_title(f'{np.round(time, 2)}' + r' t$_{\rm fb}$', fontsize=24, y = 1.15) 
+        ax_x.set_title(f'{np.round(time, 2)}' + r' t$_{\rm fb}$', fontsize=24, y = 1.15)
+        # else: 
         #     # invisible title to keep the same padding
         #     ax_op.set_title(" ", fontsize=1, y = 1.1)
         #     ax_x.set_title(" ", fontsize=1, y = 1.1)
-
+  
         for ax in [ax_op,ax_x]:
             ax.set_xticks(np.radians(np.arange(-180, 181, 90))) 
             ax.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
@@ -146,11 +147,20 @@ def plot_spectra(folder, check, snaps, x_axis, choice = 'left_right_z'):
         
         plt.tight_layout()
     
-    cbar = fig_moll.colorbar(img, ax=[ax_op, ax_x],  label =r'$\nu L_\nu$ [erg s$^{-1}$]', orientation='horizontal', aspect=45, pad=0.08)
-    cbar.ax.tick_params(which='major',length = 6)
-    cbar.ax.tick_params(which='minor',length = 4)
-    fig_moll.subplots_adjust(top=0.90, bottom=0.2, left=0.06, right=0.96)
-    # fig_moll.tight_layout()
+    cbar_ax = fig_mollop.add_subplot(gs_op[1, 0:3])  # Colorbar subplot below the first two
+    cb = fig_mollop.colorbar(img, cax=cbar_ax, orientation='horizontal', pad=0.07)
+    cb.set_label(r'$\nu L_\nu$ [erg s$^{-1}$]')
+    cb.ax.tick_params(which='major',length = 10)
+    cb.ax.tick_params(which='minor',length = 6) 
+    fig_mollop.suptitle("Optical + UV", fontsize=24) 
+    cbar_ax = fig_mollx.add_subplot(gs_op[1, 0:3])  # Colorbar subplot below the first two
+    cb = fig_mollx.colorbar(img, cax=cbar_ax, orientation='horizontal', pad=0.07)
+    cb.set_label(r'$\nu L_\nu$ [erg s$^{-1}$]')
+    cb.ax.tick_params(which='major',length = 10)
+    cb.ax.tick_params(which='minor',length = 6) 
+    fig_mollx.suptitle("X-ray", fontsize=24)
+    # fig_moll.subplots_adjust(top=0.90, bottom=0.2, left=0.06, right=0.96)
+    fig_mollop.tight_layout()
 
 plot_spectra(folder, check, snaps, x_axis)
 
