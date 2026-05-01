@@ -144,7 +144,7 @@ else:
         ax.set_xlabel(r't / t$_{\rm fb}$')
         if ax != ax1:
             ax.set_yscale('log')
-        ax.legend(fontsize = 18)
+        ax.legend(fontsize = 15, loc = 'lower right')
         ax.grid()
         ax.set_xlim(0, np.max(tfb))
     fig.tight_layout()
@@ -154,6 +154,9 @@ else:
 
 
     
+
+
+# %%
 
 
 # %%

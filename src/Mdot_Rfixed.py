@@ -43,7 +43,6 @@ tfallback = things['t_fb_days']
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
 Rs = things['Rs']
 Rg = things['Rg']
-print(6e6/prel.csol_cgs**2)
 Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
@@ -58,6 +57,7 @@ Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
 convers_kms = prel.Rsol_cgs * 1e-5/prel.tsol_cgs # it's aorund 400
+convers_yr = prel.tsol_cgs/(365*24*3600) 
 
 #%%
 # MAIN
@@ -158,6 +158,11 @@ if plot:
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
     checks_label = ['Low', 'Middle', 'High']    
+    in_yr = True
+    if in_yr:
+        norm = convers_yr
+    else:
+        norm = Medd_sol
 
     fig, ax1 = plt.subplots(1, 1, figsize = (10, 6))
     figCon, (axCon, axerr) = plt.subplots(2, 1, figsize = (9, 9), gridspec_kw={'height_ratios': [3, 2]}, sharex=True)
@@ -205,8 +210,10 @@ if plot:
 
     print('Naive estimate L with max Mdot:', 0.1 * np.max(np.abs(mfallH))* prel.Msol_cgs/prel.tsol_cgs * prel.c_cgs**2)
 
-    ax1.plot(tfbH, np.abs(mfallH)/Medd_sol, ls = '--', c = 'k', label = r'$\dot{M}_{\rm fb}$')
-    img = ax1.scatter(tfbH, np.abs(mwind_dimCellH)/Medd_sol, c = ratio_RadIE, cmap = 'PuOr', edgecolors = 'gray', norm = colors.LogNorm(vmin=3e-2, vmax=5e1) ,label = r'$\dot{M}_{\rm w}$')
+
+    ax1.plot(tfbH, np.abs(mfallH)/norm, ls = '--', c = 'k', label = r'$\dot{M}_{\rm fb}$')
+    img = ax1.scatter(tfbH, np.abs(mwind_dimCellH)/norm, c = ratio_RadIE, cmap = 'PuOr', edgecolors = 'gray', norm = colors.LogNorm(vmin=3e-2, vmax=5e1) ,label = r'$\dot{M}_{\rm w}$')
+
     cbar = fig.colorbar(img, ax = ax1)
     cbar.set_label(r'$E_{\rm rad}/E_{\rm th}$')
     cbar.ax.tick_params(which = 'major', length=8, width=0.9)
@@ -214,10 +221,10 @@ if plot:
     ax1.axvline(tfbH_max, ls = ':', c = 'gray')
     ax1.text(0.011+tfbH_max, 20, r'$t=t_{\rm p}$', rotation = 90, fontsize = 20) 
 
-    axCon.plot(tfbL, np.abs(mwind_dimCellL)/Medd_sol, c = '#d95f02', label = 'Low') 
-    axCon.plot(tfbM, np.abs(mwind_dimCellM)/Medd_sol, c = '#b2df8a', label = 'Middle') 
-    axCon.plot(tfbH, np.abs(mwind_dimCellH)/Medd_sol, c = '#7570b3', label = 'High') 
-    axCon.scatter([tfbL_max, tfbM_max, tfbH_max], np.array([MdotLmax, MdotMmax, MdotHmax])/Medd_sol, c = ['#d95f02', '#b2df8a', '#7570b3'], s = 90, marker = 'd')
+    axCon.plot(tfbL, np.abs(mwind_dimCellL)/norm, c = '#d95f02', label = 'Low') 
+    axCon.plot(tfbM, np.abs(mwind_dimCellM)/norm, c = '#b2df8a', label = 'Middle') 
+    axCon.plot(tfbH, np.abs(mwind_dimCellH)/norm, c = '#7570b3', label = 'High') 
+    axCon.scatter([tfbL_max, tfbM_max, tfbH_max], np.array([MdotLmax, MdotMmax, MdotHmax])/norm, c = ['#d95f02', '#b2df8a', '#7570b3'], s = 90, marker = 'd')
     axerr.plot(tfb_ratioL, ratioL, c = '#d95f02')
     axerr.plot(tfb_ratioL, ratioL, c = '#b2df8a', ls = (0, (5, 10)))
     axerr.plot(tfb_ratioH, ratioH, c = '#7570b3')
@@ -227,8 +234,12 @@ if plot:
     for ax in (axCon, ax1, axerr):
         if ax != axerr:
             ax.set_yscale('log')
-            ax.set_ylim(10, 9e6)
-            ax.set_ylabel(r'$|\dot{M} / \dot{M}_{\rm Edd}|$')   
+            if in_yr:
+                ax.set_ylim(10*convers_yr, 9e6*convers_yr)
+                ax.set_ylabel(r'$|\dot{M}| (M_\odot$/yr)')
+            else:
+                ax.set_ylim(10, 9e6)
+                ax.set_ylabel(r'$|\dot{M} / \dot{M}_{\rm Edd}|$')   
             ax.legend(fontsize = 20)
         else:
             ax.set_ylim(0.9, 4)
@@ -250,8 +261,9 @@ if plot:
 
     fig.tight_layout()
     figCon.tight_layout()
-    fig.savefig(f'{abspath}/Figs/paper/Mw.pdf', bbox_inches = 'tight')
-    figCon.savefig(f'{abspath}/Figs/paper/Mw_conv.pdf', bbox_inches = 'tight')
+    if not in_yr:
+        fig.savefig(f'{abspath}/Figs/paper/Mw.pdf', bbox_inches = 'tight')
+        figCon.savefig(f'{abspath}/Figs/paper/Mw_conv.pdf', bbox_inches = 'tight')
 
     fig, ax = plt.subplots(1,1, figsize = (8,6))
     ax.plot(tfbH, np.abs(mwind_dimCellH/mfallH), c = 'k')

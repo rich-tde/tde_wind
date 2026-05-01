@@ -170,6 +170,26 @@ def choose_sections(X, Y, Z, choice):
         all = {'cond': cond_all, 'label': r'all', 'color': 'leftviolet', 'line': 'solid'}
         sec = {'all': all}
 
+    if choice == 'chunky_axes': # modulo rotation, you treat all the axis to be the same
+        overture = np.tan(np.pi/12)  # overture single healpix obs = 4pi/192. If you want 4, you have to split by 4, so np/12
+        alpha = np.pi/2-overture # since you measure from z
+        slope_pole = np.tan(alpha) 
+        R_yz = np.sqrt(Y**2 + Z**2)
+        R_xz = np.sqrt(X**2 + Z**2)
+        cond_Npole = np.logical_and(np.abs(Z) > slope_pole *  R_cyl, Z > 0)
+        cond_Spole = np.logical_and(np.abs(Z) > slope_pole *  R_cyl, Z < 0)
+        north = {'cond': cond_Npole, 'label': r'+$\hat{z}$', 'color': 'dodgerblue', 'line': 'dotted'}
+        south = {'cond': cond_Spole, 'label': r'-$\hat{z}$', 'color': 'deepskyblue', 'line': 'dotted'}
+        cond_xplus =  np.logical_and(np.abs(X) > slope_pole *  R_yz, X > 0)
+        cond_xminus = np.logical_and(np.abs(X) > slope_pole *  R_yz, X < 0)
+        cond_yplus = np.logical_and(np.abs(Y) > slope_pole *  R_xz, Y > 0)
+        cond_yminus = np.logical_and(np.abs(Y) > slope_pole *  R_xz, Y < 0)
+        xplus = {'cond': cond_xplus, 'label': r'+$\hat{x}$', 'color': 'yellowgreen', 'line': 'solid'}
+        xminus = {'cond': cond_xminus, 'label': r'-$\hat{x}$', 'color': 'forestgreen', 'line': 'dashed'}
+        yplus = {'cond': cond_yplus, 'label': r'+$\hat{y}$', 'color': 'C1', 'line': 'solid'}
+        yminus = {'cond': cond_yminus, 'label': r'-$\hat{y}$', 'color': 'r', 'line': 'dashed'}
+        sec = {'xplus': xplus, 'xminus': xminus, 'yplus': yplus, 'yminus': yminus, 'north': north, 'south': south}
+
     if choice == 'left_right_z':
         cond_left = np.logical_and(X < 0, np.abs(Z) <= slope *  R_cyl)
         cond_right = np.logical_and(X >= 0, np.abs(Z) < slope * R_cyl)
@@ -235,7 +255,7 @@ def choose_observers(observers_xyz, choice):
     x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
     all_idx_obs = np.arange(len(x_obs))
 
-    if choice in ['left_right_z', 'in_out_z', 'left_right_in_out_z', 'all', 'tenths']:
+    if choice in ['left_right_z', 'in_out_z', 'left_right_in_out_z', 'all', 'tenths', 'chunky_axes']:
         indices_sorted = []
         sections_ph = choose_sections(x_obs, y_obs, z_obs, choice = choice)
 
@@ -332,15 +352,15 @@ def choose_observers(observers_xyz, choice):
         colors_obs = ['leftviolet']
         lines_obs = ['solid']
 
-    if choice == 'single_axis':
+    if choice == 'single_axes':
         cart_axis = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]
         tree = KDTree(observers_xyz.T)
         indices_sorted = []
         for axis in cart_axis:
-            _, idx = tree.query([axis], k=4)
+            _, idx = tree.query([axis], k=1)
             indices_sorted.append(idx[0])
         label_obs = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
-        colors_obs = ['darkorange', 'r', '#b2df8a', 'darkgreen', 'dodgerblue', 'deepskyblue']
+        colors_obs = ['#b2df8a', 'forestgreen', 'C1', 'r', 'dodgerblue', 'deepskyblue']
         lines_obs = ['solid', 'dashed', 'solid', 'dashed', 'solid', 'dashed']
 
     if plot:

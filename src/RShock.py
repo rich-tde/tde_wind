@@ -180,14 +180,14 @@ new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
 labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
 for ax in [ax1, ax2]:
     ax.set_yscale('log')
-    ax.set_xlabel(r't / t$_{\rm fb}$', fontsize = 30)
-    ax.grid()
+    ax.set_xlabel(r't / t$_{\rm fb}$')
     ax.set_xticks(new_ticks)
     ax.set_xticklabels(labels)
     ax.tick_params(axis='both', which='major', width=1.1, length=9)
     ax.tick_params(axis='both', which='minor', width=1, length=6)
     ax.set_xlim(np.min(tfb), np.max(tfb))
 ax1.legend(fontsize = 20, loc = 'upper right')
+ax1.grid()
 
 plt.tight_layout()
 plt.savefig(f'{abspath}/Figs/paper/Reta.pdf', bbox_inches = 'tight')

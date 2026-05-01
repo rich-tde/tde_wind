@@ -48,10 +48,10 @@ Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 
 #%% FUNCTIONS
-def radial_profiles(loadpath, snap, ray_params, which_obs):
+def radial_profiles(loadpath, snap, ray_params, which_obs, which_part = ''):
     rmin, rmax, Nray = ray_params
     r_array = np.logspace(np.log10(rmin), np.log10(rmax), Nray)
-    data = op.make_tree(loadpath, snap, energy = True)
+    data = op.make_tree(loadpath, snap)
     X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
         data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Temp, data.Press, data.IE, data.Rad
     cut = Den > 1e-19
@@ -61,12 +61,16 @@ def radial_profiles(loadpath, snap, ray_params, which_obs):
     dim_cell = Vol**(1/3)
 
     cut, bern, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params)
+    if which_part == 'all_outflow':
+        cut = V_r >= 0 
+    if which_part == 'all':
+        cut = Den > 1e-19
     X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell, bern = \
         make_slices([X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell, bern], cut)       
     indices_all = np.arange(len(X))
     
     # split in sections yhe wind cells
-    sections = op.choose_sections(X, Y, Z, which_obs = which_obs)
+    sections = op.choose_sections(X, Y, Z, which_obs)
     cond_sec = []
     colors_obs = []
     label_obs = []
@@ -153,7 +157,7 @@ def radial_profiles(loadpath, snap, ray_params, which_obs):
 def polar_profiles(loadpath, snap, ray_params, which_material = 'wind'):
     r_chosen, phis, Nray = ray_params
     theta_array = np.linspace(0, np.pi/2, Nray)
-    data = op.make_tree(loadpath, snap, energy = True)
+    data = op.make_tree(loadpath, snap)
     X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
         data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Temp, data.Press, data.IE, data.Rad
     Rsph = np.sqrt(X**2 + Y**2 + Z**2)      
@@ -224,7 +228,8 @@ def polar_profiles(loadpath, snap, ray_params, which_material = 'wind'):
 #
 compute = False
 what = 'radial'
-snap = 109
+which_part = 'all' # 'all_outflow' or 'all' or '' to have the wind
+snap = 151
 
 if what == 'polar':
     which_material = 'wind' # 'wind' or ''
@@ -339,13 +344,13 @@ if what == 'polar':
 
 
 if what == 'radial':
-    which_obs = 'left_right_z' # 'left_right_z', 'all' or 'in_out_z'
+    which_obs = 'chunky_axes' # 'left_right_z', 'all' or 'in_out_z'
 
     if compute:
         path = f'{pre}/{snap}'
         ray_params = [Rt, 8*apo, 100]
-        all_outflows = radial_profiles(path, snap, ray_params, which_obs)
-        out_path = f"{abspath}/data/{folder}/wind/{which_obs}/rad_profSec{snap}_{which_obs}.npy"
+        all_outflows = radial_profiles(path, snap, ray_params, which_obs, which_part)
+        out_path = f"{abspath}/data/{folder}/wind/rad_profSec{snap}_{which_obs}_{which_part}.npy"
         np.save(out_path, all_outflows, allow_pickle=True)
 
     else:
@@ -401,7 +406,7 @@ if what == 'radial':
             all_axes = [axd, axV, axT, axM, axLadv, axLkin, axratio]
 
         # Load profiles
-        profiles = np.load(f'{abspath}/data/{folder}/wind/{which_obs}/rad_profSec{snap}_{which_obs}.npy', allow_pickle=True).item()
+        profiles = np.load(f'{abspath}/data/{folder}/wind/rad_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
         for i, lab in enumerate(profiles.keys()):
             # if label_obs[i] == '170-180':
             #     print('skip')
@@ -443,7 +448,7 @@ if what == 'radial':
 
             axd.plot(r_plot/Rt, d * prel.den_converter, label = f'{lab}', color = col)
             # axd.scatter(r_plot[idx_rtr]/Rt, d[idx_rtr] * prel.den_converter marker = 's', s = 100)
-            # axd.scatter(r_plot[idx_rph]/Rt, d[idx_rph] * prel.den_converter marker = 'o', s = 100)
+            axd.scatter(r_plot[idx_rph]/Rt, d[idx_rph] * prel.den_converter, marker = 'o', s = 100)
             axV.plot(r_plot/Rt, v_rad * conversion_sol_kms, label = f'{lab}', color = col)
             # axV.scatter(r_plot[idx_rtr]/Rt, v_rad[idx_rtr] * conversion_sol_kms marker = 's', s = 100)
             # axV.scatter(r_plot[idx_rph]/Rt, v_rad[idx_rph] * conversion_sol_kms marker = 'o', s = 100)

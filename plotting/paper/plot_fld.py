@@ -116,7 +116,7 @@ plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld_ionizz.jpg', bbox_inc
 
 #%%
 fig, (axR, axL) = plt.subplots(1, 2, figsize=(16, 7))
-axR.plot(tfb, percentile84/Rt, c = 'k', alpha = 0.3, linestyle = '--')
+axR.plot(tfb[2:], percentile84[2:]/Rt, c = 'k', alpha = 0.3, linestyle = '--')
 axR.plot(tfb, percentile16/Rt, c = 'k', alpha = 0.3, linestyle = '--')
 img = axR.scatter(tfb, medianRph/Rt, c = f_ph, s = 12, cmap = 'plasma', vmin = 0, vmax = 1)
 cbar = fig.colorbar(img, orientation = 'horizontal')

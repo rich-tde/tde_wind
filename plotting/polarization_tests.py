@@ -8,11 +8,15 @@ import healpy as hp
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import Utilities.prelude as prel
+import wesanderson
 from Utilities.selectors_for_snap import select_snap
 from Utilities.sections import make_slices
 from Utilities.basic_units import radians
 from src.Wind.polarization import compute_polarization, create_disk, polarization_for_disk, ellipsoid_surface, ellipsoid_normal
+wes_palette = wesanderson.film_palette('Rushmore', 0)
+cmap = colors.LinearSegmentedColormap.from_list('Rushmore0', wes_palette)
 
+#%%
 print("TEST one wave with incident/observer direction parallel to scattered (expect: P = 0).")
 ph_obs = np.array([0, 0, 1]) # observer along z
 I_obs = ph_obs # flux along x
@@ -20,9 +24,9 @@ n_obs = ph_obs
 P, I, Q, U = compute_polarization(
     # ph_obs[0], ph_obs[1], ph_obs[2],
     I_obs[0], I_obs[1], I_obs[2],
+    0.34,
     n_obs)
 print(f"n_obs: {n_obs}, I_obs: {I_obs}, P = {P}\n---------")
-##
 print("TEST one wave. incident/observer direction perpendicular to scattered (expect: P = 1).")
 ph_obs = np.array([0, 0, 1]) # observer along z
 I_obs = np.array([1, 0, 0]) # flux along x
@@ -30,8 +34,9 @@ n_obs = ph_obs
 P, I, Q, U = compute_polarization(
     # ph_obs[0], ph_obs[1], ph_obs[2],
     I_obs[0], I_obs[1], I_obs[2],
+    0.34,
     n_obs)
-print(f"n_obs: {n_obs}, I_obs: {I_obs}, P = {P}\n---------")
+print(f"n_obs: {n_obs}, I_obs: {I_obs}, Q = {Q}, U = {U}, P = {P}\n---------")
 #%%
 # NB Healpix doesn't necessarily give symmetric points, so we expect a small polarization signal (anyway ~0)
 print("TEST of symmetry (all radial intensities) with healpix")
@@ -53,26 +58,36 @@ if nside <= 8: # check points and fluxes
     ax.set_xlim(-1.45, 1.45); ax.set_ylim(-1.45, 1.45); ax.set_zlim(-1.45, 1.45)
     plt.tight_layout()
 
+plt.figure(figsize=(5,5))
 n_obs = [1, 0, 0]  
 P, I, Q, U = compute_polarization(
     Ix_obs, Iy_obs, Iz_obs,
+    0.34,
     n_obs, flux = True)
 print(f"n_obs: {n_obs}, P = {P}")
-
+plt.scatter(Q/I, U/I, label = f'n_obs: {n_obs}')
 n_obs = [0, 1, 0]  
 P, I, Q, U = compute_polarization(
     Ix_obs, Iy_obs, Iz_obs,
+    0.34,
     n_obs, flux = True)
 print(f"n_obs: {n_obs}, P = {P}")
-
+plt.scatter(Q/I, U/I, label = f'n_obs: {n_obs}')
 n_obs = [0, 0, 1]  
 P, I, Q, U = compute_polarization(
     Ix_obs, Iy_obs, Iz_obs,
+    0.34,
     n_obs, flux = True)
+plt.scatter(Q/I, U/I, label = f'n_obs: {n_obs}')
+plt.legend(fontsize=16)
+plt.xlim(-1,1)
+plt.ylim(-1,1)
+plt.xlabel('Q/I')
+plt.ylabel('U/I')
 print(f"n_obs: {n_obs}, P = {P}\n---------")
 #%%
 print("TEST disk")
-x_obs, y_obs, z_obs = create_disk(radius=1.0, height=0.5, n_radial=50, n_vertical=40)
+x_obs, y_obs, z_obs = create_disk(radius=1.0, height=0.5, n_radial = 20, n_vertical=20)
 Ix_obs = np.zeros_like(x_obs)
 Iy_obs = np.zeros_like(y_obs)
 Iz_obs = 2 *np.ones_like(z_obs) 
@@ -95,7 +110,8 @@ n_obs_all_params = [[[1, 0, 0], 'solid', 'navy'],
             [[0, 0, -1], 'dashed', 'yellowgreen'],
             [[1, 0, 1], 'dotted', 'k'],
             [[1, 0, -1], 'dotted', 'k'],
-            [[np.sin(np.pi/3), 0, np.cos(np.pi/3)], 'dotted', 'k']]
+            [[np.sin(np.pi/3), 0, np.cos(np.pi/3)], 'dotted', 'k'],
+            [[np.sin(np.pi/3), 0, -np.cos(np.pi/3)], 'dotted', 'k']]
 
 n_obs_all = [params[0] for params in n_obs_all_params]
 P_HR_n = np.zeros(len(n_obs_all))
@@ -106,7 +122,7 @@ for n_idx in range(len(n_obs_all)):
     theta_obs[n_idx] = np.arccos(n_obs[2]/np.linalg.norm(n_obs))
 for n_idx in range(len(n_obs_all)):
         n_obs = n_obs_all[n_idx]
-        P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, n_obs)
+        P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, 0.34, n_obs)
         P_HR_n[n_idx] = P
 
 angle_test = np.linspace(0, 1.1*np.pi, 100)
@@ -115,12 +131,13 @@ for idx, a in enumerate(angle_test):
     P_an[idx] = polarization_for_disk(a, angle = True)
 
 plt.figure(figsize=(8,8))
-plt.scatter(theta_obs*radians, P_HR_n, label='numerical', c = 'r')
+plt.scatter(theta_obs*radians, P_HR_n, label='numerical', c = wes_palette[4], s = 50)
 plt.plot(angle_test*radians, P_an, label='Analytic', ls = 'dashed', c = 'k')
-plt.xlabel(r'$\theta_{\rm obs}$')
+plt.xlabel(r'$\theta$')
 plt.ylabel('Polarization Fraction P')
 plt.legend(fontsize=16)
-plt.title('Disk test', fontsize=20)
+plt.savefig(f'{abspath}/Figs/wind_paper/disk_test.pdf', bbox_inches='tight')
+# plt.title('Disk test', fontsize=20)
 
 #%%
 print("TEST ellipsoid surface")
@@ -158,7 +175,7 @@ for h_idx, c in enumerate(c_all):
 
     for n_idx in range(len(n_obs_all)):
         n_obs = n_obs_all[n_idx]
-        P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, n_obs)
+        P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, 0.34, n_obs)
         P_HR_n[h_idx, n_idx] = P
 
 plt.figure(figsize=(8,8))
@@ -172,7 +189,7 @@ plt.title('Ellipsoid test without healpix', fontsize=20)
 
 #%%
 print("TEST ellipsoid surface with modified healpix observers")
-nside = 4 
+nside = 16
 a = 1.0
 b = a
 c_all = np.concatenate([[1e-3], np.arange(0.1, 1.1, 0.1)])
@@ -214,7 +231,7 @@ for h_idx, c in enumerate(c_all):
 
     for n_idx in range(len(n_obs_all)):
         n_obs = n_obs_all[n_idx]
-        P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, n_obs)
+        P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, 0.34,n_obs)
         P_HR_n[h_idx, n_idx] = P
 
 plt.figure(figsize=(8,8))
@@ -229,16 +246,16 @@ plt.title('Ellipsoid test with healpix', fontsize=20)
 
 #%% Healpix observers with magnitudes different according to the hemisphere
 # NB: if you want to see less observers, DON'T cut here, or you change polarization computation
-few_obs = True
-change_y = False
+few_obs = False
+change_y = True
 div_y = 2
 mult_fact = [4] #np.array([1, 4, 10, 100])
 nside = 16
 Npix = hp.nside2npix(nside)
 observers_xyz = hp.pix2vec(nside, np.arange(Npix)) # shape: (3, 192)
 x_obs, y_obs, z_obs = observers_xyz
-I_vec = ellipsoid_normal(x_obs, y_obs, z_obs, a, b, c)
-I_vec *= 2 # so that the fluxes are not too small and you can see the color gradient in the plot
+I_vec = np.vstack((x_obs, y_obs, z_obs)).T
+# I_vec *= 2 # so that the fluxes are not too small and you can see the color gradient in the plot
 numb = np.arange(len(x_obs))
 phi_obs = np.arctan2(y_obs, x_obs)
 phi_obs += np.pi
@@ -254,7 +271,7 @@ for i_idx, mult in enumerate(mult_fact):
     Ix_obs, Iy_obs, Iz_obs = I_vec[:,0], I_vec[:,1], I_vec[:,2]
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111, projection = '3d')
-    ax.scatter(x_obs, y_obs, z_obs, s = 40, c = np.linalg.norm(I_vec, axis=1), cmap='rainbow', edgecolors='k', vmin = 0, vmax = np.max(np.linalg.norm(I_vec, axis=1))) #color by intensity
+    ax.scatter(x_obs, y_obs, z_obs, s = 40, c = np.linalg.norm(I_vec, axis=1), cmap=cmap, edgecolors='k', vmin = 0, vmax = np.max(np.linalg.norm(I_vec, axis=1))) #color by intensity
     ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
     ax.set_xlim(-1.45, 1.45); ax.set_ylim(-1.45, 1.45); ax.set_zlim(-1.45, 1.45)
     if change_y:
@@ -265,9 +282,10 @@ for i_idx, mult in enumerate(mult_fact):
     # plt.show()
     for n_idx in range(len(theta_obs)):
         n_obs = [x_obs[n_idx], y_obs[n_idx], z_obs[n_idx]]
-        P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, n_obs)
+        P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, 0.34, n_obs)
         P_theta[i_idx][n_idx] = P
-
+        if np.abs(np.dot(n_obs, [0,0,1])-1) < 5e-3:
+            print('Q:', Q, 'U:', U)
 longitude_moll_h = phi_obs - np.pi
 latitude_moll_h = np.pi/2 - theta_obs # z = -1 would give theta = pi, but mollweide has latitude = -90° at z=-1
 if len(mult_fact) > 1:
@@ -287,32 +305,34 @@ else:
     fig = plt.figure(figsize=(24,10))
     gs = gridspec.GridSpec(2, 2, width_ratios=[1,1], height_ratios=[1, .05], hspace=0.4, wspace = 0.2)
     ax1 = fig.add_subplot(gs[0, 0], projection='mollweide')
-    img = ax1.scatter(longitude_moll_h[cut], latitude_moll_h[cut], s = 100, c=  np.linalg.norm(I_vec[cut], axis=1), cmap='rainbow', edgecolors='k', vmin = 0, vmax = np.max(np.linalg.norm(I_vec, axis=1))) #color by intensity
+    img = ax1.scatter(longitude_moll_h[cut], latitude_moll_h[cut], s = 100, c=  np.linalg.norm(I_vec[cut], axis=1), cmap = cmap, alpha = 0.8, vmin = 0, vmax = np.max(np.linalg.norm(I_vec, axis=1))) #color by intensity
     cbar_ax = fig.add_subplot(gs[1, 0]) 
     cbar = fig.colorbar(img, cax=cbar_ax, orientation='horizontal', label =r'I')
     cbar.ax.tick_params(which='major',length = 5)
     cbar.ax.tick_params(which='minor',length = 3)
     ax1.grid(True)
     ax1.set_xticks(np.radians(np.arange(-180, 181, 90))) 
-    ax1.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
+    ax1.set_xticklabels(['180°', '270°', '0°','90°', '180°'])
     ax1.set_yticks(np.radians(np.arange(-90, 91, 45))) 
-    ax1.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
+    ax1.set_yticklabels(['180°', '135°', '90°', '45°','0°'])
     ax = fig.add_subplot(gs[0, 1]) 
-    img = ax.scatter(latitude_moll_h[cut]*radians, P_theta[0,cut], s = 100, cmap = 'rainbow', c = longitude_moll_h[cut], vmin = -np.pi, vmax = np.pi) #plt.cm.rainbow(m_idx / len(mult_fact)))
-    cbar_ax = fig.add_subplot(gs[1, 1]) 
-    cbar = fig.colorbar(img, cax=cbar_ax, orientation='horizontal', label =r'longitude [rad]')
-    cbar.ax.tick_params(which='major',length = 5)
-    cbar.ax.tick_params(which='minor',length = 3)
-    if change_y:
-        plt.title(r'$I_{+x}$' + f'= {mult}I, ' + r'$I_{-y}$' + f' = I/{div_y}', fontsize=20)
-    else:
-        plt.title(r'$I_{+x}$' + f'= {mult}I', fontsize=20)
-    ax.set_ylim(-0.02, 0.5)
-ax.set_xlabel(r'latitude obs [rad]')
-ax.set_ylabel('Polarization Fraction P')
-ax.set_xlim(0, 1.8)
+    # img = ax.scatter(latitude_moll_h[cut]*radians, P_theta[0,cut], s = 100, cmap = 'rainbow', c = longitude_moll_h[cut], vmin = -np.pi, vmax = np.pi) #plt.cm.rainbow(m_idx / len(mult_fact)))
+    # cbar_ax = fig.add_subplot(gs[1, 1]) 
+    # cbar = fig.colorbar(img, cax=cbar_ax, orientation='horizontal', label =r'longitude [rad]')
+    # cbar.ax.tick_params(which='major',length = 5)
+    # cbar.ax.tick_params(which='minor',length = 3)
+    img = ax.plot(theta_obs[cut]*radians, P_theta[0,cut],c = wes_palette[1]) #plt.cm.rainbow(m_idx / len(mult_fact)))
+    # if change_y:
+    #     plt.title(r'$I_{+x}$' + f'= {mult}I, ' + r'$I_{-y}$' + f' = I/{div_y}', fontsize=20)
+    # else:
+    #     plt.title(r'$I_{+x}$' + f'= {mult}I', fontsize=20)
+    # ax.set_ylim(-0.02, 0.5)
+ax.set_xlabel(r'$\theta$ [rad]')
+ax.set_ylabel('Net polarization P')
+ax.set_xlim(0, 3.2)
 if len(mult_fact) > 1:
     ax.legend(fontsize=24)
+plt.savefig(f'{abspath}/Figs/wind_paper/aniso_sphere.pdf', bbox_inches='tight',transparent=True)
 
 #%% Healpix observers with radial fluxes but of different magnitudes
 # NB: if you want to see less observers, DON'T cut here, or you change polarization computation

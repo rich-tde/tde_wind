@@ -25,7 +25,7 @@ angle_evolution = True
 if time_evolution:
     avg_in_time = True
     avg_in_los = True
-    which_obs = 'left_right_in_out_z' 
+    which_obs = 'chunky_axes' 
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
@@ -158,11 +158,17 @@ if angle_evolution:
             P_all[i_o] = P
         ax.plot(angle_x * radians, P_all, marker = 'o', linestyle = '-', label = f't = {time:.2f}' + r' $t_{\rm fb}$')
         ax.set_ylabel('Polarization fraction P')
-        ax.set_xlabel('Observer angle (rad) in xz plane')
+        ax.set_xlabel('Observer angle (rad) in y=0 plane')
         ax.set_ylim(-0.01, 1)
         ax.grid()
-    ax.set_title(f'y=0', fontsize = 18) #t = {time:.2f}' + r'$t_{\rm fb}$', fontsize=18)
     plt.legend(fontsize = 16)
+
+    axcos = ax.twiny()
+    x_ticks = ax.get_xticks()
+    axcos.set_xticks(x_ticks)
+    axcos.set_xticklabels([f"{np.cos(t):.2f}" for t in x_ticks])
+    axcos.set_xlim(ax.get_xlim()[::-1])
+    axcos.set_xlabel(r'$\cos\theta$')
     plt.savefig(f'{abspath}/Figs/wind_paper/P_angle_evolution.pdf', dpi=300, bbox_inches='tight')
 
 
