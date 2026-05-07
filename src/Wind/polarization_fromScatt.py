@@ -250,15 +250,23 @@ if __name__ == "__main__":
     x, y, z, den, alphaS, tauS, alphaR, tauR, Fx, Fy, Fz = \
         np.loadtxt(f'{abspath}/data/{folder}/scatt_surf/{check}_photo{snap}taus.txt')
     #     np.loadtxt(f'{abspath}/data/{folder}/scatt_surf/{check}_scatt{snap}taus.txt')
+    r_vec = np.vstack((x, y, z)).T
+    r_ph = np.linalg.norm(r_vec, axis=1)
+    r_hat = r_vec / np.maximum(r_ph[:, None], 1e-20)
+
     # ratio_sr = alphaS / alphaR  
     ratio_sr = tauS / tauR   
     # print(ratio_sr)
-    print(alphaS[alphaR < alphaS])
+    plt.figure()
+    img = plt.scatter(tauS / tauR , alphaS / alphaR, c = r_ph/330, cmap='rainbow', norm = colors.LogNorm(vmin = 5e-1, vmax = 7e1))
+    cbar = plt.colorbar(img)
+    cbar.set_label(r'$r_{\rm ph}/r_{\rm a}$')
+    plt.xlabel(r'$\tau_S/\tau_R$')
+    plt.ylabel(r'$\alpha_S/\alpha_R$')
+    plt.grid()
+    plt.xlim(0, 1.1)
+    plt.ylim(0, 1.1)
 
-    r_vec = np.vstack((x, y, z)).T
-    r_ph = np.linalg.norm(r_vec, axis=1)
-    plt.plot(r_ph/330,'o')
-    r_hat = r_vec / np.maximum(r_ph[:, None], 1e-20)
     F_vec = np.vstack((Fx, Fy, Fz)).T
     F_mag = np.linalg.norm(F_vec, axis=1)
     F_hat = F_vec / np.maximum(F_mag[:, None], 1e-20)

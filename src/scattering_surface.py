@@ -67,9 +67,8 @@ observers_xyz = hp.pix2vec(prel.NSIDE, range(num_obs)) # shape: (3, 192)
 observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 #%% MATLAB, thanks Cindy.
 eng = matlab.engine.start_matlab()
-#%%
 for idx_s, snap in enumerate(snaps):
-    if snap not in [151]:
+    if snap not in [76]:
         continue
     print('\n Snapshot: ', snap, '\n', flush=True)
     # Load data and avoid fluff -----------------------------------------------------------------
@@ -305,7 +304,7 @@ for idx_s, snap in enumerate(snaps):
         pre_saving = f'{abspath}/data/{folder}'
 
         with open(f'{pre_saving}/scatt_surf/{check}_scatt{snap}taus.txt', 'w') as f:
-            f.write('# Data for the photospere.\n')
+            f.write('# Data for the scattering surface.\n')
             f.write('# xscatt\n' + ' '.join(map(str, xscatt)) + '\n')
             f.write('# yscatt\n' + ' '.join(map(str, yscatt)) + '\n')
             f.write('# zscatt\n' + ' '.join(map(str, zscatt)) + '\n')
@@ -341,4 +340,28 @@ eng.exit()
 # usage = resource.getrusage(resource.RUSAGE_SELF)
 # print(f"Peak RAM usage: {usage.ru_maxrss / 1024**2:.2f} MB")
 
+# %%
+if plot:
+    from Utilities.operators import sort_list
+    snaps = [76, 109, 151]
+    data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
+    snaps_lum, tfb_lum, Lum = data[:, 0], data[:, 1], data[:, 2]
+    snaps_lum, Lum, tfb_lum = sort_list([snaps_lum, Lum, tfb_lum], tfb_lum, unique=True) 
+    snaps_lum = snaps_lum.astype(int)
+
+    fig, ax = plt.subplots(1,1,figsize=(10, 8))
+    for snap in snaps:
+        time = tfb_lum[np.argmin(np.abs(snaps_lum - snap))]
+        photo_taus = np.loadtxt(f'{abspath}/data/{folder}/scatt_surf/{check}_photo{snap}taus.txt')
+        den, alphaS, alphaR = photo_taus[3], photo_taus[4], photo_taus[6]
+        kappaS = alphaS/den
+        kappaR = alphaR/den
+
+        kappa_ratio = list(np.sort(kappaS/kappaR))
+        bin_kappa = list(np.arange(len(kappa_ratio))/len(kappa_ratio))
+        ax.plot(kappa_ratio, bin_kappa, linewidth = 2, label = f't = {time:.2f}' + r't$_{\rm fb}$')
+        # ax.hist(kappaS/kappaR, bins=30, color='navy', alpha=0.7)
+    ax.set_xlabel(r'$\kappa_{\rm S}/\kappa_{\rm R}$')
+    ax.legend(fontsize=20)
+    ax.grid()
 # %%

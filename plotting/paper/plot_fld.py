@@ -15,7 +15,7 @@ import Utilities.prelude as prel
 import matplotlib.colors as colors
 from Utilities.operators import sort_list
 from src import orbits as orb
-from plotting.paper.IHopeIsTheLast import statistics_photo
+from plotting.paper.IHopeIsTheLast import statistics_photo, statistics_col
 
 ##
 # PARAMETERS
@@ -59,12 +59,15 @@ Lum_mdot = 0.1 * np.abs(mfallH) * prel.csol_cgs**2 *prel.en_converter/prel.tsol_
 time_theory = tfb[210:-1]
 Lum_theory = 5e41*time_theory**(-5/3)
 
-_, medianRph, percentile16, percentile84 = statistics_photo(snaps, check)
+meanRph, medianRph, percentile16, percentile84 = statistics_photo(snaps, check)
+meancol, mediancol, _, _ = statistics_col(snaps, check)
 medianTemprad_ph = np.zeros(len(snaps))
 f_ph = np.zeros(len(snaps))
 for i, snap in enumerate(snaps):
     x_ph, y_ph, z_ph, vol_ph, den_ph, Temp_ph, RadDen_ph, Vx_ph, Vy_ph, Vz_ph, Press_ph, IE_den_ph, alpha_ph, _, _, _ = \
         np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
+    colorpshere = np.load(f'{abspath}/data/{folder}/spectra/{check}_Rcol{snap}.npz')
+    x_col, y_col, z_col = colorpshere['x'], colorpshere['y'], colorpshere['z']
     Temprad_ph = (RadDen_ph*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
     if i == idx_maxLum:
         print('max median T_rad_ph:', np.median(Temprad_ph))
@@ -73,6 +76,8 @@ for i, snap in enumerate(snaps):
         kappa = one_over_kappa_ph**(-1)
         print('kappa at max L:', kappa)
     r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
+    mediancol[i] = np.median(np.sqrt(x_col**2 + y_col**2 + z_col**2))
+    meancol[i] = np.mean(np.sqrt(x_col**2 + y_col**2 + z_col**2))
     vel_ph = np.sqrt(Vx_ph**2 + Vy_ph**2 + Vz_ph**2)
     mass_ph = den_ph * vol_ph
     oe_ph = orb.orbital_energy(r_ph, vel_ph, mass_ph, params, prel.G)
@@ -187,3 +192,23 @@ plt.ylabel(r'Luminosity (erg/s)')
 plt.yscale('log')
 plt.legend()
 plt.grid()
+
+#%%
+fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+ax.plot(tfb, meanRph/Rt, ls = '--', label = r'mean $r_{\rm ph}$')
+ax.plot(tfb, meancol/Rt, label = r'mean $r_{\rm col}$')
+ax.plot(tfb, medianRph/Rt, ls = '--',label = r'median $r_{\rm ph}$')
+ax.plot(tfb, mediancol/Rt, label = r'median $r_{\rm col}$')
+ax.set_ylabel(r' $r/r_{\rm t}$')
+ax.axhline(apo/Rt, c = 'gray', linestyle = '-.', linewidth = 2)
+ax.text(0.11, 1.1*apo/Rt, r'$r_{\rm a}$', fontsize = 20)
+ax.set_yscale('log')
+ax.set_xticks(new_ticks)
+ax.set_xlabel(r't / t$_{\rm fb}$')#, fontsize = 20)
+ax.set_xticklabels(labels)
+ax.tick_params(axis='both', which='major', width = 1, length = 7, color = 'k')
+ax.tick_params(axis='y', which='minor', width = 1, length = 4, color = 'k')
+ax.set_xlim(-.1, np.max(tfb))
+ax.grid()
+ax.legend(fontsize = 18)
+# %%

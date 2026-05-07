@@ -99,6 +99,22 @@ def statistics_photo(snaps, check):
         percentile84[i] = np.percentile(rph_i, 84)
     return mean_ph, median_ph, percentile16, percentile84
 
+def statistics_col(snaps, check):
+    """Calculate the statistics of the colorspehere for a given set of snapshots."""
+    mean_col = np.zeros(len(snaps))
+    median_col = np.zeros(len(snaps))
+    percentile16 = np.zeros(len(snaps))
+    percentile84 = np.zeros(len(snaps))
+    for i, snapi in enumerate(snaps):
+        colorpshere = np.load(f'{abspath}/data/{commonfold}{check}/spectra/{check}_Rcol{snapi}.npz')
+        xcol_i, ycol_i, zcol_i = colorpshere['x'], colorpshere['y'], colorpshere['z']
+        rcol_i = np.sqrt(xcol_i**2 + ycol_i**2 + zcol_i**2)
+        mean_col[i] = np.mean(rcol_i)
+        median_col[i] = np.median(rcol_i)
+        percentile16[i] = np.percentile(rcol_i, 16)
+        percentile84[i] = np.percentile(rcol_i, 84)
+    return mean_col, median_col, percentile16, percentile84
+
 if __name__ == '__main__':
     # Load luminosity data
     # Low
