@@ -8,6 +8,9 @@ For multigroup:
 """ 
 import numpy as np
 
+class UniversalError(Exception):
+    pass
+
 def opacity_extrap(x, y, K, which_opacity, scatter = None, slope_length = 7,  extrarowsx = 101, 
                  extrarowsy = 100):
     ''' 
@@ -20,7 +23,7 @@ def opacity_extrap(x, y, K, which_opacity, scatter = None, slope_length = 7,  ex
     K: array of ln(kappa) [1/cm]
     scatter: either None or interpoalted scattering table in ln (with the same shape of K).
              if != None, brings to opacity always above scattering. It has to be applied for rosseland.
-    slope_length, int: position of the other point used for the slope.
+    slope_length - 1, int: position of the other point used for the slope.
     special_rho_slope, float: slope for some density extrapolations.
     highT_slope, float: slope for high temperature extrapolation.
     extrarowsx/extrarowsy, int: number of rows/columns to extrapolate.
@@ -53,15 +56,15 @@ def opacity_extrap(x, y, K, which_opacity, scatter = None, slope_length = 7,  ex
     for ix, xsel in enumerate(xn):
         for iy, ysel in enumerate(yn):
             if xsel < x[0]: # Too cold
-                deltax = x[slope_length] - x[0]
+                deltax = x[slope_length - 1] - x[0]
                 if ysel < y[0]: # Too rarefied
-                    deltay = y[slope_length] - y[0]
-                    Kxslope = (K[slope_length, 0] - K[0, 0]) / deltax
+                    deltay = y[slope_length - 1] - y[0]
+                    Kxslope = (K[slope_length - 1, 0] - K[0, 0]) / deltax
                     if which_opacity == 'planck':
                         Kyslope = special_rho_slope
                     # else:
-                    Kyslope = (K[0, slope_length] - K[0, 0]) / deltay
-                    # Kyslope = (K[0, slope_length] - K[0, 0]) / deltay
+                    Kyslope = (K[0, slope_length -1] - K[0, 0]) / deltay
+                    # Kyslope = (K[0, slope_length -1] - K[0, 0]) / deltay
                     Kn[ix][iy] = K[0, 0] + Kxslope * (xsel - x[0]) + Kyslope * (ysel - y[0])
                 
                     if scatter is not None:
@@ -70,25 +73,25 @@ def opacity_extrap(x, y, K, which_opacity, scatter = None, slope_length = 7,  ex
                             Kn[ix][iy] = scatter_this_den
 
                 elif ysel > y[-1]: # Too dense 
-                    deltay = y[-1] - y[-slope_length] 
-                    Kxslope = (K[slope_length, -1] - K[0, -1]) / deltax
+                    deltay = y[-1] - y[-slope_length -1] 
+                    Kxslope = (K[slope_length - 1, -1] - K[0, -1]) / deltax
                     Kyslope = special_rho_slope
                     Kn[ix][iy] = K[0, -1] + Kxslope * (xsel - x[0]) +  Kyslope * (ysel - y[-1])
                 
                 else: # Density is inside the table
                     iy_inK = np.argmin(np.abs(y - ysel))
-                    Kxslope = (K[slope_length, iy_inK] - K[0, iy_inK]) / deltax
+                    Kxslope = (K[slope_length - 1, iy_inK] - K[0, iy_inK]) / deltax
                     Kn[ix][iy] = K[0, iy_inK] + Kxslope * (xsel - x[0])
             
             # Too hot
             elif xsel > x[-1]: 
                 Kxslope = highT_slope 
                 if ysel < y[0]: # Too rarefied
-                    deltay = y[slope_length] - y[0]
+                    deltay = y[slope_length - 1] - y[0]
                     if which_opacity == 'planck':
                         Kyslope = special_rho_slope
                     else:
-                        Kyslope = (K[-1, slope_length] - K[-1, 0]) / deltay
+                        Kyslope = (K[-1, slope_length -1] - K[-1, 0]) / deltay
                     Kn[ix][iy] = K[-1, 0] + Kxslope * (xsel - x[-1]) + Kyslope * (ysel - y[0])
                     
                     if scatter is not None:
@@ -107,12 +110,13 @@ def opacity_extrap(x, y, K, which_opacity, scatter = None, slope_length = 7,  ex
             else: # Temperature is inside table
                 ix_inK = np.argmin(np.abs(x - xsel))
                 if ysel < y[0]: # Too rarefied
-                    deltay = y[slope_length] - y[0]
-                    Kyslope = (K[ix_inK, slope_length] - K[ix_inK, 0]) / deltay
+                    deltay = y[slope_length - 1] - y[0]
+                    Kyslope = (K[ix_inK, slope_length -1] - K[ix_inK, 0]) / deltay
                     if which_opacity == 'planck':
                         if Kyslope < 0.35 or Kyslope > 2.75:
-                            print('Error in opacity: Ky slope too high/low')
-                            break
+                            # print('Weird in Planck opacity: Ky slope too high/low. I pass')
+                            # raise UniversalError("Planck opacity interpolation failed")
+                            pass
                     Kn[ix][iy] = K[ix_inK, 0] + Kyslope * (ysel - y[0])
 
                     if scatter is not None:
@@ -216,29 +220,29 @@ def opacity_linear(x, y, K, slope_length = 7, highT_slope = 0,
     for ix, xsel in enumerate(xn):
         for iy, ysel in enumerate(yn):
             if xsel < x[0]: # Too cold
-                deltax = x[slope_length] - x[0]
+                deltax = x[slope_length - 1] - x[0]
                 if ysel < y[0]: # Too rarefied
-                    Kxslope = (K[slope_length, 0] - K[0, 0]) / deltax
+                    Kxslope = (K[slope_length - 1, 0] - K[0, 0]) / deltax
                     Kn[ix][iy] = K[0, 0] + Kxslope * (xsel - x[0]) + (ysel - y[0])
                 elif ysel > y[-1]: # Too dense
-                    Kxslope = (K[slope_length, -1] - K[0, -1]) / deltax
+                    Kxslope = (K[slope_length - 1, -1] - K[0, -1]) / deltax
                     Kn[ix][iy] = K[0, -1] + Kxslope * (xsel - x[0]) + (ysel - y[-1])
                 else: # Density is inside the table
                     iy_inK = np.argmin(np.abs(y - ysel))
-                    Kxslope = (K[slope_length, iy_inK] - K[0, iy_inK]) / deltax
+                    Kxslope = (K[slope_length - 1, iy_inK] - K[0, iy_inK]) / deltax
                     Kn[ix][iy] = K[0, iy_inK] + Kxslope * (xsel - x[0])
             
             # Too hot
             elif xsel > x[-1]: 
                 if ysel < y[0]: # Too rarefied
-                    Kxslope = highT_slope #(K[-1, 0] - K[-slope_length, 0]) / deltax
+                    Kxslope = highT_slope #(K[-1, 0] - K[-slope_length - 1, 0]) / deltax
                     Kn[ix][iy] = K[-1, 0] + Kxslope * (xsel - x[-1]) + (ysel - y[0])
                 elif ysel > y[-1]: # Too dense
-                    Kxslope = highT_slope #(K[-1, -1] - K[-slope_length, -1]) / deltax
+                    Kxslope = highT_slope #(K[-1, -1] - K[-slope_length - 1, -1]) / deltax
                     Kn[ix][iy] = K[-1, -1] + Kxslope * (xsel - x[-1]) + (ysel - y[-1])
                 else: # Density is inside the table
                     iy_inK = np.argmin(np.abs(y - ysel))
-                    Kxslope = highT_slope #(K[-1, iy_inK] - K[-slope_length, iy_inK]) / deltax
+                    Kxslope = highT_slope #(K[-1, iy_inK] - K[-slope_length - 1, iy_inK]) / deltax
                     Kn[ix][iy] = K[-1, iy_inK] + Kxslope * (xsel - x[-1])
 
             else: 

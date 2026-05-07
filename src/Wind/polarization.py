@@ -24,7 +24,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-snap = 109
+snap = 151
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 
@@ -211,7 +211,7 @@ def compute_polarization(Ix, Iy, Iz,
         # print('kappa_fld different from 0.34')
         kappa_fld = kappa_fld[visible]
     
-    # P_local *= 0.34/kappa_fld
+    P_local *= np.exp(-kappa_fld)#0.34/kappa_fld
     # print(0.34/kappa_fld)
 
     # --- Define a (fixed, arbitrary) sky basis with a plane perpendicular to the line-of-sight direction n
@@ -418,7 +418,7 @@ if __name__ == "__main__":
     for idx in range(len(x)):
         # n_obs = [x[idx], y[idx], z[idx]] # observers = my photospheric cells
         n_obs = [x_heal[idx], y_heal[idx], z_heal[idx]]
-        P, I, Q, U = compute_polarization(Fx, Fy, Fz, kappa, n_obs, flux=True)
+        P, I, Q, U = compute_polarization(Fx, Fy, Fz, kappaR, n_obs, flux=True)
         P_all[idx] = P
     print(f'Mean P: {np.mean(P_all):.2f}, \nMedian P: {np.median(P_all):.2f}, \nMax P: {np.max(P_all):.2f}')
 
@@ -495,7 +495,7 @@ if __name__ == "__main__":
     for idx in range(len(x)):
         # n_obs = [x[idx], y[idx], z[idx]]
         n_obs = [x_heal[idx], y_heal[idx], z_heal[idx]]
-        P, I, Q, U = compute_polarization(F_x_rad, F_y_rad, F_z_rad, kappa, n_obs, flux=True)
+        P, I, Q, U = compute_polarization(F_x_rad, F_y_rad, F_z_rad, kappaR, n_obs, flux=True)
         P_radial[idx] = P
     print(f'Spherical photosphere \n----------\nMean P: {np.mean(P_radial):.2f}, \nMedian P: {np.median(P_radial):.2f}, \nMax P: {np.max(P_radial):.2f}')
 
@@ -564,7 +564,7 @@ if __name__ == "__main__":
     for idx in range(len(x)):
         # n_obs = [x[idx], y[idx], z[idx]]
         n_obs = [x_heal[idx], y_heal[idx], z_heal[idx]]
-        P, I, Q, U = compute_polarization(Fx_ell, Fy_ell, Fz_ell, kappa, n_obs, flux=True)
+        P, I, Q, U = compute_polarization(Fx_ell, Fy_ell, Fz_ell, kappaR, n_obs, flux=True)
         P_ell[idx] = P
     print(f'Ellipsoidal photosphere \n----------\nMean P: {np.mean(P_ell):.2f}, \nMedian P: {np.median(P_ell):.2f}, \nMax P: {np.max(P_ell):.2f}')
 
@@ -609,7 +609,7 @@ if __name__ == "__main__":
     for idx in range(len(x)):
         # n_obs = [x[idx], y[idx], z[idx]] # observers = my photospheric cells
         n_obs = [x_heal[idx], y_heal[idx], z_heal[idx]]
-        P, I, Q, U = compute_polarization(Fx_normal, Fy_normal, Fz_normal, kappa, n_obs, flux=False) # put false so uses F as intensity and magnitude doesn't change
+        P, I, Q, U = compute_polarization(Fx_normal, Fy_normal, Fz_normal, kappaR, n_obs, flux=False) # put false so uses F as intensity and magnitude doesn't change
         P_normal[idx] = P
     print(f'Equal intensity \n----------\nMean P: {np.mean(P_normal):.2f}, \nMedian P: {np.median(P_normal):.2f}, \nMax P: {np.max(P_normal):.2f}')
 
