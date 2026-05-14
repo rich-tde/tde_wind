@@ -110,61 +110,23 @@ def ellipsoid_unit_normal(x, y, z, a, b, c, x0=0, y0=0, z0=0):
     
     return n_unit
 
-def create_disk(radius=1.0, height=0.1, n_radial=50, n_vertical=10):
-    """
-    Create full 3D disk: height H centered at z=0 (from -H to +H).
-    Returns: X, Y, Z meshes for volumetric plotting or simulation.
-    """
-    theta = np.linspace(0, 2*np.pi, n_radial)
-    r_vals = np.linspace(0, radius, n_radial)
-    z_vals = np.linspace(-height, height, n_vertical)
-    
-    Theta, R, Z = np.meshgrid(theta, r_vals, z_vals, indexing='ij')
-    
-    X = R * np.cos(Theta)
-    Y = R * np.sin(Theta)
-    X = X.ravel()
-    Y = Y.ravel()
-    Z = Z.ravel()
-    
-    return X, Y, Z
-
-def polarization_for_disk(obs, angle):
-    """
-    Compute polarization for a disk with normal along z, observed from obs.
-    Assumes uniform intensity across the disk.
-    Returns polarization fraction P.
-    """
-    # Scattering angle is theta_obs for all points on the disk
-    if not angle:
-        theta_obs = np.arccos(obs[2] / np.linalg.norm(obs))
-    else:
-        theta_obs = obs
-    cos_theta_scat = np.cos(theta_obs)
-
-    # Thomson polarization fraction
-    P = (1 - cos_theta_scat**2) / (1 + cos_theta_scat**2)
-    
-    return P
-
 def I_plane_parall(F_mag, cos_theta):
     I_parallel = F_mag/np.pi * (1 + 3/4 * cos_theta)
     return I_parallel
 
 def compute_polarization(Ix, Iy, Iz,
-                        kappa_fld,
+                        weight,
                         n_obs,
                         flux = False):
     """
-    Compute polarization for a single observer direction n_obs.
+    Compute polarization for an observer of direction n_obs.
 
     Inputs:
         Ix, Iy, Iz : intensity/flux vector components
-        kappa_fld: absorption+scattering coefficient 
+        weight: weighting coefficient to take into account only scattering contribution
         n_obs : observer direction (3-vector, not necessarily normalized)
         flux : if True, (Ix, Iy, Iz) are fluxes and not intensities, 
-        so you need to divide by the projected area toward the observer to get the local intensity before computing Stokes parameters.
-        r_mag : radial distance magnitude (optional, used for flux calculations)
+        so you need to get the local intensity before computing Stokes parameters.
 
     Returns:
         P : polarization fraction
@@ -207,12 +169,12 @@ def compute_polarization(Ix, Iy, Iz,
 
     # Thomson polarization fraction for the  cell
     P_local = (1 - cos_theta_scat**2) / (1 + cos_theta_scat**2)
-    if type(kappa_fld) != float:
-        # print('kappa_fld different from 0.34')
-        kappa_fld = kappa_fld[visible]
+    if type(weight) != float:
+        # print('weight different from 0.34')
+        weight = weight[visible]
     
-    P_local *= np.exp(-kappa_fld)#0.34/kappa_fld
-    # print(0.34/kappa_fld)
+    # P_local *= np.exp(-weight)
+    P_local *= weight
 
     # --- Define a (fixed, arbitrary) sky basis with a plane perpendicular to the line-of-sight direction n
     # vectors: (e1, e2, n). e1 is the first, it will give you the cos(2\phi) which define Q param
@@ -246,7 +208,6 @@ def compute_polarization(Ix, Iy, Iz,
 
     return P, I, Q, U
 
-
 if __name__ == "__main__":
     data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
     snaps_lum, tfb_lum, Lum = data[:, 0], data[:, 1], data[:, 2]
@@ -255,14 +216,22 @@ if __name__ == "__main__":
     time = tfb_lum[np.argmin(np.abs(snaps_lum - snap))]
     observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) # shape: (3, 192)
     x_heal, y_heal, z_heal = observers_xyz[0], observers_xyz[1], observers_xyz[2]
- 
+    
+    photonew = np.load(f'{abspath}/data/{folder}/photonew/{check}_photo{snap}.npz')
+    alpha_abs = photonew['alpha_abs']
+     # photo = np.loadtxt(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}POL.txt')
+    # x, y, z, den, alpha_rossland, Lum, Fx, Fy, Fz = photo[0], photo[1], photo[2], photo[4], photo[12], photo[14], photo[16], photo[17], photo[18]
+    
     photo = np.loadtxt(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}POL.txt')
-    x, y, z, den, alphaR, Lum, Fx, Fy, Fz = photo[0], photo[1], photo[2], photo[4], photo[12], photo[14], photo[16], photo[17], photo[18]
-    kappaR = alphaR/den
-
-    photo_taus = np.loadtxt(f'{abspath}/data/{folder}/scatt_surf/{check}_photo{snap}taus.txt')
-    alphaS = photo_taus[4]
-    kappaS = alphaS/den
+    x, y, z, den, alpha_scatter, tau_scatt, alpha_rossland, _, Fx, Fy, Fz = \
+        np.loadtxt(f'{abspath}/data/{folder}/scatt_surf/{check}_photo{snap}taus.txt')
+    kappaS = alpha_scatter/den
+    kappaR = alpha_rossland/den
+    # kappaA = alpha_abs/den
+    # print(kappaA)
+    weight = alpha_scatter/alpha_rossland
+    # weight = tau_scatt
+    # weight = alpha_abs/alpha_scatter
 
     r_vec = np.vstack((x, y, z)).T
     r_ph = np.linalg.norm(r_vec, axis=1)
@@ -277,6 +246,7 @@ if __name__ == "__main__":
     cos_Fhat_r = np.sum(F_hat * r_hat, axis=1)
     F_mag_median = np.median(F_mag)
 
+    # PHOTOSPHERE
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111, projection = '3d')
     ax.scatter(x/330, y/330, z/330, s = 40)
@@ -303,29 +273,20 @@ if __name__ == "__main__":
     longitude_moll = phi_obs 
     latitude_moll = np.pi/2 - theta_obs
 
-    fig, ax = plt.subplots(1,1,figsize=(10, 8))
-    img = ax.scatter(theta_obs*radians, kappaS/kappaR, c = longitude_moll*radians, cmap='rainbow', edgecolors='k', s = 70, vmin = -np.pi, vmax = np.pi) #color by phi
+    # KAPPA DISTRIBUTION
+    fig, axR = plt.subplots(1,1,figsize=(10,10))
+    img = axR.scatter(theta_obs*radians, kappaS/kappaR, c = longitude_moll*radians, cmap='rainbow', edgecolors='k', s = 70, vmin = -np.pi, vmax = np.pi) #color by phi
+    # img = axa.scatter(theta_obs*radians, kappaS/kappaA, c = longitude_moll*radians, cmap='rainbow', edgecolors='k', s = 70, vmin = -np.pi, vmax = np.pi) #color by phi
     cbar = fig.colorbar(img, label=r'$\phi_{\rm obs}$ [rad]', orientation='horizontal')
-    ax.set_xlabel(r'$\theta_{\rm obs}$ [rad]')
-    ax.set_ylabel(r'$\kappa_S/\kappa_R$')
-    ax.set_xlim(0, 3.2)
-    ax.set_ylim(0, np.max(kappaS/kappaR)+0.02)
-    plt.suptitle(f'Snap {snap}, scattering contribution to Rosseland mean at photosphere', fontsize=20)
+    # for ax in [axR, axa]:
+    axR.set_xlim(0, 3.2)
+    axR.set_ylabel(r'$\kappa_S/\kappa_R$')
+    # axa.set_ylabel(r'$\kappa_S/\kappa_A$')
+    axR.set_xlabel(r'$\theta_{\rm obs}$ [rad]')
+    axR.set_ylim(0, np.max(kappaS/kappaR)+0.02)
+    plt.suptitle(f'Snap {snap}', fontsize=20)
     plt.tight_layout()
-
-    fig, ax = plt.subplots(1,1,figsize=(10, 8))
-    kappa_ratio = list(np.sort(kappaS/kappaR))
-    bin_kappa = list(np.arange(len(kappa_ratio))/len(kappa_ratio))
-    ax.plot(kappa_ratio, bin_kappa, color = 'dodgerblue', linewidth = 2, label = f't = {time:.2f}' + r't$_{\rm fb}$')
-    # ax.hist(kappaS/kappaR, bins=30, color='navy', alpha=0.7)
-    ax.set_xlabel(r'$\kappa_S/\kappa_R$')
-    ax.set_xlim(0, np.max(kappaS/kappaR)+0.02)
-    ax.legend(fontsize=20)
-
-
-    #%%
-    P_all = np.zeros(len(x))
-
+    
     # fig = plt.figure(figsize=(10,8))
     # axx = fig.add_subplot(projection='mollweide')
     # axx.scatter(longitude_moll[op_idx], latitude_moll[op_idx])  
@@ -335,7 +296,8 @@ if __name__ == "__main__":
     # axx.set_yticks(np.radians(np.arange(-90, 91, 45))) 
     # axx.set_yticklabels(['180°','135°', '90°', '45°', '0°']) #['-90°', '-45°', '0°', '45°','90°'])
 
-    # visualize the flux field
+
+    #%% FLUX FIELD
     fig = plt.figure(figsize=(30,20))
     gs = gridspec.GridSpec(3, 3, width_ratios=[1,1,1], height_ratios=[1,1,.05], hspace=0.1, wspace = 0.2)
     axx_hist = fig.add_subplot(gs[0, 0])
@@ -352,7 +314,7 @@ if __name__ == "__main__":
     axy_hist.set_xlabel(r'$F_y/|F_{\rm med}|$')
     axz_hist.set_xlabel(r'$F_z/|F_{\rm med}|$')
     for ax in [axx_hist, axy_hist, axz_hist]:
-        ax.set_xlim(0,8)
+        # ax.set_xlim(0,8)
         ax.set_ylim(0, 30)
     plt.tight_layout()
 
@@ -415,10 +377,12 @@ if __name__ == "__main__":
     cbar.ax.tick_params(which='major',length = 5)
     cbar.ax.tick_params(which='minor',length = 3)
 
+    #%% POLARIZATION
+    P_all = np.zeros(len(x))
     for idx in range(len(x)):
         # n_obs = [x[idx], y[idx], z[idx]] # observers = my photospheric cells
         n_obs = [x_heal[idx], y_heal[idx], z_heal[idx]]
-        P, I, Q, U = compute_polarization(Fx, Fy, Fz, kappaR, n_obs, flux=True)
+        P, I, Q, U = compute_polarization(Fx, Fy, Fz, weight, n_obs, flux=True)
         P_all[idx] = P
     print(f'Mean P: {np.mean(P_all):.2f}, \nMedian P: {np.median(P_all):.2f}, \nMax P: {np.max(P_all):.2f}')
 
@@ -461,7 +425,7 @@ if __name__ == "__main__":
     cbar.ax.tick_params(which='major',length = 6)
     cbar.ax.tick_params(which='minor',length = 4)
     axP = fig.add_subplot(gs[0, 1], projection='mollweide')
-    img = axP.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_P, cmap='rainbow', vmin = 0, vmax = .6)  #color by intensity
+    img = axP.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_P, cmap='rainbow', vmin = 0, vmax = .5)  #color by intensity
     cbar = plt.colorbar(img, orientation='horizontal', pad = 0.1, label =r'P')
     cbar.ax.tick_params(which='major',length = 6)
     for ax in [axf, axP]:
@@ -495,7 +459,7 @@ if __name__ == "__main__":
     for idx in range(len(x)):
         # n_obs = [x[idx], y[idx], z[idx]]
         n_obs = [x_heal[idx], y_heal[idx], z_heal[idx]]
-        P, I, Q, U = compute_polarization(F_x_rad, F_y_rad, F_z_rad, kappaR, n_obs, flux=True)
+        P, I, Q, U = compute_polarization(F_x_rad, F_y_rad, F_z_rad, weight, n_obs, flux=True)
         P_radial[idx] = P
     print(f'Spherical photosphere \n----------\nMean P: {np.mean(P_radial):.2f}, \nMedian P: {np.median(P_radial):.2f}, \nMax P: {np.max(P_radial):.2f}')
 
@@ -508,7 +472,7 @@ if __name__ == "__main__":
     fig = plt.figure(figsize=(20,10))
     gs = gridspec.GridSpec(1, 2, hspace=0.1, wspace = 0.2)
     axx = fig.add_subplot(gs[0, 0], projection='mollweide')
-    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pr, cmap='rainbow', vmin = 0, vmax = .6)  #color by intensity
+    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pr, cmap='rainbow', vmin = 0, vmax = .5)  #color by intensity
     cbar = plt.colorbar(img, orientation='horizontal', label =r'P')
     cbar.ax.tick_params(which='major',length = 5)
     cbar.ax.tick_params(which='minor',length = 3)
@@ -564,7 +528,7 @@ if __name__ == "__main__":
     for idx in range(len(x)):
         # n_obs = [x[idx], y[idx], z[idx]]
         n_obs = [x_heal[idx], y_heal[idx], z_heal[idx]]
-        P, I, Q, U = compute_polarization(Fx_ell, Fy_ell, Fz_ell, kappaR, n_obs, flux=True)
+        P, I, Q, U = compute_polarization(Fx_ell, Fy_ell, Fz_ell, weight, n_obs, flux=True)
         P_ell[idx] = P
     print(f'Ellipsoidal photosphere \n----------\nMean P: {np.mean(P_ell):.2f}, \nMedian P: {np.median(P_ell):.2f}, \nMax P: {np.max(P_ell):.2f}')
 
@@ -576,7 +540,7 @@ if __name__ == "__main__":
 
     fig = plt.figure(figsize=(30,15))
     axx = fig.add_subplot(gs[0, 0], projection='mollweide')
-    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pell, cmap='rainbow', vmin = 0, vmax = .6)  #color by intensity
+    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pell, cmap='rainbow', vmin = 0, vmax = .5)  #color by intensity
     cbar = plt.colorbar(img, orientation='horizontal', label =r'P')
     cbar.ax.tick_params(which='major',length = 5)
     cbar.ax.tick_params(which='minor',length = 3)
@@ -609,7 +573,7 @@ if __name__ == "__main__":
     for idx in range(len(x)):
         # n_obs = [x[idx], y[idx], z[idx]] # observers = my photospheric cells
         n_obs = [x_heal[idx], y_heal[idx], z_heal[idx]]
-        P, I, Q, U = compute_polarization(Fx_normal, Fy_normal, Fz_normal, kappaR, n_obs, flux=False) # put false so uses F as intensity and magnitude doesn't change
+        P, I, Q, U = compute_polarization(Fx_normal, Fy_normal, Fz_normal, weight, n_obs, flux=False) # put false so uses F as intensity and magnitude doesn't change
         P_normal[idx] = P
     print(f'Equal intensity \n----------\nMean P: {np.mean(P_normal):.2f}, \nMedian P: {np.median(P_normal):.2f}, \nMax P: {np.max(P_normal):.2f}')
 
@@ -621,7 +585,7 @@ if __name__ == "__main__":
 
     fig = plt.figure(figsize=(30,15))
     axx = fig.add_subplot(gs[0, 0], projection='mollweide')
-    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pnorm, cmap='rainbow', vmin = 0, vmax = .6)  #color by intensity
+    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pnorm, cmap='rainbow', vmin = 0, vmax = .5)  #color by intensity
     cbar = plt.colorbar(img, orientation='horizontal', label =r'P')
     cbar.ax.tick_params(which='major',length = 5)
     cbar.ax.tick_params(which='minor',length = 3)

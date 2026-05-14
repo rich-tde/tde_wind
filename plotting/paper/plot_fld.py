@@ -62,12 +62,19 @@ Lum_theory = 5e41*time_theory**(-5/3)
 meanRph, medianRph, percentile16, percentile84 = statistics_photo(snaps, check)
 meancol, mediancol, _, _ = statistics_col(snaps, check)
 medianTemprad_ph = np.zeros(len(snaps))
+meancoln, mediancoln = np.zeros(len(snaps)), np.zeros(len(snaps))
 f_ph = np.zeros(len(snaps))
 for i, snap in enumerate(snaps):
     x_ph, y_ph, z_ph, vol_ph, den_ph, Temp_ph, RadDen_ph, Vx_ph, Vy_ph, Vz_ph, Press_ph, IE_den_ph, alpha_ph, _, _, _ = \
         np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
     colorpshere = np.load(f'{abspath}/data/{folder}/spectra/{check}_Rcol{snap}.npz')
     x_col, y_col, z_col = colorpshere['x'], colorpshere['y'], colorpshere['z']
+    # if snap in [76, 109, 151]:
+    #     colorpsherenew = np.load(f'{abspath}/data/{folder}/spectranew/{check}_Rcol{snap}.npz')
+    #     x_coln, y_coln, z_coln = colorpsherenew['x'], colorpsherenew['y'], colorpsherenew['z']
+    #     mediancoln[i] = np.median(np.sqrt(x_coln**2 + y_coln**2 + z_coln**2))
+    #     meancoln[i] = np.mean(np.sqrt(x_coln**2 + y_coln**2 + z_coln**2))
+
     Temprad_ph = (RadDen_ph*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
     if i == idx_maxLum:
         print('max median T_rad_ph:', np.median(Temprad_ph))
@@ -76,8 +83,8 @@ for i, snap in enumerate(snaps):
         kappa = one_over_kappa_ph**(-1)
         print('kappa at max L:', kappa)
     r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
-    mediancol[i] = np.median(np.sqrt(x_col**2 + y_col**2 + z_col**2))
-    meancol[i] = np.mean(np.sqrt(x_col**2 + y_col**2 + z_col**2))
+    # mediancol[i] = np.median(np.sqrt(x_col**2 + y_col**2 + z_col**2))
+    # meancol[i] = np.mean(np.sqrt(x_col**2 + y_col**2 + z_col**2))
     vel_ph = np.sqrt(Vx_ph**2 + Vy_ph**2 + Vz_ph**2)
     mass_ph = den_ph * vol_ph
     oe_ph = orb.orbital_energy(r_ph, vel_ph, mass_ph, params, prel.G)

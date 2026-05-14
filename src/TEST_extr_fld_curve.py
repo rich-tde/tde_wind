@@ -34,6 +34,209 @@ from Utilities.sections import make_slices
 import src.orbits as orb
 from Utilities.operators import make_tree
 
+
+def opacity_extrap(x, y, K, which_opacity, xn, yn, scatter = None, slope_length = 7):
+    ''' 
+    Extra/Interpolation for opacity both in density and temperature.
+    Look at: https://gitlab.com/eladtan/RICH/-/blob/master/source/misc/utils.cpp 
+    https://gitlab.com/eladtan/RICH/-/blob/master/source/Radiation/MultigroupDiffusionCoefficientCalculator.cpp 
+    Diffusion coefficient computed here: https://gitlab.com/eladtan/RICH/-/blob/master/source/Radiation/Diffusion.cpp 
+    x: array of ln(T)
+    y: array of ln(rho)
+    K: array of ln(kappa) [1/cm]
+    xn: array of ln(T) for the extrapolated grid
+    yn: array of ln(rho) for the extrapolated grid
+    scatter: either None or interpoalted scattering table in ln (with the same shape of K).
+             if != None, brings to opacity always above scattering. It has to be applied for rosseland.
+    slope_length - 1, int: position of the other point used for the slope.
+    special_rho_slope, float: slope for some density extrapolations.
+    highT_slope, float: slope for high temperature extrapolation.
+    extrarowsx/extrarowsy, int: number of rows/columns to extrapolate.
+    
+    '''
+    
+    if which_opacity == 'planck':
+        special_rho_slope = 2
+        highT_slope = -3.5
+    else:
+        special_rho_slope = 1 
+        highT_slope = 0
+    Kn = np.zeros(len(xn))
+    Kxslopes = np.zeros(len(xn))
+    Kyslopes = np.zeros(len(xn))
+    change_to_scatter = np.zeros(len(xn), dtype = bool)
+    for ix, xsel in enumerate(xn):
+        ysel = yn[ix]
+        Kxslope = 0
+        Kyslope = 0
+        if xsel < x[0]: # Too cold
+            deltax = x[slope_length - 1] - x[0]
+            if ysel < y[0]: # Too rarefied
+                Kxslope = (K[slope_length - 1, 0] - K[0, 0]) / deltax
+                if which_opacity == 'planck':
+                    Kyslope = special_rho_slope
+                else:
+                    deltay = y[slope_length - 1] - y[0]
+                    Kyslope = (K[0, slope_length -1] - K[0, 0]) / deltay
+                # Kyslope = (K[0, slope_length -1] - K[0, 0]) / deltay
+                Kn[ix] = K[0, 0] + Kxslope * (xsel - x[0]) + Kyslope * (ysel - y[0])
+            
+                if scatter is not None:
+                    scatter_this_den = scatter[0][ix]
+                    if Kn[ix] < scatter_this_den:
+                        Kn[ix] = scatter_this_den
+                        Kxslope = scatter[1][ix]
+                        Kyslope = scatter[2][ix]
+                        change_to_scatter[ix] = True
+
+            elif ysel > y[-1]: # Too dense 
+                deltay = y[-1] - y[-slope_length -1] 
+                Kxslope = (K[slope_length - 1, -1] - K[0, -1]) / deltax
+                Kyslope = special_rho_slope
+                Kn[ix] = K[0, -1] + Kxslope * (xsel - x[0]) +  Kyslope * (ysel - y[-1])
+            
+            else: # Density is inside the table
+                iy_inK = np.argmin(np.abs(y - ysel))
+                Kxslope = (K[slope_length - 1, iy_inK] - K[0, iy_inK]) / deltax
+                Kn[ix] = K[0, iy_inK] + Kxslope * (xsel - x[0])
+        
+        # Too hot
+        elif xsel > x[-1]: 
+            Kxslope = highT_slope 
+            if ysel < y[0]: # Too rarefied
+                if which_opacity == 'planck':
+                    Kyslope = special_rho_slope
+                else:
+                    deltay = y[slope_length - 1] - y[0]
+                    Kyslope = (K[-1, slope_length -1] - K[-1, 0]) / deltay
+                Kn[ix] = K[-1, 0] + Kxslope * (xsel - x[-1]) + Kyslope * (ysel - y[0])
+                
+                if scatter is not None:
+                    scatter_this_den = scatter[0][ix]
+                    if Kn[ix] < scatter_this_den:
+                        Kn[ix] = scatter_this_den
+                        Kxslope = scatter[1][ix]
+                        Kyslope = scatter[2][ix]
+                        change_to_scatter[ix] = True
+
+            elif ysel > y[-1]: # Too dense
+                Kyslope = special_rho_slope 
+                Kn[ix] = K[-1, -1] + Kxslope * (xsel - x[-1]) + Kyslope * (ysel - y[-1])
+            
+            else: # Density is inside the table
+                iy_inK = np.argmin(np.abs(y - ysel))
+                Kn[ix] = K[-1, iy_inK] + Kxslope * (xsel - x[-1])
+            
+        else: # Temperature is inside table
+            ix_inK = np.argmin(np.abs(x - xsel))
+            if ysel < y[0]: # Too rarefied
+                if which_opacity == 'planck':
+                    deltay = y[10] - y[0]
+                    Kyslope = (K[ix_inK, 10] - K[ix_inK, 0]) / deltay
+                else:
+                    deltay = y[slope_length - 1] - y[0]
+                    Kyslope = (K[ix_inK, slope_length -1] - K[ix_inK, 0]) / deltay
+                if which_opacity == 'planck':
+                    if Kyslope < 0.35 or Kyslope > 2.75:
+                        # print('Weird in Planck opacity: Ky slope too high/low. I pass')
+                        # raise UniversalError("Planck opacity interpolation failed")
+                        pass
+                Kn[ix] = K[ix_inK, 0] + Kyslope * (ysel - y[0])
+
+                if scatter is not None:
+                    scatter_this_den =  scatter[0][ix] # 1/cm
+                    if Kn[ix] < scatter_this_den: 
+                        Kn[ix] = scatter_this_den
+                        Kxslope = scatter[1][ix]
+                        Kyslope = scatter[2][ix]
+                        change_to_scatter[ix] = True
+
+            elif ysel > y[-1]:  # Too dense
+                Kyslope = special_rho_slope
+                Kn[ix] = K[ix_inK, -1] + Kyslope * (ysel - y[-1])
+
+            else:
+                iy_inK = np.argmin(np.abs(y - ysel))
+                Kn[ix] = K[ix_inK, iy_inK]
+        
+        Kyslopes[ix] = Kyslope
+        Kxslopes[ix] = Kxslope
+
+    return Kn, Kxslopes, Kyslopes, change_to_scatter
+
+def opacity_linear(x, y, K, xn, yn, slope_length = 7, highT_slope = 0):
+    ''' 
+    Extra/Interpolation for temperature, linear with slope = 1 for density. 
+    It's used for scattering and in some runs for rosseland.
+    Look at:
+    - https://gitlab.com/eladtan/RICH/-/blob/master/source/misc/utils.cpp 
+    - CalcDiffusionCoefficient, which gives you the inverse of Rosseland in https://gitlab.com/eladtan/RICH/-/blob/master/source/Radiation/STAgreyOpacity.cpp 
+    x: array of ln(T)
+    y: array of ln(rho)
+    K: array of ln(kappa) [1/cm]
+    scatter: either None or interpoalted scattering table in ln(with the same shape of K).
+             if != None, brings to opacity always above scattering. It has to be applied for rosseland.
+    slope_length, int: position of the other point used for the slope.
+    highT_slope, float: slope for high temperature extrapolation.
+    extrarowsx/extrarowsy, int: number of rows/columns to extrapolate.
+    '''    
+    Kn = np.zeros(len(xn))
+    Kxslopes = np.zeros(len(xn))
+    Kyslopes = np.zeros(len(xn))
+
+    for ix, xsel in enumerate(xn):
+        ysel = yn[ix]
+        Kxslope = 0
+        Kyslope = 0
+        if xsel < x[0]: # Too cold
+            deltax = x[slope_length - 1] - x[0]
+            if ysel < y[0]: # Too rarefied
+                Kxslope = (K[slope_length - 1, 0] - K[0, 0]) / deltax
+                Kn[ix] = K[0, 0] + Kxslope * (xsel - x[0]) + (ysel - y[0])
+                Kyslope = 1
+            elif ysel > y[-1]: # Too dense
+                Kxslope = (K[slope_length - 1, -1] - K[0, -1]) / deltax
+                Kn[ix] = K[0, -1] + Kxslope * (xsel - x[0]) + (ysel - y[-1])
+                Kyslope = 1
+            else: # Density is inside the table
+                iy_inK = np.argmin(np.abs(y - ysel))
+                Kxslope = (K[slope_length - 1, iy_inK] - K[0, iy_inK]) / deltax
+                Kn[ix] = K[0, iy_inK] + Kxslope * (xsel - x[0])
+        
+        # Too hot
+        elif xsel > x[-1]: 
+            if ysel < y[0]: # Too rarefied
+                Kxslope = highT_slope #(K[-1, 0] - K[-slope_length - 1, 0]) / deltax
+                Kn[ix] = K[-1, 0] + Kxslope * (xsel - x[-1]) + (ysel - y[0])
+                Kyslope = 1
+            elif ysel > y[-1]: # Too dense
+                Kxslope = highT_slope #(K[-1, -1] - K[-slope_length - 1, -1]) / deltax
+                Kn[ix] = K[-1, -1] + Kxslope * (xsel - x[-1]) + (ysel - y[-1])
+                Kyslope = 1
+            else: # Density is inside the table
+                iy_inK = np.argmin(np.abs(y - ysel))
+                Kxslope = highT_slope #(K[-1, iy_inK] - K[-slope_length - 1, iy_inK]) / deltax
+                Kn[ix] = K[-1, iy_inK] + Kxslope * (xsel - x[-1])
+
+        else: 
+            ix_inK = np.argmin(np.abs(x - xsel))
+            if ysel < y[0]: # Too rarefied, Temperature is inside table
+                Kn[ix] = K[ix_inK, 0] + (ysel - y[0])
+                Kyslope = 1
+                
+            elif ysel > y[-1]:  # Too dense, Temperature is inside table
+                Kn[ix] = K[ix_inK, -1] + (ysel - y[-1])
+                Kyslope = 1
+
+            else:
+                iy_inK = np.argmin(np.abs(y - ysel))
+                Kn[ix] = K[ix_inK, iy_inK]
+        
+        Kxslopes[ix] = Kxslope
+        Kyslopes[ix] = Kyslope
+
+    return Kn, Kxslopes, Kyslopes
+
 def fld_lightcurve(params, compton, check, N_ray):
     m, Rstar, mstar, beta, n, compton = params
     Mbh = 10**m
@@ -89,7 +292,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
     freqs = prel.freqs
     L_col = np.zeros((num_obs, len(prel.freqs)))
     for i in range(num_obs):
-        if i not in [100]:
+        if i not in [0, 100]:
             continue
         print(f'Obs: {i}', flush=True)
 
@@ -146,12 +349,15 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         # r = np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) ####
         
         # Interpolate opacity 
-        ln_alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
-        ln_alpha_rossland = np.array(ln_alpha_rossland)[0]
-        ln_alpha_planck = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t), np.log(d), 'linear', 0)
-        ln_alpha_planck = np.array(ln_alpha_planck)[0]
-        ln_alpha_scatter = eng.interp2(T_cool2, Rho_cool2, scatter2.T, np.log(t), np.log(d), 'linear', 0)
-        ln_alpha_scatter = np.array(ln_alpha_scatter)[0]
+        ln_alpha_scatter, A_scatt, B_scatt = opacity_linear(T_cool, Rho_cool, scattering, np.log(t), np.log(d))
+        ln_alpha_rossland, A_ross, B_ross, change_to_scatter_ross = opacity_extrap(T_cool, Rho_cool, rossland, 'rossland', np.log(t), np.log(d), scatter = [ln_alpha_scatter, A_scatt, B_scatt])
+        ln_alpha_planck, A_planck, B_planck, _ = opacity_extrap(T_cool, Rho_cool, planck, 'planck', np.log(t), np.log(d), scatter = None)
+        # ln_alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
+        # ln_alpha_rossland = np.array(ln_alpha_rossland)[0]
+        # ln_alpha_planck = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t), np.log(d), 'linear', 0)
+        # ln_alpha_planck = np.array(ln_alpha_planck)[0]
+        # ln_alpha_scatter = eng.interp2(T_cool2, Rho_cool2, scatter2.T, np.log(t), np.log(d), 'linear', 0)
+        # ln_alpha_scatter = np.array(ln_alpha_scatter)[0]
         underflow_mask = np.logical_and(np.logical_and(ln_alpha_rossland != 0.0, ln_alpha_planck != 0.0), ln_alpha_scatter != 0.0)
         d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ln_alpha_planck, ln_alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx = \
             make_slices([d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ln_alpha_planck, ln_alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx], underflow_mask)
@@ -297,29 +503,24 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
             trad = (ray_radDen * prel.en_den_converter/prel.alpha_cgs)**(1/4)
             kappa_ross = alpha_rossland/d
             kappa_planck = alpha_planck/d
-            space = 1e-2
-            ln_alpha_rossland_downT = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t-space), np.log(d), 'linear', 0)
-            ln_alpha_rossland_downT = np.array(ln_alpha_rossland_downT)[0]
-            ln_alpha_rossland_upT = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t+space), np.log(d), 'linear', 0)
-            ln_alpha_rossland_upT = np.array(ln_alpha_rossland_upT)[0]
-            ln_alpha_rossland_downd = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d-space), 'linear', 0)
-            ln_alpha_rossland_downd = np.array(ln_alpha_rossland_downd)[0]
-            ln_alpha_rossland_upd = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d+space), 'linear', 0)
-            ln_alpha_rossland_upd = np.array(ln_alpha_rossland_upd)[0]
+            # space = 1e-2
+            # ln_alpha_rossland_downT = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t-space), np.log(d), 'linear', 0)
+            # ln_alpha_rossland_downT = np.array(ln_alpha_rossland_downT)[0]
+            # ln_alpha_rossland_upT = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t+space), np.log(d), 'linear', 0)
+            # ln_alpha_rossland_upT = np.array(ln_alpha_rossland_upT)[0]
+            # ln_alpha_rossland_downd = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d-space), 'linear', 0)
+            # ln_alpha_rossland_downd = np.array(ln_alpha_rossland_downd)[0]
+            # ln_alpha_rossland_upd = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d+space), 'linear', 0)
+            # ln_alpha_rossland_upd = np.array(ln_alpha_rossland_upd)[0]
             
-            ln_alpha_planck_downT = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t-space), np.log(d), 'linear', 0)
-            ln_alpha_planck_downT = np.array(ln_alpha_planck_downT)[0]
-            ln_alpha_planck_upT = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t+space), np.log(d), 'linear', 0)
-            ln_alpha_planck_upT = np.array(ln_alpha_planck_upT)[0]
-            ln_alpha_planck_downd = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t), np.log(d-space), 'linear', 0)
-            ln_alpha_planck_downd = np.array(ln_alpha_planck_downd)[0]
-            ln_alpha_planck_upd = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t), np.log(d+space), 'linear', 0)
-            ln_alpha_planck_upd = np.array(ln_alpha_planck_upd)[0]
-
-            A_ross = (ln_alpha_rossland_upT-ln_alpha_rossland_downT)/(2*space)
-            B_ross = (ln_alpha_rossland_upd-ln_alpha_rossland_downd)/(2*space)
-            A_planck = (ln_alpha_planck_upT-ln_alpha_planck_downT)/(2*space)
-            B_planck = (ln_alpha_planck_upd-ln_alpha_planck_downd)/(2*space)
+            # ln_alpha_planck_downT = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t-space), np.log(d), 'linear', 0)
+            # ln_alpha_planck_downT = np.array(ln_alpha_planck_downT)[0]
+            # ln_alpha_planck_upT = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t+space), np.log(d), 'linear', 0)
+            # ln_alpha_planck_upT = np.array(ln_alpha_planck_upT)[0]
+            # ln_alpha_planck_downd = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t), np.log(d-space), 'linear', 0)
+            # ln_alpha_planck_downd = np.array(ln_alpha_planck_downd)[0]
+            # ln_alpha_planck_upd = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t), np.log(d+space), 'linear', 0)
+            # ln_alpha_planck_upd = np.array(ln_alpha_planck_upd)[0]
 
             # A_ross = np.diff(ln_alpha_rossland)/np.diff(np.log(t))
             # B_ross = np.diff(ln_alpha_rossland)/np.diff(np.log(d))
@@ -327,13 +528,13 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
             # B_planck = np.diff(ln_alpha_planck)/np.diff(np.log(d))
             
             fig, ((axk, axtau), (axA, axB), (axT, axd)) = plt.subplots(3, 2, figsize = (15, 21))
-            axk.plot(r/apo, alpha_rossland, c = 'b', label = r'$\alpha_{\rm R}$')
+            axk.plot(r/apo, alpha_rossland, c = 'dodgerblue', label = r'$\alpha_{\rm R}$')
             axk.plot(r/apo, alpha_planck, c = 'r', label = r'$\alpha_{\rm a}$')
             axk.set_ylabel(r'$\alpha$ [1/cm]')
             axk.set_ylim(1e-15, 1e-4)
             axk.legend(fontsize = 18)
 
-            axtau.plot(r/apo, los, c = 'b', label = r'$\tau_{\rm R}$')
+            axtau.plot(r/apo, los, c = 'dodgerblue', label = r'$\tau_{\rm R}$')
             axtau.axhline(2/3, c = 'gray', ls = '--')
             axtau.plot(r/apo, los_effective, c = 'r', label = r'$\tau_{\rm eff}$')
             axtau.axhline(5, c = 'gray', ls = '--')
@@ -349,26 +550,26 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
             axd.set_ylabel(r'Den [g/cm$^3$]')
             axd.set_ylim(1e-18, 1e-12)
 
-            axA.scatter(r/apo, A_ross, c = 'b', label = r'$\Delta \ln\alpha_{\rm R}/\Delta \ln T$')
-            axA.scatter(r/apo, A_planck, c = 'r', label = r'$\Delta \ln\alpha_{\rm a}/\Delta \ln T$')
+            axA.scatter(r/apo, A_ross, c = 'dodgerblue', s = 50, label = r'$\Delta \ln\alpha_{\rm R}/\Delta \ln T$')
+            axA.scatter(r/apo, A_planck, c = 'r', s = 25, label = r'$\Delta \ln\alpha_{\rm a}/\Delta \ln T$')
             axA.set_ylabel(r'coeff extrap T')
             # axA.set_ylim(-10, 10)
 
-            axB.scatter(r/apo, B_ross, c = 'b', label = r'$\Delta \ln\alpha_{\rm R}/\Delta \ln \rho$')
-            axB.scatter(r/apo, B_planck, c = 'r', label = r'$\Delta \ln\alpha_{\rm a}/\Delta \ln \rho$')
+            axB.scatter(r/apo, B_ross, c = 'dodgerblue', s = 50, label = r'$\Delta \ln\alpha_{\rm R}/\Delta \ln \rho$')
+            axB.scatter(r/apo, B_planck, c = 'r', s = 25, label = r'$\Delta \ln\alpha_{\rm a}/\Delta \ln \rho$')
             axB.set_ylabel(r'coeff extrap $\rho$')
             # axB.set_ylim(-10, 10)
 
             for ax in [axk, axtau, axd, axT, axA, axB]:
                 ax.set_xlim(5e-2, 15)
-                ax.legend(fontsize = 18)
                 if ax in [axA, axB]:
                     ax.set_xscale('log')
                 else:
                     ax.loglog()
-                ax.axvline(r[photo_idx]/apo, ls = '--', c = 'b', label = f'obs {i}, ' +  r'$r_{\rm ph}$')
+                ax.axvline(r[photo_idx]/apo, ls = '--', c = 'dodgerblue', label = f'obs {i}, ' +  r'$r_{\rm ph}$')
                 ax.axvline(r[color_idx]/apo, ls = '--', c = 'r', label = f'obs {i}, ' +  r'$r_{\rm col}$')
                 ax.grid()
+                ax.legend(fontsize = 18)
                 ax.tick_params(axis='both', which='major',length=10, width=1.5)
                 ax.tick_params(axis='both', which='minor',length=5, width=1)
                 if ax in [axT, axd, axA, axB]:
@@ -405,9 +606,6 @@ if __name__ == "__main__":
     rossland = np.loadtxt(f'{opac_path}/ross.txt')
     planck = np.loadtxt(f'{opac_path}/planck.txt')
     scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
-    _, _, scatter2 = opacity_linear(T_cool, Rho_cool, scattering)
-    T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, which_opacity = 'rossland', scatter = scatter2)
-    _, _, planck2 = opacity_extrap(T_cool, Rho_cool, planck, which_opacity = 'planck', scatter = None)
 
     #MATLAB, thanks Cindy.
     eng = matlab.engine.start_matlab()

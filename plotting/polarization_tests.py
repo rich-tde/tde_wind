@@ -9,13 +9,47 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import Utilities.prelude as prel
 import wesanderson
-from Utilities.selectors_for_snap import select_snap
-from Utilities.sections import make_slices
 from Utilities.basic_units import radians
-from src.Wind.polarization import compute_polarization, create_disk, polarization_for_disk, ellipsoid_surface, ellipsoid_normal
+from src.Wind.polarization import compute_polarization, ellipsoid_surface, ellipsoid_unit_normal
 wes_palette = wesanderson.film_palette('Rushmore', 0)
 cmap = colors.LinearSegmentedColormap.from_list('Rushmore0', wes_palette)
 
+def create_disk(radius=1.0, height=0.1, n_radial=50, n_vertical=10):
+    """
+    Create full 3D disk: height H centered at z=0 (from -H to +H).
+    Returns: X, Y, Z meshes for volumetric plotting or simulation.
+    """
+    theta = np.linspace(0, 2*np.pi, n_radial)
+    r_vals = np.linspace(0, radius, n_radial)
+    z_vals = np.linspace(-height, height, n_vertical)
+    
+    Theta, R, Z = np.meshgrid(theta, r_vals, z_vals, indexing='ij')
+    
+    X = R * np.cos(Theta)
+    Y = R * np.sin(Theta)
+    X = X.ravel()
+    Y = Y.ravel()
+    Z = Z.ravel()
+    
+    return X, Y, Z
+
+def polarization_for_disk(obs, angle):
+    """
+    Compute polarization for a disk with normal along z, observed from obs.
+    Assumes uniform intensity across the disk.
+    Returns polarization fraction P.
+    """
+    # Scattering angle is theta_obs for all points on the disk
+    if not angle:
+        theta_obs = np.arccos(obs[2] / np.linalg.norm(obs))
+    else:
+        theta_obs = obs
+    cos_theta_scat = np.cos(theta_obs)
+
+    # Thomson polarization fraction
+    P = (1 - cos_theta_scat**2) / (1 + cos_theta_scat**2)
+    
+    return P
 #%%
 print("TEST one wave with incident/observer direction parallel to scattered (expect: P = 0).")
 ph_obs = np.array([0, 0, 1]) # observer along z
@@ -156,7 +190,7 @@ P_HR_n = np.zeros((len(c_all), len(n_obs_all)))
 
 for h_idx, c in enumerate(c_all):
     x_obs, y_obs, z_obs = ellipsoid_surface(1e3, a, b, c)
-    I_vec = ellipsoid_normal(x_obs, y_obs, z_obs, a, b, c)
+    I_vec = ellipsoid_unit_normal(x_obs, y_obs, z_obs, a, b, c)
     Ix_obs, Iy_obs, Iz_obs = I_vec[:,0], I_vec[:,1], I_vec[:,2]
     if not np.allclose(np.sum(x_obs), 0, atol=1e-10):
         print(f"Warning: x-coordinates not symmetric for c={c}. sum(x) = {np.sum(x_obs)}")
@@ -207,7 +241,7 @@ n_obs_all = [params[0] for params in n_obs_all_params]
 P_HR_n = np.zeros((len(c_all), len(n_obs_all)))
 for h_idx, c in enumerate(c_all):
     x_obs, y_obs, z_obs = ellipsoid_surface(nside, a, b, c, healpix=True)
-    I_vec = ellipsoid_normal(x_obs, y_obs, z_obs, a, b, c)
+    I_vec = ellipsoid_unit_normal(x_obs, y_obs, z_obs, a, b, c)
     Ix_obs, Iy_obs, Iz_obs = I_vec[:,0], I_vec[:,1], I_vec[:,2]
     if not np.allclose(np.sum(x_obs), 0, atol=1e-10):
         print(f"Warning: x-coordinates not symmetric for c={c}. sum(x) = {np.sum(x_obs)}")
@@ -470,7 +504,7 @@ n_obs_all = [params[0] for params in n_obs_all_params]
 P_HR_n = np.zeros((len(c_all), len(n_obs_all)))
 for h_idx, c in enumerate(c_all):
     x_obs, y_obs, z_obs = ellipsoid_surface(nside, a, b, c, healpix=True)
-    I_vec = ellipsoid_normal(x_obs, y_obs, z_obs, a, b, c)
+    I_vec = ellipsoid_unit_normal(x_obs, y_obs, z_obs, a, b, c)
     I_vec[x_obs<-0.5] /= 5
     I_vec[np.abs(y_obs)<0.5] *= 10
     Ix_obs, Iy_obs, Iz_obs = I_vec[:,0], I_vec[:,1], I_vec[:,2]

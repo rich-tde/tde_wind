@@ -349,19 +349,31 @@ if plot:
     snaps_lum, Lum, tfb_lum = sort_list([snaps_lum, Lum, tfb_lum], tfb_lum, unique=True) 
     snaps_lum = snaps_lum.astype(int)
 
-    fig, ax = plt.subplots(1,1,figsize=(10, 8))
+    fig, (ax1, ax2, ax3) = plt.subplots(1,3,figsize=(24, 8))
     for snap in snaps:
         time = tfb_lum[np.argmin(np.abs(snaps_lum - snap))]
-        photo_taus = np.loadtxt(f'{abspath}/data/{folder}/scatt_surf/{check}_photo{snap}taus.txt')
-        den, alphaS, alphaR = photo_taus[3], photo_taus[4], photo_taus[6]
-        kappaS = alphaS/den
-        kappaR = alphaR/den
+        # photo_taus = np.loadtxt(f'{abspath}/data/{folder}/scatt_surf/{check}_photo{snap}taus.txt')
+        # den, alphaS, alphaR = photo_taus[3], photo_taus[4], photo_taus[6]
+        # kappaS = alphaS/den
+        # kappaR = alphaR/den
+        photo = np.load(f'{abspath}/data/{folder}/photonew/{check}_photo{snap}.npz')
+        den, alpha_rossland, alpha_scatter, alpha_abs = photo['den'], photo['alpha_rossland'], photo['alpha_scatter'], photo['alpha_abs']
+        kappaR = alpha_rossland/den
+        kappaS = alpha_scatter/den
+        kappaA = alpha_abs/den
+        ratio_kappaA = list(np.sort(np.exp(-kappaA/kappaS)))
 
-        kappa_ratio = list(np.sort(kappaS/kappaR))
-        bin_kappa = list(np.arange(len(kappa_ratio))/len(kappa_ratio))
-        ax.plot(kappa_ratio, bin_kappa, linewidth = 2, label = f't = {time:.2f}' + r't$_{\rm fb}$')
+        ratio_kappaA_fromR = list(np.sort(np.exp(-(kappaR/kappaS - 1))))
+        ratio_kappaS = list(np.sort(kappaS/kappaR))
+        bin_kappa = list(np.arange(len(ratio_kappaS))/len(ratio_kappaS))
+        ax1.plot(ratio_kappaA, bin_kappa, linewidth = 2, label = f't = {time:.2f}' + r't$_{\rm fb}$')
         # ax.hist(kappaS/kappaR, bins=30, color='navy', alpha=0.7)
-    ax.set_xlabel(r'$\kappa_{\rm S}/\kappa_{\rm R}$')
-    ax.legend(fontsize=20)
-    ax.grid()
+        ax2.plot(ratio_kappaA_fromR, bin_kappa, linewidth = 2, label = f't = {time:.2f}' + r't$_{\rm fb}$')
+        ax3.plot(ratio_kappaS, bin_kappa, linewidth = 2, label = f't = {time:.2f}' + r't$_{\rm fb}$')
+    ax1.set_xlabel(r'$e^{-\kappa_{\rm a}/\kappa_{\rm S}}$')
+    ax2.set_xlabel(r'$e^{1-\kappa_{\rm R}/\kappa_{\rm S}}$')
+    ax3.set_xlabel(r'$\kappa_{\rm S}/\kappa_{\rm R}$')
+    for ax in [ax1, ax2, ax3]:
+        ax.legend(fontsize=20)
+        ax.grid()
 # %%
