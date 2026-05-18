@@ -453,7 +453,7 @@ if __name__ == '__main__':
         ax.axhline(np.log10(min_Rho), color = 'grey', linestyle = '--')
         ax.axhline(np.log10(max_Rho), color = 'grey', linestyle = '--')
         ax.scatter(np.log10(Tph), np.log10(dph), c = 'k', s = 100)
-        ax.scatter(np.log10(T_col), np.log10(den_col), c = 'white', s = 100)
+        # ax.scatter(np.log10(T_col), np.log10(den_col), c = 'white', s = 100)
         # ax.axhline(np.log10(1e-19*prel.Msol_cgs/prel.Rsol_cgs**3), color = 'grey', linestyle = ':', label = 'simulation cut')
         # Get the existing ticks on the x-axis
         big_ticks = [-10, -5, 0, 5, 10, 15] #ax.get_xticks()

@@ -1,6 +1,5 @@
 """ FLD curve accoring to Elad's script (MATLAB: start from 1 with indices, * is matrix multiplication, ' is .T). """
 import sys
-from tabnanny import check
 sys.path.append('/Users/paolamartire/shocks')
 # import resource
 from Utilities.isalice import isalice
@@ -25,7 +24,6 @@ import scipy.integrate as sci
 from scipy.interpolate import griddata
 import matlab.engine
 from sklearn.neighbors import KDTree
-from src.Opacity.linextrapolator import opacity_extrap, opacity_linear
 from scipy.ndimage import uniform_filter1d
 
 import Utilities.prelude as prel
@@ -258,7 +256,7 @@ def fld_lightcurve(params, compton, check, N_ray):
         else:
             loadpath = f'{pre}/{snap}'
         data = make_tree(loadpath, snap)
-        Lphoto_snap, photosphere, colorsphere, freqs, L_col = single_fld(loadpath, snap, observers_xyz, N_ray)
+        Lphoto_snap, photosphere, colorsphere, freqs, L_col = single_fld(loadpath, snap, observers_xyz, N_ray, tfb[idx_s])
         data = [snap, tfb[idx_s], Lphoto_snap]
         if save:
             with open(f'{pre_saving}/{check}_red.csv', 'a', newline = '') as file:
@@ -275,7 +273,7 @@ def fld_lightcurve(params, compton, check, N_ray):
         gc.collect()
 
 
-def single_fld(loadpath, snap, observers_xyz, N_ray):
+def single_fld(loadpath, snap, observers_xyz, N_ray, time):
     num_obs = len(observers_xyz)
     data = make_tree(loadpath, snap)
     box = np.load(f'{loadpath}/box_{snap}.npy')
@@ -292,7 +290,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
     freqs = prel.freqs
     L_col = np.zeros((num_obs, len(prel.freqs)))
     for i in range(num_obs):
-        if i not in [0, 100]:
+        if i not in [100]:
             continue
         print(f'Obs: {i}', flush=True)
 
@@ -359,11 +357,16 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         # ln_alpha_scatter = eng.interp2(T_cool2, Rho_cool2, scatter2.T, np.log(t), np.log(d), 'linear', 0)
         # ln_alpha_scatter = np.array(ln_alpha_scatter)[0]
         underflow_mask = np.logical_and(np.logical_and(ln_alpha_rossland != 0.0, ln_alpha_planck != 0.0), ln_alpha_scatter != 0.0)
-        d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ln_alpha_planck, ln_alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx = \
-            make_slices([d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ln_alpha_planck, ln_alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx], underflow_mask)
+        # underflow_mask = np.logical_and(np.logical_and(ln_alpha_rossland != 0.0, ln_alpha_planck != 0.0), np.logical_and(ln_alpha_scatter != 0.0, t < 1e6))
+        d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ln_alpha_planck, ln_alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx, A_ross, B_ross, A_planck, B_planck = \
+            make_slices([d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ln_alpha_planck, ln_alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx, A_ross, B_ross, A_planck, B_planck], underflow_mask)
         idx = np.array(idx)
         alpha_rossland = np.exp(ln_alpha_rossland) # [1/cm]
         alpha_planck = np.exp(ln_alpha_planck) # [1/cm]
+        for al in alpha_planck:
+            if al > 100.0 / (prel.c_cgs * prel.tsol_cgs * time):
+                print('Change Planck') 
+                al = 100.0 / (prel.c_cgs * prel.tsol_cgs * time)
         alpha_scatter = np.exp(ln_alpha_scatter) # [1/cm]
         # del ln_alpha_rossland, ln_alpha_planck, ln_alpha_scatter
         # gc.collect()
@@ -374,8 +377,8 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
         los = - np.flipud(sci.cumulative_trapezoid(alpha_rossland_fuT, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
         
-        # alpha_effective = np.sqrt(3 * alpha_planck * (alpha_planck + alpha_scatter))
-        alpha_effective = np.sqrt(3 * alpha_planck * alpha_rossland)
+        alpha_effective = np.sqrt(3 * alpha_planck * (alpha_planck + alpha_scatter)) 
+        # alpha_effective = np.sqrt(3 * alpha_planck * alpha_rossland)
         alpha_effective_fuT = np.flipud(alpha_effective)
         los_effective = - np.flipud(sci.cumulative_trapezoid(alpha_effective_fuT, 
                                                          r_fuT, initial = 0)) * prel.Rsol_cgs
@@ -598,6 +601,9 @@ if __name__ == "__main__":
     check = 'HiResNewAMR' 
     N_ray = 5_000
     params = [m, Rstar, mstar, beta, n, compton]
+    things = orb.get_things_about([Mbh, Rstar, mstar, beta])
+    t_fall = things['t_fb_days']
+    t_fall_cgs = t_fall * 24 * 3600
     
     # Load opacity tables
     opac_path = f'{abspath}/src/Opacity'
@@ -607,7 +613,8 @@ if __name__ == "__main__":
     planck = np.loadtxt(f'{opac_path}/planck.txt')
     scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
 
-    #MATLAB, thanks Cindy.
+    #%%MATLAB, thanks Cindy.
     eng = matlab.engine.start_matlab()
 
+    #%%
     fld_lightcurve(params, compton, check, N_ray)

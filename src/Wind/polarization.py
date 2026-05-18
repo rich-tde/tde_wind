@@ -28,6 +28,86 @@ snap = 151
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 
+def ellipsoid_fit(point_data, mode=0):
+    """ Fit an ellipsoid to a cloud of points using linear least squares
+        Based on Yury Petrov MATLAB algorithm: "ellipsoid_fit.m"
+    """
+
+    X = point_data[0]
+    Y = point_data[1]
+    Z = point_data[2]
+
+    # AlGEBRAIC EQUATION FOR ELLIPSOID, from CARTESIAN DATA
+    if mode == '':  # 9-DOF MODE
+        D = np.array([X * X + Y * Y - 2 * Z * Z,
+                      X * X + Z * Z - 2 * Y * Y,
+                      2 * X * Y, 2 * X * Z, 2 * Y * Z,
+                      2 * X, 2 * Y, 2 * Z,
+                      1 + 0 * X]).T
+
+    elif mode == 0:  # 6-DOF MODE (no rotation)
+        D = np.array([X * X + Y * Y - 2 * Z * Z,
+                      X * X + Z * Z - 2 * Y * Y,
+                      2 * X, 2 * Y, 2 * Z,
+                      1 + 0 * X]).T
+
+    # THE RIGHT-HAND-SIDE OF THE LLSQ PROBLEM
+    d2 = np.array([X * X + Y * Y + Z * Z]).T
+
+    # SOLUTION TO NORMAL SYSTEM OF EQUATIONS
+    u = np.linalg.solve(D.T.dot(D), D.T.dot(d2))
+    # chi2 = (1 - (D.dot(u)) / d2) ^ 2
+
+    # CONVERT BACK TO ALGEBRAIC FORM
+    if mode == '':  # 9-DOF-MODE
+        a = np.array([u[0] + 1 * u[1] - 1])
+        b = np.array([u[0] - 2 * u[1] - 1])
+        c = np.array([u[1] - 2 * u[0] - 1])
+        v = np.concatenate([a, b, c, u[2:, :]], axis=0).flatten()
+
+    elif mode == 0:  # 6-DOF-MODE
+        a = u[0] + 1 * u[1] - 1
+        b = u[0] - 2 * u[1] - 1
+        c = u[1] - 2 * u[0] - 1
+        zs = np.array([0, 0, 0])
+        v = np.hstack((a, b, c, zs, u[2:, :].flatten()))
+
+    else:
+        pass
+
+    # PUT IN ALGEBRAIC FORM FOR ELLIPSOID
+    A = np.array([[v[0], v[3], v[4], v[6]],
+                  [v[3], v[1], v[5], v[7]],
+                  [v[4], v[5], v[2], v[8]],
+                  [v[6], v[7], v[8], v[9]]])
+
+    # FIND CENTRE OF ELLIPSOID
+    centre = np.linalg.solve(-A[0:3, 0:3], v[6:9])
+
+    # FORM THE CORRESPONDING TRANSLATION MATRIX
+    T = np.eye(4)
+    T[3, 0:3] = centre
+
+    # TRANSLATE TO THE CENTRE, ROTATE
+    R = T.dot(A).dot(T.T)
+
+    # SOLVE THE EIGENPROBLEM
+    evals, evecs = np.linalg.eig(R[0:3, 0:3] / -R[3, 3])
+
+    # SORT EIGENVECTORS
+    # i = np.argsort(evals)
+    # evals = evals[i]
+    # evecs = evecs[:, i]
+    # evals = evals[::-1]
+    # evecs = evecs[::-1]
+
+    # CALCULATE SCALE FACTORS AND SIGNS
+    radii = np.sqrt(1 / abs(evals))
+    sgns = np.sign(evals)
+    radii *= sgns
+
+    return (centre, evecs, radii)
+
 def ellipsoid_surface(n_bins, a, b, c, x0=0, y0=0, z0=0, healpix = False, stay_helpix = False):
     """Sample uniform points on ellipsoid surface x²/a² + y²/b² + z²/c² = 1"""
 
@@ -117,7 +197,7 @@ def I_plane_parall(F_mag, cos_theta):
 def compute_polarization(Ix, Iy, Iz,
                         weight,
                         n_obs,
-                        flux = False):
+                        flux = False, all_points = False):
     """
     Compute polarization for an observer of direction n_obs.
 
@@ -127,7 +207,7 @@ def compute_polarization(Ix, Iy, Iz,
         n_obs : observer direction (3-vector, not necessarily normalized)
         flux : if True, (Ix, Iy, Iz) are fluxes and not intensities, 
         so you need to get the local intensity before computing Stokes parameters.
-
+        all_points: if True, return also the local polarization and Stokes parameters for each cell, otherwise return only the total polarization and Stokes parameters.
     Returns:
         P : polarization fraction
         I, Q, U : Stokes parameters 
@@ -200,12 +280,19 @@ def compute_polarization(Ix, Iy, Iz,
     sin2phi = 2 * cos_phi * sin_phi 
 
     # Stokes parameters. 
-    # I_local * P_local make you consider only the light that is locally scattered
-    Q = np.sum(I_local * P_local * cos2phi)
-    U = np.sum(I_local * P_local * sin2phi)
+    Q_local = I_local * P_local * cos2phi
+    U_local = I_local * P_local * sin2phi
+    Q = np.sum(Q_local)
+    U = np.sum(U_local)
     I = np.sum(I_local)
     P = np.sqrt(Q**2 + U**2) / (I + 1e-20) #if you do sum(P_local) you have a number exceeding 1
 
+    if all_points:
+        fig, ax = plt.subplots(1,1,figsize=(10, 8))
+        plt.scatter(Q_local/I_local, U_local/I_local, edgecolors='k', s = 70, vmin = -np.pi, vmax = np.pi) #color by phi
+        ax.set_xlabel(r'Q/I')
+        ax.set_ylabel(r'U/I')
+    
     return P, I, Q, U
 
 if __name__ == "__main__":
@@ -296,7 +383,6 @@ if __name__ == "__main__":
     # axx.set_yticks(np.radians(np.arange(-90, 91, 45))) 
     # axx.set_yticklabels(['180°','135°', '90°', '45°', '0°']) #['-90°', '-45°', '0°', '45°','90°'])
 
-
     #%% FLUX FIELD
     fig = plt.figure(figsize=(30,20))
     gs = gridspec.GridSpec(3, 3, width_ratios=[1,1,1], height_ratios=[1,1,.05], hspace=0.1, wspace = 0.2)
@@ -385,7 +471,7 @@ if __name__ == "__main__":
         P, I, Q, U = compute_polarization(Fx, Fy, Fz, weight, n_obs, flux=True)
         P_all[idx] = P
     print(f'Mean P: {np.mean(P_all):.2f}, \nMedian P: {np.median(P_all):.2f}, \nMax P: {np.max(P_all):.2f}')
-
+    
     #%% POLARIZATION MAP
     fig, ax = plt.subplots(1,1,figsize=(10, 8))
     img = ax.scatter(theta_heal*radians, P_all, c = longitude_moll*radians, cmap='rainbow', edgecolors='k', s = 70, vmin = -np.pi, vmax = np.pi) #color by phi
@@ -495,6 +581,9 @@ if __name__ == "__main__":
     axx.set_yticks(np.radians(np.arange(-90, 91, 45))) 
     axx.set_yticklabels(['180°','135°', '90°', '45°', '0°']) #['-90°', '-45°', '0°', '45°','90°'])
 
+    #%%
+    P_z, I_Z, Q_z, U_z = compute_polarization(Fx, Fy, Fz, weight, [0, 0, 1], flux=True, all_points=True)
+
     #%% WHAT IF PHOTOSPHERE IS AN ELLIPSOID?
     a = (np.max(x[op_idx]) - np.min(x[op_idx]))/2
     b = (np.max(y[op_idx]) - np.min(y[op_idx]))/2
@@ -502,6 +591,7 @@ if __name__ == "__main__":
     x0 = (np.max(x[op_idx]) + np.min(x[op_idx]))/2
     y0 = (np.max(y[op_idx]) + np.min(y[op_idx]))/2
     z0 = (np.max(z[Npole_idx]) + np.min(z[Spole_idx]))/2
+    print(f'Parameters for ellipsoid: a={a}, b={b}, c={c}')
     x_ell, y_ell, z_ell = ellipsoid_surface(prel.NSIDE, a, b, c, x0=x0, y0=y0, z0=z0, healpix=True, stay_helpix=True)
     F_vec = ellipsoid_unit_normal(x_ell, y_ell, z_ell, a, b, c, x0=x0, y0=y0, z0=z0)
     Fx_ell, Fy_ell, Fz_ell = F_vec[:,0], F_vec[:,1], F_vec[:,2] 
@@ -562,6 +652,27 @@ if __name__ == "__main__":
     axx.set_xticklabels(['180°', '270°', '0°','90°', '180°'])
     axx.set_yticks(np.radians(np.arange(-90, 91, 45))) 
     axx.set_yticklabels(['180°','135°', '90°', '45°', '0°']) #['-90°', '-45°', '0°', '45°','90°'])
+
+    #%% TEST THE FITTING FUNCTION
+    centre, _, abc = ellipsoid_fit([x, y, z])
+    a_fit, b_fit, c_fit = abc
+    x0_fit, y0_fit, z0_fit = centre
+    print(f'Fitted ellipsoid parameters: a={a_fit}, b={b_fit}, c={c_fit}')
+    x_ell_fit, y_ell_fit, z_ell_fit = ellipsoid_surface(prel.NSIDE, a_fit, b_fit, c_fit, x0=x0_fit, y0=y0_fit, z0=z0_fit, healpix=True, stay_helpix=True)
+    F_vec = ellipsoid_unit_normal(x_ell_fit, y_ell_fit, z_ell_fit, a_fit, b_fit, c_fit, x0=x0_fit, y0=y0_fit, z0=z0_fit)
+    Fx_ell_fit, Fy_ell_fit, Fz_ell_fit = F_vec[:,0], F_vec[:,1], F_vec[:,2] 
+
+    fig = plt.figure(figsize=(20,10))
+    gs = gridspec.GridSpec(1, 2, hspace=0.1, wspace = 0.2)
+    ax = fig.add_subplot(gs[0, 0], projection = '3d')
+    ax.scatter(x_ell_fit/330, y_ell_fit/330, z_ell_fit/330, s = 40)
+    ax.quiver(x_ell_fit/330, y_ell_fit/330, z_ell_fit/330, Fx_ell_fit, Fy_ell_fit, Fz_ell_fit, length=0.4, color='k')
+    ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
+    ax.set_xlim(-10, 2.5); ax.set_ylim(-6, 6); ax.set_zlim(-6, 6)
+    ax.set_xlabel(r'x / r$_{\rm a}$', labelpad=15)
+    ax.set_ylabel(r'y / r$_{\rm a}$', labelpad=15)
+    ax.set_zlabel(r'z / r$_{\rm a}$', labelpad=15)
+    ax.set_title('Ellipsoid model', fontsize=16)
 
     # %% IF OUR PHOTOSPHERE BUT EQUAL MAGNITUD (1) FOR INTENSITY
     Fx_normal = Fx / F_mag 
