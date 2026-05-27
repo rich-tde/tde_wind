@@ -25,7 +25,8 @@ import scipy.integrate as sci
 from scipy.interpolate import griddata
 import matlab.engine
 from sklearn.neighbors import KDTree
-from src.Opacity.linextrapolator import opacity_extrap, opacity_linear
+# from src.Opacity.linextrapolator import opacity_extrap, opacity_linear
+from Opacity.interpolator_rich import calc_scattering_opacity, calc_ross_opacity, calc_planck_opacity
 from scipy.ndimage import uniform_filter1d
 
 import Utilities.prelude as prel
@@ -47,14 +48,13 @@ def fld_lightcurve(params, compton, check, N_ray):
     observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 
     for idx_s, snap in enumerate(snaps):
-        # if snap not in [151]: # for testing
-        #     continue
+        if snap not in np.arange(20, 50): # for testing
+            continue
         print(f'Snap: {snap}', flush=True)
         if alice:
             loadpath = f'{pre}/snap_{snap}'
         else:
             loadpath = f'{pre}/{snap}'
-        data = make_tree(loadpath, snap)
         Lphoto_snap, photosphere, colorsphere, freqs, L_col = single_fld(loadpath, snap, observers_xyz, N_ray)
         data = [snap, tfb[idx_s], Lphoto_snap]
         if save:
@@ -70,7 +70,6 @@ def fld_lightcurve(params, compton, check, N_ray):
             np.savetxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt', L_col)
         del Lphoto_snap, photosphere, colorsphere, L_col
         gc.collect()
-
 
 def single_fld(loadpath, snap, observers_xyz, N_ray):
     num_obs = len(observers_xyz)
@@ -145,22 +144,32 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         ray_ie_den = IE_den[idx]
         # r = np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) ####
         
-        # Interpolate opacity 
-        ln_alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
-        ln_alpha_rossland = np.array(ln_alpha_rossland)[0]
-        ln_alpha_planck = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t), np.log(d), 'linear', 0)
-        ln_alpha_planck = np.array(ln_alpha_planck)[0]
-        ln_alpha_scatter = eng.interp2(T_cool2, Rho_cool2, scatter2.T, np.log(t), np.log(d), 'linear', 0)
-        ln_alpha_scatter = np.array(ln_alpha_scatter)[0]
-        underflow_mask = np.logical_and(np.logical_and(ln_alpha_rossland != 0.0, ln_alpha_planck != 0.0), ln_alpha_scatter != 0.0)
-        d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ln_alpha_planck, ln_alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx = \
-            make_slices([d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ln_alpha_planck, ln_alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx], underflow_mask)
+        ## Interpolate opacity as it was in PAPER one
+        # ln_alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
+        # ln_alpha_rossland = np.array(ln_alpha_rossland)[0]
+        # ln_alpha_planck = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t), np.log(d), 'linear', 0)
+        # ln_alpha_planck = np.array(ln_alpha_planck)[0]
+        # ln_alpha_scatter = eng.interp2(T_cool2, Rho_cool2, scatter2.T, np.log(t), np.log(d), 'linear', 0)
+        # ln_alpha_scatter = np.array(ln_alpha_scatter)[0]
+        # underflow_mask = np.logical_and(np.logical_and(ln_alpha_rossland != 0.0, ln_alpha_planck != 0.0), ln_alpha_scatter != 0.0)
+        # d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ln_alpha_planck, ln_alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx = \
+        #     make_slices([d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ln_alpha_planck, ln_alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx], underflow_mask)
+        # idx = np.array(idx)
+        # alpha_rossland = np.exp(ln_alpha_rossland) # [1/cm]
+        # alpha_planck = np.exp(ln_alpha_planck) # [1/cm]
+        # alpha_scatter = np.exp(ln_alpha_scatter) # [1/cm]
+
+        alpha_scatter = np.zeros_like(t)
+        alpha_rossland = np.zeros_like(t)
+        alpha_planck = np.zeros_like(t)
+        for k in range(len(t)):
+            alpha_scatter[k] = calc_scattering_opacity(T_cool, Rho_cool, scattering, np.log(t[k]), np.log(d[k]))
+            alpha_rossland[k] = calc_ross_opacity(T_cool, Rho_cool, rossland, scattering, np.log(t[k]), np.log(d[k]))
+            alpha_planck[k] = calc_planck_opacity(T_cool, Rho_cool, planck, np.log(t[k]), np.log(d[k]))
+        underflow_mask = np.logical_and(np.logical_and(np.log(alpha_rossland) != 0.0, np.log(alpha_planck) != 0.0), np.log(alpha_scatter) != 0.0)
+        d, t, r, ray_x, ray_y, ray_z, alpha_rossland, alpha_planck, alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx = \
+            make_slices([d, t, r, ray_x, ray_y, ray_z, alpha_rossland, alpha_planck, alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx], underflow_mask)
         idx = np.array(idx)
-        alpha_rossland = np.exp(ln_alpha_rossland) # [1/cm]
-        alpha_planck = np.exp(ln_alpha_planck) # [1/cm]
-        alpha_scatter = np.exp(ln_alpha_scatter) # [1/cm]
-        # del ln_alpha_rossland, ln_alpha_planck, ln_alpha_scatter
-        # gc.collect()
 
         # Optical depth
         r_fuT = np.flipud(r) #.T
@@ -168,8 +177,8 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
         los = - np.flipud(sci.cumulative_trapezoid(alpha_rossland_fuT, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
         
-        alpha_effective = np.sqrt(3 * alpha_planck * (alpha_planck + alpha_scatter))
-        # alpha_effective = np.sqrt(3 * alpha_planck * alpha_rossland)
+        # alpha_effective = np.sqrt(3 * alpha_planck * (alpha_planck + alpha_scatter))
+        alpha_effective = np.sqrt(3 * np.minimum(alpha_planck, alpha_rossland) * alpha_rossland)
         alpha_effective_fuT = np.flipud(alpha_effective)
         los_effective = - np.flipud(sci.cumulative_trapezoid(alpha_effective_fuT, 
                                                          r_fuT, initial = 0)) * prel.Rsol_cgs
@@ -297,92 +306,6 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         norm = Lphoto / np.trapezoid(L_col[i,:], freqs)
         L_col[i,:] *= norm
 
-        if plot:
-            apo = 330
-            trad = (ray_radDen * prel.en_den_converter/prel.alpha_cgs)**(1/4)
-            kappa_ross = alpha_rossland/d
-            kappa_planck = alpha_planck/d
-            space = 1e-2
-            ln_alpha_rossland_downT = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t-space), np.log(d), 'linear', 0)
-            ln_alpha_rossland_downT = np.array(ln_alpha_rossland_downT)[0]
-            ln_alpha_rossland_upT = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t+space), np.log(d), 'linear', 0)
-            ln_alpha_rossland_upT = np.array(ln_alpha_rossland_upT)[0]
-            ln_alpha_rossland_downd = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d-space), 'linear', 0)
-            ln_alpha_rossland_downd = np.array(ln_alpha_rossland_downd)[0]
-            ln_alpha_rossland_upd = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d+space), 'linear', 0)
-            ln_alpha_rossland_upd = np.array(ln_alpha_rossland_upd)[0]
-            
-            ln_alpha_planck_downT = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t-space), np.log(d), 'linear', 0)
-            ln_alpha_planck_downT = np.array(ln_alpha_planck_downT)[0]
-            ln_alpha_planck_upT = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t+space), np.log(d), 'linear', 0)
-            ln_alpha_planck_upT = np.array(ln_alpha_planck_upT)[0]
-            ln_alpha_planck_downd = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t), np.log(d-space), 'linear', 0)
-            ln_alpha_planck_downd = np.array(ln_alpha_planck_downd)[0]
-            ln_alpha_planck_upd = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t), np.log(d+space), 'linear', 0)
-            ln_alpha_planck_upd = np.array(ln_alpha_planck_upd)[0]
-
-            A_ross = (ln_alpha_rossland_upT-ln_alpha_rossland_downT)/(2*space)
-            B_ross = (ln_alpha_rossland_upd-ln_alpha_rossland_downd)/(2*space)
-            A_planck = (ln_alpha_planck_upT-ln_alpha_planck_downT)/(2*space)
-            B_planck = (ln_alpha_planck_upd-ln_alpha_planck_downd)/(2*space)
-
-            # A_ross = np.diff(ln_alpha_rossland)/np.diff(np.log(t))
-            # B_ross = np.diff(ln_alpha_rossland)/np.diff(np.log(d))
-            # A_planck = np.diff(ln_alpha_planck)/np.diff(np.log(t))
-            # B_planck = np.diff(ln_alpha_planck)/np.diff(np.log(d))
-            
-            fig, ((axk, axtau), (axA, axB), (axT, axd)) = plt.subplots(3, 2, figsize = (15, 21))
-            axk.plot(r/apo, alpha_rossland, c = 'b', label = r'$\alpha_{\rm R}$')
-            axk.plot(r/apo, alpha_planck, c = 'r', label = r'$\alpha_{\rm a}$')
-            axk.set_ylabel(r'$\alpha$ [1/cm]')
-            axk.set_ylim(1e-15, 1e-4)
-            axk.legend(fontsize = 18)
-
-            axtau.plot(r/apo, los, c = 'b', label = r'$\tau_{\rm R}$')
-            axtau.axhline(2/3, c = 'gray', ls = '--')
-            axtau.plot(r/apo, los_effective, c = 'r', label = r'$\tau_{\rm eff}$')
-            axtau.axhline(5, c = 'gray', ls = '--')
-            axtau.set_ylabel(r'$\tau$')
-            axtau.set_ylim(1e-4, 1e2)
-
-            axT.plot(r/apo, t, c = 'k', label = r'T')
-            axT.plot(r/apo, trad, ls = '--', c = 'gray', label = r'T$_{\rm rad}$')
-            axT.set_ylabel(r'T [K]')
-            axT.set_ylim(1e3, 2e7)
-
-            axd.plot(r/apo, d, c = 'k')
-            axd.set_ylabel(r'Den [g/cm$^3$]')
-            axd.set_ylim(1e-18, 1e-12)
-
-            axA.scatter(r/apo, A_ross, c = 'b', label = r'$\Delta \ln\alpha_{\rm R}/\Delta \ln T$')
-            axA.scatter(r/apo, A_planck, c = 'r', label = r'$\Delta \ln\alpha_{\rm a}/\Delta \ln T$')
-            axA.set_ylabel(r'coeff extrap T')
-            # axA.set_ylim(-10, 10)
-
-            axB.scatter(r/apo, B_ross, c = 'b', label = r'$\Delta \ln\alpha_{\rm R}/\Delta \ln \rho$')
-            axB.scatter(r/apo, B_planck, c = 'r', label = r'$\Delta \ln\alpha_{\rm a}/\Delta \ln \rho$')
-            axB.set_ylabel(r'coeff extrap $\rho$')
-            # axB.set_ylim(-10, 10)
-
-            for ax in [axk, axtau, axd, axT, axA, axB]:
-                ax.set_xlim(5e-2, 15)
-                ax.legend(fontsize = 18)
-                if ax in [axA, axB]:
-                    ax.set_xscale('log')
-                else:
-                    ax.loglog()
-                ax.axvline(r[photo_idx]/apo, ls = '--', c = 'b', label = f'obs {i}, ' +  r'$r_{\rm ph}$')
-                ax.axvline(r[color_idx]/apo, ls = '--', c = 'r', label = f'obs {i}, ' +  r'$r_{\rm col}$')
-                ax.grid()
-                ax.tick_params(axis='both', which='major',length=10, width=1.5)
-                ax.tick_params(axis='both', which='minor',length=5, width=1)
-                if ax in [axT, axd, axA, axB]:
-                    ax.set_xlabel(r'$r/r_{\rm a}$')
-                    ax.set_xlabel(r'$r/r_{\rm a}$')
-            plt.tight_layout() 
-            # plt.savefig(f'{abspath}/Figs/{folder}/Test/{snap}/alphai_{snap}_{i}.png')
-            # plt.close()
-
         del smoothed_flux_r2, R_lamda, fld_factor, ray_radDen, alpha_rossland, alpha_planck, alpha_scatter, los, los_effective, tree, idxnew, f_inter_input, volume, ray_x, ray_y, ray_z, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den 
         gc.collect()
 
@@ -410,9 +333,9 @@ if __name__ == "__main__":
     rossland = np.loadtxt(f'{opac_path}/ross.txt')
     planck = np.loadtxt(f'{opac_path}/planck.txt')
     scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
-    _, _, scatter2 = opacity_linear(T_cool, Rho_cool, scattering)
-    T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, which_opacity = 'rossland', scatter = scatter2)
-    _, _, planck2 = opacity_extrap(T_cool, Rho_cool, planck, which_opacity = 'planck', scatter = None)
+    # _, _, scatter2 = opacity_linear(T_cool, Rho_cool, scattering)
+    # T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, which_opacity = 'rossland', scatter = scatter2)
+    # _, _, planck2 = opacity_extrap(T_cool, Rho_cool, planck, which_opacity = 'planck', scatter = None)
 
     #MATLAB, thanks Cindy.
     eng = matlab.engine.start_matlab()

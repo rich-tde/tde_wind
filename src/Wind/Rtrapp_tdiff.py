@@ -19,7 +19,7 @@ from scipy.integrate import cumulative_trapezoid
 import healpy as hp
 import matlab.engine
 from sklearn.neighbors import KDTree
-from src.Opacity.linextrapolator import opacity_linear, opacity_extrap
+from Opacity.interpolator import opacity_linear, opacity_extrap
 import Utilities.prelude as prel
 from Utilities.operators import make_tree, sort_list, to_spherical_components, choose_observers, to_spherical_coordinate
 from Utilities.selectors_for_snap import select_snap, select_prefix

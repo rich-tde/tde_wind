@@ -153,7 +153,7 @@ else:
         fig1.tight_layout()
         fig2.tight_layout()
         fig3.tight_layout()
-        fig1.savefig(f'{abspath}/Figs/paper/Maccr_encl.pdf', bbox_inches='tight')
+        fig1.savefig(f'{abspath}/Figs/1.paperEddMaccr_encl.pdf', bbox_inches='tight')
 
     if to_plot == 'single_res':
         check = 'HiResNewAMR'
@@ -182,7 +182,7 @@ else:
         plt.xlabel(r't / t$_{\rm fb}$')
         plt.ylabel(r'dM/dt $(r\leq r_0)[M_{\rm Edd}$]')
         plt.grid()
-        plt.savefig(f'{abspath}/Figs/paper/dMdt0.pdf', bbox_inches='tight')
+        plt.savefig(f'{abspath}/Figs/1.paperEdddMdt0.pdf', bbox_inches='tight')
         dataall = np.loadtxt(f'{abspath}/data/{folder}/paper1/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows = 1)
         tfb_all, Ldisstot_pos, Ldisstot_neg = dataall[:,1], dataall[:,3], dataall[:,5]
         Ldisstot_pos *= prel.en_converter/prel.tsol_cgs
@@ -213,5 +213,5 @@ else:
             ax.set_xlabel(r't /t$_{\rm fb}$')  
             ax.legend(fontsize = 18)
         
-        fig.savefig(f'{abspath}/Figs/paper/ME_encl.pdf', bbox_inches='tight')
+        fig.savefig(f'{abspath}/Figs/1.paperEddME_encl.pdf', bbox_inches='tight')
 

@@ -206,7 +206,7 @@ plt.subplots_adjust(wspace=0.25)  # Wider spacing between the first and second p
 # plt.suptitle(r't/t$_{fb}$ = ' + str(np.round(tfb,2)))
 plt.tight_layout()
 if save:
-    plt.savefig(f'{abspath}/Figs/paper/compareRpMass.pdf', bbox_inches='tight')
+    plt.savefig(f'{abspath}/Figs/1.paperEddcompareRpMass.pdf', bbox_inches='tight')
 plt.show()
 
 #%% CDF, grazie Sill
@@ -322,7 +322,7 @@ ax2.set_xlim(6e-2, 2)
 # plt.suptitle(r'Near pericenter: $R_0<X<25, \, |Y|<4$', fontsize = 20)
 plt.tight_layout()
 if save:
-    plt.savefig(f'{abspath}/Figs/paper/compareHistToget{include_mid}_vert.pdf', bbox_inches='tight')
+    plt.savefig(f'{abspath}/Figs/1.paperEddcompareHistToget{include_mid}_vert.pdf', bbox_inches='tight')
 plt.show()
 
 # %%

@@ -94,6 +94,9 @@ for s, snap in enumerate(snaps):
                 np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
         den_ph /=prel.den_converter # it was saved in cgs
         r_ph = np.sqrt(xph**2 + yph**2 + zph**2)
+        # if snap == 151:
+        #        idx_max = np.argmax(r_ph)
+        #        print(r_ph[idx_max]*prel.Rsol_cgs/1e14, xph[idx_max], flush=True)
         vel_ph = np.sqrt(vx_ph**2 + vy_ph**2 + vz_ph**2)
         mass_ph = den_ph * vol_ph
         Lum_ph_allSum[s] = np.sum(Lum_ph) # CGS
@@ -151,30 +154,23 @@ for s, snap in enumerate(snaps):
 figTr, axTr = plt.subplots(1, 1, figsize=(10, 8))
 figratios, (axTrnonzero, axNtr, axratio) = plt.subplots(1, 3, figsize=(27, 6))
 fig, (axVph, axdph, axTph) = plt.subplots(1, 3, figsize=(26, 6))
-figL, axL = plt.subplots(2, 2, figsize=(20, 14))
+figL, axLsum = plt.subplots(1, 1, figsize=(10, 8))
+figL, axLmean = plt.subplots(1, 1, figsize=(10, 8))
 
-for i, observer in enumerate(indices_axis):
-        if which_obs == 'tenths':
-                if label_axis[i] in ['0-10',  '10-20',  '20-30',  '30-40',  '40-50',  '50-60',  '60-70',  '70-80',  '80-90']:
-                        i_plot = 1
-                        col = prel.wanted_colors[i]
-                else:
-                        i_plot = 0
-                        col = prel.reverse_colors[i-9]
-        else:
-                i_plot = 0
-                col = colors_axis[i]
+for i, col in enumerate(colors_axis):
+        if label_axis[i] == 'south pole':
+               continue
         axTr.plot(tfbs, r_tr_sec[i]/Rt, c = col, ls = ':')
         # axTr.fill_between(tfbs, r_tr_perc16sec[i]/Rt, r_tr_perc84sec[i]/Rt, color=col, alpha=0.2)
         axTr.plot(tfbs, r_ph_sec[i]/Rt, c = col, label = label_axis[i])
         # axTr.fill_between(tfbs, r_ph_perc16sec[i]/Rt, r_ph_perc84sec[i]/Rt, color=col, alpha=0.3)
-        
+
         axTrnonzero.plot(tfbs, r_trnonzero_sec[i]/Rt, c = col) #, label = r'$r_{\rm tr}$' if i == 0 else '')
         # axTrnonzero.plot(tfbs, r_phnonzero_sec[i]/Rt, c = col, label = r'$r_{\rm ph}$' if i == 0 else '')
-        
+
         axNtr.plot(tfbs, ratio_Rtr[i], c = col)
         axratio.plot(tfbs, r_phnonzero_sec[i]/r_trnonzero_sec[i], c = col, label = label_axis[i])
-        
+
         axVph.plot(tfbs, Vr_ph_sec[i] * conversion_sol_kms, c = col)
         # axVph.plot(tfbs, Vr_tr_sec[i] * conversion_sol_kms, c = col,  label = label_axis[i])
         axdph.plot(tfbs, den_ph_sec[i] * prel.den_converter, c = col)
@@ -182,8 +178,8 @@ for i, observer in enumerate(indices_axis):
         axTph.plot(tfbs, Temp_ph_sec[i]/Rp, c = col, label = label_axis[i])
         # axTph.plot(tfbs, TempGas_ph_sec[i]/Rp, c = col, ls = '--')
         # axTph.plot(tfbs, Temp_tr_sec[i]/Rp, c = col)
-        axL[0, i_plot].plot(tfbs, Lum_allph_secSum[i]/Lum_ph_allSum, c = col, label = label_axis[i])#,   label =r'$L_{\rm FLD} (r_{\rm ph, all})$' if i ==0 else '')
-        axL[1, i_plot].plot(tfbs, Lum_adv_tr_sec[i], c = col, label = label_axis[i])
+        axLsum.plot(tfbs, Lum_allph_secSum[i]/Lum_ph_allSum, c = col, label = label_axis[i])#,   label =r'$L_{\rm FLD} (r_{\rm ph, all})$' if i ==0 else '')
+        axLmean.plot(tfbs, Lum_allph_secmean[i], c = col, label = label_axis[i])
         
 axTr.set_ylabel(r'median $r_{\rm obs} [r_{\rm t}]$')
 axTrnonzero.set_ylabel(r'median nonzero $r_{\rm tr} [r_{\rm t}]$')
@@ -192,20 +188,19 @@ axratio.set_ylabel(r'$r_{\rm ph}/r_{\rm tr}$ in adv. region')
 axVph.set_ylabel(r'v$_{\rm ph}$ [km/s]')
 axdph.set_ylabel(r'$\rho_{\rm ph}$ [g/cm$^3]$')    
 axTph.set_ylabel(r'$T_{\rm rad, ph} [K]$')
-for j in range(2):
-        axL[1, j].plot(tfbs, Lums, c = 'k', ls = '--')       
-        axL[1, j].set_xlabel(r't [$t_{\rm fb}$]')
-        axL[0, j].set_ylim(1e-2, 2)
-        axL[1, j].set_ylim(1e38, 5e43)
-        for i in range(2):
-                axL[i, j].legend(fontsize = 16)
-                axL[i, j].tick_params(axis='both', which='major', width=1.2, length=9, color = 'k')
-                axL[i, j].tick_params(axis='both', which='minor', width=1, length=7, color = 'k')
-                axL[i, j].grid()
-                axL[i, j].set_xlim(0.05, 2.25) 
-                axL[i, j].set_yscale('log')
-axL[0, 0].set_ylabel(r'$\sum_{i \in \mathcal{I}} L_{{\rm ph}, i}/\sum_{\rm i=0}^{N_{\rm obs}} L_{{\rm ph}, i}$')
-axL[1, 0].set_ylabel(r'mean $L_{\rm ph}$ (erg/s)')
+for ax in [axLsum, axLmean]:
+        ax.plot(tfbs, Lums, c = 'k', ls = '--')       
+        ax.set_xlabel(r't [$t_{\rm fb}$]')
+        ax.legend(fontsize = 16)
+        ax.tick_params(axis='both', which='major', width=1.2, length=9, color = 'k')
+        ax.tick_params(axis='both', which='minor', width=1, length=7, color = 'k')
+        ax.grid()
+        ax.set_xlim(0.05, 2.25) 
+        ax.set_yscale('log')
+axLsum.set_ylim(1e-2, 2)
+axLsum.set_ylabel(r'$\sum_{i \in \mathcal{I}} L_{{\rm ph}, i}/\sum_{\rm i=0}^{N_{\rm obs}} L_{{\rm ph}, i}$')
+axLmean.set_ylim(1e38, 5e43)
+axLmean.set_ylabel(r'mean $L_{\rm ph}$ (erg/s)')
 original_ticks = axTr.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))

@@ -6,7 +6,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 import numpy as np
-from src.Opacity.linextrapolator import opacity_extrap, opacity_linear
+from Opacity.interpolator import opacity_extrap, opacity_linear
 
 opac_path = f'{abspath}/src/Opacity/MG'
 T_cool = np.loadtxt(f'{opac_path}/fromRICH/T.txt')

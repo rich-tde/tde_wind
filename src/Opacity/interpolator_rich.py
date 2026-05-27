@@ -1,5 +1,7 @@
 abspath = '/Users/paolamartire/shocks'
 import sys
+
+from matplotlib.colors import LogNorm
 sys.path.append('/Users/paolamartire/shocks')
 from Utilities.isalice import isalice
 alice, plot = isalice()
@@ -31,7 +33,7 @@ from Utilities.operators import make_tree
 
 def bilinear_interpolation(x_vec, y_vec, data, x, y):
     """
-    Bilinear interpolation on a 2D table.
+    Bilinear interpolation inside a 2D table.
     data[i][j] corresponds to x_vec[i], y_vec[j].
     Clamps x and y to grid bounds.
     """
@@ -39,11 +41,11 @@ def bilinear_interpolation(x_vec, y_vec, data, x, y):
     y_vec = np.asarray(y_vec)
     data  = np.asarray(data)
 
-    # Clamp to grid
+    # Clamp to grid: force x and y to be within the bounds of x_vec and y_vec
     x = np.clip(x, x_vec[0], x_vec[-1])
     y = np.clip(y, y_vec[0], y_vec[-1])
 
-    i = np.searchsorted(x_vec, x, side='right') - 1
+    i = np.searchsorted(x_vec, x, side='right') - 1 # searchsorted returns the index of the first element in x_vec that is greater than x
     j = np.searchsorted(y_vec, y, side='right') - 1
 
     i = int(np.clip(i, 0, len(x_vec) - 2))
@@ -123,7 +125,7 @@ def interpolate_2d_table(x_vec, y_vec, data, x, y, x_vec_high_slope = 0, slope_l
     interp_val = np.exp(bilinear_interpolation(x_vec, y_vec, data, x, y))
     return interp_val, 0, 0
 
-def calc_scattering_opacity(T_, rho_, scatter_, Tcell, rhocell):
+def calc_scattering_opacity(T_, rho_, scatter_, Tcell, rhocell, return_coeff = False):
     """
     Parameters
     ----------
@@ -143,21 +145,27 @@ def calc_scattering_opacity(T_, rho_, scatter_, Tcell, rhocell):
         d       = rho_[0]
         interp_val, T_slope, _ = interpolate_2d_table(T_, rho_, scatter_, Tcell, d) 
         scatter = interp_val * d_ratio
-        return scatter, T_slope, 1
+        if return_coeff:
+            return scatter, T_slope, 1
+        return scatter
 
     if d > rho_[-1]:
         d_ratio = np.exp(rhocell) / np.exp(rho_[-1])
         d       = rho_[-1]
         interp_val, T_slope, _ = interpolate_2d_table(T_, rho_, scatter_, Tcell, d)
         scatter = interp_val * d_ratio
-        return scatter, T_slope, 1
+        if return_coeff:
+            return scatter, T_slope, 1
+        return scatter
     
     interp_val, T_slope, d_slope = interpolate_2d_table(T_, rho_, scatter_, Tcell, d) 
     scatter = interp_val * d_ratio
 
-    return scatter, T_slope, d_slope
+    if return_coeff:
+        return scatter, T_slope, d_slope
+    return scatter
 
-def calc_ross_opacity(T_, rho_, rossland_, scatter_, Tcell, rhocell):
+def calc_ross_opacity(T_, rho_, rossland_, scatter_, Tcell, rhocell, return_coeff = False):
     """
     Parameters
     ----------
@@ -172,26 +180,34 @@ def calc_ross_opacity(T_, rho_, rossland_, scatter_, Tcell, rhocell):
     d_ratio = 1.0
 
     if d < rho_[0]:
-        scattering, Tscatt_slope, dscatt_slope    = calc_scattering_opacity(T_, rho_, scatter_, Tcell, d)
+        scattering, Tscatt_slope, dscatt_slope = calc_scattering_opacity(T_, rho_, scatter_, Tcell, d, return_coeff=True)
         sigma_rossland, T_slope, d_slope = interpolate_2d_table(T_, rho_, rossland_, Tcell, d)
         if sigma_rossland > scattering:
-            return sigma_rossland, T_slope, d_slope
+            if return_coeff:
+                return sigma_rossland, T_slope, d_slope
+            return sigma_rossland
         else:
-            return scattering, Tscatt_slope, dscatt_slope
+            if return_coeff:
+                return scattering, Tscatt_slope, dscatt_slope
+            return scattering
 
     if d > rho_[-1]:
         d_ratio = np.exp(rhocell) / np.exp(rho_[-1])
         d       = rho_[-1]
         interp_val, T_slope, _ = interpolate_2d_table(T_, rho_, rossland_, Tcell, d) 
         rossland = interp_val * d_ratio
-        return rossland, T_slope, 1
+        if return_coeff:
+            return rossland, T_slope, 1
+        return rossland
 
     interp_val, T_slope, d_slope = interpolate_2d_table(T_, rho_, rossland_, Tcell, d) 
     rossland = interp_val * d_ratio
 
-    return rossland, T_slope, d_slope
+    if return_coeff:
+        return rossland, T_slope, d_slope
+    return rossland
 
-def calc_planck_opacity(T_, rho_, planck_, Tcell, rhocell):
+def calc_planck_opacity(T_, rho_, planck_, Tcell, rhocell, return_coeff = False):
     """
     Calculate Planck opacity for a computational cell.
 
@@ -223,18 +239,22 @@ def calc_planck_opacity(T_, rho_, planck_, Tcell, rhocell):
         d_ratio = np.exp(rhocell) / np.exp(rho_[0])
         d_log   = rho_[0]
 
-    if rhocell > rho_[-1]:
+    elif rhocell > rho_[-1]:
         d_ratio = np.exp(rhocell) / np.exp(rho_[-1])
         d_log   = rho_[-1]
+
+    else:
+        d_slope = 0 # doesn't really matter beacuse d_ratio=1 in this case, but it's just for when you plot d_slope: since you're inside the table you don't extrapolate so d_sloep=0
 
     interp_val, T_slope, _ = interpolate_2d_table(
         T_, rho_, planck_, Tcell, d_log, 
         x_vec_high_slope=-3.5) #d_slope would be 0 beacuse d_log in the table
     
     planck = interp_val * (d_ratio ** d_slope)
-    
-    return planck, T_slope, d_slope
 
+    if return_coeff:
+        return planck, T_slope, d_slope
+    return planck
 
 def fld_lightcurve(params, compton, check, N_ray):
     m, Rstar, mstar, beta, n, compton = params
@@ -261,7 +281,6 @@ def fld_lightcurve(params, compton, check, N_ray):
         del Lphoto_snap, photosphere, colorsphere, L_col
         gc.collect()
 
-
 def single_fld(loadpath, snap, observers_xyz, N_ray, time):
     num_obs = len(observers_xyz)
     data = make_tree(loadpath, snap)
@@ -279,7 +298,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray, time):
     freqs = prel.freqs
     L_col = np.zeros((num_obs, len(prel.freqs)))
     for i in range(num_obs):
-        if i not in [100]:
+        if i not in [10, 100]:
             continue
         print(f'Obs: {i}', flush=True)
 
@@ -307,7 +326,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray, time):
             rmax = min(rmax, box[2] / mu_z)
         else:
             rmax = min(rmax, box[5] / mu_z)
-
+            
         r = np.logspace(-0.25, np.log10(rmax), N_ray)
 
         x = r*mu_x
@@ -344,11 +363,12 @@ def single_fld(loadpath, snap, observers_xyz, N_ray, time):
         B_planck = np.zeros_like(t)
         for k in range(len(t)):
             alpha_scatter[k], _, _ = calc_scattering_opacity(T_cool, Rho_cool, scattering, np.log(t[k]), np.log(d[k]))
-            alpha_rossland[k], A_ross[k], B_ross[k] = calc_ross_opacity(T_cool, Rho_cool, rossland, scattering, np.log(t[k]), np.log(d[k]))
-            alpha_planck[k], A_planck[k], B_planck[k] = calc_planck_opacity(T_cool, Rho_cool, planck, np.log(t[k]), np.log(d[k]))
-            if alpha_planck[k] > 100.0 / (prel.c_cgs * prel.tsol_cgs * time):
-                print('Change Planck') 
-                alpha_planck[k] = 100.0 / (prel.c_cgs * prel.tsol_cgs * time)
+            alpha_rossland[k], A_ross[k], B_ross[k] = calc_ross_opacity(T_cool, Rho_cool, rossland, scattering, np.log(t[k]), np.log(d[k]), return_coeff=True)
+            alpha_planck[k], A_planck[k], B_planck[k] = calc_planck_opacity(T_cool, Rho_cool, planck, np.log(t[k]), np.log(d[k]), return_coeff=True)
+            # if alpha_planck[k] > 100.0 / (prel.c_cgs * prel.tsol_cgs * time):
+            #     print('Change Planck') 
+            #     alpha_planck[k] = 100.0 / (prel.c_cgs * prel.tsol_cgs * time)
+        # alpha_rossland = alpha_planck + alpha_scatter
         ln_alpha_planck = np.log(alpha_planck)
         ln_alpha_rossland = np.log(alpha_rossland)
         ln_alpha_scatter = np.log(alpha_scatter)
@@ -367,8 +387,9 @@ def single_fld(loadpath, snap, observers_xyz, N_ray, time):
         # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
         los = - np.flipud(sci.cumulative_trapezoid(alpha_rossland_fuT, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
         
-        alpha_effective = np.sqrt(3 * alpha_planck * (alpha_planck + alpha_scatter)) 
-        # alpha_effective = np.sqrt(3 * alpha_planck * alpha_rossland)
+        # alpha_effective = np.sqrt(3 * alpha_planck * (alpha_planck + alpha_scatter)) 
+        alpha_effective = np.sqrt(3 * np.minimum(alpha_planck, alpha_rossland) * alpha_rossland)
+        print(np.minimum(alpha_planck, alpha_rossland))
         alpha_effective_fuT = np.flipud(alpha_effective)
         los_effective = - np.flipud(sci.cumulative_trapezoid(alpha_effective_fuT, 
                                                          r_fuT, initial = 0)) * prel.Rsol_cgs
@@ -377,7 +398,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray, time):
         # FLD curve 
         # Get 20 unique nearest neighbors to each cell in the wanted ray and use them to compute the gradient along the ray
         xyz3 = np.array([ray_x, ray_y, ray_z]).T
-        _, idxnew = tree.query(xyz3, k=20)
+        _, idxnew = tree.query(xyz3, k = 20)
         idxnew = np.unique(idxnew) #.T
         dx = 0.5 * volume**(1/3) # Cell radius 
         f_inter_input = np.array([X[idxnew], Y[idxnew], Z[idxnew]]).T
@@ -529,11 +550,13 @@ def single_fld(loadpath, snap, observers_xyz, N_ray, time):
             axT.plot(r/apo, t, c = 'k', label = r'T')
             axT.plot(r/apo, trad, ls = '--', c = 'gray', label = r'T$_{\rm rad}$')
             axT.set_ylabel(r'T [K]')
-            axT.set_ylim(1e3, 2e7)
+            axT.set_ylim(1e3, 1e8)
+            axT.axhspan(min_T, max_T, color = 'gold', alpha = 0.2, label = 'table range')
 
             axd.plot(r/apo, d, c = 'k')
             axd.set_ylabel(r'Den [g/cm$^3$]')
-            axd.set_ylim(1e-18, 1e-12)
+            axd.set_ylim(1e-17, 1e9)
+            axd.axhspan(min_Rho, max_Rho, color = 'gold', alpha = 0.2)
 
             axA.scatter(r/apo, A_ross, c = 'dodgerblue', s = 50, label = r'$\Delta \ln\alpha_{\rm R}/\Delta \ln T$')
             axA.scatter(r/apo, A_planck, c = 'r', s = 25, label = r'$\Delta \ln\alpha_{\rm a}/\Delta \ln T$')
@@ -586,9 +609,177 @@ if __name__ == "__main__":
     things = orb.get_things_about([Mbh, Rstar, mstar, beta])
     t_fall = things['t_fb_days']
     t_fall_cgs = t_fall * 24 * 3600
-
     # Load opacity tables
     opac_path = f'{abspath}/src/Opacity'
+
+    # Load data (they are the ln of the values)
+    ln_T_tab = np.loadtxt(f'{opac_path}/T.txt') 
+    ln_Rho_tab = np.loadtxt(f'{opac_path}/rho.txt') 
+    ln_rossland_tab = np.loadtxt(f'{opac_path}/ross.txt') # Each row is a fixed T, column a fixed rho
+    ln_planck_tab = np.loadtxt(f'{opac_path}/planck.txt') # Each row is a fixed T, column a fixed rho
+    ln_scatt_tab = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
+    T_tab = np.exp(ln_T_tab)
+    Rho_tab = np.exp(ln_Rho_tab)
+    ross_tab = np.exp(ln_rossland_tab)
+    pl_tab = np.exp(ln_planck_tab)
+    min_T, max_T = np.min(T_tab), np.max(T_tab)
+    min_Rho, max_Rho = np.min(Rho_tab), np.max(Rho_tab)
+    print(f'min T in table: {min_T}, \nmax T in table: {max_T}, \nmin Rho in table: {min_Rho}, \nmax Rho in table: {max_Rho}')
+    kappa_ross_tab = []
+    for i in range(len(T_tab)):
+        kappa_ross_tab.append(ross_tab[i, :]/Rho_tab)
+    kappa_ross_tab = np.array(kappa_ross_tab)
+    kappa_theory_scatt = 0.2*(1+prel.X_nf) 
+    alpha_theory_scatt = kappa_theory_scatt * Rho_tab #1/cm
+
+    kappa_planck = []
+    for i in range(len(T_tab)):
+        kappa_planck.append(pl_tab[i, :]/Rho_tab)
+    kappa_planck = np.array(kappa_planck)
+    plt.figure(figsize = (9, 14))
+    img = plt.pcolormesh(np.log10(T_tab), np.log10(Rho_tab), kappa_planck.T,  norm = LogNorm(vmin = 1e-5, vmax=1e7), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+    cbar = plt.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'$\kappa_{\rm a}$ (cm$^2$/g)', fontsize=40)
+
+    #%%
+    # T_extr = np.logspace(2, 11, 200)
+    # Rho_extr = np.logspace(-18, 10, 201)
+    deltaxn_low = ln_T_tab[1] - ln_T_tab[0]
+    deltayn_low = ln_Rho_tab[1] - ln_Rho_tab[0] 
+    T_extra_low = [ln_T_tab[0] - deltaxn_low * (i + 1) for i in range(100)]
+    Rho_extra_low = [ln_Rho_tab[0] - deltayn_low * (i + 1) for i in range(101)]
+    # High extrapolation
+    deltaxn_high = ln_T_tab[-1] - ln_T_tab[-2]
+    deltayn_high = ln_Rho_tab[-1] - ln_Rho_tab[-2]
+    T_extra_high = [ln_T_tab[-1] + deltaxn_high * (i + 1) for i in range(100)]
+    Rho_extra_high = [ln_Rho_tab[-1] + deltayn_high * (i + 1) for i in range(101)]
+    ln_new_T = np.concatenate([T_extra_low[::-1], ln_T_tab, T_extra_high])
+    ln_new_Rho = np.concatenate([Rho_extra_low[::-1], ln_Rho_tab, Rho_extra_high])
+    T_extr = np.exp(ln_new_T)
+    Rho_extr = np.exp(ln_new_Rho)
+
+    scatter_extr = np.zeros((len(T_extr), len(Rho_extr)))
+    T_slope_scatt = np.zeros((len(T_extr), len(Rho_extr)))
+    d_slope_scatt = np.zeros((len(T_extr), len(Rho_extr)))
+    ross_extrap = np.zeros((len(T_extr), len(Rho_extr)))
+    T_slope_ross = np.zeros((len(T_extr), len(Rho_extr)))
+    d_slope_ross = np.zeros((len(T_extr), len(Rho_extr)))
+    planck_extrap = np.zeros((len(T_extr), len(Rho_extr)))
+    T_slope_planck = np.zeros((len(T_extr), len(Rho_extr)))
+    d_slope_planck = np.zeros((len(T_extr), len(Rho_extr)))
+    for i, T_val in enumerate(ln_new_T):
+        for j, Rho_val in enumerate(ln_new_Rho):
+            scatter_extr[i][j], T_slope_scatt[i][j], d_slope_scatt[i][j] = calc_scattering_opacity(ln_T_tab, ln_Rho_tab, ln_scatt_tab, T_val, Rho_val)
+            ross_extrap[i][j], T_slope_ross[i][j], d_slope_ross[i][j] = calc_ross_opacity(ln_T_tab, ln_Rho_tab, ln_rossland_tab, ln_scatt_tab, T_val, Rho_val)
+            planck_extrap[i][j], T_slope_planck[i][j], d_slope_planck[i][j] = calc_planck_opacity(ln_T_tab, ln_Rho_tab, ln_planck_tab, T_val, Rho_val)
+    
+    # find kappa 
+    kappa_scatter_extr = []
+    kappa_ross_extr = []
+    kappa_planck_extr = []
+    for i in range(len(T_extr)):
+        kappa_scatter_extr.append(scatter_extr[i, :]/Rho_extr)
+        kappa_ross_extr.append(ross_extrap[i, :]/Rho_extr)
+        kappa_planck_extr.append(planck_extrap[i, :]/Rho_extr)
+    kappa_scatter_extr = np.array(kappa_scatter_extr)
+    kappa_ross_extr = np.array(kappa_ross_extr)
+    kappa_planck_extr = np.array(kappa_planck_extr)
+
+    #%%
+    fig, (ax0, axR, axP) = plt.subplots(1,3, figsize = (30,15))
+    figR, (axR_t, axR_d) = plt.subplots(1,2, figsize = (20,15))
+    figP, (axP_t, axP_d) = plt.subplots(1,2, figsize = (20,15))
+    figS, (axS_t, axS_d) = plt.subplots(1,2, figsize = (20,15))
+    img = ax0.pcolormesh(np.log10(T_extr), np.log10(Rho_extr), kappa_scatter_extr.T,  norm = LogNorm(vmin = 1e-4, vmax=.5), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+    cbar = plt.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'$\kappa_{\rm s}$ (cm$^2$/g)', fontsize=40)
+
+    img = axR.pcolormesh(np.log10(T_extr), np.log10(Rho_extr), kappa_ross_extr.T,  norm = LogNorm(vmin = 1e-5, vmax=1e7), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+    cbar = plt.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'$\kappa_{\rm R}$ (cm$^2$/g)', fontsize=40)
+
+    img = axP.pcolormesh(np.log10(T_extr), np.log10(Rho_extr), kappa_planck_extr.T,  norm = LogNorm(vmin = 1e-5, vmax=1e7), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+    cbar = plt.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'$\kappa_{\rm a}$ (cm$^2$/g)', fontsize=40)
+
+    figratio, (axratio1, axratio2) = plt.subplots(1,2, figsize = (25,15))
+    img = axratio1.pcolormesh(np.log10(T_extr), np.log10(Rho_extr), (kappa_ross_extr/kappa_planck_extr).T,  norm = LogNorm(vmin = 1e-2, vmax=1e2), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+    cbar = plt.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'$\kappa_{\rm R}/\kappa_{\rm a}$', fontsize=40)
+    
+    img = axratio2.pcolormesh(np.log10(T_extr), np.log10(Rho_extr), (kappa_scatter_extr/kappa_planck_extr).T,  norm = LogNorm(vmin = 1e-2, vmax=1e2), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+    cbar = plt.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'$\kappa_{\rm s}/\kappa_{\rm a}$', fontsize=40)
+
+    ## coeff
+    img = axS_t.pcolormesh(np.log10(T_extr), np.log10(Rho_extr), T_slope_scatt.T,  vmin = -4, vmax = 4, cmap = 'jet', alpha = 0.7) #exp_scatt.T have rows = fixed rho, columns = fixed T
+    cbar = plt.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'A', fontsize=40)
+    axS_t.set_title('Temperature extrapolation coefficient', fontsize = 40)
+
+    img = axS_d.pcolormesh(np.log10(T_extr), np.log10(Rho_extr), d_slope_scatt.T,  vmin = -4, vmax = 4, cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+    cbar = plt.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'A', fontsize=40)
+    axS_d.set_title('Density extrapolation coefficient', fontsize = 40)
+
+    img = axR_t.pcolormesh(np.log10(T_extr), np.log10(Rho_extr), T_slope_ross.T,  vmin = -4, vmax = 4, cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+    cbar = plt.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'A', fontsize=40)
+    axR_t.set_title('Temperature extrapolation coefficient', fontsize = 40)
+
+    img = axR_d.pcolormesh(np.log10(T_extr), np.log10(Rho_extr), d_slope_ross.T,  vmin = -4, vmax = 4, cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+    cbar = plt.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'A', fontsize=40)
+    axR_d.set_title('Density extrapolation coefficient', fontsize = 40)
+
+    img = axP_t.pcolormesh(np.log10(T_extr), np.log10(Rho_extr), T_slope_planck.T,  vmin = -4, vmax = 4, cmap = 'jet', alpha = 0.7) #exp_planck.T have rows = fixed rho, columns = fixed T
+    cbar = plt.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'A', fontsize=40)
+    axP_t.set_title('Temperature extrapolation coefficient', fontsize = 40)
+
+    img = axP_d.pcolormesh(np.log10(T_extr), np.log10(Rho_extr), d_slope_planck.T,  vmin = -4, vmax = 4, cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+    cbar = plt.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'A', fontsize=40)
+    axP_d.set_title('Density extrapolation coefficient', fontsize = 40)
+   
+    for ax in [ax0, axR, axP, axratio1, axratio2, axP_t, axP_d, axR_t, axR_d, axS_t, axS_d]:
+        ax.axvline(np.log10(min_T), color = 'grey', linestyle = '--', label = 'lim table')
+        ax.axvline(np.log10(max_T), color = 'grey', linestyle = '--')
+        ax.axhline(np.log10(min_Rho), color = 'grey', linestyle = '--')
+        ax.axhline(np.log10(max_Rho), color = 'grey', linestyle = '--')
+        # ax.scatter(np.log10(T_col), np.log10(den_col), c = 'white', s = 100)
+        # ax.axhline(np.log10(1e-19*prel.Msol_cgs/prel.Rsol_cgs**3), color = 'grey', linestyle = ':', label = 'simulation cut')
+        # Get the existing ticks on the x-axis
+        big_ticks = [-10, -5, 0, 5, 10, 15] #ax.get_xticks()
+        # Calculate midpoints between each pair of ticks
+        midpointsx = np.arange(big_ticks[0], big_ticks[-1])
+        # Combine the original ticks and midpointsx
+        new_ticksx = np.sort(np.concatenate((big_ticks, midpointsx)))
+        labelsx = [str(np.round(tick,2)) if tick in big_ticks else "" for tick in new_ticksx]   
+        ax.set_xticks(new_ticksx)
+        ax.set_xticklabels(labelsx, fontsize = 40)
+
+        big_ticks = [-20, -15, -10, -5, 0, 5, 10, 15] #ax.get_yticks()
+        # Calculate midpoints between each pair of ticks
+        midpoints = np.arange(big_ticks[0], big_ticks[-1])
+        # Combine the original ticks and midpoints
+        new_ticks = np.sort(np.concatenate((big_ticks, midpoints)))
+        labels = [str(np.round(tick,2)) if tick in big_ticks else "" for tick in new_ticks]   
+        ax.set_yticks(new_ticks)
+        ax.set_yticklabels(labels, fontsize = 40)
+
+        ax.tick_params(axis='x', which='major', width=1.2, length=7, color = 'k')
+        ax.tick_params(axis='y', which='major', width=1.2, length=7, color = 'k')
+        ax.set_xlabel(r'$\log_{10} T$ (K)', fontsize=40)
+        ax.set_xlim(0.8,11)
+        ax.set_ylim(-19.5,11)
+        ax.set_ylabel(r'$\log_{10} \rho$ (g/cm$^3$)', fontsize=40)
+    # ax0.legend(fontsize=12, loc='center right')
+    figS.suptitle(r'Scattering extrapolation coefficients', fontsize = 40)
+    figR.suptitle(r'Rossland extrapolation coefficients', fontsize = 40)
+    figP.suptitle(r'Planck extrapolation coefficients', fontsize = 40)
+    plt.tight_layout()
+    # %%
     T_cool = np.loadtxt(f'{opac_path}/T.txt')
     Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
     rossland = np.loadtxt(f'{opac_path}/ross.txt')
@@ -600,3 +791,4 @@ if __name__ == "__main__":
 
     #%%
     fld_lightcurve(params, compton, check, N_ray)
+# %%

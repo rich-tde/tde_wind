@@ -58,7 +58,7 @@ n_obs = ph_obs
 P, I, Q, U = compute_polarization(
     # ph_obs[0], ph_obs[1], ph_obs[2],
     I_obs[0], I_obs[1], I_obs[2],
-    0.34,
+    1.,
     n_obs)
 print(f"n_obs: {n_obs}, I_obs: {I_obs}, P = {P}\n---------")
 print("TEST one wave. incident/observer direction perpendicular to scattered (expect: P = 1).")
@@ -68,7 +68,7 @@ n_obs = ph_obs
 P, I, Q, U = compute_polarization(
     # ph_obs[0], ph_obs[1], ph_obs[2],
     I_obs[0], I_obs[1], I_obs[2],
-    0.34,
+    1.,
     n_obs)
 print(f"n_obs: {n_obs}, I_obs: {I_obs}, Q = {Q}, U = {U}, P = {P}\n---------")
 #%%
@@ -96,21 +96,21 @@ plt.figure(figsize=(5,5))
 n_obs = [1, 0, 0]  
 P, I, Q, U = compute_polarization(
     Ix_obs, Iy_obs, Iz_obs,
-    0.34,
+    1.,
     n_obs, flux = True)
 print(f"n_obs: {n_obs}, P = {P}")
 plt.scatter(Q/I, U/I, label = f'n_obs: {n_obs}')
 n_obs = [0, 1, 0]  
 P, I, Q, U = compute_polarization(
     Ix_obs, Iy_obs, Iz_obs,
-    0.34,
+    1.,
     n_obs, flux = True)
 print(f"n_obs: {n_obs}, P = {P}")
 plt.scatter(Q/I, U/I, label = f'n_obs: {n_obs}')
 n_obs = [0, 0, 1]  
 P, I, Q, U = compute_polarization(
     Ix_obs, Iy_obs, Iz_obs,
-    0.34,
+    1.,
     n_obs, flux = True)
 plt.scatter(Q/I, U/I, label = f'n_obs: {n_obs}')
 plt.legend(fontsize=16)
@@ -156,7 +156,7 @@ for n_idx in range(len(n_obs_all)):
     theta_obs[n_idx] = np.arccos(n_obs[2]/np.linalg.norm(n_obs))
 for n_idx in range(len(n_obs_all)):
         n_obs = n_obs_all[n_idx]
-        P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, 0.34, n_obs)
+        P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, 1., n_obs)
         P_HR_n[n_idx] = P
 
 angle_test = np.linspace(0, 1.1*np.pi, 100)
@@ -209,7 +209,7 @@ for h_idx, c in enumerate(c_all):
 
     for n_idx in range(len(n_obs_all)):
         n_obs = n_obs_all[n_idx]
-        P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, 0.34, n_obs)
+        P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, 1., n_obs)
         P_HR_n[h_idx, n_idx] = P
 
 plt.figure(figsize=(8,8))
@@ -265,7 +265,7 @@ for h_idx, c in enumerate(c_all):
 
     for n_idx in range(len(n_obs_all)):
         n_obs = n_obs_all[n_idx]
-        P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, 0.34,n_obs)
+        P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, 1.,n_obs)
         P_HR_n[h_idx, n_idx] = P
 
 plt.figure(figsize=(8,8))
@@ -316,7 +316,7 @@ for i_idx, mult in enumerate(mult_fact):
     # plt.show()
     for n_idx in range(len(theta_obs)):
         n_obs = [x_obs[n_idx], y_obs[n_idx], z_obs[n_idx]]
-        P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, 0.34, n_obs)
+        P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, 1., n_obs)
         P_theta[i_idx][n_idx] = P
         if np.abs(np.dot(n_obs, [0,0,1])-1) < 5e-3:
             print('Q:', Q, 'U:', U)

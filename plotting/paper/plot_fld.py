@@ -67,8 +67,6 @@ f_ph = np.zeros(len(snaps))
 for i, snap in enumerate(snaps):
     x_ph, y_ph, z_ph, vol_ph, den_ph, Temp_ph, RadDen_ph, Vx_ph, Vy_ph, Vz_ph, Press_ph, IE_den_ph, alpha_ph, _, _, _ = \
         np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
-    colorpshere = np.load(f'{abspath}/data/{folder}/spectra/{check}_Rcol{snap}.npz')
-    x_col, y_col, z_col = colorpshere['x'], colorpshere['y'], colorpshere['z']
     # if snap in [76, 109, 151]:
     #     colorpsherenew = np.load(f'{abspath}/data/{folder}/spectranew/{check}_Rcol{snap}.npz')
     #     x_coln, y_coln, z_coln = colorpsherenew['x'], colorpsherenew['y'], colorpsherenew['z']
@@ -124,7 +122,7 @@ ax.tick_params(axis='both', which='major', width = 1.2, length = 9, color = 'k')
 ax.tick_params(axis='y', which='minor', width = 1, length = 5, color = 'k')
 ax.set_xlim(np.min(tfb), np.max(tfb))
 ax.legend(fontsize = 16)
-plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld_ionizz.jpg', bbox_inches='tight')
+plt.savefig(f'/Users/paolamartire/shocks/Figs/1.paperEddonefld_ionizz.jpg', bbox_inches='tight')
 
 #%%
 fig, (axR, axL) = plt.subplots(1, 2, figsize=(16, 7))
@@ -165,7 +163,7 @@ axR.set_ylim(1, 1.5e2)
 axL.set_ylabel(r'Luminosity (erg/s)')#, fontsize = 20)
 axL.set_ylim(9e37, 2e43)
 plt.tight_layout()
-plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/onefld.pdf', bbox_inches='tight')
+plt.savefig(f'/Users/paolamartire/shocks/Figs/1.paperEddonefld.pdf', bbox_inches='tight')
 # %% check where observers are with respect to healpix directions
 snap = 151
 import healpy as hp
@@ -174,8 +172,9 @@ num_obs = prel.NPIX
 observers_xyz = hp.pix2vec(prel.NSIDE, range(num_obs)) # shape: (3, 192)
 observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 _, theta_hp, phi_hp = to_spherical_coordinate(observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2], r_frame = 'math')
-x_ph, y_ph, z_ph, _, _, _, _, _, _, _, _, _, _, _, _, _, Fx_ph, Fy_ph, Fz_ph = \
-        np.loadtxt(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}POL.txt')
+photosphere = np.load(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}.npz')
+x_ph, y_ph, z_ph, Fx_ph, Fy_ph, Fz_ph = photosphere['x'], photosphere['y'], photosphere['z'], photosphere['Fx'], photosphere['Fy'], photosphere['Fz']
+
 _, theta_photo, phi_photo = to_spherical_coordinate(x_ph, y_ph, z_ph, r_frame = 'math')
 _, theta_photo_F, phi_photo_F = to_spherical_coordinate(Fx_ph, Fy_ph, Fz_ph, r_frame = 'math')
 

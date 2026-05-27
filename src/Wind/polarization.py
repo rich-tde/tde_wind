@@ -5,17 +5,17 @@ sys.path.append(abspath)
 
 import numpy as np
 import healpy as hp
+from scipy.optimize import minimize
+from matplotlib import gridspec
+from scipy.interpolate import griddata
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import Utilities.prelude as prel
-from Utilities.selectors_for_snap import select_snap
 from Utilities.sections import make_slices
 from Utilities.basic_units import radians
-from matplotlib import gridspec
-from scipy.interpolate import griddata
 from Utilities.operators import sort_list
+from scipy.linalg import inv
 #%% Choose parameters -----------------------------------------------------------------
-# test = True
 m = 4
 Mbh = 10**m
 beta = 1
@@ -26,87 +26,79 @@ compton = 'Compton'
 check = 'HiResNewAMR' 
 snap = 151
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+Pmin = 0
+Pmax = 0.5
 
-
-def ellipsoid_fit(point_data, mode=0):
-    """ Fit an ellipsoid to a cloud of points using linear least squares
-        Based on Yury Petrov MATLAB algorithm: "ellipsoid_fit.m"
+def mvee_fit(points, tol=1e-6, max_iter=1000):
     """
+    Minimum Volume Enclosing Ellipsoid (MVEE) for N points in d dimensions.
 
-    X = point_data[0]
-    Y = point_data[1]
-    Z = point_data[2]
+    Based on Khachiyan's algorithm.
+    Returns:
+        center: (d,)
+        shape: (d,d) such that   (x - c) @ shape @ (x - c) <= 1
+    """
+    points = np.atleast_2d(points)
+    d, N = points.shape[1], len(points)
 
-    # AlGEBRAIC EQUATION FOR ELLIPSOID, from CARTESIAN DATA
-    if mode == '':  # 9-DOF MODE
-        D = np.array([X * X + Y * Y - 2 * Z * Z,
-                      X * X + Z * Z - 2 * Y * Y,
-                      2 * X * Y, 2 * X * Z, 2 * Y * Z,
-                      2 * X, 2 * Y, 2 * Z,
-                      1 + 0 * X]).T
+    # Khachiyan algorithm
+    Q = np.column_stack([points, np.ones(N)])  # (N, d+1)
+    uu = np.ones(N) / N
 
-    elif mode == 0:  # 6-DOF MODE (no rotation)
-        D = np.array([X * X + Y * Y - 2 * Z * Z,
-                      X * X + Z * Z - 2 * Y * Y,
-                      2 * X, 2 * Y, 2 * Z,
-                      1 + 0 * X]).T
+    for it in range(max_iter):
+        X = Q.T @ np.diag(uu) @ Q
+        M = np.diag(Q @ inv(X) @ Q.T)  # leverage scores
+        j = np.argmax(M)
+        step_size = (M[j] - d - 1) / ((d + 1) * (M[j] - 1))
+        new_uu = (1 - step_size) * uu
+        new_uu[j] += step_size
+        if np.max(np.abs(new_uu - uu)) < tol:
+            uu = new_uu
+            break
+        uu = new_uu
 
-    # THE RIGHT-HAND-SIDE OF THE LLSQ PROBLEM
-    d2 = np.array([X * X + Y * Y + Z * Z]).T
+    # Center and shape matrix
+    U = np.diag(uu)
+    c = points.T @ uu            # center
+    X = (points - c.reshape(1,-1)).T @ U @ (points - c.reshape(1,-1))
+    Xinv = inv(X) / d
+    return np.array(c), Xinv
 
-    # SOLUTION TO NORMAL SYSTEM OF EQUATIONS
-    u = np.linalg.solve(D.T.dot(D), D.T.dot(d2))
-    # chi2 = (1 - (D.dot(u)) / d2) ^ 2
+def ellipsoid_fit(points):
+    """
+    Fit an axis‑aligned ellipsoid to 3D points.
+    
+    Parameters:
+    -----------
+    points : array of shape (N, 3)
+    
+    Returns:
+    --------
+    center : array (3,) of (x0, y0, z0)
+    radii  : array (3,) of (a, b, c)
+    """
+    x, y, z = points[:, 0], points[:, 1], points[:, 2]
+    
+    # Objective: minimize sum of squared residuals
+    def residuals(pars):
+        x0, y0, z0, a, b, c = pars
+        X = (x - x0) / a
+        Y = (y - y0) / b
+        Z = (z - z0) / c
+        return np.sum(X**2 + Y**2 + Z**2 - 1)**2
+    
+    # Initial guess: sample mean as center, rough scale from stds
+    x0, y0, z0 = np.mean(points, axis=0)
+    a0, b0, c0 = np.std(points, axis=0) + 1e-6  # avoid zero
+    x0, y0, z0, a0, b0, c0 = float(x0), float(y0), float(z0), float(a0), float(b0), float(c0)
 
-    # CONVERT BACK TO ALGEBRAIC FORM
-    if mode == '':  # 9-DOF-MODE
-        a = np.array([u[0] + 1 * u[1] - 1])
-        b = np.array([u[0] - 2 * u[1] - 1])
-        c = np.array([u[1] - 2 * u[0] - 1])
-        v = np.concatenate([a, b, c, u[2:, :]], axis=0).flatten()
-
-    elif mode == 0:  # 6-DOF-MODE
-        a = u[0] + 1 * u[1] - 1
-        b = u[0] - 2 * u[1] - 1
-        c = u[1] - 2 * u[0] - 1
-        zs = np.array([0, 0, 0])
-        v = np.hstack((a, b, c, zs, u[2:, :].flatten()))
-
-    else:
-        pass
-
-    # PUT IN ALGEBRAIC FORM FOR ELLIPSOID
-    A = np.array([[v[0], v[3], v[4], v[6]],
-                  [v[3], v[1], v[5], v[7]],
-                  [v[4], v[5], v[2], v[8]],
-                  [v[6], v[7], v[8], v[9]]])
-
-    # FIND CENTRE OF ELLIPSOID
-    centre = np.linalg.solve(-A[0:3, 0:3], v[6:9])
-
-    # FORM THE CORRESPONDING TRANSLATION MATRIX
-    T = np.eye(4)
-    T[3, 0:3] = centre
-
-    # TRANSLATE TO THE CENTRE, ROTATE
-    R = T.dot(A).dot(T.T)
-
-    # SOLVE THE EIGENPROBLEM
-    evals, evecs = np.linalg.eig(R[0:3, 0:3] / -R[3, 3])
-
-    # SORT EIGENVECTORS
-    # i = np.argsort(evals)
-    # evals = evals[i]
-    # evecs = evecs[:, i]
-    # evals = evals[::-1]
-    # evecs = evecs[::-1]
-
-    # CALCULATE SCALE FACTORS AND SIGNS
-    radii = np.sqrt(1 / abs(evals))
-    sgns = np.sign(evals)
-    radii *= sgns
-
-    return (centre, evecs, radii)
+    res = minimize(residuals, [x0, y0, z0, a0, b0, c0],
+                   bounds=[(None, None), (None, None), (None, None),
+                           (1e-6, None), (1e-6, None), (1e-6, None)])
+    pars = res.x
+    center = pars[:3]
+    radii = pars[3:]
+    return center, radii
 
 def ellipsoid_surface(n_bins, a, b, c, x0=0, y0=0, z0=0, healpix = False, stay_helpix = False):
     """Sample uniform points on ellipsoid surface x²/a² + y²/b² + z²/c² = 1"""
@@ -259,13 +251,15 @@ def compute_polarization(Ix, Iy, Iz,
     # --- Define a (fixed, arbitrary) sky basis with a plane perpendicular to the line-of-sight direction n
     # vectors: (e1, e2, n). e1 is the first, it will give you the cos(2\phi) which define Q param
     tmp = np.array([0.0, 0.0, 1.0])
-    e1 = tmp - np.dot(tmp, n) * n  # proj of tmp onto sky plane
-    if np.linalg.norm(e1) < 1e-6:   # avoid degeneracy if n || tmp
+    e2 = tmp - np.dot(tmp, n) * n  # proj of tmp onto sky plane
+    # e2 = np.cross(tmp, n)
+    if np.linalg.norm(e2) < 1e-6:   # avoid degeneracy if n || tmp
         tmp = np.array([1.0, 0.0, 0.0]) # so if n is along z, e1 will be along x
-        e1 = tmp - np.dot(tmp, n) * n 
-    e1 /= np.linalg.norm(e1)
-    e2 = np.cross(n, e1) # not viceversa or you flip the sign. Like that, e1xe2 = n (as x,y,z in cartesian)
+        e2 = tmp - np.dot(tmp, n) * n 
+        # e2 = np.cross(tmp, n)
     e2 /= np.linalg.norm(e2)
+    e1 = np.cross(e2, n) # not viceversa or you flip the sign. Like that, e1xe2 = n (as x,y,z in cartesian)
+    e1 /= np.linalg.norm(e1)
 
     # Polarization direction vector, in the scattering plane, orthogonal to n
     cross1 = np.cross(n, I_hat)     # I_hat × n (incident × scattered)
@@ -304,19 +298,16 @@ if __name__ == "__main__":
     observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) # shape: (3, 192)
     x_heal, y_heal, z_heal = observers_xyz[0], observers_xyz[1], observers_xyz[2]
     
-    photonew = np.load(f'{abspath}/data/{folder}/photonew/{check}_photo{snap}.npz')
-    alpha_abs = photonew['alpha_abs']
-     # photo = np.loadtxt(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}POL.txt')
-    # x, y, z, den, alpha_rossland, Lum, Fx, Fy, Fz = photo[0], photo[1], photo[2], photo[4], photo[12], photo[14], photo[16], photo[17], photo[18]
+    photo = np.load(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}.npz')
+    x, y, z, den, Fx, Fy, Fz, alpha_rossland, alpha_scatter, alpha_abs = \
+        photo['x'], photo['y'], photo['z'], photo['den'], photo['Fx'], photo['Fy'], photo['Fz'], photo['alpha_rossland'], photo['alpha_scatter'], photo['alpha_abs']
     
-    photo = np.loadtxt(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}POL.txt')
-    x, y, z, den, alpha_scatter, tau_scatt, alpha_rossland, _, Fx, Fy, Fz = \
-        np.loadtxt(f'{abspath}/data/{folder}/scatt_surf/{check}_photo{snap}taus.txt')
     kappaS = alpha_scatter/den
     kappaR = alpha_rossland/den
     # kappaA = alpha_abs/den
     # print(kappaA)
-    weight = alpha_scatter/alpha_rossland
+    albedo = alpha_scatter/alpha_rossland
+    # albedo = alpha_scatter/(alpha_scatter + alpha_abs)
     # weight = tau_scatt
     # weight = alpha_abs/alpha_scatter
 
@@ -465,14 +456,60 @@ if __name__ == "__main__":
 
     #%% POLARIZATION
     P_all = np.zeros(len(x))
+    q_all = np.zeros(len(x))
+    u_all = np.zeros(len(x))
     for idx in range(len(x)):
         # n_obs = [x[idx], y[idx], z[idx]] # observers = my photospheric cells
         n_obs = [x_heal[idx], y_heal[idx], z_heal[idx]]
-        P, I, Q, U = compute_polarization(Fx, Fy, Fz, weight, n_obs, flux=True)
+        P, I, Q, U = compute_polarization(Fx, Fy, Fz, albedo, n_obs, flux=True)
         P_all[idx] = P
+        q_all[idx] = Q/I
+        u_all[idx] = U/I
     print(f'Mean P: {np.mean(P_all):.2f}, \nMedian P: {np.median(P_all):.2f}, \nMax P: {np.max(P_all):.2f}')
     
-    #%% POLARIZATION MAP
+    #%% POLARIZATION MAPS
+    lon_1d_heal = longitude_heal_moll
+    lat_1d_heal = latitude_heal_moll
+    # Define a regular grid in (lon, lat) for visualization
+    nlon = 360
+    nlat = 180
+    lon_heal_grid = np.linspace(lon_1d_heal.min(), lon_1d_heal.max(), nlon)
+    lat_heal_grid = np.linspace(lat_1d_heal.min(), lat_1d_heal.max(), nlat)
+    lon_heal_mesh, lat_heal_mesh = np.meshgrid(lon_heal_grid, lat_heal_grid)
+
+    data_grid_q = griddata(
+    points=(lon_1d_heal, lat_1d_heal), 
+    values=q_all,
+    xi=(lon_heal_mesh, lat_heal_mesh),
+    method='linear')
+
+    data_grid_u = griddata(
+    points=(lon_1d_heal, lat_1d_heal), 
+    values=u_all,
+    xi=(lon_heal_mesh, lat_heal_mesh),
+    method='linear')
+    
+    fig = plt.figure(figsize=(20,10))
+    gs = gridspec.GridSpec(1, 2, hspace=0.1, wspace = 0.2)
+    axq = fig.add_subplot(gs[0, 0], projection='mollweide')
+    img = axq.pcolormesh(lon_mesh, lat_mesh, data_grid_q, cmap='plasma', vmin = -.3, vmax = .3)  
+    cbar = plt.colorbar(img, orientation='horizontal', pad = 0.1, label =r'$Q/I$ ')
+    cbar.ax.tick_params(which='major',length = 6)
+    cbar.ax.tick_params(which='minor',length = 4)
+    axu = fig.add_subplot(gs[0, 1], projection='mollweide')
+    img = axu.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_u, cmap='plasma', vmin = -.3, vmax = .3) 
+    cbar = plt.colorbar(img, orientation='horizontal', pad = 0.1, label =r'$U/I$')
+    cbar.ax.tick_params(which='major',length = 6)
+    for ax in [axq, axu]:
+        ax.grid(True)
+        ax.set_xticks(np.radians(np.arange(-180, 181, 90))) 
+        ax.set_xticklabels(['180°', '270°', '0°','90°', '180°']) #'-180°', '-90°', '0°','90°', '180°']
+        ax.set_yticks(np.radians(np.arange(-90, 91, 45))) 
+        ax.set_yticklabels(['180°','135°', '90°', '45°', '0°']) #['-90°', '-45°', '0°', '45°','90°'])
+    plt.suptitle(f't = {time:.1f} ' + r'$t_{\rm fb}$', fontsize=20, x = 0.5, y = .71)
+    plt.savefig(f'{abspath}/Figs/2.paperWind//QU_map{snap}.png', dpi=300, bbox_inches='tight')
+    
+    #%%
     fig, ax = plt.subplots(1,1,figsize=(10, 8))
     img = ax.scatter(theta_heal*radians, P_all, c = longitude_moll*radians, cmap='rainbow', edgecolors='k', s = 70, vmin = -np.pi, vmax = np.pi) #color by phi
     cbar = fig.colorbar(img, label=r'$\phi_{\rm obs}$ [rad]', orientation='horizontal')
@@ -502,26 +539,39 @@ if __name__ == "__main__":
     values=P_all,
     xi=(lon_heal_mesh, lat_heal_mesh),
     method='linear')
+
+    data_grid_alb = griddata(
+    points=(lon_1d, lat_1d),
+    values=albedo, 
+    xi=(lon_mesh, lat_mesh),
+    method='linear')
     
-    fig = plt.figure(figsize=(20,10))
-    gs = gridspec.GridSpec(1, 2, hspace=0.1, wspace = 0.2)
+    fig = plt.figure(figsize=(30,15))
+    gs = gridspec.GridSpec(1, 3, hspace=0.1, wspace = 0.2)
     axf = fig.add_subplot(gs[0, 0], projection='mollweide')
-    img = axf.pcolormesh(lon_mesh, lat_mesh, data_grid_F, cmap='rainbow', norm = colors.LogNorm(vmin = 1e-1, vmax = 2e1))  #color by intensity
+    img = axf.pcolormesh(lon_mesh, lat_mesh, data_grid_F, cmap='rainbow', norm = colors.LogNorm(vmin = 1e-1, vmax = 1e3))  #color by intensity
     cbar = plt.colorbar(img, orientation='horizontal', pad = 0.1, label =r'$|\,\vec{F}\,|/|\,\vec{F}\,|_{\rm med}$ ')
     cbar.ax.tick_params(which='major',length = 6)
     cbar.ax.tick_params(which='minor',length = 4)
-    axP = fig.add_subplot(gs[0, 1], projection='mollweide')
-    img = axP.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_P, cmap='rainbow', vmin = 0, vmax = .5)  #color by intensity
+
+    axalb = fig.add_subplot(gs[0, 1], projection='mollweide')
+    img = axalb.pcolormesh(lon_mesh, lat_mesh, data_grid_alb, cmap='rainbow', vmin = 0, vmax = 1)  
+    cbar = plt.colorbar(img, orientation='horizontal', pad = 0.1, label =r'$\sigma_{\rm s}/\alpha_{\rm Ross}$')
+    cbar.ax.tick_params(which='major',length = 6)
+    cbar.ax.tick_params(which='minor',length = 4)
+
+    axP = fig.add_subplot(gs[0, 2], projection='mollweide')
+    img = axP.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_P, cmap='rainbow', vmin = Pmin, vmax = Pmax)  #color by intensity
     cbar = plt.colorbar(img, orientation='horizontal', pad = 0.1, label =r'P')
     cbar.ax.tick_params(which='major',length = 6)
-    for ax in [axf, axP]:
+    for ax in [axf, axalb, axP]:
         ax.grid(True)
         ax.set_xticks(np.radians(np.arange(-180, 181, 90))) 
         ax.set_xticklabels(['180°', '270°', '0°','90°', '180°']) #'-180°', '-90°', '0°','90°', '180°']
         ax.set_yticks(np.radians(np.arange(-90, 91, 45))) 
         ax.set_yticklabels(['180°','135°', '90°', '45°', '0°']) #['-90°', '-45°', '0°', '45°','90°'])
-    plt.suptitle(f't = {time:.1f} ' + r'$t_{\rm fb}$', fontsize=20, x = 0.5, y = .71)
-    plt.savefig(f'{abspath}/Figs/wind_paper/FP_map{snap}.png', dpi=300, bbox_inches='tight')
+    plt.suptitle(f't = {time:.1f} ' + r'$t_{\rm fb}$', fontsize=25, x = 0.5, y = .58)
+    plt.savefig(f'{abspath}/Figs/2.paperWind//FP_map{snap}.png', dpi=300, bbox_inches='tight')
 
     #%% WHAT IF PHOTOSPHERE IS A SPHERE (AND SO FLUX IS RADIAL)?
     F_x_rad = F_mag * x_heal
@@ -545,7 +595,7 @@ if __name__ == "__main__":
     for idx in range(len(x)):
         # n_obs = [x[idx], y[idx], z[idx]]
         n_obs = [x_heal[idx], y_heal[idx], z_heal[idx]]
-        P, I, Q, U = compute_polarization(F_x_rad, F_y_rad, F_z_rad, weight, n_obs, flux=True)
+        P, I, Q, U = compute_polarization(F_x_rad, F_y_rad, F_z_rad, albedo, n_obs, flux=True)
         P_radial[idx] = P
     print(f'Spherical photosphere \n----------\nMean P: {np.mean(P_radial):.2f}, \nMedian P: {np.median(P_radial):.2f}, \nMax P: {np.max(P_radial):.2f}')
 
@@ -558,7 +608,7 @@ if __name__ == "__main__":
     fig = plt.figure(figsize=(20,10))
     gs = gridspec.GridSpec(1, 2, hspace=0.1, wspace = 0.2)
     axx = fig.add_subplot(gs[0, 0], projection='mollweide')
-    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pr, cmap='rainbow', vmin = 0, vmax = .5)  #color by intensity
+    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pr, cmap='rainbow', vmin = Pmin, vmax = Pmax)  #color by intensity
     cbar = plt.colorbar(img, orientation='horizontal', label =r'P')
     cbar.ax.tick_params(which='major',length = 5)
     cbar.ax.tick_params(which='minor',length = 3)
@@ -582,17 +632,28 @@ if __name__ == "__main__":
     axx.set_yticklabels(['180°','135°', '90°', '45°', '0°']) #['-90°', '-45°', '0°', '45°','90°'])
 
     #%%
-    P_z, I_Z, Q_z, U_z = compute_polarization(Fx, Fy, Fz, weight, [0, 0, 1], flux=True, all_points=True)
+    P_z, I_Z, Q_z, U_z = compute_polarization(Fx, Fy, Fz, albedo, [0, 0, 1], flux=True, all_points=True)
 
     #%% WHAT IF PHOTOSPHERE IS AN ELLIPSOID?
-    a = (np.max(x[op_idx]) - np.min(x[op_idx]))/2
-    b = (np.max(y[op_idx]) - np.min(y[op_idx]))/2
-    c = (np.max(z[Npole_idx]) - np.min(z[Spole_idx]))/2
-    x0 = (np.max(x[op_idx]) + np.min(x[op_idx]))/2
-    y0 = (np.max(y[op_idx]) + np.min(y[op_idx]))/2
-    z0 = (np.max(z[Npole_idx]) + np.min(z[Spole_idx]))/2
-    print(f'Parameters for ellipsoid: a={a}, b={b}, c={c}')
+    # a = (np.max(x[op_idx]) - np.min(x[op_idx]))/2
+    # b = (np.max(y[op_idx]) - np.min(y[op_idx]))/2
+    # c = (np.max(z[Npole_idx]) - np.min(z[Spole_idx]))/2
+    # x0 = (np.max(x[op_idx]) + np.min(x[op_idx]))/2
+    # y0 = (np.max(y[op_idx]) + np.min(y[op_idx]))/2
+    # z0 = (np.max(z[Npole_idx]) + np.min(z[Spole_idx]))/2
+
+    ## centre, abc = ellipsoid_fit(np.column_stack([x, y, z]))
+    centre, Xinv = mvee_fit(np.column_stack([x, y, z]))
+    # To get radii and axes, diagonalize the shape matrix
+    w, v = np.linalg.eigh(Xinv)  # w = eigenvalues, v = eigenvectors
+    w = np.clip(w, 1e-15, None)   # avoid negative eigenvalues from rounding
+    abc = 1.0 / np.sqrt(w)
+    a, b, c = abc
+    x0, y0, z0 = centre
+
+    print(f'Fitted ellipsoid parameters: a={a}, b={b}, c={c}, center=({x0}, {y0}, {z0})')
     x_ell, y_ell, z_ell = ellipsoid_surface(prel.NSIDE, a, b, c, x0=x0, y0=y0, z0=z0, healpix=True, stay_helpix=True)
+
     F_vec = ellipsoid_unit_normal(x_ell, y_ell, z_ell, a, b, c, x0=x0, y0=y0, z0=z0)
     Fx_ell, Fy_ell, Fz_ell = F_vec[:,0], F_vec[:,1], F_vec[:,2] 
 
@@ -618,7 +679,7 @@ if __name__ == "__main__":
     for idx in range(len(x)):
         # n_obs = [x[idx], y[idx], z[idx]]
         n_obs = [x_heal[idx], y_heal[idx], z_heal[idx]]
-        P, I, Q, U = compute_polarization(Fx_ell, Fy_ell, Fz_ell, weight, n_obs, flux=True)
+        P, I, Q, U = compute_polarization(Fx_ell, Fy_ell, Fz_ell, albedo, n_obs, flux=True)
         P_ell[idx] = P
     print(f'Ellipsoidal photosphere \n----------\nMean P: {np.mean(P_ell):.2f}, \nMedian P: {np.median(P_ell):.2f}, \nMax P: {np.max(P_ell):.2f}')
 
@@ -630,7 +691,7 @@ if __name__ == "__main__":
 
     fig = plt.figure(figsize=(30,15))
     axx = fig.add_subplot(gs[0, 0], projection='mollweide')
-    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pell, cmap='rainbow', vmin = 0, vmax = .5)  #color by intensity
+    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pell, cmap='rainbow', vmin = Pmin, vmax = Pmax)  #color by intensity
     cbar = plt.colorbar(img, orientation='horizontal', label =r'P')
     cbar.ax.tick_params(which='major',length = 5)
     cbar.ax.tick_params(which='minor',length = 3)
@@ -653,26 +714,6 @@ if __name__ == "__main__":
     axx.set_yticks(np.radians(np.arange(-90, 91, 45))) 
     axx.set_yticklabels(['180°','135°', '90°', '45°', '0°']) #['-90°', '-45°', '0°', '45°','90°'])
 
-    #%% TEST THE FITTING FUNCTION
-    centre, _, abc = ellipsoid_fit([x, y, z])
-    a_fit, b_fit, c_fit = abc
-    x0_fit, y0_fit, z0_fit = centre
-    print(f'Fitted ellipsoid parameters: a={a_fit}, b={b_fit}, c={c_fit}')
-    x_ell_fit, y_ell_fit, z_ell_fit = ellipsoid_surface(prel.NSIDE, a_fit, b_fit, c_fit, x0=x0_fit, y0=y0_fit, z0=z0_fit, healpix=True, stay_helpix=True)
-    F_vec = ellipsoid_unit_normal(x_ell_fit, y_ell_fit, z_ell_fit, a_fit, b_fit, c_fit, x0=x0_fit, y0=y0_fit, z0=z0_fit)
-    Fx_ell_fit, Fy_ell_fit, Fz_ell_fit = F_vec[:,0], F_vec[:,1], F_vec[:,2] 
-
-    fig = plt.figure(figsize=(20,10))
-    gs = gridspec.GridSpec(1, 2, hspace=0.1, wspace = 0.2)
-    ax = fig.add_subplot(gs[0, 0], projection = '3d')
-    ax.scatter(x_ell_fit/330, y_ell_fit/330, z_ell_fit/330, s = 40)
-    ax.quiver(x_ell_fit/330, y_ell_fit/330, z_ell_fit/330, Fx_ell_fit, Fy_ell_fit, Fz_ell_fit, length=0.4, color='k')
-    ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
-    ax.set_xlim(-10, 2.5); ax.set_ylim(-6, 6); ax.set_zlim(-6, 6)
-    ax.set_xlabel(r'x / r$_{\rm a}$', labelpad=15)
-    ax.set_ylabel(r'y / r$_{\rm a}$', labelpad=15)
-    ax.set_zlabel(r'z / r$_{\rm a}$', labelpad=15)
-    ax.set_title('Ellipsoid model', fontsize=16)
 
     # %% IF OUR PHOTOSPHERE BUT EQUAL MAGNITUD (1) FOR INTENSITY
     Fx_normal = Fx / F_mag 
@@ -684,7 +725,7 @@ if __name__ == "__main__":
     for idx in range(len(x)):
         # n_obs = [x[idx], y[idx], z[idx]] # observers = my photospheric cells
         n_obs = [x_heal[idx], y_heal[idx], z_heal[idx]]
-        P, I, Q, U = compute_polarization(Fx_normal, Fy_normal, Fz_normal, weight, n_obs, flux=False) # put false so uses F as intensity and magnitude doesn't change
+        P, I, Q, U = compute_polarization(Fx_normal, Fy_normal, Fz_normal, albedo, n_obs, flux=False) # put false so uses F as intensity and magnitude doesn't change
         P_normal[idx] = P
     print(f'Equal intensity \n----------\nMean P: {np.mean(P_normal):.2f}, \nMedian P: {np.median(P_normal):.2f}, \nMax P: {np.max(P_normal):.2f}')
 
@@ -696,7 +737,7 @@ if __name__ == "__main__":
 
     fig = plt.figure(figsize=(30,15))
     axx = fig.add_subplot(gs[0, 0], projection='mollweide')
-    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pnorm, cmap='rainbow', vmin = 0, vmax = .5)  #color by intensity
+    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pnorm, cmap='rainbow', vmin = Pmin, vmax = Pmax)  #color by intensity
     cbar = plt.colorbar(img, orientation='horizontal', label =r'P')
     cbar.ax.tick_params(which='major',length = 5)
     cbar.ax.tick_params(which='minor',length = 3)
@@ -720,4 +761,3 @@ if __name__ == "__main__":
     axx.set_yticklabels(['180°','135°', '90°', '45°', '0°'])
     
 
-# %%

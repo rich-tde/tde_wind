@@ -329,8 +329,8 @@ if plot:
     axL.set_ylabel(r'$L_{\rm adv} / L_{\rm Edd}$', fontsize = 28)
     axL.set_ylim(1, 5e2)
     fig.tight_layout()
-    fig.savefig(f'{abspath}/Figs/paper/den_profShell{which_part}_{suffix_saveing}.pdf', bbox_inches = 'tight')
-    # figM_dim.savefig(f'{abspath}/Figs/paper/MwShell{which_part}.pdf', bbox_inches = 'tight')
-    # figL.savefig(f'{abspath}/Figs/paper/LShell{which_part}.pdf', bbox_inches = 'tight')
+    fig.savefig(f'{abspath}/Figs/1.paperEddden_profShell{which_part}_{suffix_saveing}.pdf', bbox_inches = 'tight')
+    # figM_dim.savefig(f'{abspath}/Figs/1.paperEddMwShell{which_part}.pdf', bbox_inches = 'tight')
+    # figL.savefig(f'{abspath}/Figs/1.paperEddLShell{which_part}.pdf', bbox_inches = 'tight')
     plt.show()
 

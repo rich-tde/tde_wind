@@ -227,7 +227,7 @@ if __name__ == '__main__':
         ax.grid()
 
     plt.tight_layout()
-    plt.savefig(f'{abspath}/Figs/paper/fld_R_conv.pdf', bbox_inches='tight')
+    plt.savefig(f'{abspath}/Figs/1.paperEddfld_R_conv.pdf', bbox_inches='tight')
 
     # OE and IE
     # Load data
@@ -319,5 +319,5 @@ if __name__ == '__main__':
         if ax in [ax4, ax5, ax6, ax7]:
             ax.set_xlabel(r't /t$_{\rm fb}$', fontsize = 40)
     plt.tight_layout()
-    plt.savefig(f'{abspath}/Figs/paper/OeIeRad.pdf', bbox_inches='tight')
+    plt.savefig(f'{abspath}/Figs/1.paperEddOeIeRad.pdf', bbox_inches='tight')
 

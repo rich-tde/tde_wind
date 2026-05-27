@@ -190,7 +190,7 @@ ax1.legend(fontsize = 20, loc = 'upper right')
 ax1.grid()
 
 plt.tight_layout()
-plt.savefig(f'{abspath}/Figs/paper/Reta.pdf', bbox_inches = 'tight')
+plt.savefig(f'{abspath}/Figs/1.paperEddReta.pdf', bbox_inches = 'tight')
 
 #%% eta
 match_paper1 = False # reverse the ticks to match Fig. 12 in paper 1

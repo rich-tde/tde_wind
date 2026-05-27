@@ -18,7 +18,7 @@ import scipy.integrate as sci
 import healpy as hp
 import matlab.engine
 from sklearn.neighbors import KDTree
-from src.Opacity.linextrapolator import nouveau_rich
+from Opacity.interpolator import nouveau_rich
 import Utilities.prelude as prel
 from Utilities.operators import make_tree, sort_list
 from Utilities.selectors_for_snap import select_snap, select_prefix

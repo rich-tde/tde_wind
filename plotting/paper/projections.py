@@ -179,7 +179,7 @@ if not proj_movie:
     ax.set_xlabel(r'$X / r_{\rm a}$')#, fontsize = 20)
     plt.tight_layout()
 
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/3denprojph.png', bbox_inches='tight')
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/1.paperEdd3denprojph.png', bbox_inches='tight')
     plt.show() 
 
 
@@ -311,7 +311,7 @@ if not proj_movie:
     axDiss.set_xlabel(r'$X / r_{\rm a}$')#, fontsize = 20)
     plt.tight_layout()
 
-    plt.savefig(f'/Users/paolamartire/shocks/Figs/paper/3DenDissprojph.png', bbox_inches='tight', dpi = 300)
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/1.paperEdd3DenDissprojph.png', bbox_inches='tight', dpi = 300)
     plt.show() 
 
 if proj_movie:

@@ -148,9 +148,9 @@ else:
         ax.grid()
         ax.set_xlim(0, np.max(tfb))
     fig.tight_layout()
-    fig.savefig(f'{abspath}/Figs/paper/Ebudget_{check}.png', dpi = 300)
+    fig.savefig(f'{abspath}/Figs/1.paperEddEbudget_{check}.png', dpi = 300)
     figL.tight_layout()
-    figL.savefig(f'{abspath}/Figs/paper/Ebudget_absrates_{check}.pdf', dpi = 300)
+    figL.savefig(f'{abspath}/Figs/1.paperEddEbudget_absrates_{check}.pdf', dpi = 300)
 
 
     

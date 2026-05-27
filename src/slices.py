@@ -175,7 +175,7 @@ else:
         
     else:
         from matplotlib import gridspec
-        what = '' # '' or '_wind' (if you want to pick the wind and plot only the streamlines that belong to the wind)
+        what = '_wind' # '' or '_wind' (if you want to pick the wind and plot only the streamlines that belong to the wind)
         how = '' # '' if you want streamlines, '_arrows' if you want arrows 
         idx_wanted = [np.argmin(np.abs(snaps - 76)), 
                       np.argmin(np.abs(snaps - 109)), 
@@ -250,6 +250,8 @@ else:
                 else:
                     x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y)
             else:
+                # print(x_toplot[-param_wind>5*E_mb])
+                # img = ax.scatter(x_toplot[np.abs(param_wind)>E_mb]/Rt, y_toplot[np.abs(param_wind)>E_mb]/Rt, c = param_wind[np.abs(param_wind)>E_mb]/E_mb, cmap = 'coolwarm', s = 6,  norm=colors.SymLogNorm(linthresh=0.1, vmin=-1e2, vmax=1e2))
                 # x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, Den_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, den)
                 # img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, Den_grid * prel.den_converter, cmap='brg_r', norm=colors.LogNorm(vmin=1e-16, vmax=2e-8))
                 x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, param_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, param_wind)
@@ -284,14 +286,14 @@ else:
         # cbar_ax.axis("off") # if you want to hide the axis of the colorbar but keep the colorbar space
         
         cb = fig.colorbar(img, orientation='horizontal', cax=cbar_ax, aspect=100, pad=0.02)
-        # cb.set_label(r'$\rho$ (g/cm$^3)$', fontsize = 50)
-        cb.set_label(r'$\mathcal{B}/\Delta\varepsilon$', fontsize = 50)
+        cb.set_label(r'$\rho$ (g/cm$^3)$', fontsize = 50)
+        # cb.set_label(r'$\mathcal{B}/\Delta\varepsilon$', fontsize = 50)
         cb.ax.tick_params(labelsize=38)
         cb.ax.tick_params(which='major', length=9, width=1.4)
         cb.ax.tick_params(which='minor', length=6, width=1.2)
 
         if what == '_wind':
-            plt.savefig(f'{abspath}/Figs/wind_paper/Wind{coord_to_cut}{cut_name}slices{what}{how}.pdf', bbox_inches='tight', pad_inches=0.05)
+            plt.savefig(f'{abspath}/Figs/2.paperWind/Wind{coord_to_cut}{cut_name}slices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
         else:
-            plt.savefig(f'{abspath}/Figs/wind_paper/Wind{coord_to_cut}{cut_name}slices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
+            plt.savefig(f'{abspath}/Figs/2.paperWind/Wind{coord_to_cut}{cut_name}slices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
             

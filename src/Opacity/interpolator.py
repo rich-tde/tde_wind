@@ -360,7 +360,7 @@ if __name__ == '__main__':
     ross_extrap = np.exp(ln_rossland_extrap)
     _, _, ln_planck_extrap = opacity_extrap(ln_T_tab, ln_Rho_tab, ln_planck_tab, which_opacity = 'planck', slope_length = 10, scatter = None)
     planck_extrap = np.exp(ln_planck_extrap)
-    
+
     # find kappa 
     kappa_scatter_extr = []
     kappa_ross_extr = []

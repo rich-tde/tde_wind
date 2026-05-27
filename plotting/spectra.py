@@ -32,10 +32,10 @@ high_freq_UV = 7.748 * prel.ev_toHz #3e15
 low_freq_Xray = 300 * prel.ev_toHz 
 high_freq_Xray = 2e4 * prel.ev_toHz #3e19
 L_min = 1e39
-L_max = 1e42
+L_max = 4e41
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-def plot_spectra(folder, check, snaps, x_axis, choice = 'single_axis'):
+def plot_spectra(folder, check, snaps, x_axis, choice = 'left_right_z'):
     # Load
     pre_saving = f'{abspath}/data/{folder}'
     freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt')
@@ -51,9 +51,9 @@ def plot_spectra(folder, check, snaps, x_axis, choice = 'single_axis'):
     # observers
     observers_xyz = hp.pix2vec(prel.NSIDE, np.arange(prel.NPIX)) #shape: (3, 192)
     observers_xyz = np.array(observers_xyz)
-    longitude_moll = np.arctan2(observers_xyz[1], observers_xyz[0])
-    theta_obs = np.arccos(observers_xyz[2])
-    latitude_moll = np.pi/2 - theta_obs
+    longitude_moll = np.arctan2(observers_xyz[1], observers_xyz[0]) # from -pi to pi, 0 at x axis, positive towards y axis
+    theta_obs = np.arccos(observers_xyz[2]) # from 0 (+z axis) to pi (-z axis)
+    latitude_moll = np.pi/2 - theta_obs  # from np.pi/2 (z axis) to -np.pi/2 (-z axis)
     cross_dot = np.matmul(observers_xyz.T,  observers_xyz)
     cross_dot[cross_dot<0] = 0
     cross_dot /= 192
@@ -71,6 +71,7 @@ def plot_spectra(folder, check, snaps, x_axis, choice = 'single_axis'):
     fig_mollx = plt.figure(figsize=(len(snaps)*11, 7))
     gs_x = gridspec.GridSpec(2, len(snaps), wspace = 0.1, hspace = 0, height_ratios=[1, 0.08])
 
+    fig_sp, ax = plt.subplots(1, len(snaps), figsize=(24,7))
     for s, snap in enumerate(snaps):
         time = tfb[snaps_fld == snap][0]
         L_photo = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
@@ -86,11 +87,11 @@ def plot_spectra(folder, check, snaps, x_axis, choice = 'single_axis'):
         #     ax_op.set_title(" ", fontsize=1, y = 1.1)
         #     ax_x.set_title(" ", fontsize=1, y = 1.1)
   
-        for ax in [ax_op,ax_x]:
-            ax.set_xticks(np.radians(np.arange(-180, 181, 90))) 
-            ax.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
-            ax.set_yticks(np.radians(np.arange(-90, 91, 45))) 
-            ax.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
+        for ax_moll in [ax_op, ax_x]:
+            ax_moll.set_xticks(np.radians(np.arange(-180, 181, 90))) 
+            ax_moll.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
+            ax_moll.set_yticks(np.radians(np.arange(-90, 91, 45))) 
+            ax_moll.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
 
         Lum_op, Lum_UV, Lum_Xray = np.zeros(len(L_photo)), np.zeros(len(L_photo)), np.zeros(len(L_photo))
         for i in range(len(L_photo)):
@@ -104,7 +105,7 @@ def plot_spectra(folder, check, snaps, x_axis, choice = 'single_axis'):
         values=Lum_op,
         xi=(lon_mesh, lat_mesh),
         method='linear')
-        ax_op.pcolormesh(lon_mesh, lat_mesh, data_grid_op, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=L_max))
+        ax_op.pcolormesh(lon_mesh, lat_mesh, data_grid_op, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=10*L_max))
 
         # data_grid_uv = griddata(
         # points=(lon_1d, lat_1d),
@@ -118,34 +119,50 @@ def plot_spectra(folder, check, snaps, x_axis, choice = 'single_axis'):
         values=Lum_Xray,
         xi=(lon_mesh, lat_mesh),
         method='linear')
-        img = ax_x.pcolormesh(lon_mesh, lat_mesh, data_grid_x, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=L_max))
+        img = ax_x.pcolormesh(lon_mesh, lat_mesh, data_grid_x, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=10*L_max))
         
         L_photo = np.matmul(cross_dot, L_photo)
-        fig_sp, ax = plt.subplots(1, 1, figsize=(8,6))
         if x_axis == 'Temp':
             x_value = freqs * prel.Hz_toK
-            ax.set_xlabel('Temperature [K]')
-            ax.set_xlim(1e3, 5e7)
+            ax[s].set_xlabel('Temperature (K)', fontsize = 30)
+            ax[s].axvline(low_freq_optical * prel.Hz_toK, c = 'bisque')
+            ax[s].axvspan(low_freq_optical * prel.Hz_toK, high_freq_optical * prel.Hz_toK, color='bisque', alpha=0.3)
+            ax[s].axvline(high_freq_optical * prel.Hz_toK, c = 'lightsteelblue')
+            ax[s].axvspan(high_freq_optical * prel.Hz_toK, high_freq_UV * prel.Hz_toK, color='lightsteelblue', alpha=0.3)
+            ax[s].axvline(high_freq_UV * prel.Hz_toK, c = 'lightcoral')
+            ax[s].axvline(high_freq_Xray * prel.Hz_toK, c = 'lightcoral')
+            ax[s].axvspan(high_freq_UV * prel.Hz_toK, high_freq_Xray * prel.Hz_toK, color='lightcoral', alpha=0.3)
+            ax[s].set_xlim(1e3, 1e7)
+            if s == 0:
+                ax[s].text(0.6 * high_freq_optical * prel.Hz_toK, L_max/3, 'Optical', rotation=90, fontsize=20)
+                ax[s].text(0.6 * high_freq_UV * prel.Hz_toK, L_max/3, 'UV', rotation=90, fontsize=20)
+                ax[s].text(1.5 * high_freq_UV * prel.Hz_toK, L_max/3, 'X-ray', rotation=90, fontsize=20)
         else:
             x_value = freqs
-            ax.set_xlabel('Frequency [Hz]')
-            ax.set_xlim(1e14, 1e19)
+            ax[s].axvline(low_freq_optical, c = 'k')
+            ax[s].axvspan(low_freq_optical, high_freq_optical, color='bisque', alpha=0.3)
+            ax[s].axvline(high_freq_UV, c = 'k')
+            # ax[s].axvline(low_freq_Xray, c = 'k')
+            ax[s].axvline(high_freq_Xray, c = 'k')
+            ax[s].set_xlabel('Frequency (Hz)', fontsize = 30)
+            ax[s].set_xlim(1e14, 1e19)
         for i_idx, idx in enumerate(indices_sorted):
             if len(idx) == 1:
                 Lum = np.concatenate(L_photo[idx])
             else:
                 Lum = np.median(L_photo[idx], axis = 0)
-            ax.plot(x_value, freqs * Lum, label = f'{label_obs[i_idx]}', c = colors_obs[i_idx], ls = lines_obs[i_idx])
+            ax[s].plot(x_value, freqs * Lum, label = f'{label_obs[i_idx]}', c = colors_obs[i_idx], linewidth = 2) #ls = lines_obs[i_idx]
                         
-        ax.tick_params(axis='both', which='major', length=8, width=1.2)
-        ax.tick_params(axis='both', which='minor', length=5, width=1)
-        ax.loglog()
-        ax.set_ylim(L_min, L_max)
-        ax.set_ylabel(r'$\nu L_{\nu}$ [erg s$^{-1}$]')
-        ax.legend(fontsize=16)
-        ax.set_title(f'SED at t = {np.round(time, 2)}' + r't$_{\rm fb}$', fontsize=20)
+        ax[s].tick_params(axis='both', which='major', length=8, width=1.2)
+        ax[s].tick_params(axis='both', which='minor', length=5, width=1)
+        ax[s].loglog()
+        ax[s].set_ylim(L_min, L_max)
+        ax[s].set_title(f't = {np.round(time, 2)}' + r't$_{\rm fb}$', fontsize = 30)
         
-        plt.tight_layout()
+    ax[0].set_ylabel(r'$\nu L_{\nu}$ (erg s$^{-1}$)', fontsize = 30)
+    ax[0].legend(fontsize=18)
+    plt.tight_layout()
+    plt.savefig(f'{abspath}/Figs/2.paperWind/spectra.pdf', dpi=300)
     
     cbar_ax = fig_mollop.add_subplot(gs_op[1, 0:3])  # Colorbar subplot below the first two
     cb = fig_mollop.colorbar(img, cax=cbar_ax, orientation='horizontal', pad=0.07)

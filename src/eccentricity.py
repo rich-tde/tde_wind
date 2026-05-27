@@ -164,7 +164,7 @@ else:
         ax.tick_params(axis='x', which='minor', width=.9, length=6, color = 'k', labelsize=25)
         ax.set_xlim(R0/apo, np.max(radii)/apo)
         ax.set_ylim(np.min(tfb), np.max(tfb))
-        plt.savefig(f'{abspath}/Figs/paper/ecc{which_cut}{check}.pdf', bbox_inches='tight')
+        plt.savefig(f'{abspath}/Figs/1.paperEddecc{which_cut}{check}.pdf', bbox_inches='tight')
         plt.show()
 
     if error: # compare resolutions
@@ -246,7 +246,7 @@ else:
         ax2.text(1.05*Rt/apo, 0.9*np.max(tfbH), r'$r_{\rm t}$', fontsize = 25, color = 'k')
         ax1.set_ylim(np.min(tfbL), np.max(tfbL))
         ax2.set_ylim(np.min(tfbH), np.max(tfbH))
-        plt.savefig(f'{abspath}/Figs/paper/ecc_diff.pdf', bbox_inches='tight')
+        plt.savefig(f'{abspath}/Figs/1.paperEddecc_diff.pdf', bbox_inches='tight')
         plt.tight_layout
 
         fig, ax3 = plt.subplots(1,1,figsize=(9, 5))

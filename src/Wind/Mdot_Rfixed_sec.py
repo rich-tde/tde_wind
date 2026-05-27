@@ -1,4 +1,4 @@
-""" Compute Mdot fallback and wind across a symmetrical (eventually fixed) surface"""
+""" Compute the time evolution of Mdot fallback and Mdot wind across a spherical surface"""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 
@@ -118,7 +118,7 @@ def split_cells(X, Y, Z, choice):
     
 def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
     # Load data and pick the ones unbound and with positive velocity
-    data = make_tree(path, snap, energy = True)
+    data = make_tree(path, snap)
     X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
         data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Press, data.VX, data.VY, data.VZ, data.IE, data.Rad
     cut = Den > 1e-19
@@ -336,7 +336,7 @@ if __name__ == '__main__':
         
         snap_for_scatter = 109
         path_scat = f'/Users/paolamartire/shocks/TDE/{folder}/{snap_for_scatter}'
-        data = make_tree(path_scat, snap_for_scatter, energy = True)
+        data = make_tree(path_scat, snap_for_scatter)
         X, Y, Z, VX, VY, VZ, Vol, Den, Mass, Press, IE_den, Rad_den = \
             data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Vol, data.Den, data.Mass, data.Press, data.IE, data.Rad
         cut = np.logical_and(Den > 1e-19, np.abs(Y) < Vol**(1/3)) 
@@ -487,7 +487,7 @@ if __name__ == '__main__':
             ax.set_ylabel(r'$Z (r_{\rm t})$')
         fig.suptitle(rf'$\dot{{M}}_{{\rm w}}$ at {which_r_title}', fontsize = 20)
         fig.tight_layout()
-        fig.savefig(f'{abspath}/Figs/{folder}/Wind/MdotSec_{which_r_title}{choice}.png', dpi = 150)
+        # fig.savefig(f'{abspath}/Figs/{folder}/Wind/MdotSec_{which_r_title}{choice}.png', dpi = 150)
 
         
         # fig, ax = plt.subplots(1,1, figsize = (8,6))

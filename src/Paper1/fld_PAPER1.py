@@ -24,7 +24,7 @@ import scipy.integrate as sci
 from scipy.interpolate import griddata
 import matlab.engine
 from sklearn.neighbors import KDTree
-from src.Opacity.linextrapolator import opacity_extrap, opacity_linear
+from src.Paper1.linextrapolator_PAPER1 import opacity_extrap, opacity_linear
 from scipy.ndimage import uniform_filter1d
 
 import Utilities.prelude as prel

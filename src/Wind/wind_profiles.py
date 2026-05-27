@@ -69,7 +69,7 @@ def radial_profiles(loadpath, snap, ray_params, which_obs, which_part = ''):
         make_slices([X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell, bern], cut)       
     indices_all = np.arange(len(X))
     
-    # split in sections yhe wind cells
+    # split in sections the wind cells
     sections = op.choose_sections(X, Y, Z, which_obs)
     cond_sec = []
     colors_obs = []
@@ -96,22 +96,21 @@ def radial_profiles(loadpath, snap, ray_params, which_obs, which_part = ''):
         v_rad_prof = np.zeros(Nray)
         d_prof = np.zeros(Nray)
         Mdot_prof = np.zeros(Nray)
-        Mdotmean_prof = np.zeros(Nray)
         L_kin_prof = np.zeros(Nray)
         L_adv_prof = np.zeros(Nray)
+        Mdotmean_prof = np.zeros(Nray)
+        L_kinmean_prof = np.zeros(Nray)
+        L_advmean_prof = np.zeros(Nray)
         ratio_un = np.zeros(Nray)
 
         # Rsph_initial_j = Rsph_initial[j]
         # dim_cell_initial_j = dim_cell_initial[j]
         
         for i, r in enumerate(r_array): 
-            # find cells at r
-            # cond_r_initial = np.abs(Rsph_initial_j-r) < dim_cell_initial_j
-
+            # find cells in the shell at r
             shell = shell_indices[i]
             if shell.size == 0:
                 continue
-
             # restrict shell to section j
             mask = cond[shell]
             if not np.any(mask):
@@ -130,20 +129,25 @@ def radial_profiles(loadpath, snap, ray_params, which_obs, which_part = ''):
             v_rad_prof[i] = np.sum(ray_V_r*ray_m) / np.sum(ray_m)
             d_prof[i] = np.sum(ray_d*ray_m)/ np.sum(ray_m)
             Mdot_prof[i] = const_C * r**2 / np.sum(ray_dim**2) * np.pi * np.sum(ray_dim**2 * ray_d * ray_V_r)
-            Mdotmean_prof[i] = 4 * np.pi * r**2 * np.mean(ray_d * ray_V_r) if ray_V_r.size > 0 else 0 
             L_kin_prof[i] = const_C * r**2 / np.sum(ray_dim**2)* 0.5 * np.pi *np.sum(ray_dim**2 * ray_d * ray_V_r**3)
-            L_adv_prof[i] = 4 * np.pi * r**2 * np.mean(L_adv)
+            L_adv_prof[i] = const_C * r**2 / np.sum(ray_dim**2) * np.pi * np.sum(ray_dim**2 * L_adv)
             ratio_un[i] = len(ray_d) / len(Rsph[shell]) if len(Rsph[shell]) > 0 else 0
 
+            L_advmean_prof[i] =  const_C * np.pi * r**2 * np.mean(L_adv)
+            Mdotmean_prof[i] = const_C * np.pi * r**2 * np.mean(ray_d * ray_V_r) if ray_V_r.size > 0 else 0 
+            L_kinmean_prof[i] = const_C * np.pi * r**2 * np.mean(ray_d * ray_V_r**3) if ray_V_r.size > 0 else 0
+       
         outflow = {
             'r': r_array,
             't_prof': t_prof,
             'v_rad_prof': v_rad_prof,
             'd_prof': d_prof,
             'Mdot_prof': Mdot_prof,
+            'L_advmean_prof': L_advmean_prof,
             'Mdotmean_prof': Mdotmean_prof,
             'L_adv_prof': L_adv_prof,
             'L_kin_prof': L_kin_prof,
+            'L_kinmean_prof': L_kinmean_prof,
             'ratio_un': ratio_un,
             'colors_obs': colors_obs[j],
             'lines_obs': lines_obs[j]
@@ -228,8 +232,8 @@ def polar_profiles(loadpath, snap, ray_params, which_material = 'wind'):
 #
 compute = False
 what = 'radial'
-which_part = 'all' # 'all_outflow' or 'all' or '' to have the wind
-snap = 151
+which_part = '' # 'all_outflow' or 'all' or '' to have the wind
+snap = 109
 
 if what == 'polar':
     which_material = 'wind' # 'wind' or ''
@@ -344,11 +348,11 @@ if what == 'polar':
 
 
 if what == 'radial':
-    which_obs = 'chunky_axes' # 'left_right_z', 'all' or 'in_out_z'
+    which_obs = 'left_right_z' # 'left_right_z', 'all' or 'in_out_z'
 
     if compute:
         path = f'{pre}/{snap}'
-        ray_params = [Rt, 8*apo, 100]
+        ray_params = [Rt, 1e3*Rt, 500]
         all_outflows = radial_profiles(path, snap, ray_params, which_obs, which_part)
         out_path = f"{abspath}/data/{folder}/wind/rad_profSec{snap}_{which_obs}_{which_part}.npy"
         np.save(out_path, all_outflows, allow_pickle=True)
@@ -370,9 +374,9 @@ if what == 'radial':
         ph_data = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
         xph, yph, zph, Raddenph = ph_data[0], ph_data[1], ph_data[2], ph_data[6]
         rph_all = np.sqrt(xph**2 + yph**2 + zph**2)
-        # dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz")
-        # x_tr, y_tr, z_tr, den_tr, vol_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['vol_tr'] 
-        # r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+        dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz")
+        x_tr, y_tr, z_tr, den_tr, vol_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['vol_tr'] 
+        r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
         # sections_ph = op.choose_sections(xph, yph, zph, which_obs)
         # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5))
         # ax1.scatter(x_obs, y_obs, facecolor = 'none', edgecolors = 'k', linewidths = 1)
@@ -382,13 +386,13 @@ if what == 'radial':
         # ax2.set_xlabel('X')
         # ax2.set_ylabel('Z')
         rph_medians = []
-        # rtr_medians = []
+        rtr_medians = []
         for i, idx_list in enumerate(indices_obs): 
             rph_medians.append(np.median(rph_all[idx_list]))
-        #     non_zero = idx_list[r_tr_all[idx_list]!=0]
+            non_zero = idx_list[r_tr_all[idx_list]!=0]
         #     # if non_zero.any():
         #     print(f'{label_obs[i]}: Rtr in {len(non_zero)/len(idx_list)*100:.2f}%')
-        #     rtr_medians.append(np.median(r_tr_all[non_zero]))
+            rtr_medians.append(np.median(r_tr_all[non_zero]))
         #     # Plot the observers with trapping radius non zero
         #     ax1.scatter(x_obs[non_zero], y_obs[non_zero], color = colors_obs[i], linewidths = 1)
         #     ax2.scatter(x_obs[non_zero], z_obs[non_zero], color = colors_obs[i], linewidths = 1, label = r'r$_{\rm tr}\neq0$' if i == 0 else '')
@@ -400,30 +404,35 @@ if what == 'radial':
             figr, (axratiol, axratior) = plt.subplots(1, 2, figsize=(21, 8))
             all_axes = [axdl, axdr, axVl, axVr, axTl, axTr, axMl, axMr, axLadvl, axLadvr, axLkinl, axLkinr, axratiol, axratior]
         else:
-            fig, (axd, axV, axT) = plt.subplots(1, 3, figsize=(24, 6)) 
-            figM, (axM, axLadv, axLkin) = plt.subplots(1, 3, figsize=(24, 6))
+            fig, (axd, axV, axM) = plt.subplots(1, 3, figsize=(24, 7)) 
+            figM, (axT, axLadv, axLkin) = plt.subplots(1, 3, figsize=(24, 7))
             figr, axratio = plt.subplots(1, 1, figsize=(12, 10))
             all_axes = [axd, axV, axT, axM, axLadv, axLkin, axratio]
 
         # Load profiles
         profiles = np.load(f'{abspath}/data/{folder}/wind/rad_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
         for i, lab in enumerate(profiles.keys()):
-            # if label_obs[i] == '170-180':
-            #     print('skip')
-            #     continue 
+            if label_obs[i] == 'south pole':
+                continue 
             r_plot = profiles[lab]['r'] 
             d = profiles[lab]['d_prof']
             v_rad = profiles[lab]['v_rad_prof'] 
             t = profiles[lab]['t_prof']
             Mdot = profiles[lab]['Mdot_prof'] #Mdotmean_prof
-            L_adv = profiles[lab]['L_adv_prof']
-            L_kin = profiles[lab]['L_kin_prof']
+            L_adv = profiles[lab]['L_adv_prof'] #L_advmean_prof
+            L_kin = profiles[lab]['L_kin_prof'] #L_kinmean_prof
             ratio_un = profiles[lab]['ratio_un']
             colors_sec = profiles[lab]['colors_obs']
             # Mdot = d * r_plot**2 * v_rad
             # idx_rtr = np.argmin(np.abs(r_plot - rtr_medians[i]))
+            not_zero = np.where(d != 0)
+            r_plot, d, v_rad, t, Mdot, L_adv, L_kin, ratio_un = make_slices([r_plot, d, v_rad, t, Mdot, L_adv, L_kin, ratio_un], not_zero)
             idx_rph = np.argmin(np.abs(r_plot - rph_medians[i]))
-            
+            if label_obs[i] == r'$x<0$':
+                idx_stop_d = np.argmin(np.abs(r_plot - 9e1*Rt)) #1.2e2
+            else:
+                idx_stop_d = -1
+                
             if which_obs == 'tenths':
                 if label_obs[i] in ['0-10',  '10-20',  '20-30',  '30-40',  '40-50',  '50-60',  '60-70',  '70-80',  '80-90']:
                     axd = axdr
@@ -446,20 +455,20 @@ if what == 'radial':
             else:
                 col = colors_sec
 
-            axd.plot(r_plot/Rt, d * prel.den_converter, label = f'{lab}', color = col)
+            axd.plot(r_plot[:idx_stop_d]/Rt, d[:idx_stop_d] * prel.den_converter, label = f'{lab}', color = col)
             # axd.scatter(r_plot[idx_rtr]/Rt, d[idx_rtr] * prel.den_converter marker = 's', s = 100)
-            axd.scatter(r_plot[idx_rph]/Rt, d[idx_rph] * prel.den_converter, marker = 'o', s = 100)
+            axd.scatter(r_plot[idx_rph]/Rt, d[idx_rph] * prel.den_converter, marker = 'o', s = 100, color = col)
             axV.plot(r_plot/Rt, v_rad * conversion_sol_kms, label = f'{lab}', color = col)
             # axV.scatter(r_plot[idx_rtr]/Rt, v_rad[idx_rtr] * conversion_sol_kms marker = 's', s = 100)
-            # axV.scatter(r_plot[idx_rph]/Rt, v_rad[idx_rph] * conversion_sol_kms marker = 'o', s = 100)
+            axV.scatter(r_plot[idx_rph]/Rt, v_rad[idx_rph] * conversion_sol_kms, marker = 'o', s = 100, color = col)
+            axM.plot(r_plot[:idx_stop_d]/Rt, Mdot[:idx_stop_d]/Medd_sol, label = f'{lab}', color = col)
+            # axMdot.scatter(r_plot[idx_rtr]/Rt, Mdot[idx_rtr]/Medd_sol marker = 's', s = 100)
+            axM.scatter(r_plot[idx_rph]/Rt, Mdot[idx_rph]/Medd_sol, marker = 'o', s = 100, color = col)
+            axratio.plot(r_plot/Rt, ratio_un, label = f'{lab}', color = col)
+
             axT.plot(r_plot/Rt, t, label = f'{lab}', color = col)
             # axT.scatter(r_plot[idx_rtr]/Rt, t[idx_rtr] marker = 's', s = 100)
             # axT.scatter(r_plot[idx_rph]/Rt, t[idx_rph] marker = 'o', s = 100)
-            axratio.plot(r_plot/Rt, ratio_un, label = f'{lab}', color = col)
-
-            axM.plot(r_plot/Rt, Mdot/Medd_sol, label = f'{lab}', color = col)
-            # axMdot.scatter(r_plot[idx_rtr]/Rt, Mdot[idx_rtr]/Medd_sol marker = 's', s = 100)
-            # axMdot.scatter(r_plot[idx_rph]/Rt, Mdot[idx_rph]/Medd_sol marker = 'o', s = 100)
             axLadv.plot(r_plot/Rt, L_adv/Ledd_sol, label = f'{lab}', color = col)
             # axLadv.scatter(r_plot[idx_rtr]/Rt, L_adv[idx_rtr]/Ledd_sol marker = 's', s = 100)
             axLadv.scatter(r_plot[idx_rph]/Rt, L_adv[idx_rph]/Ledd_sol, marker = 'o', s = 100, color = col)
@@ -467,11 +476,11 @@ if what == 'radial':
             # axLkin.scatter(r_plot[idx_rtr]/Rt, L_kin[idx_rtr]/Ledd_sol marker = 's', s = 100)
             # axLkin.scatter(r_plot[idx_rph]/Rt, L_kin[idx_rph]/Ledd_sol, marker = 'o', s = 100)
 
-            if i == len(profiles.keys())-1:
+            if i == len(profiles.keys())-2: # or i == 0:
                 axd.set_ylim(1e-13, 1e-7)
-                axV.set_ylim(2e3, 3e4)
+                axV.set_ylim(1.5e3, 1.5e4)
                 axT.set_ylim(2e4, 1e6)
-                axd.plot(x_test, y_test2, c = 'k', ls = 'dashed') #, label = r'$\rho \propto r^{-2}$')
+                axd.plot(x_test, y_test2, c = 'gray', ls = 'dashed', label = r'$\rho \propto r^{-2}$')
                 # axd.text(35, 1.1e-11, r'$\rho \propto r^{-2}$', fontsize = 20, color = 'k', rotation = -42)
                 axV.axhline(v_esc_kms, c = 'k', ls = 'dashed')# 
                 # axV.text(35, 1.1*0.2*v_esc_kms, r'0.2v$_{\rm esc} (r_{\rm p})$', fontsize = 20, color = 'k')
@@ -480,17 +489,17 @@ if what == 'radial':
                 axLadv.plot(x_test, 1e-5*y_test23, c = 'k', ls = 'dashed', label = r'$L \propto r^{-2/3}$')
                 # axLadv.text(1.2, 5.6e1, r'$L \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -18)
                 axd.legend(fontsize = 18)
-                axM.set_ylim(1e1, 1e6)
-                axLadv.set_ylim(4e-1, 4e1)
-                axLkin.set_ylim(1e-1, 5e1) 
+                axM.set_ylim(1e2, 2e6)
+                axLadv.set_ylim(5e-2, 1e2)
+                axLkin.set_ylim(5e-2, 5e1) 
                 axratio.set_ylim(9e-2, 1)
-                axM.legend(fontsize = 18)
-                axd.set_ylabel(r'$\rho$ [g/cm$^3]$', fontsize = 28)
-                axV.set_ylabel(r'v$_{\rm r}$ [km/s]', fontsize = 28)
-                axT.set_ylabel(r'$T_{\rm rad}$ [K]', fontsize = 28)
-                axM.set_ylabel(r'$\dot{M}_{\rm w} [\dot{M}_{\rm Edd}]$', fontsize = 28)
-                axLadv.set_ylabel(r'$L_{\rm adv} [L_{\rm Edd}]$', fontsize = 28)
-                axLkin.set_ylabel(r'$L_{\rm kin} [L_{\rm Edd}]$', fontsize = 28)
+                axT.legend(fontsize = 18)
+                axd.set_ylabel(r'$\rho$ (g/cm$^3$)', fontsize = 28)
+                axV.set_ylabel(r'v$_{\rm r}$ (km/s)', fontsize = 28)
+                axT.set_ylabel(r'$T_{\rm rad}$ (K)', fontsize = 28)
+                axM.set_ylabel(r'$\dot{M}_{\rm w} (\dot{M}_{\rm Edd})$', fontsize = 28)
+                axLadv.set_ylabel(r'$L_{\rm adv} (L_{\rm Edd})$', fontsize = 28)
+                axLkin.set_ylabel(r'$L_{\rm kin} (L_{\rm Edd})$', fontsize = 28)
                 axratio.set_ylabel(r'ratio unbound', fontsize = 28)
                 axratio.legend(fontsize = 18)
 
@@ -498,16 +507,14 @@ if what == 'radial':
             ax.tick_params(axis='both', which='minor', length = 8, width = 1)
             ax.tick_params(axis='both', which='major', length = 15, width = 1.5)
             ax.loglog()
-            ax.set_xlim(1.5, 1e2)
-            ax.set_xlim(1.5, 1e2)
+            ax.set_xlim(1.5, 1.4e2)
             ax.grid()
             ax.axvline(apo/Rt, color = 'k', ls = 'dotted')
             ax.set_xlabel(r'$r [r_{\rm t}]$', fontsize = 28)
                
-
-        # fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 20)
-        # figM.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 20)
+        fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 30)
+        figM.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 30)
         fig.tight_layout()
         figM.tight_layout()
-        # fig.savefig(f'{abspath}/Figs/den_prof_{snap}.pdf', bbox_inches = 'tight')
-        # figM.savefig(f'{abspath}/Figs/MwL_{snap}.pdf', bbox_inches = 'tight')
+        fig.savefig(f'{abspath}/Figs/2.paperWind/den_prof_{snap}.pdf', bbox_inches = 'tight')
+        figM.savefig(f'{abspath}/Figs/2.paperWind/L_{snap}.pdf', bbox_inches = 'tight')

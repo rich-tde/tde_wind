@@ -97,10 +97,10 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
         rossland = np.loadtxt(f'{opac_path}/ross.txt')
         if check in ['LowRes', '', 'HiRes']:
-            from src.Opacity.linextrapolator import first_rich_extrap
+            from Opacity.interpolator import first_rich_extrap
             T_cool2, Rho_cool2, rossland2 = first_rich_extrap(T_cool, Rho_cool, rossland, what = 'scattering_limit', slope_length = 5, highT_slope=-3.5)
         if check in ['QuadraticOpacity', 'QuadraticOpacityNewAMR']:
-            from src.Opacity.linextrapolator import linear_rich
+            from Opacity.interpolator import linear_rich
             T_cool2, Rho_cool2, rossland2 = linear_rich(T_cool, Rho_cool, rossland, what = 'scattering_limit', highT_slope = 0)
         Temp = np.load(f'{path}/T_{snap}.npy')
         sigma_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(Temp), np.log(Den), 'linear', 0)

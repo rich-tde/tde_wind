@@ -193,15 +193,15 @@ def choose_sections(X, Y, Z, choice):
     if choice == 'left_right_z':
         cond_left = np.logical_and(X < 0, np.abs(Z) <= slope *  R_cyl)
         cond_right = np.logical_and(X >= 0, np.abs(Z) < slope * R_cyl)
-        left = {'cond': cond_left, 'label': r'left', 'color': 'r', 'line': 'solid'}
-        right = {'cond': cond_right, 'label': r'right', 'color': 'sandybrown', 'line': 'dashed'}
+        left = {'cond': cond_left, 'label': r'$x<0$', 'color': 'r', 'line': 'solid'}
+        right = {'cond': cond_right, 'label': r'$x>0$', 'color': 'sandybrown', 'line': 'dashed'}
         sec = {'left': left, 'right': right, 'north': north, 'south': south}
     
     if choice == 'in_out_z': 
         cond_in = np.logical_and(Y > 0, np.abs(Z) <= slope * R_cyl)
         cond_out = np.logical_and(Y <= 0, np.abs(Z) <= slope *  R_cyl)
-        ins = {'cond': cond_in, 'label': r'in', 'color': 'r', 'line': 'solid'}
-        out = {'cond': cond_out, 'label': r'out', 'color': 'sandybrown', 'line': 'dashed'}
+        ins = {'cond': cond_in, 'label': r'$y>0$', 'color': 'r', 'line': 'solid'}
+        out = {'cond': cond_out, 'label': r'$y<0$', 'color': 'sandybrown', 'line': 'dashed'}
         sec = {'in': ins, 'out': out, 'north': north, 'south': south}
 
     if choice == 'left_right_in_out_z':
@@ -209,10 +209,10 @@ def choose_sections(X, Y, Z, choice):
         cond_right_in = np.logical_and(X >= 0, np.logical_and(Y >= 0, np.abs(Z) <= slope * R_cyl))
         cond_left_out = np.logical_and(X < 0, np.logical_and(Y < 0, np.abs(Z) <= slope *  R_cyl))
         cond_right_out = np.logical_and(X >= 0, np.logical_and(Y < 0, np.abs(Z) <= slope * R_cyl))
-        left_in = {'cond': cond_left_in, 'label': r'left in', 'color': 'r', 'line': 'solid'}
-        right_in = {'cond': cond_right_in, 'label': r'right in', 'color': 'sandybrown', 'line': 'dashed'}
-        left_out = {'cond': cond_left_out, 'label': r'left out', 'color': 'forestgreen', 'line': 'solid'}
-        right_out = {'cond': cond_right_out, 'label': r'right out', 'color': '#b2df8a', 'line': 'dashed'}
+        left_in = {'cond': cond_left_in, 'label': r'$x<0$, $y>0$', 'color': 'r', 'line': 'solid'}
+        right_in = {'cond': cond_right_in, 'label': r'$x>0$, $y>0$', 'color': 'sandybrown', 'line': 'dashed'}
+        left_out = {'cond': cond_left_out, 'label': r'$x<0$, $y<0$', 'color': 'forestgreen', 'line': 'solid'}
+        right_out = {'cond': cond_right_out, 'label': r'$x>0$, $y<0$', 'color': '#b2df8a', 'line': 'dashed'}
         sec = {'left_in': left_in, 'right_in': right_in, 'left_out': left_out, 'right_out': right_out, 'north': north, 'south': south}
     
     if choice == 'tenths': 

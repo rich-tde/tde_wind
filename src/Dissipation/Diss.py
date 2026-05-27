@@ -53,7 +53,7 @@ if alice:
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
         csv_path = f'{abspath}/data/{folder}/Rdiss_{check}{do_cut}.csv'
         tfb = np.loadtxt(f'{path}/tfb_{snap}.txt')
-        data = make_tree(path, snap, energy = True)
+        data = make_tree(path, snap)
         X, Y, Z, vol, den, Temp, Rad_den, Ediss_den = \
             data.X, data.Y, data.Z, data.Vol, data.Den, data.Temp, data.Rad, data.Diss
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
