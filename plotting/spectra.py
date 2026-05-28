@@ -125,13 +125,13 @@ def plot_spectra(folder, check, snaps, x_axis, choice = 'left_right_z'):
         if x_axis == 'Temp':
             x_value = freqs * prel.Hz_toK
             ax[s].set_xlabel('Temperature (K)', fontsize = 30)
-            ax[s].axvline(low_freq_optical * prel.Hz_toK, c = 'bisque')
+            ax[s].axvline(low_freq_optical * prel.Hz_toK, c = 'bisque', linewidth = .2)
             ax[s].axvspan(low_freq_optical * prel.Hz_toK, high_freq_optical * prel.Hz_toK, color='bisque', alpha=0.3)
-            ax[s].axvline(high_freq_optical * prel.Hz_toK, c = 'lightsteelblue')
-            ax[s].axvspan(high_freq_optical * prel.Hz_toK, high_freq_UV * prel.Hz_toK, color='lightsteelblue', alpha=0.3)
-            ax[s].axvline(high_freq_UV * prel.Hz_toK, c = 'lightcoral')
-            ax[s].axvline(high_freq_Xray * prel.Hz_toK, c = 'lightcoral')
-            ax[s].axvspan(high_freq_UV * prel.Hz_toK, high_freq_Xray * prel.Hz_toK, color='lightcoral', alpha=0.3)
+            ax[s].axvline(high_freq_optical * prel.Hz_toK, c = 'lightsteelblue', linewidth = .2)
+            ax[s].axvspan(high_freq_optical * prel.Hz_toK, high_freq_UV * prel.Hz_toK, color='orchid', alpha=0.2)
+            ax[s].axvline(high_freq_UV * prel.Hz_toK, c = 'lightcoral', linewidth = .2)
+            ax[s].axvline(high_freq_Xray * prel.Hz_toK, c = 'lightcoral', linewidth = .2)
+            ax[s].axvspan(high_freq_UV * prel.Hz_toK, high_freq_Xray * prel.Hz_toK, color='lightsteelblue', alpha=0.2)
             ax[s].set_xlim(1e3, 1e7)
             if s == 0:
                 ax[s].text(0.6 * high_freq_optical * prel.Hz_toK, L_max/3, 'Optical', rotation=90, fontsize=20)
@@ -140,7 +140,7 @@ def plot_spectra(folder, check, snaps, x_axis, choice = 'left_right_z'):
         else:
             x_value = freqs
             ax[s].axvline(low_freq_optical, c = 'k')
-            ax[s].axvspan(low_freq_optical, high_freq_optical, color='bisque', alpha=0.3)
+            ax[s].axvspan(low_freq_optical, high_freq_optical, color='bisque', alpha=0.2)
             ax[s].axvline(high_freq_UV, c = 'k')
             # ax[s].axvline(low_freq_Xray, c = 'k')
             ax[s].axvline(high_freq_Xray, c = 'k')
@@ -151,7 +151,7 @@ def plot_spectra(folder, check, snaps, x_axis, choice = 'left_right_z'):
                 Lum = np.concatenate(L_photo[idx])
             else:
                 Lum = np.median(L_photo[idx], axis = 0)
-            ax[s].plot(x_value, freqs * Lum, label = f'{label_obs[i_idx]}', c = colors_obs[i_idx], linewidth = 2) #ls = lines_obs[i_idx]
+            ax[s].plot(x_value, freqs * Lum, label = f'{label_obs[i_idx]}', c = colors_obs[i_idx], linewidth = 3) #ls = lines_obs[i_idx]
                         
         ax[s].tick_params(axis='both', which='major', length=8, width=1.2)
         ax[s].tick_params(axis='both', which='minor', length=5, width=1)

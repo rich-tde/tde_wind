@@ -94,9 +94,6 @@ for s, snap in enumerate(snaps):
                 np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
         den_ph /=prel.den_converter # it was saved in cgs
         r_ph = np.sqrt(xph**2 + yph**2 + zph**2)
-        # if snap == 151:
-        #        idx_max = np.argmax(r_ph)
-        #        print(r_ph[idx_max]*prel.Rsol_cgs/1e14, xph[idx_max], flush=True)
         vel_ph = np.sqrt(vx_ph**2 + vy_ph**2 + vz_ph**2)
         mass_ph = den_ph * vol_ph
         Lum_ph_allSum[s] = np.sum(Lum_ph) # CGS

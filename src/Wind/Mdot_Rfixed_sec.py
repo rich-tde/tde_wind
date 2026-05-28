@@ -36,26 +36,14 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
-with_who = ''  # '' or 'Obs'
-n_obs = '' #'_npix8' or ''
-choice = 'tenths' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
-wind_cond = '' # '' for bernouilli coeff or 'OE' for orbital energy
+choice = 'left_right_z' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
 how = '' # '' for the normalized sum or 'mean' for mean of Mw of each cells
 
-if with_who == '':
-    n_obs = ''  # to avoid confusion
-    NSIDE = prel.NSIDE
-else:
-    if n_obs == '_npix8':
-        NSIDE = 8  
-    else:
-        NSIDE = prel.NSIDE
-NPIX = hp.nside2npix(NSIDE)
-observers_xyz = hp.pix2vec(NSIDE, range(NPIX))
+NPIX = hp.nside2npix(prel.NSIDE)
+observers_xyz = hp.pix2vec(prel.NSIDE, range(NPIX))
 observers_xyz = np.array(observers_xyz)
-# indices_obs, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, choice)
-observers_xyz = observers_xyz.T
-x_obs, y_obs, z_obs = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
+_, label_obs, _, _ = choose_observers(observers_xyz, choice)
+
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -116,7 +104,7 @@ def split_cells(X, Y, Z, choice):
     
     return indices_sec, label_obs
     
-def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
+def Mdot_sec(path, snap, r_chosen, choice, how = ''):
     # Load data and pick the ones unbound and with positive velocity
     data = make_tree(path, snap)
     X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
@@ -127,21 +115,12 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
     dim_cell = Vol**(1/3)
     Rsph = np.sqrt(X**2 + Y**2 + Z**2)
     V = np.sqrt(VX**2 + VY**2 + VZ**2)
-    cut, bern, v_rad = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params)
     
-    OE = orb.orbital_energy(Rsph, V, Mass, params, prel.G)
-    OE_spec = OE / Mass
-    if (bern < OE_spec).any():
-        print('Warning: some particles have Bernoulli < OE_spec', flush=True)
-
-    # select just outflowing and unbound material
-    if wind_cond == '':
-        cond_wind = cut
-    if wind_cond == 'OE':
-        cond_wind = np.logical_and(v_rad >= 0, OE_spec > 0)
-    cond_wind = np.logical_and(cond_wind, np.abs(Rsph - r_chosen) < dim_cell)
-    X_wind, Y_wind, Z_wind, Den_wind, v_rad_wind, dim_cell_wind, Rad_den_wind, bern_wind, OE_spec_wind = \
-        make_slices([X, Y, Z, Den, v_rad, dim_cell, Rad_den, bern, OE_spec], cond_wind)
+    cut, _, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, cond = 'bern')
+    
+    
+    X_wind, Y_wind, Z_wind, Den_wind, v_rad_wind, dim_cell_wind, Rad_den_wind = \
+        make_slices([X, Y, Z, Den, V_r, dim_cell, Rad_den], cut)
     if Den_wind.size == 0:
         print(f'no positive', flush=True)
         if r_chosen > apo:
@@ -151,11 +130,7 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
 
     else:
         Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
-        if with_who == '':
-            indices_sec, _ = split_cells(X_wind, Y_wind, Z_wind, choice)
-
-        elif with_who == 'Obs':
-            indices_sec = split_observers(X_wind, Y_wind, Z_wind, dim_cell_wind)
+        indices_sec, _ = split_cells(X_wind, Y_wind, Z_wind, choice)
 
         mwind = np.zeros(len(indices_sec))
         Lum_fs = np.zeros(len(indices_sec))
@@ -200,112 +175,27 @@ def Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = '', how = ''):
             #     plt.suptitle(f'Selected Healpix observers at snap {snap}', fontsize = 18)
             plt.tight_layout()
 
-        # C_mult = 4/len(indices_sec) # to have the right normalization in all cases
-        # print('C:', C_mult, flush=True)
+        C_mult = 4/len(indices_sec) # to have the right normalization in all cases
         for j, indices in enumerate(indices_sec):
             # select the particles in the chosen section and at the chosen radius
-            if how == '':  
-                mwind[j] = 4 * r_chosen**2 * np.sum(Mdot[indices]) / np.sum(dim_cell_wind[indices]**2)
-            elif how == 'mean':
-                mwind[j] = 4 * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices])
-            if r_chosen > apo: 
-                if how == '':  
-                    Lum_fs[j] = 4 * r_chosen**2 * np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs / np.sum(dim_cell_wind[indices]**2)
-                    Lkin[j] = 0.5 * 4 * r_chosen**2 * np.sum(Mdot[indices] * v_rad_wind[indices]**2) / np.sum(dim_cell_wind[indices]**2)
+            if how == '':   
+                mwind[j] = C_mult * r_chosen**2 * np.sum(Mdot[indices]) / np.sum(dim_cell_wind[indices]**2)
+                Lum_fs[j] = C_mult * r_chosen**2 * np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs / np.sum(dim_cell_wind[indices]**2)
+                Lkin[j] = 0.5 * C_mult * r_chosen**2 * np.sum(Mdot[indices] * v_rad_wind[indices]**2) / np.sum(dim_cell_wind[indices]**2)
+            elif how == 'mean': 
+                mwind[j] = C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices])
+                Lum_fs[j] = C_mult * np.pi * r_chosen**2 * np.mean(Rad_den_wind[indices]) * prel.csol_cgs
+                # Lkin[j] = 0.5 * np.mean(Mdot[indices] * v_rad_wind[indices]**2)
+                Lkin[j] = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices]**3) 
             
-                elif how == 'mean':
-                    Lum_fs[j] = 4 * np.pi * r_chosen**2 * np.mean(Rad_den_wind[indices]) * prel.csol_cgs
-                    # Lkin[j] = 0.5 * np.mean(Mdot[indices] * v_rad_wind[indices]**2)
-                    Lkin[j] = 0.5 * 4 * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices]**3) 
-            
-            if np.logical_and(plot, j < 3):
-                theta_ourConv, _ = to_cylindric(X_wind[indices], Y_wind[indices])
-                # see what I'm selecting
-                img_xy = axd[0][j].scatter(X_wind[indices]/normaliz, Y_wind[indices]/normaliz, s=10, c = Den_wind[indices]*prel.den_converter, norm = colors.LogNorm(vmin=1e-14, vmax=2e-9))
-                img_yz = axd[1][j].scatter(Y_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = Den_wind[indices]*prel.den_converter, norm = colors.LogNorm(vmin=1e-14, vmax=2e-9))
-                img_xz = axd[2][j].scatter(X_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = Den_wind[indices]*prel.den_converter, norm = colors.LogNorm(vmin=1e-14, vmax=2e-9))
-                axd[0][j].set_title(f'Section: {label_obs[j]}', fontsize = 16)
-
-                imgV_xy = axV[0][j].scatter(X_wind[indices]/normaliz, Y_wind[indices]/normaliz, s=10, c = v_rad_wind[indices]*conversion_sol_kms, norm = colors.LogNorm(vmin=1e3, vmax=2e4))
-                imgV_yz = axV[1][j].scatter(Y_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = v_rad_wind[indices]*conversion_sol_kms, norm = colors.LogNorm(vmin=1e3, vmax=2e4))
-                imgV_xz = axV[2][j].scatter(X_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = v_rad_wind[indices]*conversion_sol_kms, norm = colors.LogNorm(vmin=1e3, vmax=2e4))
-                axV[0][j].set_title(f'Section: {label_obs[j]}', fontsize = 16)
-
-                imgB_xy = axB[0][j].scatter(X_wind[indices]/normaliz, Y_wind[indices]/normaliz, s=10, c = bern_wind[indices], cmap = 'coolwarm', vmin = - 50, vmax= 50)
-                imgB_yz = axB[1][j].scatter(Y_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = bern_wind[indices], cmap = 'coolwarm', vmin = - 50, vmax= 50)
-                imgB_xz = axB[2][j].scatter(X_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = bern_wind[indices], cmap = 'coolwarm', vmin = - 50, vmax= 50)
-                axB[0][j].set_title(f'Section: {label_obs[j]}', fontsize = 16)
-
-                imgOE_xy = axOE[0][j].scatter(X_wind[indices]/normaliz, Y_wind[indices]/normaliz, s=10, c = OE_spec_wind[indices], cmap = 'coolwarm', vmin = - 50, vmax= 50)
-                imgOE_yz = axOE[1][j].scatter(Y_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = OE_spec_wind[indices], cmap = 'coolwarm', vmin = - 50, vmax= 50)
-                imgOE_xz = axOE[2][j].scatter(X_wind[indices]/normaliz, Z_wind[indices]/normaliz, s=10, c = OE_spec_wind[indices], cmap = 'coolwarm', vmin = - 50, vmax= 50)
-                axOE[0][j].set_title(f'Section: {label_obs[j]}', fontsize = 16)
-                
-                # axOEB.scatter(theta_ourConv, np.abs(bern_wind[indices]/OE_spec_wind[indices]), s=10, c = colors_obs[j], label = label_obs[j])
-        
-        if plot:
-            cbar = plt.colorbar(img_xy)
-            cbar.set_label(r'Density [g cm$^{-3}$]', fontsize = 18)
-            cbar = plt.colorbar(img_yz)
-            cbar.set_label(r'Density [g cm$^{-3}$]', fontsize = 18)
-            cbar = plt.colorbar(img_xz)
-            cbar.set_label(r'Density [g cm$^{-3}$]', fontsize = 18)
-            figd.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/{wind_cond}scatter/Den_scatter{snap}_first3.png', dpi = 150)
-
-            cbar = plt.colorbar(imgV_xy)
-            cbar.set_label(r'$v_{\rm r}$ [km/s]', fontsize = 18)
-            cbar = plt.colorbar(imgV_yz)
-            cbar.set_label(r'$v_{\rm r}$ [km/s]', fontsize = 18)
-            cbar = plt.colorbar(imgV_xz)
-            cbar.set_label(r'$v_{\rm r}$ [km/s]', fontsize = 18)
-            figV.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/{wind_cond}scatter/rad_scatter{snap}_first3.png', dpi = 150)
-
-            cbar = plt.colorbar(imgB_xy)
-            cbar.set_label(r'$\mathcal{B}$', fontsize = 18)
-            cbar = plt.colorbar(imgB_yz)
-            cbar.set_ticks([-50, 0, 50])
-            cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
-            cbar.set_label(r'$\mathcal{B}$', fontsize = 18)
-            cbar.set_ticks([-50, 0, 50])
-            cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
-            cbar = plt.colorbar(imgB_xz)
-            cbar.set_ticks([-50, 0, 50])
-            cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
-            cbar.set_label(r'$\mathcal{B}$', fontsize = 18)
-            figB.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/{wind_cond}scatter/Bernoulli_scatter{snap}_first3.png', dpi = 150)
-
-            cbar = plt.colorbar(imgOE_xy)
-            cbar.set_label(r'spec OE', fontsize = 18)
-            cbar = plt.colorbar(imgOE_yz)
-            cbar.set_ticks([-50, 0, 50])
-            cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
-            cbar.set_label(r'spec OE', fontsize = 18)
-            cbar.set_ticks([-50, 0, 50])
-            cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
-            cbar = plt.colorbar(imgOE_xz)
-            cbar.set_ticks([-50, 0, 50])
-            cbar.set_ticklabels([r'$<0$', '0', r'$>0$'])
-            cbar.set_label(r'spec OE', fontsize = 18)
-            figOE.savefig(f'{abspath}/Figs/{folder}/Wind/{choice}/{wind_cond}scatter/OEspec_scatter{snap}_first3.png', dpi = 150)
-
-            # axOEB.axvline(-np.pi/2, c='grey', ls='--')
-            # axOEB.axvline(np.pi/2, c='grey', ls='--')
-            # axOEB.set_yscale('log')
-            # axOEB.set_xlabel(r'$\phi$ [rad]', fontsize = 18)
-            # axOEB.set_ylabel(r'$|\mathcal{B}/OE|$', fontsize = 18)
-            # axOEB.legend(fontsize = 18)
-
-        if r_chosen > apo:
             data = np.concatenate([mwind, Lum_fs, Lkin])
-        else:        
-            data = mwind
 
     return data
 
 if __name__ == '__main__':
-    if compute: # compute dM/dt = dM/dE * dE/dt
-        r_chosen = apo
-        which_r_title = 'apo' 
+    if compute: 
+        r_chosen = 0.5*amin
+        which_r_title = '05amin' 
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
         for i, snap in enumerate(snaps):
@@ -317,17 +207,14 @@ if __name__ == '__main__':
                 path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
             print(snap, flush=True)
             
-            data_wind = Mdot_sec(path, snap, r_chosen, with_who, choice, wind_cond = wind_cond, how = how)
+            data_wind = Mdot_sec(path, snap, r_chosen, choice, how)
             data_tosave = np.concatenate(([snap], [tfb[i]], data_wind))  
-            csv_path = f'{abspath}/data/{folder}/wind/{choice}/Mdot{wind_cond}{with_who}{n_obs}Sec{how}_{check}{which_r_title}{choice}.csv'
+            csv_path = f'{abspath}/data/{folder}/wind/{choice}/MdotSec{how}_{check}{which_r_title}{choice}.csv'
             if alice:
                 with open(csv_path, 'a', newline='') as file:
                     writer = csv.writer(file)
                     if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                        if r_chosen > apo:
-                            writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_obs] + [f'Lum_fs {lab}' for lab in label_obs] + [f'Lkin {lab}' for lab in label_obs])
-                        else:
-                            writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_obs])
+                        writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_obs] + [f'Lum_fs {lab}' for lab in label_obs] + [f'Lkin {lab}' for lab in label_obs])
                     writer.writerow(data_tosave)
                 file.close()
 
