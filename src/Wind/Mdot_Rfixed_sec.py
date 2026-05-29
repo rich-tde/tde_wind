@@ -108,39 +108,41 @@ def Mdot_sec(path, snap, r_chosen, choice, how = ''):
     dim_cell = Vol**(1/3)
     # find the spherical shell with r = r_chosen
     cut = np.logical_and(Den > 1e-19, np.abs(Rsph - r_chosen) < dim_cell)
+    if np.sum(cut) == 0:
+        return np.array([0]*len(label_obs)*3) # to have the right shape in all cases
     X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
         make_slices([X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
     # V = np.sqrt(VX**2 + VY**2 + VZ**2)
     
-    cut, bern, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, cond = 'bern')
+    cut, _, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, cond = 'bern')
     
-    X_wind, Y_wind, Z_wind, Den_wind, v_rad_wind, dim_cell_wind, Rad_den_wind, bern_wind = \
-        make_slices([X, Y, Z, Den, V_r, dim_cell, Rad_den, bern], cut)
+    X_wind, Y_wind, Z_wind, Den_wind, v_rad_wind, dim_cell_wind, Rad_den_wind = \
+        make_slices([X, Y, Z, Den, V_r, dim_cell, Rad_den], cut)
     if Den_wind.size == 0:
         print(f'no positive', flush=True)
+        return np.array([0]*len(label_obs)*3)
 
-    else:
-        Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
-        indices_sec, _ = split_cells(X_wind, Y_wind, Z_wind, choice)
+    Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
+    indices_sec, _ = split_cells(X_wind, Y_wind, Z_wind, choice)
 
-        mwind = np.zeros(len(indices_sec))
-        Lum_fs = np.zeros(len(indices_sec))
-        Lkin = np.zeros(len(indices_sec))
+    mwind = np.zeros(len(indices_sec))
+    Lum_fs = np.zeros(len(indices_sec))
+    Lkin = np.zeros(len(indices_sec))
 
-        C_mult = 4/len(indices_sec) # to have the right normalization in all cases
-        for j, indices in enumerate(indices_sec):
-            # select the particles in the chosen section and at the chosen radius
-            if how == '':   
-                mwind[j] = C_mult * r_chosen**2 * np.sum(Mdot[indices]) / np.sum(dim_cell_wind[indices]**2)
-                Lum_fs[j] = C_mult * r_chosen**2 * np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs / np.sum(dim_cell_wind[indices]**2)
-                Lkin[j] = 0.5 * C_mult * r_chosen**2 * np.sum(Mdot[indices] * v_rad_wind[indices]**2) / np.sum(dim_cell_wind[indices]**2)
-            elif how == 'mean': 
-                mwind[j] = C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices])
-                Lum_fs[j] = C_mult * np.pi * r_chosen**2 * np.mean(Rad_den_wind[indices]) * prel.csol_cgs
-                # Lkin[j] = 0.5 * np.mean(Mdot[indices] * v_rad_wind[indices]**2)
-                Lkin[j] = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices]**3) 
-            
-            data = np.concatenate([mwind, Lum_fs, Lkin])
+    C_mult = 4/len(indices_sec) # to have the right normalization in all cases
+    for j, indices in enumerate(indices_sec):
+        # select the particles in the chosen section and at the chosen radius
+        if how == '':   
+            mwind[j] = C_mult * r_chosen**2 * np.sum(Mdot[indices]) / np.sum(dim_cell_wind[indices]**2)
+            Lum_fs[j] = C_mult * r_chosen**2 * np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs / np.sum(dim_cell_wind[indices]**2)
+            Lkin[j] = 0.5 * C_mult * r_chosen**2 * np.sum(Mdot[indices] * v_rad_wind[indices]**2) / np.sum(dim_cell_wind[indices]**2)
+        elif how == 'mean': 
+            mwind[j] = C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices])
+            Lum_fs[j] = C_mult * np.pi * r_chosen**2 * np.mean(Rad_den_wind[indices]) * prel.csol_cgs
+            # Lkin[j] = 0.5 * np.mean(Mdot[indices] * v_rad_wind[indices]**2)
+            Lkin[j] = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices]**3) 
+        
+    data = np.concatenate([mwind, Lum_fs, Lkin])
 
     return data
 
