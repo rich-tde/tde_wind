@@ -175,13 +175,17 @@ else:
         
     else:
         from matplotlib import gridspec
-        what = '_wind' # '' or '_wind' (if you want to pick the wind and plot only the streamlines that belong to the wind)
+        what = '' # '' or '_wind' (if you want to pick the wind and plot only the streamlines that belong to the wind)
         how = '' # '' if you want streamlines, '_arrows' if you want arrows 
         idx_wanted = [np.argmin(np.abs(snaps - 76)), 
                       np.argmin(np.abs(snaps - 109)), 
                       np.argmin(np.abs(snaps - 151))]
         lim_plot = 2*apo
         N_arrows = 200
+        params = [Mbh, Rstar, mstar, beta]
+        things = orb.get_things_about(params)
+        amin = things['a_mb']
+        xcr, ycr, cr = orb.make_cfr(0.5*amin)
         
         fig = plt.figure(figsize=(12*len(idx_wanted), 12))
         gs = gridspec.GridSpec(2, len(idx_wanted), width_ratios=[1]*len(idx_wanted), height_ratios=[1, 0.05])
@@ -264,6 +268,8 @@ else:
             if how == '':
                 ax.streamplot(x_toplot_grid/Rt, y_toplot_grid/Rt, Vx_toplot_grid, Vy_toplot_grid, density = 1.5, linewidth = 1, color = 'k', arrowsize=1.5, arrowstyle='-|>')
             
+            ax.contour(xcr/Rt, ycr/Rt, cr/Rt, [0], linestyles = 'dashed', colors = 'k', linewidth = 3.5)
+
             ax.set_xlabel(xlabel, fontsize = 45)
             if i == 0:
                 ax.set_ylabel(ylabel, fontsize = 45)

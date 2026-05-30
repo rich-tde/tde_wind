@@ -38,6 +38,7 @@ compton = 'Compton'
 check = 'HiResNewAMR'
 choice = 'left_right_z' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
 how = '' # '' for the normalized sum or 'mean' for mean of Mw of each cells
+what = 'wind' # '' for wind or 'outflow'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
@@ -108,14 +109,16 @@ def Mdot_sec(path, snap, r_chosen, choice, how = ''):
     dim_cell = Vol**(1/3)
     # find the spherical shell with r = r_chosen
     cut = np.logical_and(Den > 1e-19, np.abs(Rsph - r_chosen) < dim_cell)
-    if np.sum(cut) == 0:
+    X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
+        make_slices([X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
+    if X.size == 0:
         return np.array([0]*len(label_obs)*3) # to have the right shape in all cases
-    X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
-        make_slices([X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
-    # V = np.sqrt(VX**2 + VY**2 + VZ**2)
     
     cut, _, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, cond = 'bern')
-    
+
+    if what == 'outflow':
+        cut =  V_r > 0
+
     X_wind, Y_wind, Z_wind, Den_wind, v_rad_wind, dim_cell_wind, Rad_den_wind = \
         make_slices([X, Y, Z, Den, V_r, dim_cell, Rad_den], cut)
     if Den_wind.size == 0:
@@ -168,7 +171,7 @@ if __name__ == '__main__':
             
             data_wind = Mdot_sec(path, snap, r_chosen, choice, how)
             data_tosave = np.concatenate(([snap], [tfb[i]], data_wind))  
-            csv_path = f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}.csv'
+            csv_path = f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_{what}.csv'
             if alice:
                 with open(csv_path, 'a', newline='') as file:
                     writer = csv.writer(file)

@@ -385,7 +385,7 @@ if what == 'radial':
         y_testplus1 = op.draw_line(x_test, [3.5, 1], 'powerlaw')
         y_test1 = op.draw_line(x_test, [9e4, -1], 'powerlaw')
         y_test23 = op.draw_line(x_test, [3.5e5, -2/3], 'powerlaw')
-        y_test2 = op.draw_line(x_test, [1e-8, -2], 'powerlaw')
+        y_test2 = op.draw_line(x_test, [5e-7, -2], 'powerlaw')
 
         path = f'{pre}/{snap}'
         tfb = np.loadtxt(f'{path}/tfb_{snap}.txt') 
@@ -500,10 +500,10 @@ if what == 'radial':
                     axLkin.scatter(r_plot[idx_rph]/Rt, L_kin[idx_rph]/Ledd_sol, marker = 'o', s = 100, color = col, ls = line_styles_parts[k], linewidth = 2)
 
             # if i == len(profiles.keys())-2: # or i == 0:
-        axd.set_ylim(1e-13, 1e-5)
+        axd.set_ylim(2e-13, 1e-5)
         axV.set_ylim(1.5e3, 1.5e4)
         axT.set_ylim(2e4, 1e6)
-        # axd.plot(x_test, y_test2, c = 'gray', ls = 'dotted', label = r'$\rho \propto r^{-2}$')
+        axd.plot(x_test, y_test2, c = 'gray', ls = 'dotted', label = r'$\rho \propto r^{-2}$')
         # axd.text(35, 1.1e-11, r'$\rho \propto r^{-2}$', fontsize = 20, color = 'k', rotation = -42)
         axV.axhline(v_esc_kms, c = 'k', ls = 'dotted')# 
         # axV.text(35, 1.1*0.2*v_esc_kms, r'0.2v$_{\rm esc} (r_{\rm p})$', fontsize = 20, color = 'k')
@@ -536,7 +536,7 @@ if what == 'radial':
             ax.axvline(apo/Rt, color = 'k', ls = 'dotted')
             ax.set_xlabel(r'$r /r_{\rm t}$', fontsize = 28)
                
-        fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 30)
+        # fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 30)
         figM.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 30)
         fig.tight_layout()
         figM.tight_layout()
