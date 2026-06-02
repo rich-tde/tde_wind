@@ -181,6 +181,7 @@ x_ph, y_ph, z_ph, Fx_ph, Fy_ph, Fz_ph = photosphere['x'], photosphere['y'], phot
 _, theta_photo, phi_photo = to_spherical_coordinate(x_ph, y_ph, z_ph, r_frame = 'math')
 _, theta_photo_F, phi_photo_F = to_spherical_coordinate(Fx_ph, Fy_ph, Fz_ph, r_frame = 'math')
 
+#%%
 plt.figure(figsize=(8,6))
 plt.scatter(phi_photo, theta_photo, c = np.arange(192), marker = 's', cmap = 'rainbow', edgecolors= 'k',label = 'photo cells')
 plt.scatter(phi_hp, theta_hp, c = np.arange(192), cmap = 'rainbow', edgecolors= 'k',label = 'healpix observers')
@@ -189,36 +190,6 @@ plt.xlabel(r'$\phi$')
 plt.ylabel(r'$\theta$')
 plt.legend(fontsize = 16)
 
-#%% to check the new FLD code
-data_newF = np.loadtxt(f'{abspath}/data/{folder}/{check}_redNEW.csv', delimiter=',', dtype=float)
-_, tfb_newF, Lum_newF = data_newF[:, 0], data_newF[:, 1], data_newF[:, 2]
-Lum_newF, tfb_newF = sort_list([Lum_newF, tfb_newF], tfb_newF, unique=True) 
-plt.figure(figsize=(8,6))
-plt.plot(tfb, Lum, label = 'old F')
-plt.scatter(tfb_newF, Lum_newF, label = 'new F')
-plt.xlabel(r'$t / t_{\rm fb}$')
-plt.ylabel(r'Luminosity (erg/s)')
-plt.yscale('log')
-plt.legend()
-plt.grid()
-
-medianRph_new = np.zeros(len(snaps))
-for i, snap in enumerate(snaps):
-    try:
-        photo = np.load(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}.npz')
-    except FileNotFoundError:
-        continue
-    x_ph, y_ph, z_ph= photo['x'], photo['y'], photo['z']
-    r_new = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
-    medianRph_new[i] = np.median(r_new)
-plt.figure(figsize=(8,6))
-plt.plot(tfb, medianRph/Rt, ls = '--', label = 'old F')
-plt.scatter(tfb, medianRph_new/Rt, label = 'new F')
-plt.xlabel(r'$t / t_{\rm fb}$')
-plt.ylabel(r'median $(r_{\rm ph}/r_{\rm t})$')
-plt.yscale('log')
-plt.legend()
-    
 #%%
 fig, ax = plt.subplots(1, 1, figsize=(10, 7))
 ax.plot(tfb, meanRph/Rt, ls = '--', label = r'mean $r_{\rm ph}$')
@@ -237,4 +208,35 @@ ax.tick_params(axis='y', which='minor', width = 1, length = 4, color = 'k')
 ax.set_xlim(-.1, np.max(tfb))
 ax.grid()
 ax.legend(fontsize = 18)
+
+#%% to check the new FLD code
+data_newF = np.loadtxt(f'{abspath}/data/{folder}/{check}_redNEW.csv', delimiter=',', dtype=float)
+_, tfb_newF, Lum_newF = data_newF[:, 0], data_newF[:, 1], data_newF[:, 2]
+Lum_newF, tfb_newF = sort_list([Lum_newF, tfb_newF], tfb_newF, unique=True) 
+medianRph_new = np.zeros(len(snaps))
+for i, snap in enumerate(snaps):
+    try:
+        photo = np.load(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}.npz')
+    except FileNotFoundError:
+        continue
+    x_ph, y_ph, z_ph= photo['x'], photo['y'], photo['z']
+    r_new = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
+    medianRph_new[i] = np.median(r_new)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
+ax1.plot(tfb, Lum, label = 'old F')
+ax1.scatter(tfb_newF, Lum_newF, label = 'new F')
+ax1.set_ylabel(r'Luminosity (erg/s)')
+
+ax2.plot(tfb, medianRph/Rt, ls = '--', label = 'old F')
+ax2.scatter(tfb, medianRph_new/Rt, label = 'new F')
+ax2.set_ylabel(r'median $(r_{\rm ph}/r_{\rm t})$')
+for ax in [ax1, ax2]:
+    ax.set_xlabel(r'$t / t_{\rm fb}$')
+    ax.set_yscale('log')
+    ax.legend()
+    ax.grid()
+    
+
+
 # %%

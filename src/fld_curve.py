@@ -156,11 +156,13 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         alpha_rossland_fuT = np.flipud(alpha_rossland) 
         # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
         los = - np.flipud(sci.cumulative_trapezoid(alpha_rossland_fuT, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
+
+        alpha_scatter_fuT = np.flipud(alpha_scatter) 
+        los_scatt = - np.flipud(sci.cumulative_trapezoid(alpha_scatter_fuT, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
         
         alpha_effective = np.sqrt(3 * np.minimum(alpha_planck, alpha_rossland) * alpha_rossland)
         alpha_effective_fuT = np.flipud(alpha_effective)
-        los_effective = - np.flipud(sci.cumulative_trapezoid(alpha_effective_fuT, 
-                                                         r_fuT, initial = 0)) * prel.Rsol_cgs
+        los_effective = - np.flipud(sci.cumulative_trapezoid(alpha_effective_fuT, r_fuT, initial = 0)) * prel.Rsol_cgs
         los_effective[los_effective > 30] = 30
 
         # FLD curve 
@@ -238,6 +240,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         photosphere['vz'].append(ray_vz[photo_idx])
         photosphere['P'].append(ray_press[photo_idx])
         photosphere['ieden'].append(ray_ie_den[photo_idx])
+        photosphere['los_scatt'].append(los_scatt[photo_idx])
         photosphere['alpha_rossland'].append(alpha_rossland[photo_idx])
         photosphere['alpha_scatter'].append(alpha_scatter[photo_idx])
         photosphere['alpha_abs'].append(alpha_planck[photo_idx])
@@ -248,7 +251,6 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         photosphere['Lum'].append(Lphoto) # fluxes was from here as L/4pi r[photo)idx]**2
 
         # Spectra
-        # color_idx = np.argmin(np.abs(los_effective-5))
         try: 
             color_idx = np.where(los_effective<5)[0][0]
         except IndexError:
@@ -267,6 +269,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         colorsphere['vz'].append(ray_vz[color_idx])
         colorsphere['P'].append(ray_press[color_idx])
         colorsphere['ieden'].append(ray_ie_den[color_idx])
+        colorsphere['los_scatt'].append(los_scatt[color_idx])
         colorsphere['alpha_rossland'].append(alpha_rossland[color_idx])
         colorsphere['alpha_scatter'].append(alpha_scatter[color_idx])
         colorsphere['alpha_abs'].append(alpha_planck[color_idx])
