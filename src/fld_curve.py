@@ -1,6 +1,5 @@
 """ FLD curve accoring to Elad's script (MATLAB: start from 1 with indices, * is matrix multiplication, ' is .T). """
 import sys
-from shapely import points
 sys.path.append('/Users/paolamartire/shocks')
 # import resource
 from Utilities.isalice import isalice
@@ -11,8 +10,6 @@ if alice:
 else:
     abspath = '/Users/paolamartire/shocks'
     save = False
-    import matplotlib.pyplot as plt
-    import matplotlib.colors as colors
 
 import gc
 import warnings
@@ -46,7 +43,7 @@ def fld_lightcurve(params, compton, check, N_ray):
     observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 
     for idx_s, snap in enumerate(snaps):
-        if snap not in [76, 151]: # for testing
+        if snap not in np.arange(22, 60, 2): # for testing
             continue
         print(f'Snap: {snap}', flush=True)
         if alice:
@@ -86,8 +83,8 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
     freqs = prel.freqs
     L_col = np.zeros((num_obs, len(prel.freqs)))
     for i in range(num_obs):
-        if i not in [0, 100]:
-            continue
+        # if i not in [0, 100]:
+        #     continue
         print(f'Obs: {i}', flush=True)
 
         mu_x = observers_xyz[i][0]
@@ -148,7 +145,8 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         alpha_rossland = np.array(alpha_rossland)
         alpha_planck = calc_planck_opacity_vectorized(T_cool, Rho_cool, planck, np.log(t), np.log(d))
         alpha_planck = np.array(alpha_planck)
-      
+        
+        underflow_mask = np.logical_and(np.logical_and(np.log(alpha_rossland) != 0.0, np.log(alpha_planck) != 0.0), np.log(alpha_scatter) != 0.0)
         d, t, r, ray_x, ray_y, ray_z, alpha_rossland, alpha_planck, alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx = \
             make_slices([d, t, r, ray_x, ray_y, ray_z, alpha_rossland, alpha_planck, alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx], underflow_mask)
         idx = np.array(idx)

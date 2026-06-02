@@ -188,8 +188,8 @@ plt.scatter(phi_photo_F, theta_photo_F, c = np.arange(192), marker = '*',  cmap 
 plt.xlabel(r'$\phi$')
 plt.ylabel(r'$\theta$')
 plt.legend(fontsize = 16)
-# %%
-# to check the new FLD code
+
+#%% to check the new FLD code
 data_newF = np.loadtxt(f'{abspath}/data/{folder}/{check}_redNEW.csv', delimiter=',', dtype=float)
 _, tfb_newF, Lum_newF = data_newF[:, 0], data_newF[:, 1], data_newF[:, 2]
 Lum_newF, tfb_newF = sort_list([Lum_newF, tfb_newF], tfb_newF, unique=True) 
@@ -202,6 +202,23 @@ plt.yscale('log')
 plt.legend()
 plt.grid()
 
+medianRph_new = np.zeros(len(snaps))
+for i, snap in enumerate(snaps):
+    try:
+        photo = np.load(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}.npz')
+    except FileNotFoundError:
+        continue
+    x_ph, y_ph, z_ph= photo['x'], photo['y'], photo['z']
+    r_new = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
+    medianRph_new[i] = np.median(r_new)
+plt.figure(figsize=(8,6))
+plt.plot(tfb, medianRph/Rt, ls = '--', label = 'old F')
+plt.scatter(tfb, medianRph_new/Rt, label = 'new F')
+plt.xlabel(r'$t / t_{\rm fb}$')
+plt.ylabel(r'median $(r_{\rm ph}/r_{\rm t})$')
+plt.yscale('log')
+plt.legend()
+    
 #%%
 fig, ax = plt.subplots(1, 1, figsize=(10, 7))
 ax.plot(tfb, meanRph/Rt, ls = '--', label = r'mean $r_{\rm ph}$')
