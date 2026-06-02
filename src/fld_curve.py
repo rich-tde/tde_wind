@@ -78,13 +78,13 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
     xyz = np.array([X, Y, Z]).T
     R = np.sqrt(X**2 + Y**2 + Z**2)
 
-    photosphere = {'idx': [], 'x': [], 'y': [], 'z': [], 'vol': [], 'den': [], 'temp': [], 'radden': [], 'vx': [], 'vy': [], 'vz': [], 'P': [], 'ieden': [], 'los_scatt': [], 'alpha_rossland': [], 'alpha_scatter': [], 'alpha_abs': [], 'r': [], 'Lum': [], 'Fx': [], 'Fy': [], 'Fz': []}
-    colorsphere = {'idx': [], 'x': [], 'y': [], 'z': [], 'vol': [], 'den': [], 'temp': [], 'radden': [], 'vx': [], 'vy': [], 'vz': [], 'P': [], 'ieden': [], 'los_scatt': [], 'alpha_rossland': [], 'alpha_scatter': [], 'alpha_abs': [], 'alpha_eff': []}
+    photosphere = {'idx': [], 'x': [], 'y': [], 'z': [], 'vol': [], 'den': [], 'temp': [], 'radden': [], 'vx': [], 'vy': [], 'vz': [], 'P': [], 'ieden': [], 'los': [], 'los_scatt': [], 'alpha_rossland': [], 'alpha_scatter': [], 'alpha_abs': [], 'r': [], 'Lum': [], 'Fx': [], 'Fy': [], 'Fz': []}
+    colorsphere = {'idx': [], 'x': [], 'y': [], 'z': [], 'vol': [], 'den': [], 'temp': [], 'radden': [], 'vx': [], 'vy': [], 'vz': [], 'P': [], 'ieden': [], 'los': [], 'los_scatt': [], 'alpha_rossland': [], 'alpha_scatter': [], 'alpha_abs': [], 'alpha_eff': []}
     freqs = prel.freqs
     L_col = np.zeros((num_obs, len(prel.freqs)))
     for i in range(num_obs):
-        # if i not in [0, 100]:
-        #     continue
+        if i not in [0, 100]:
+            continue
         print(f'Obs: {i}', flush=True)
 
         mu_x = observers_xyz[i][0]
@@ -240,6 +240,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         photosphere['vz'].append(ray_vz[photo_idx])
         photosphere['P'].append(ray_press[photo_idx])
         photosphere['ieden'].append(ray_ie_den[photo_idx])
+        photosphere['los'].append(los[photo_idx])
         photosphere['los_scatt'].append(los_scatt[photo_idx])
         photosphere['alpha_rossland'].append(alpha_rossland[photo_idx])
         photosphere['alpha_scatter'].append(alpha_scatter[photo_idx])
