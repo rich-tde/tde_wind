@@ -27,7 +27,7 @@ albedo_evolution = True
 if time_evolution:
     avg_in_time = True
     avg_in_los = True
-    which_obs = 'chunky_axes' # you use it if avg_in_los is True
+    which_obs = 'left_right_z' # you use it if avg_in_los is True
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)

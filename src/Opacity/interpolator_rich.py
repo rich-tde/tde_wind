@@ -14,7 +14,6 @@ else:
 import gc
 import warnings
 warnings.filterwarnings('ignore')
-import csv
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -281,7 +280,7 @@ def fld_lightcurve(params, compton, check, N_ray):
         del Lphoto_snap, photosphere, colorsphere, L_col
         gc.collect()
 
-def single_fld(loadpath, snap, observers_xyz, N_ray, time):
+def single_fld(loadpath, snap, observers_xyz, N_ray):
     num_obs = len(observers_xyz)
     data = make_tree(loadpath, snap)
     box = np.load(f'{loadpath}/box_{snap}.npy')
@@ -594,6 +593,43 @@ def single_fld(loadpath, snap, observers_xyz, N_ray, time):
     print('L :', Lphoto_snap, flush=True)
 
     return Lphoto_snap, photosphere, colorsphere, freqs, L_col
+
+# def create_bigger_table(x, y, extrarowsx = 100, extrarowsy = 101):
+#     deltaxn_low = x[1] - x[0]
+#     deltayn_low = y[1] - y[0] 
+#     x_extra_low = [x[0] - deltaxn_low * (i + 1) for i in range(extrarowsx)]
+#     y_extra_low = [y[0] - deltayn_low * (i + 1) for i in range(extrarowsy)]
+    
+#     # High extrapolation
+#     deltaxn_high = x[-1] - x[-2]
+#     deltayn_high = y[-1] - y[-2]
+#     x_extra_high = [x[-1] + deltaxn_high * (i + 1) for i in range(extrarowsx)]
+#     y_extra_high = [y[-1] + deltayn_high * (i + 1) for i in range(extrarowsy)]
+    
+#     # Stack, reverse low to stack properly
+#     xn = np.concatenate([x_extra_low[::-1], x, x_extra_high])
+#     yn = np.concatenate([y_extra_low[::-1], y, y_extra_high])
+#     return xn, yn
+
+
+def create_bigger_table(x, y, extrarowsx=100, extrarowsy=101, density_factor=2):
+    dx = x[1] - x[0]
+    dy = y[1] - y[0]
+
+    dx_ext = dx / density_factor
+    dy_ext = dy / density_factor
+
+    # same extension distance as original function
+    x_extra_low = x[0] - dx_ext * np.arange(extrarowsx * density_factor, 0, -1)
+    y_extra_low = y[0] - dy_ext * np.arange(extrarowsy * density_factor, 0, -1)
+
+    x_extra_high = x[-1] + dx_ext * np.arange(1, extrarowsx * density_factor + 1)
+    y_extra_high = y[-1] + dy_ext * np.arange(1, extrarowsy * density_factor + 1)
+
+    xn = np.concatenate([x_extra_low, x, x_extra_high])
+    yn = np.concatenate([y_extra_low, y, y_extra_high])
+
+    return xn, yn
 
 if __name__ == "__main__":
     m = 4

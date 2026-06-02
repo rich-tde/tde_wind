@@ -167,7 +167,7 @@ def choose_sections(X, Y, Z, choice):
 
     if choice == 'all':
         cond_all = np.abs(X) != 1  # all True
-        all = {'cond': cond_all, 'label': r'all', 'color': 'leftviolet', 'line': 'solid'}
+        all = {'cond': cond_all, 'label': r'all', 'color': 'darkviolet', 'line': 'solid'}
         sec = {'all': all}
 
     if choice == 'chunky_axes': # modulo rotation, you treat all the axis to be the same
@@ -349,7 +349,7 @@ def choose_observers(observers_xyz, choice):
     if choice == '':
         indices_sorted = [np.arange(len(x_obs))]
         label_obs = ['']
-        colors_obs = ['leftviolet']
+        colors_obs = ['darkviolet']
         lines_obs = ['solid']
 
     if choice == 'single_axes':

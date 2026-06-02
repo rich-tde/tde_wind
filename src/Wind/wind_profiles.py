@@ -394,8 +394,8 @@ if what == 'radial':
         x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
         indices_obs, label_obs, colors_obs, _ = op.choose_observers(observers_xyz, which_obs)
         # Load data Rph and Rtr
-        ph_data = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
-        xph, yph, zph, Raddenph = ph_data[0], ph_data[1], ph_data[2], ph_data[6]
+        photo = np.load(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}.npz')
+        xph, yph, zph, Raddenph = photo['x'], photo['y'], photo['z'], photo['radden']
         rph_all = np.sqrt(xph**2 + yph**2 + zph**2)
         dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz")
         x_tr, y_tr, z_tr, den_tr, vol_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['vol_tr'] 
@@ -427,7 +427,7 @@ if what == 'radial':
             figr, (axratiol, axratior) = plt.subplots(1, 2, figsize=(21, 8))
             all_axes = [axdl, axdr, axVl, axVr, axTl, axTr, axMl, axMr, axLadvl, axLadvr, axLkinl, axLkinr, axratiol, axratior]
         else:
-            fig, (axd, axV, axM, axLkin) = plt.subplots(1, 4, figsize=(30, 7)) 
+            fig, (axd, axV, axM, axLkin) = plt.subplots(4, 1, figsize=(8, 21)) 
             figM, (axT, axLadv) = plt.subplots(1, 2, figsize=(15, 7))
             figr, axratio = plt.subplots(1, 1, figsize=(12, 10))
             all_axes = [axd, axV, axT, axM, axLadv, axLkin, axratio]
@@ -512,7 +512,7 @@ if what == 'radial':
         axLadv.plot(x_test, 1e-5*y_test23, c = 'k', ls = 'dotted', label = r'$L \propto r^{-2/3}$')
         # axLadv.text(1.2, 5.6e1, r'$L \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -18)
         axd.legend(fontsize = 18)
-        axV.legend(fontsize = 18, loc = 'upper center')
+        # axV.legend(fontsize = 18, loc = 'upper center')
         axM.set_ylim(1e2, 1e7)
         axLadv.set_ylim(5e-2, 1e2)
         axLkin.set_ylim(1e-1, 5e2) 
@@ -534,8 +534,8 @@ if what == 'radial':
             ax.set_xlim(1.5, 1.4e2)
             ax.grid()
             ax.axvline(apo/Rt, color = 'k', ls = 'dotted')
-            ax.set_xlabel(r'$r /r_{\rm t}$', fontsize = 28)
                
+        axLkin.set_xlabel(r'$r /r_{\rm t}$', fontsize = 28)
         # fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 30)
         figM.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 30)
         fig.tight_layout()

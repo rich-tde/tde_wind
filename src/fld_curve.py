@@ -1,6 +1,6 @@
 """ FLD curve accoring to Elad's script (MATLAB: start from 1 with indices, * is matrix multiplication, ' is .T). """
 import sys
-from tabnanny import check
+from shapely import points
 sys.path.append('/Users/paolamartire/shocks')
 # import resource
 from Utilities.isalice import isalice
@@ -25,14 +25,12 @@ import scipy.integrate as sci
 from scipy.interpolate import griddata
 import matlab.engine
 from sklearn.neighbors import KDTree
-# from src.Opacity.linextrapolator import opacity_extrap, opacity_linear
-from src.Opacity.interpolator_rich import calc_scattering_opacity, calc_ross_opacity, calc_planck_opacity
-from scipy.ndimage import uniform_filter1d
+from src.Opacity.interpolator_vectorized import calc_planck_opacity_vectorized, calc_ross_opacity_vectorized, calc_scattering_opacity_vectorized
 
+from scipy.ndimage import uniform_filter1d
 import Utilities.prelude as prel
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
-import src.orbits as orb
 from Utilities.operators import make_tree
 
 def fld_lightcurve(params, compton, check, N_ray):
@@ -48,7 +46,7 @@ def fld_lightcurve(params, compton, check, N_ray):
     observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 
     for idx_s, snap in enumerate(snaps):
-        if snap not in np.arange(20, 50): # for testing
+        if snap not in [76, 151]: # for testing
             continue
         print(f'Snap: {snap}', flush=True)
         if alice:
@@ -88,8 +86,8 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
     freqs = prel.freqs
     L_col = np.zeros((num_obs, len(prel.freqs)))
     for i in range(num_obs):
-        # if i not in [100]:
-        #     continue
+        if i not in [0, 100]:
+            continue
         print(f'Obs: {i}', flush=True)
 
         mu_x = observers_xyz[i][0]
@@ -142,31 +140,15 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         ray_vz = VZ[idx]
         ray_press = Press[idx]
         ray_ie_den = IE_den[idx]
-        # r = np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) ####
-        
-        ## Interpolate opacity as it was in PAPER one
-        # ln_alpha_rossland = eng.interp2(T_cool2, Rho_cool2, rossland2.T, np.log(t), np.log(d), 'linear', 0)
-        # ln_alpha_rossland = np.array(ln_alpha_rossland)[0]
-        # ln_alpha_planck = eng.interp2(T_cool2, Rho_cool2, planck2.T, np.log(t), np.log(d), 'linear', 0)
-        # ln_alpha_planck = np.array(ln_alpha_planck)[0]
-        # ln_alpha_scatter = eng.interp2(T_cool2, Rho_cool2, scatter2.T, np.log(t), np.log(d), 'linear', 0)
-        # ln_alpha_scatter = np.array(ln_alpha_scatter)[0]
-        # underflow_mask = np.logical_and(np.logical_and(ln_alpha_rossland != 0.0, ln_alpha_planck != 0.0), ln_alpha_scatter != 0.0)
-        # d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ln_alpha_planck, ln_alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx = \
-        #     make_slices([d, t, r, ray_x, ray_y, ray_z, ln_alpha_rossland, ln_alpha_planck, ln_alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx], underflow_mask)
-        # idx = np.array(idx)
-        # alpha_rossland = np.exp(ln_alpha_rossland) # [1/cm]
-        # alpha_planck = np.exp(ln_alpha_planck) # [1/cm]
-        # alpha_scatter = np.exp(ln_alpha_scatter) # [1/cm]
+        # r = np.sqrt(ray_x**2 + ray_y**2 + ray_z**2) 
 
-        alpha_scatter = np.zeros_like(t)
-        alpha_rossland = np.zeros_like(t)
-        alpha_planck = np.zeros_like(t)
-        for k in range(len(t)):
-            alpha_scatter[k] = calc_scattering_opacity(T_cool, Rho_cool, scattering, np.log(t[k]), np.log(d[k]))
-            alpha_rossland[k] = calc_ross_opacity(T_cool, Rho_cool, rossland, scattering, np.log(t[k]), np.log(d[k]))
-            alpha_planck[k] = calc_planck_opacity(T_cool, Rho_cool, planck, np.log(t[k]), np.log(d[k]))
-        underflow_mask = np.logical_and(np.logical_and(np.log(alpha_rossland) != 0.0, np.log(alpha_planck) != 0.0), np.log(alpha_scatter) != 0.0)
+        alpha_scatter = calc_scattering_opacity_vectorized(T_cool, Rho_cool, scattering, np.log(t), np.log(d))
+        alpha_scatter = np.array(alpha_scatter)
+        alpha_rossland = calc_ross_opacity_vectorized(T_cool, Rho_cool, rossland, scattering, np.log(t), np.log(d))
+        alpha_rossland = np.array(alpha_rossland)
+        alpha_planck = calc_planck_opacity_vectorized(T_cool, Rho_cool, planck, np.log(t), np.log(d))
+        alpha_planck = np.array(alpha_planck)
+      
         d, t, r, ray_x, ray_y, ray_z, alpha_rossland, alpha_planck, alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx = \
             make_slices([d, t, r, ray_x, ray_y, ray_z, alpha_rossland, alpha_planck, alpha_scatter, ray_radDen, volume, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den, idx], underflow_mask)
         idx = np.array(idx)
@@ -177,7 +159,6 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
         los = - np.flipud(sci.cumulative_trapezoid(alpha_rossland_fuT, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
         
-        # alpha_effective = np.sqrt(3 * alpha_planck * (alpha_planck + alpha_scatter))
         alpha_effective = np.sqrt(3 * np.minimum(alpha_planck, alpha_rossland) * alpha_rossland)
         alpha_effective_fuT = np.flipud(alpha_effective)
         los_effective = - np.flipud(sci.cumulative_trapezoid(alpha_effective_fuT, 
@@ -333,9 +314,6 @@ if __name__ == "__main__":
     rossland = np.loadtxt(f'{opac_path}/ross.txt')
     planck = np.loadtxt(f'{opac_path}/planck.txt')
     scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
-    # _, _, scatter2 = opacity_linear(T_cool, Rho_cool, scattering)
-    # T_cool2, Rho_cool2, rossland2 = opacity_extrap(T_cool, Rho_cool, rossland, which_opacity = 'rossland', scatter = scatter2)
-    # _, _, planck2 = opacity_extrap(T_cool, Rho_cool, planck, which_opacity = 'planck', scatter = None)
 
     #MATLAB, thanks Cindy.
     eng = matlab.engine.start_matlab()

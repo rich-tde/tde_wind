@@ -38,7 +38,7 @@ compton = 'Compton'
 check = 'HiResNewAMR'
 choice = 'left_right_z' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
 how = '' # '' for the normalized sum or 'mean' for mean of Mw of each cells
-what = 'wind' # '' for wind or 'outflow'
+what = 'outflow' # '' for wind or 'outflow'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
@@ -206,18 +206,13 @@ if __name__ == '__main__':
         tfbfb, mfb, mwind_dimCellOld = fallback[1], fallback[2], fallback[3]
         
         wind = \
-                np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec_{check}{which_r_title}{choice}.csv', 
+                np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_{what}.csv', 
                         delimiter = ',', 
                         skiprows=1, 
                         unpack=True) 
         tfbH = wind[1]
         rest = wind[2:2+len(label_obs)]
         # print(len(rest), len(label_obs))
-
-        # with open(f'{abspath}/data/{folder}/wind/{choice}/MdotSec_{check}{which_r_title}{choice}.csv', newline="", encoding="utf-8") as f:
-        #     reader = csv.reader(f)
-        #     label_obs = next(reader)
-        # label_obs = label_obs[2:]
         
         for i in range(len(rest)):
             axM.plot(tfbH, rest[i]/Medd_sol,  label = label_obs[i], c = color_obs[i])
