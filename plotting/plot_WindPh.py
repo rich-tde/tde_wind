@@ -59,7 +59,6 @@ def mean_nonzero(arr, axis=1):
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
 observers_xyz = np.array(observers_xyz)
 indices_axis, label_axis, colors_axis, lines_axis = choose_observers(observers_xyz, which_obs)
-print([len(indices_axis[i]) for i in range(len(indices_axis))], flush=True)
 observers_xyz = observers_xyz.T
 x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
 
@@ -90,15 +89,15 @@ L_diss_sec = np.zeros((len(indices_axis), len(snaps)))
 # fig, ax = plt.subplots(1, 3, figsize=(18,6))
 for s, snap in enumerate(snaps): 
         # you are considering all the photosphere, not only the unbound
-        xph, yph, zph, vol_ph, den_ph, Temp_ph, RadDen_ph, vx_ph, vy_ph, vz_ph, Press_ph, IE_den_ph, _, _, Lum_ph, _ = \
-                np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
+        photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
+        x_ph, y_ph, z_ph, den_ph, vol_ph, RadDen_ph, Temp_ph, Vx_ph, Vy_ph, Vz_ph, Lum_ph = \
+        photo['x'], photo['y'], photo['z'], photo['den'], photo['vol'], photo['radden'], photo['temp'], photo['vx'], photo['vy'], photo['vz'], photo['Lum']
         den_ph /=prel.den_converter # it was saved in cgs
-        r_ph = np.sqrt(xph**2 + yph**2 + zph**2)
-        vel_ph = np.sqrt(vx_ph**2 + vy_ph**2 + vz_ph**2)
+        r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
+        vel_ph = np.sqrt(Vx_ph**2 + Vy_ph**2 + Vz_ph**2)
         mass_ph = den_ph * vol_ph
         Lum_ph_allSum[s] = np.sum(Lum_ph) # CGS
-        Vr_ph, _, _ = to_spherical_components(vx_ph, vy_ph, vz_ph, xph, yph, zph)
-        bern_ph = orb.bern_coeff(r_ph, vel_ph, den_ph, mass_ph, Press_ph, IE_den_ph, RadDen_ph, params)
+        Vr_ph, _, _ = to_spherical_components(Vx_ph, Vy_ph, Vz_ph, x_ph, y_ph, z_ph)
 
         Temprad_ph = (RadDen_ph*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
         # Lum_adv_ph = 4 * np.pi * r_ph**2 * Vr_ph * RadDen_ph # advective luminosity
@@ -151,8 +150,7 @@ for s, snap in enumerate(snaps):
 figTr, axTr = plt.subplots(1, 1, figsize=(10, 8))
 figratios, (axTrnonzero, axNtr, axratio) = plt.subplots(1, 3, figsize=(27, 6))
 fig, (axVph, axdph, axTph) = plt.subplots(1, 3, figsize=(26, 6))
-figL, axLsum = plt.subplots(1, 1, figsize=(10, 8))
-figL, axLmean = plt.subplots(1, 1, figsize=(10, 8))
+figL, (axLsum, axLmean) = plt.subplots(1, 2, figsize=(16, 8))
 
 for i, col in enumerate(colors_axis):
         if label_axis[i] == 'south pole':

@@ -377,7 +377,7 @@ if what == 'radial':
 
     else:
         which_parts = ['outflow', '']
-        labels_parts = ['outflow', 'wind']
+        labels_parts = ['Outflow', 'Wind']
         line_styles_parts = ['--', '-']
         idx_stop_d_unb = [7e1, 9e1]
 
@@ -512,7 +512,7 @@ if what == 'radial':
         axLadv.plot(x_test, 1e-5*y_test23, c = 'k', ls = 'dotted', label = r'$L \propto r^{-2/3}$')
         # axLadv.text(1.2, 5.6e1, r'$L \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -18)
         axd.legend(fontsize = 18)
-        # axV.legend(fontsize = 18, loc = 'upper center')
+        axV.legend(fontsize = 18)
         axM.set_ylim(1e2, 1e7)
         axLadv.set_ylim(5e-2, 1e2)
         axLkin.set_ylim(1e-1, 5e2) 

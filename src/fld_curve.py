@@ -43,7 +43,7 @@ def fld_lightcurve(params, compton, check, N_ray):
     observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 
     for idx_s, snap in enumerate(snaps):
-        if snap not in np.arange(22, 60, 2): # for testing
+        if snap not in [76]: 
             continue
         print(f'Snap: {snap}', flush=True)
         if alice:
@@ -83,8 +83,8 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
     freqs = prel.freqs
     L_col = np.zeros((num_obs, len(prel.freqs)))
     for i in range(num_obs):
-        if i not in [0, 100]:
-            continue
+        # if i not in [0, 90, 100, 130]:
+        #     continue
         print(f'Obs: {i}', flush=True)
 
         mu_x = observers_xyz[i][0]
@@ -164,6 +164,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         alpha_effective_fuT = np.flipud(alpha_effective)
         los_effective = - np.flipud(sci.cumulative_trapezoid(alpha_effective_fuT, r_fuT, initial = 0)) * prel.Rsol_cgs
         los_effective[los_effective > 30] = 30
+        del r_fuT, alpha_rossland_fuT, alpha_scatter_fuT, alpha_effective_fuT
 
         # FLD curve 
         # Get 20 unique nearest neighbors to each cell in the wanted ray and use them to compute the gradient along the ray
@@ -213,7 +214,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         Fr = (mu_x * Fx) + (mu_y*Fy) + (mu_z*Fz)
         # smoothed_flux_r2 = -prel.c_cgs * uniform_filter1d(r**2 * fld_factor * gradr / alpha_rossland, 7) #r^2 is here (but it's for the flux) otherwise you get annoying errors in the if. 
         smoothed_flux_r2 = uniform_filter1d(r**2 * Fr, 7) #r^2 is here (but it's for the flux) otherwise you get annoying errors in the if. 
-        del gradx, grady, gradz
+        del gradx, grady, gradz, R_lamda, fld_factor
 
         try: 
             photo_idx = np.where( ((smoothed_flux_r2>0) & (los<2/3) ))[0][0] 
@@ -289,7 +290,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         norm = Lphoto / np.trapezoid(L_col[i,:], freqs)
         L_col[i,:] *= norm
 
-        del smoothed_flux_r2, R_lamda, fld_factor, ray_radDen, alpha_rossland, alpha_planck, alpha_scatter, los, los_effective, tree, idxnew, f_inter_input, volume, ray_x, ray_y, ray_z, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den 
+        del smoothed_flux_r2, ray_radDen, alpha_rossland, alpha_planck, alpha_scatter, los, los_effective, tree, volume, ray_x, ray_y, ray_z, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den 
         gc.collect()
 
     Lphoto_snap = np.mean(photosphere['Lum'])

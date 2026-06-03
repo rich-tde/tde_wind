@@ -38,14 +38,14 @@ high_freq_optical = 3.358 * prel.ev_toHz #7.5e14
 high_freq_UV = 7.7488 * prel.ev_toHz #3e15
 low_freq_Xray = 300 * prel.ev_toHz 
 high_freq_Xray = 2e4 * prel.ev_toHz #3e19
-L_min = 1e36
-L_max = 1e42
+L_min = 1e37
+L_max = 1.1e42
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 def plot_spectra(folder, check, snaps, x_axis, choice):
     # Load
     pre_saving = f'{abspath}/data/{folder}'
-    freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt')
+    freqs = np.loadtxt(f'{pre_saving}/spectraNEW/freqs.txt')
     idx_opt = np.where(np.logical_and(freqs > low_freq_optical, freqs < high_freq_UV))[0][0]
     # idx_UV = np.where(np.logical_and(freqs > high_freq_optical, freqs < high_freq_UV))[0][0]
     idx_Xray = np.where(np.logical_and(freqs > high_freq_UV, freqs < high_freq_Xray))[0][0]
@@ -81,7 +81,7 @@ def plot_spectra(folder, check, snaps, x_axis, choice):
     fig_sp, ax = plt.subplots(1, len(snaps), figsize=(24,7))
     for s, snap in enumerate(snaps):
         time = tfb[snaps_fld == snap][0]
-        L_photo = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
+        L_photo = np.loadtxt(f'{pre_saving}/spectraNEW/{check}_spectra{snap}.txt')
         
         ax_op = fig_mollop.add_subplot(gs_op[0, s], projection='mollweide')
         # ax_uv = fig_moll.add_subplot(gs_uv[0, s], projection='mollweide')
@@ -154,6 +154,8 @@ def plot_spectra(folder, check, snaps, x_axis, choice):
             ax[s].set_xlabel('Frequency (Hz)', fontsize = 30)
             ax[s].set_xlim(1e14, 1e19)
         for i_idx, idx in enumerate(indices_sorted):
+            if i_idx == 3:
+                continue
             if len(idx) == 1:
                 Lum = np.concatenate(L_photo[idx])
             else:
@@ -164,9 +166,9 @@ def plot_spectra(folder, check, snaps, x_axis, choice):
         ax[s].tick_params(axis='both', which='minor', length=5, width=1)
         ax[s].loglog()
         ax[s].set_ylim(L_min, L_max)
-        ax[s].set_title(f't = {np.round(time, 2)}' + r't$_{\rm fb}$', fontsize = 30)
+        ax[s].set_title(f't = {np.round(time, 1)}' + r't$_{\rm fb}$', fontsize = 30)
         
-    ax[0].set_ylabel(r'$\nu L_{\nu}$ (erg s$^{-1}$)', fontsize = 30)
+    ax[0].set_ylabel(r'$\nu L_{\nu}$ (erg/s)', fontsize = 30)
     ax[0].legend(fontsize=18)
     plt.tight_layout()
     plt.savefig(f'{abspath}/Figs/2.paperWind/spectra_{choice}.pdf', dpi=300)
@@ -189,7 +191,7 @@ def plot_spectra(folder, check, snaps, x_axis, choice):
 def plot_light_curves(folder, check, choice, group = 'bands'):
     # Load
     pre_saving = f'{abspath}/data/{folder}'
-    freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt')
+    freqs = np.loadtxt(f'{pre_saving}/spectraNEW/freqs.txt')
     idx_opt = np.where(np.logical_and(freqs > low_freq_optical, freqs < high_freq_optical))[0][0]
     idx_UV = np.where(np.logical_and(freqs > high_freq_optical, freqs < high_freq_UV))[0][0]
     idx_Xray = np.where(np.logical_and(freqs > high_freq_UV, freqs < high_freq_Xray))[0][0]
@@ -207,8 +209,13 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
     Lum_op_sum = []
     Lum_UV_sum = []
     Lum_Xray_sum = []
+    time_spec = []
     for s, snap in enumerate(snaps_fld):
-        L_photo = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
+        try:
+            L_photo = np.loadtxt(f'{pre_saving}/spectraNEW/{check}_spectra{snap}.txt')
+            time_spec.append(tfb[snaps_fld == snap][0])
+        except:
+            continue
         Lum_op, Lum_UV, Lum_Xray = np.zeros(len(L_photo)), np.zeros(len(L_photo)), np.zeros(len(L_photo))
         for i in range(len(L_photo)):
             Lum_freq = freqs * L_photo[i]
@@ -254,17 +261,18 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
     Lum_Xray_MG = np.transpose(np.array(Lum_Xray_MG))
 
     if group == 'sections': # each panel show a spherical sector
-        len_plot = len(label_obs)
+        len_plot = len(label_obs) 
         if np.array(label_obs).all() not in ['south pole', r'-$\hat{z}$']:
             print('Do not consider the south pole')
             len_plot -= 1
         fig_L, ax_L = plt.subplots(1, len_plot, figsize=(8*len_plot, 7)) 
         axes = [ax_L[k] for k in range(len_plot)]
         for k, obs in enumerate(np.arange(len_plot)):
-            ax_L[k].plot(tfb, Lum_op_sum[k], label = 'optical', c = colors_obs[k], linewidth = 3)
-            ax_L[k].plot(tfb, Lum_UV_sum[k], label = f'UV', c = colors_obs[k], linewidth = 3, ls = '--')
-            ax_L[k].plot(tfb, Lum_Xray_sum[k], label = f'Xray', c = colors_obs[k], linewidth = 3, ls = ':')
-            ax_L[k].text(0.1, 2e41, f'{label_obs[k]}', fontsize = 24)
+            ax_L[k].plot(time_spec, Lum_op_sum[k], label = 'Optical', c = colors_obs[k], linewidth = 3)
+            ax_L[k].plot(time_spec, Lum_UV_sum[k], label = f'UV', c = colors_obs[k], linewidth = 3, ls = '--')
+            # ax_L[k].plot(time_spec, Lum_Xray_sum[k], label = f'Xray', c = colors_obs[k], linewidth = 3, ls = ':')
+            ax_L[k].plot(time_MG, Lum_Xray_MG[k], label = f'Xray', c = colors_obs[k], linewidth = 3, ls = ':')
+            ax_L[k].text(0.1, L_max/5, f'{label_obs[k]}', fontsize = 26)
         original_ticks = ax_L[0].get_xticks()
         ax_L[0].legend(fontsize = 25)
         ax_L[0].set_ylabel(r'$\nu L_{\nu}$ (erg/s)', fontsize = 30)
@@ -275,18 +283,19 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
         for k, obs in enumerate(label_obs):
             if k == 3:
                 continue
-            ax_op.plot(tfb, Lum_op_sum[k], label = f'{obs}', c = colors_obs[k], linewidth = 3)
+            ax_op.plot(time_spec, Lum_op_sum[k], label = f'{obs}', c = colors_obs[k], linewidth = 3)
             ax_op.plot(time_MG, Lum_op_MG[k], c = colors_obs[k], ls = '--', linewidth = 2)
-            ax_UV.plot(tfb, Lum_UV_sum[k], label = f'{obs}', c = colors_obs[k], linewidth = 3)
-            ax_UV.plot(time_MG, Lum_UV_MG[k], c = colors_obs[k], ls = '--', linewidth = 2)
-            ax_Xray.plot(tfb, Lum_Xray_sum[k], label = f'{obs}', c = colors_obs[k], linewidth = 3)
+            ax_UV.plot(time_spec, Lum_UV_sum[k], label = f'This work' if k == 2 else None, c = colors_obs[k], linewidth = 3)
+            ax_UV.plot(time_MG, Lum_UV_MG[k], label = f'Giron+26' if k == 2 else None, c = colors_obs[k], ls = '--', linewidth = 2)
+            ax_Xray.plot(time_spec, Lum_Xray_sum[k], c = colors_obs[k], linewidth = 3)
             ax_Xray.plot(time_MG, Lum_Xray_MG[k], c = colors_obs[k], ls = '--', linewidth = 2)
 
-        ax_op.text(0.1, 2e41, 'Optical', fontsize = 24)
-        ax_UV.text(0.1, 2e41, 'UV', fontsize = 24)
-        ax_Xray.text(0.1, 2e41, 'X-ray', fontsize = 24)
+        ax_op.text(0.1, L_max/5, 'Optical', fontsize = 26)
+        ax_UV.text(0.1, L_max/5, 'UV', fontsize = 26)
+        ax_Xray.text(0.1, L_max/5, 'X-ray', fontsize = 26)
         original_ticks = ax_op.get_xticks()
         ax_op.legend(fontsize = 22)
+        ax_UV.legend(fontsize = 22)
         ax_op.set_ylabel(r'$\nu L_{\nu}$ (erg/s)', fontsize = 30)
 
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2

@@ -48,9 +48,7 @@ Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 
 single_plot = False
-coord_to_cut = 'y' # 'x', 'y', 'z'
 cut_chosen = 0
-print(f'cut at {coord_to_cut} = {cut_chosen}', flush=True)
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 if cut_chosen == Rp:
@@ -59,6 +57,8 @@ else:
     cut_name =  cut_chosen
 
 if alice:
+    coord_to_cut = 'y' # 'x', 'y', 'z'
+    print(f'cut at {coord_to_cut} = {cut_chosen}', flush=True)
     # get ready to slice and save
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
     with open(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}_time.txt','w') as file:
@@ -112,6 +112,7 @@ if alice:
                 )
 
 else:
+    coord_to_cut = 'y' # 'x', 'y', 'z'
     time = np.loadtxt(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}_time.txt')
     snaps = time[0]
     snaps = np.array([int(snap) for snap in snaps])
@@ -177,6 +178,7 @@ else:
         from matplotlib import gridspec
         what = '' # '' or '_wind' (if you want to pick the wind and plot only the streamlines that belong to the wind)
         how = '' # '' if you want streamlines, '_arrows' if you want arrows 
+        coords_to_cut = ['z','y']
         idx_wanted = [np.argmin(np.abs(snaps - 76)), 
                       np.argmin(np.abs(snaps - 109)), 
                       np.argmin(np.abs(snaps - 151))]
@@ -187,119 +189,121 @@ else:
         amin = things['a_mb']
         xcr, ycr, cr = orb.make_cfr(0.5*amin)
         
-        fig = plt.figure(figsize=(12*len(idx_wanted), 12))
-        gs = gridspec.GridSpec(2, len(idx_wanted), width_ratios=[1]*len(idx_wanted), height_ratios=[1, 0.05])
+        fig = plt.figure(figsize=(16*len(idx_wanted), 16*len(coords_to_cut)))
+        height_ratios = np.concatenate(([1] * len(coords_to_cut), [0.05]))
+        gs = gridspec.GridSpec(len(coords_to_cut)+1, len(idx_wanted), width_ratios=[1]*len(idx_wanted), height_ratios = height_ratios)
         
         for i, idx in enumerate(idx_wanted):
             snap = snaps[idx]
             time = tfb[idx]
-            # load the data
-            data = np.load(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npz')
-            x = data["x"]
-            y = data["y"]
-            z = data["z"]
-            dim = data["dim"]
-            den = data["density"]
-            mass = data["mass"]
-            ie_den = data["ie_density"]
-            Rad_den = data["rad_density"]
-            VX = data["vx"]
-            VY = data["vy"]
-            VZ = data["vz"]
-            Press = data["pressure"]
 
-            if coord_to_cut == 'x':
-                x_toplot = y
-                VX_toplot = VY
-                y_toplot = z
-                VY_toplot = VZ
-                xlabel = r'$y (r_{\rm t})$'
-                ylabel = r'$z (r_{\rm t})$'
-            if coord_to_cut == 'y':
-                x_toplot = x
-                VX_toplot = VX
-                y_toplot = z
-                VY_toplot = VZ
-                xlabel = r'$x / r_{\rm t}$'
-                ylabel = r'$z / r_{\rm t}$'
-            elif coord_to_cut == 'z':
-                x_toplot = x
-                VX_toplot = VX
-                y_toplot = y
-                VY_toplot = VY
-                xlabel = r'$x / r_{\rm t}$'
-                ylabel = r'$y / r_{\rm t}$'
+            for c, coord_to_cut in enumerate(coords_to_cut):
+                data = np.load(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npz')
+                x = data["x"]
+                y = data["y"]
+                z = data["z"]
+                dim = data["dim"]
+                den = data["density"]
+                mass = data["mass"]
+                ie_den = data["ie_density"]
+                Rad_den = data["rad_density"]
+                VX = data["vx"]
+                VY = data["vy"]
+                VZ = data["vz"]
+                Press = data["pressure"]
+                if coord_to_cut == 'x':
+                    x_toplot = y
+                    VX_toplot = VY
+                    y_toplot = z
+                    VY_toplot = VZ
+                    xlabel = r'$y (r_{\rm t})$'
+                    ylabel = r'$z (r_{\rm t})$'
+                if coord_to_cut == 'y':
+                    x_toplot = x
+                    VX_toplot = VX
+                    y_toplot = z
+                    VY_toplot = VZ
+                    xlabel = r'$x / r_{\rm t}$'
+                    ylabel = r'$z / r_{\rm t}$'
+                elif coord_to_cut == 'z':
+                    x_toplot = x
+                    VX_toplot = VX
+                    y_toplot = y
+                    VY_toplot = VY
+                    xlabel = r'$x / r_{\rm t}$'
+                    ylabel = r'$y / r_{\rm t}$'
 
-            cut_wind, param_wind, V_r = orb.pick_wind(x, y, z, VX, VY, VZ, den, mass, Press, ie_den, Rad_den, params, cond = 'bern')
-            
-            if what == '_wind':
-                cut = cut_wind
-                print(f'Picking wind for snap {snap}', flush=True)
-            else:
-                cut = den > 1e-19
-            
-            x_toplot, y_toplot, VX_toplot, VY_toplot, den, dim = \
-                sec.make_slices([x_toplot, y_toplot, VX_toplot, VY_toplot, den, dim], cut)      
-
-            params_x = [-lim_plot, lim_plot, 400]
-            params_y = [-lim_plot, lim_plot, 400]
-
-            ax = fig.add_subplot(gs[0, i])
-            if what == '_wind':
-                img = ax.scatter(x_toplot/Rt, y_toplot/Rt, c = den * prel.den_converter, cmap = 'brg_r', s = 6, norm=colors.LogNorm(vmin=1e-16, vmax=2e-8))
-                if how == '_arrows': 
-                    step = max(1, len(x_toplot) // N_arrows) 
-                    print(f'Plotting {len(x_toplot[::step])} arrows out of {len(x_toplot)} points.')
-                    ax.quiver(x_toplot[::step]/Rt, y_toplot[::step]/Rt, VX_toplot[::step], VY_toplot[::step], color='k', angles='xy', scale_units='xy', width=0.002)
+                cut_wind, param_wind, V_r = orb.pick_wind(x, y, z, VX, VY, VZ, den, mass, Press, ie_den, Rad_den, params, cond = 'bern')
+                
+                if what == '_wind':
+                    cut = cut_wind
+                    print(f'Picking wind for snap {snap}', flush=True)
                 else:
-                    x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y)
-            else:
-                # print(x_toplot[-param_wind>5*E_mb])
-                # img = ax.scatter(x_toplot[np.abs(param_wind)>E_mb]/Rt, y_toplot[np.abs(param_wind)>E_mb]/Rt, c = param_wind[np.abs(param_wind)>E_mb]/E_mb, cmap = 'coolwarm', s = 6,  norm=colors.SymLogNorm(linthresh=0.1, vmin=-1e2, vmax=1e2))
-                # x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, Den_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, den)
-                # img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, Den_grid * prel.den_converter, cmap='brg_r', norm=colors.LogNorm(vmin=1e-16, vmax=2e-8))
-                x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, param_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, param_wind)
-                img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, param_grid/E_mb, cmap='coolwarm', norm=colors.SymLogNorm(linthresh=0.1, vmin=-1e2, vmax=1e2))
-                if how == '_arrows': 
-                    step = max(1, len(x_toplot) // N_arrows) 
-                    print(f'Plotting {len(x_toplot[::step])} arrows out of {len(x_toplot)} points.')
-                    ax.quiver(x_toplot[::step]/Rt, y_toplot[::step]/Rt, VX_toplot[::step], VY_toplot[::step], color='k', angles='xy', scale_units='xy', width=0.002)
-            
-            if how == '':
-                ax.streamplot(x_toplot_grid/Rt, y_toplot_grid/Rt, Vx_toplot_grid, Vy_toplot_grid, density = 1.5, linewidth = 1, color = 'k', arrowsize=1.5, arrowstyle='-|>')
-            
-            ax.contour(xcr/Rt, ycr/Rt, cr/Rt, [0], linestyles = 'dashed', colors = 'k', linewidth = 3.5)
+                    cut = den > 1e-19
+                
+                x_toplot, y_toplot, VX_toplot, VY_toplot, den, dim = \
+                    sec.make_slices([x_toplot, y_toplot, VX_toplot, VY_toplot, den, dim], cut)      
 
-            ax.set_xlabel(xlabel, fontsize = 45)
-            if i == 0:
-                ax.set_ylabel(ylabel, fontsize = 45)
-            ax.set_xlim(-lim_plot/Rt, lim_plot/Rt)
-            ax.set_ylim(-lim_plot/Rt, lim_plot/Rt)
-            ax.set_title(f't = {np.round(time, 2)}' + r'$t_{\rm fb}$', fontsize = 35)
-            ax.tick_params(axis='both', which='major', width=1.2, length=9, labelsize=35)
-            plt.gca().set_aspect('equal')
+                params_x = [-lim_plot, lim_plot, 400]
+                params_y = [-lim_plot, lim_plot, 400]
 
-        # cbar_ax = fig.add_subplot(gs[1, :len(idx_wanted)])  # Colorbar subplot below the first two
-        first_ax = fig.axes[0]      # first subplot
-        last_ax = fig.axes[-1]      # last subplot (before cbar_ax)
+                ax = fig.add_subplot(gs[c, i])
+                if what == '_wind':
+                    img = ax.scatter(x_toplot/Rt, y_toplot/Rt, c = den * prel.den_converter, cmap = 'brg_r', s = 6, norm=colors.LogNorm(vmin=1e-16, vmax=2e-8))
+                    if how == '_arrows': 
+                        step = max(1, len(x_toplot) // N_arrows) 
+                        print(f'Plotting {len(x_toplot[::step])} arrows out of {len(x_toplot)} points.')
+                        ax.quiver(x_toplot[::step]/Rt, y_toplot[::step]/Rt, VX_toplot[::step], VY_toplot[::step], color='k', angles='xy', scale_units='xy', width=0.002)
+                    else:
+                        x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y)
+                else:
+                    # print(x_toplot[-param_wind>5*E_mb])
+                    # img = ax.scatter(x_toplot[np.abs(param_wind)>E_mb]/Rt, y_toplot[np.abs(param_wind)>E_mb]/Rt, c = param_wind[np.abs(param_wind)>E_mb]/E_mb, cmap = 'coolwarm', s = 6,  norm=colors.SymLogNorm(linthresh=0.1, vmin=-1e2, vmax=1e2))
+                    # x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, Den_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, den)
+                    # img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, Den_grid * prel.den_converter, cmap='brg_r', norm=colors.LogNorm(vmin=1e-16, vmax=2e-8))
+                    x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, param_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, param_wind)
+                    img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, param_grid/E_mb, cmap='coolwarm', norm=colors.SymLogNorm(linthresh=0.1, vmin=-1e2, vmax=1e2))
+                    if how == '_arrows': 
+                        step = max(1, len(x_toplot) // N_arrows) 
+                        print(f'Plotting {len(x_toplot[::step])} arrows out of {len(x_toplot)} points.')
+                        ax.quiver(x_toplot[::step]/Rt, y_toplot[::step]/Rt, VX_toplot[::step], VY_toplot[::step], color='k', angles='xy', scale_units='xy', width=0.002)
+                
+                if how == '':
+                    ax.streamplot(x_toplot_grid/Rt, y_toplot_grid/Rt, Vx_toplot_grid, Vy_toplot_grid, density = 1.5, linewidth = 1, color = 'k', arrowsize=1.5, arrowstyle='-|>')
+                
+                ax.contour(xcr/Rt, ycr/Rt, cr/Rt, [0], linestyles = 'dashed', colors = 'k', linewidth = 5)
+
+                ax.set_xlim(-lim_plot/Rt, lim_plot/Rt)
+                ax.set_ylim(-lim_plot/Rt, lim_plot/Rt)
+                ax.tick_params(axis='both', which='major', width=1.2, length=9, labelsize=50)
+                if c == 0:
+                    ax.set_title(f't = {np.round(time, 1)} e' + r'$t_{\rm fb}$', fontsize = 50)
+                if c == len(coords_to_cut)-1:
+                    ax.set_xlabel(xlabel, fontsize = 60)
+                if i == 0:
+                    ax.set_ylabel(ylabel, fontsize = 60)
+                plt.gca().set_aspect('equal')
+
+        first_ax = fig.axes[0]
+        last_ax = fig.axes[-1]
 
         cbar_left = first_ax.get_position().x0
         cbar_right = last_ax.get_position().x1
         cbar_width = cbar_right - cbar_left
-        cbar_bottom = 0.025
-        cbar_height = 0.035
+        cbar_bottom = 0.08  # increase from 0.025 to move colorbar up
+        cbar_height = 0.025
+
         cbar_ax = fig.add_axes([cbar_left, cbar_bottom, cbar_width, cbar_height])
-        # cbar_ax.axis("off") # if you want to hide the axis of the colorbar but keep the colorbar space
         
-        cb = fig.colorbar(img, orientation='horizontal', cax=cbar_ax, aspect=100, pad=0.02)
-        cb.set_label(r'$\rho$ (g/cm$^3)$', fontsize = 50)
-        # cb.set_label(r'$\mathcal{B}/\Delta\varepsilon$', fontsize = 50)
-        cb.ax.tick_params(labelsize=38)
+        cb = fig.colorbar(img, orientation='horizontal', cax=cbar_ax, aspect=50)
+        # cb.set_label(r'$\rho$ (g/cm$^3)$', fontsize = 50)
+        cb.set_label(r'$\mathcal{B}/\Delta\varepsilon$', fontsize = 55)
+        cb.ax.tick_params(labelsize=50)
         cb.ax.tick_params(which='major', length=9, width=1.4)
         cb.ax.tick_params(which='minor', length=6, width=1.2)
 
         if what == '_wind':
-            plt.savefig(f'{abspath}/Figs/2.paperWind/Wind{coord_to_cut}{cut_name}slices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
+            plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
         else:
-            plt.savefig(f'{abspath}/Figs/2.paperWind/Wind{coord_to_cut}{cut_name}slices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
+            plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
             

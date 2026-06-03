@@ -91,7 +91,7 @@ def statistics_photo(snaps, check):
     percentile84 = np.zeros(len(snaps))
     for i, snapi in enumerate(snaps):
         # photo = np.loadtxt(f'{abspath}/data/{commonfold}{check}/photo/{check}_photo{snapi}.txt')
-        photo = np.load(f'{abspath}/data/{commonfold}{check}/photoPOL/{check}_photo{snapi}.npz')
+        photo = np.load(f'{abspath}/data/{commonfold}{check}/photo/{check}_photo{snapi}.npz')
         xph_i, yph_i, zph_i = photo['x'], photo['y'], photo['z']
         rph_i = np.sqrt(xph_i**2 + yph_i**2 + zph_i**2)
         mean_ph[i] = np.mean(rph_i)

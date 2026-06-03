@@ -69,9 +69,9 @@ fig, (axM, axL) =plt.subplots(1,2, figsize = (18,7))
 for i in range(len(rest)):
     if i == 3:
         continue
-    axM.plot(tfbH, rest[i]/Medd_sol,  label = label_obs[i], c = color_obs[i])
-    axM.plot(tfbO[4:], restO[i][4:]/Medd_sol, c = color_obs[i], ls = '--')
-    axL.plot(tfbH, Lum_sec[i],  label = label_obs[i], c = color_obs[i])
+    axM.plot(tfbH, rest[i]/Medd_sol,  label = r'$\dot{M}_{\rm w}$' if i == 2 else None, linewidth = 2, c = color_obs[i])
+    axM.plot(tfbO[4:], restO[i][4:]/Medd_sol,  label = r'$\dot{M}_{\rm out}$' if i == 2 else None, linewidth = 2, c = color_obs[i], ls = '--')
+    axL.plot(tfbH, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i])
 
 original_ticks = axM.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
@@ -83,15 +83,15 @@ for ax in [axM, axL]:
     ax.set_xticks(new_ticks)
     ax.set_xticklabels(labels)  
     ax.set_yscale('log')
-    ax.set_xlabel(r'$t (t_{\rm fb})$')
+    ax.set_xlabel(r'$t / t_{\rm fb}$')
     ax.set_xlim(0, np.max(tfbH))
     ax.tick_params(axis='both', which='major', width=1.2, length=9)
     ax.tick_params(axis='both', which='minor', width=1, length=5)
     ax.grid()
 axM.set_ylim(1e1, 7e6)
-axM.set_ylabel(r'$\dot{M}_{{\rm w}} (\dot{M}_{\rm Edd})$')  
+axM.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$')  
 axL.set_ylim(1e38, 2e42)
-axL.set_ylabel(r'$L_{{\rm ph}}$ (erg/s)')  
+axL.set_ylabel(r'$L_{{\rm FLD}}$ (erg/s)')  
 axM.legend(fontsize = 24)
 
 fig.tight_layout()

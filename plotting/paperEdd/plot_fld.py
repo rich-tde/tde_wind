@@ -67,7 +67,7 @@ f_ph = np.zeros(len(snaps))
 for i, snap in enumerate(snaps):
     # x_ph, y_ph, z_ph, vol_ph, den_ph, Temp_ph, RadDen_ph, Vx_ph, Vy_ph, Vz_ph, Press_ph, IE_den_ph, alpha_ph, _, _, _ = \
     #     np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
-    photo = np.load(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}.npz')
+    photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
     x_ph, y_ph, z_ph, den_ph, vol_ph, RadDen_ph, Temp_ph, Vx_ph, Vy_ph, Vz_ph, Press_ph, IE_den_ph, alpha_ph= \
         photo['x'], photo['y'], photo['z'], photo['den'], photo['vol'], photo['radden'], photo['temp'], photo['vx'], photo['vy'], photo['vz'], photo['P'], photo['ieden'], photo['alpha_rossland']
     # if snap in [76, 109, 151]:
@@ -167,28 +167,7 @@ axL.set_ylabel(r'Luminosity (erg/s)')#, fontsize = 20)
 axL.set_ylim(9e37, 2e43)
 plt.tight_layout()
 plt.savefig(f'/Users/paolamartire/shocks/Figs/1.paperEdd/onefld.pdf', bbox_inches='tight')
-# %% check where observers are with respect to healpix directions
-snap = 151
-import healpy as hp
-from Utilities.operators import to_spherical_coordinate
-num_obs = prel.NPIX
-observers_xyz = hp.pix2vec(prel.NSIDE, range(num_obs)) # shape: (3, 192)
-observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
-_, theta_hp, phi_hp = to_spherical_coordinate(observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2], r_frame = 'math')
-photosphere = np.load(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}.npz')
-x_ph, y_ph, z_ph, Fx_ph, Fy_ph, Fz_ph = photosphere['x'], photosphere['y'], photosphere['z'], photosphere['Fx'], photosphere['Fy'], photosphere['Fz']
 
-_, theta_photo, phi_photo = to_spherical_coordinate(x_ph, y_ph, z_ph, r_frame = 'math')
-_, theta_photo_F, phi_photo_F = to_spherical_coordinate(Fx_ph, Fy_ph, Fz_ph, r_frame = 'math')
-
-#%%
-plt.figure(figsize=(8,6))
-plt.scatter(phi_photo, theta_photo, c = np.arange(192), marker = 's', cmap = 'rainbow', edgecolors= 'k',label = 'photo cells')
-plt.scatter(phi_hp, theta_hp, c = np.arange(192), cmap = 'rainbow', edgecolors= 'k',label = 'healpix observers')
-plt.scatter(phi_photo_F, theta_photo_F, c = np.arange(192), marker = '*',  cmap = 'rainbow', edgecolors= 'k', label = 'photo F')
-plt.xlabel(r'$\phi$')
-plt.ylabel(r'$\theta$')
-plt.legend(fontsize = 16)
 
 #%%
 fig, ax = plt.subplots(1, 1, figsize=(10, 7))
@@ -214,7 +193,12 @@ data_newF = np.loadtxt(f'{abspath}/data/{folder}/{check}_redNEW.csv', delimiter=
 _, tfb_newF, Lum_newF = data_newF[:, 0], data_newF[:, 1], data_newF[:, 2]
 Lum_newF, tfb_newF = sort_list([Lum_newF, tfb_newF], tfb_newF, unique=True) 
 medianRph_new = np.zeros(len(snaps))
+medianRph_old = np.zeros(len(snaps))
 for i, snap in enumerate(snaps):
+    photosphere = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/photo/{check}_photo{snap}.txt')
+    x_ph, y_ph, z_ph = photosphere[0], photosphere[1], photosphere[2]
+    r_old = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
+    medianRph_old[i] = np.median(r_old)
     try:
         photo = np.load(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}.npz')
     except FileNotFoundError:
