@@ -37,7 +37,7 @@ tfbs, snaps, Lums = sort_list([tfbs, snaps, Lums], snaps, unique=True)
 Lum_sec = []
 snaps = np.array(snaps, dtype=int)
 for s, snap in enumerate(snaps): 
-    photo = np.load(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}.npz')
+    photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
     Lum_ph = photo['Lum']
     Lum_sec.append(np.mean(Lum_ph[indices_obs], axis = 1))
 Lum_sec = np.transpose(np.array(Lum_sec))

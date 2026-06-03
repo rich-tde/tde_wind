@@ -100,7 +100,7 @@ for s, snap in enumerate(snaps):
         Vr_ph, _, _ = to_spherical_components(Vx_ph, Vy_ph, Vz_ph, x_ph, y_ph, z_ph)
 
         Temprad_ph = (RadDen_ph*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
-        # Lum_adv_ph = 4 * np.pi * r_ph**2 * Vr_ph * RadDen_ph # advective luminosity
+        # Lum_adv_ph = 4 * np.pi * r_ph**2 * Vr_ph * RadDen_ph 
 
         dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz") # NB it is selected to be only done by wind cells
         x_tr, y_tr, z_tr, den_tr, Vr_tr, Temp_tr, Rad_den_tr, vol_tr = \
@@ -110,12 +110,12 @@ for s, snap in enumerate(snaps):
         r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
         Temprad_tr = (Rad_den_tr*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
         Mdot_tr =  np.pi * dim_tr**2 * den_tr * Vr_tr 
-        Lum_adv_tr = 4 * np.pi * r_tr**2 * Vr_tr * Rad_den_tr # advective luminosity
+        # Lum_adv_tr = 4 * np.pi * r_tr**2 * Vr_tr * Rad_den_tr 
         for i, observer in enumerate(indices_axis):
                 lab = label_axis[i]
                 # L_diss_sec[i][s] = dataDiss[s][f'Ldisstot_pos {lab}']
                 
-                exist_rtr = np.logical_and(r_tr[observer] > 1.5*Rt, y_tr[observer]*y[observer]>0) # second condition to have only the observers in the wanted region
+                exist_rtr = r_tr[observer] > 1.5*Rt 
                 obs_tr = observer[exist_rtr]
                 ratio_Rtr[i][s] = len(r_tr[obs_tr]) / len(r_tr[observer]) if len(r_tr[observer]) > 0 else 0
                 # photo_wind = np.logical_and(bern_ph[observer]>0, Vr_ph[observer]>0)
@@ -123,7 +123,6 @@ for s, snap in enumerate(snaps):
                 Vr_ph_sec[i][s] = np.sum(Vr_ph[observer] * mass_ph[observer]) / np.sum(mass_ph[observer])
                 den_ph_sec[i][s] = np.sum(den_ph[observer] * mass_ph[observer]) / np.sum(mass_ph[observer])
                 Temp_ph_sec[i][s] = np.sum(Temprad_ph[observer] * vol_ph[observer]) / np.sum(vol_ph[observer])   
-                TempGas_ph_sec[i][s] = np.sum(Temp_ph[observer] * vol_ph[observer]) / np.sum(vol_ph[observer])           
                 r_ph_sec[i][s] = np.median(r_ph[observer])  
                 # r_ph_perc16sec[i][s] = np.percentile(r_ph[observer], 16)
                 # r_ph_perc84sec[i][s] = np.percentile(r_ph[observer], 84)
@@ -134,34 +133,30 @@ for s, snap in enumerate(snaps):
                 Vr_tr_sec[i][s] = np.sum(Vr_tr[observer] * mass_tr[observer]) / np.sum(mass_tr[observer])
                 den_tr_sec[i][s] = np.sum(den_tr[observer] * mass_tr[observer]) / np.sum(mass_tr[observer])
                 Temp_tr_sec[i][s] = np.sum(Temprad_tr[observer] * vol_tr[observer]) / np.sum(vol_tr[observer])                 
-                Lum_adv_tr_sec[i][s] = np.sum(Lum_adv_tr[obs_tr]) * prel.en_converter/prel.tsol_cgs
+                # Lum_adv_tr_sec[i][s] = np.sum(Lum_adv_tr[obs_tr]) * prel.en_converter/prel.tsol_cgs
 
                 r_tr_sec[i][s] = np.median(r_tr[observer])  
-                # r_tr_perc16sec[i][s] = np.percentile(r_tr[observer], 16)
-                # r_tr_perc84sec[i][s] = np.percentile(r_tr[observer], 84)
                 r_trnonzero_sec[i][s] = np.median(r_tr[obs_tr]) 
                 Temp_tr_sec[i][s] = np.sum(Temprad_tr[obs_tr] * vol_tr[obs_tr]) / np.sum(vol_tr[obs_tr])
                 # Mdot_sec[i][s] = (np.mean(r_tr[obs_tr]))**2 /np.sum(dim_tr[obs_tr]**2) * np.sum(Mdot_tr[obs_tr])
-                Mdot_sec[i][s] = np.pi * (np.median(r_tr[obs_tr]**2 * den_tr[obs_tr] * Vr_tr[obs_tr]))
+                # Mdot_sec[i][s] = np.pi * (np.median(r_tr[obs_tr]**2 * den_tr[obs_tr] * Vr_tr[obs_tr]))
 
 
 # ax[0].set_ylabel(r'z [r$_{\rm t}$]')
 # Plot
-figTr, axTr = plt.subplots(1, 1, figsize=(10, 8))
+figTr, axR = plt.subplots(1, 1, figsize=(10, 8))
 figratios, (axTrnonzero, axNtr, axratio) = plt.subplots(1, 3, figsize=(27, 6))
 fig, (axVph, axdph, axTph) = plt.subplots(1, 3, figsize=(26, 6))
-figL, (axLsum, axLmean) = plt.subplots(1, 2, figsize=(16, 8))
+figL, (axLsum, axLmean) = plt.subplots(1, 2, figsize=(20, 8))
 
 for i, col in enumerate(colors_axis):
         if label_axis[i] == 'south pole':
                continue
-        axTr.plot(tfbs, r_tr_sec[i]/Rt, c = col, ls = ':')
-        # axTr.fill_between(tfbs, r_tr_perc16sec[i]/Rt, r_tr_perc84sec[i]/Rt, color=col, alpha=0.2)
-        axTr.plot(tfbs, r_ph_sec[i]/Rt, c = col, label = label_axis[i])
-        # axTr.fill_between(tfbs, r_ph_perc16sec[i]/Rt, r_ph_perc84sec[i]/Rt, color=col, alpha=0.3)
+        axR.plot(tfbs, r_tr_sec[i]/Rt, c = col, ls = ':')
+        axR.plot(tfbs, r_ph_sec[i]/Rt, c = col, label = label_axis[i])
 
-        axTrnonzero.plot(tfbs, r_trnonzero_sec[i]/Rt, c = col) #, label = r'$r_{\rm tr}$' if i == 0 else '')
-        # axTrnonzero.plot(tfbs, r_phnonzero_sec[i]/Rt, c = col, label = r'$r_{\rm ph}$' if i == 0 else '')
+        axTrnonzero.plot(tfbs, r_trnonzero_sec[i]/Rt, c = col, ls = ':', label = r'$r_{\rm tr}$' if i == 0 else '')
+        axTrnonzero.plot(tfbs, r_phnonzero_sec[i]/Rt, c = col, label = r'$r_{\rm ph}$' if i == 0 else '')
 
         axNtr.plot(tfbs, ratio_Rtr[i], c = col)
         axratio.plot(tfbs, r_phnonzero_sec[i]/r_trnonzero_sec[i], c = col, label = label_axis[i])
@@ -176,14 +171,14 @@ for i, col in enumerate(colors_axis):
         axLsum.plot(tfbs, Lum_allph_secSum[i]/Lum_ph_allSum, c = col, label = label_axis[i])#,   label =r'$L_{\rm FLD} (r_{\rm ph, all})$' if i ==0 else '')
         axLmean.plot(tfbs, Lum_allph_secmean[i], c = col, label = label_axis[i])
         
-axTr.set_ylabel(r'median $r_{\rm obs} [r_{\rm t}]$')
-axTrnonzero.set_ylabel(r'median nonzero $r_{\rm tr} [r_{\rm t}]$')
+axR.set_ylabel(r'median $r_{\rm obs} [r_{\rm t}]$')
+axTrnonzero.set_ylabel(r'median nonzero $r_{\rm obs} [r_{\rm t}]$')
 axNtr.set_ylabel(r'Fraction of obs with adv region')
 axratio.set_ylabel(r'$r_{\rm ph}/r_{\rm tr}$ in adv. region')
 axVph.set_ylabel(r'v$_{\rm ph}$ [km/s]')
 axdph.set_ylabel(r'$\rho_{\rm ph}$ [g/cm$^3]$')    
 axTph.set_ylabel(r'$T_{\rm rad, ph} [K]$')
-for ax in [axLsum, axLmean]:
+for ax in [axLsum, axLmean, axR]:
         ax.plot(tfbs, Lums, c = 'k', ls = '--')       
         ax.set_xlabel(r't [$t_{\rm fb}$]')
         ax.legend(fontsize = 16)
@@ -196,11 +191,11 @@ axLsum.set_ylim(1e-2, 2)
 axLsum.set_ylabel(r'$\sum_{i \in \mathcal{I}} L_{{\rm ph}, i}/\sum_{\rm i=0}^{N_{\rm obs}} L_{{\rm ph}, i}$')
 axLmean.set_ylim(1e38, 5e43)
 axLmean.set_ylabel(r'mean $L_{\rm ph}$ (erg/s)')
-original_ticks = axTr.get_xticks()
+original_ticks = axR.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
 new_labels = [f'{tick:.2f}' if tick in original_ticks else '' for tick in new_ticks]
-for ax in [axTrnonzero, axTr, axratio, axNtr, axVph, axdph, axTph]:
+for ax in [axTrnonzero, axR, axratio, axNtr, axVph, axdph, axTph]:
         ax.set_xticks(new_ticks)
         ax.set_xticklabels(new_labels)
         ax.tick_params(axis='both', which='major', width=1.2, length=9, color = 'k')
@@ -212,7 +207,7 @@ for ax in [axTrnonzero, axTr, axratio, axNtr, axVph, axdph, axTph]:
         ax.legend(fontsize = 20)#, bbox_to_anchor=(1.05, 1), loc='upper left')
         #     ax.set_title(r'Mean on observers (NON discarding the one with $r_{\rm tr}=0$)')
 
-axTr.set_ylim(1, 100)
+axR.set_ylim(1, 100)
 axTrnonzero.set_ylim(1, 100)
 axratio.set_ylim(1, 10)
 axdph.set_ylim(1e-14, 1e-10)

@@ -20,7 +20,6 @@ import numpy as np
 import healpy as hp
 import scipy.integrate as sci
 from scipy.interpolate import griddata
-import matlab.engine
 from sklearn.neighbors import KDTree
 from src.Opacity.interpolator_vectorized import calc_planck_opacity_vectorized, calc_ross_opacity_vectorized, calc_scattering_opacity_vectorized
 
@@ -287,8 +286,8 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
             black_body = freqs**3 / wien # There should be a 2 * prel.h_cgs/c^2, but it doesn't matter because we normalize. BB udm: erg/s/cm^2/Hz/ster. 
             L_col[i,:] += alpha_planck[k] * Vcell * np.exp(-los_effective[k]) * black_body # erg/s/Hz.
         
-        norm = Lphoto / np.trapezoid(L_col[i,:], freqs)
-        L_col[i,:] *= norm
+        # norm = Lphoto / np.trapezoid(L_col[i,:], freqs)
+        # L_col[i,:] *= norm
 
         del smoothed_flux_r2, ray_radDen, alpha_rossland, alpha_planck, alpha_scatter, los, los_effective, tree, volume, ray_x, ray_y, ray_z, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den 
         gc.collect()
@@ -317,8 +316,5 @@ if __name__ == "__main__":
     rossland = np.loadtxt(f'{opac_path}/ross.txt')
     planck = np.loadtxt(f'{opac_path}/planck.txt')
     scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
-
-    #MATLAB, thanks Cindy.
-    eng = matlab.engine.start_matlab()
 
     fld_lightcurve(params, compton, check, N_ray)

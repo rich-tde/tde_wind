@@ -154,12 +154,13 @@ def plot_spectra(folder, check, snaps, x_axis, choice):
             ax[s].set_xlabel('Frequency (Hz)', fontsize = 30)
             ax[s].set_xlim(1e14, 1e19)
         for i_idx, idx in enumerate(indices_sorted):
+            print(i_idx)
             if i_idx == 3:
                 continue
             if len(idx) == 1:
                 Lum = np.concatenate(L_photo[idx])
             else:
-                Lum = np.median(L_photo[idx], axis = 0)
+                Lum = np.mean(L_photo[idx], axis = 0)
             ax[s].plot(x_value, freqs * Lum, label = f'{label_obs[i_idx]}', c = colors_obs[i_idx], linewidth = 3) #ls = lines_obs[i_idx]
                         
         ax[s].tick_params(axis='both', which='major', length=8, width=1.2)
@@ -326,8 +327,8 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
     plt.savefig(f'{abspath}/Figs/2.paperWind/LCs_{choice}_{group}.pdf', dpi=300)
 
 plot_spectra(folder, check, snaps, x_axis, choice)
-plot_light_curves(folder, check, choice, group = 'sections')
-plot_light_curves(folder, check, choice, group = 'bands')
+# plot_light_curves(folder, check, choice, group = 'sections')
+# plot_light_curves(folder, check, choice, group = 'bands')
 
 
 

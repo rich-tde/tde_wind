@@ -212,7 +212,7 @@ ax1.plot(tfb, Lum, label = 'old F')
 ax1.scatter(tfb_newF, Lum_newF, label = 'new F')
 ax1.set_ylabel(r'Luminosity (erg/s)')
 
-ax2.plot(tfb, medianRph/Rt, ls = '--', label = 'old F')
+ax2.plot(tfb, medianRph_old/Rt, ls = '--', label = 'old F')
 ax2.scatter(tfb, medianRph_new/Rt, label = 'new F')
 ax2.set_ylabel(r'median $(r_{\rm ph}/r_{\rm t})$')
 for ax in [ax1, ax2]:

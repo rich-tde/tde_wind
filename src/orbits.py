@@ -104,7 +104,7 @@ def pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, G 
     """
     Rsph = np.sqrt(X**2 + Y**2 + Z**2)
     vel = np.sqrt(VX**2 + VY**2 + VZ**2)
-    V_r, _, _ = op.to_spherical_components(VX, VY, VZ, X, Y, Z)
+    V_r, _, _ = op.to_spherical_components(VX, VY, VZ, X, Y, Z) # otherwise: dot product between V vecgor and r versor (VERSOR!!)
     if cond == 'bern':
         param_wind = bern_coeff(Rsph, vel, Den, Mass, Press, IE_den, Rad_den, params)
     if cond == 'orb_en':
