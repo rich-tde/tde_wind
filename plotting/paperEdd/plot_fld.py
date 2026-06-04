@@ -70,9 +70,10 @@ for i, snap in enumerate(snaps):
     photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
     x_ph, y_ph, z_ph, den_ph, vol_ph, RadDen_ph, Temp_ph, Vx_ph, Vy_ph, Vz_ph, Press_ph, IE_den_ph, alpha_ph= \
         photo['x'], photo['y'], photo['z'], photo['den'], photo['vol'], photo['radden'], photo['temp'], photo['vx'], photo['vy'], photo['vz'], photo['P'], photo['ieden'], photo['alpha_rossland']
-    # if snap in [76, 109, 151]:
-    #     colorpsherenew = np.load(f'{abspath}/data/{folder}/spectranew/{check}_Rcol{snap}.npz')
-    #     x_coln, y_coln, z_coln = colorpsherenew['x'], colorpsherenew['y'], colorpsherenew['z']
+    if snap == 151:
+        colorsphere = np.load(f'{abspath}/data/{folder}/spectraNEW/{check}_Rcol{snap}.npz')
+        T_col = colorsphere['temp']
+        print('mean and median T_col (1e4) at snap 151:', np.mean(T_col)*1e-4, np.median(T_col)*1e-4)
     #     mediancoln[i] = np.median(np.sqrt(x_coln**2 + y_coln**2 + z_coln**2))
     #     meancoln[i] = np.mean(np.sqrt(x_coln**2 + y_coln**2 + z_coln**2))
 

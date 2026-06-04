@@ -72,6 +72,8 @@ for i in range(len(rest)):
     axM.plot(tfbH, rest[i]/Medd_sol,  label = r'$\dot{M}_{\rm w}$' if i == 2 else None, linewidth = 2, c = color_obs[i])
     axM.plot(tfbO[4:], restO[i][4:]/Medd_sol,  label = r'$\dot{M}_{\rm out}$' if i == 2 else None, linewidth = 2, c = color_obs[i], ls = '--')
     axL.plot(tfbH, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i])
+    if i ==0:
+        print(rest[i][-1]/restO[i][-1])
 
 original_ticks = axM.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2

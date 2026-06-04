@@ -248,7 +248,7 @@ def polar_profiles(loadpath, snap, ray_params, which_material = 'wind'):
 #
 ## MAIN
 #
-compute = False
+compute = True
 what = 'radial'
 which_part = 'outflow' # 'outflow' or 'all' or '' to have the wind
 snap = 151
@@ -435,7 +435,8 @@ if what == 'radial':
         for k, which_part in enumerate(which_parts):
             profiles = np.load(f'{abspath}/data/{folder}/wind/rad_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
             for i, lab in enumerate(profiles.keys()):
-                if label_obs[i] == 'south pole':
+                print(lab)
+                if label_obs[i] == 'South pole':
                     continue 
                 r_plot = profiles[lab]['r'] 
                 d = profiles[lab]['d_prof']

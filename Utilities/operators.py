@@ -162,8 +162,8 @@ def choose_sections(X, Y, Z, choice):
         slope = np.tan(alpha_pole)  
         cond_Npole = np.logical_and(np.abs(Z) > slope *  R_cyl, Z > 0)
         cond_Spole = np.logical_and(np.abs(Z) > slope *  R_cyl, Z < 0)
-        north = {'cond': cond_Npole, 'label': r'north pole', 'color': 'cornflowerblue', 'line': 'dotted'}
-        south = {'cond': cond_Spole, 'label': r'south pole', 'color': 'deepskyblue', 'line': 'dotted'}
+        north = {'cond': cond_Npole, 'label': r'North pole', 'color': 'cornflowerblue', 'line': 'dotted'}
+        south = {'cond': cond_Spole, 'label': r'South pole', 'color': 'deepskyblue', 'line': 'dotted'}
 
     if choice == 'all':
         cond_all = np.abs(X) != 1  # all True
@@ -193,8 +193,8 @@ def choose_sections(X, Y, Z, choice):
     if choice == 'left_right_z':
         cond_left = np.logical_and(X < 0, np.abs(Z) <= slope *  R_cyl)
         cond_right = np.logical_and(X >= 0, np.abs(Z) < slope * R_cyl)
-        left = {'cond': cond_left, 'label': r'$x<0$', 'color': 'lightsalmon', 'line': 'solid'}
-        right = {'cond': cond_right, 'label': r'$x>0$', 'color': '#b2df8a', 'line': 'dashed'}
+        left = {'cond': cond_left, 'label': r'Stream side', 'color': 'lightsalmon', 'line': 'solid'}
+        right = {'cond': cond_right, 'label': r'Pericentre side', 'color': '#b2df8a', 'line': 'dashed'}
         sec = {'left': left, 'right': right, 'north': north, 'south': south}
     
     if choice == 'in_out_z': 

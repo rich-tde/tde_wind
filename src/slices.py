@@ -22,7 +22,7 @@ from Utilities.selectors_for_snap import select_snap, select_prefix
 import src.orbits as orb
 import Utilities.prelude as prel
 import Utilities.sections as sec
-from Utilities.operators import make_tree, to_spherical_components
+from Utilities.operators import make_tree, to_spherical_components, draw_line
 
 #
 ##
@@ -188,6 +188,9 @@ else:
         things = orb.get_things_about(params)
         amin = things['a_mb']
         xcr, ycr, cr = orb.make_cfr(0.5*amin)
+        x_line = np.arange(-50, 50) * Rt
+        y_line = draw_line(x_line, np.pi/6, what = 'line')
+        y_lineneg = draw_line(x_line, 5*np.pi/6, what = 'line')
         
         fig = plt.figure(figsize=(16*len(idx_wanted), 16*len(coords_to_cut)))
         height_ratios = np.concatenate(([1] * len(coords_to_cut), [0.05]))
@@ -269,15 +272,18 @@ else:
                         ax.quiver(x_toplot[::step]/Rt, y_toplot[::step]/Rt, VX_toplot[::step], VY_toplot[::step], color='k', angles='xy', scale_units='xy', width=0.002)
                 
                 if how == '':
-                    ax.streamplot(x_toplot_grid/Rt, y_toplot_grid/Rt, Vx_toplot_grid, Vy_toplot_grid, density = 1.5, linewidth = 1, color = 'k', arrowsize=1.5, arrowstyle='-|>')
+                    ax.streamplot(x_toplot_grid/Rt, y_toplot_grid/Rt, Vx_toplot_grid, Vy_toplot_grid, density = 1.5, linewidth = 1.5, color = 'k', arrowsize=1.5, arrowstyle='-|>')
                 
-                ax.contour(xcr/Rt, ycr/Rt, cr/Rt, [0], linestyles = 'dashed', colors = 'k', linewidth = 5)
+                ax.contour(xcr/Rt, ycr/Rt, cr/Rt, [0], linestyles='dashed', colors = 'k', linewidths = 4)
+                if coord_to_cut == 'y':
+                    ax.plot(x_line/Rt, y_line/Rt, '--', linewidth = 4, c = 'k')
+                    ax.plot(x_line/Rt, y_lineneg/Rt, '--', linewidth = 4, c = 'k')
 
                 ax.set_xlim(-lim_plot/Rt, lim_plot/Rt)
                 ax.set_ylim(-lim_plot/Rt, lim_plot/Rt)
                 ax.tick_params(axis='both', which='major', width=1.2, length=9, labelsize=50)
                 if c == 0:
-                    ax.set_title(f't = {np.round(time, 1)} e' + r'$t_{\rm fb}$', fontsize = 50)
+                    ax.set_title(f't = {np.round(time, 1)} ' + r'$t_{\rm fb}$', fontsize = 50)
                 if c == len(coords_to_cut)-1:
                     ax.set_xlabel(xlabel, fontsize = 60)
                 if i == 0:

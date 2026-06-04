@@ -154,7 +154,6 @@ def plot_spectra(folder, check, snaps, x_axis, choice):
             ax[s].set_xlabel('Frequency (Hz)', fontsize = 30)
             ax[s].set_xlim(1e14, 1e19)
         for i_idx, idx in enumerate(indices_sorted):
-            print(i_idx)
             if i_idx == 3:
                 continue
             if len(idx) == 1:
@@ -278,18 +277,19 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
         ax_L[0].legend(fontsize = 25)
         ax_L[0].set_ylabel(r'$\nu L_{\nu}$ (erg/s)', fontsize = 30)
 
-    if group == 'bands': # each panel show a band
+    if group == 'bands' or group == 'bandsMG': # each panel show a band
         fig_L, (ax_op, ax_UV, ax_Xray) = plt.subplots(1, 3, figsize=(24, 7))
         axes = [ax_op, ax_UV, ax_Xray]
         for k, obs in enumerate(label_obs):
             if k == 3:
                 continue
             ax_op.plot(time_spec, Lum_op_sum[k], label = f'{obs}', c = colors_obs[k], linewidth = 3)
-            ax_op.plot(time_MG, Lum_op_MG[k], c = colors_obs[k], ls = '--', linewidth = 2)
             ax_UV.plot(time_spec, Lum_UV_sum[k], label = f'This work' if k == 2 else None, c = colors_obs[k], linewidth = 3)
-            ax_UV.plot(time_MG, Lum_UV_MG[k], label = f'Giron+26' if k == 2 else None, c = colors_obs[k], ls = '--', linewidth = 2)
             ax_Xray.plot(time_spec, Lum_Xray_sum[k], c = colors_obs[k], linewidth = 3)
-            ax_Xray.plot(time_MG, Lum_Xray_MG[k], c = colors_obs[k], ls = '--', linewidth = 2)
+            if group == 'bandsMG':
+                ax_op.plot(time_MG, Lum_op_MG[k], c = colors_obs[k], ls = '--', linewidth = 2)
+                ax_UV.plot(time_MG, Lum_UV_MG[k], label = f'Giron+26' if k == 2 else None, c = colors_obs[k], ls = '--', linewidth = 2)
+                ax_Xray.plot(time_MG, Lum_Xray_MG[k], c = colors_obs[k], ls = '--', linewidth = 2)
 
         ax_op.text(0.1, L_max/5, 'Optical', fontsize = 26)
         ax_UV.text(0.1, L_max/5, 'UV', fontsize = 26)
@@ -327,8 +327,8 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
     plt.savefig(f'{abspath}/Figs/2.paperWind/LCs_{choice}_{group}.pdf', dpi=300)
 
 plot_spectra(folder, check, snaps, x_axis, choice)
-# plot_light_curves(folder, check, choice, group = 'sections')
-# plot_light_curves(folder, check, choice, group = 'bands')
+plot_light_curves(folder, check, choice, group = 'sections')
+plot_light_curves(folder, check, choice, group = 'bandsMG')
 
 
 
