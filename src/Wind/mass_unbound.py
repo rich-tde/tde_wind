@@ -33,7 +33,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'NewAMR'
+check = 'HiResNewAMR'
 choice = 'left_right_z'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
@@ -58,7 +58,7 @@ if alice:
     for i, snap in enumerate(snaps):
         print(snap, flush = True)
         pathfold = f'{path}/{folder}/snap_{snap}'
-        data = make_tree(pathfold, snap, energy = True)
+        data = make_tree(pathfold, snap)
         X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
         data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Press, data.VX, data.VY, data.VZ, data.IE, data.Rad
         Rsph = np.sqrt(X**2 + Y**2 + Z**2)
@@ -83,8 +83,8 @@ if alice:
             mass_out = Mass_out[i_singlesec_out] if Mass_out.size > 0 else np.array([0])
             M_out[i] = np.sum(mass_out) 
             i_singlesec_wind = indices_allsec_wind[i] 
-            mass = Mass_wind[i_singlesec_wind] if Mass_wind.size > 0 else np.array([0])
-            M_wind[i] = np.sum(mass) 
+            mass_w = Mass_wind[i_singlesec_wind] if Mass_wind.size > 0 else np.array([0])
+            M_wind[i] = np.sum(mass_w) 
 
         data = np.concatenate([M_out, M_wind])
 

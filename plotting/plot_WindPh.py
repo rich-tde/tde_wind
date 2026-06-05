@@ -21,6 +21,7 @@ params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
 which_obs = 'left_right_z' #'left_right_z' #'arch', 'quadrants', 'tenths'
 check = 'HiResNewAMR' 
+statis = 'mean'
 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -123,21 +124,21 @@ for s, snap in enumerate(snaps):
                 Vr_ph_sec[i][s] = np.sum(Vr_ph[observer] * mass_ph[observer]) / np.sum(mass_ph[observer])
                 den_ph_sec[i][s] = np.sum(den_ph[observer] * mass_ph[observer]) / np.sum(mass_ph[observer])
                 Temp_ph_sec[i][s] = np.sum(Temprad_ph[observer] * vol_ph[observer]) / np.sum(vol_ph[observer])   
-                r_ph_sec[i][s] = np.median(r_ph[observer])  
                 # r_ph_perc16sec[i][s] = np.percentile(r_ph[observer], 16)
                 # r_ph_perc84sec[i][s] = np.percentile(r_ph[observer], 84)
-                r_phnonzero_sec[i][s] = np.median(r_ph[obs_tr])
                 Lum_allph_secSum[i][s] = np.sum(Lum_ph[observer]) # CGS
                 Lum_allph_secmean[i][s] = np.mean(Lum_ph[observer]) # CGS
                 
                 Vr_tr_sec[i][s] = np.sum(Vr_tr[observer] * mass_tr[observer]) / np.sum(mass_tr[observer])
                 den_tr_sec[i][s] = np.sum(den_tr[observer] * mass_tr[observer]) / np.sum(mass_tr[observer])
                 Temp_tr_sec[i][s] = np.sum(Temprad_tr[observer] * vol_tr[observer]) / np.sum(vol_tr[observer])                 
-                # Lum_adv_tr_sec[i][s] = np.sum(Lum_adv_tr[obs_tr]) * prel.en_converter/prel.tsol_cgs
-
-                r_tr_sec[i][s] = np.median(r_tr[observer])  
-                r_trnonzero_sec[i][s] = np.median(r_tr[obs_tr]) 
                 Temp_tr_sec[i][s] = np.sum(Temprad_tr[obs_tr] * vol_tr[obs_tr]) / np.sum(vol_tr[obs_tr])
+                # Lum_adv_tr_sec[i][s] = np.sum(Lum_adv_tr[obs_tr]) * prel.en_converter/prel.tsol_cgs
+                
+                r_ph_sec[i][s] = np.median(r_ph[observer]) if statis == 'median' else np.mean(r_ph[observer])
+                r_phnonzero_sec[i][s] = np.median(r_ph[obs_tr]) if statis == 'median' else np.mean(r_ph[obs_tr])
+                r_tr_sec[i][s] = np.median(r_tr[observer]) if statis == 'median' else np.mean(r_tr[observer])
+                r_trnonzero_sec[i][s] = np.median(r_tr[obs_tr]) if statis == 'median' else np.mean(r_tr[obs_tr])
                 # Mdot_sec[i][s] = (np.mean(r_tr[obs_tr]))**2 /np.sum(dim_tr[obs_tr]**2) * np.sum(Mdot_tr[obs_tr])
                 # Mdot_sec[i][s] = np.pi * (np.median(r_tr[obs_tr]**2 * den_tr[obs_tr] * Vr_tr[obs_tr]))
 
