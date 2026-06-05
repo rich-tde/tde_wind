@@ -56,6 +56,7 @@ if alice:
 
     # compute the outflow/wind mass for all the snapshots
     for i, snap in enumerate(snaps):
+        time = tfb[i]
         print(snap, flush = True)
         pathfold = f'{path}/{folder}/snap_{snap}'
         data = make_tree(pathfold, snap)
@@ -86,7 +87,7 @@ if alice:
             mass_w = Mass_wind[i_singlesec_wind] if Mass_wind.size > 0 else np.array([0])
             M_wind[i] = np.sum(mass_w) 
 
-        data = np.concatenate([M_out, M_wind])
+        data = np.concatenate([[snap, time], M_out, M_wind])
 
         csv_path = f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv'
         with open(csv_path,'a', newline='') as file:

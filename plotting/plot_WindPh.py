@@ -44,17 +44,15 @@ snaps, tfbs, Lums = data[:, 0], data[:, 1], data[:, 2]
 tfbs, snaps, Lums = sort_list([tfbs, snaps, Lums], snaps, unique=True)
 snaps = snaps.astype(int)
 idx_maxLum = np.argmax(Lums)
-# dataDiss = data = np.load(f'{abspath}/data/{folder}/wind/{check}_RdissSec.npz', allow_pickle=True)
-# diss_list = data['diss_list'].item()
 
+#%%
 def mean_nonzero(arr, axis=1):
     count = np.count_nonzero(arr, axis=axis)
     return np.divide(
         np.sum(arr, axis=axis),
         count,
         out=np.zeros_like(count, dtype=float),
-        where=count != 0
-    )
+        where=count != 0)
 
 # Pick observers
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
@@ -112,6 +110,16 @@ for s, snap in enumerate(snaps):
         Temprad_tr = (Rad_den_tr*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
         Mdot_tr =  np.pi * dim_tr**2 * den_tr * Vr_tr 
         # Lum_adv_tr = 4 * np.pi * r_tr**2 * Vr_tr * Rad_den_tr 
+
+        if snap in [76, 109, 151]:
+                fig_obs, (ax1_obs, ax2_obs) = plt.subplots(1, 2, figsize=(11, 5))
+                for ax in [ax1_obs, ax2_obs]:
+                        ax.set_xlabel(r'$X$')
+                        ax.set_xlim(-1.5, 1.5)
+                        ax.set_ylim(-1.5, 1.5)
+                ax1_obs.set_ylabel(r'$Y$')
+                ax2_obs.set_ylabel(r'$Z$')
+                plt.suptitle(f't={tfbs[s]:.2f}' + r' $t_{\rm fb}$', fontsize=16)
         for i, observer in enumerate(indices_axis):
                 lab = label_axis[i]
                 # L_diss_sec[i][s] = dataDiss[s][f'Ldisstot_pos {lab}']
@@ -141,17 +149,19 @@ for s, snap in enumerate(snaps):
                 r_trnonzero_sec[i][s] = np.median(r_tr[obs_tr]) if statis == 'median' else np.mean(r_tr[obs_tr])
                 # Mdot_sec[i][s] = (np.mean(r_tr[obs_tr]))**2 /np.sum(dim_tr[obs_tr]**2) * np.sum(Mdot_tr[obs_tr])
                 # Mdot_sec[i][s] = np.pi * (np.median(r_tr[obs_tr]**2 * den_tr[obs_tr] * Vr_tr[obs_tr]))
+        
+                if snap in [76, 109, 151]:
+                        ax1_obs.scatter(x[obs_tr], y[obs_tr], s = 50, c = colors_axis[i], edgecolors = 'k', label = lab)
+                        ax2_obs.scatter(x[obs_tr], z[obs_tr], s = 50, c = colors_axis[i], edgecolors = 'k', label = lab)
 
-
-# ax[0].set_ylabel(r'z [r$_{\rm t}$]')
-# Plot
+#%%
 figTr, axR = plt.subplots(1, 1, figsize=(10, 8))
 figratios, (axTrnonzero, axNtr, axratio) = plt.subplots(1, 3, figsize=(27, 6))
 fig, (axVph, axdph, axTph) = plt.subplots(1, 3, figsize=(26, 6))
 figL, (axLsum, axLmean) = plt.subplots(1, 2, figsize=(20, 8))
 
 for i, col in enumerate(colors_axis):
-        if label_axis[i] == 'south pole':
+        if label_axis[i] == 'South pole':
                continue
         axR.plot(tfbs, r_tr_sec[i]/Rt, c = col, ls = ':')
         axR.plot(tfbs, r_ph_sec[i]/Rt, c = col, label = label_axis[i])
@@ -217,22 +227,5 @@ axTph.set_ylim(2e2, 5e4)
 figTr.suptitle(r'Dotted line: $r_{\rm tr}$, solid line: $r_{\rm ph}$', fontsize=22)
 figTr.tight_layout()
 fig.tight_layout()
-
-
-#  compare with other resolutions
-# pvalue 
-# statL = np.zeros(len(tfbL)) 
-# pvalueL = np.zeros(len(tfbL))
-# for i, snapi in enumerate(snapsL):
-#         # LowRes data
-#         photo = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/photo/LowResNewAMR_photo{snapi}.txt')
-#         xph_i, yph_i, zph_i, vol_i = photo[0], photo[1], photo[2], photo[3]
-#         rph_i = np.sqrt(xph_i**2 + yph_i**2 + zph_i**2)
-#         if rph_i.any() < R0:
-#                 print('Less than R0:', rph_i[rph_i<R0])
-#         # ksL = ks_2samp(rph_i, rph_iFid, alternative='two-sided')
-#         # statL[i], pvalueL[i] = ksL.statistic, ksL.pvalue
-
-
 
 # %%
