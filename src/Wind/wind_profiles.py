@@ -8,7 +8,7 @@ abspath = '/Users/paolamartire/shocks'
 import numpy as np
 import matplotlib.pyplot as plt 
 import matplotlib.colors as colors
-import matplotlib.cm as cm
+from matplotlib import lines as mlines
 import healpy as hp
 from sklearn.neighbors import KDTree
 import Utilities.prelude as prel
@@ -248,9 +248,9 @@ def polar_profiles(loadpath, snap, ray_params, which_material = 'wind'):
 #
 ## MAIN
 #
-compute = True
+compute = False
 what = 'radial'
-which_part = 'outflow' # 'outflow' or 'all' or '' to have the wind
+which_part = 'wind' # 'outflow' or 'all' or 'wind' to have the wind
 snap = 151
 idx_stop_d_unb = [7.2e1, 1.2e2] 
 
@@ -377,7 +377,7 @@ if what == 'radial':
         np.save(out_path, all_outflows, allow_pickle=True)
 
     else:
-        which_parts = ['outflow', '']
+        which_parts = ['outflow', 'wind']
         labels_parts = ['Outflow', 'Wind']
         line_styles_parts = ['--', '-']
 
@@ -385,7 +385,7 @@ if what == 'radial':
         y_testplus1 = op.draw_line(x_test, [3.5, 1], 'powerlaw')
         y_test1 = op.draw_line(x_test, [9e4, -1], 'powerlaw')
         y_test23 = op.draw_line(x_test, [3.5e5, -2/3], 'powerlaw')
-        y_test2 = op.draw_line(x_test, [5e-7, -2], 'powerlaw')
+        y_test2 = op.draw_line(x_test, [2e-7, -2], 'powerlaw')
 
         path = f'{pre}/{snap}'
         tfb = np.loadtxt(f'{path}/tfb_{snap}.txt') 
@@ -426,11 +426,13 @@ if what == 'radial':
         # plt.tight_layout()
         
         
-        fig, (axd, axV, axM, axLkin) = plt.subplots(4, 1, figsize=(8, 21)) 
+        fig, (axd, axV, axM, axLkin) = plt.subplots(4, 1, figsize=(8, 22)) 
         figM, (axT, axLadv) = plt.subplots(1, 2, figsize=(15, 7))
         figr, axratio = plt.subplots(1, 1, figsize=(12, 10))
         all_axes = [axd, axV, axT, axM, axLadv, axLkin, axratio]
         
+        handles_color = []
+        labels_color = []
         # Load profiles
         for k, which_part in enumerate(which_parts):
             profiles = np.load(f'{abspath}/data/{folder}/wind/rad_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
@@ -452,7 +454,7 @@ if what == 'radial':
                 r_plot, d, v_rad, t, Mdot, L_adv, L_kin, ratio_un = make_slices([r_plot, d, v_rad, t, Mdot, L_adv, L_kin, ratio_un], not_zero)
                 idx_rtr = np.argmin(np.abs(r_plot - rtr_nonzero_medians[i]))
                 idx_rph = np.argmin(np.abs(r_plot - rph_nonzero_medians[i]))
-                if label_obs[i] == r'$x<0$': # just to cut the initially unbound material
+                if label_obs[i] == r'Stream side': # just to cut the initially unbound material
                     idx_stop_d = np.argmin(np.abs(r_plot - idx_stop_d_unb[k]*Rt)) 
                     d[idx_stop_d:] = 1e-20
                     Mdot[idx_stop_d:] = 1e-20
@@ -461,15 +463,20 @@ if what == 'radial':
                 else:
                     idx_stop_d = -1
 
-                axd.plot(r_plot/Rt, d * prel.den_converter, label = f'{lab}' if which_part == '' else None, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
+
+                line = axd.plot(r_plot/Rt, d * prel.den_converter, label = f'{lab}' if which_part == 'wind' else None, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)[0]
                 axV.plot(r_plot/Rt, v_rad * conversion_sol_kms, label = f'{labels_parts[k]}' if i == 2 else None, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
                 axM.plot(r_plot/Rt, Mdot/Medd_sol, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
-                axratio.plot(r_plot/Rt, ratio_un, label = f'{lab}' if which_part == '' else None, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
-
-                axT.plot(r_plot/Rt, t, label = f'{lab}' if which_part == '' else None, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
+                axratio.plot(r_plot/Rt, ratio_un, label = f'{lab}' if which_part == 'wind' else None, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
+                axT.plot(r_plot/Rt, t, label = f'{lab}' if which_part == 'wind' else None, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
                 axLadv.plot(r_plot/Rt, L_adv/Ledd_sol, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
                 axLkin.plot(r_plot/Rt, L_kin/Ledd_sol, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
-                if which_part == '':
+
+                if which_part == 'wind':
+                    handles_color.append(line)
+                    labels_color.append(lab)
+                    
+                if which_part == 'wind':
                     axd.scatter(r_plot[idx_rph]/Rt, d[idx_rph] * prel.den_converter, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
                     axM.scatter(r_plot[idx_rph]/Rt, Mdot[idx_rph]/Medd_sol, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
                     axV.scatter(r_plot[idx_rph]/Rt, v_rad[idx_rph] * conversion_sol_kms, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
@@ -488,16 +495,33 @@ if what == 'radial':
         axd.set_ylim(2e-13, 1e-5)
         axV.set_ylim(1.5e3, 1.5e4)
         axT.set_ylim(2e4, 1e6)
-        # axd.plot(x_test, y_test2, c = 'gray', ls = 'dotted', label = r'$\rho \propto r^{-2}$')
-        # axd.text(35, 1.1e-11, r'$\rho \propto r^{-2}$', fontsize = 20, color = 'k', rotation = -42)
+        axd.plot(x_test, y_test2, c = 'gray', ls = 'dotted', label = r'$\rho \propto r^{-2}$')
+        axd.text(75, 2e-11, r'$\rho \propto r^{-2}$', fontsize = 18, color = 'gray', rotation = -20)
         axV.axhline(v_esc_kms, c = 'k', ls = 'dotted')# 
         # axV.text(35, 1.1*0.2*v_esc_kms, r'0.2v$_{\rm esc} (r_{\rm p})$', fontsize = 20, color = 'k')
         axT.plot(x_test, y_test23, c = 'k', ls = 'dotted', label = r'$T \propto r^{-2/3}$')
         # axT.text(1.2, 2.4e5, r'$T_{\rm rad} \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -24)
         axLadv.plot(x_test, 1e-5*y_test23, c = 'k', ls = 'dotted', label = r'$L \propto r^{-2/3}$')
         # axLadv.text(1.2, 5.6e1, r'$L \propto r^{-2/3}$', fontsize = 20, color = 'k', rotation = -18)
-        axd.legend(fontsize = 18, loc = 'upper right')
-        axV.legend(fontsize = 18, loc = 'upper right')
+        # axd.legend(fontsize = 18, loc = 'upper right')
+        
+        # Legend 1: colored observer lines (three colors)
+        legend1 = axd.legend(handles=handles_color,
+                            labels=labels_color,
+                            fontsize=16,
+                            loc='upper right')
+        axd.add_artist(legend1)
+
+        # Legend 2: line-style explanation (solid vs dashed)
+        solid_proxy = mlines.Line2D([0], [0], color='cornflowerblue', ls='-', linewidth=2,
+                                    label='Unbound outflow (wind)')
+        dashed_proxy = mlines.Line2D([0], [0], color='cornflowerblue', ls='--', linewidth=2,
+                                    label='Unbound + bound outflow')
+
+        legend2 = axd.legend(handles=[solid_proxy, dashed_proxy],
+                            fontsize=16,
+                            loc='lower left')
+
         axM.set_ylim(1e2, 1e7)
         axLadv.set_ylim(5e-2, 1e2)
         axLkin.set_ylim(1e-1, 5e2) 
@@ -520,7 +544,7 @@ if what == 'radial':
             ax.grid()
             ax.axvline(apo/Rt, color = 'k', ls = 'dotted')
                
-        axd.text(0.8*apo/Rt, 0.4*axd.get_ylim()[1], r'$r_{\rm a}$', fontsize = 20, color = 'k', rotation = 90)
+        axd.text(0.8*apo/Rt, 0.2*axd.get_ylim()[1], r'$r_{\rm a}$', fontsize = 20, color = 'k', rotation = 90)
         axLkin.set_xlabel(r'$r /r_{\rm t}$', fontsize = 28)
         # fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 30)
         figM.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 30)

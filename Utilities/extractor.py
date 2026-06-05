@@ -56,19 +56,22 @@ def extractor(filename, extended = False, MG = False):
     X = []
     Y = []
     Z = []
-    Den = []
-    Vx = []
-    Vy = []
-    Vz = []
-    Vol = []
-    Mass = []
-    IE = []
-    Erad = []
-    T = []
-    P = []
-    Star = []
-    Entropy = []
-    Diss = []
+    # CM_X = []
+    # CM_Y = []
+    # CM_Z = []
+    # Den = []
+    # Vx = []
+    # Vy = []
+    # Vz = []
+    # Vol = []
+    # Mass = []
+    # IE = []
+    # Erad = []
+    # T = []
+    # P = []
+    # Star = []
+    # Entropy = []
+    # Diss = []
     if extended:
         DpDx = []
         DpDy = []
@@ -98,46 +101,52 @@ def extractor(filename, extended = False, MG = False):
             else:
                 continue
         else:
-            x_data = f[key]['CMx']
-            y_data = f[key]['CMy']
-            z_data = f[key]['CMz']
-            den_data = f[key]['Density']
+            x_data = f[key]['X']
+            y_data = f[key]['Y']
+            z_data = f[key]['Z']
+            # CMx_data = f[key]['CMx']
+            # CMy_data = f[key]['CMy']
+            # CMz_data = f[key]['CMz']
+            # den_data = f[key]['Density']
             
-            vx_data = f[key]['Vx']
-            vy_data = f[key]['Vy']
-            vz_data = f[key]['Vz']
-            vol_data = f[key]['Volume']
+            # vx_data = f[key]['Vx']
+            # vy_data = f[key]['Vy']
+            # vz_data = f[key]['Vz']
+            # vol_data = f[key]['Volume']
             
-            ie_data = f[key]['InternalEnergy']
-            rad_data = f[key]['Erad']
-            T_data = f[key]['Temperature']
-            P_data = f[key]['Pressure']
-            Diss_data = f[key]['Dissipation']
-            star_data = f[key]['tracers']['Star']
-            entropy_data = f[key]['tracers']['Entropy']
+            # ie_data = f[key]['InternalEnergy']
+            # rad_data = f[key]['Erad']
+            # T_data = f[key]['Temperature']
+            # P_data = f[key]['Pressure']
+            # Diss_data = f[key]['Dissipation']
+            # star_data = f[key]['tracers']['Star']
+            # entropy_data = f[key]['tracers']['Entropy']
             if extended:
                 DpDx_data = f[key]['DpDx']
                 DpDy_data = f[key]['DpDy']
                 DpDz_data = f[key]['DpDz']
                 DivV_data = f[key]['divV']
 
-            for i in range(len(entropy_data)):
+            for i in range(len(x_data)):
                 X.append(x_data[i])
                 Y.append(y_data[i])
-                Z.append(z_data[i])
-                Den.append(den_data[i])
-                Vx.append(vx_data[i])
-                Vy.append(vy_data[i])
-                Vz.append(vz_data[i])
-                Vol.append(vol_data[i])
-                IE.append(ie_data[i])
-                Erad.append(rad_data[i])
-                Mass.append(vol_data[i] * den_data[i])
-                T.append(T_data[i])
-                P.append(P_data[i])
-                Star.append(star_data[i]) #mass of the disrupted star for TDE
-                Diss.append(Diss_data[i])
-                Entropy.append(entropy_data[i])
+                Z.append(z_data[i]) 
+                # CM_X.append(CMx_data[i])
+                # CM_Y.append(CMy_data[i])
+                # CM_Z.append(CMz_data[i])
+                # Den.append(den_data[i])
+                # Vx.append(vx_data[i])
+                # Vy.append(vy_data[i])
+                # Vz.append(vz_data[i])
+                # Vol.append(vol_data[i])
+                # IE.append(ie_data[i])
+                # Erad.append(rad_data[i])
+                # Mass.append(vol_data[i] * den_data[i])
+                # T.append(T_data[i])
+                # P.append(P_data[i])
+                # Star.append(star_data[i]) #mass of the disrupted star for TDE
+                # Diss.append(Diss_data[i])
+                # Entropy.append(entropy_data[i])
                 if extended:
                     DpDx.append(DpDx_data[i])
                     DpDy.append(DpDy_data[i])
@@ -158,14 +167,15 @@ def extractor(filename, extended = False, MG = False):
     f.close()
     if MG:
         if extended:
-            return tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Eg_0, Eg_1, Eg_2, Eg_3, Eg_4, Eg_5, Eg_6, Eg_7, Eg_8, Eg_9, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz, DivV
+            return tfb, box, CM_X, CM_Y, CM_Z, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Eg_0, Eg_1, Eg_2, Eg_3, Eg_4, Eg_5, Eg_6, Eg_7, Eg_8, Eg_9, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz, DivV
         else: 
-            return tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Eg_0, Eg_1, Eg_2, Eg_3, Eg_4, Eg_5, Eg_6, Eg_7, Eg_8, Eg_9, Erad, T, P, Star, Diss, Entropy
+            return tfb, box, CM_X, CM_Y, CM_Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Eg_0, Eg_1, Eg_2, Eg_3, Eg_4, Eg_5, Eg_6, Eg_7, Eg_8, Eg_9, Erad, T, P, Star, Diss, Entropy
     else:
         if extended:
-            return tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz, DivV
+            return tfb, box, CM_X, CM_Y, CM_Z, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy, DpDx, DpDy, DpDz, DivV
         else:
-            return tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy 
+            # return tfb, box, CM_X, CM_Y, CM_Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy 
+            return X, Y, Z
 
 
 ##
@@ -187,8 +197,8 @@ prepath_all = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 snaps = select_snap(m, check, mstar, Rstar, beta, n, time = False)
 
 for i, snap in enumerate(snaps):
-    # if snap != 109:
-    #     continue
+    if snap not in [21, 76, 151]:
+        continue
     if alice:
         prepath = f'{prepath_all}/snap_{snap}'
     else: 
@@ -197,29 +207,33 @@ for i, snap in enumerate(snaps):
 
     print(snap, flush = True)
     if check == 'MG':
-        tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Eg_0, Eg_1, Eg_2, Eg_3, Eg_4, Eg_5, Eg_6, Eg_7, Eg_8, Eg_9, Erad, T, P, Star, Diss, Entropy = extractor(file, extended = False, MG = True)
+        tfb, box, CM_X, CM_Y, CM_Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Eg_0, Eg_1, Eg_2, Eg_3, Eg_4, Eg_5, Eg_6, Eg_7, Eg_8, Eg_9, Erad, T, P, Star, Diss, Entropy = extractor(file, extended = False, MG = True)
     else:
-        tfb, box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy = extractor(file, extended = False, MG = False)
+        # tfb, box, CM_X, CM_Y, CM_Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy = extractor(file, extended = False, MG = False)
+        X, Y, Z = extractor(file, extended = False, MG = False)
    
    # Save to another file.
-    np.save(f'{prepath}/box_{snap}', box) 
-    np.save(f'{prepath}/CMx_{snap}', X)   
-    np.save(f'{prepath}/CMy_{snap}', Y) 
-    np.save(f'{prepath}/CMz_{snap}', Z) 
-    np.save(f'{prepath}/Den_{snap}', Den)
-    np.save(f'{prepath}/Vx_{snap}', Vx)   
-    np.save(f'{prepath}/Vy_{snap}', Vy) 
-    np.save(f'{prepath}/Vz_{snap}', Vz)
-    np.save(f'{prepath}/Vol_{snap}', Vol)
-    np.save(f'{prepath}/Mass_{snap}', Mass)   
-    np.save(f'{prepath}/IE_{snap}', IE) 
-    np.save(f'{prepath}/Rad_{snap}', Erad) 
-    np.save(f'{prepath}/T_{snap}', T)
-    np.save(f'{prepath}/P_{snap}', P) 
-    np.save(f'{prepath}/Star_{snap}', Star) 
-    np.save(f'{prepath}/Diss_{snap}', Diss)
-    np.save(f'{prepath}/Entropy_{snap}', Entropy) 
-    np.savetxt(f'{prepath}/tfb_{snap}.txt', [tfb])
+    np.save(f'{prepath}/X_{snap}', X)   
+    np.save(f'{prepath}/Y_{snap}', Y) 
+    np.save(f'{prepath}/Z_{snap}', Z)
+    # np.save(f'{prepath}/box_{snap}', box) 
+    # np.save(f'{prepath}/CMx_{snap}', CM_X)   
+    # np.save(f'{prepath}/CMy_{snap}', CM_Y) 
+    # np.save(f'{prepath}/CMz_{snap}', CM_Z) 
+    # np.save(f'{prepath}/Den_{snap}', Den)
+    # np.save(f'{prepath}/Vx_{snap}', Vx)   
+    # np.save(f'{prepath}/Vy_{snap}', Vy) 
+    # np.save(f'{prepath}/Vz_{snap}', Vz)
+    # np.save(f'{prepath}/Vol_{snap}', Vol)
+    # np.save(f'{prepath}/Mass_{snap}', Mass)   
+    # np.save(f'{prepath}/IE_{snap}', IE) 
+    # np.save(f'{prepath}/Rad_{snap}', Erad) 
+    # np.save(f'{prepath}/T_{snap}', T)
+    # np.save(f'{prepath}/P_{snap}', P) 
+    # np.save(f'{prepath}/Star_{snap}', Star) 
+    # np.save(f'{prepath}/Diss_{snap}', Diss)
+    # np.save(f'{prepath}/Entropy_{snap}', Entropy) 
+    # np.savetxt(f'{prepath}/tfb_{snap}.txt', [tfb])
     if check == 'MG':
         np.save(f'{prepath}/Eg_0_{snap}', Eg_0) 
         np.save(f'{prepath}/Eg_1_{snap}', Eg_1) 
@@ -236,7 +250,7 @@ for i, snap in enumerate(snaps):
     # np.save(f'{prepath}/DpDz_{snap}', DpDz)
     # np.save(f'{prepath}/DivV_{snap}', DivV)
 
-    del box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy #, DpDx, DpDy, DpDz, DivV
+    # del box, X, Y, Z, Den, Vx, Vy, Vz, Vol, Mass, IE, Erad, T, P, Star, Diss, Entropy #, DpDx, DpDy, DpDz, DivV
     if check == 'MG':
         del Eg_0, Eg_1, Eg_2, Eg_3, Eg_4, Eg_5, Eg_6, Eg_7, Eg_8, Eg_9
     print(f'Done', flush = True)

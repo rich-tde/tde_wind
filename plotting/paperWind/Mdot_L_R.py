@@ -30,10 +30,13 @@ indices_obs, label_obs, color_obs, _ = choose_observers(observers_xyz, choice)
 Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
+params = [Mbh, Rstar, mstar, beta]
+things = orb.get_things_about(params)
+t_fb_days = things['t_fb_days']
 
 data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
-snaps, tfbs, Lums = data[:, 0], data[:, 1], data[:, 2]
-tfbs, snaps, Lums = sort_list([tfbs, snaps, Lums], snaps, unique=True)
+snaps, tfb_Lum, Lums = data[:, 0], data[:, 1], data[:, 2]
+tfb_Lum, snaps, Lums = sort_list([tfb_Lum, snaps, Lums], snaps, unique=True)
 Lum_sec = []
 snaps = np.array(snaps, dtype=int)
 for s, snap in enumerate(snaps): 
@@ -54,7 +57,7 @@ wind = \
                 delimiter = ',', 
                 skiprows=1, 
                 unpack=True) 
-tfbH = wind[1]
+tfb = wind[1]
 rest = wind[2:2+len(label_obs)]
 
 outflow = \
@@ -69,16 +72,18 @@ fig, (axM, axL) =plt.subplots(1,2, figsize = (18,7))
 for i in range(len(rest)):
     if i == 3:
         continue
-    axM.plot(tfbH, rest[i]/Medd_sol,  label = r'$\dot{M}_{\rm w}$' if i == 2 else None, linewidth = 2, c = color_obs[i])
+    axM.plot(tfb, rest[i]/Medd_sol,  label = r'$\dot{M}_{\rm w}$' if i == 2 else None, linewidth = 2, c = color_obs[i])
     axM.plot(tfbO[4:], restO[i][4:]/Medd_sol,  label = r'$\dot{M}_{\rm out}$' if i == 2 else None, linewidth = 2, c = color_obs[i], ls = '--')
-    axL.plot(tfbH, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i])
+    axL.plot(tfb, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i])
     if i ==0:
         print(rest[i][-1]/restO[i][-1])
 
 original_ticks = axM.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-labels = [str(np.round(tick,2)) if tick in original_ticks else '' for tick in new_ticks]    
+labels = [str(np.round(tick,2)) if tick in original_ticks else '' for tick in new_ticks]   
+days_ticks = new_ticks*t_fb_days
+days_labels = [str(np.round(days_ticks[k],2)) if new_ticks[k] in original_ticks else "" for k in range(len(days_ticks))] 
 for ax in [axM, axL]:
     ax.set_xticks(new_ticks)
     ax.set_xticklabels(labels)
@@ -86,10 +91,15 @@ for ax in [axM, axL]:
     ax.set_xticklabels(labels)  
     ax.set_yscale('log')
     ax.set_xlabel(r'$t / t_{\rm fb}$')
-    ax.set_xlim(0, np.max(tfbH))
+    ax.set_xlim(0, np.max(tfb))
     ax.tick_params(axis='both', which='major', width=1.2, length=9)
     ax.tick_params(axis='both', which='minor', width=1, length=5)
     ax.grid()
+    ax2 = ax.twiny()
+    ax2.set_xticks(days_ticks)
+    ax2.set_xlim(-0.05*t_fb_days, np.max(tfb)*t_fb_days)
+    ax2.set_xticklabels(days_labels)
+    ax2.set_xlabel(r't (days)', fontsize = 30)
 axM.set_ylim(1e1, 7e6)
 axM.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$')  
 axL.set_ylim(1e38, 2e42)

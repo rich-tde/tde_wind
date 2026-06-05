@@ -262,7 +262,7 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
 
     if group == 'sections': # each panel show a spherical sector
         len_plot = len(label_obs) 
-        if np.array(label_obs).all() not in ['south pole', r'-$\hat{z}$']:
+        if np.array(label_obs).all() not in ['South pole', r'-$\hat{z}$']:
             print('Do not consider the south pole')
             len_plot -= 1
         fig_L, ax_L = plt.subplots(1, len_plot, figsize=(8*len_plot, 7)) 
@@ -296,7 +296,8 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
         ax_Xray.text(0.1, L_max/5, 'X-ray', fontsize = 26)
         original_ticks = ax_op.get_xticks()
         ax_op.legend(fontsize = 22)
-        ax_UV.legend(fontsize = 22)
+        if group == 'bandsMG':
+            ax_UV.legend(fontsize = 22)
         ax_op.set_ylabel(r'$\nu L_{\nu}$ (erg/s)', fontsize = 30)
 
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
@@ -328,7 +329,7 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
 
 plot_spectra(folder, check, snaps, x_axis, choice)
 plot_light_curves(folder, check, choice, group = 'sections')
-plot_light_curves(folder, check, choice, group = 'bandsMG')
-
+plot_light_curves(folder, check, choice, group = 'bands')
+# plot_light_curves(folder, check, choice, group = 'bandsMG')
 
 

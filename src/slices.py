@@ -188,7 +188,7 @@ else:
         things = orb.get_things_about(params)
         amin = things['a_mb']
         xcr, ycr, cr = orb.make_cfr(0.5*amin)
-        x_line = np.arange(-50, 50) * Rt
+        x_line = np.arange(-lim_plot, lim_plot) * Rt
         y_line = draw_line(x_line, np.pi/6, what = 'line')
         y_lineneg = draw_line(x_line, 5*np.pi/6, what = 'line')
         
@@ -214,6 +214,7 @@ else:
                 VY = data["vy"]
                 VZ = data["vz"]
                 Press = data["pressure"]
+                Diss_den = data["diss_density"]
                 if coord_to_cut == 'x':
                     x_toplot = y
                     VX_toplot = VY
@@ -260,19 +261,17 @@ else:
                     else:
                         x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y)
                 else:
-                    # print(x_toplot[-param_wind>5*E_mb])
-                    # img = ax.scatter(x_toplot[np.abs(param_wind)>E_mb]/Rt, y_toplot[np.abs(param_wind)>E_mb]/Rt, c = param_wind[np.abs(param_wind)>E_mb]/E_mb, cmap = 'coolwarm', s = 6,  norm=colors.SymLogNorm(linthresh=0.1, vmin=-1e2, vmax=1e2))
-                    # x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, Den_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, den)
-                    # img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, Den_grid * prel.den_converter, cmap='brg_r', norm=colors.LogNorm(vmin=1e-16, vmax=2e-8))
-                    x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, param_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, param_wind)
-                    img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, param_grid/E_mb, cmap='coolwarm', norm=colors.SymLogNorm(linthresh=0.1, vmin=-1e2, vmax=1e2))
+                    # x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, param_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, color_plot = param_wind)
+                    # img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, param_grid/E_mb, cmap='coolwarm', norm=colors.SymLogNorm(linthresh=0.1, vmin=-1e2, vmax=1e2))
+                    x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, param_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, color_plot = Diss_den)
+                    img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, param_grid*prel.en_den_converter, cmap='viridis', norm=colors.LogNorm(vmin=10, vmax=1e9))
                     if how == '_arrows': 
                         step = max(1, len(x_toplot) // N_arrows) 
                         print(f'Plotting {len(x_toplot[::step])} arrows out of {len(x_toplot)} points.')
                         ax.quiver(x_toplot[::step]/Rt, y_toplot[::step]/Rt, VX_toplot[::step], VY_toplot[::step], color='k', angles='xy', scale_units='xy', width=0.002)
                 
                 if how == '':
-                    ax.streamplot(x_toplot_grid/Rt, y_toplot_grid/Rt, Vx_toplot_grid, Vy_toplot_grid, density = 1.5, linewidth = 1.5, color = 'k', arrowsize=1.5, arrowstyle='-|>')
+                    ax.streamplot(x_toplot_grid/Rt, y_toplot_grid/Rt, Vx_toplot_grid, Vy_toplot_grid, density = 1.5, linewidth = 1.5, color = 'k', arrowsize=1.5, arrowstyle='->')
                 
                 ax.contour(xcr/Rt, ycr/Rt, cr/Rt, [0], linestyles='dashed', colors = 'k', linewidths = 4)
                 if coord_to_cut == 'y':
@@ -302,8 +301,8 @@ else:
         cbar_ax = fig.add_axes([cbar_left, cbar_bottom, cbar_width, cbar_height])
         
         cb = fig.colorbar(img, orientation='horizontal', cax=cbar_ax, aspect=50)
-        # cb.set_label(r'$\rho$ (g/cm$^3)$', fontsize = 50)
-        cb.set_label(r'$\mathcal{B}/\Delta\varepsilon$', fontsize = 55)
+        cb.set_label(r'$\dot{u}_{\rm diss}$ (erg s$^{-1}$ cm$^{-3}$)', fontsize = 50)
+        # cb.set_label(r'$\mathcal{B}/\Delta\varepsilon$', fontsize = 55)
         cb.ax.tick_params(labelsize=50)
         cb.ax.tick_params(which='major', length=9, width=1.4)
         cb.ax.tick_params(which='minor', length=6, width=1.2)
@@ -311,5 +310,5 @@ else:
         if what == '_wind':
             plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
         else:
-            plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
+            plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlicesDiss{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
             
