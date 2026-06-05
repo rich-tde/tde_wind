@@ -68,18 +68,22 @@ if alice:
         cut = Den > 1e-19
         X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
             make_slices([X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
-    
+        indices_allsec, label_obs = split_cells(X, Y, Z, choice)
+
         cut_wind, _, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, cond = 'bern')
         cut_out = V_r > 0 
         X_out, Y_out, Z_out, Mass_out = make_slices([X, Y, Z, Mass], cut_out)
         X_wind, Y_wind, Z_wind, Mass_wind = make_slices([X, Y, Z, Mass], cut_wind)
         indices_allsec_wind, label_obs = split_cells(X_wind, Y_wind, Z_wind, choice)
         indices_sec_out, _ = split_cells(X_out, Y_out, Z_out, choice)
-
+        
+        tot_M = np.zeros(len(indices_allsec_wind))
         M_out = np.zeros(len(indices_sec_out))
         M_wind = np.zeros(len(indices_allsec_wind))
 
         for i in range(len(indices_allsec_wind)):
+            i_singlesec = indices_allsec[i]
+            tot_M[i] = np.sum(Mass[i_singlesec])
             i_singlesec_out = indices_sec_out[i]
             mass_out = Mass_out[i_singlesec_out] if Mass_out.size > 0 else np.array([0])
             M_out[i] = np.sum(mass_out) 
@@ -87,13 +91,30 @@ if alice:
             mass_w = Mass_wind[i_singlesec_wind] if Mass_wind.size > 0 else np.array([0])
             M_wind[i] = np.sum(mass_w) 
 
-        data = np.concatenate([[snap, time], M_out, M_wind])
+        data = np.concatenate([[snap, time], tot_M, M_out, M_wind])
 
         csv_path = f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv'
         with open(csv_path,'a', newline='') as file:
             writer = csv.writer(file)
             if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                writer.writerow(['snap', 'tfb'] + [f'M_out {lab}' for lab in label_obs] + [f'M_w {lab}' for lab in label_obs])
+                writer.writerow(['snap', 'tfb'] + [f'M_tot {lab}' for lab in label_obs] + [f'M_out {lab}' for lab in label_obs] + [f'M_w {lab}' for lab in label_obs])
             writer.writerow(data)
             file.close()
         
+if plot:
+    csv_path = f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv'
+    data = np.genfromtxt(csv_path, delimiter=',', names=True)
+    snap = data['snap']
+    tfb = data['tfb']
+    M_out = np.array([data[f'M_out {lab}'] for lab in label_obs])
+    M_wind = np.array([data[f'M_w {lab}'] for lab in label_obs])
+    plt.figure(figsize=(8,6))
+    for i, lab in enumerate(label_obs):
+        plt.plot(tfb, M_out[i], label = f'M_out {lab}')
+        plt.plot(tfb, M_wind[i], label = f'M_wind {lab}')
+    plt.xlabel('t/t_fb')
+    plt.ylabel('Mass [g]')
+    plt.legend()
+    plt.title(f'Mass unbound, {choice}')
+    plt.savefig(f'{abspath}/plots/{folder}/wind/Mass_unbound{choice}.png')
+    plt.show()
