@@ -15,7 +15,7 @@ import Utilities.prelude as prel
 from Utilities.operators import choose_observers, sort_list
 from scipy.interpolate import griddata
 import src.orbits as orb
-
+import csv
 m = 4
 Mbh = 10**m
 beta = 1
@@ -30,7 +30,6 @@ t_fb_days = things['t_fb_days']
 snaps = [76, 109, 151] #[49, 64, 142] #0.4tfb, 0.78, 2.08 fb are snaps 49, 64, 142
 x_axis = 'Temp'  # 'Freq' or 'Temp'
 choice = 'left_right_z' #'chunky_axes' #left_right_z' 
-snaps_MG = np.concatenate([np.arange(107, 386), np.arange(387, 430)]) # I don't have snap386
 
 # Visible: 4.8e14-7.5e14 Hz  // UV: 7.5e14-3e15 // Xray: 3e15-3e19 Hz (tera:1e12, peta: 1e14, exa: 1e18)
 low_freq_optical = 1.6767 * prel.ev_toHz #4.8e14
@@ -42,7 +41,7 @@ L_min = 1e37
 L_max = 1.1e42
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-def plot_spectra(folder, check, snaps, x_axis, choice):
+def plot_spectra(folder, check, snaps, x_axis, choice, in_moll = True):
     # Load
     pre_saving = f'{abspath}/data/{folder}'
     freqs = np.loadtxt(f'{pre_saving}/spectraNEW/freqs.txt')
@@ -66,69 +65,75 @@ def plot_spectra(folder, check, snaps, x_axis, choice):
     cross_dot /= 192
     indices_sorted, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, choice = choice)
 
-    # For colomesh
-    lon_1d = longitude_moll
-    lat_1d = latitude_moll
-    lon_grid = np.linspace(lon_1d.min(), lon_1d.max(), 360)
-    lat_grid = np.linspace(lat_1d.min(), lat_1d.max(), 180)
-    lon_mesh, lat_mesh = np.meshgrid(lon_grid, lat_grid)
-    
-    fig_mollop = plt.figure(figsize=(len(snaps)*11, 7))
-    gs_op = gridspec.GridSpec(2, len(snaps), wspace = 0.1, hspace = 0, height_ratios=[1, 0.08])
-    fig_mollx = plt.figure(figsize=(len(snaps)*11, 7))
-    gs_x = gridspec.GridSpec(2, len(snaps), wspace = 0.1, hspace = 0, height_ratios=[1, 0.08])
+    if in_moll:
+        lon_1d = longitude_moll
+        lat_1d = latitude_moll
+        lon_grid = np.linspace(lon_1d.min(), lon_1d.max(), 360)
+        lat_grid = np.linspace(lat_1d.min(), lat_1d.max(), 180)
+        lon_mesh, lat_mesh = np.meshgrid(lon_grid, lat_grid)
+        
+        fig_mollop = plt.figure(figsize=(len(snaps)*11, 7))
+        gs_op = gridspec.GridSpec(2, len(snaps), wspace = 0.1, hspace = 0, height_ratios=[1, 0.08])
+        fig_mollx = plt.figure(figsize=(len(snaps)*11, 7))
+        gs_x = gridspec.GridSpec(2, len(snaps), wspace = 0.1, hspace = 0, height_ratios=[1, 0.08])
 
     fig_sp, ax = plt.subplots(1, len(snaps), figsize=(24,7))
     for s, snap in enumerate(snaps):
         time = tfb[snaps_fld == snap][0]
-        L_photo = np.loadtxt(f'{pre_saving}/spectraNEW/{check}_spectra{snap}.txt')
+        L_col = np.loadtxt(f'{pre_saving}/spectraNEW/{check}_spectra{snap}.txt')
+        photo = np.load(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}.npz')
+        Lum_ph = photo['Lum']
+        for i in range(len(L_col)):
+            norm = Lum_ph[i] / np.trapezoid(L_col[i,:], freqs)
+            L_col[i,:] *= norm
         
-        ax_op = fig_mollop.add_subplot(gs_op[0, s], projection='mollweide')
-        # ax_uv = fig_moll.add_subplot(gs_uv[0, s], projection='mollweide')
-        ax_x = fig_mollx.add_subplot(gs_x[0, s], projection='mollweide')
+        if in_moll:
+            ax_op = fig_mollop.add_subplot(gs_op[0, s], projection='mollweide')
+            # ax_uv = fig_moll.add_subplot(gs_uv[0, s], projection='mollweide')
+            ax_x = fig_mollx.add_subplot(gs_x[0, s], projection='mollweide')
 
-        ax_op.set_title(f'{np.round(time, 2)}' + r' t$_{\rm fb}$', fontsize=24, y = 1.15) 
-        ax_x.set_title(f'{np.round(time, 2)}' + r' t$_{\rm fb}$', fontsize=24, y = 1.15)
-        # else: 
-        #     # invisible title to keep the same padding
-        #     ax_op.set_title(" ", fontsize=1, y = 1.1)
-        #     ax_x.set_title(" ", fontsize=1, y = 1.1)
-  
-        for ax_moll in [ax_op, ax_x]:
-            ax_moll.set_xticks(np.radians(np.arange(-180, 181, 90))) 
-            ax_moll.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
-            ax_moll.set_yticks(np.radians(np.arange(-90, 91, 45))) 
-            ax_moll.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
-
-        Lum_op, Lum_UV, Lum_Xray = np.zeros(len(L_photo)), np.zeros(len(L_photo)), np.zeros(len(L_photo))
-        for i in range(len(L_photo)):
-            Lum_freq = freqs * L_photo[i]
-            Lum_op[i] = np.sum(Lum_freq[idx_opt])
-            # Lum_UV[i] = np.sum(Lum_freq[idx_UV])
-            Lum_Xray[i] = np.sum(Lum_freq[idx_Xray])
-
-        data_grid_op = griddata(
-        points=(lon_1d, lat_1d),
-        values=Lum_op,
-        xi=(lon_mesh, lat_mesh),
-        method='linear')
-        ax_op.pcolormesh(lon_mesh, lat_mesh, data_grid_op, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=10*L_max))
-
-        # data_grid_uv = griddata(
-        # points=(lon_1d, lat_1d),
-        # values=Lum_UV,
-        # xi=(lon_mesh, lat_mesh),
-        # method='linear')
-        # ax_uv.pcolormesh(lon_mesh, lat_mesh, data_grid_uv, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=L_max))
+            ax_op.set_title(f'{np.round(time, 2)}' + r' t$_{\rm fb}$', fontsize=24, y = 1.15) 
+            ax_x.set_title(f'{np.round(time, 2)}' + r' t$_{\rm fb}$', fontsize=24, y = 1.15)
+            # else: 
+            #     # invisible title to keep the same padding
+            #     ax_op.set_title(" ", fontsize=1, y = 1.1)
+            #     ax_x.set_title(" ", fontsize=1, y = 1.1)
     
-        data_grid_x = griddata(
-        points=(lon_1d, lat_1d),
-        values=Lum_Xray,
-        xi=(lon_mesh, lat_mesh),
-        method='linear')
-        img = ax_x.pcolormesh(lon_mesh, lat_mesh, data_grid_x, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=10*L_max))
+            for ax_moll in [ax_op, ax_x]:
+                ax_moll.set_xticks(np.radians(np.arange(-180, 181, 90))) 
+                ax_moll.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
+                ax_moll.set_yticks(np.radians(np.arange(-90, 91, 45))) 
+                ax_moll.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
+
+            Lum_op, Lum_UV, Lum_Xray = np.zeros(len(L_col)), np.zeros(len(L_col)), np.zeros(len(L_col))
+            for i in range(len(L_col)):
+                Lum_freq = freqs * L_col[i]
+                Lum_op[i] = np.sum(Lum_freq[idx_opt])
+                # Lum_UV[i] = np.sum(Lum_freq[idx_UV])
+                Lum_Xray[i] = np.sum(Lum_freq[idx_Xray])
+
+            data_grid_op = griddata(
+            points=(lon_1d, lat_1d),
+            values=Lum_op,
+            xi=(lon_mesh, lat_mesh),
+            method='linear')
+            ax_op.pcolormesh(lon_mesh, lat_mesh, data_grid_op, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=10*L_max))
+
+            # data_grid_uv = griddata(
+            # points=(lon_1d, lat_1d),
+            # values=Lum_UV,
+            # xi=(lon_mesh, lat_mesh),
+            # method='linear')
+            # ax_uv.pcolormesh(lon_mesh, lat_mesh, data_grid_uv, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=L_max))
         
-        L_photo = np.matmul(cross_dot, L_photo)
+            data_grid_x = griddata(
+            points=(lon_1d, lat_1d),
+            values=Lum_Xray,
+            xi=(lon_mesh, lat_mesh),
+            method='linear')
+            img = ax_x.pcolormesh(lon_mesh, lat_mesh, data_grid_x, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=10*L_max))
+        
+        L_col = np.matmul(cross_dot, L_col)
         if x_axis == 'Temp':
             x_value = freqs * prel.Hz_toK
             ax[s].set_xlabel('Temperature (K)', fontsize = 30)
@@ -157,9 +162,9 @@ def plot_spectra(folder, check, snaps, x_axis, choice):
             if i_idx == 3:
                 continue
             if len(idx) == 1:
-                Lum = np.concatenate(L_photo[idx])
+                Lum = np.concatenate(L_col[idx])
             else:
-                Lum = np.mean(L_photo[idx], axis = 0)
+                Lum = np.mean(L_col[idx], axis = 0)
             ax[s].plot(x_value, freqs * Lum, label = f'{label_obs[i_idx]}', c = colors_obs[i_idx], linewidth = 3) #ls = lines_obs[i_idx]
                         
         ax[s].tick_params(axis='both', which='major', length=8, width=1.2)
@@ -173,20 +178,21 @@ def plot_spectra(folder, check, snaps, x_axis, choice):
     plt.tight_layout()
     plt.savefig(f'{abspath}/Figs/2.paperWind/spectra_{choice}.pdf', dpi=300)
     
-    cbar_ax = fig_mollop.add_subplot(gs_op[1, 0:3])  # Colorbar subplot below the first two
-    cb = fig_mollop.colorbar(img, cax=cbar_ax, orientation='horizontal', pad=0.07)
-    cb.set_label(r'$\nu L_\nu$ [erg s$^{-1}$]')
-    cb.ax.tick_params(which='major',length = 10)
-    cb.ax.tick_params(which='minor',length = 6) 
-    fig_mollop.suptitle("Optical + UV", fontsize=24) 
-    cbar_ax = fig_mollx.add_subplot(gs_op[1, 0:3])  # Colorbar subplot below the first two
-    cb = fig_mollx.colorbar(img, cax=cbar_ax, orientation='horizontal', pad=0.07)
-    cb.set_label(r'$\nu L_\nu$ [erg s$^{-1}$]')
-    cb.ax.tick_params(which='major',length = 10)
-    cb.ax.tick_params(which='minor',length = 6) 
-    fig_mollx.suptitle("X-ray", fontsize=24)
-    # fig_moll.subplots_adjust(top=0.90, bottom=0.2, left=0.06, right=0.96)
-    fig_mollop.tight_layout()
+    if in_moll:
+        cbar_ax = fig_mollop.add_subplot(gs_op[1, 0:3])  # Colorbar subplot below the first two
+        cb = fig_mollop.colorbar(img, cax=cbar_ax, orientation='horizontal', pad=0.07)
+        cb.set_label(r'$\nu L_\nu$ [erg s$^{-1}$]')
+        cb.ax.tick_params(which='major',length = 10)
+        cb.ax.tick_params(which='minor',length = 6) 
+        fig_mollop.suptitle("Optical + UV", fontsize=24) 
+        cbar_ax = fig_mollx.add_subplot(gs_op[1, 0:3])  # Colorbar subplot below the first two
+        cb = fig_mollx.colorbar(img, cax=cbar_ax, orientation='horizontal', pad=0.07)
+        cb.set_label(r'$\nu L_\nu$ [erg s$^{-1}$]')
+        cb.ax.tick_params(which='major',length = 10)
+        cb.ax.tick_params(which='minor',length = 6) 
+        fig_mollx.suptitle("X-ray", fontsize=24)
+        # fig_moll.subplots_adjust(top=0.90, bottom=0.2, left=0.06, right=0.96)
+        fig_mollop.tight_layout()
 
 def plot_light_curves(folder, check, choice, group = 'bands'):
     # Load
@@ -196,10 +202,11 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
     idx_UV = np.where(np.logical_and(freqs > high_freq_optical, freqs < high_freq_UV))[0][0]
     idx_Xray = np.where(np.logical_and(freqs > high_freq_UV, freqs < high_freq_Xray))[0][0]
 
-    data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
+    data = np.loadtxt(f'{abspath}/data/{folder}/{check}_redNEW.csv', delimiter=',', dtype=float)
     snaps_fld, tfb, Lum_fld = data[:, 0], data[:, 1], data[:, 2]
     snaps_fld, Lum_fld, tfb = sort_list([snaps_fld, Lum_fld, tfb], tfb, unique=True) 
     snaps_fld = snaps_fld.astype(int)
+    tfb = np.array(tfb, dtype=float)
 
     # observers
     observers_xyz = hp.pix2vec(prel.NSIDE, np.arange(prel.NPIX)) #shape: (3, 192)
@@ -209,11 +216,17 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
     Lum_op_sum = []
     Lum_UV_sum = []
     Lum_Xray_sum = []
+    time_col = []
     for s, snap in enumerate(snaps_fld):
-        L_photo = np.loadtxt(f'{pre_saving}/spectraNEW/{check}_spectra{snap}.txt')
-        Lum_op, Lum_UV, Lum_Xray = np.zeros(len(L_photo)), np.zeros(len(L_photo)), np.zeros(len(L_photo))
-        for i in range(len(L_photo)):
-            Lum_freq = freqs * L_photo[i]
+        L_col = np.loadtxt(f'{pre_saving}/spectraNEW/{check}_spectra{snap}.txt')
+        photo = np.load(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}.npz')
+        Lum_ph = photo['Lum']
+        for i in range(len(L_col)):
+            norm = Lum_ph[i] / np.trapezoid(L_col[i,:], freqs)
+            L_col[i,:] *= norm
+        Lum_op, Lum_UV, Lum_Xray = np.zeros(len(L_col)), np.zeros(len(L_col)), np.zeros(len(L_col))
+        for i in range(len(L_col)):
+            Lum_freq = freqs * L_col[i]
             Lum_op[i] = np.sum(Lum_freq[idx_opt])
             Lum_UV[i] = np.sum(Lum_freq[idx_UV])
             Lum_Xray[i] = np.sum(Lum_freq[idx_Xray])
@@ -221,7 +234,7 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
         Lum_op_sum.append(np.mean(Lum_op[indices_sorted], axis = 1))
         Lum_UV_sum.append(np.mean(Lum_UV[indices_sorted], axis = 1))
         Lum_Xray_sum.append(np.mean(Lum_Xray[indices_sorted], axis = 1))
-        
+        time_col.append(tfb[s])
     Lum_op_sum = np.transpose(np.array(Lum_op_sum))
     Lum_UV_sum = np.transpose(np.array(Lum_UV_sum))
     Lum_Xray_sum = np.transpose(np.array(Lum_Xray_sum))
@@ -235,33 +248,43 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
     observers_xyz_MG = hp.pix2vec(nside_mg, np.arange(hp.nside2npix(nside_mg))) #shape: (3, 768)
     observers_xyz_MG = np.array(observers_xyz_MG)
     indices_sorted_MG, _, _, _ = choose_observers(observers_xyz_MG, choice = choice)
+    snaps_times_MG = np.loadtxt(f'{pre_saving}/MG/{check}_timesMG.csv', delimiter=',', dtype=float)
+    snaps_MG = snaps_times_MG[:, 0].astype(int)
+    time_MG = snaps_times_MG[:, 1]
+    idx_MG_spectra = [np.argmin(np.abs(time_MG - 1.00)),
+                        np.argmin(np.abs(time_MG - 1.54)), 
+                        np.argmin(np.abs(time_MG - 2.23))]
+    idx_fld_spectra = [np.argmin(np.abs(tfb - 1.00)),
+                        np.argmin(np.abs(tfb - 1.54)), 
+                        np.argmin(np.abs(tfb - 2.23))]
+    idx_MG_spectra = np.array(idx_MG_spectra, dtype=int)
+    idx_fld_spectra = np.array(idx_fld_spectra, dtype=int)
 
     for s, snap in enumerate(snaps_MG):
-        L_photoMG = np.loadtxt(f'{pre_saving}/MG/snap_{snap}/L_snap_{snap}.txt')
-        t_MG = np.loadtxt(f'{pre_saving}/MG/snap_{snap}/Time_snap_{snap}.txt') #it's in CGS
-        time_MG.append(t_MG)
-        Lum_op_MG_sum = np.sum(L_photoMG[:, 1:3], axis = 1)
-        Lum_UV_MG_sum = np.sum(L_photoMG[:, 3:5], axis = 1)
-        Lum_Xray_MG_sum = np.sum(L_photoMG[:, 8:], axis = 1)
-        # Lum_op_MG_sum = L_photoMG[:, 1]
-        # Lum_UV_MG_sum = L_photoMG[:, 3]
-        # Lum_Xray_MG_sum = L_photoMG[:, 8]
+        L_colMG = np.loadtxt(f'{pre_saving}/MG/snap_{snap}/L_snap_{snap}.txt')
+        t_MG = np.argmin(np.abs(snaps_MG - snap))
+        Lum_op_MG_sum = np.sum(L_colMG[:, 1:3], axis = 1)
+        Lum_UV_MG_sum = np.sum(L_colMG[:, 3:5], axis = 1)
+        Lum_Xray_MG_sum = np.sum(L_colMG[:, 8:], axis = 1)
+        # Lum_op_MG_sum = L_colMG[:, 1]
+        # Lum_UV_MG_sum = L_colMG[:, 3]
+        # Lum_Xray_MG_sum = L_colMG[:, 8]
 
         Lum_op_MG.append([np.mean(Lum_op_MG_sum[idx]) for idx in indices_sorted_MG])
         Lum_UV_MG.append([np.mean(Lum_UV_MG_sum[idx]) for idx in indices_sorted_MG])
         Lum_Xray_MG.append([np.mean(Lum_Xray_MG_sum[idx]) for idx in indices_sorted_MG])
 
-        if snap in [76, 109, 151]:
-            print(tfb[k])
-            for k, obs in enumerate(label_obs):
-                if k == 3:
-                    continue
-                print(obs, '|| ratio Xray/opt: ', Lum_Xray_MG[k][s]/Lum_op_sum[k][s], ' ratio UV/opt: ', Lum_op_sum[k][s]/Lum_UV_sum[k][s])
-    
-    time_MG = np.array(time_MG) * prel.tsol_cgs / (3600*24*t_fb_days) # convert to tfb
     Lum_op_MG = np.transpose(np.array(Lum_op_MG))
     Lum_UV_MG = np.transpose(np.array(Lum_UV_MG))
     Lum_Xray_MG = np.transpose(np.array(Lum_Xray_MG))
+    for i in np.arange(3):
+        idx_t_MG = idx_MG_spectra[i]
+        idx_t_fld = idx_fld_spectra[i]
+        print(f'For t = {np.round(tfb[idx_t_fld], 2)} t_fb, MG time is {np.round(time_MG[idx_t_MG], 2)} t_fb')
+        for k, obs in enumerate(label_obs):
+            if k == 3:
+                continue
+            print(obs, '|| ratio Xray/opt: ', Lum_Xray_MG[k][idx_t_MG]/Lum_op_sum[k][idx_t_fld], ' ratio UV/opt: ', Lum_op_sum[k][idx_t_fld]/Lum_UV_sum[k][idx_t_fld])
 
     if group == 'sections': # each panel show a spherical sector
         len_plot = len(label_obs) 
@@ -288,7 +311,7 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
                 continue
             ax_op.plot(tfb, Lum_op_sum[k], label = f'{obs}', c = colors_obs[k], linewidth = 3)
             ax_UV.plot(tfb, Lum_UV_sum[k], label = f'This work' if k == 2 else None, c = colors_obs[k], linewidth = 3)
-            ax_Xray.plot(time_MG, Lum_Xray_MG[k], c = colors_obs[k], ls = '--', linewidth = 2)
+            ax_Xray.plot(time_MG, Lum_Xray_MG[k], c = colors_obs[k], ls = '--' if group == 'bandsMG' else '-', linewidth = 3)
             if group == 'bandsMG':
                 ax_Xray.plot(tfb, Lum_Xray_sum[k], c = colors_obs[k], linewidth = 3)
                 ax_op.plot(time_MG, Lum_op_MG[k], c = colors_obs[k], ls = '--', linewidth = 2)

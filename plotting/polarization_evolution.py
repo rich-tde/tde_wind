@@ -70,13 +70,13 @@ if time_evolution:
     A_all = np.zeros((len(snaps_lum), len_obs))
     for s, snap in enumerate(snaps_lum): 
         try:
-            photo = np.load(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}.npz')
+            photo = np.load(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}.npz')
         except FileNotFoundError:
             continue
         Fx, Fy, Fz, alpha_rossland, alpha_scatter = photo['Fx'], photo['Fy'], photo['Fz'], photo['alpha_rossland'], photo['alpha_scatter']
         weight = alpha_scatter/alpha_rossland
 
-        # photo = np.loadtxt(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}POL.txt')
+        # photo = np.loadtxt(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}POL.txt')
         # x, y, z, den, alpha, Lum, Fx, Fy, Fz = photo[0], photo[1], photo[2], photo[4], photo[12], photo[14], photo[16], photo[17], photo[18]
         # kappa = alpha/den
         for i_o in range(len_obs):
@@ -162,7 +162,7 @@ if angle_evolution:
     fig, ax = plt.subplots(figsize=(8,6))
     for snap in snaps:
         time = tfb_lum[np.argmin(np.abs(snaps_lum - snap))]
-        photo = np.load(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}.npz')
+        photo = np.load(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}.npz')
         Fx, Fy, Fz, alpha_rossland, alpha_scatter = photo['Fx'], photo['Fy'], photo['Fz'], photo['alpha_rossland'], photo['alpha_scatter']
         weight = alpha_scatter/alpha_rossland
         
@@ -206,7 +206,7 @@ if albedo_evolution:
     fig, ax = plt.subplots(figsize=(8,6))
     for snap in snaps:
         time = tfb_lum[np.argmin(np.abs(snaps_lum - snap))]
-        photo = np.load(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}.npz')
+        photo = np.load(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}.npz')
         Fx, Fy, Fz, alpha_rossland, alpha_scatter = photo['Fx'], photo['Fy'], photo['Fz'], photo['alpha_rossland'], photo['alpha_scatter']
         albedo = alpha_scatter/alpha_rossland
         flux = np.sqrt(Fx**2 + Fy**2 + Fz**2)

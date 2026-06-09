@@ -27,7 +27,7 @@ check = 'HiResNewAMR'
 snap = 151
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 Pmin = 0
-Pmax = 0.5
+Pmax = 0.4
 
 def mvee_fit(points, tol=1e-6, max_iter=1000):
     """
@@ -298,7 +298,7 @@ if __name__ == "__main__":
     observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) # shape: (3, 192)
     x_heal, y_heal, z_heal = observers_xyz[0], observers_xyz[1], observers_xyz[2]
     
-    photo = np.load(f'{abspath}/data/{folder}/photoPOL/{check}_photo{snap}.npz')
+    photo = np.load(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}.npz')
     x, y, z, den, Fx, Fy, Fz, alpha_rossland, alpha_scatter, alpha_abs = \
         photo['x'], photo['y'], photo['z'], photo['den'], photo['Fx'], photo['Fy'], photo['Fz'], photo['alpha_rossland'], photo['alpha_scatter'], photo['alpha_abs']
     
@@ -492,12 +492,12 @@ if __name__ == "__main__":
     fig = plt.figure(figsize=(20,10))
     gs = gridspec.GridSpec(1, 2, hspace=0.1, wspace = 0.2)
     axq = fig.add_subplot(gs[0, 0], projection='mollweide')
-    img = axq.pcolormesh(lon_mesh, lat_mesh, data_grid_q, cmap='plasma', vmin = -.3, vmax = .3)  
+    img = axq.pcolormesh(lon_mesh, lat_mesh, data_grid_q, cmap='magma', vmin = -.3, vmax = .3)  
     cbar = plt.colorbar(img, orientation='horizontal', pad = 0.1, label =r'$Q/I$ ')
     cbar.ax.tick_params(which='major',length = 6)
     cbar.ax.tick_params(which='minor',length = 4)
     axu = fig.add_subplot(gs[0, 1], projection='mollweide')
-    img = axu.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_u, cmap='plasma', vmin = -.3, vmax = .3) 
+    img = axu.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_u, cmap='magma', vmin = -.3, vmax = .3) 
     cbar = plt.colorbar(img, orientation='horizontal', pad = 0.1, label =r'$U/I$')
     cbar.ax.tick_params(which='major',length = 6)
     for ax in [axq, axu]:
@@ -507,7 +507,7 @@ if __name__ == "__main__":
         ax.set_yticks(np.radians(np.arange(-90, 91, 45))) 
         ax.set_yticklabels(['180°','135°', '90°', '45°', '0°']) #['-90°', '-45°', '0°', '45°','90°'])
     plt.suptitle(f't = {time:.1f} ' + r'$t_{\rm fb}$', fontsize=20, x = 0.5, y = .71)
-    plt.savefig(f'{abspath}/Figs/2.paperWind//QU_map{snap}.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'{abspath}/Figs/3.paperPolarization/QU_map{snap}.png', dpi=300, bbox_inches='tight')
     
     #%%
     fig, ax = plt.subplots(1,1,figsize=(10, 8))
@@ -561,7 +561,7 @@ if __name__ == "__main__":
     cbar.ax.tick_params(which='minor',length = 4)
 
     axP = fig.add_subplot(gs[0, 2], projection='mollweide')
-    img = axP.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_P, cmap='rainbow', vmin = Pmin, vmax = Pmax)  #color by intensity
+    img = axP.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_P, cmap='magma', vmin = Pmin, vmax = Pmax)  #color by intensity
     cbar = plt.colorbar(img, orientation='horizontal', pad = 0.1, label =r'P')
     cbar.ax.tick_params(which='major',length = 6)
     for ax in [axf, axalb, axP]:
@@ -571,7 +571,7 @@ if __name__ == "__main__":
         ax.set_yticks(np.radians(np.arange(-90, 91, 45))) 
         ax.set_yticklabels(['180°','135°', '90°', '45°', '0°']) #['-90°', '-45°', '0°', '45°','90°'])
     plt.suptitle(f't = {time:.1f} ' + r'$t_{\rm fb}$', fontsize=25, x = 0.5, y = .58)
-    plt.savefig(f'{abspath}/Figs/2.paperWind//FP_map{snap}.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'{abspath}/Figs/3.paperPolarization/FP_map{snap}.png', dpi=300, bbox_inches='tight')
 
     #%% WHAT IF PHOTOSPHERE IS A SPHERE (AND SO FLUX IS RADIAL)?
     F_x_rad = F_mag * x_heal
@@ -608,7 +608,7 @@ if __name__ == "__main__":
     fig = plt.figure(figsize=(20,10))
     gs = gridspec.GridSpec(1, 2, hspace=0.1, wspace = 0.2)
     axx = fig.add_subplot(gs[0, 0], projection='mollweide')
-    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pr, cmap='rainbow', vmin = Pmin, vmax = Pmax)  #color by intensity
+    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pr, cmap='magma', vmin = Pmin, vmax = Pmax)  #color by intensity
     cbar = plt.colorbar(img, orientation='horizontal', label =r'P')
     cbar.ax.tick_params(which='major',length = 5)
     cbar.ax.tick_params(which='minor',length = 3)
@@ -691,7 +691,7 @@ if __name__ == "__main__":
 
     fig = plt.figure(figsize=(30,15))
     axx = fig.add_subplot(gs[0, 0], projection='mollweide')
-    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pell, cmap='rainbow', vmin = Pmin, vmax = Pmax)  #color by intensity
+    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pell, cmap='magma', vmin = Pmin, vmax = Pmax)  #color by intensity
     cbar = plt.colorbar(img, orientation='horizontal', label =r'P')
     cbar.ax.tick_params(which='major',length = 5)
     cbar.ax.tick_params(which='minor',length = 3)
@@ -737,7 +737,7 @@ if __name__ == "__main__":
 
     fig = plt.figure(figsize=(30,15))
     axx = fig.add_subplot(gs[0, 0], projection='mollweide')
-    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pnorm, cmap='rainbow', vmin = Pmin, vmax = Pmax)  #color by intensity
+    img = axx.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_Pnorm, cmap='magma', vmin = Pmin, vmax = Pmax)  #color by intensity
     cbar = plt.colorbar(img, orientation='horizontal', label =r'P')
     cbar.ax.tick_params(which='major',length = 5)
     cbar.ax.tick_params(which='minor',length = 3)

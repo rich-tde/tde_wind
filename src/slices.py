@@ -48,7 +48,7 @@ Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 
 single_plot = False
-cut_chosen = 0
+cut_chosen = Rp
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 if cut_chosen == Rp:
@@ -75,7 +75,7 @@ if alice:
         path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
         path = f'{path}/snap_{snap}'
 
-        data = make_tree(path, snap, energy = True)
+        data = make_tree(path, snap)
         X, Y, Z, vol, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, Press = \
             data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Temp, data.IE, data.Rad, data.VX, data.VY, data.VZ, data.Diss, data.Press
         Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
@@ -112,7 +112,7 @@ if alice:
                 )
 
 else:
-    coord_to_cut = 'y' # 'x', 'y', 'z'
+    coord_to_cut = 'z' # 'x', 'y', 'z'
     time = np.loadtxt(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}_time.txt')
     snaps = time[0]
     snaps = np.array([int(snap) for snap in snaps])
@@ -201,6 +201,10 @@ else:
             time = tfb[idx]
 
             for c, coord_to_cut in enumerate(coords_to_cut):
+                if coord_to_cut == 'y':
+                    cut_name = 0
+                if coord_to_cut == 'z':
+                    cut_name = 25
                 data = np.load(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npz')
                 x = data["x"]
                 y = data["y"]
@@ -261,10 +265,10 @@ else:
                     else:
                         x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y)
                 else:
-                    # x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, param_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, color_plot = param_wind)
-                    # img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, param_grid/E_mb, cmap='coolwarm', norm=colors.SymLogNorm(linthresh=0.1, vmin=-1e2, vmax=1e2))
-                    x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, param_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, color_plot = Diss_den)
-                    img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, param_grid*prel.en_den_converter, cmap='viridis', norm=colors.LogNorm(vmin=10, vmax=1e9))
+                    x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, param_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, color_plot = param_wind)
+                    img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, param_grid/E_mb, cmap='coolwarm', norm=colors.SymLogNorm(linthresh=0.1, vmin=-1e2, vmax=1e2))
+                    # x_toplot_grid, y_toplot_grid, Vx_toplot_grid, Vy_toplot_grid, param_grid = orb.streamlines(x_toplot, y_toplot, VX_toplot, VY_toplot, params_x, params_y, color_plot = Diss_den)
+                    # img = ax.pcolormesh(x_toplot_grid/Rt, y_toplot_grid/Rt, param_grid*prel.en_den_converter, cmap='viridis', norm=colors.LogNorm(vmin=10, vmax=1e9))
                     if how == '_arrows': 
                         step = max(1, len(x_toplot) // N_arrows) 
                         print(f'Plotting {len(x_toplot[::step])} arrows out of {len(x_toplot)} points.')
@@ -307,8 +311,8 @@ else:
         cb.ax.tick_params(which='major', length=9, width=1.4)
         cb.ax.tick_params(which='minor', length=6, width=1.2)
 
-        if what == '_wind':
-            plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
-        else:
-            plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlicesDiss{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
+        # if what == '_wind':
+        #     plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
+        # else:
+        #     plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlicesDiss{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
             

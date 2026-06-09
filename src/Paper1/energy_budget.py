@@ -6,12 +6,14 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
+    compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
+    compute = False
 
 import numpy as np
-from Utilities.selectors_for_snap import select_snap
-from Utilities.operators import make_tree
+from Utilities.selectors_for_snap import select_snap, select_prefix
+from Utilities.operators import make_tree, choose_sections, choose_observers
 import Utilities.sections as sec
 import src.orbits as orb
 import Utilities.prelude as prel
@@ -29,7 +31,8 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-# thresh = '' # '' or 'cutCoord'
+what_paper = 'paper2' # 'paper1' or 'paper2'
+choice = 'left_right_z' # only for paper2
 
 #%%
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -40,123 +43,185 @@ Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
 apo = things['apo']
+a_mb = things['a_mb']
 t_fall = things['t_fb_days']
 t_fall_cgs = t_fall * 24 * 3600
 
+
 #%%
-if alice:
+if compute:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
 
     for i,snap in enumerate(snaps):
-        print(snap, flush=False)
-        sys.stdout.flush()
+        if snap < 76:
+            continue
+        print(snap, flush = True)
 
-        path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-        data = make_tree(path, snap, energy = True)
-        X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den = \
-            data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Mass, data.Vol, data.Den, data.IE, data.Rad
-        Rad = Rad_den * vol
-        # cut in density NOT in radiation
+        path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
+        if alice:
+            path = f'{path}/snap_{snap}'
+        else:            
+            path = f'{path}/{snap}'
+        data = make_tree(path, snap)
+        X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den, Press, Diss_den = \
+            data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Mass, data.Vol, data.Den, data.IE, data.Rad, data.Press, data.Diss
+        # cut all in density BUT radiation
         cut = den > 1e-19 
-        X_cut, Y_cut, Z_cut, VX_cut, VY_cut, VZ_cut, mass_cut, vol_cut, den_cut, ie_den_cut = \
-            sec.make_slices([X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den], cut)
-        Rsph_cut = np.sqrt(np.power(X_cut, 2) + np.power(Y_cut, 2) + np.power(Z_cut, 2))
-        vel_cut = np.sqrt(np.power(VX_cut, 2) + np.power(VY_cut, 2) + np.power(VZ_cut, 2))
-        kin_en_cut = 0.5 * mass_cut *vel_cut**2
-        orb_en_cut = orb.orbital_energy(Rsph_cut, vel_cut, mass_cut, params, prel.G)
-        ie_cut = ie_den_cut * vol_cut
+        X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den, Press, Diss_den = \
+            sec.make_slices([X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den, Press, Diss_den], cut)
+        Rsph = np.sqrt(np.power(X, 2) + np.power(Y, 2) + np.power(Z, 2))
+        vel = np.sqrt(np.power(VX, 2) + np.power(VY, 2) + np.power(VZ, 2))
 
-        # total energies with only the cut in density (not in radiation)
-        tot_ie = np.sum(ie_cut)
-        tot_orb_en_pos = np.sum(orb_en_cut[orb_en_cut > 0])
-        tot_orb_en_neg = np.sum(orb_en_cut[orb_en_cut < 0])
-        tot_Rad = np.sum(Rad)
-        tot_kin_en_pos = np.sum(kin_en_cut[orb_en_cut >= 0])
-        tot_kin_en_neg = np.sum(kin_en_cut[orb_en_cut < 0])
+        if what_paper == 'paper1': # Reproduce Fig.3 of Eddington paper
+            kin_en = 0.5 * mass *vel**2
+            orb_en = orb.orbital_energy(Rsph, vel, mass, params, prel.G)
+            ie = ie_den * vol
+            Rad = Rad_den * vol
 
-        data_E = [snap, tfb[i], tot_ie, tot_orb_en_pos, tot_orb_en_neg, tot_Rad, tot_kin_en_pos, tot_kin_en_neg]
-        csv_path = f'{abspath}/data/{folder}/convE_{check}.csv'
-        with open(csv_path, 'a', newline='') as file:
-            writer = csv.writer(file)
-            if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                header = ['snap', ' tfb', ' tot_ie', ' tot_orb_en_pos', ' tot_orb_en_neg', ' tot_Rad', ' tot_kin_en_pos', ' tot_kin_en_neg']
-                writer.writerow(header)
-            writer.writerow(data_E)
-        file.close()
+            # total energies with only the cut in density (not in radiation)
+            tot_ie = np.sum(ie)
+            tot_orb_en_pos = np.sum(orb_en[orb_en > 0])
+            tot_orb_en_neg = np.sum(orb_en[orb_en < 0])
+            tot_Rad = np.sum(Rad)
+            tot_kin_en_pos = np.sum(kin_en[orb_en >= 0])
+            tot_kin_en_neg = np.sum(kin_en[orb_en < 0])
+
+            data_E = [snap, tfb[i], tot_ie, tot_orb_en_pos, tot_orb_en_neg, tot_Rad, tot_kin_en_pos, tot_kin_en_neg]
+            csv_path = f'{abspath}/data/{folder}/convE_{check}.csv'
+            with open(csv_path, 'a', newline='') as file:
+                writer = csv.writer(file)
+                if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
+                    header = ['snap', ' tfb', ' tot_ie', ' tot_orb_en_pos', ' tot_orb_en_neg', ' tot_Rad', ' tot_kin_en_pos', ' tot_kin_en_neg']
+                    writer.writerow(header)
+                writer.writerow(data_E)
+            file.close()
+
+        if what_paper == 'paper2': 
+            cut = Rsph > 0.5 * a_mb
+            X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den, Press, Diss_den = \
+                sec.make_slices([X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den, Press, Diss_den], cut)
+            Diss = Diss_den * vol
+
+            _, bern, _ = orb.pick_wind(X, Y, Z, VX, VY, VZ, den, mass, Press, ie_den, Rad_den, params, cond = 'bern')
+            tot_en = bern * mass
+            sections = choose_sections(X, Y, Z, choice)
+            label_obs = []
+            cond_sec = []
+            for key in sections.keys():
+                label_obs.append(sections[key]['label'])
+                cond_sec.append(sections[key]['cond'])
+
+            Diss_sec = np.zeros(len(sections))
+            tot_en_sec = np.zeros(len(sections))
+            for k, cond in enumerate(cond_sec):
+                Diss_sec[k] = np.sum(Diss[cond & (Diss > 0)]) if cond.size > 0 else 0
+                tot_en_sec[k] = np.sum(tot_en[cond & (Diss > 0)]) if cond.size > 0 else 0
+
+            data = np.concatenate([[snap, tfb[i]], Diss_sec, tot_en_sec])
+            csv_path = f'{abspath}/data/{folder}/wind/Diss_tot_en_{choice}.csv'
+            with open(csv_path,'a', newline='') as file:
+                writer = csv.writer(file)
+                if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
+                    writer.writerow(['snap', 'tfb'] + [f'Diss {lab}' for lab in label_obs] + [f'tot_en {lab}' for lab in label_obs])
+                writer.writerow(data)
+                file.close()
+            
 
         del X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den
-        del X_cut, Y_cut, Z_cut, VX_cut, VY_cut, VZ_cut, mass_cut, vol_cut, den_cut, ie_den_cut
-        del Rsph_cut, vel_cut, orb_en_cut, ie_cut, Rad
         gc.collect()    
 
-else:
+if plot:
     import matplotlib.pyplot as plt
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-    data = np.loadtxt(f'{abspath}/data/{folder}/paper1/convE_{check}.csv', delimiter=',', dtype=float, skiprows=1)
-    snaps, tfb, IE, OEpos, OEEneg, Rad, Kinpos, Kinneg = data[:, 0], data[:, 1], data[:, 2], data[:, 3], data[:, 4], data[:, 5], data[:, 6], data[:, 7]
-    dataDiss = np.loadtxt(f'{abspath}/data/{folder}/paper1/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
-    tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3] *  prel.en_converter/prel.tsol_cgs
-    totalK = Kinneg + Kinpos
 
-    fig, (ax1, ax2) = plt.subplots(1,2, figsize = (18,7))
-    figL, axL = plt.subplots(1,1, figsize = (10,6))
-    ax1.plot(tfb, prel.en_converter * OEpos, c = '#fbb4b9', label = 'Orbital energy unbound gas')
-    ax1.plot(tfb, np.abs(prel.en_converter * OEEneg), c = '#fbb4b9', ls = ':', label = 'Orbital energy bound gas (abs value) ')
-    ax1.set_title(r'OE [erg]', fontsize = 24) 
-    ax2.set_ylim(1e43, 6e49)
-    # ax1.set_yscale('log')
+    if what_paper == 'paper1':
+        data = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/convE_{check}.csv', delimiter=',', dtype=float, skiprows=1)
+        snaps, tfb, IE, OEpos, OEEneg, Rad, Kinpos, Kinneg = data[:, 0], data[:, 1], data[:, 2], data[:, 3], data[:, 4], data[:, 5], data[:, 6], data[:, 7]
+        dataDiss = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
+        tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3] *  prel.en_converter/prel.tsol_cgs
+        totalK = Kinneg + Kinpos
 
-    ax2.plot(tfb, prel.en_converter * IE, c = '#f768a1', label = 'Thermal energy')
-    ax2.plot(tfb, prel.en_converter * Rad, c = '#7a0177', label = 'Radiation energy')
-    ax2.plot(tfb, prel.en_converter * Kinpos, c = '#fbb4b9', label = 'Kinetic energy unbound gas')
-    ax2.plot(tfb, np.abs(prel.en_converter * Kinneg), c = '#fbb4b9', ls = ':', label = 'Kinetic energy bound gas (abs value)')
-    ax2.set_title(r'Thermal and radiation (erg)', fontsize = 24) 
+        fig, (ax1, ax2) = plt.subplots(1,2, figsize = (18,7))
+        figL, axL = plt.subplots(1,1, figsize = (10,6))
+        ax1.plot(tfb, prel.en_converter * OEpos, c = '#fbb4b9', label = 'Orbital energy unbound gas')
+        ax1.plot(tfb, np.abs(prel.en_converter * OEEneg), c = '#fbb4b9', ls = ':', label = 'Orbital energy bound gas (abs value) ')
+        ax1.set_title(r'OE [erg]', fontsize = 24) 
+        ax2.set_ylim(1e43, 6e49)
+        # ax1.set_yscale('log')
 
-    # compute rates 
-    dtH = np.diff(tfb * t_fall_cgs)
-    dOEpos = np.diff(OEpos * prel.en_converter)
-    dOEEneg = np.diff(OEEneg * prel.en_converter)
-    dIE = np.diff(IE * prel.en_converter)
-    dRad = np.diff(Rad * prel.en_converter)
-    dKinpos = np.diff(Kinpos * prel.en_converter)
-    dKinneg = np.diff(Kinneg * prel.en_converter)
-    dTotalK = np.diff(totalK * prel.en_converter)
-    axL.plot(tfb[:-1], np.abs(dOEpos)/dtH, c = '#fbb4b9', linewidth = 2, label = 'Orb. en. unbound gas')
-    axL.plot(tfb[:-1], np.abs(dOEEneg)/dtH, c = '#fbb4b9', ls = ':', linewidth = 2, label = 'Orb. en. bound gas')
-    axL.plot(tfb[:-1], np.abs(dIE)/dtH, c = '#f768a1', linewidth = 2, label = 'Thermal energy')
-    axL.plot(tfb[:-1], np.abs(dRad)/dtH, c = '#7a0177', linewidth = 2, label = 'Radiation energy')
-    axL.plot(tfbdiss, LDiss, c = 'gray', linewidth = 2, label = r'$\dot{E}_{\rm irr}$', ls = '--')
-    # axL.plot(tfb[:-1], np.abs(dKinpos)/dtH, c = '#fbb4b9', label = 'Kinetic energy unbound gas')
-    # axL.plot(tfb[:-1], np.abs(dKinneg)/dtH, c = '#fbb4b9', ls = ':', label = 'Kinetic energy bound gas (abs value)')
-    # axL.plot(tfb[:-1], np.abs(dTotalK)/dtH, c = 'brown', label = 'Total Kinetic energy')
-    axL.set_ylabel(r'$|\dot{E}|$ (erg/s)') 
-    axL.set_ylim(1e39, 1e44)
+        ax2.plot(tfb, prel.en_converter * IE, c = '#f768a1', label = 'Thermal energy')
+        ax2.plot(tfb, prel.en_converter * Rad, c = '#7a0177', label = 'Radiation energy')
+        ax2.plot(tfb, prel.en_converter * Kinpos, c = '#fbb4b9', label = 'Kinetic energy unbound gas')
+        ax2.plot(tfb, np.abs(prel.en_converter * Kinneg), c = '#fbb4b9', ls = ':', label = 'Kinetic energy bound gas (abs value)')
+        ax2.set_title(r'Thermal and radiation (erg)', fontsize = 24) 
 
-    orginal_ticks = axL.get_xticks()
-    middle_ticks = (orginal_ticks[:-1] + orginal_ticks[1:]) /2
-    new_ticks = np.sort(np.concatenate((orginal_ticks, middle_ticks)))
-    labels = [str(np.round(tick,2)) if tick in orginal_ticks else "" for tick in new_ticks]       
-    for ax in (ax1, ax2, axL):
-        ax.tick_params(axis='both', which='major', width=1.2, length=7)
-        ax.tick_params(axis='both', which='minor', width=0.9, length=5)
-        ax.set_xticks(new_ticks)
-        ax.set_xticklabels(labels)
-        ax.set_xlabel(r't / t$_{\rm fb}$')
-        if ax != ax1:
-            ax.set_yscale('log')
-        ax.legend(fontsize = 15, loc = 'lower right')
-        ax.grid()
-        ax.set_xlim(0, np.max(tfb))
-    fig.tight_layout()
-    fig.savefig(f'{abspath}/Figs/1.paperEddEbudget_{check}.png', dpi = 300)
-    figL.tight_layout()
-    figL.savefig(f'{abspath}/Figs/1.paperEddEbudget_absrates_{check}.pdf', dpi = 300)
+        # compute rates 
+        dtH = np.diff(tfb * t_fall_cgs)
+        dOEpos = np.diff(OEpos * prel.en_converter)
+        dOEEneg = np.diff(OEEneg * prel.en_converter)
+        dIE = np.diff(IE * prel.en_converter)
+        dRad = np.diff(Rad * prel.en_converter)
+        dKinpos = np.diff(Kinpos * prel.en_converter)
+        dKinneg = np.diff(Kinneg * prel.en_converter)
+        dTotalK = np.diff(totalK * prel.en_converter)
+        axL.plot(tfb[:-1], np.abs(dOEpos)/dtH, c = '#fbb4b9', linewidth = 2, label = 'Orb. en. unbound gas')
+        axL.plot(tfb[:-1], np.abs(dOEEneg)/dtH, c = '#fbb4b9', ls = ':', linewidth = 2, label = 'Orb. en. bound gas')
+        axL.plot(tfb[:-1], np.abs(dIE)/dtH, c = '#f768a1', linewidth = 2, label = 'Thermal energy')
+        axL.plot(tfb[:-1], np.abs(dRad)/dtH, c = '#7a0177', linewidth = 2, label = 'Radiation energy')
+        axL.plot(tfbdiss, LDiss, c = 'gray', linewidth = 2, label = r'$\dot{E}_{\rm irr}$', ls = '--')
+        # axL.plot(tfb[:-1], np.abs(dKinpos)/dtH, c = '#fbb4b9', label = 'Kinetic energy unbound gas')
+        # axL.plot(tfb[:-1], np.abs(dKinneg)/dtH, c = '#fbb4b9', ls = ':', label = 'Kinetic energy bound gas (abs value)')
+        # axL.plot(tfb[:-1], np.abs(dTotalK)/dtH, c = 'brown', label = 'Total Kinetic energy')
+        axL.set_ylabel(r'$|\dot{E}|$ (erg/s)') 
+        axL.set_ylim(1e39, 1e44)
 
-
-    
-
-
-# %%
+        orginal_ticks = axL.get_xticks()
+        middle_ticks = (orginal_ticks[:-1] + orginal_ticks[1:]) /2
+        new_ticks = np.sort(np.concatenate((orginal_ticks, middle_ticks)))
+        labels = [str(np.round(tick,2)) if tick in orginal_ticks else "" for tick in new_ticks]       
+        for ax in (ax1, ax2, axL):
+            ax.tick_params(axis='both', which='major', width=1.2, length=7)
+            ax.tick_params(axis='both', which='minor', width=0.9, length=5)
+            ax.set_xticks(new_ticks)
+            ax.set_xticklabels(labels)
+            ax.set_xlabel(r't / t$_{\rm fb}$')
+            if ax != ax1:
+                ax.set_yscale('log')
+            ax.legend(fontsize = 15, loc = 'lower right')
+            ax.grid()
+            ax.set_xlim(0, np.max(tfb))
+        fig.tight_layout()
+        fig.savefig(f'{abspath}/Figs/1.paperEddEbudget_{check}.png', dpi = 300)
+        figL.tight_layout()
+        figL.savefig(f'{abspath}/Figs/1.paperEddEbudget_absrates_{check}.pdf', dpi = 300)
 
 
-# %%
+    if what_paper == 'paper2':
+        import healpy as hp
+        observers_xyz = hp.pix2vec(prel.NSIDE, np.arange(prel.NPIX)) #shape: (3, 192)
+        observers_xyz = np.array(observers_xyz)
+        indices_sorted, label_obs, colors_obs, _ = choose_observers(observers_xyz, choice = choice)
+        data = np.loadtxt(f'{abspath}/data/{folder}/wind/Diss_tot_en_{choice}.csv', delimiter=',', skiprows=1)
+        tfb = data[:, 1]
+        tfb_cgs = tfb * t_fall_cgs
+        Diss_sec = data[:, 2:2+len(label_obs)]
+        Diss_sec_cgs = Diss_sec * prel.en_converter/prel.tsol_cgs 
+        en_diss_cgs = Diss_sec_cgs * t_fall_cgs
+        tot_en_sec = data[:, 2+len(label_obs):2+2*len(label_obs)] 
+        tot_en_sec_cgs = tot_en_sec * prel.en_converter
+        delta_en = np.diff(tot_en_sec_cgs, axis = 0)
+        delta_diss = np.diff(en_diss_cgs, axis = 0)
+
+        plt.figure(figsize=(8,6))   
+        for i, lab in enumerate(label_obs): 
+            if lab == 'South pole':
+                continue
+            plt.scatter(tfb, en_diss_cgs[:, i], c = colors_obs[i], marker = 'o', label = lab)
+            plt.scatter(tfb, tot_en_sec_cgs[:, i], c = colors_obs[i], marker = 'x') 
+            # plt.scatter(tfb[1:], delta_diss[:, i], c = colors_obs[i], marker = 'o', label = lab)
+            # plt.scatter(tfb[1:], delta_en[:, i], c = colors_obs[i], marker = 'x')
+
+        plt.xlabel(r'$t/t_{\rm fb}$')
+        plt.ylabel(r'Energy (erg)')
+        plt.yscale('log')
+        plt.legend(fontsize = 16)

@@ -102,19 +102,34 @@ if alice:
             file.close()
         
 if plot:
+    import healpy as hp
+    from src.Wind.Mdot_Rfixed_sec import choose_observers
+    observers_xyz = hp.pix2vec(prel.NSIDE, np.arange(prel.NPIX)) #shape: (3, 192)
+    observers_xyz = np.array(observers_xyz)
+    indices_sorted, label_obs, colors_obs, _ = choose_observers(observers_xyz, choice = choice)
+
     csv_path = f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv'
-    data = np.genfromtxt(csv_path, delimiter=',', names=True)
-    snap = data['snap']
-    tfb = data['tfb']
-    M_out = np.array([data[f'M_out {lab}'] for lab in label_obs])
-    M_wind = np.array([data[f'M_w {lab}'] for lab in label_obs])
+    data = np.loadtxt(csv_path, delimiter=',', skiprows=1, unpack=True)
+    tfb = data[1]
+    M_tot = data[2:2+len(label_obs)] 
+    M_out = data[2+(len(label_obs)):2+2*(len(label_obs))] 
+    M_wind = data[2+2*(len(label_obs)):2+3*(len(label_obs))] 
+
+    for i in range(len(label_obs)):
+        M_out[i, :] -= M_wind[i, 0]
+        M_wind[i, :] -= M_wind[i, 0]
+    
     plt.figure(figsize=(8,6))
     for i, lab in enumerate(label_obs):
-        plt.plot(tfb, M_out[i], label = f'M_out {lab}')
-        plt.plot(tfb, M_wind[i], label = f'M_wind {lab}')
-    plt.xlabel('t/t_fb')
-    plt.ylabel('Mass [g]')
-    plt.legend()
-    plt.title(f'Mass unbound, {choice}')
-    plt.savefig(f'{abspath}/plots/{folder}/wind/Mass_unbound{choice}.png')
+        if lab == 'South pole':
+            continue
+        plt.plot(tfb, M_out[i]/M_tot[i], c = colors_obs[i],  ls = '--' )
+        plt.plot(tfb, M_wind[i]/M_out[i], c = colors_obs[i], label = lab)
+    plt.xlabel(r'$t/t_{\rm fb}$')
+    plt.ylabel('Mass ratio')
+    plt.yscale('log')
+    plt.ylim(1e-2, 1.2)
+    plt.legend(fontsize = 16)
+    # plt.savefig(f'{abspath}/plots/{folder}/wind/Mass_unbound{choice}.png')
     plt.show()
+# %%
