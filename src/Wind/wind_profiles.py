@@ -495,7 +495,7 @@ if what == 'radial':
         axd.set_ylim(2e-13, 1e-5)
         axV.set_ylim(1.5e3, 1.5e4)
         axT.set_ylim(2e4, 1e6)
-        axd.plot(x_test, y_test2, c = 'gray', ls = 'dotted', label = r'$\rho \propto r^{-2}$')
+        axd.plot(x_test, y_test2, c = 'gray', ls = '-.', label = r'$\rho \propto r^{-2}$')
         axd.text(75, 2e-11, r'$\rho \propto r^{-2}$', fontsize = 18, color = 'gray', rotation = -20)
         axV.axhline(v_esc_kms, c = 'k', ls = 'dotted')# 
         # axV.text(35, 1.1*0.2*v_esc_kms, r'0.2v$_{\rm esc} (r_{\rm p})$', fontsize = 20, color = 'k')
@@ -516,7 +516,7 @@ if what == 'radial':
         solid_proxy = mlines.Line2D([0], [0], color='cornflowerblue', ls='-', linewidth=2,
                                     label='Unbound outflow (wind)')
         dashed_proxy = mlines.Line2D([0], [0], color='cornflowerblue', ls='--', linewidth=2,
-                                    label='Unbound + bound outflow')
+                                    label='(unbound + bound) Outflow')
 
         legend2 = axd.legend(handles=[solid_proxy, dashed_proxy],
                             fontsize=16,

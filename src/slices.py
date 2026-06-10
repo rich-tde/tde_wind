@@ -48,7 +48,7 @@ Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 
 single_plot = False
-cut_chosen = Rp
+cut_chosen = 50
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 if cut_chosen == Rp:
@@ -204,7 +204,7 @@ else:
                 if coord_to_cut == 'y':
                     cut_name = 0
                 if coord_to_cut == 'z':
-                    cut_name = 25
+                    cut_name = 50
                 data = np.load(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npz')
                 x = data["x"]
                 y = data["y"]

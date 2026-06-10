@@ -115,6 +115,7 @@ if plot:
     M_out = data[2+(len(label_obs)):2+2*(len(label_obs))] 
     M_wind = data[2+2*(len(label_obs)):2+3*(len(label_obs))] 
 
+    print(np.sum(M_out[:, 1]))
     for i in range(len(label_obs)):
         M_out[i, :] -= M_wind[i, 0]
         M_wind[i, :] -= M_wind[i, 0]
@@ -125,6 +126,7 @@ if plot:
             continue
         plt.plot(tfb, M_out[i]/M_tot[i], c = colors_obs[i],  ls = '--' )
         plt.plot(tfb, M_wind[i]/M_out[i], c = colors_obs[i], label = lab)
+        print(lab, 'outflow: ', M_out[i, -1], ', wind/out: ', M_wind[i, -1]/M_out[i, -1])
     plt.xlabel(r'$t/t_{\rm fb}$')
     plt.ylabel('Mass ratio')
     plt.yscale('log')

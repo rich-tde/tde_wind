@@ -284,7 +284,7 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
         for k, obs in enumerate(label_obs):
             if k == 3:
                 continue
-            print(obs, '|| ratio Xray/opt: ', Lum_Xray_MG[k][idx_t_MG]/Lum_op_sum[k][idx_t_fld], ' ratio UV/opt: ', Lum_op_sum[k][idx_t_fld]/Lum_UV_sum[k][idx_t_fld])
+            print(obs, '|| ratio Xray/opt: ', Lum_Xray_MG[k][idx_t_MG]/Lum_op_sum[k][idx_t_fld], ' ratio opt/UV: ', Lum_op_sum[k][idx_t_fld]/Lum_UV_sum[k][idx_t_fld])
 
     if group == 'sections': # each panel show a spherical sector
         len_plot = len(label_obs) 
@@ -353,9 +353,9 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
     plt.tight_layout()
     plt.savefig(f'{abspath}/Figs/2.paperWind/LCs_{choice}_{group}.pdf', dpi=300)
 
-plot_spectra(folder, check, snaps, x_axis, choice)
+# plot_spectra(folder, check, snaps, x_axis, choice)
 # plot_light_curves(folder, check, choice, group = 'sections')
-# plot_light_curves(folder, check, choice, group = 'bands')
+plot_light_curves(folder, check, choice, group = 'bands')
 # plot_light_curves(folder, check, choice, group = 'bandsMG')
 
 
