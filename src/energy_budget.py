@@ -55,8 +55,8 @@ if compute:
         energies = {} 
 
     for i,snap in enumerate(snaps):
-        # if snap != 76:
-        #     continue
+        if snap not in [76, 109]:
+            continue
         print(snap, flush = True)
 
         path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -255,12 +255,12 @@ if plot:
 
         figE, (axE, axD) = plt.subplots(1, 2, figsize=(18,6))
         for i, lab in enumerate(label_obs): 
-            if lab == 'South pole':
+            if i not in [0,1]:
                 continue
-            axE.scatter(tfb, bern_sec_cgs[:, i], c = colors_obs[i], ls = '--') 
-            axE.scatter(tfb, en_diss_cgs[:, i], c = colors_obs[i], marker = 'x',label = lab)
-            axD.scatter(tfb[1:], delta_en[:, i], c = colors_obs[i], ls = '--', label = f'total energy' if i == 0 else None)
-            axD.scatter(tfb[1:], delta_diss[:, i], c = colors_obs[i], marker = 'x', label = f'dissipation' if i == 0 else None)
+            axE.plot(tfb, bern_sec_cgs[:, i], c = colors_obs[i], ls = '--') 
+            axE.plot(tfb, en_diss_cgs[:, i], c = colors_obs[i], label = lab)
+            axD.plot(tfb[1:], delta_en[:, i], c = colors_obs[i], ls = '--', label = f'total energy' if i == 0 else None)
+            axD.plot(tfb[1:], delta_diss[:, i], c = colors_obs[i],  label = f'dissipation' if i == 0 else None)
 
         for ax in (axE, axD):
             ax.tick_params(axis='both', which='major', width=1.2, length=7)
