@@ -107,10 +107,7 @@ def statistics_col(snaps, check):
     percentile16 = np.zeros(len(snaps))
     percentile84 = np.zeros(len(snaps))
     for i, snapi in enumerate(snaps):
-        try:
-            colorpshere = np.load(f'{abspath}/data/{commonfold}{check}/spectraNEW/{check}_Rcol{snapi}.npz')
-        except:
-            continue
+        colorpshere = np.load(f'{abspath}/data/{commonfold}{check}/spectra/{check}_Rcol{snapi}.npz')
         xcol_i, ycol_i, zcol_i = colorpshere['x'], colorpshere['y'], colorpshere['z']
         rcol_i = np.sqrt(xcol_i**2 + ycol_i**2 + zcol_i**2)
         mean_col[i] = np.mean(rcol_i)

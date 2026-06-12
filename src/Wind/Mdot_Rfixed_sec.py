@@ -9,7 +9,7 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = False
+    compute = True
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -38,7 +38,7 @@ compton = 'Compton'
 check = 'HiResNewAMR'
 choice = 'left_right_z' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
 how = '' # '' for the normalized sum or 'mean' for mean of Mw of each cells
-what = 'outflow' # '' for wind or 'outflow'
+what = '' # '' for wind or 'outflow'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
@@ -113,7 +113,7 @@ def Mdot_sec(path, snap, r_chosen, choice, how = ''):
         make_slices([X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
     if X.size == 0:
         return np.array([0]*len(label_obs)*3) # to have the right shape in all cases
-    
+
     cut, _, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, cond = 'bern')
 
     if what == 'outflow':
@@ -133,7 +133,42 @@ def Mdot_sec(path, snap, r_chosen, choice, how = ''):
     Lkin = np.zeros(len(indices_sec))
 
     C_mult = 4/len(indices_sec) # to have the right normalization in all cases
+    if not alice:
+        fig, ((axd, axR, axdim), (axX, axY, axZ)) = plt.subplots(2,3, figsize = (18, 12))
+        R_wind = np.sqrt(X_wind**2 + Y_wind**2 + Z_wind**2)
+        for ax in [axd, axR, axdim, axX, axY, axZ]:
+            ax.set_yscale('log')
+            ax.grid()
+        axd.set_xscale('log')
+        axd.set_xlabel(r'$\rho$ [g/cm$^3$]')
+        axd.set_ylabel(r'$N_{\rm cell}$')
+        axR.set_xlabel(r'$r/r_{\rm t}$')
+        axdim.set_xlabel(r'$r_{\rm cell}/r_{\rm t}$')
+        axX.set_ylabel(r'$N_{\rm cell}$')
+        axX.set_xlabel(r'$X/r_{\rm t}$')
+        axY.set_xlabel(r'$Y/r_{\rm t}$')
+        axZ.set_xlabel(r'$Z/r_{\rm t}$')
+        fig.suptitle(f't = {tfb[i]:.2f} ' + r't$_{\rm fb}$', fontsize = 20)
+        axR.axvline(r_chosen/Rt, c = 'k', ls = '--')
     for j, indices in enumerate(indices_sec):
+        if not alice: 
+            if j not in [0, 1]: 
+                continue
+            # ratio = dim_cell_wind[indices]/np.abs(R_wind[indices]-r_chosen)
+            # print(ratio[ratio<=1])
+            counts_d, bin_d = np.histogram(Den_wind[indices], bins = 80)
+            counts_R, bin_R = np.histogram(R_wind[indices], bins = 80)
+            counts_dim, bin_dim = np.histogram(dim_cell_wind[indices], bins = 80)
+            counts_X, bin_X = np.histogram(X_wind[indices], bins = 80)
+            counts_Y, bin_Y = np.histogram(Y_wind[indices], bins = 80)
+            counts_Z, bin_Z = np.histogram(Z_wind[indices], bins = 80)
+            axd.plot(bin_d[:-1]*prel.den_converter, counts_d, label = label_obs[j], color = color_obs[j])
+            axR.plot(bin_R[:-1]/Rt, counts_R, color = color_obs[j])
+            axdim.plot(bin_dim[:-1]/Rt, counts_dim, color = color_obs[j])
+            axX.plot(bin_X[:-1]/Rt, counts_X, color = color_obs[j])
+            axY.plot(bin_Y[:-1]/Rt, counts_Y, color = color_obs[j])
+            axZ.plot(bin_Z[:-1]/Rt, counts_Z, color = color_obs[j])
+            
         # select the particles in the chosen section and at the chosen radius
         if how == '':   
             mwind[j] = C_mult * r_chosen**2 * np.sum(Mdot[indices]) / np.sum(dim_cell_wind[indices]**2)
@@ -146,7 +181,10 @@ def Mdot_sec(path, snap, r_chosen, choice, how = ''):
             Lkin[j] = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices]**3) 
         
     data = np.concatenate([mwind, Lum_fs, Lkin])
-
+    if not alice: 
+        axd.legend(fontisize = 18)
+        fig.tight_layout()
+        fig.savefig(f'{abspath}/Figs/{folder}/Wind/stat_MdotSec_{which_r_title}{snap}.png', dpi = 150)
     return data
 
 if __name__ == '__main__':
@@ -164,7 +202,7 @@ if __name__ == '__main__':
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
             else: 
-                if snap not in [109, 151]:
+                if snap not in [76, 109, 151]:
                     continue
                 path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
             print(snap, flush=True)
@@ -180,7 +218,7 @@ if __name__ == '__main__':
                     writer.writerow(data_tosave)
                 file.close()
 
-    if plot:
+    else:
         which_r_title = '05amin'
         
         # snap_for_scatter = 109
@@ -199,7 +237,7 @@ if __name__ == '__main__':
         # axM.scatter(X/Rt, Z/Rt, c = Mdot_approx/Medd_sol, s = 2, norm = colors.LogNorm(vmin = 1e3, vmax = 1e6), cmap = 'rainbow',)
         
         fallback = \
-                np.loadtxt(f'{abspath}/data/{folder}/paper1/wind/Mdot_{check}05aminmean.csv', 
+                np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_{check}05aminmean.csv', 
                         delimiter = ',', 
                         skiprows=1, 
                         unpack=True)

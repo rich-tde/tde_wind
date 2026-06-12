@@ -62,7 +62,6 @@ Lum_theory = 5e41*time_theory**(-5/3)
 meanRph, medianRph, percentile16, percentile84 = statistics_photo(snaps, check)
 meancol, mediancol, _, _ = statistics_col(snaps, check)
 medianTemprad_ph = np.zeros(len(snaps))
-meancoln, mediancoln = np.zeros(len(snaps)), np.zeros(len(snaps))
 f_ph = np.zeros(len(snaps))
 for i, snap in enumerate(snaps):
     # x_ph, y_ph, z_ph, vol_ph, den_ph, Temp_ph, RadDen_ph, Vx_ph, Vy_ph, Vz_ph, Press_ph, IE_den_ph, alpha_ph, _, _, _ = \
@@ -71,11 +70,9 @@ for i, snap in enumerate(snaps):
     x_ph, y_ph, z_ph, den_ph, vol_ph, RadDen_ph, Temp_ph, Vx_ph, Vy_ph, Vz_ph, Press_ph, IE_den_ph, alpha_ph= \
         photo['x'], photo['y'], photo['z'], photo['den'], photo['vol'], photo['radden'], photo['temp'], photo['vx'], photo['vy'], photo['vz'], photo['P'], photo['ieden'], photo['alpha_rossland']
     if snap == 151:
-        colorsphere = np.load(f'{abspath}/data/{folder}/spectraNEW/{check}_Rcol{snap}.npz')
+        colorsphere = np.load(f'{abspath}/data/{folder}/spectra/{check}_Rcol{snap}.npz')
         T_col = colorsphere['temp']
         print('mean and median T_col (1e4) at snap 151:', np.mean(T_col)*1e-4, np.median(T_col)*1e-4)
-    #     mediancoln[i] = np.median(np.sqrt(x_coln**2 + y_coln**2 + z_coln**2))
-    #     meancoln[i] = np.mean(np.sqrt(x_coln**2 + y_coln**2 + z_coln**2))
 
     Temprad_ph = (RadDen_ph*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
     if i == idx_maxLum:
@@ -85,8 +82,6 @@ for i, snap in enumerate(snaps):
         kappa = one_over_kappa_ph**(-1)
         print('kappa at max L:', kappa)
     r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
-    # mediancol[i] = np.median(np.sqrt(x_col**2 + y_col**2 + z_col**2))
-    # meancol[i] = np.mean(np.sqrt(x_col**2 + y_col**2 + z_col**2))
     vel_ph = np.sqrt(Vx_ph**2 + Vy_ph**2 + Vz_ph**2)
     mass_ph = den_ph * vol_ph
     oe_ph = orb.orbital_energy(r_ph, vel_ph, mass_ph, params, prel.G)
@@ -200,10 +195,7 @@ for i, snap in enumerate(snaps):
     x_ph, y_ph, z_ph = photosphere[0], photosphere[1], photosphere[2]
     r_old = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
     medianRph_old[i] = np.median(r_old)
-    try:
-        photo = np.load(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}.npz')
-    except FileNotFoundError:
-        continue
+    photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
     x_ph, y_ph, z_ph= photo['x'], photo['y'], photo['z']
     r_new = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
     medianRph_new[i] = np.median(r_new)

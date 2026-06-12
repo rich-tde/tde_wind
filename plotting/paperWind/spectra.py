@@ -44,7 +44,7 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 def plot_spectra(folder, check, snaps, x_axis, choice, in_moll = True):
     # Load
     pre_saving = f'{abspath}/data/{folder}'
-    freqs = np.loadtxt(f'{pre_saving}/spectraNEW/freqs.txt')
+    freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt')
     idx_opt = np.where(np.logical_and(freqs > low_freq_optical, freqs < high_freq_UV))[0][0]
     # idx_UV = np.where(np.logical_and(freqs > high_freq_optical, freqs < high_freq_UV))[0][0]
     idx_Xray = np.where(np.logical_and(freqs > high_freq_UV, freqs < high_freq_Xray))[0][0]
@@ -80,8 +80,8 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll = True):
     fig_sp, ax = plt.subplots(1, len(snaps), figsize=(24,7))
     for s, snap in enumerate(snaps):
         time = tfb[snaps_fld == snap][0]
-        L_col = np.loadtxt(f'{pre_saving}/spectraNEW/{check}_spectra{snap}.txt')
-        photo = np.load(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}.npz')
+        L_col = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
+        photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
         Lum_ph = photo['Lum']
         for i in range(len(L_col)):
             norm = Lum_ph[i] / np.trapezoid(L_col[i,:], freqs)
@@ -197,7 +197,7 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll = True):
 def plot_light_curves(folder, check, choice, group = 'bands'):
     # Load
     pre_saving = f'{abspath}/data/{folder}'
-    freqs = np.loadtxt(f'{pre_saving}/spectraNEW/freqs.txt')
+    freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt')
     idx_opt = np.where(np.logical_and(freqs > low_freq_optical, freqs < high_freq_optical))[0][0]
     idx_UV = np.where(np.logical_and(freqs > high_freq_optical, freqs < high_freq_UV))[0][0]
     idx_Xray = np.where(np.logical_and(freqs > high_freq_UV, freqs < high_freq_Xray))[0][0]
@@ -218,8 +218,8 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
     Lum_Xray_sum = []
     time_col = []
     for s, snap in enumerate(snaps_fld):
-        L_col = np.loadtxt(f'{pre_saving}/spectraNEW/{check}_spectra{snap}.txt')
-        photo = np.load(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}.npz')
+        L_col = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
+        photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
         Lum_ph = photo['Lum']
         for i in range(len(L_col)):
             norm = Lum_ph[i] / np.trapezoid(L_col[i,:], freqs)
@@ -353,9 +353,9 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
     plt.tight_layout()
     plt.savefig(f'{abspath}/Figs/2.paperWind/LCs_{choice}_{group}.pdf', dpi=300)
 
-# plot_spectra(folder, check, snaps, x_axis, choice)
-# plot_light_curves(folder, check, choice, group = 'sections')
+plot_spectra(folder, check, snaps, x_axis, choice)
+plot_light_curves(folder, check, choice, group = 'sections')
 plot_light_curves(folder, check, choice, group = 'bands')
-# plot_light_curves(folder, check, choice, group = 'bandsMG')
+plot_light_curves(folder, check, choice, group = 'bandsMG')
 
 
