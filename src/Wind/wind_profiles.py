@@ -105,7 +105,7 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
         colors_obs.append(sections[key]['color'])
         label_obs.append(sections[key]['label'])
         lines_obs.append(sections[key]['line'])
-
+    
     shell_indices = []
     shell_all_indices = []
     for i, r in enumerate(ray_array): 
@@ -124,15 +124,14 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
     shell_all_indices = [np.asarray(s, dtype=int) for s in shell_all_indices]
 
     all_outflows = {}
-    # figtest, axtest = plt.subplots(1,1,figsize=(8,8))
-    # coltest = plt.cm.get_cmap('rainbow', 10)
-    # axtest.set_xlim(-30, 30)
-    # axtest.set_ylim(-30, 30)
-    # axtest.set_xlabel(r'X/$r_{\rm t}$')
-    # axtest.set_ylabel(r'Z/$r_{\rm t}$')
+    figtest, (axtest, axtest_sec) = plt.subplots(1,2,figsize=(16,8))
+    coltest = plt.cm.get_cmap('rainbow', Nray)
+    axtest.set_xlabel(r'X/$r_{\rm t}$')
+    axtest.set_ylabel(r'Z/$r_{\rm t}$')
     for j, cond in enumerate(cond_sec):
         if what_varies == 'theta': # should be 2\pi r*l where l is the arch in the theta dir, which is l = rdtheta. \pi goes away dividing, so 2r^2dtheta
             const_C = 2 * r_fixed**2 * delta_theta / len(cond_sec)
+            min_lat = np.min(lat[cond_sec[j]])
         cond_all = cond_sec_all[j]
         t_prof = np.zeros(Nray)
         v_rad_prof = np.zeros(Nray)
@@ -151,6 +150,8 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
         for i, r in enumerate(ray_array): 
             if what_varies == 'r':
                 const_C = 4*r**2/len(cond_sec)
+            if np.logical_and(what_varies == 'theta', r < min_lat):
+                continue
             # find cells in the shell at r
             shell = shell_indices[i]
             shell_all = shell_all_indices[i]
@@ -163,7 +164,8 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
                 continue
             idx = shell[mask]
             len_all = len(shell_all[mask_all])
-            # img = axtest.scatter(X[idx]/Rt, Z[idx]/Rt, s = 10, label = f'{r:.2f}' if j not in [1] else None, c = coltest(i))
+            img = axtest.scatter(X[idx]/Rt, Z[idx]/Rt, s = 10, label = f'{r:.2f}' if j not in [1] else None, c = coltest(i))
+            axtest_sec.scatter(X[idx]/Rt, Z[idx]/Rt, s = 10, label = f'{r:.2f}' if j not in [1] else None, c = colors_obs[j])
             
             ray_V_r = V_r[idx] 
             ray_d = Den[idx] 
@@ -211,29 +213,29 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
 #   
 ## MAIN
 #
-compute = True
-which_part = 'outflow' # 'outflow' or 'all' or 'wind' to have the wind
+compute = False
+which_part = 'wind' # 'outflow' or 'all' or 'wind' to have the wind
 what_varies = 'theta' # 'r' or 'theta', only for radial profiles
 which_obs = 'left_right_z' # 'left_right_z', 'all' or 'in_out_z'
 
 if compute:
     snaps = [76, 109, 151]
-    for snap in snaps:
+    for snap in snaps: 
         path = f'{pre}/{snap}'
         if what_varies == 'r':
             ray_params = [Rt, 1e3*Rt, 300]
             r_chosen_name = ''
         elif what_varies == 'theta':
-            r_chosen = 0.5 * amin
-            r_chosen_name = '05amin'
-            ray_params = [r_chosen, 10]
+            r_chosen = amin
+            r_chosen_name = 'amin'
+            ray_params = [r_chosen, 100]
 
         all_outflows = profiles(path, snap, ray_params, which_obs, which_part, what_varies)
         out_path = f"{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}_profSec{snap}_{which_obs}_{which_part}.npy"
         np.save(out_path, all_outflows, allow_pickle=True)
 
 else:
-    which_plot = 'single_time' # 'time_compare' or 'single_time'
+    which_plot = 'single_time' # 'time_compare' or 'single_time' or 
     # arrange for plotting
     observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
     x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
@@ -262,10 +264,13 @@ else:
         axratio.set_ylim(5e-2, 1.1)
     elif what_varies == 'theta':
         from Utilities.basic_units import radians
-        r_chosen_name = '05amin'
+        r_chosen_name = 'amin'
         norm = radians 
+        axd.set_title(f'r = {r_chosen_name}', fontsize = 18)
+        axd.set_ylim(5e-14, 1e-8)
+        axV.set_ylim(1.5e3, 1.5e4)
         axM.set_ylim(1e1, 1e6)
-        axd.text(np.pi/18, 5e-8, f'r = {r_chosen_name}', fontsize = 18)
+        axLkin.set_ylim(1e-4, 5) 
 
     if which_plot == 'time_compare':
         snaps = [76, 109, 151]
@@ -274,10 +279,15 @@ else:
         line_styles_parts = ['-.', '--', '-']
         
     else:
-        snap = 54
-        which_parts = ['outflow', 'wind']
-        labels_parts =  ['(unbound + bound) Outflow', 'Unbound outflow (wind)']
-        line_styles_parts = ['--', '-']
+        snaps = [151]
+        if what_varies == 'theta':
+            which_parts = ['wind']
+            labels_parts = ['05amin', 'amin', 'apo']
+            line_styles_parts = ['-']
+        else:
+            which_parts = ['outflow', 'wind']
+            labels_parts =  ['(unbound + bound) Outflow', 'Unbound outflow (wind)']
+            line_styles_parts = ['--', '-']
 
     handles_color = []
     labels_color = []
@@ -422,19 +432,27 @@ else:
             ax.set_xlim(1.5, 1.4e2)
         elif what_varies == 'theta':
             ax.set_yscale('log')
-            ax.set_xlim(0, np.pi/2)
+            ax.set_xlim(np.pi/3, 2*np.pi/3)
+            ax.set_xticks([np.pi/3, 4*np.pi/9, np.pi/2, 5*np.pi/9, 2*np.pi/3])
+            ax.set_xticklabels([r'$\pi/3$', r'$4\pi/9$', r'$\pi/2$', r'$5\pi/9$', r'$2\pi/3$'])
+            # ax.set_xticks([0, np.pi/6, np.pi/3, np.pi/2, 2*np.pi/3, 5*np.pi/6, np.pi])
+            # ax.set_xticklabels([r'$0$', r'$\pi/6$', r'$\pi/3$', r'$\pi/2$', r'$2\pi/3$', r'$5\pi/6$', r'$\pi$'])
         ax.grid()
         if what_varies == 'theta':
             if ax != axLkin:
                 ax.set_xlabel('')
             
     axLkin.set_xlabel(r'$r /r_{\rm t}$' if what_varies == 'r' else r'$\theta$', fontsize = 28)
-    # fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 30)
-    figM.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 30)
     fig.tight_layout()
     figM.tight_layout()
-    if what_varies == 'r':
-        fig.savefig(f'{abspath}/Figs/2.paperWind/den_prof_{snap}.pdf', bbox_inches = 'tight')
-        figM.savefig(f'{abspath}/Figs/2.paperWind/LT_{snap}.pdf', bbox_inches = 'tight')
-    else: 
-        fig.savefig(f'{abspath}/Figs/{folder}/wind/den_prof_{snap}.png', bbox_inches = 'tight')
+    # if which_plot == 'time_compare':
+    #     fig.savefig(f'{abspath}/Figs/{folder}/wind/den_prof_{what_varies}{r_chosen_name}_evol_zoom.png', bbox_inches = 'tight')
+    # else:
+    #     axd.set_title(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 30)
+    #     figM.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 30)
+    #     if what_varies == 'r':
+    #         fig.savefig(f'{abspath}/Figs/2.paperWind/den_prof_{snap}.pdf', bbox_inches = 'tight')
+    #         figM.savefig(f'{abspath}/Figs/2.paperWind/LT_{snap}.pdf', bbox_inches = 'tight')
+    #     else: 
+    #         fig.savefig(f'{abspath}/Figs/{folder}/wind/den_prof_{what_varies}{r_chosen_name}{snap}.png', bbox_inches = 'tight')
+    
