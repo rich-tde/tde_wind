@@ -178,11 +178,11 @@ else:
         from matplotlib import gridspec
         what = '' # '' or '_wind' (if you want to pick the wind and plot only the streamlines that belong to the wind)
         how = '' # '' if you want streamlines, '_arrows' if you want arrows 
-        coords_to_cut = ['z','y']
+        coords_to_cut = ['z'] #['z','y']
         idx_wanted = [np.argmin(np.abs(snaps - 76)), 
                       np.argmin(np.abs(snaps - 109)), 
                       np.argmin(np.abs(snaps - 151))]
-        lim_plot = 2*apo
+        lim_plot = 150 #apo
         N_arrows = 200
         params = [Mbh, Rstar, mstar, beta]
         things = orb.get_things_about(params)
@@ -204,7 +204,7 @@ else:
                 if coord_to_cut == 'y':
                     cut_name = 0
                 if coord_to_cut == 'z':
-                    cut_name = 50
+                    cut_name = 'Rp'
                 data = np.load(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npz')
                 x = data["x"]
                 y = data["y"]
@@ -305,14 +305,14 @@ else:
         cbar_ax = fig.add_axes([cbar_left, cbar_bottom, cbar_width, cbar_height])
         
         cb = fig.colorbar(img, orientation='horizontal', cax=cbar_ax, aspect=50)
-        cb.set_label(r'$\dot{u}_{\rm diss}$ (erg s$^{-1}$ cm$^{-3}$)', fontsize = 50)
-        # cb.set_label(r'$\mathcal{B}/\Delta\varepsilon$', fontsize = 55)
+        # cb.set_label(r'$\dot{u}_{\rm diss}$ (erg s$^{-1}$ cm$^{-3}$)', fontsize = 50)
+        cb.set_label(r'$\mathcal{B}/\Delta\varepsilon$', fontsize = 55)
         cb.ax.tick_params(labelsize=50)
         cb.ax.tick_params(which='major', length=9, width=1.4)
         cb.ax.tick_params(which='minor', length=6, width=1.2)
 
-        # if what == '_wind':
-        #     plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
-        # else:
-        #     plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlicesDiss{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
+        if what == '_wind':
+            plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
+        else:
+            plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlicesDiss{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
             
