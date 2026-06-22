@@ -12,8 +12,10 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
+    compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
+    compute = False
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
 
@@ -42,22 +44,23 @@ Rs = things['Rs']
 Rt = things['Rt']
 Rp = things['Rp']
 apo = things['apo']
+amin = things['a_mb']
 E_mb = things['E_mb']
 Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
-
-single_plot = False
-cut_chosen = 50
-
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-if cut_chosen == Rp:
-    cut_name = 'Rp'
-else:
-    cut_name =  cut_chosen
 
-if alice:
-    coord_to_cut = 'y' # 'x', 'y', 'z'
+if compute:
+    cut_chosen = 50
+
+    if cut_chosen == Rp:
+        cut_name = 'Rp'
+    elif cut_chosen ==  0.5*amin:
+        cut_name = '05amin'
+    else:
+        cut_name =  cut_chosen
+    coord_to_cut = 'z' # 'x', 'y', 'z'
     print(f'cut at {coord_to_cut} = {cut_chosen}', flush=True)
     # get ready to slice and save
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
@@ -69,11 +72,14 @@ if alice:
         file.close()
 
     for idx, snap in enumerate(snaps):
-        # if snap > 50:
-        #         continue
+        if snap not in [54]: # if you want to compute only some snaps for the movie
+                continue
         print(snap, flush=True)
         path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
-        path = f'{path}/snap_{snap}'
+        if alice:
+            path = f'{path}/snap_{snap}'
+        else:
+            path = f'{path}/{snap}'
 
         data = make_tree(path, snap)
         X, Y, Z, vol, den, mass, Temp, ie_den, Rad_den, VX, VY, VZ, Diss_den, Press = \
@@ -112,8 +118,9 @@ if alice:
                 )
 
 else:
+    single_plot = False
     coord_to_cut = 'z' # 'x', 'y', 'z'
-    time = np.loadtxt(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}_time.txt')
+    time = np.loadtxt(f'{abspath}/data/{folder}/slices/z/z0_time.txt')
     snaps = time[0]
     snaps = np.array([int(snap) for snap in snaps])
     tfb = time[1]
@@ -179,15 +186,12 @@ else:
         what = '' # '' or '_wind' (if you want to pick the wind and plot only the streamlines that belong to the wind)
         how = '' # '' if you want streamlines, '_arrows' if you want arrows 
         coords_to_cut = ['z'] #['z','y']
+        cuts_chosen = [0] #['0', '0']
         idx_wanted = [np.argmin(np.abs(snaps - 76)), 
                       np.argmin(np.abs(snaps - 109)), 
                       np.argmin(np.abs(snaps - 151))]
-        lim_plot = 150 #apo
+        lim_plot = 150 #2*apo
         N_arrows = 200
-        params = [Mbh, Rstar, mstar, beta]
-        things = orb.get_things_about(params)
-        amin = things['a_mb']
-        xcr, ycr, cr = orb.make_cfr(0.5*amin)
         x_line = np.arange(-lim_plot, lim_plot) * Rt
         y_line = draw_line(x_line, np.pi/6, what = 'line')
         y_lineneg = draw_line(x_line, 5*np.pi/6, what = 'line')
@@ -201,10 +205,16 @@ else:
             time = tfb[idx]
 
             for c, coord_to_cut in enumerate(coords_to_cut):
-                if coord_to_cut == 'y':
-                    cut_name = 0
-                if coord_to_cut == 'z':
+                cut_chosen = cuts_chosen[c]
+                if cut_chosen == Rp:
                     cut_name = 'Rp'
+                elif cut_chosen ==  0.5*amin:
+                    cut_name = '05amin'
+                else:
+                    cut_name =  cut_chosen
+                print(f'Plotting slice for {coord_to_cut} = {cut_chosen} Rsol = {cut_name}')
+                r_circleamin = 0.5*amin * np.sin(np.arccos(cut_chosen/(0.5*amin))) 
+                xcr, ycr, cr = orb.make_cfr(r_circleamin)
                 data = np.load(f'{abspath}/data/{folder}/slices/{coord_to_cut}/{coord_to_cut}{cut_name}slice_{snap}.npz')
                 x = data["x"]
                 y = data["y"]
@@ -314,5 +324,5 @@ else:
         if what == '_wind':
             plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
         else:
-            plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlicesDiss{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
+            plt.savefig(f'{abspath}/Figs/2.paperWind/deeperanalysis/WindSlices{what}{how}_{coord_to_cut}{cut_name}.png', bbox_inches='tight', pad_inches=0.05)
             
