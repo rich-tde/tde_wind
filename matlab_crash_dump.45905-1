@@ -1,0 +1,83 @@
+
+--------------------------------------------------------------------------------
+          Segmentation violation detected at 2026-02-27 10:14:18 +0900
+--------------------------------------------------------------------------------
+
+Configuration:
+  Crash Decoding           : Disabled - No sandbox or build area path
+  Crash Mode               : continue (default)
+  Default Encoding         : UTF-8
+  Deployed                 : false
+  Graphics Driver          : Uninitialized hardware 
+  MATLAB Architecture      : maca64
+  MATLAB Entitlement ID    : 7142041
+  MATLAB Root              : /Applications/MATLAB_R2025a.app
+  MATLAB Version           : 25.1.0.2943329 (R2025a)
+  OpenGL                   : hardware
+  Operating System         : Mac OS Version 26.3 (Build 25D125)
+  Process ID               : 45905
+  Processor ID             : ABI64 ARM ARM64E HG
+  Session Key              : 3czpxxrs5aagwpka36w0boe1h
+  Window System            : Quartz
+
+Fault Count: 1
+
+
+Abnormal termination:
+Segmentation violation
+
+Current Thread: 'GTP_2' id 0x16bb23000
+
+Register State (from fault):
+   X0 = 361a8ab26d652f11   X1 = 00000007515fcc00
+   X2 = 0000000000000012   X3 = 000000010adb9d00
+   X4 = 0000000740eb8a30   X5 = 0000000000000000
+   X6 = ffffffffbfc007ff   X7 = fffff0003ffff800
+   X8 = 0000000000000012   X9 = 67616e614d6e6f69
+  X10 = 7373655370747448  X11 = a55f9af6234264f2
+  X12 = 2f62858633627af0  X13 = c949d7c7509e6557
+  X14 = c3a5c85c97cb3127  X15 = 0000000740eb8000
+  X16 = 00000001947ce8cc  X17 = 000000020200f408
+  X18 = 0000000000000000  X19 = 361a8ab26d652f11
+  X20 = eb0178b38a36ba11  X21 = 0000000000000012
+  X22 = 00000007515fcc00  X23 = 0000000000000005
+  X24 = 0000000000000002  X25 = 0000000000000000
+  X26 = 0000000000000004  X27 = 0000000000000001
+  X28 = 0000000748c1baa0
+
+   FP = 000000016bb22620   LR = 0000000107ca3c70
+   SP = 000000016bb225d0   PC = 0000000107ca3cfc
+
+ CPSR = 20000000
+
+
+Stack Trace (from fault):
+[  0] 0x00000001047c6820 /Applications/MATLAB_R2025a.app/bin/maca64/libmwfl.dylib+00010272 _ZN10foundation4core4diag15stacktrace_base7captureERKNS1_14thread_contextEm+00000064
+[  1] 0x00000001047c98bc /Applications/MATLAB_R2025a.app/bin/maca64/libmwfl.dylib+00022716 _ZN10foundation4core4test17terminate_handledERKNSt3__112basic_stringIcNS2_11char_traitsIcEENS2_9allocatorIcEEEE+00002208
+[  2] 0x00000001047c8d14 /Applications/MATLAB_R2025a.app/bin/maca64/libmwfl.dylib+00019732 _ZN10foundation4core4diag13terminate_logEPKcPK17__darwin_ucontext+00000140
+[  3] 0x0000000110b3d014 /Applications/MATLAB_R2025a.app/bin/maca64/libmwmcr.dylib+00479252 _Z19mnPrintErrorMessageRKNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEEE+00011664
+[  4] 0x0000000110b3af6c /Applications/MATLAB_R2025a.app/bin/maca64/libmwmcr.dylib+00470892 _Z19mnPrintErrorMessageRKNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEEE+00003304
+[  5] 0x0000000110b3891c /Applications/MATLAB_R2025a.app/bin/maca64/libmwmcr.dylib+00461084 mnFatalSignalHandler+00000136
+[  6] 0x00000001947dd764           /usr/lib/system/libsystem_platform.dylib+00014180 _sigtramp+00000056
+[  7] 0x0000000107ca3c70 /Applications/MATLAB_R2025a.app/bin/maca64/libDeclarativeServices.1.5.11.dylib+00326768 _ZN7mwboost4asio6detail11executor_opINS1_7binder0IZN16cppmicroservices7scrimpl24FallbackAsyncWorkService4postEONSt3__113packaged_taskIFvvEEEEUlvE_EENS7_9allocatorIvEENS1_19scheduler_operationEE11do_completeEPvPSG_RKNS_6system10error_codeEm+00189228
+[  8] 0x0000000107c9e7b0 /Applications/MATLAB_R2025a.app/bin/maca64/libDeclarativeServices.1.5.11.dylib+00305072 _ZN7mwboost4asio6detail11executor_opINS1_7binder0IZN16cppmicroservices7scrimpl24FallbackAsyncWorkService4postEONSt3__113packaged_taskIFvvEEEEUlvE_EENS7_9allocatorIvEENS1_19scheduler_operationEE11do_completeEPvPSG_RKNS_6system10error_codeEm+00167532
+[  9] 0x0000000107cb4098 /Applications/MATLAB_R2025a.app/bin/maca64/libDeclarativeServices.1.5.11.dylib+00393368 _ZN7mwboost4asio6detail11executor_opINS1_7binder0IZN16cppmicroservices7scrimpl24FallbackAsyncWorkService4postEONSt3__113packaged_taskIFvvEEEEUlvE_EENS7_9allocatorIvEENS1_19scheduler_operationEE11do_completeEPvPSG_RKNS_6system10error_codeEm+00255828
+[ 10] 0x0000000107cbf450 /Applications/MATLAB_R2025a.app/bin/maca64/libDeclarativeServices.1.5.11.dylib+00439376 _ZN7mwboost4asio6detail11executor_opINS1_7binder0IZN16cppmicroservices7scrimpl24FallbackAsyncWorkService4postEONSt3__113packaged_taskIFvvEEEEUlvE_EENS7_9allocatorIvEENS1_19scheduler_operationEE11do_completeEPvPSG_RKNS_6system10error_codeEm+00301836
+[ 11] 0x0000000107cb84e8 /Applications/MATLAB_R2025a.app/bin/maca64/libDeclarativeServices.1.5.11.dylib+00410856 _ZN7mwboost4asio6detail11executor_opINS1_7binder0IZN16cppmicroservices7scrimpl24FallbackAsyncWorkService4postEONSt3__113packaged_taskIFvvEEEEUlvE_EENS7_9allocatorIvEENS1_19scheduler_operationEE11do_completeEPvPSG_RKNS_6system10error_codeEm+00273316
+[ 12] 0x0000000107cb4e5c /Applications/MATLAB_R2025a.app/bin/maca64/libDeclarativeServices.1.5.11.dylib+00396892 _ZN7mwboost4asio6detail11executor_opINS1_7binder0IZN16cppmicroservices7scrimpl24FallbackAsyncWorkService4postEONSt3__113packaged_taskIFvvEEEEUlvE_EENS7_9allocatorIvEENS1_19scheduler_operationEE11do_completeEPvPSG_RKNS_6system10error_codeEm+00259352
+[ 13] 0x0000000107cb2d44 /Applications/MATLAB_R2025a.app/bin/maca64/libDeclarativeServices.1.5.11.dylib+00388420 _ZN7mwboost4asio6detail11executor_opINS1_7binder0IZN16cppmicroservices7scrimpl24FallbackAsyncWorkService4postEONSt3__113packaged_taskIFvvEEEEUlvE_EENS7_9allocatorIvEENS1_19scheduler_operationEE11do_completeEPvPSG_RKNS_6system10error_codeEm+00250880
+[ 14] 0x0000000107cb31b4 /Applications/MATLAB_R2025a.app/bin/maca64/libDeclarativeServices.1.5.11.dylib+00389556 _ZN7mwboost4asio6detail11executor_opINS1_7binder0IZN16cppmicroservices7scrimpl24FallbackAsyncWorkService4postEONSt3__113packaged_taskIFvvEEEEUlvE_EENS7_9allocatorIvEENS1_19scheduler_operationEE11do_completeEPvPSG_RKNS_6system10error_codeEm+00252016
+[ 15] 0x0000000107c9ff34 /Applications/MATLAB_R2025a.app/bin/maca64/libDeclarativeServices.1.5.11.dylib+00311092 _ZN7mwboost4asio6detail11executor_opINS1_7binder0IZN16cppmicroservices7scrimpl24FallbackAsyncWorkService4postEONSt3__113packaged_taskIFvvEEEEUlvE_EENS7_9allocatorIvEENS1_19scheduler_operationEE11do_completeEPvPSG_RKNS_6system10error_codeEm+00173552
+[ 16] 0x0000000107c9cbbc /Applications/MATLAB_R2025a.app/bin/maca64/libDeclarativeServices.1.5.11.dylib+00297916 _ZN7mwboost4asio6detail11executor_opINS1_7binder0IZN16cppmicroservices7scrimpl24FallbackAsyncWorkService4postEONSt3__113packaged_taskIFvvEEEEUlvE_EENS7_9allocatorIvEENS1_19scheduler_operationEE11do_completeEPvPSG_RKNS_6system10error_codeEm+00160376
+[ 17] 0x0000000107cc7248 /Applications/MATLAB_R2025a.app/bin/maca64/libDeclarativeServices.1.5.11.dylib+00471624 _ZN7mwboost4asio6detail11executor_opINS1_7binder0IZN16cppmicroservices7scrimpl24FallbackAsyncWorkService4postEONSt3__113packaged_taskIFvvEEEEUlvE_EENS7_9allocatorIvEENS1_19scheduler_operationEE11do_completeEPvPSG_RKNS_6system10error_codeEm+00334084
+[ 18] 0x0000000107cc71bc /Applications/MATLAB_R2025a.app/bin/maca64/libDeclarativeServices.1.5.11.dylib+00471484 _ZN7mwboost4asio6detail11executor_opINS1_7binder0IZN16cppmicroservices7scrimpl24FallbackAsyncWorkService4postEONSt3__113packaged_taskIFvvEEEEUlvE_EENS7_9allocatorIvEENS1_19scheduler_operationEE11do_completeEPvPSG_RKNS_6system10error_codeEm+00333944
+[ 19] 0x0000000107cac4fc /Applications/MATLAB_R2025a.app/bin/maca64/libDeclarativeServices.1.5.11.dylib+00361724 _ZN7mwboost4asio6detail11executor_opINS1_7binder0IZN16cppmicroservices7scrimpl24FallbackAsyncWorkService4postEONSt3__113packaged_taskIFvvEEEEUlvE_EENS7_9allocatorIvEENS1_19scheduler_operationEE11do_completeEPvPSG_RKNS_6system10error_codeEm+00224184
+[ 20] 0x0000000107ca71f8 /Applications/MATLAB_R2025a.app/bin/maca64/libDeclarativeServices.1.5.11.dylib+00340472 _ZN7mwboost4asio6detail11executor_opINS1_7binder0IZN16cppmicroservices7scrimpl24FallbackAsyncWorkService4postEONSt3__113packaged_taskIFvvEEEEUlvE_EENS7_9allocatorIvEENS1_19scheduler_operationEE11do_completeEPvPSG_RKNS_6system10error_codeEm+00202932
+[ 21] 0x0000000107cac958 /Applications/MATLAB_R2025a.app/bin/maca64/libDeclarativeServices.1.5.11.dylib+00362840 _ZN7mwboost4asio6detail11executor_opINS1_7binder0IZN16cppmicroservices7scrimpl24FallbackAsyncWorkService4postEONSt3__113packaged_taskIFvvEEEEUlvE_EENS7_9allocatorIvEENS1_19scheduler_operationEE11do_completeEPvPSG_RKNS_6system10error_codeEm+00225300
+[ 22] 0x000000010475ff6c /Applications/MATLAB_R2025a.app/bin/maca64/libmwcppmicroservices.dylib+00065388 _ZN16testing_use_only17getModuleSuffixesEv+00032200
+[ 23] 0x0000000104a63bfc /Applications/MATLAB_R2025a.app/bin/maca64/libmwfoundation_threadpool.dylib+00048124 _ZN10foundation10concurrent10threadpool6Thread7runTaskENSt3__110shared_ptrINS2_5StateEEEPNS1_11SharedQueueENS3_4pairINS9_INS3_8functionIFvvEEENS3_8optionalINS1_11stop_sourceEEEEEN7mwboost13intrusive_ptrINS1_11ClientQueueEEEEE+00000176
+[ 24] 0x0000000104a63500 /Applications/MATLAB_R2025a.app/bin/maca64/libmwfoundation_threadpool.dylib+00046336 _ZN10foundation10concurrent10threadpool6Thread16workerThreadProcEPS2_NSt3__110shared_ptrINS2_5StateEEENS5_INS1_11SharedQueueEEENS4_6chrono8durationIxNS4_5ratioILl1ELl1000EEEEE+00001992
+[ 25] 0x0000000104a6e6e0 /Applications/MATLAB_R2025a.app/bin/maca64/libmwfoundation_threadpool.dylib+00091872 _ZNK10foundation10concurrent10threadpool10ThreadPool22getPeakNumberOfThreadsEv+00022432
+[ 26] 0x00000001947d3c08            /usr/lib/system/libsystem_pthread.dylib+00027656 _pthread_start+00000136
+[ 27] 0x00000001947ceba8            /usr/lib/system/libsystem_pthread.dylib+00007080 thread_start+00000008
+

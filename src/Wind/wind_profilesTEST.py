@@ -48,7 +48,7 @@ Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 which_obs = 'left_right_z' # 'left_right_z', 'all' or 'in_out_z'
-snap = 76
+snap = 151
 rmin, rmax, Nray = Rt, 50*Rt, 50
 origin = '0'
 more_cuts = 'cutVphi'
@@ -56,6 +56,7 @@ more_cuts = 'cutVphi'
 path = f'{pre}/{snap}'
 ray_array = np.logspace(np.log10(rmin), np.log10(rmax), Nray)
 
+#%%
 data = op.make_tree(path, snap)
 X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
     data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Temp, data.Press, data.IE, data.Rad
@@ -252,7 +253,7 @@ if plot:
     observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
     x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
     indices_obs, label_obs, colors_obs, _ = op.choose_observers(observers_xyz, which_obs)
-    fig, (axd, axV, axM, axN) = plt.subplots(4, 1, figsize=(8, 22)) 
+    fig, (axd, axV, axM, axN) = plt.subplots(4, 1, figsize=(8, 30)) 
 
     all_axes = [axd, axV, axM, axN]
     
@@ -279,7 +280,7 @@ if plot:
         lab_plot = lab
         r_arr = profiles[lab]['r'] 
         d = profiles[lab]['d_prof']
-        d_mean = profiles[lab]['d_profmean']
+        # d_mean = profiles[lab]['d_profmean']
         v_rad = profiles[lab]['v_rad_prof'] 
         t = profiles[lab]['t_prof']
         Mdot = profiles[lab]['Mdot_prof'] #Mdotmean_prof
