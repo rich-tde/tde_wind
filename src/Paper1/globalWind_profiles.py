@@ -20,6 +20,8 @@ from Utilities.selectors_for_snap import select_prefix
 from Utilities.sections import make_slices
 import src.orbits as orb
 from Utilities.operators import to_spherical_components, make_tree
+import csv
+import os   
 
 #
 # PARAMS
@@ -46,6 +48,7 @@ R0 = things['R0']
 apo = things['apo']
 amin = things['a_mb']
 t_fb_days = things['t_fb_days']
+print(t_fb_days)
 t_fb_days_cgs = t_fb_days * 24 * 3600 # in seconds
 t_fb_sol = t_fb_days_cgs/prel.tsol_cgs
 v_esc = np.sqrt(2*prel.G*Mbh/Rp)
@@ -56,7 +59,7 @@ Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 suffix_saveing = ''
 
-# print('v_esc (r_p) = ', v_esc_kms, 'km/s')
+#%% print('v_esc (r_p) = ', v_esc_kms, 'km/s')
 #%%
 # FUNCTIONS
 
@@ -219,8 +222,8 @@ for i, snap in enumerate(snaps):
     tfb = np.loadtxt(f'{path}/tfb_{snap}.txt') 
     print(tfb)
 
-    ph_data = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
-    xph, yph, zph, Raddenph = ph_data[0], ph_data[1], ph_data[2], ph_data[6]
+    ph_data = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
+    xph, yph, zph, Raddenph = ph_data['x'], ph_data['y'], ph_data['z'], ph_data['radden']
     rph_all = np.sqrt(xph**2 + yph**2 + zph**2)
     rph = np.median(rph_all)
 
@@ -233,11 +236,11 @@ for i, snap in enumerate(snaps):
 
     if compute:
         all_outflows = radial_profiles(path, snap, which_part, [Rt, rph, 100])
-        out_path = f"{abspath}/data/{folder}/paper1/wind/den_prof{snap}Shell{which_part}_{suffix_saveing}.npy"
+        out_path = f"{abspath}/data/{folder}/1.paperEdd/wind/den_prof{snap}Shell{which_part}_{suffix_saveing}.npy"
         np.save(out_path, all_outflows, allow_pickle=True)
 
     if plot:
-        profiles = np.load(f'{abspath}/data/{folder}/paper1/wind/den_prof{snap}Shell{which_part}_{suffix_saveing}.npy', allow_pickle=True).item()
+        profiles = np.load(f'{abspath}/data/{folder}/1.paperEdd/wind/den_prof{snap}Shell{which_part}_{suffix_saveing}.npy', allow_pickle=True).item()
         tfb = np.loadtxt(f'{path}/tfb_{snap}.txt') 
 
         # v_rad_tr = profiles['v_rad_mean'][np.argmin(np.abs(r_plot-r_tr))]
@@ -263,6 +266,18 @@ for i, snap in enumerate(snaps):
         idx_rtr = np.argmin(np.abs(r_plot - r_tr))
 
         v_term = v_esc_kms * np.sqrt(1-(r_plot/Rp)**(-2/3))
+
+        # save for Giuseppe
+        # csv_path = f'{abspath}/denProf_{snap}.csv'
+        # with open(csv_path, 'a', newline = '') as file:
+        #     writer = csv.writer(file)
+        #     if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
+        #             writer.writerow(['#r (sol units)', ' density (sol units)'])
+        #     for r_i, d_i in zip(r_plot, d):
+        #         data = np.transpose([r_i, d_i])
+        #         writer.writerow(data)
+        # file.close()
+
 
         axV_tot.plot(r_plot/Rt, v_tot * conversion_sol_kms,  color = colors_snaps[i], label = f't = {tfb:.1f} ' + r'$t_{\rm fb}$')
         axV.plot(r_plot/Rt, v_rad * conversion_sol_kms,  color = colors_snaps[i], label = f't = {tfb:.1f} ' + r'$t_{\rm fb}$')
@@ -334,3 +349,15 @@ if plot:
     # figL.savefig(f'{abspath}/Figs/1.paperEddLShell{which_part}.pdf', bbox_inches = 'tight')
     plt.show()
 
+
+#%%
+# plt.figure
+# for snap in snaps:
+#     data_den = np.loadtxt(f'{abspath}/denProf_{snap}.csv',  delimiter=',', dtype=float, skiprows=1)
+#     r_plot = data_den[:, 0]
+#     d = data_den[:, 1]
+
+#     plt.plot(r_plot/Rt, d*prel.den_converter, label = f't = {snap}', lw = 2, color = colors_snaps[snaps.index(snap)])
+# plt.loglog()
+# plt.ylim(1e-11, 4e-8)
+# %%

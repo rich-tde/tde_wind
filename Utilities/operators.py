@@ -209,10 +209,10 @@ def choose_sections(X, Y, Z, choice):
         cond_right_in = np.logical_and(X >= 0, np.logical_and(Y >= 0, np.abs(Z) <= slope * R_cyl))
         cond_left_out = np.logical_and(X < 0, np.logical_and(Y < 0, np.abs(Z) <= slope *  R_cyl))
         cond_right_out = np.logical_and(X >= 0, np.logical_and(Y < 0, np.abs(Z) <= slope * R_cyl))
-        left_in = {'cond': cond_left_in, 'label': r'$x<0$, $y>0$', 'color': 'lightsalmon', 'line': 'solid'}
-        right_in = {'cond': cond_right_in, 'label': r'$x>0$, $y>0$', 'color': '#b2df8a', 'line': 'dashed'}
-        left_out = {'cond': cond_left_out, 'label': r'$x<0$, $y<0$', 'color': 'forestgreen', 'line': 'solid'}
-        right_out = {'cond': cond_right_out, 'label': r'$x>0$, $y<0$', 'color': 'lightsalmon', 'line': 'dashed'}
+        right_in = {'cond': cond_right_in, 'label': r'Pericentre in', 'color': 'forestgreen', 'line': 'solid'}
+        right_out = {'cond': cond_right_out, 'label': r'Pericentre out', 'color': '#b2df8a', 'line': 'solid'}
+        left_in = {'cond': cond_left_in, 'label': r'Stream in', 'color': 'r', 'line': 'dashed'}
+        left_out = {'cond': cond_left_out, 'label': r'Stream out', 'color': 'lightsalmon' , 'line': 'dashed'}
         sec = {'left_in': left_in, 'right_in': right_in, 'left_out': left_out, 'right_out': right_out, 'north': north, 'south': south}
     
     if choice == 'tenths': 

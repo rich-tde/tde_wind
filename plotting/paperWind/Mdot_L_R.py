@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import csv
 import os
+from matplotlib import lines as mlines
 import healpy as hp
 import Utilities.prelude as prel
 from Utilities.operators import choose_observers, sort_list
@@ -68,15 +69,22 @@ outflow = \
 tfbO = outflow[1]
 restO = outflow[2:2+len(label_obs)]
 
-fig, (axM, axL) =plt.subplots(1,2, figsize = (18,7))    
+fig, (axM, axL) =plt.subplots(1,2, figsize = (18,7))  
+handles_color = []
+labels_color = []
+line_styles_parts = ['-', '--']
+labels_parts = [r'$\dot{M}_{\rm w}$', r'$\dot{M}_{\rm out}$']
 for i in range(len(rest)):
     if i == 3:
         continue
-    axM.plot(tfb, rest[i]/Medd_sol,  label = r'$\dot{M}_{\rm w}$' if i == 2 else None, linewidth = 2, c = color_obs[i])
-    axM.plot(tfbO[4:], restO[i][4:]/Medd_sol,  label = r'$\dot{M}_{\rm out}$' if i == 2 else None, linewidth = 2, c = color_obs[i], ls = '--')
+    line = axM.plot(tfb, rest[i]/Medd_sol,  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])[0]
+    axM.plot(tfbO[4:], restO[i][4:]/Medd_sol, linewidth = 2, c = color_obs[i], ls = line_styles_parts[1])
     axL.plot(tfb, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i])
     if i ==0:
         print(rest[i][-1]/restO[i][-1])
+    
+    handles_color.append(line)
+    labels_color.append(label_obs[i])
 
 original_ticks = axM.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
@@ -104,7 +112,26 @@ axM.set_ylim(1e1, 7e6)
 axM.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$')  
 axL.set_ylim(1e38, 2e42)
 axL.set_ylabel(r'$L_{{\rm FLD}}$ (erg/s)')  
-axM.legend(fontsize = 24)
+# axM.legend(fontsize = 24)
+
+# Legend 1: colored observer lines (three colors)
+legend1 = axM.legend(handles=handles_color,
+                    labels=labels_color,
+                    fontsize=21,
+                    loc='upper left')
+axM.add_artist(legend1)
+
+# Legend 2: line-style explanation (solid vs dashed)
+proxy_lines = []
+proxy_lines = []
+for l, line in enumerate(line_styles_parts):
+    proxy_lines.append(
+        mlines.Line2D([0], [0], color='cornflowerblue', ls=line, linewidth=2,
+                    label=labels_parts[l])
+    )
+axM.legend(handles=proxy_lines, fontsize=20, 
+                                loc='lower right')
 
 fig.tight_layout()
 fig.savefig(f'{abspath}/Figs/2.paperWind/ML_intime.pdf', dpi = 300)
+

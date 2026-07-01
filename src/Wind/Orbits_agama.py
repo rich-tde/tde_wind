@@ -24,8 +24,8 @@ agama.setUnits(length = (prel.Rsol_cgs)*u.cm.to(u.kpc), velocity=conversion_sol_
 pot = agama.Potential(type='Plummer', mass=M, scaleRadius=1e-6)
 
 # Source initial conditions
-r_source0 = np.array([13.0, 0.0, 0.0])
-v_source0  = np.array([-2, -35, -2])
+r_source0 = np.array([9, 0.0, 0.0])
+v_source0  = np.array([-2, -45, -2])
 
 #%% Launch parameters
 vel_radial_centre, _, _ = op.to_spherical_components(v_source0[0], v_source0[1], v_source0[2], r_source0[0], r_source0[1], r_source0[2])
@@ -55,7 +55,7 @@ def velocity_vectors(nside, speed):
     observers_xyz = np.array(observers_xyz)
     return observers_xyz.T * speed
 
-def integrate_one_particle(r0, v0, t0, t_end):
+def integrate_one_particle(r0, v0, t0, t_end, trajsize):
     ic = np.hstack((r0, v0))
     # Agama orbit integrates forward from the given initial condition
     # If you want a particle launched at t0, we integrate the state from that moment onward.
@@ -66,33 +66,38 @@ def integrate_one_particle(r0, v0, t0, t_end):
 # ----------------------------
 # Launch particles
 # ----------------------------
-cut_in_oe = True
+cut_in_oe = False
 all_launch_times = []
 all_trajectories = []
 tt_orbits = []
 source_trajectories = []
 orb_energies = []
 
-tt_s, traj_s = integrate_one_particle(r_source0, v_source0, 0, t_end)
-rsrc, vsrc = traj_s[:, :3], traj_s[:, 3:] 
-
+tt_s, traj_s = integrate_one_particle(r_source0, v_source0, 0, t_end, trajsize)
+rsrc, vsrc = traj_s[:, :3], traj_s[:, 3:]
+# rsrc = np.array(len(tt_s) * [[13,0,0]])
+# vsrc = np.zeros((len(tt_s), 3)) 
 #%%
-for k in range(n_batches):
-    t0 = k * dt_launch
-    # rsrc, vsrc = source_state(t0, v_source)
+for k, t0 in enumerate(tt_s[:-1:100]):
+# for k in range(n_batches):
+    # t0 = k * dt_launch
+    # rsrc, vsrc = source_state(t0, v_source0)
     # source_trajectories.append(rsrc)
 
     directions = velocity_vectors(NSIDE, v_launch)
-    v0l = vsrc + directions
+
+    r0 = rsrc[k].copy()
+    v0l = vsrc[k] + directions
+    # v0l = vsrc + directions
     for i in range(len(v0l)):
-        r0 = rsrc.copy()
+        # r0 = rsrc.copy()
         v0 = v0l[i].copy()
         orb_en = OrbitalEnergy(pot, r0, v0)
         if cut_in_oe:
             if orb_en < 0:
                 # print('Delete particle')
                 continue
-        tt, traj = integrate_one_particle(r0, v0, t0, t_end)
+        tt, traj = integrate_one_particle(r0, v0, t0, t_end, trajsize)
         all_launch_times.append(t0)
         all_trajectories.append(traj)
         tt_orbits.append(tt)
@@ -113,7 +118,8 @@ print("First trajectory shape:", all_trajectories[0].shape)
 #%% 
 wanted_times = [all_launch_times[0], all_launch_times[len(all_launch_times)//2], all_launch_times[-1]]  # first, middle, last launch times
 plt.figure(figsize=(8, 6)) 
-plt.scatter(source_trajectories[:,0]/Rt, source_trajectories[:,1]/Rt, c = 'k', s = 10, label='Source')
+# plt.scatter(source_trajectories[:,0]/Rt, source_trajectories[:,1]/Rt, c = 'k', s = 10, label='Source')
+plt.scatter(rsrc[:,0]/Rt, rsrc[:,1]/Rt, c = 'k', s = 10, label='Source')
 colors_plot = ['seagreen', 'royalblue', 'goldenrod', 'lightcoral', 'crimson']
 # iii = [10, 20]
 for i, wanted_time in enumerate(wanted_times):
@@ -126,7 +132,7 @@ for i, wanted_time in enumerate(wanted_times):
     x_traj = x_traj[velR > 0]
     y_traj = y_traj[velR > 0]
     plt.plot(x_traj/Rt, y_traj/Rt, c = colors_plot[i], alpha=0.5)
-    plt.plot(x_traj[0]/Rt, y_traj[0]/Rt, c = colors_plot[i], alpha=0.5, label=f't = {wanted_time} particles') # just for the label
+    plt.plot(x_traj[0]/Rt, y_traj[0]/Rt, c = colors_plot[i], alpha=0.5, label=f't = {wanted_time:.0f} c.u. particles') # just for the label
     # else:
     #     plt.scatter(all_trajectories[idx_wanted_time, :, 0], all_trajectories[idx_wanted_time, :, 1], c = orb_energies[idx_wanted_time, :].T, s = 1, cmap = 'coolwarm', vmin = -10, vmax = 10)
 
@@ -178,6 +184,7 @@ plt.ylabel(r'dN/dr $\langle v_r \rangle$')
 plt.loglog()
 plt.legend()
 # %%
+from Utilities.operators import sort_list
 countvRpos, bin_edges = np.histogram(velR_last_pos * conversion_sol_kms, bins=20)
 countvRneg, bin_edges = np.histogram(velR_last_neg * conversion_sol_kms, bins=20)
 plt.figure(figsize=(8, 6))
@@ -190,12 +197,15 @@ plt.loglog()
 plt.title(f'Particle distribution at t = {tt[-1]}')
 
 plt.figure(figsize=(8, 6))
+velR_last_pos, r_last_pos= sort_list([velR_last_pos, r_last_pos], r_last_pos)
+velR_last_neg, r_last_neg= sort_list([velR_last_neg, r_last_neg], r_last_neg)
 plt.scatter(r_last_pos, velR_last_pos * conversion_sol_kms, label='x > 0', color='dodgerblue')
-plt.scatter(r_last_neg, velR_last_neg * conversion_sol_kms, label='x < 0', color='lightcoral', s = 5, alpha = 0.5)
+plt.scatter(r_last_neg, velR_last_neg * conversion_sol_kms, label='x < 0', color='lightcoral', alpha=0.5)
 plt.xlabel('Radial distance r (Rt)')
 plt.ylabel('Radial velocity (km/s)')
 plt.loglog()
-plt.xlim(1e2, 2e3)
+plt.legend()
+# plt.xlim(1e2, 2e3)
 
 
 # %%
