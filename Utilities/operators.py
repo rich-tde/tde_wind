@@ -162,8 +162,8 @@ def choose_sections(X, Y, Z, choice):
         slope = np.tan(alpha_pole)  
         cond_Npole = np.logical_and(np.abs(Z) > slope *  R_cyl, Z > 0)
         cond_Spole = np.logical_and(np.abs(Z) > slope *  R_cyl, Z < 0)
-        north = {'cond': cond_Npole, 'label': r'North pole', 'color': 'cornflowerblue', 'line': 'dotted'}
-        south = {'cond': cond_Spole, 'label': r'South pole', 'color': 'deepskyblue', 'line': 'dotted'}
+        north = {'cond': cond_Npole, 'label': r'North pole', 'color': 'xkcd:sky blue', 'line': 'dotted'}
+        south = {'cond': cond_Spole, 'label': r'South pole', 'color': 'cornflowerblue', 'line': 'dotted'}
 
     if choice == 'all':
         cond_all = np.abs(X) != 1  # all True
@@ -178,30 +178,30 @@ def choose_sections(X, Y, Z, choice):
         R_xz = np.sqrt(X**2 + Z**2)
         cond_Npole = np.logical_and(np.abs(Z) > slope_pole *  R_cyl, Z > 0)
         cond_Spole = np.logical_and(np.abs(Z) > slope_pole *  R_cyl, Z < 0)
-        north = {'cond': cond_Npole, 'label': r'+$\hat{z}$', 'color': 'cornflowerblue', 'line': 'dotted'}
-        south = {'cond': cond_Spole, 'label': r'-$\hat{z}$', 'color': 'deepskyblue', 'line': 'dotted'}
+        north = {'cond': cond_Npole, 'label': r'+$\hat{z}$', 'color': 'xkcd:sky blue', 'line': 'dotted'}
+        south = {'cond': cond_Spole, 'label': r'-$\hat{z}$', 'color': 'cornflowerblue', 'line': 'dotted'}
         cond_xplus =  np.logical_and(np.abs(X) > slope_pole *  R_yz, X > 0)
         cond_xminus = np.logical_and(np.abs(X) > slope_pole *  R_yz, X < 0)
         cond_yplus = np.logical_and(np.abs(Y) > slope_pole *  R_xz, Y > 0)
         cond_yminus = np.logical_and(np.abs(Y) > slope_pole *  R_xz, Y < 0)
-        xplus = {'cond': cond_xplus, 'label': r'+$\hat{x}$', 'color': 'yellowgreen', 'line': 'solid'}
+        xplus = {'cond': cond_xplus, 'label': r'+$\hat{x}$', 'color': 'xkcd:apple', 'line': 'solid'}
         xminus = {'cond': cond_xminus, 'label': r'-$\hat{x}$', 'color': 'forestgreen', 'line': 'dashed'}
         yplus = {'cond': cond_yplus, 'label': r'+$\hat{y}$', 'color': 'C1', 'line': 'solid'}
-        yminus = {'cond': cond_yminus, 'label': r'-$\hat{y}$', 'color': 'lightsalmon', 'line': 'dashed'}
+        yminus = {'cond': cond_yminus, 'label': r'-$\hat{y}$', 'color': 'xkcd:bubble gum pink', 'line': 'dashed'}
         sec = {'xplus': xplus, 'xminus': xminus, 'yplus': yplus, 'yminus': yminus, 'north': north, 'south': south}
 
     if choice == 'left_right_z':
         cond_left = np.logical_and(X < 0, np.abs(Z) <= slope *  R_cyl)
         cond_right = np.logical_and(X >= 0, np.abs(Z) < slope * R_cyl)
-        left = {'cond': cond_left, 'label': r'Stream side', 'color': 'lightsalmon', 'line': 'solid'}
-        right = {'cond': cond_right, 'label': r'Pericentre side', 'color': '#b2df8a', 'line': 'dashed'}
+        left = {'cond': cond_left, 'label': r'Stream side', 'color': 'xkcd:bubble gum pink', 'line': 'solid'}
+        right = {'cond': cond_right, 'label': r'Pericentre side', 'color': 'xkcd:apple', 'line': 'dashed'}
         sec = {'left': left, 'right': right, 'north': north, 'south': south}
     
     if choice == 'in_out_z': 
         cond_in = np.logical_and(Y > 0, np.abs(Z) <= slope * R_cyl)
         cond_out = np.logical_and(Y <= 0, np.abs(Z) <= slope *  R_cyl)
-        ins = {'cond': cond_in, 'label': r'$y>0$', 'color': 'lightsalmon', 'line': 'solid'}
-        out = {'cond': cond_out, 'label': r'$y<0$', 'color': '#b2df8a', 'line': 'dashed'}
+        ins = {'cond': cond_in, 'label': r'$y>0$', 'color': 'xkcd:bubble gum pink', 'line': 'solid'}
+        out = {'cond': cond_out, 'label': r'$y<0$', 'color': 'xkcd:apple', 'line': 'dashed'}
         sec = {'in': ins, 'out': out, 'north': north, 'south': south}
 
     if choice == 'left_right_in_out_z':
@@ -210,9 +210,9 @@ def choose_sections(X, Y, Z, choice):
         cond_left_out = np.logical_and(X < 0, np.logical_and(Y < 0, np.abs(Z) <= slope *  R_cyl))
         cond_right_out = np.logical_and(X >= 0, np.logical_and(Y < 0, np.abs(Z) <= slope * R_cyl))
         right_in = {'cond': cond_right_in, 'label': r'Pericentre in', 'color': 'forestgreen', 'line': 'solid'}
-        right_out = {'cond': cond_right_out, 'label': r'Pericentre out', 'color': '#b2df8a', 'line': 'solid'}
+        right_out = {'cond': cond_right_out, 'label': r'Pericentre out', 'color': 'xkcd:apple', 'line': 'solid'}
         left_in = {'cond': cond_left_in, 'label': r'Stream in', 'color': 'r', 'line': 'dashed'}
-        left_out = {'cond': cond_left_out, 'label': r'Stream out', 'color': 'lightsalmon' , 'line': 'dashed'}
+        left_out = {'cond': cond_left_out, 'label': r'Stream out', 'color': 'xkcd:bubble gum pink' , 'line': 'dashed'}
         sec = {'left_in': left_in, 'right_in': right_in, 'left_out': left_out, 'right_out': right_out, 'north': north, 'south': south}
     
     if choice == 'tenths': 
@@ -360,7 +360,7 @@ def choose_observers(observers_xyz, choice):
             _, idx = tree.query([axis], k=1)
             indices_sorted.append(idx[0])
         label_obs = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
-        colors_obs = ['lightsalmon', 'forestgreen', 'C1', 'lightsalmon', 'cornflowerblue', 'deepskyblue']
+        colors_obs = ['xkcd:bubble gum pink', 'forestgreen', 'C1', 'xkcd:bubble gum pink', 'xkcd:sky blue', 'cornflowerblue']
         lines_obs = ['solid', 'dashed', 'solid', 'dashed', 'solid', 'dashed']
 
     if plot:

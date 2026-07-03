@@ -172,17 +172,17 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
             idx_all = shell_all[mask_all]
             len_all = len(idx_all)
 
-            if what_varies == 'theta':
-                img = ax1.scatter(X[idx]/Rt, Z[idx]/Rt, s = 10, label = f'{r:.2f}' if j not in [1] else None, c = coltest(i))
-                ax2.scatter(X[idx]/Rt, Z[idx]/Rt, s = 10, label = f'{r:.2f}' if j not in [1] else None, c = colors_obs[j])
-            else: # bern is not cut, so it's of all cells, not wind
-                X_toplot = X_all[idx_all]
-                Y_toplot = Y_all[idx_all]
-                Z_toplot = Z_all[idx_all]
-                bern_toplot = bern[idx_all]
-                dim_toplot = dim_cell_all[idx_all]
-                img = ax1.scatter(X_toplot[np.abs(Z_toplot)<dim_toplot]/Rt, Y_toplot[np.abs(Z_toplot)<dim_toplot]/Rt, s = 2, c = bern_toplot[np.abs(Z_toplot)<dim_toplot], vmin = -10, vmax = 10, cmap = 'coolwarm')
-                ax2.scatter(X_toplot[np.abs(Y_toplot)<dim_toplot]/Rt, Z_toplot[np.abs(Y_toplot)<dim_toplot]/Rt, s = 2, c = bern_toplot[np.abs(Y_toplot)<dim_toplot],  vmin = -10, vmax = 10, cmap = 'coolwarm')
+            # if what_varies == 'theta':
+            #     img = ax1.scatter(X[idx]/Rt, Z[idx]/Rt, s = 10, label = f'{r:.2f}' if j not in [1] else None, c = coltest(i))
+            #     ax2.scatter(X[idx]/Rt, Z[idx]/Rt, s = 10, label = f'{r:.2f}' if j not in [1] else None, c = colors_obs[j])
+            # else: # bern is not cut, so it's of all cells, not wind
+            #     X_toplot = X_all[idx_all]
+            #     Y_toplot = Y_all[idx_all]
+            #     Z_toplot = Z_all[idx_all]
+            #     bern_toplot = bern[idx_all]
+            #     dim_toplot = dim_cell_all[idx_all]
+            #     img = ax1.scatter(X_toplot[np.abs(Z_toplot)<dim_toplot]/Rt, Y_toplot[np.abs(Z_toplot)<dim_toplot]/Rt, s = 2, c = bern_toplot[np.abs(Z_toplot)<dim_toplot], vmin = -10, vmax = 10, cmap = 'coolwarm')
+            #     ax2.scatter(X_toplot[np.abs(Y_toplot)<dim_toplot]/Rt, Z_toplot[np.abs(Y_toplot)<dim_toplot]/Rt, s = 2, c = bern_toplot[np.abs(Y_toplot)<dim_toplot],  vmin = -10, vmax = 10, cmap = 'coolwarm')
 
             ray_V_r = V_r[idx] 
             ray_d = Den[idx] 
@@ -232,21 +232,21 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
         key = f"{label_obs[j]}"
         all_outflows[key] = outflow
 
-    if what_varies == 'theta':
-        ax1.legend()
-        ax1.set_ylabel(r'Z/$r_{\rm t}$')
-        plt.colorbar(img, label = 'Bernoulli')
-    if what_varies == 'r':
-        ax1.set_ylabel(r'Y/$r_{\rm t}$')
-        ax2.set_ylabel(r'Z/$r_{\rm t}$')
-        for ax in [ax1, ax2]:
-            ax.set_xlim(-200, 200)
-            ax.set_ylim(-200, 200)
-    ax1.set_xlabel(r'X/$r_{\rm t}$')
-    ax2.set_xlabel(r'X/$r_{\rm t}$')
-    plt.tight_layout()
-    if what_varies == 'r':
-        figtest.savefig(f'{abspath}/Figs/2.paperWind/deeperanalysis/rad_prof_selection{snap}.png')
+    # if what_varies == 'theta':
+    #     ax1.legend()
+    #     ax1.set_ylabel(r'Z/$r_{\rm t}$')
+    #     plt.colorbar(img, label = 'Bernoulli')
+    # if what_varies == 'r':
+    #     ax1.set_ylabel(r'Y/$r_{\rm t}$')
+    #     ax2.set_ylabel(r'Z/$r_{\rm t}$')
+    #     for ax in [ax1, ax2]:
+    #         ax.set_xlim(-200, 200)
+    #         ax.set_ylim(-200, 200)
+    # ax1.set_xlabel(r'X/$r_{\rm t}$')
+    # ax2.set_xlabel(r'X/$r_{\rm t}$')
+    # plt.tight_layout()
+    # if what_varies == 'r':
+    #     figtest.savefig(f'{abspath}/Figs/2.paperWind/deeperanalysis/rad_prof_selection{snap}.png')
     
     return all_outflows
 
@@ -264,11 +264,11 @@ if compute:
     for snap in snaps: 
         path = f'{pre}/{snap}'
         if what_varies == 'r':
-            ray_params = [Rt, 1e3*Rt, 300]
-            r_chosen_name = ''
+            ray_params = [Rt, 1e3*Rt, 300] 
+            r_chosen_name = '' 
         elif what_varies == 'theta':
-            r_chosen = amin
-            r_chosen_name = 'amin'
+            r_chosen = apo
+            r_chosen_name = 'apo'
             ray_params = [r_chosen, 100]
 
         all_outflows = profiles(path, snap, ray_params, which_obs, which_part, what_varies)
@@ -276,7 +276,7 @@ if compute:
         np.save(out_path, all_outflows, allow_pickle=True)
 
 else:
-    which_plot = 'time_compare' # 'time_compare' or 'single_time' 
+    which_plot = 'single_time' # 'time_compare' or 'single_time' 
     # arrange for plotting
     observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
     x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
@@ -299,20 +299,20 @@ else:
         y_test1 = op.draw_line(x_test, [9e4, -1], 'powerlaw')
         y_test23 = op.draw_line(x_test, [3.5e5, -2/3], 'powerlaw')
         y_test2 = op.draw_line(x_test, [2e-7, -2], 'powerlaw')
-        axd.plot(x_test, y_test2, c = 'gray', ls = '-.', label = r'$\rho \propto r^{-2}$')
-        axd.text(75, 2e-11, r'$\rho \propto r^{-2}$', fontsize = 18, color = 'gray', rotation = -20)
         axd.set_ylim(2e-13, 1e-5)
         axV.set_ylim(1.5e3, 1.5e4)
         axT.set_ylim(2e4, 1e6)
         axM.set_ylim(1e2, 1e7)
         axC.set_ylim(1e2, 1e7)
-        axLadv.set_ylim(5e-2, 1e2)
+        axLadv.set_ylim(1e-2, 1e2)
         axLkin.set_ylim(1e-1, 5e2) 
         axratio.set_ylim(1e-2, 1.1)
         axratioM.set_ylim(1e-2, 1.1)
+        axd.plot(x_test, y_test2, c = 'gray', ls = '-.', label = r'$\rho \propto r^{-2}$')
+        axd.text(75, 2e-11, r'$\rho \propto r^{-2}$', fontsize = 18, color = 'gray', rotation = -20)            
     elif what_varies == 'theta':
         from Utilities.basic_units import radians
-        r_chosen_name = 'amin'
+        r_chosen_name = '05amin'
         norm = radians 
         axd.set_title(f'r = {r_chosen_name}', fontsize = 18)
         axd.set_ylim(5e-14, 1e-8)
@@ -344,8 +344,12 @@ else:
         tfbs[s] = tfb
         if which_plot == 'time_compare':
                 labels_parts.append(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$')
-        photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
-        xph, yph, zph = photo['x'], photo['y'], photo['z']
+        if check == 'HiResNewAMR':
+            photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
+            xph, yph, zph = photo['x'], photo['y'], photo['z']
+        else:
+            photo = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
+            xph, yph, zph = photo[0], photo[1], photo[2]
         rph_all = np.sqrt(xph**2 + yph**2 + zph**2)
         dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz")
         x_tr, y_tr, z_tr, den_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr']
@@ -379,7 +383,7 @@ else:
         for k, which_part in enumerate(which_parts):
             profiles = np.load(f'{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
             for i, lab in enumerate(profiles.keys()):
-                if i > 1: #label_obs[i] == 'South pole':
+                if i > 2: #label_obs[i] == 'South pole':
                     continue 
                 if which_plot == 'single_time':
                     lab_plot = lab
@@ -396,12 +400,13 @@ else:
                 L_advmean = profiles[lab]['L_advmean_prof'] 
                 L_kinmean = profiles[lab]['L_kinmean_prof'] 
                 ratio_un = profiles[lab]['ratio_un']
+                # if which_part == 'wind':
                 Ntot_cells = profiles[lab]['Ntot_cells']
                 Nwind_cells = ratio_un * Ntot_cells
                 Mass_wind = profiles[lab]['Mass_wind']
                 Mass_tot = profiles[lab]['Mass_tot']
                 ratio_Mass = Mass_wind/Mass_tot
-                colors_sec = profiles[lab]['colors_obs']
+                colors_sec = colors_obs[i] #profiles[lab]['colors_obs']
                 # Mdot = d * r_plot**2 * v_rad
                 not_zero = np.where(np.logical_and(d != 0, r_arr > 0))
                 if what_varies == 'r':
@@ -421,13 +426,15 @@ else:
                         ratio_Mass[idx_stop_d:] = 1e-20
                         if  which_part == 'wind':
                             Nwind_cells[idx_stop_d-2:] = 0 # -2 to avoid weird spikes
-                            Mass_wind[idx_stop_d-2:] = 0
+                            # Mass_wind[idx_stop_d-2:] = 0
                             Ntot_cells[idx_stop_d-2:] = 0
-                            Mass_tot[idx_stop_d-2:] = 0
-                if lab == 'Stream side':
-                    idx_maxM = np.argmax(Mass_wind)
-                    v_snap_peakM[s] = v_rad[idx_maxM]
-                    R_peakM[s] = r_plot[idx_maxM]
+                            # Mass_tot[idx_stop_d-2:] = 0
+                            idx_maxM = np.argmax(Mass_wind)
+                            v_snap_peakM[s] = v_rad[idx_maxM]
+                            R_peakM[s] = r_plot[idx_maxM]
+                else:
+                    r_plot = r_arr
+
                 
                 line = axd.plot(r_plot*norm, d * prel.den_converter, label = f'{lab_plot}' if which_part == 'wind' else None, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)[0]
                 # elif which_plot == 'time_compare':
@@ -471,7 +478,6 @@ else:
                     axLkin.scatter(r_plot[idx_rtr]*norm, L_kin[idx_rtr]/Ledd_sol, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
 
     axV.axhline(v_esc_kms, c = 'k', ls = 'dotted')
-    print(R_peakM/Rt)
     for i in range(len(snaps)-1):
         print('Effective delta r: ', R_peakM[i+1]-R_peakM[i], 't_peak/v_r: ' , (tfbs[i+1]-tfbs[i])*tfallback_code_units/v_snap_peakM[i])
 
@@ -487,7 +493,7 @@ else:
     proxy_lines = []
     for l, line in enumerate(line_styles_parts):
         proxy_lines.append(
-            mlines.Line2D([0], [0], color='cornflowerblue', ls=line, linewidth=2,
+            mlines.Line2D([0], [0], color='k', ls=line, linewidth=2,
                         label=labels_parts[l])
         )
 
@@ -514,8 +520,7 @@ else:
         ax.tick_params(axis='both', which='major', length = 15, width = 1.5)
         if what_varies == 'r':
             ax.loglog()
-            ax.axvline(apo*norm, color = 'k', ls = 'dotted')
-            axd.text(0.8*apo*norm, 0.2*axd.get_ylim()[1], r'$r_{\rm a}$', fontsize = 20, color = 'k', rotation = 90)
+            ax.axvline(apo*norm, color = 'gray', ls = '--')
             ax.set_xlim(1.5, 1.4e2)
             if ax in [axLadv, axLkin, axT, axratio, axratioM]:
                 ax.set_xlabel(r'$r /r_{\rm t}$' if what_varies == 'r' else r'$\theta$', fontsize = 28)
@@ -529,7 +534,7 @@ else:
             if ax != axLkin:
                 ax.set_xlabel('')
         ax.grid()
-            
+    axd.text(0.8*apo*norm, 0.2*axd.get_ylim()[1], r'$r_{\rm a}$', fontsize = 20, color = 'gray', rotation = 90)   
     fig.tight_layout()
     figM.tight_layout()
     figr.tight_layout()
@@ -547,3 +552,4 @@ else:
         else: 
             fig.savefig(f'{abspath}/Figs/{folder}/wind/den_prof_{what_varies}{r_chosen_name}{snap}.png', bbox_inches = 'tight')
     
+# %%

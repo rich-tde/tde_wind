@@ -158,7 +158,6 @@ def r_trapp(data, ray_params):
         ray_ieDen = IE_den[idx]
         ray_radDen = Rad_den[idx]
 
-
         # Interpolate ----------------------------------------------------------
         alpha_rossland = calc_ross_opacity_vectorized(T_cool, Rho_cool, rossland, scattering, np.log(ray_t), np.log(ray_d))
         alpha_rossland = np.array(alpha_rossland)
@@ -216,6 +215,10 @@ def r_trapp(data, ray_params):
         cbar.ax.tick_params(which = 'major', length=6, width=1)
         cbar.ax.tick_params(which = 'minor', length=4, width=0.8)
         axt.set_ylabel(r'$t (t_{\rm fb})$')
+        axt.set_xlabel(r'$r (r_{\rm t})$')
+        axt.tick_params(axis='both', which='major', length=8, width=1.2)
+        axt.tick_params(axis='both', which='minor', length=5, width=1)
+
         
         ax_T.plot(ray_r/Rt, ray_t, label = f'Obs {i}')
         ax_T.set_ylabel(r'$T$')
@@ -318,7 +321,21 @@ def r_trapp(data, ray_params):
 ##
 # MAIN
 ## 
-#%% matlab
+#%% estimates for times
+v_r_est = 5e3 #km/s
+r_est = 60 * Rt * prel.Rsol_cgs 
+t_dyn_est = r_est*1e-5 / (v_r_est ) # in seconds
+t_dyn_est /= (3600 * 24) # in days
+print(f'Estimated t_dyn: {t_dyn_est:.2f} days')
+print(f'Estimated t_fb: {t_dyn_est/tfallback:.2f}')
+kappa_est = 10 #cm^2/g
+d_est = 1e-11 #g/cm^3
+t_diff_est =  kappa_est * d_est * r_est**2 / prel.c_cgs # in seconds
+t_diff_est /= (3600 * 24) # in days
+print(f'Estimated t_diff: {t_diff_est:.2f} days')
+
+
+#%%
 if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True)
 else:
@@ -344,7 +361,7 @@ if compute:
         r_trap = r_trapp(data, [Rt, 5000])
 
         # if alice:
-        np.savez(f"{pre_saving}/trap/TEST{check}_Rtr{snap}.npz", **r_trap)
+        # np.savez(f"{pre_saving}/trap/TEST{check}_Rtr{snap}.npz", **r_trap)
 #%%
 if plot:
     data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
@@ -400,10 +417,13 @@ if plot:
         kappa_tr = kappa_tr * prel.Rsol_cgs**2 / prel.Msol_cgs # to have it in cgs units
         indices_bigVol, indices_overRph, ratio_kept = dataRtr['indices_bigVol'], dataRtr['indices_overRph'], dataRtr['ratio_kept']
         r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+        photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
+        alpha_ph, d_ph = photo['alpha_rossland'], photo['den']
+        kappa_ph = alpha_ph/d_ph
 
         plt.figure(figsize = (8, 6))
         plt.plot(r_tr/Rt, kappa_tr, 'o', c = 'k')
-        print(kappa_tr, flush=True)
+        print(kappa_tr/kappa_ph, flush=True)
 
         for i, observer in enumerate(indices_axis):  
                 unbound_ratio[i][s] = np.median(ratio_kept[observer])      

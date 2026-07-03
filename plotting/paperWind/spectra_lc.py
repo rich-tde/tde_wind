@@ -202,7 +202,7 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
     idx_UV = np.where(np.logical_and(freqs > high_freq_optical, freqs < high_freq_UV))[0][0]
     idx_Xray = np.where(np.logical_and(freqs > high_freq_UV, freqs < high_freq_Xray))[0][0]
 
-    data = np.loadtxt(f'{abspath}/data/{folder}/{check}_redNEW.csv', delimiter=',', dtype=float)
+    data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
     snaps_fld, tfb, Lum_fld = data[:, 0], data[:, 1], data[:, 2]
     snaps_fld, Lum_fld, tfb = sort_list([snaps_fld, Lum_fld, tfb], tfb, unique=True) 
     snaps_fld = snaps_fld.astype(int)

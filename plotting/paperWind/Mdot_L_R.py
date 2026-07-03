@@ -34,17 +34,32 @@ Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 t_fb_days = things['t_fb_days']
+Rt = things['Rt']
 
 data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
 snaps, tfb_Lum, Lums = data[:, 0], data[:, 1], data[:, 2]
 tfb_Lum, snaps, Lums = sort_list([tfb_Lum, snaps, Lums], snaps, unique=True)
 Lum_sec = []
+rph_sec = []
+rtr_sec = []
 snaps = np.array(snaps, dtype=int)
 for s, snap in enumerate(snaps): 
     photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
-    Lum_ph = photo['Lum']
+    x_ph, y_ph, z_ph, Lum_ph = photo['x'], photo['y'], photo['z'], photo['Lum']
+    r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
     Lum_sec.append(np.mean(Lum_ph[indices_obs], axis = 1))
+    trap = np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz')
+    x_tr, y_tr, z_tr = trap['x_tr'], trap['y_tr'], trap['z_tr']
+    r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+    mask = r_tr[indices_obs] > 0
+    indices_sec = [row[m] for row, m in zip(indices_obs, mask)]
+    rtr_sec.append([np.median(r_tr[row]) for row in indices_sec])
+    rph_sec.append([np.median(r_ph[row]) for row in indices_sec])
+    # rtr_sec.append(np.mean(r_tr[indices_obs], axis = 1))
+    # rph_sec.append(np.mean(r_ph[indices_obs], axis = 1))
 Lum_sec = np.transpose(np.array(Lum_sec))
+rph_sec = np.transpose(np.array(rph_sec))
+rtr_sec = np.transpose(np.array(rtr_sec))
     
 # fallback = \
 #         np.loadtxt(f'{abspath}/data/{folder}/paper1/wind/Mdot_{check}05aminmean.csv', 
@@ -69,7 +84,8 @@ outflow = \
 tfbO = outflow[1]
 restO = outflow[2:2+len(label_obs)]
 
-fig, (axM, axL) =plt.subplots(1,2, figsize = (18,7))  
+fig, (axM, axL) =plt.subplots(1,2, figsize = (16,7))  
+figr, axr  = plt.subplots(1,1, figsize = (9,7))
 handles_color = []
 labels_color = []
 line_styles_parts = ['-', '--']
@@ -79,9 +95,11 @@ for i in range(len(rest)):
         continue
     line = axM.plot(tfb, rest[i]/Medd_sol,  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])[0]
     axM.plot(tfbO[4:], restO[i][4:]/Medd_sol, linewidth = 2, c = color_obs[i], ls = line_styles_parts[1])
+    axr.plot(tfb, rph_sec[i]/Rt, linewidth = 2, c = color_obs[i], label = r'r$_{\rm ph}$' if i == 2 else "")
+    axr.plot(tfb, rtr_sec[i]/Rt, linewidth = 2, c = color_obs[i], ls = ':', label = r'r$_{\rm trap}$' if i == 2 else "")
     axL.plot(tfb, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i])
     if i ==0:
-        print(rest[i][-1]/restO[i][-1])
+        print('ratio wind/outflow at last time step:', rest[i][-1]/restO[i][-1])
     
     handles_color.append(line)
     labels_color.append(label_obs[i])
@@ -92,7 +110,7 @@ new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
 labels = [str(np.round(tick,2)) if tick in original_ticks else '' for tick in new_ticks]   
 days_ticks = new_ticks*t_fb_days
 days_labels = [str(np.round(days_ticks[k],2)) if new_ticks[k] in original_ticks else "" for k in range(len(days_ticks))] 
-for ax in [axM, axL]:
+for ax in [axM, axr, axL]:
     ax.set_xticks(new_ticks)
     ax.set_xticklabels(labels)
     ax.set_xticks(new_ticks)
@@ -110,6 +128,8 @@ for ax in [axM, axL]:
     ax2.set_xlabel(r't (days)', fontsize = 30)
 axM.set_ylim(1e1, 7e6)
 axM.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$')  
+axr.set_ylabel(r'$r (r_{\rm t})$')
+axr.set_ylim(1, 1.2e2)
 axL.set_ylim(1e38, 2e42)
 axL.set_ylabel(r'$L_{{\rm FLD}}$ (erg/s)')  
 # axM.legend(fontsize = 24)
@@ -131,7 +151,7 @@ for l, line in enumerate(line_styles_parts):
     )
 axM.legend(handles=proxy_lines, fontsize=20, 
                                 loc='lower right')
-
+axr.legend(fontsize = 20, loc = 'lower right')
 fig.tight_layout()
 fig.savefig(f'{abspath}/Figs/2.paperWind/ML_intime.pdf', dpi = 300)
 

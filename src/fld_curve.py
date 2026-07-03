@@ -42,7 +42,7 @@ def fld_lightcurve(params, compton, check, N_ray):
     observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 
     for idx_s, snap in enumerate(snaps):
-        if snap not in [76]: 
+        if snap not in [151]: 
             continue
         print(f'Snap: {snap}', flush=True)
         if alice:
@@ -232,7 +232,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         photosphere['y'].append(ray_y[photo_idx])
         photosphere['z'].append(ray_z[photo_idx])
         photosphere['vol'].append(volume[photo_idx])
-        photosphere['den'].append(d[photo_idx])
+        photosphere['den'].append(d[photo_idx]) # CGS
         photosphere['temp'].append(t[photo_idx])
         photosphere['radden'].append(ray_radDen[photo_idx])
         photosphere['vx'].append(ray_vx[photo_idx])
@@ -306,7 +306,7 @@ if __name__ == "__main__":
     n = 1.5
     compton = 'Compton'
     check = 'HiResNewAMR' 
-    N_ray = 5_000
+    N_ray = 1_000
     params = [m, Rstar, mstar, beta, n, compton]
     
     # Load opacity tables
