@@ -36,9 +36,9 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
-choice = 'azimuthal' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
+choice = 'left_right_in_out_z' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
 how = '' # '' for the normalized sum or 'mean' for mean of Mw of each cells
-what = '' # '' for wind or 'outflow'
+what = 'wind' # '' for wind or 'outflow'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
@@ -172,9 +172,7 @@ if __name__ == '__main__':
     NPIX = hp.nside2npix(prel.NSIDE)
     observers_xyz = hp.pix2vec(prel.NSIDE, range(NPIX))
     observers_xyz = np.array(observers_xyz)
-    indices_obs, label_obs, color_obs, _ = choose_observers(observers_xyz, choice)
-    for i, lab in enumerate(label_obs):
-        print(len(indices_obs[i]))
+    _, label_obs, color_obs, _ = choose_observers(observers_xyz, choice)
         
     if compute: 
         r_chosen = 0.5*amin

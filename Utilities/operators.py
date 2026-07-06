@@ -233,7 +233,8 @@ def choose_sections(X, Y, Z, choice):
     if choice == 'azimuthal': 
         cm = plt.get_cmap('tab20')       
         theta = np.arctan2(Y, X)  # range [-pi, pi]
-        theta_deg = (theta * 180 / np.pi) % 360
+        theta[theta<0] += 2 * np.pi  # range [0, 2pi]
+        theta_deg = (theta * 180 / np.pi) 
 
         step = 30
         angles = np.arange(0, 360, step)
