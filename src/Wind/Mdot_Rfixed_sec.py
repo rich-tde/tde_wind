@@ -36,7 +36,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
-choice = 'left_right_z' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
+choice = 'azimuthal' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
 how = '' # '' for the normalized sum or 'mean' for mean of Mw of each cells
 what = '' # '' for wind or 'outflow'
 
@@ -92,7 +92,10 @@ def Mdot_sec(path, snap, r_chosen, choice, how = ''):
     if X.size == 0:
         return np.array([0]*len(label_obs)*3) # to have the right shape in all cases
 
-    cut, _, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, cond = 'bern')
+    cut_wind, _, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, cond = 'bern')
+
+    if what == 'wind':
+        cut =  cut_wind
 
     if what == 'outflow':
         cut =  V_r > 0
@@ -169,8 +172,10 @@ if __name__ == '__main__':
     NPIX = hp.nside2npix(prel.NSIDE)
     observers_xyz = hp.pix2vec(prel.NSIDE, range(NPIX))
     observers_xyz = np.array(observers_xyz)
-    _, label_obs, color_obs, _ = choose_observers(observers_xyz, choice)
-
+    indices_obs, label_obs, color_obs, _ = choose_observers(observers_xyz, choice)
+    for i, lab in enumerate(label_obs):
+        print(len(indices_obs[i]))
+        
     if compute: 
         r_chosen = 0.5*amin
         which_r_title = '05amin' 

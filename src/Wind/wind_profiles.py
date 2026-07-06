@@ -16,6 +16,7 @@ from Utilities.selectors_for_snap import select_prefix
 from Utilities.sections import make_slices
 import src.orbits as orb
 import Utilities.operators as op
+from src.Wind.Rtrapp_tdiff import load_and_adjust_rtrap
 
 #
 # PARAMS
@@ -130,8 +131,8 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
     shell_all_indices = [np.asarray(s, dtype=int) for s in shell_all_indices]
 
     all_outflows = {}
-    figtest, (ax1, ax2) = plt.subplots(1,2,figsize=(16,8))
-    coltest = plt.cm.get_cmap('rainbow', Nray)
+    # figtest, (ax1, ax2) = plt.subplots(1,2,figsize=(16,8))
+    # coltest = plt.cm.get_cmap('rainbow', Nray)
     for j, cond in enumerate(cond_sec):
         if what_varies == 'theta': # should be 2\pi r*l where l is the arch in the theta dir, which is l = rdtheta. \pi goes away dividing, so 2r^2dtheta
             const_C = 2 * r_fixed**2 * delta_theta / len(cond_sec)
@@ -351,7 +352,8 @@ else:
             photo = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
             xph, yph, zph = photo[0], photo[1], photo[2]
         rph_all = np.sqrt(xph**2 + yph**2 + zph**2)
-        dataRtr = np.load(f"{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz")
+        pathtrap = f"{abspath}/data/{folder}/trap"
+        dataRtr = load_and_adjust_rtrap(pathtrap, check, snap)
         x_tr, y_tr, z_tr, den_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr']
         r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
         # sections_ph = op.choose_sections(xph, yph, zph, which_obs)

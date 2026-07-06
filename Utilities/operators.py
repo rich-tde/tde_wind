@@ -229,6 +229,26 @@ def choose_sections(X, Y, Z, choice):
             else: 
                 cond = np.logical_and(X <= 0, np.logical_and(np.abs(Z) >= np.abs(slope_next) * R_cyl, np.abs(Z) < np.abs(slope) * R_cyl))
                 sec[f'{alpha}-{alpha + step}'] = {'cond': cond, 'label': f'{alpha}-{alpha +step}', 'line': 'dashed', 'color': cm(i % ncolors)}
+    
+    if choice == 'azimuthal': 
+        cm = plt.get_cmap('tab20')       
+        theta = np.arctan2(Y, X)  # range [-pi, pi]
+        theta_deg = (theta * 180 / np.pi) % 360
+
+        step = 30
+        angles = np.arange(0, 360, step)
+        color_sec = cm(np.linspace(0, 1, len(angles)))
+        sec = {}
+        for i, alpha in enumerate(angles):
+            alpha_next = alpha + step
+            cond = np.logical_and(theta_deg >= alpha,
+                                theta_deg < alpha_next)
+            sec[f'{alpha}-{alpha_next}'] = {
+                'cond': cond,
+                'label': f'{alpha}-{alpha_next}',
+                'line': 'solid',
+                'color': color_sec[i]
+            }
 
     return sec
     
@@ -255,7 +275,7 @@ def choose_observers(observers_xyz, choice):
     x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
     all_idx_obs = np.arange(len(x_obs))
 
-    if choice in ['left_right_z', 'in_out_z', 'left_right_in_out_z', 'all', 'tenths', 'chunky_axes']:
+    if choice in ['left_right_z', 'in_out_z', 'left_right_in_out_z', 'all', 'tenths', 'chunky_axes', 'azimuthal']:
         indices_sorted = []
         sections_ph = choose_sections(x_obs, y_obs, z_obs, choice = choice)
 

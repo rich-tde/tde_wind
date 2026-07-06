@@ -22,7 +22,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-choice = 'left_right_z' 
+choice = 'left_right_in_out_z' 
 how = '' # '' for sum or 'mean'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
@@ -76,13 +76,14 @@ wind = \
 tfb = wind[1]
 rest = wind[2:2+len(label_obs)]
 
-outflow = \
-        np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}05amin{choice}_outflow.csv', 
-                delimiter = ',', 
-                skiprows=1, 
-                unpack=True) 
-tfbO = outflow[1]
-restO = outflow[2:2+len(label_obs)]
+if choice == 'left_right_z':
+    outflow = \
+            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}05amin{choice}_outflow.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True) 
+    tfbO = outflow[1]
+    restO = outflow[2:2+len(label_obs)]
 
 fig, (axM, axL) =plt.subplots(1,2, figsize = (16,7))  
 figr, axr  = plt.subplots(1,1, figsize = (9,7))
@@ -91,15 +92,16 @@ labels_color = []
 line_styles_parts = ['-', '--']
 labels_parts = [r'$\dot{M}_{\rm w}$', r'$\dot{M}_{\rm out}$']
 for i in range(len(rest)):
-    if i == 3:
-        continue
+    # if i == 3:
+    #     continue
     line = axM.plot(tfb, rest[i]/Medd_sol,  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])[0]
-    axM.plot(tfbO[4:], restO[i][4:]/Medd_sol, linewidth = 2, c = color_obs[i], ls = line_styles_parts[1])
+    if choice == 'left_right_z':
+        axM.plot(tfbO[4:], restO[i][4:]/Medd_sol, linewidth = 2, c = color_obs[i], ls = line_styles_parts[1])
     axr.plot(tfb, rph_sec[i]/Rt, linewidth = 2, c = color_obs[i], label = r'r$_{\rm ph}$' if i == 2 else "")
     axr.plot(tfb, rtr_sec[i]/Rt, linewidth = 2, c = color_obs[i], ls = ':', label = r'r$_{\rm trap}$' if i == 2 else "")
     axL.plot(tfb, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i])
-    if i ==0:
-        print('ratio wind/outflow at last time step:', rest[i][-1]/restO[i][-1])
+    # if i ==0:
+    #     print('ratio wind/outflow at last time step:', rest[i][-1]/restO[i][-1])
     
     handles_color.append(line)
     labels_color.append(label_obs[i])
@@ -153,5 +155,7 @@ axM.legend(handles=proxy_lines, fontsize=20,
                                 loc='lower right')
 axr.legend(fontsize = 20, loc = 'lower right')
 fig.tight_layout()
-fig.savefig(f'{abspath}/Figs/2.paperWind/ML_intime.pdf', dpi = 300)
-
+if choice == 'left_right_z':
+    fig.savefig(f'{abspath}/Figs/2.paperWind/ML_intime.pdf', dpi = 300)
+else:
+    fig.savefig(f'{abspath}/Figs/{folder}/wind/ML_intime_{choice}.png', dpi = 300)

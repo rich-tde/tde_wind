@@ -1,41 +1,32 @@
-""""
-@author: paola , konstantinos
-"""
 import sys
 sys.path.append('/Users/paolamartire/tde_comparison')
 
 import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
-from src.Luminosity.select_path import select_snap
-plt.rcParams['text.usetex'] = True
-plt.rcParams['figure.dpi'] = 300
-plt.rcParams['font.family'] = 'Times New Roman'
-plt.rcParams['figure.figsize'] = [10 , 8]
-plt.rcParams['axes.facecolor']= 	'whitesmoke'
-AEK = '#F1C410'
+from Utilities import prelude as prel
+from Utilities import operators as op
 
-##
-# VARIABLES
-##
+m = 4
+Mbh = 10**m
+beta = 1
+mstar = .5
+Rstar = .47
+n = 1.5
+compton = 'Compton'
+check = 'HiResNewAMR' 
+# pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-m = 6
-c = 2.99792458e10 # [cm/s]
-c_si = 2.99792458e8 # [m/s]
-h = 6.62607015e-27 # [gcm^2/s]
-Kb = 1.380649e-16 #[gcm^2/s^2K]
-sigma = 5.67037e-5
 # ztf: 3.23e14 - 6.71e14 // swift: 6.34e14 - 1.88e15
 freq_min = 3.23e14
 freq_max = 1.88e15
 
 
-##
-# FUNCTION
-##
+
 def tofit(n, R, T):
-    const = 2*h/c**2
-    planck = const * n**3 / (np.exp(h*n/(Kb*T))-1)
+    const = 2*prel.h_cgs/prel.c_cgs**2 
+    planck = const * n**3 / (np.exp(prel.h_cgs*n/(prel.Kb_cgs*T))-1)
     Lum = 4 * np.pi**2 * R**2 * planck 
     return Lum
 
@@ -44,11 +35,6 @@ def tofit(n, R, T):
 ##
 
 if __name__ == '__main__':
-    plot = True
-    save = True
-    do = True
-    check = 'fid'
-
     # Load & Unpack
     snapshots, days = select_snap(m, check)
     x = np.loadtxt('data/blue/frequencies_m' + str(m) + '.txt') # x = logν
