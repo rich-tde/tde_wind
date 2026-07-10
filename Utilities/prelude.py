@@ -7,6 +7,7 @@ import matplotlib.colors as colors
 # User lines
 import sys
 sys.path.append('/Users/paolamartire/shocks')
+import astropy.units as u
 
 # Constants
 m_p_cgs = 1.6726219e-24 # [g] proton mass
@@ -66,7 +67,25 @@ f_min = Kb_cgs * 1e3 / h_cgs
 f_max = Kb_cgs * 3e13 / h_cgs
 f_num = 1_000
 freqs = np.logspace(np.log10(f_min), np.log10(f_max), f_num)
-    
+# bands
+## ZTF 
+ztf_g_band = (4100, 5500)
+ztf_r_band = (5600, 7100)
+ztf_i_band = (7000, 8400)
+## Swift
+swift_uvw2_center, swift_uvw2_fwhm = 1928, 657 
+swift_uvm2_center, swift_uvm2_fwhm = 2246, 498
+swift_uvw1_center, swift_uvw1_fwhm = 2600, 693
+swift_u_center, swift_u_fwhm = 3465, 785 
+swift_b_center, swift_b_fwhm = 4392, 975 
+swift_v_center, swift_v_fwhm = 5468, 769
+swift_v_band = (swift_v_center - swift_v_fwhm/2, swift_v_center + swift_v_fwhm/2)
+swift_b_band = (swift_b_center - swift_b_fwhm/2, swift_b_center + swift_b_fwhm/2)
+swift_u_band = (swift_u_center - swift_u_fwhm/2, swift_u_center + swift_u_fwhm/2)
+swift_uvw1_band = (swift_uvw1_center - swift_uvw1_fwhm/2, swift_uvw1_center + swift_uvw1_fwhm/2)
+swift_uvm2_band = (swift_uvm2_center - swift_uvm2_fwhm/2, swift_uvm2_center + swift_uvm2_fwhm/2)
+swift_uvw2_band = (swift_uvw2_center - swift_uvw2_fwhm/2, swift_uvw2_center + swift_uvw2_fwhm/2)
+
 # Plotting
 import matplotlib as mpl
 import matplotlib.pyplot as plt

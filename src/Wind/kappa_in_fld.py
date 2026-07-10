@@ -16,7 +16,42 @@ from Utilities.selectors_for_snap import select_prefix
 from Utilities.sections import make_slices
 from Utilities.operators import make_tree, choose_observers, to_spherical_components
 from src import orbits as orb
-from src.Wind.Rtrapp_tdiff import load_and_adjust_rtrap
+# from src.Wind.Rtrapp_tdiff import load_and_adjust_rtrap
+
+def load_and_adjust_rtrap(path, check, snap):
+    filenameRtr = f"{path}/{check}_Rtr{snap}.npz"
+    dataRtr = np.load(filenameRtr)
+    print(dataRtr.keys())
+    indices_bigVol, indices_overRph = dataRtr['indices_bigVol'], dataRtr['indices_overRph']
+    
+    filenameRtr_next = f"{path}/{check}_Rtr{snap}_nextidx.npz"
+    dataRtr_next = np.load(filenameRtr_next)
+    indices_overRph_next = dataRtr_next['indices_overRph']
+
+    data_adjusted = {k: dataRtr[k].copy() for k in dataRtr.files}
+    
+    if len(indices_overRph) > 0:
+        print(f'For snap {snap}: setting {indices_overRph}  some values equal to Rph since Rtr > Rph')
+        for key in data_adjusted.keys():
+            if key not in ['indices_bigVol', 'indices_overRph']:
+                data_adjusted[key][indices_overRph] = 0   
+      
+    if len(indices_bigVol) > 0: # you do it after the previous one, so you are sure to set to 0 the ones that are also in (indices_overRph&indices_bigVol)
+        no_tr = np.intersect1d(indices_bigVol, indices_overRph_next)
+        remaining_bigVol = np.setdiff1d(indices_bigVol, no_tr)
+        remaining_overRphnext = np.setdiff1d(indices_overRph_next, no_tr)
+        print(f'For snap {snap}, skipping {no_tr} observers: no real advective region')
+        print(f'For snap {snap}, for {remaining_bigVol} observers with big gap but all boundaries inside Rph')
+        print(f'For snap {snap}, for {remaining_overRphnext} with no big gap but outside photo')
+        for key in data_adjusted.keys():
+            if key not in ['indices_bigVol', 'indices_overRph']:
+                # data_adjusted[key][no_tr] = 0   # USE THIS
+                data_adjusted[key][indices_bigVol] = 0   
+                # data_adjusted[key][remaining_bigVol] = dataRtr_next[key][remaining_bigVol]
+                # data_adjusted[key][remaining_overRphnext] = dataRtr_next[key][remaining_overRphnext]
+        data_adjusted['upper boundary'] = dataRtr_next['r_tr'][remaining_bigVol]
+        
+    return data_adjusted
 
 def single_fld(loadpath, snap, observers_xyz, N_ray):
     num_obs = len(observers_xyz)
@@ -128,8 +163,8 @@ pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre_saving = f'{abspath}/data/{folder}'
 loadpath = f'{pre}/{snap}'
-which_obs = 'left_right_z'
-compute = False
+which_obs = 'arch' 
+compute = False 
 
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) # shape: (3, 192)
 indices_obs, label_obs, colors_obs, _ = choose_observers(observers_xyz, which_obs)
@@ -146,19 +181,21 @@ scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
 #%%
 if compute:
     all_obs = single_fld(loadpath, snap, observers_xyz, N_ray) 
-    np.save(f'{pre_saving}/kappa_fromFLD{snap}.npy', all_obs, allow_pickle=True)
+    np.save(f'{pre_saving}/wind/kappa_fromFLD{snap}.npy', all_obs, allow_pickle=True)
 else:
-    all_obs = np.load(f'{pre_saving}/kappa_fromFLD{snap}.npy', allow_pickle=True).item()
+    all_obs = np.load(f'{pre_saving}/wind/kappa_fromFLD{snap}.npy', allow_pickle=True).item()
     photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
     xph, yph, zph = photo['x'], photo['y'], photo['z']
     rph_all = np.sqrt(xph**2 + yph**2 + zph**2)
-    pathtrap = f"{abspath}/data/{folder}"
+    pathtrap = f"{abspath}/data/{folder}/trap"
     dataRtr = load_and_adjust_rtrap(pathtrap, check, snap)
     x_tr, y_tr, z_tr, d_tr, Vr_tr, radden_tr = \
         dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['Rad_den_tr']
     r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
     # print(r_tr_all)
     kappa_tr = np.zeros(len(r_tr_all))
+    Mdot_tr = 4 * np.pi * r_tr_all**2 * d_tr* Vr_tr
+    Mdot_tr *= prel.Msol_cgs/prel.tsol_cgs
     # for i, idx_list in enumerate(indices_obs): 
     #     rph_medians.append(np.median(rph_all[idx_list]))
     #     rtr_medians.append(np.median(r_tr_all[idx_list]))
@@ -166,7 +203,6 @@ else:
     #     rph_nonzero_medians.append(np.median(rph_all[non_zero]))
     #     rtr_nonzero_medians.append(np.median(r_tr_all[non_zero]))
 
-    fig, ax = plt.subplots(1,1, figsize=(9, 7))
     r_all = []
     d_all = []
     t_all = []
@@ -177,12 +213,15 @@ else:
     rtr_medians = np.zeros(len(indices_obs))
     rtr_nonzero_medians = np.zeros(len(indices_obs))
     for k, indices in enumerate(indices_obs):
+        # if k != 2:
+        #     continue
         rph_medians[k] = np.median(rph_all[indices])
         rtr_medians[k] = np.median(r_tr_all[indices])
         non_zero = indices[r_tr_all[indices]> Rt]
-        rph_nonzero_medians[k] = np.median(rph_all[non_zero])
-        rtr_nonzero_medians[k] = np.median(r_tr_all[non_zero])
-        print(rtr_nonzero_medians[k])
+        print(f'Obs: {label_obs[k]}: len non zero = {len(non_zero)}')
+        rph_nonzero_medians[k] = np.median(rph_all[non_zero]) if len(non_zero) > 0 else rph_medians[k]
+        rtr_nonzero_medians[k] = np.median(r_tr_all[non_zero]) if len(non_zero) > 0 else 0
+        # print(rph_nonzero_medians[k])
         r_sec = []
         d_sec = []
         t_sec = []
@@ -199,31 +238,57 @@ else:
             r_sec.append(r)
             d_sec.append(d)
             t_sec.append(t)
-            kappa_sec.append(alpha_ross/d)
+            kappa_sec.append(alpha_ross/d) #if len(d)==0 else np.zeros((0,len(r)))
+        if np.shape(kappa_sec) == (0,):
+            r_sec = np.zeros((1, len(r)))
+            d_sec = np.zeros((1, len(r)))
+            t_sec = np.zeros((1, len(r)))
+            kappa_sec = np.zeros((1, len(r)))
         r_all.append(np.median(np.array(r_sec), axis=0))
         d_all.append(np.median(np.array(d_sec), axis=0))
         t_all.append(np.median(np.array(t_sec), axis=0))
         kappa_all.append(np.median(np.array(kappa_sec), axis=0))
+
+    if len(indices_obs) > 6:
+        fig, (ax1, ax2) = plt.subplots(1,2, figsize=(15, 7))
+        axes = [ax1, ax2]
+    else:
+        fig, ax1 = plt.subplots(1,1, figsize=(9, 7))
+        axes = [ax1]
     for i in range(len(indices_obs)):
-        if i > 2:
+        if label_obs[i] == 'South pole':
             continue
+        if len(label_obs) > 6:
+            if np.logical_or(label_obs[i] in ['0-30', '30-60', '60-90', '270-300', '300-330', '330-360'], np.logical_and(i < len(label_obs)/2, which_obs == 'tenths')):
+                ax = ax2
+            else:
+                ax = ax1
+        else:
+            ax = ax1
         ax.plot(r_all[i]/Rt, kappa_all[i], label=label_obs[i], color=colors_obs[i])
         idx_rtr = np.argmin(np.abs(r_all[i] - rtr_nonzero_medians[i]))
         idx_rph = np.argmin(np.abs(r_all[i] - rph_nonzero_medians[i]))
+        print(i, kappa_all[i][idx_rph],idx_rph)
         ax.scatter(rph_nonzero_medians[i]/Rt, kappa_all[i][idx_rph], color=colors_obs[i], marker='o', s=60, edgecolors = 'k', zorder=3)
         ax.scatter(rtr_nonzero_medians[i]/Rt, kappa_all[i][idx_rtr], color=colors_obs[i], marker='d', s=60, edgecolors = 'k', zorder=3)
-    ax.loglog()
-    ax.set_xlabel(r'$r (r_t)$')
-    ax.set_ylabel(r'$\kappa$ (cm$^2$/g)')
-    ax.tick_params(axis='both', which='major', length=7, width=1.2)
-    ax.tick_params(axis='both', which='minor', length=4, width=1)
-    ax.set_xlim(1, 5e2)
-    ax.axhline(0.34, color='k', ls='--', lw=1.5)
-    ax.text(3e2, 0.36, r'$\kappa_{\rm es}$', fontsize=25)
-    ax.legend(fontsize=15, loc='upper left')
-    ax.grid()
-    plt.tight_layout()
-    fig.savefig(f'{abspath}/Figs/2.paperWind/opacity.pdf', dpi=300, bbox_inches='tight')
+    
+    ax1.set_ylabel(r'$\kappa$ (cm$^2$/g)')
+    for ax in axes:
+        ax.loglog()
+        ax.set_xlabel(r'$r (r_t)$')
+        ax.tick_params(axis='both', which='major', length=12, width=1.2)
+        ax.tick_params(axis='both', which='minor', length=6, width=1)
+        ax.set_xlim(1, 5e2)
+        ax.axhline(0.34, color='k', ls='--', lw=1.5)
+        ax.text(3e2, 0.36, r'$\kappa_{\rm es}$', fontsize=25)
+        ax.legend(fontsize=15, loc='upper left')
+        ax.grid()
+        plt.tight_layout()
+    # if which_obs == 'left_right_z':
+    #     fig.savefig(f'{abspath}/Figs/2.paperWind/opacity.pdf', dpi=300, bbox_inches='tight')
+    # else:
+    fig.savefig(f'{abspath}/Figs/{folder}/wind/opacity_Rprof{snap}_{which_obs}.png', dpi=300, bbox_inches='tight')
+
     # %% test for photosphere
     gamma = 1/4
     d_ph, alphaRoss_ph, Vx_ph, Vy_ph, Vz_ph, radden_ph = \
@@ -233,7 +298,7 @@ else:
     Vr_ph, _, _ = to_spherical_components(Vx_ph, Vy_ph, Vz_ph, xph, yph, zph) 
     Vr_ph = np.array(Vr_ph) * prel.Rsol_cgs/prel.tsol_cgs
     # rph_rtr_approx = Vr_tr * ratios_k / prel.csol_cgs * d_tr/d_ph 
-    rph_rtr_approx = (2-3.5*gamma)/(3-3.5*gamma) * kappa_ph/kappa_tr * prel.csol_cgs  /Vr_tr
+    rph_rtr_approx = (7*gamma-4)/(7*gamma-6) * kappa_ph/kappa_tr * prel.csol_cgs  /Vr_tr
 
     fig, (axRratio, axR, axT) = plt.subplots(1, 3, figsize=(24, 7))
     axRratio.scatter(rph_all/r_tr_all, rph_rtr_approx, color='k', s=60, edgecolors='k')
@@ -243,10 +308,13 @@ else:
     axRratio.set_xlim(0, 5)
     axRratio.set_ylim(0, 5)
 
+    rtr_approx = kappa_tr * Mdot_tr / (4 * np.pi * prel.c_cgs)
+    rtr_approx /= np.abs(3.5*gamma-1)
     Mdot_ph = 4 * np.pi * (rph_all*prel.Rsol_cgs)**2 * d_ph * Vr_ph
     rph_approx = kappa_ph * Mdot_ph / (4 * np.pi * Vr_ph)
-    rph_approx /= (3-3.5*gamma)
-    axR.scatter(np.arange(len(rph_all)), rph_all * prel.Rsol_cgs / rph_approx, color='k', s=60, edgecolors='k')
+    rph_approx /= np.abs(3.5*gamma-2)
+    axR.scatter(np.arange(len(rph_all)), rph_all * prel.Rsol_cgs / rph_approx, color='k', s=60, label = r'$r_{\rm ph}$')
+    axR.scatter(np.arange(len(r_tr_all)), r_tr_all * prel.Rsol_cgs / rtr_approx, color='b', s=60, label = r'$r_{\rm tr}$')
     axR.axhline(1, color='r', ls='--', lw=1.5)
     axR.set_ylabel(r'$r_{\rm ph, sim}/ r_{\rm ph, approx}$')
     axR.set_xlabel(r'$N_{\rm obs}$')

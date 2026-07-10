@@ -36,7 +36,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
-choice = 'left_right_in_out_z' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
+choice = 'tenths' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
 how = '' # '' for the normalized sum or 'mean' for mean of Mw of each cells
 what = 'wind' # '' for wind or 'outflow'
 

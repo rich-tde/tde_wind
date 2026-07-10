@@ -381,13 +381,27 @@ def choose_observers(observers_xyz, choice):
             _, idx = tree.query([axis], k=1)
             indices_sorted.append(idx[0])
         label_obs = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
-        colors_obs = ['xkcd:bubble gum pink', 'forestgreen', 'C1', 'xkcd:bubble gum pink', 'xkcd:sky blue', 'cornflowerblue']
+        colors_obs = ['xkcd:apple green',  'C1', 'xkcd:sky blue', 'gold', 'xkcd:bubble gum pink', 'forestgreen']
         lines_obs = ['solid', 'dashed', 'solid', 'dashed', 'solid', 'dashed']
+    
+    if choice == 'arch':
+        observers_xyz = np.array(observers_xyz)
+        wanted_obs = [[1, 0, 0], [1/np.sqrt(2), 0,  1/np.sqrt(2)], [0, 0, 1], [-1/np.sqrt(2), 0,  1/np.sqrt(2)],[-1, 0, 0]]
+        tree = KDTree(observers_xyz.T)
+        indices_sorted = []
+        for axis in wanted_obs:
+            _, idx = tree.query([axis], k=4)
+            indices_sorted.append(np.concatenate(idx))
+        label_obs = [r'$\hat{x}$', r'$(\hat{x}+\hat{z})/\sqrt{2}$', r'$\hat{z}$', r'$(-\hat{x}+\hat{z})/\sqrt{2}$', r'$-\hat{x}$']
+        colors_obs = ['xkcd:apple green',  '#073b4c', 'xkcd:sky blue', '#ffd166', 'xkcd:bubble gum pink']
+        lines_obs = ['solid', 'dashed', 'solid', 'dashed', 'solid', 'dashed']
+
 
     if plot:
         import matplotlib.pyplot as plt
         fig_obs, (ax1_obs, ax2_obs) = plt.subplots(1, 2, figsize=(11, 5))
         for j, idx_list in enumerate(indices_sorted):
+            print(idx_list)
             ax1_obs.scatter(x_obs[idx_list], y_obs[idx_list], s = 20, c = colors_obs[j], label = label_obs[j])
             ax2_obs.scatter(x_obs[idx_list], z_obs[idx_list], s = 20, c = colors_obs[j], label = label_obs[j])
         for ax in [ax1_obs, ax2_obs]:

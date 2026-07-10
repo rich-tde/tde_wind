@@ -208,7 +208,7 @@ def r_trapp(data, ray_params):
         #     plt.tight_layout()
         #     ax_all[j].plot(ray_r/Rt, ray_kappa)
 
-        fig, axt = plt.subplots(1,1,figsize = (8,6))
+        fig, axt = plt.subplots(1,1,figsize = (10,8))
         axt.plot(ray_r/Rt, tdyn_single/tfallback_cgs, c = 'k', label = r'$t_{\rm dyn}=r/v_r$')             
         img = axt.scatter(ray_r/Rt, tdiff_single/tfallback_cgs, c = ray_kappa, cmap = 'rainbow', s = 10, label = r'$t_{\rm diff}=\tau r/c$' , norm = colors.LogNorm(1e-1, 10)) #np.percentile(tau, 5), np.percentile(tau, 95)))
         cbar = plt.colorbar(img)#, orientation = 'horizontal')
@@ -234,7 +234,7 @@ def r_trapp(data, ray_params):
         if len(Rtr_idx_all) == 0:
             print(f'For obs {i}, tdiff < tdyn always, no Rtr', flush=True)
             if plot:
-                fig.savefig(f'{abspath}/Figs/{folder}/Wind/151_tdiff{which_idx}/Obs{i}{which_idx}.png')
+                fig.savefig(f'{abspath}/Figs/{folder}/Wind/{snap}_tdiff{which_idx}/Obs{i}{which_idx}.png')
                 plt.close(fig)
             continue
         else: 
@@ -274,7 +274,7 @@ def r_trapp(data, ray_params):
                 ax.legend(fontsize = 14)
                 ax.loglog()
                 ax.grid()
-            fig.savefig(f'{abspath}/Figs/{folder}/Wind/151_tdiff{which_idx}/Obs{i}{which_idx}.png')
+            fig.savefig(f'{abspath}/Figs/{folder}/Wind/{snap}_tdiff{which_idx}/Obs{i}{which_idx}.png')
         del ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, alpha_rossland, tau, ray_P, ray_ieDen, ray_radDen, idx, ray_kappa
 
     # ax_T.set_ylim(1e4, 1e7)
@@ -354,11 +354,11 @@ def r_trapp(data, ray_params):
 #     return data_adjusted
 
 def load_and_adjust_rtrap(path, check, snap):
-    filenameRtr = f"{path}/trap/{check}_Rtr{snap}.npz"
+    filenameRtr = f"{path}/{check}_Rtr{snap}.npz"
     dataRtr = np.load(filenameRtr)
     indices_bigVol, indices_overRph = dataRtr['indices_bigVol'], dataRtr['indices_overRph']
     
-    filenameRtr_next = f"{path}/trap/{check}_Rtr{snap}_nextidx.npz"
+    filenameRtr_next = f"{path}/{check}_Rtr{snap}_nextidx.npz"
     dataRtr_next = np.load(filenameRtr_next)
     indices_overRph_next = dataRtr_next['indices_overRph']
 
@@ -408,7 +408,7 @@ if __name__ == '__main__':
     if alice:
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True)
     else:
-        snaps = [151]
+        snaps = [76]
 
     if compute:
         for snap in snaps: 
@@ -431,7 +431,7 @@ if __name__ == '__main__':
             # if alice:
             np.savez(f"{pre_saving}/trap/{check}_Rtr{snap}{which_idx}.npz", **r_trap)
     #%%
-    if plot:
+    else:
         data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
         snaps, tfbs, Lums = data[:, 0], data[:, 1], data[:, 2]
         tfbs, snaps, Lums = sort_list([tfbs, snaps, Lums], snaps, unique=True)
@@ -452,9 +452,9 @@ if __name__ == '__main__':
         unbound_ratio = np.zeros((len(indices_axis), len(snaps)))
 
         for s, snap in enumerate(snaps): 
-            if snap not in [151]:
+            if snap not in [109]:
                 continue
-            pathRtr = f"{abspath}/data/{folder}"
+            pathRtr = f"{abspath}/data/{folder}/trap"
             dataRtr = load_and_adjust_rtrap(pathRtr, check, snap)
             x_tr, y_tr, z_tr, den_tr, Vr_tr, Temp_tr, Rad_den_tr, vol_tr, kappa_tr = \
                     dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['Temp_tr'], dataRtr['Rad_den_tr'], dataRtr['vol_tr'], dataRtr['kappa_tr']
@@ -465,9 +465,9 @@ if __name__ == '__main__':
             alpha_ph, d_ph = photo['alpha_rossland'], photo['den']
             kappa_ph = alpha_ph/d_ph
 
-            plt.figure(figsize = (8, 6))
-            plt.plot(r_tr/Rt, kappa_tr, 'o', c = 'k')
-            print(kappa_tr/kappa_ph, flush=True)
+            # plt.figure(figsize = (8, 6))
+            # plt.plot(r_tr/Rt, kappa_tr, 'o', c = 'k')
+            # print(kappa_tr/kappa_ph, flush=True)
 
             for i, observer in enumerate(indices_axis):  
                 unbound_ratio[i][s] = np.median(ratio_kept[observer])      
