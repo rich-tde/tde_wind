@@ -37,7 +37,7 @@ check = 'HiResNewAMR'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 pre_saving = f'{abspath}/data/{folder}'
-which_idx = '_nextidx' # '' or '_nextidx'
+which_idx = '' # '' or '_nextidx'
 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -408,7 +408,7 @@ if __name__ == '__main__':
     if alice:
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True)
     else:
-        snaps = [76]
+        snaps = [116]
 
     if compute:
         for snap in snaps: 

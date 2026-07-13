@@ -46,7 +46,7 @@ def load_and_adjust_rtrap(path, check, snap):
         for key in data_adjusted.keys():
             if key not in ['indices_bigVol', 'indices_overRph']:
                 # data_adjusted[key][no_tr] = 0   # USE THIS
-                data_adjusted[key][indices_bigVol] = 0   
+                data_adjusted[key][indices_bigVol] = 0 
                 # data_adjusted[key][remaining_bigVol] = dataRtr_next[key][remaining_bigVol]
                 # data_adjusted[key][remaining_overRphnext] = dataRtr_next[key][remaining_overRphnext]
         data_adjusted['upper boundary'] = dataRtr_next['r_tr'][remaining_bigVol]
@@ -154,7 +154,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-snap = 151
+snap = 109
 N_ray = 1_000
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -218,7 +218,7 @@ else:
         rph_medians[k] = np.median(rph_all[indices])
         rtr_medians[k] = np.median(r_tr_all[indices])
         non_zero = indices[r_tr_all[indices]> Rt]
-        print(f'Obs: {label_obs[k]}: len non zero = {len(non_zero)}')
+        print(f'Obs: {label_obs[k]}: non zero = {len(non_zero)/len(indices)*100:.1f}%')
         rph_nonzero_medians[k] = np.median(rph_all[non_zero]) if len(non_zero) > 0 else rph_medians[k]
         rtr_nonzero_medians[k] = np.median(r_tr_all[non_zero]) if len(non_zero) > 0 else 0
         # print(rph_nonzero_medians[k])
@@ -268,7 +268,7 @@ else:
         ax.plot(r_all[i]/Rt, kappa_all[i], label=label_obs[i], color=colors_obs[i])
         idx_rtr = np.argmin(np.abs(r_all[i] - rtr_nonzero_medians[i]))
         idx_rph = np.argmin(np.abs(r_all[i] - rph_nonzero_medians[i]))
-        print(i, kappa_all[i][idx_rph],idx_rph)
+        # print(i, kappa_all[i][idx_rph],idx_rph)
         ax.scatter(rph_nonzero_medians[i]/Rt, kappa_all[i][idx_rph], color=colors_obs[i], marker='o', s=60, edgecolors = 'k', zorder=3)
         ax.scatter(rtr_nonzero_medians[i]/Rt, kappa_all[i][idx_rtr], color=colors_obs[i], marker='d', s=60, edgecolors = 'k', zorder=3)
     
@@ -291,8 +291,8 @@ else:
 
     # %% test for photosphere
     gamma = 1/4
-    d_ph, alphaRoss_ph, Vx_ph, Vy_ph, Vz_ph, radden_ph = \
-        photo['den'], photo['alpha_rossland'], photo['vx'], photo['vy'], photo['vz'], photo['radden']
+    d_ph, alphaRoss_ph, Vx_ph, Vy_ph, Vz_ph, radden_ph, Lumph = \
+        photo['den'], photo['alpha_rossland'], photo['vx'], photo['vy'], photo['vz'], photo['radden'], photo['Lum']
     Trad_ph = (radden_ph * prel.en_den_converter/prel.alpha_cgs)**(1/4)
     kappa_ph = alphaRoss_ph/d_ph
     Vr_ph, _, _ = to_spherical_components(Vx_ph, Vy_ph, Vz_ph, xph, yph, zph) 
@@ -300,11 +300,11 @@ else:
     # rph_rtr_approx = Vr_tr * ratios_k / prel.csol_cgs * d_tr/d_ph 
     rph_rtr_approx = (7*gamma-4)/(7*gamma-6) * kappa_ph/kappa_tr * prel.csol_cgs  /Vr_tr
 
-    fig, (axRratio, axR, axT) = plt.subplots(1, 3, figsize=(24, 7))
+    fig, ((axRratio, axT), (axR, axL)) = plt.subplots(2, 2, figsize=(15, 15))
     axRratio.scatter(rph_all/r_tr_all, rph_rtr_approx, color='k', s=60, edgecolors='k')
     axRratio.plot([0, 10], [0, 10], color='r', ls='--', lw=1.5)
     axRratio.set_xlabel(r'$r_{\rm ph}/r_{\rm tr}$ from simulation')
-    axRratio.set_ylabel(r'$\frac{v_{\rm tr}}{c} \frac{\kappa_{\rm tr}}{\kappa_{\rm ph}} \frac{\rho_{\rm tr}}{\rho_{\rm ph}}$')
+    axRratio.set_ylabel(r'$\frac{c}{v_{\rm tr}} \frac{\kappa_{\rm ph}}{\kappa_{\rm tr}} \frac{7\gamma-4}{7\gamma-6}$')
     axRratio.set_xlim(0, 5)
     axRratio.set_ylim(0, 5)
 
@@ -319,8 +319,9 @@ else:
     axR.set_ylabel(r'$r_{\rm ph, sim}/ r_{\rm ph, approx}$')
     axR.set_xlabel(r'$N_{\rm obs}$')
     axR.set_yscale('log')
+
     Lum_tr = 4 * np.pi * r_tr_all**2 * radden_tr * Vr_tr * prel.en_converter/prel.tsol_cgs
-    Tph_approx = (4 * np.pi * Vr_ph * Lum_tr / (kappa_ph**2 * Mdot_ph**2 * prel.alpha_cgs))**(1/4)
+    Tph_approx = (4 * np.pi * Vr_ph**2 * Lum_tr * beta**2 / (kappa_ph**2 * Mdot_ph**2 * prel.sigmaB_cgs))**(1/4)
     axT.scatter(np.arange(len(rph_all[r_tr_all != 0])), (Trad_ph/Tph_approx)[r_tr_all != 0], color='k', s=60, edgecolors='k')
     axT.axhline(1, color='r', ls='--', lw=1.5)
     axT.set_ylabel(r'$T_{\rm ph, sim}/ T_{\rm ph, approx}$')
@@ -328,7 +329,15 @@ else:
     axT.set_yscale('log')
     # axR.set_ylim(5e-3, 2)
 
-    for ax in [axRratio, axR, axT]:
+    axL.scatter(Lumph, Lum_tr, color='k', s=60, edgecolors='k')
+    axL.plot([0, 1e45], [0, 1e45], color='r', ls='--', lw=1.5)
+    axL.loglog()
+    axL.set_xlabel(r'$L_{\rm ph, sim}$')
+    axL.set_ylabel(r'$L_{\rm tr, sim}$')
+    axL.set_xlim(1e40, 1e43)
+    axL.set_ylim(1e40, 1e43)
+
+    for ax in [axRratio, axR, axT, axL]:
         ax.tick_params(axis='both', which='major', length=8, width=1.2)
         ax.tick_params(axis='both', which='minor', length=5, width=1)
         ax.grid()

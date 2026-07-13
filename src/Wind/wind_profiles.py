@@ -72,9 +72,6 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
     # split in sections the wind cells
     if what_varies == 'r':
         Rsph_all = Rsph.copy()
-        X_all = X.copy()
-        Y_all = Y.copy()
-        Z_all = Z.copy()
     elif what_varies == 'theta':
         _, lat_all, _ = op.to_spherical_coordinate(X, Y, Z, r_frame = 'us') 
 
@@ -195,9 +192,9 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
             ray_dim = dim_cell[idx]
             ray_t = (ray_rad_den * prel.en_den_converter / prel.alpha_cgs)**(1/4) 
             L_adv =  ray_V_r * ray_rad_den
-            t_prof[i] = np.sum(ray_t*ray_vol) / np.sum(ray_vol)
-            v_rad_prof[i] = np.sum(ray_V_r*ray_m) / np.sum(ray_m)
-            d_prof[i] = np.sum(ray_d*ray_m)/ np.sum(ray_m)
+            t_prof[i] = np.mean(ray_t) #np.sum(ray_t*ray_vol) / np.sum(ray_vol)
+            v_rad_prof[i] = np.mean(ray_V_r) #np.sum(ray_V_r*ray_m) / np.sum(ray_m)
+            d_prof[i] = np.mean(ray_d) #np.sum(ray_d*ray_m)/ np.sum(ray_m)
             Mdot_prof[i] = const_C / np.sum(ray_dim**2) * np.pi * np.sum(ray_dim**2 * ray_d * ray_V_r)
             L_kin_prof[i] = const_C / np.sum(ray_dim**2)* 0.5 * np.pi *np.sum(ray_dim**2 * ray_d * ray_V_r**3)
             L_adv_prof[i] = const_C / np.sum(ray_dim**2) * np.pi * np.sum(ray_dim**2 * L_adv)
@@ -257,7 +254,7 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
 ## MAIN
 #
 compute = False
-which_part = 'acc' # 'outflow' or 'all' or 'wind' to have the wind
+which_part = 'outflow' # 'outflow' or 'all' or 'wind' to have the wind
 what_varies = 'r' # 'r' or 'theta', only for radial profiles
 which_obs = 'left_right_z' # 'left_right_z', 'all' or 'in_out_z'
 if what_varies == 'r':
@@ -276,7 +273,7 @@ if compute:
             ray_params = [r_chosen, 100]
 
         all_outflows = profiles(path, snap, ray_params, which_obs, which_part, what_varies)
-        out_path = f"{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}_profSec{snap}_{which_obs}_{which_part}.npy"
+        out_path = f"{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}_MEANprofSec{snap}_{which_obs}_{which_part}.npy"
         np.save(out_path, all_outflows, allow_pickle=True)
 
 else:
@@ -383,7 +380,7 @@ else:
         #     ax2.scatter(x_obs[non_zero], z_obs[non_zero], color = colors_obs[i], linewidths = 1, label = r'r$_{\rm tr}\neq0$' if i == 0 else '')
         # Load profiles
         for k, which_part in enumerate(which_parts):
-            profiles = np.load(f'{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
+            profiles = np.load(f'{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}_MEANprofSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
             for i, lab in enumerate(profiles.keys()):
                 if label_obs[i] == 'South pole':
                     continue 
