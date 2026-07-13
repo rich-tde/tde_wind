@@ -208,17 +208,18 @@ def r_trapp(data, ray_params):
         #     plt.tight_layout()
         #     ax_all[j].plot(ray_r/Rt, ray_kappa)
 
-        fig, axt = plt.subplots(1,1,figsize = (10,8))
-        axt.plot(ray_r/Rt, tdyn_single/tfallback_cgs, c = 'k', label = r'$t_{\rm dyn}=r/v_r$')             
-        img = axt.scatter(ray_r/Rt, tdiff_single/tfallback_cgs, c = ray_kappa, cmap = 'rainbow', s = 10, label = r'$t_{\rm diff}=\tau r/c$' , norm = colors.LogNorm(1e-1, 10)) #np.percentile(tau, 5), np.percentile(tau, 95)))
-        cbar = plt.colorbar(img)#, orientation = 'horizontal')
-        cbar.set_label(r'$\kappa$ (cm$^2$/g)', fontsize = 20)
-        cbar.ax.tick_params(which = 'major', length=6, width=1)
-        cbar.ax.tick_params(which = 'minor', length=4, width=0.8)
-        axt.set_ylabel(r'$t (t_{\rm fb})$')
-        axt.set_xlabel(r'$r (r_{\rm t})$')
-        axt.tick_params(axis='both', which='major', length=8, width=1.2)
-        axt.tick_params(axis='both', which='minor', length=5, width=1)
+        if plot:
+            fig, axt = plt.subplots(1,1,figsize = (10,8))
+            axt.plot(ray_r/Rt, tdyn_single/tfallback_cgs, c = 'k', label = r'$t_{\rm dyn}=r/v_r$')             
+            img = axt.scatter(ray_r/Rt, tdiff_single/tfallback_cgs, c = ray_kappa, cmap = 'rainbow', s = 10, label = r'$t_{\rm diff}=\tau r/c$' , norm = colors.LogNorm(1e-1, 10)) #np.percentile(tau, 5), np.percentile(tau, 95)))
+            cbar = plt.colorbar(img)#, orientation = 'horizontal')
+            cbar.set_label(r'$\kappa$ (cm$^2$/g)', fontsize = 20)
+            cbar.ax.tick_params(which = 'major', length=6, width=1)
+            cbar.ax.tick_params(which = 'minor', length=4, width=0.8)
+            axt.set_ylabel(r'$t (t_{\rm fb})$')
+            axt.set_xlabel(r'$r (r_{\rm t})$')
+            axt.tick_params(axis='both', which='major', length=8, width=1.2)
+            axt.tick_params(axis='both', which='minor', length=5, width=1)
         
         # ax_T.plot(ray_r/Rt, ray_t, label = f'Obs {i}')
         # ax_T.set_ylabel(r'$T$')
@@ -395,13 +396,13 @@ v_r_est = 5e3 #km/s
 r_est = 60 * Rt * prel.Rsol_cgs 
 t_dyn_est = r_est*1e-5 / (v_r_est ) # in seconds
 t_dyn_est /= (3600 * 24) # in days
-print(f'Estimated t_dyn: {t_dyn_est:.2f} days')
-print(f'Estimated t_fb: {t_dyn_est/tfallback:.2f}')
+# print(f'Estimated t_dyn: {t_dyn_est:.2f} days')
+# print(f'Estimated t_fb: {t_dyn_est/tfallback:.2f}')
 kappa_est = 10 #cm^2/g
 d_est = 1e-11 #g/cm^3
 t_diff_est =  kappa_est * d_est * r_est**2 / prel.c_cgs # in seconds
 t_diff_est /= (3600 * 24) # in days
-print(f'Estimated t_diff: {t_diff_est:.2f} days')
+# print(f'Estimated t_diff: {t_diff_est:.2f} days')
 
 
 if __name__ == '__main__':
@@ -412,8 +413,8 @@ if __name__ == '__main__':
 
     if compute:
         for snap in snaps: 
-            # if snap <= 120:
-            #     continue
+            if snap < 109 or snap > 130:
+                continue
             if alice:
                 loadpath = f'{pre}/snap_{snap}'
                 print(snap, flush=True)
