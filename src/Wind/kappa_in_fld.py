@@ -16,42 +16,7 @@ from Utilities.selectors_for_snap import select_prefix
 from Utilities.sections import make_slices
 from Utilities.operators import make_tree, choose_observers, to_spherical_components
 from src import orbits as orb
-# from src.Wind.Rtrapp_tdiff import load_and_adjust_rtrap
-
-def load_and_adjust_rtrap(path, check, snap):
-    filenameRtr = f"{path}/{check}_Rtr{snap}.npz"
-    dataRtr = np.load(filenameRtr)
-    print(dataRtr.keys())
-    indices_bigVol, indices_overRph = dataRtr['indices_bigVol'], dataRtr['indices_overRph']
-    
-    filenameRtr_next = f"{path}/{check}_Rtr{snap}_nextidx.npz"
-    dataRtr_next = np.load(filenameRtr_next)
-    indices_overRph_next = dataRtr_next['indices_overRph']
-
-    data_adjusted = {k: dataRtr[k].copy() for k in dataRtr.files}
-    
-    if len(indices_overRph) > 0:
-        print(f'For snap {snap}: setting {indices_overRph}  some values equal to Rph since Rtr > Rph')
-        for key in data_adjusted.keys():
-            if key not in ['indices_bigVol', 'indices_overRph']:
-                data_adjusted[key][indices_overRph] = 0   
-      
-    if len(indices_bigVol) > 0: # you do it after the previous one, so you are sure to set to 0 the ones that are also in (indices_overRph&indices_bigVol)
-        no_tr = np.intersect1d(indices_bigVol, indices_overRph_next)
-        remaining_bigVol = np.setdiff1d(indices_bigVol, no_tr)
-        remaining_overRphnext = np.setdiff1d(indices_overRph_next, no_tr)
-        print(f'For snap {snap}, skipping {no_tr} observers: no real advective region')
-        print(f'For snap {snap}, for {remaining_bigVol} observers with big gap but all boundaries inside Rph')
-        print(f'For snap {snap}, for {remaining_overRphnext} with no big gap but outside photo')
-        for key in data_adjusted.keys():
-            if key not in ['indices_bigVol', 'indices_overRph']:
-                # data_adjusted[key][no_tr] = 0   # USE THIS
-                data_adjusted[key][indices_bigVol] = 0 
-                # data_adjusted[key][remaining_bigVol] = dataRtr_next[key][remaining_bigVol]
-                # data_adjusted[key][remaining_overRphnext] = dataRtr_next[key][remaining_overRphnext]
-        data_adjusted['upper boundary'] = dataRtr_next['r_tr'][remaining_bigVol]
-        
-    return data_adjusted
+from src.Wind.Rtrapp_tdiff import load_and_adjust_rtrap
 
 def single_fld(loadpath, snap, observers_xyz, N_ray):
     num_obs = len(observers_xyz)

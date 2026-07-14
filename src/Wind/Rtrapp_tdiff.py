@@ -24,6 +24,10 @@ from Utilities.operators import make_tree, sort_list, choose_observers
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
 import src.orbits as orb
+import matplotlib as mpl
+mpl.rcParams['savefig.transparent'] = False  # Only figure patch
+mpl.rcParams['figure.facecolor'] = 'white'   # Figure when displayed
+mpl.rcParams['axes.facecolor'] = 'white'     
 
 #%% Choose parameters -----------------------------------------------------------------
 m = 4
@@ -220,6 +224,11 @@ def r_trapp(data, ray_params):
             axt.set_xlabel(r'$r (r_{\rm t})$')
             axt.tick_params(axis='both', which='major', length=8, width=1.2)
             axt.tick_params(axis='both', which='minor', length=5, width=1)
+            axt.set_ylim(1e-4, 1e2)
+            axt.set_xlim(R0/Rt, 2*rph[i]/Rt)
+            axt.set_title(f'Obs {i}', fontsize = 16)
+            axt.loglog()
+            axt.grid()
         
         # ax_T.plot(ray_r/Rt, ray_t, label = f'Obs {i}')
         # ax_T.set_ylabel(r'$T$')
@@ -251,6 +260,9 @@ def r_trapp(data, ray_params):
         if ray_vol[Rtr_idx]/ray_vol[Rtr_idx-1] > 50 or ray_vol[Rtr_idx+1]/ray_vol[Rtr_idx] > 50:
             print(f'big volume gap for obs {i}: {ray_vol[Rtr_idx]/ray_vol[Rtr_idx-1] if ray_vol[Rtr_idx]/ray_vol[Rtr_idx-1] > 50 else ray_vol[Rtr_idx+1]/ray_vol[Rtr_idx]}')
             indices_bigVol.append(i)
+        else: # so you don't plot if if you have a big gap
+            if plot:  
+                axt.axvline(ray_r[Rtr_idx]/Rt, linestyle = '--', c = 'k', label = r'$r_{\rm tr}$')
         
         x_tr[i] = ray_x[Rtr_idx]
         y_tr[i] = ray_y[Rtr_idx]
@@ -266,16 +278,10 @@ def r_trapp(data, ray_params):
         Rad_den_tr[i] = ray_radDen[Rtr_idx]
         kappa_tr[i] = ray_kappa[Rtr_idx]/prel.Rsol_cgs**2 * prel.Msol_cgs # to have it in sol units
         if plot:
-            axt.set_ylim(1e-4, 50)
-            axt.set_title(f'Obs {i}', fontsize = 16)
-            for ax in [axt]:#, ax_T, axd, axk]:
-                ax.axvline(r_tr[i]/Rt, linestyle = '--', c = 'k', label = r'$r_{\rm tr}$')
-                if ax == axt:
-                    ax.axvline(rph[i]/Rt, linestyle = ':', c = 'k', label = r'$r_{\rm ph}$')
-                ax.legend(fontsize = 14)
-                ax.loglog()
-                ax.grid()
+            axt.axvline(rph[i]/Rt, linestyle = ':', c = 'k', label = r'$r_{\rm ph}$')
+            axt.legend(fontsize = 14)
             fig.savefig(f'{abspath}/Figs/{folder}/Wind/{snap}_tdiff{which_idx}/Obs{i}{which_idx}.png')
+            plt.close(fig)
         del ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, alpha_rossland, tau, ray_P, ray_ieDen, ray_radDen, idx, ray_kappa
 
     # ax_T.set_ylim(1e4, 1e7)
@@ -322,46 +328,14 @@ def r_trapp(data, ray_params):
 
     return r_trapp
 
-# def load_and_adjust_rtrap(path, check, snap, which_idx):
-#     filenameRtr = f"{path}/trap/{check}_Rtr{snap}{which_idx}.npz"
-#     dataRtr = np.load(filenameRtr)
-#     indices_bigVol, indices_overRph = dataRtr['indices_bigVol'], dataRtr['indices_overRph']
-#     dataRph = np.load(f"{path}/photo/{check}_photo{snap}.npz")
-#     x_ph, y_ph, z_ph = dataRph['x'], dataRph['y'], dataRph['z']
-#     r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
-#     data_adjusted = {k: dataRtr[k].copy() for k in dataRtr.files}
-    
-#     if len(indices_overRph) > 0:
-#         print(f'For snap {snap}: setting {indices_overRph}  some values equal to Rph since Rtr > Rph')
-#         for key in data_adjusted.keys():
-#             if key not in ['indices_bigVol', 'indices_overRph']:
-#                 data_adjusted[key][indices_overRph] = 0   
-#         # data_adjusted['x_tr'][indices_overRph] = dataRph['x'][indices_overRph]
-#         # data_adjusted['y_tr'][indices_overRph] = dataRph['y'][indices_overRph]
-#         # data_adjusted['z_tr'][indices_overRph] = dataRph['z'][indices_overRph]
-#         # data_adjusted['r_tr'][indices_overRph] = r_ph[indices_overRph]
-#         # data_adjusted['vol_tr'][indices_overRph] = dataRph['vol'][indices_overRph]
-#         # data_adjusted['den_tr'][indices_overRph] = dataRph['den'][indices_overRph]
-#         # data_adjusted['Temp_tr'][indices_overRph] = dataRph['temp'][indices_overRph]
-#         # data_adjusted['kappa_tr'][indices_overRph] = dataRph['alpha_rossland'][indices_overRph]/dataRph['den'][indices_overRph]
-    
-#     if len(indices_bigVol) > 0: # you do it after the previous one, so you are sure to set to 0 the ones that are also in (indices_overRph&indices_bigVol)
-#         print(f'For snap {snap}: Skipping {indices_bigVol} observers with big gap')
-#         for key in data_adjusted.keys():
-#             if key not in ['indices_bigVol', 'indices_overRph']:
-#                 data_adjusted[key][indices_bigVol] = 0   
-
-        
-#     return data_adjusted
-
 def load_and_adjust_rtrap(path, check, snap):
     filenameRtr = f"{path}/{check}_Rtr{snap}.npz"
     dataRtr = np.load(filenameRtr)
     indices_bigVol, indices_overRph = dataRtr['indices_bigVol'], dataRtr['indices_overRph']
     
-    filenameRtr_next = f"{path}/{check}_Rtr{snap}_nextidx.npz"
-    dataRtr_next = np.load(filenameRtr_next)
-    indices_overRph_next = dataRtr_next['indices_overRph']
+    # filenameRtr_next = f"{path}/{check}_Rtr{snap}_nextidx.npz"
+    # dataRtr_next = np.load(filenameRtr_next)
+    # indices_overRph_next = dataRtr_next['indices_overRph']
 
     data_adjusted = {k: dataRtr[k].copy() for k in dataRtr.files}
     
@@ -372,21 +346,23 @@ def load_and_adjust_rtrap(path, check, snap):
                 data_adjusted[key][indices_overRph] = 0   
       
     if len(indices_bigVol) > 0: # you do it after the previous one, so you are sure to set to 0 the ones that are also in (indices_overRph&indices_bigVol)
-        no_tr = np.intersect1d(indices_bigVol, indices_overRph_next)
-        remaining_bigVol = np.setdiff1d(indices_bigVol, no_tr)
-        remaining_overRphnext = np.setdiff1d(indices_overRph_next, no_tr)
-        print(f'For snap {snap}, skipping {no_tr} observers: no real advective region')
-        print(f'For snap {snap}, for {remaining_bigVol} observers with big gap but all boundaries inside Rph')
-        print(f'For snap {snap}, for {remaining_overRphnext} with no big gap but outside photo')
+        # no_tr = np.intersect1d(indices_bigVol, indices_overRph_next)
+        # remaining_bigVol = np.setdiff1d(indices_bigVol, no_tr)
+        # remaining_overRphnext = np.setdiff1d(indices_overRph_next, no_tr)
+        print(f'For snap {snap}, skipping {indices_bigVol} observers: no real advective region')
+        # print(f'For snap {snap}, for {remaining_bigVol} observers with big gap but all boundaries inside Rph')
+        # print(f'For snap {snap}, for {remaining_overRphnext} with no big gap but outside photo')
         for key in data_adjusted.keys():
             if key not in ['indices_bigVol', 'indices_overRph']:
-                data_adjusted[key][no_tr] = 0   # USE THIS
-                # data_adjusted[key][indices_bigVol] = 0   
+                # data_adjusted[key][no_tr] = 0   # USE THIS
+                data_adjusted[key][indices_bigVol] = 0 
                 # data_adjusted[key][remaining_bigVol] = dataRtr_next[key][remaining_bigVol]
                 # data_adjusted[key][remaining_overRphnext] = dataRtr_next[key][remaining_overRphnext]
-        data_adjusted['upper boundary'] = dataRtr_next['r_tr'][remaining_bigVol]
+        # data_adjusted['r_up'] = dataRtr_next['r_tr']
         
     return data_adjusted
+
+
     
 ##
 # MAIN
@@ -409,12 +385,12 @@ if __name__ == '__main__':
     if alice:
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True)
     else:
-        snaps = [116]
+        snaps = [151]
 
     if compute:
         for snap in snaps: 
-            if snap < 109 or snap > 130:
-                continue
+            # if snap < 109 or snap > 130:
+            #     continue
             if alice:
                 loadpath = f'{pre}/snap_{snap}'
                 print(snap, flush=True)
@@ -431,7 +407,7 @@ if __name__ == '__main__':
 
             # if alice:
             np.savez(f"{pre_saving}/trap/{check}_Rtr{snap}{which_idx}.npz", **r_trap)
-    #%%
+
     else:
         data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
         snaps, tfbs, Lums = data[:, 0], data[:, 1], data[:, 2]
@@ -493,47 +469,47 @@ if __name__ == '__main__':
                 
                 r_tr_tokeep[i][s] = np.median(r_tr[observer])  
 
-    fig, (axratiokept, axr, axnonzero) = plt.subplots(1, 3, figsize=(24, 6))
-    figBigV, (axBigVperc, axBigV, axnonzeroBigV) = plt.subplots(1, 3, figsize=(24, 6))
-    figOverRph, (axOverRphperc, axOverRph, axnonzeroOverRph) = plt.subplots(1, 3, figsize=(24, 6))
-    figfin, axfin = plt.subplots(1, 1, figsize=(8, 6))
-    for i, observer in enumerate(indices_axis):
-            if label_axis[i] == 'south pole':
-                continue
-            axratiokept.plot(tfbs, unbound_ratio[i], c = colors_axis[i], label = label_axis[i])
-            axr.plot(tfbs, r_tr_sec[i]/Rt, c = colors_axis[i], label = label_axis[i])
-            axnonzero.plot(tfbs, r_trnonzero_sec[i]/Rt, c = colors_axis[i]) 
+        fig, (axratiokept, axr, axnonzero) = plt.subplots(1, 3, figsize=(24, 6))
+        figBigV, (axBigVperc, axBigV, axnonzeroBigV) = plt.subplots(1, 3, figsize=(24, 6))
+        figOverRph, (axOverRphperc, axOverRph, axnonzeroOverRph) = plt.subplots(1, 3, figsize=(24, 6))
+        figfin, axfin = plt.subplots(1, 1, figsize=(8, 6))
+        for i, observer in enumerate(indices_axis):
+                if label_axis[i] == 'south pole':
+                    continue
+                axratiokept.plot(tfbs, unbound_ratio[i], c = colors_axis[i], label = label_axis[i])
+                axr.plot(tfbs, r_tr_sec[i]/Rt, c = colors_axis[i], label = label_axis[i])
+                axnonzero.plot(tfbs, r_trnonzero_sec[i]/Rt, c = colors_axis[i]) 
 
-            axBigVperc.plot(tfbs, NbigV_sec[i]/len(observer), c = colors_axis[i], label = label_axis[i])
-            axBigV.plot(tfbs, r_trBigV_sec[i]/Rt, c = colors_axis[i])
-            axnonzeroBigV.plot(tfbs, r_trnonzeroBigV_sec[i]/Rt, c = colors_axis[i]) 
+                axBigVperc.plot(tfbs, NbigV_sec[i]/len(observer), c = colors_axis[i], label = label_axis[i])
+                axBigV.plot(tfbs, r_trBigV_sec[i]/Rt, c = colors_axis[i])
+                axnonzeroBigV.plot(tfbs, r_trnonzeroBigV_sec[i]/Rt, c = colors_axis[i]) 
 
-            axOverRphperc.plot(tfbs, NoverRph_sec[i]/len(observer), c = colors_axis[i], label = label_axis[i])
-            axOverRph.plot(tfbs, r_trOverRph_sec[i]/Rt, c = colors_axis[i])
-            axnonzeroOverRph.plot(tfbs, r_trnonzeroOverRph_sec[i]/Rt, c = colors_axis[i])
+                axOverRphperc.plot(tfbs, NoverRph_sec[i]/len(observer), c = colors_axis[i], label = label_axis[i])
+                axOverRph.plot(tfbs, r_trOverRph_sec[i]/Rt, c = colors_axis[i])
+                axnonzeroOverRph.plot(tfbs, r_trnonzeroOverRph_sec[i]/Rt, c = colors_axis[i])
 
-            axfin.plot(tfbs, r_tr_tokeep[i]/Rt, c = colors_axis[i], label = label_axis[i])
+                axfin.plot(tfbs, r_tr_tokeep[i]/Rt, c = colors_axis[i], label = label_axis[i])
 
-    for ax in [axratiokept, axr, axnonzero, axBigVperc, axBigV, axnonzeroBigV, axOverRphperc, axOverRph, axnonzeroOverRph, axfin]:
-        ax.set_xlabel(r'$t/t_{\rm fb}$')
-        ax.tick_params(axis='both', which='major', width=1.2, length=9, color = 'k')
-        ax.tick_params(axis='both', which='minor', width=1, length=7, color = 'k')
-        ax.set_xlim(0, np.max(tfbs))
-        ax.grid()
-        if ax in [axr, axBigV, axOverRph]:
-            ax.set_title(r'All observers', fontsize = 20)
-            ax.set_ylabel(r'median $r_{\rm tr} / r_{\rm t}$')
-        elif ax in [axnonzero, axnonzeroBigV, axnonzeroOverRph]:
-            ax.set_title(r'Non zeros', fontsize = 20)
+        for ax in [axratiokept, axr, axnonzero, axBigVperc, axBigV, axnonzeroBigV, axOverRphperc, axOverRph, axnonzeroOverRph, axfin]:
+            ax.set_xlabel(r'$t/t_{\rm fb}$')
+            ax.tick_params(axis='both', which='major', width=1.2, length=9, color = 'k')
+            ax.tick_params(axis='both', which='minor', width=1, length=7, color = 'k')
+            ax.set_xlim(0, np.max(tfbs))
+            ax.grid()
+            if ax in [axr, axBigV, axOverRph]:
+                ax.set_title(r'All observers', fontsize = 20)
+                ax.set_ylabel(r'median $r_{\rm tr} / r_{\rm t}$')
+            elif ax in [axnonzero, axnonzeroBigV, axnonzeroOverRph]:
+                ax.set_title(r'Non zeros', fontsize = 20)
+                ax.legend(fontsize = 16)
+            if ax not in [axratiokept, axBigVperc, axOverRphperc]:
+                ax.set_yscale('log')
+                ax.set_ylim(1, 100)
             ax.legend(fontsize = 16)
-        if ax not in [axratiokept, axBigVperc, axOverRphperc]:
-            ax.set_yscale('log')
-            ax.set_ylim(1, 100)
-        ax.legend(fontsize = 16)
-    axratiokept.set_ylabel('Ratio unbound material', fontsize = 20)
-    axBigVperc.set_ylabel('Ratio obs with big gap', fontsize = 20)
-    axOverRphperc.set_ylabel(r'Ratio obs with $r_{\rm tr} > r_{\rm ph}$', fontsize = 20)
-    fig.tight_layout()
-    figBigV.tight_layout()
-    figOverRph.tight_layout()
-    # %%
+        axratiokept.set_ylabel('Ratio unbound material', fontsize = 20)
+        axBigVperc.set_ylabel('Ratio obs with big gap', fontsize = 20)
+        axOverRphperc.set_ylabel(r'Ratio obs with $r_{\rm tr} > r_{\rm ph}$', fontsize = 20)
+        fig.tight_layout()
+        figBigV.tight_layout()
+        figOverRph.tight_layout()
+        # %%
