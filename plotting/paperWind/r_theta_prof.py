@@ -22,7 +22,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-which_obs = 'left_right_z' # 'left_right_z', 'all' or 'in_out_z'
+which_obs = 'funnel' # 'left_right_z', 'all' or 'in_out_z'
 r_chosen_name_theta = 'apo' 
 snap = 151
 
@@ -99,7 +99,7 @@ else:
     xph, yph, zph = photo[0], photo[1], photo[2]
 rph_all = np.sqrt(xph**2 + yph**2 + zph**2)
 pathtrap = f"{abspath}/data/{folder}/trap"
-dataRtr = load_and_adjust_rtrap(pathtrap, check, snap)
+dataRtr = load_and_adjust_rtrap(pathtrap, check, snap, params)
 x_tr, y_tr, z_tr, den_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr']
 r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
 rph_medians = []
@@ -134,9 +134,14 @@ for w, what_varies in enumerate(what_varies_all):
                 idx_rph = np.argmin(np.abs(r_plot - rph_nonzero_medians[i]))
                 if lab == 'Stream side': # just to cut the initially unbound material
                     idx_stop_d = np.where(np.logical_and(d > d[0], r_plot > apo))[0][0] #np.argmin(np.abs(r_plot - idx_stop_d_unb[k]*Rt)) 
-                    d[idx_stop_d:] = 1e-20
-                    Mdot[idx_stop_d:] = 1e-20
-                    L_kin[idx_stop_d:] = 1e-20
+                    # d[idx_stop_d:] = 1e-20
+                    # Mdot[idx_stop_d:] = 1e-20
+                    # L_kin[idx_stop_d:] = 1e-20
+                    r_plot = r_plot[:idx_stop_d]
+                    d = d[:idx_stop_d]
+                    v_rad = v_rad[:idx_stop_d]
+                    Mdot = Mdot[:idx_stop_d]
+                    L_kin = L_kin[:idx_stop_d]
             else:
                 r_plot = r_arr 
             

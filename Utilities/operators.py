@@ -154,9 +154,11 @@ def find_step(theta_arr, i):
 
 def choose_sections(X, Y, Z, choice):
     R_cyl = np.sqrt(X**2 + Y**2)
-    if choice in ['left_right_z', 'in_out_z', 'left_right_in_out_z']:
+    if choice in ['left_right_z', 'in_out_z', 'left_right_in_out_z', 'funnel']:
         if choice == 'left_right_in_out_z':
             alpha_pole = np.arcsin(2/3)
+        elif choice == 'funnel':
+            alpha_pole = np.pi/3
         else:
             alpha_pole = np.pi/6 
         slope = np.tan(alpha_pole)  
@@ -190,7 +192,7 @@ def choose_sections(X, Y, Z, choice):
         yminus = {'cond': cond_yminus, 'label': r'-$\hat{y}$', 'color': 'xkcd:bubble gum pink', 'line': 'dashed'}
         sec = {'xplus': xplus, 'xminus': xminus, 'yplus': yplus, 'yminus': yminus, 'north': north, 'south': south}
 
-    if choice == 'left_right_z':
+    if choice == 'left_right_z' or choice == 'funnel':
         cond_left = np.logical_and(X < 0, np.abs(Z) <= slope *  R_cyl)
         cond_right = np.logical_and(X >= 0, np.abs(Z) < slope * R_cyl)
         left = {'cond': cond_left, 'label': r'Stream side', 'color': 'xkcd:bubble gum pink', 'line': 'solid'}
@@ -276,7 +278,7 @@ def choose_observers(observers_xyz, choice):
     x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
     all_idx_obs = np.arange(len(x_obs))
 
-    if choice in ['left_right_z', 'in_out_z', 'left_right_in_out_z', 'all', 'tenths', 'chunky_axes', 'azimuthal']:
+    if choice in ['left_right_z', 'in_out_z', 'left_right_in_out_z', 'all', 'tenths', 'chunky_axes', 'azimuthal', 'funnel']:
         indices_sorted = []
         sections_ph = choose_sections(x_obs, y_obs, z_obs, choice = choice)
 

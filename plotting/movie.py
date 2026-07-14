@@ -11,13 +11,13 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-what = 'projection' # 'projection', 'slices', 'testOpac', 'Outflow', 'stream'
-how_many = '3'
+what = 'Rtr' # 'projection', 'slices', 'testOpac', 'Outflow', 'stream', 'Rtr
+how_many = 'funnel' # numbers of parameter which_obs for what == 'funnel'
 coord_to_cut = '' # 'x', 'y', 'z'
 cut_name = 0
 figs_path = f'{abspath}/Figs/{folder}/{what}{how_many}' 
 
-start = 21
+start = 76
 slow_down_factor = 3 # Increase this value to make the video slower
 
 # Get the height of the first image to calculate the scale
@@ -40,8 +40,10 @@ if what == 'Outflow':
     sub_path = f'B_slice'  
 if what == 'stream':
     sub_path = f'WH_theta'
+if what == 'Rtr':
+    sub_path = f'Rtr'
 
-path = f'{figs_path}/{sub_path}_%d.png'
+path = f'{figs_path}/{sub_path}_%d.png' 
 output_path = f'{figs_path}/{sub_path}_{check}.mp4'
 first_image_path = f'{figs_path}/{sub_path}_{start}.png'  
 

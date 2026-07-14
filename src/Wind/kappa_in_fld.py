@@ -119,16 +119,17 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-snap = 109
+snap = 151
 N_ray = 1_000
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 Rt = things['Rt']
+apo = things['apo']
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre_saving = f'{abspath}/data/{folder}'
 loadpath = f'{pre}/{snap}'
-which_obs = 'arch' 
+which_obs = 'funnel' 
 compute = False 
 
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) # shape: (3, 192)
@@ -153,7 +154,7 @@ else:
     xph, yph, zph = photo['x'], photo['y'], photo['z']
     rph_all = np.sqrt(xph**2 + yph**2 + zph**2)
     pathtrap = f"{abspath}/data/{folder}/trap"
-    dataRtr = load_and_adjust_rtrap(pathtrap, check, snap)
+    dataRtr = load_and_adjust_rtrap(pathtrap, check, snap, params)
     x_tr, y_tr, z_tr, d_tr, Vr_tr, radden_tr = \
         dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['Rad_den_tr']
     r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
@@ -177,9 +178,9 @@ else:
     rph_nonzero_medians = np.zeros(len(indices_obs))
     rtr_medians = np.zeros(len(indices_obs))
     rtr_nonzero_medians = np.zeros(len(indices_obs))
+    figs, axs = plt.subplots(1, 1, figsize=(9, 7))
     for k, indices in enumerate(indices_obs):
-        # if k != 2:
-        #     continue
+        print(label_obs[k],indices)
         rph_medians[k] = np.median(rph_all[indices])
         rtr_medians[k] = np.median(r_tr_all[indices])
         non_zero = indices[r_tr_all[indices]> Rt]
@@ -195,15 +196,22 @@ else:
             r = all_obs[f'obs_{i}']['r']
             d = all_obs[f'obs_{i}']['d']
             alpha_ross = all_obs[f'obs_{i}']['alpha_rossland']
+            kappa = alpha_ross/d
             idx_tr = np.argmin(np.abs(r - r_tr_all[i]))
             kappa_tr[i] = alpha_ross[idx_tr]/d[idx_tr]
             if i not in indices:
                 continue
+            if label_obs[k] == 'Pericentre side':
+                if r_tr_all[i] == 0:
+                    continue
+                axs.plot(r/Rt, kappa, label = f'Obs {i}')
+                axs.scatter(r[idx_tr]/Rt, kappa[idx_tr], marker='d', edgecolors='k', s=60, zorder=3)
+
             t = all_obs[f'obs_{i}']['t']
             r_sec.append(r)
             d_sec.append(d)
             t_sec.append(t)
-            kappa_sec.append(alpha_ross/d) #if len(d)==0 else np.zeros((0,len(r)))
+            kappa_sec.append(kappa) #if len(d)==0 else np.zeros((0,len(r)))
         if np.shape(kappa_sec) == (0,):
             r_sec = np.zeros((1, len(r)))
             d_sec = np.zeros((1, len(r)))
@@ -214,12 +222,13 @@ else:
         t_all.append(np.median(np.array(t_sec), axis=0))
         kappa_all.append(np.median(np.array(kappa_sec), axis=0))
 
+
     if len(indices_obs) > 6:
         fig, (ax1, ax2) = plt.subplots(1,2, figsize=(15, 7))
-        axes = [ax1, ax2]
+        axes = [ax1, ax2, axs]
     else:
         fig, ax1 = plt.subplots(1,1, figsize=(9, 7))
-        axes = [ax1]
+        axes = [ax1, axs]
     for i in range(len(indices_obs)):
         if label_obs[i] == 'South pole':
             continue

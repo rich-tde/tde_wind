@@ -51,7 +51,7 @@ Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
 apo = things['apo']
-norm = things['E_mb']
+E_mb = things['E_mb']
 tfallback = things['t_fb_days']
 tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
 t_fb_sol = tfallback_cgs/prel.tsol_cgs
@@ -328,10 +328,15 @@ def r_trapp(data, ray_params):
 
     return r_trapp
 
-def load_and_adjust_rtrap(path, check, snap):
+def load_and_adjust_rtrap(path, check, snap, params):
     filenameRtr = f"{path}/{check}_Rtr{snap}.npz"
     dataRtr = np.load(filenameRtr)
     indices_bigVol, indices_overRph = dataRtr['indices_bigVol'], dataRtr['indices_overRph']
+    x_tr, z_tr, vol_tr = dataRtr['x_tr'], dataRtr['z_tr'], dataRtr['vol_tr']
+    # mass_tr = den_tr * vol_tr
+    # orb_en = orb.orbital_energy(r_tr, V_tr, mass_tr, params, prel.G) 
+    # orb_en_spec = orb_en/mass_tr
+    cut_dynUnbound = np.logical_and(x_tr < -3*apo, np.abs(z_tr) < vol_tr**(1/3)) # np.logical_and(orb_en_spec > E_mb, np.abs(z_tr) < vol_tr**(1/3))
     
     # filenameRtr_next = f"{path}/{check}_Rtr{snap}_nextidx.npz"
     # dataRtr_next = np.load(filenameRtr_next)
@@ -344,12 +349,12 @@ def load_and_adjust_rtrap(path, check, snap):
         for key in data_adjusted.keys():
             if key not in ['indices_bigVol', 'indices_overRph']:
                 data_adjusted[key][indices_overRph] = 0   
-      
+    
     if len(indices_bigVol) > 0: # you do it after the previous one, so you are sure to set to 0 the ones that are also in (indices_overRph&indices_bigVol)
         # no_tr = np.intersect1d(indices_bigVol, indices_overRph_next)
         # remaining_bigVol = np.setdiff1d(indices_bigVol, no_tr)
         # remaining_overRphnext = np.setdiff1d(indices_overRph_next, no_tr)
-        print(f'For snap {snap}, skipping {indices_bigVol} observers: no real advective region')
+        # print(f'For snap {snap}, skipping {indices_bigVol} observers: no real advective region')
         # print(f'For snap {snap}, for {remaining_bigVol} observers with big gap but all boundaries inside Rph')
         # print(f'For snap {snap}, for {remaining_overRphnext} with no big gap but outside photo')
         for key in data_adjusted.keys():
@@ -359,6 +364,9 @@ def load_and_adjust_rtrap(path, check, snap):
                 # data_adjusted[key][remaining_bigVol] = dataRtr_next[key][remaining_bigVol]
                 # data_adjusted[key][remaining_overRphnext] = dataRtr_next[key][remaining_overRphnext]
         # data_adjusted['r_up'] = dataRtr_next['r_tr']
+    for key in data_adjusted.keys():
+        if key not in ['indices_bigVol', 'indices_overRph']:
+            data_adjusted[key][cut_dynUnbound] = 0 
         
     return data_adjusted
 

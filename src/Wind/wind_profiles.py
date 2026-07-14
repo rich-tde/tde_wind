@@ -99,6 +99,8 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
     X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell = \
         make_slices([X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell], cut)       
     indices = np.arange(len(X))
+    print(f'For {which_part}, Vr is non positive for: ', indices[V_r <= 0])
+    print(f'For {which_part}, Bern is non positive for: ', indices[bern <= 0])
 
     if what_varies == 'theta':
         _, lat, _ = op.to_spherical_coordinate(X, Y, Z, r_frame = 'us') #lat in [0, pi] with North pole at 0, orbital plane at pi/2, long counterclockwise in [0, 2pi] with direction of positive x at 0 
@@ -256,8 +258,8 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
 #   
 ## MAIN
 #
-compute = False
-which_part = 'acc' # 'outflow' or 'all' or 'wind' to have the wind
+compute = True
+which_part = 'outflow' # 'outflow' or 'all' or 'wind' to have the wind
 what_varies = 'r' # 'r' or 'theta', only for radial profiles
 which_obs = 'left_right_z' # 'left_right_z', 'all' or 'in_out_z'
 if what_varies == 'r':
@@ -355,7 +357,7 @@ else:
             xph, yph, zph = photo[0], photo[1], photo[2]
         rph_all = np.sqrt(xph**2 + yph**2 + zph**2)
         pathtrap = f"{abspath}/data/{folder}/trap"
-        dataRtr = load_and_adjust_rtrap(pathtrap, check, snap)
+        dataRtr = load_and_adjust_rtrap(pathtrap, check, snap, params)
         x_tr, y_tr, z_tr, den_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr']
         r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
         # sections_ph = op.choose_sections(xph, yph, zph, which_obs)
@@ -419,21 +421,37 @@ else:
                     idx_rtr = np.argmin(np.abs(r_plot - rtr_nonzero_medians[i]))
                     idx_rph = np.argmin(np.abs(r_plot - rph_nonzero_medians[i]))
                     if label_obs[i] == 'Stream side': # just to cut the initially unbound material
+                        # if which_part == 'wind':
+                        #     idx_stop_d = np.where(np.logical_and(d > d[0], r_plot > apo))[0][0] #np.argmin(np.abs(r_plot - idx_stop_d_unb[k]*Rt)) 
+                        #     d[idx_stop_d:] = 1e-20
+                        #     Mdot[idx_stop_d:] = 1e-20
+                        #     v_rad[idx_stop_d:] = 1e-20
+                        #     L_kin[idx_stop_d:] = 1e-20
+                        #     ratio_un[idx_stop_d:] = 1e-20
+                        #     ratio_Mass[idx_stop_d:] = 1e-20
                         if which_part != 'acc':
                             idx_stop_d = np.where(np.logical_and(d > d[0], r_plot > apo))[0][0] #np.argmin(np.abs(r_plot - idx_stop_d_unb[k]*Rt)) 
-                            d[idx_stop_d:] = 1e-20
-                            Mdot[idx_stop_d:] = 1e-20
-                            L_kin[idx_stop_d:] = 1e-20
-                            ratio_un[idx_stop_d:] = 1e-20
-                            ratio_Mass[idx_stop_d:] = 1e-20
-                        if which_part == 'wind':
-                            Nwind_cells[idx_stop_d-2:] = 0 # -2 to avoid weird spikes
-                            # Mass_wind[idx_stop_d-2:] = 0
-                            Ntot_cells[idx_stop_d-2:] = 0
+                            r_plot = r_plot[:idx_stop_d]
+                            d = d[:idx_stop_d]
+                            v_rad = v_rad[:idx_stop_d]
+                            t = t[:idx_stop_d]
+                            Mdot = Mdot[:idx_stop_d]
+                            L_kin = L_kin[:idx_stop_d]
+                            L_adv = L_adv[:idx_stop_d]
+                            ratio_un = ratio_un[:idx_stop_d]
+                            ratio_Mass = ratio_Mass[:idx_stop_d]
+                            Nwind_cells = Nwind_cells[:idx_stop_d]
+                            Ntot_cells = Ntot_cells[:idx_stop_d]
+                            Mass_wind = Mass_wind[:idx_stop_d]
+                            Mdotmean = Mdotmean[:idx_stop_d]
+                        # if which_part == 'wind':
+                        #     Nwind_cells[idx_stop_d-2:] = 0 # -2 to avoid weird spikes
+                        #     # Mass_wind[idx_stop_d-2:] = 0
+                        #     Ntot_cells[idx_stop_d-2:] = 0
                             # Mass_tot[idx_stop_d-2:] = 0
-                            idx_maxM = np.argmax(Mass_wind)
-                            v_snap_peakM[s] = v_rad[idx_maxM]
-                            R_peakM[s] = r_plot[idx_maxM]
+                            # idx_maxM = np.argmax(Mass_wind)
+                            # v_snap_peakM[s] = v_rad[idx_maxM]
+                            # R_peakM[s] = r_plot[idx_maxM]
                 else:
                     r_plot = r_arr
 
