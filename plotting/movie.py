@@ -11,8 +11,8 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-what = 'Rtr' # 'projection', 'slices', 'testOpac', 'Outflow', 'stream', 'Rtr
-how_many = 'funnel' # numbers of parameter which_obs for what == 'funnel'
+what = 'Wind/Rtr' # 'projection', 'slices', 'testOpac', 'Outflow', 'stream', 'Wind/Rtr
+how_many = '3d_arch' # numbers of parameter which_obs for what == 'funnel'
 coord_to_cut = '' # 'x', 'y', 'z'
 cut_name = 0
 figs_path = f'{abspath}/Figs/{folder}/{what}{how_many}' 
@@ -40,7 +40,7 @@ if what == 'Outflow':
     sub_path = f'B_slice'  
 if what == 'stream':
     sub_path = f'WH_theta'
-if what == 'Rtr':
+if what == 'Wind/Rtr':
     sub_path = f'Rtr'
 
 path = f'{figs_path}/{sub_path}_%d.png' 

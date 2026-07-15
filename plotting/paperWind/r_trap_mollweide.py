@@ -10,7 +10,7 @@ import matplotlib.colors as colors
 import Utilities.prelude as prel
 from Utilities.operators import choose_observers, sort_list
 import src.orbits as orb
-from src.Wind.Rtrapp_tdiff import load_and_adjust_rtrap
+from src.Wind.Rtrapp_tdiff import load_and_smooth_rtrap
 
 m = 4
 Mbh = 10**m
@@ -27,11 +27,11 @@ params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 t_fb_days = things['t_fb_days']
 Rt = things['Rt']
-which_obs = 'funnel'
+which_obs = '3d_arch'
 
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
 indices_obs, label_obs, colors_obs, _ = choose_observers(observers_xyz, which_obs)
-markers_obs = ['o', 's', 'X', 'X']
+markers_obs = ['o', 'p', 's', 'X', 'X']
 observers_xyz = np.array(observers_xyz).T
 x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
 r = np.sqrt(x**2 + y**2 + z**2)   # Radius (should be 1 for unit vectors)
@@ -50,7 +50,7 @@ for s, snap in enumerate(snaps):
     if snap < 76 :
         continue
     pathtrap = f"{abspath}/data/{folder}/trap"
-    dataRtr = load_and_adjust_rtrap(pathtrap, check, snap, params)
+    dataRtr = load_and_smooth_rtrap(pathtrap, check, snap)
     kappa_tr, d_tr, Vr_tr = \
         dataRtr['kappa_tr'], dataRtr['den_tr'], dataRtr['Vr_tr']
     kappa_tr = kappa_tr * prel.Rsol_cgs**2 / prel.Msol_cgs
@@ -106,14 +106,22 @@ for s, snap in enumerate(snaps):
     cbar3.ax.tick_params(which='minor', length=4, width=1)
 
     for ax in (ax1, ax2, ax3):
-        if which_obs == 'funnel':
+        if which_obs == 'funnel' or which_obs == '3d_arch':
             ax.axhline(np.pi/3, color='k', ls='--')
             ax.axhline(-np.pi/3, color='k', ls='--')
+            if which_obs == '3d_arch':
+                # draw a line at pi6, but ubtile np.pi in x
+                ax.plot([-np.pi, -np.pi/2], [np.pi/6, np.pi/6], color='k', ls='--')
+                ax.plot([np.pi/2, np.pi], [np.pi/6, np.pi/6], color='k', ls='--')
+                ax.plot([-np.pi, -np.pi/2], [-np.pi/6, -np.pi/6], color='k', ls='--')
+                ax.plot([np.pi/2, np.pi], [-np.pi/6, -np.pi/6], color='k', ls='--')
+                ax.plot([-np.pi/2, -np.pi/2], [-np.pi/3, np.pi/3], color='k', ls='--')
+                ax.plot([np.pi/2, np.pi/2], [-np.pi/3, np.pi/3], color='k', ls='--')
         elif which_obs == 'left_right_z':
-            ax.axhline(np.pi/6, color='k', ls='--')
-            ax.axhline(-np.pi/6, color='k', ls='--')
-        ax.axvline(np.pi/2, color='k', ls='--')
-        ax.axvline(-np.pi/2, color='k', ls='--')
+            ax.plot([-np.pi/2, -np.pi/2], [-np.pi/6, np.pi/6], color='k', ls='--')
+            ax.plot([np.pi/2, np.pi/2], [-np.pi/6, np.pi/6], color='k', ls='--')
+            ax.plot([-np.pi/2, -np.pi/2], [-np.pi/6, np.pi/6], color='k', ls='--')
+            ax.plot([np.pi/2, np.pi/2], [-np.pi/6, np.pi/6], color='k', ls='--')
         for spine in ax.spines.values():
             spine.set_visible(False)
         ax.grid(True)
@@ -126,5 +134,5 @@ for s, snap in enumerate(snaps):
     # Shared decorations
     fig.suptitle(f'time = {tfbs[s]:.1f} ' + r't$_{\rm fb}$', fontsize=20)
     fig.tight_layout()
-    plt.savefig(f'{abspath}/Figs/{folder}/Rtr{which_obs}/Rtr_{snap}.png', dpi=300)
+    plt.savefig(f'{abspath}/Figs/{folder}/Wind/Rtr{which_obs}/Rtr_{snap}.png', dpi=300)
     plt.close()

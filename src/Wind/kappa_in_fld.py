@@ -16,7 +16,7 @@ from Utilities.selectors_for_snap import select_prefix
 from Utilities.sections import make_slices
 from Utilities.operators import make_tree, choose_observers, to_spherical_components
 from src import orbits as orb
-from src.Wind.Rtrapp_tdiff import load_and_adjust_rtrap
+from src.Wind.Rtrapp_tdiff import load_and_smooth_rtrap
 
 def single_fld(loadpath, snap, observers_xyz, N_ray):
     num_obs = len(observers_xyz)
@@ -119,7 +119,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-snap = 151
+snap = 109
 N_ray = 1_000
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -129,7 +129,7 @@ pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre_saving = f'{abspath}/data/{folder}'
 loadpath = f'{pre}/{snap}'
-which_obs = 'funnel' 
+which_obs = 'left_right_z' 
 compute = False 
 
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) # shape: (3, 192)
@@ -154,7 +154,7 @@ else:
     xph, yph, zph = photo['x'], photo['y'], photo['z']
     rph_all = np.sqrt(xph**2 + yph**2 + zph**2)
     pathtrap = f"{abspath}/data/{folder}/trap"
-    dataRtr = load_and_adjust_rtrap(pathtrap, check, snap, params)
+    dataRtr = load_and_smooth_rtrap(pathtrap, check, snap)
     x_tr, y_tr, z_tr, d_tr, Vr_tr, radden_tr = \
         dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['Rad_den_tr']
     r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
@@ -162,13 +162,8 @@ else:
     kappa_tr = np.zeros(len(r_tr_all))
     Mdot_tr = 4 * np.pi * r_tr_all**2 * d_tr* Vr_tr
     Mdot_tr *= prel.Msol_cgs/prel.tsol_cgs
-    # for i, idx_list in enumerate(indices_obs): 
-    #     rph_medians.append(np.median(rph_all[idx_list]))
-    #     rtr_medians.append(np.median(r_tr_all[idx_list]))
-    #     non_zero = idx_list[r_tr_all[idx_list]> Rt]
-    #     rph_nonzero_medians.append(np.median(rph_all[non_zero]))
-    #     rtr_nonzero_medians.append(np.median(r_tr_all[non_zero]))
 
+    # they will be of shape = (len(indices_obs), len(r))
     r_all = []
     d_all = []
     t_all = []
@@ -178,45 +173,45 @@ else:
     rph_nonzero_medians = np.zeros(len(indices_obs))
     rtr_medians = np.zeros(len(indices_obs))
     rtr_nonzero_medians = np.zeros(len(indices_obs))
-    figs, axs = plt.subplots(1, 1, figsize=(9, 7))
+    figs, axs = plt.subplots(1, len(indices_obs), figsize=(7*len(indices_obs), 7))
     for k, indices in enumerate(indices_obs):
-        print(label_obs[k],indices)
+        # if label_obs[k] == 'South pole':
+        #     continue
+        # print(label_obs[k],indices)
         rph_medians[k] = np.median(rph_all[indices])
         rtr_medians[k] = np.median(r_tr_all[indices])
         non_zero = indices[r_tr_all[indices]> Rt]
         print(f'Obs: {label_obs[k]}: non zero = {len(non_zero)/len(indices)*100:.1f}%')
         rph_nonzero_medians[k] = np.median(rph_all[non_zero]) if len(non_zero) > 0 else rph_medians[k]
         rtr_nonzero_medians[k] = np.median(r_tr_all[non_zero]) if len(non_zero) > 0 else 0
-        # print(rph_nonzero_medians[k])
-        r_sec = []
+        r_sec = [] 
         d_sec = []
         t_sec = []
         kappa_sec = []
         for i in range(len(observers_xyz)):
+            if r_tr_all[i] == 0:
+                continue
             r = all_obs[f'obs_{i}']['r']
             d = all_obs[f'obs_{i}']['d']
+            t = all_obs[f'obs_{i}']['t']
             alpha_ross = all_obs[f'obs_{i}']['alpha_rossland']
             kappa = alpha_ross/d
             idx_tr = np.argmin(np.abs(r - r_tr_all[i]))
             kappa_tr[i] = alpha_ross[idx_tr]/d[idx_tr]
             if i not in indices:
                 continue
-            if label_obs[k] == 'Pericentre side':
-                if r_tr_all[i] == 0:
-                    continue
-                axs.plot(r/Rt, kappa, label = f'Obs {i}')
-                axs.scatter(r[idx_tr]/Rt, kappa[idx_tr], marker='d', edgecolors='k', s=60, zorder=3)
+            # print(label_obs[k], i)
+            # if label_obs[k] == 'Stream side':
+            axs[k].plot(r/Rt, kappa, label = f'Obs {i}')
+            axs[k].scatter(r[idx_tr]/Rt, kappa[idx_tr], marker='d', edgecolors='k', s=60, zorder=3)
+            axs[k].set_title(label_obs[k])
 
-            t = all_obs[f'obs_{i}']['t']
             r_sec.append(r)
             d_sec.append(d)
             t_sec.append(t)
             kappa_sec.append(kappa) #if len(d)==0 else np.zeros((0,len(r)))
-        if np.shape(kappa_sec) == (0,):
-            r_sec = np.zeros((1, len(r)))
-            d_sec = np.zeros((1, len(r)))
-            t_sec = np.zeros((1, len(r)))
-            kappa_sec = np.zeros((1, len(r)))
+        
+        # np.shape(r_sec) = (len(indices[nonzero]), len(r)) where len(r) is the same for all observers in the every section
         r_all.append(np.median(np.array(r_sec), axis=0))
         d_all.append(np.median(np.array(d_sec), axis=0))
         t_all.append(np.median(np.array(t_sec), axis=0))
@@ -225,10 +220,10 @@ else:
 
     if len(indices_obs) > 6:
         fig, (ax1, ax2) = plt.subplots(1,2, figsize=(15, 7))
-        axes = [ax1, ax2, axs]
+        axes = np.concatenate([[ax1], [ax2], [axs[l] for l in range(len(indices_obs))]])
     else:
         fig, ax1 = plt.subplots(1,1, figsize=(9, 7))
-        axes = [ax1, axs]
+        axes = np.concatenate([[ax1], [axs[l] for l in range(len(indices_obs))]])
     for i in range(len(indices_obs)):
         if label_obs[i] == 'South pole':
             continue
@@ -242,9 +237,9 @@ else:
         ax.plot(r_all[i]/Rt, kappa_all[i], label=label_obs[i], color=colors_obs[i])
         idx_rtr = np.argmin(np.abs(r_all[i] - rtr_nonzero_medians[i]))
         idx_rph = np.argmin(np.abs(r_all[i] - rph_nonzero_medians[i]))
-        # print(i, kappa_all[i][idx_rph],idx_rph)
-        ax.scatter(rph_nonzero_medians[i]/Rt, kappa_all[i][idx_rph], color=colors_obs[i], marker='o', s=60, edgecolors = 'k', zorder=3)
-        ax.scatter(rtr_nonzero_medians[i]/Rt, kappa_all[i][idx_rtr], color=colors_obs[i], marker='d', s=60, edgecolors = 'k', zorder=3)
+        if idx_rtr != 0:
+            ax.scatter(rph_nonzero_medians[i]/Rt, kappa_all[i][idx_rph], color=colors_obs[i], marker='o', s=60, edgecolors = 'k', zorder=3)
+            ax.scatter(rtr_nonzero_medians[i]/Rt, kappa_all[i][idx_rtr], color=colors_obs[i], marker='d', s=60, edgecolors = 'k', zorder=3)
     
     ax1.set_ylabel(r'$\kappa$ (cm$^2$/g)')
     for ax in axes:
@@ -253,15 +248,18 @@ else:
         ax.tick_params(axis='both', which='major', length=12, width=1.2)
         ax.tick_params(axis='both', which='minor', length=6, width=1)
         ax.set_xlim(1, 5e2)
+        ax.set_ylim(.1, 20)
         ax.axhline(0.34, color='k', ls='--', lw=1.5)
         ax.text(3e2, 0.36, r'$\kappa_{\rm es}$', fontsize=25)
         ax.legend(fontsize=15, loc='upper left')
         ax.grid()
         plt.tight_layout()
+
     # if which_obs == 'left_right_z':
     #     fig.savefig(f'{abspath}/Figs/2.paperWind/opacity.pdf', dpi=300, bbox_inches='tight')
     # else:
     fig.savefig(f'{abspath}/Figs/{folder}/wind/opacity_Rprof{snap}_{which_obs}.png', dpi=300, bbox_inches='tight')
+    figs.savefig(f'{abspath}/Figs/{folder}/wind/opacity_Rprof{snap}_{which_obs}ALL.png', dpi=300, bbox_inches='tight')
 
     # %% test for photosphere
     gamma = 1/4

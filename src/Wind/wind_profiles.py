@@ -16,7 +16,7 @@ from Utilities.selectors_for_snap import select_prefix
 from Utilities.sections import make_slices
 import src.orbits as orb
 import Utilities.operators as op
-from src.Wind.Rtrapp_tdiff import load_and_adjust_rtrap
+from src.Wind.Rtrapp_tdiff import load_and_smooth_rtrap
 
 #
 # PARAMS
@@ -96,8 +96,8 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
         cut = np.logical_and(V_r < 0, bern < 0)
     if what_varies == 'theta':
         cut = np.logical_and(cut, np.abs(Rsph - r_fixed) < dim_cell)
-    X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell = \
-        make_slices([X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell], cut)       
+    X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell, bern = \
+        make_slices([X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell, bern], cut)       
     indices = np.arange(len(X))
     print(f'For {which_part}, Vr is non positive for: ', indices[V_r <= 0])
     print(f'For {which_part}, Bern is non positive for: ', indices[bern <= 0])
@@ -260,8 +260,8 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
 #
 compute = True
 which_part = 'outflow' # 'outflow' or 'all' or 'wind' to have the wind
-what_varies = 'r' # 'r' or 'theta', only for radial profiles
-which_obs = 'left_right_z' # 'left_right_z', 'all' or 'in_out_z'
+what_varies = 'theta' # 'r' or 'theta', only for radial profiles
+which_obs = '3d_arch' # 'left_right_z', 'all' or 'in_out_z'
 if what_varies == 'r':
     r_chosen_name = '' 
 elif what_varies == 'theta':
@@ -357,7 +357,7 @@ else:
             xph, yph, zph = photo[0], photo[1], photo[2]
         rph_all = np.sqrt(xph**2 + yph**2 + zph**2)
         pathtrap = f"{abspath}/data/{folder}/trap"
-        dataRtr = load_and_adjust_rtrap(pathtrap, check, snap, params)
+        dataRtr = load_and_smooth_rtrap(pathtrap, check, snap)
         x_tr, y_tr, z_tr, den_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr']
         r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
         # sections_ph = op.choose_sections(xph, yph, zph, which_obs)
@@ -562,15 +562,12 @@ else:
     figr.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 22)
     figr.tight_layout()
     if which_plot == 'time_compare':
-        fig.savefig(f'{abspath}/Figs/{folder}/wind/den_prof_{what_varies}{r_chosen_name}_evol.png', bbox_inches = 'tight')
-        figr.savefig(f'{abspath}/Figs/{folder}/wind/ratio_un_{what_varies}{r_chosen_name}_evol.png', bbox_inches = 'tight')
+        fig.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/den_{what_varies}{r_chosen_name}_evol.png', bbox_inches = 'tight')
+        figr.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/ratio_un_{what_varies}{r_chosen_name}_evol.png', bbox_inches = 'tight')
     else:
         axd.set_title(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 22)
-        if np.logical_and(what_varies == 'r', which_obs == 'left_right_z'):
-            fig.savefig(f'{abspath}/Figs/2.paperWind/den_prof{r_chosen_name}_{snap}.pdf', bbox_inches = 'tight')
-            figM.savefig(f'{abspath}/Figs/2.paperWind/deeperanalysis/LT_{snap}.pdf', bbox_inches = 'tight')
-            figr.savefig(f'{abspath}/Figs/2.paperWind/deeperanalysis/ratio_{snap}.pdf', bbox_inches = 'tight')
-        else: 
-            fig.savefig(f'{abspath}/Figs/{folder}/wind/{what_varies}_profile/den_prof_{what_varies}{r_chosen_name}{snap}_{which_obs}.png', bbox_inches = 'tight')
-    
+        fig.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/den_{r_chosen_name}_{snap}.pdf', bbox_inches = 'tight')
+        figM.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/LT_{r_chosen_name}_{snap}.pdf', bbox_inches = 'tight')
+        figr.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/ratio_{r_chosen_name}_{snap}.pdf', bbox_inches = 'tight')
+
 # %%

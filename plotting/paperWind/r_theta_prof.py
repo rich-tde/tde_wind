@@ -12,7 +12,7 @@ import Utilities.operators as op
 from Utilities.selectors_for_snap import select_prefix
 import src.orbits as orb
 import Utilities.prelude as prel
-from src.Wind.Rtrapp_tdiff import load_and_adjust_rtrap
+from src.Wind.Rtrapp_tdiff import load_and_smooth_rtrap
 
 m = 4
 Mbh = 10**m
@@ -90,7 +90,11 @@ all_axes[0][0].plot(x_test, y_test2, c = 'gray', ls = '-.', label = r'$\rho \pro
 all_axes[0][0].text(76, 2e-11, r'$\rho \propto r^{-2}$', fontsize = 25, color = 'gray', rotation = -20)            
 handles_color = []
 labels_color = []
-        
+
+rph_medians = []
+rph_nonzero_medians = []
+rtr_medians = []
+rtr_nonzero_medians = []
 if check == 'HiResNewAMR':
     photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
     xph, yph, zph = photo['x'], photo['y'], photo['z']
@@ -99,19 +103,32 @@ else:
     xph, yph, zph = photo[0], photo[1], photo[2]
 rph_all = np.sqrt(xph**2 + yph**2 + zph**2)
 pathtrap = f"{abspath}/data/{folder}/trap"
-dataRtr = load_and_adjust_rtrap(pathtrap, check, snap, params)
+# dataRtr = load_and_adjust_rtrap(pathtrap, check, snap, params)
+dataRtr = load_and_smooth_rtrap(pathtrap, check, snap)
 x_tr, y_tr, z_tr, den_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr']
 r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-rph_medians = []
-rph_nonzero_medians = []
-rtr_medians = []
-rtr_nonzero_medians = []
+rph_medians_snap = np.zeros(len(indices_obs))
+rph_nonzero_medians_snap = np.zeros(len(indices_obs))
+rtr_medians_snap = np.zeros(len(indices_obs))
+rtr_nonzero_medians_snap = np.zeros(len(indices_obs))
 for i, idx_list in enumerate(indices_obs): 
-    rph_medians.append(np.median(rph_all[idx_list]))
-    rtr_medians.append(np.median(r_tr_all[idx_list]))
+    rph_medians_snap[i] = np.median(rph_all[idx_list])
+    rtr_medians_snap[i] = np.median(r_tr_all[idx_list])
     non_zero = idx_list[r_tr_all[idx_list]> Rt]
-    rph_nonzero_medians.append(np.median(rph_all[non_zero]))
-    rtr_nonzero_medians.append(np.median(r_tr_all[non_zero]))
+    rph_nonzero_medians_snap[i] = np.median(rph_all[non_zero])
+    rtr_nonzero_medians_snap[i] = np.median(r_tr_all[non_zero])
+rph_medians.append(rph_medians_snap)
+rph_nonzero_medians.append(rph_nonzero_medians_snap)
+rtr_medians.append(rtr_medians_snap)
+rtr_nonzero_medians.append(rtr_nonzero_medians_snap)
+
+rph_medians = np.median(rph_medians, axis = 0)
+rph_nonzero_medians = np.median(rph_nonzero_medians, axis = 0)
+rtr_medians = np.median(rtr_medians, axis = 0)
+rtr_nonzero_medians = np.median(rtr_nonzero_medians, axis = 0)
+print(rtr_nonzero_medians)
+
+        
 for w, what_varies in enumerate(what_varies_all):
     norm = norms[w]
     for k, which_part in enumerate(which_parts):
@@ -192,5 +209,5 @@ all_axes[1][0].set_ylabel(r'v$_{\rm r}$ (km/s)', fontsize = 35)
 all_axes[2][0].set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$', fontsize = 35)
 all_axes[3][0].set_ylabel(r'$L_{\rm adv} (L_{\rm Edd})$', fontsize = 35)
 fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 28, y = 1, x = 0.53)
-fig.tight_layout(w_pad=15.0)
-fig.savefig(f'{abspath}/Figs/2.paperWind/den_profRtheta_{snap}.pdf', bbox_inches = 'tight')
+fig.tight_layout(w_pad=15.0)  
+fig.savefig(f'{abspath}/Figs/{folder}/Wind/r_theta{r_chosen_name_theta}prof_{which_obs}_{snap}.png', bbox_inches = 'tight')

@@ -10,6 +10,10 @@ else:
     abspath = '/Users/paolamartire/shocks'
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
+    import matplotlib as mpl
+    mpl.rcParams['savefig.transparent'] = False  # Only figure patch
+    mpl.rcParams['figure.facecolor'] = 'white'   # Figure when displayed
+    mpl.rcParams['axes.facecolor'] = 'white'     
     compute = True
 
 import gc
@@ -18,16 +22,13 @@ import numpy as np
 import healpy as hp
 from scipy.integrate import cumulative_trapezoid
 from sklearn.neighbors import KDTree
+from collections import defaultdict
 from src.Opacity.interpolator_vectorized import calc_ross_opacity_vectorized
 import Utilities.prelude as prel
 from Utilities.operators import make_tree, sort_list, choose_observers
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
 import src.orbits as orb
-import matplotlib as mpl
-mpl.rcParams['savefig.transparent'] = False  # Only figure patch
-mpl.rcParams['figure.facecolor'] = 'white'   # Figure when displayed
-mpl.rcParams['axes.facecolor'] = 'white'     
 
 #%% Choose parameters -----------------------------------------------------------------
 m = 4
@@ -182,35 +183,8 @@ def r_trapp(data, ray_params):
         c_tau = prel.csol_cgs/tau # code units, since tau is adimensional
         ray_kappa = alpha_rossland/ray_d
 
-        # if plot:
-        #     j = next(j for j in range(len(indices_sorted)) if i in indices_sorted[j]) 
-        #     _, theta, phi = to_spherical_coordinate(mu_x, mu_y, mu_z)
-        #     phi = np.where(phi > np.pi, phi - 2*np.pi, phi)
-        #     phi = -phi
         tdyn_single = ray_r / ray_vr * prel.tsol_cgs # cgs
         tdiff_single = tau * ray_r * prel.Rsol_cgs / prel.c_cgs # cgs                
-
-        #     fig, ax1 = plt.subplots(1,1,figsize = (8,6))
-        #     ax1.plot(ray_r/Rt, tdyn_single/tfallback_cgs, c = 'k', label = r'$t_{\rm dyn}=r/v_r$')             
-        #     img = ax1.scatter(ray_r/Rt, tdiff_single/tfallback_cgs, c = tau, cmap = 'turbo', s = 10, label = r'$t_{\rm diff}=\tau r/c$' , norm = colors.LogNorm(5e-1, 1e2)) #np.percentile(tau, 5), np.percentile(tau, 95)))
-        #     cbar = plt.colorbar(img)#, orientation = 'horizontal')
-        #     cbar.set_label(r'$\tau$', fontsize = 20)
-        #     cbar.ax.tick_params(which = 'major', length=6, width=1)
-        #     cbar.ax.tick_params(which = 'minor', length=4, width=0.8)
-        #     ax1.axvline(Rt/Rt, c = 'k', linestyle = '-.', label = r'$r_{\rm t}$')
-        #     ax1.set_xlabel(r'$r [r_{\rm t}]$')
-        #     ax1.set_ylabel(r'$t [t_{\rm fb}]$')
-        #     ax1.loglog()    
-        #     ax1.set_xlim(R0/Rt, 2*rph[i]/Rt)
-        #     # ax1.axvline(rph[i]/Rt, c = 'k', linestyle = 'dotted', label =  r'$r_{\rm ph}$')
-        #     # ax1.set_xlim(1e-5, 8)
-        #     ax1.set_ylim(1e-6, 1e2)
-        #     ax1.tick_params(axis='both', which='major', length=8, width=1.2)
-        #     ax1.tick_params(axis='both', which='minor', length=5, width=1)
-        #     ax1.legend(fontsize = 14)
-        #     plt.suptitle(f'Section: {label_obs[j]}, ' + r'$(\theta, \phi)$ = ' + f'({theta:.2f}, {phi:.2f})', fontsize = 16) #phi according to pur convention (apocenter at -pi, clockwise), \theta from Npole to Spole 
-        #     plt.tight_layout()
-        #     ax_all[j].plot(ray_r/Rt, ray_kappa)
 
         if plot:
             fig, axt = plt.subplots(1,1,figsize = (10,8))
@@ -229,14 +203,6 @@ def r_trapp(data, ray_params):
             axt.set_title(f'Obs {i}', fontsize = 16)
             axt.loglog()
             axt.grid()
-        
-        # ax_T.plot(ray_r/Rt, ray_t, label = f'Obs {i}')
-        # ax_T.set_ylabel(r'$T$')
-        # axd.plot(ray_r/Rt, ray_d * prel.den_converter, label = f'Obs {i}')
-        # axd.set_ylabel(r'$\rho$ (g/cm$^3$)')
-        # axk.plot(ray_r/Rt, ray_kappa, label = f'Obs {i}')
-        # axk.set_xlabel(r'$r (r_{\rm t})$')
-        # axk.set_ylabel(r'$\kappa$ (cm$^2$/g)')
 
         # select the inner part, where tau big --> c/tau < v (i.e. tdyn<tdiff)
         Rtr_idx_all = np.where(c_tau/ray_vr <= 1)[0]
@@ -244,7 +210,7 @@ def r_trapp(data, ray_params):
         if len(Rtr_idx_all) == 0:
             print(f'For obs {i}, tdiff < tdyn always, no Rtr', flush=True)
             if plot:
-                fig.savefig(f'{abspath}/Figs/{folder}/Wind/{snap}_tdiff{which_idx}/Obs{i}{which_idx}.png')
+                fig.savefig(f'{abspath}/Figs/{folder}/Wind/Rtrap_prof/{snap}_tdiff{which_idx}/Obs{i}{which_idx}.png')
                 plt.close(fig)
             continue
         else: 
@@ -280,7 +246,7 @@ def r_trapp(data, ray_params):
         if plot:
             axt.axvline(rph[i]/Rt, linestyle = ':', c = 'k', label = r'$r_{\rm ph}$')
             axt.legend(fontsize = 14)
-            fig.savefig(f'{abspath}/Figs/{folder}/Wind/{snap}_tdiff{which_idx}/Obs{i}{which_idx}.png')
+            fig.savefig(f'{abspath}/Figs/{folder}/Wind/Rtrap_prof/{snap}_tdiff{which_idx}/Obs{i}{which_idx}.png')
             plt.close(fig)
         del ray_x, ray_y, ray_z, ray_r, ray_t, ray_d, ray_vol, ray_vr, ray_V, alpha_rossland, tau, ray_P, ray_ieDen, ray_radDen, idx, ray_kappa
 
@@ -328,50 +294,96 @@ def r_trapp(data, ray_params):
 
     return r_trapp
 
-def load_and_adjust_rtrap(path, check, snap, params):
-    filenameRtr = f"{path}/{check}_Rtr{snap}.npz"
-    dataRtr = np.load(filenameRtr)
-    indices_bigVol, indices_overRph = dataRtr['indices_bigVol'], dataRtr['indices_overRph']
-    x_tr, z_tr, vol_tr = dataRtr['x_tr'], dataRtr['z_tr'], dataRtr['vol_tr']
-    # mass_tr = den_tr * vol_tr
-    # orb_en = orb.orbital_energy(r_tr, V_tr, mass_tr, params, prel.G) 
-    # orb_en_spec = orb_en/mass_tr
-    cut_dynUnbound = np.logical_and(x_tr < -3*apo, np.abs(z_tr) < vol_tr**(1/3)) # np.logical_and(orb_en_spec > E_mb, np.abs(z_tr) < vol_tr**(1/3))
+# def load_and_adjust_rtrap(path, check, snap, params):
+#     filenameRtr = f"{path}/{check}_Rtr{snap}.npz"
+#     dataRtr = np.load(filenameRtr)
+#     indices_bigVol, indices_overRph = dataRtr['indices_bigVol'], dataRtr['indices_overRph']
+#     x_tr, z_tr, vol_tr = dataRtr['x_tr'], dataRtr['z_tr'], dataRtr['vol_tr']
+#     # mass_tr = den_tr * vol_tr
+#     # orb_en = orb.orbital_energy(r_tr, V_tr, mass_tr, params, prel.G) 
+#     # orb_en_spec = orb_en/mass_tr
+#     cut_dynUnbound = np.logical_and(x_tr < -3*apo, np.abs(z_tr) < vol_tr**(1/3)) # np.logical_and(orb_en_spec > E_mb, np.abs(z_tr) < vol_tr**(1/3))
     
-    # filenameRtr_next = f"{path}/{check}_Rtr{snap}_nextidx.npz"
-    # dataRtr_next = np.load(filenameRtr_next)
-    # indices_overRph_next = dataRtr_next['indices_overRph']
+#     # filenameRtr_next = f"{path}/{check}_Rtr{snap}_nextidx.npz"
+#     # dataRtr_next = np.load(filenameRtr_next)
+#     # indices_overRph_next = dataRtr_next['indices_overRph']
 
-    data_adjusted = {k: dataRtr[k].copy() for k in dataRtr.files}
+#     data_adjusted = {k: dataRtr[k].copy() for k in dataRtr.files}
     
-    if len(indices_overRph) > 0:
-        print(f'For snap {snap}: setting {indices_overRph}  some values equal to Rph since Rtr > Rph')
-        for key in data_adjusted.keys():
-            if key not in ['indices_bigVol', 'indices_overRph']:
-                data_adjusted[key][indices_overRph] = 0   
+#     if len(indices_overRph) > 0:
+#         print(f'For snap {snap}: setting {indices_overRph}  some values equal to Rph since Rtr > Rph')
+#         for key in data_adjusted.keys():
+#             if key not in ['indices_bigVol', 'indices_overRph']:
+#                 data_adjusted[key][indices_overRph] = 0   
     
-    if len(indices_bigVol) > 0: # you do it after the previous one, so you are sure to set to 0 the ones that are also in (indices_overRph&indices_bigVol)
-        # no_tr = np.intersect1d(indices_bigVol, indices_overRph_next)
-        # remaining_bigVol = np.setdiff1d(indices_bigVol, no_tr)
-        # remaining_overRphnext = np.setdiff1d(indices_overRph_next, no_tr)
-        # print(f'For snap {snap}, skipping {indices_bigVol} observers: no real advective region')
-        # print(f'For snap {snap}, for {remaining_bigVol} observers with big gap but all boundaries inside Rph')
-        # print(f'For snap {snap}, for {remaining_overRphnext} with no big gap but outside photo')
-        for key in data_adjusted.keys():
-            if key not in ['indices_bigVol', 'indices_overRph']:
-                # data_adjusted[key][no_tr] = 0   # USE THIS
-                data_adjusted[key][indices_bigVol] = 0 
-                # data_adjusted[key][remaining_bigVol] = dataRtr_next[key][remaining_bigVol]
-                # data_adjusted[key][remaining_overRphnext] = dataRtr_next[key][remaining_overRphnext]
-        # data_adjusted['r_up'] = dataRtr_next['r_tr']
-    for key in data_adjusted.keys():
-        if key not in ['indices_bigVol', 'indices_overRph']:
-            data_adjusted[key][cut_dynUnbound] = 0 
+#     if len(indices_bigVol) > 0: # you do it after the previous one, so you are sure to set to 0 the ones that are also in (indices_overRph&indices_bigVol)
+#         # no_tr = np.intersect1d(indices_bigVol, indices_overRph_next)
+#         # remaining_bigVol = np.setdiff1d(indices_bigVol, no_tr)
+#         # remaining_overRphnext = np.setdiff1d(indices_overRph_next, no_tr)
+#         # print(f'For snap {snap}, skipping {indices_bigVol} observers: no real advective region')
+#         # print(f'For snap {snap}, for {remaining_bigVol} observers with big gap but all boundaries inside Rph')
+#         # print(f'For snap {snap}, for {remaining_overRphnext} with no big gap but outside photo')
+#         for key in data_adjusted.keys():
+#             if key not in ['indices_bigVol', 'indices_overRph']:
+#                 # data_adjusted[key][no_tr] = 0   # USE THIS
+#                 data_adjusted[key][indices_bigVol] = 0 
+#                 # data_adjusted[key][remaining_bigVol] = dataRtr_next[key][remaining_bigVol]
+#                 # data_adjusted[key][remaining_overRphnext] = dataRtr_next[key][remaining_overRphnext]
+#         # data_adjusted['r_up'] = dataRtr_next['r_tr']
+#     for key in data_adjusted.keys():
+#         if key not in ['indices_bigVol', 'indices_overRph']:
+#             data_adjusted[key][cut_dynUnbound] = 0 
         
-    return data_adjusted
+#     return data_adjusted
 
+def load_and_smooth_rtrap(path, check, snap, window = 4):
+    snaps = np.arange(snap - (window - 1), snap + 1)
+    accumulated = defaultdict(list)
+    last_data_adjusted = None
+    for snap_avg in snaps:   
+        filenameRtr = f"{path}/{check}_Rtr{snap_avg}.npz"
+        dataRtr = np.load(filenameRtr)
+        indices_bigVol, indices_overRph = dataRtr['indices_bigVol'], dataRtr['indices_overRph']
+        x_tr, z_tr, vol_tr = dataRtr['x_tr'], dataRtr['z_tr'], dataRtr['vol_tr']
+        cut_dynUnbound = np.logical_and(x_tr < -3*apo, np.abs(z_tr) < vol_tr**(1/3)) # np.logical_and(orb_en_spec > E_mb, np.abs(z_tr) < vol_tr**(1/3))
+        data_adjusted = {k: dataRtr[k].copy() for k in dataRtr.files}
+        for key in data_adjusted.keys():
+            if key not in ['indices_bigVol', 'indices_overRph']:
+                data_adjusted[key][cut_dynUnbound] = 0 
 
+        if len(indices_overRph) > 0:
+            for key in data_adjusted.keys():
+                if key not in ['indices_bigVol', 'indices_overRph']:
+                    data_adjusted[key][indices_overRph] = 0   
+        
+        if len(indices_bigVol) > 0: # you do it after the previous one, so you are sure to set to 0 the ones that are also in (indices_overRph&indices_bigVol)
+            for key in data_adjusted.keys():
+                if key not in ['indices_bigVol', 'indices_overRph']:
+                    data_adjusted[key][indices_bigVol] = 0 
+        
+        # Accumulate for smoothing
+        for key, arr in data_adjusted.items():
+            if key in ['indices_bigVol', 'indices_overRph']:
+                continue
+            accumulated[key].append(arr)
+
+        if snap_avg == snap:
+            last_data_adjusted = data_adjusted
     
+    # Now apply a uniform (box) filter along snapshot axis:
+    smoothed = {}
+    for key, arr_list in accumulated.items():
+        stack = np.stack(arr_list, axis=0)  # shape (window, Nray)
+        smoothed_arr = np.mean(stack, axis=0)  # uniform weights, 1/window each
+
+        smoothed[key] = smoothed_arr
+
+    # Copy index arrays and other non-smoothed entries from your snapshot 
+    for key in last_data_adjusted.keys():
+        if key not in smoothed:
+            smoothed[key] = last_data_adjusted[key]
+
+    return smoothed
 ##
 # MAIN
 ## 
@@ -440,7 +452,7 @@ if __name__ == '__main__':
             if snap not in [109]:
                 continue
             pathRtr = f"{abspath}/data/{folder}/trap"
-            dataRtr = load_and_adjust_rtrap(pathRtr, check, snap)
+            dataRtr = load_and_smooth_rtrap(pathRtr, check, snap)
             x_tr, y_tr, z_tr, den_tr, Vr_tr, Temp_tr, Rad_den_tr, vol_tr, kappa_tr = \
                     dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['Temp_tr'], dataRtr['Rad_den_tr'], dataRtr['vol_tr'], dataRtr['kappa_tr']
             kappa_tr = kappa_tr * prel.Rsol_cgs**2 / prel.Msol_cgs # to have it in cgs units

@@ -154,10 +154,10 @@ def find_step(theta_arr, i):
 
 def choose_sections(X, Y, Z, choice):
     R_cyl = np.sqrt(X**2 + Y**2)
-    if choice in ['left_right_z', 'in_out_z', 'left_right_in_out_z', 'funnel']:
+    if choice in ['left_right_z', 'in_out_z', 'left_right_in_out_z', 'funnel', '3d_arch']:
         if choice == 'left_right_in_out_z':
             alpha_pole = np.arcsin(2/3)
-        elif choice == 'funnel':
+        elif choice == 'funnel' or choice == '3d_arch':
             alpha_pole = np.pi/3
         else:
             alpha_pole = np.pi/6 
@@ -198,6 +198,16 @@ def choose_sections(X, Y, Z, choice):
         left = {'cond': cond_left, 'label': r'Stream side', 'color': 'xkcd:bubble gum pink', 'line': 'solid'}
         right = {'cond': cond_right, 'label': r'Pericentre side', 'color': 'xkcd:apple', 'line': 'dashed'}
         sec = {'left': left, 'right': right, 'north': north, 'south': south}
+    
+    if choice == '3d_arch': 
+        slope_mid = np.tan(np.pi/6)
+        cond_left_mid = np.logical_and(X < 0, np.abs(Z) <= slope_mid *  R_cyl)
+        cond_left_up = np.logical_and(X < 0, np.logical_and(np.abs(Z) <= slope *  R_cyl, np.abs(Z) > slope_mid *  R_cyl))
+        cond_right = np.logical_and(X >= 0, np.abs(Z) < slope * R_cyl)
+        left_mid = {'cond': cond_left_mid, 'label': r'Stream side (orb.pl.)', 'color': 'darkviolet', 'line': 'solid'}
+        left_up = {'cond': cond_left_up, 'label': r'Stream side (mid. lat.)', 'color': 'xkcd:bubble gum pink', 'line': 'solid'}
+        right = {'cond': cond_right, 'label': r'Pericentre side', 'color': 'xkcd:apple', 'line': 'dashed'}
+        sec = {'left_mid': left_mid, 'left_up': left_up, 'right': right, 'north': north, 'south': south}
     
     if choice == 'in_out_z': 
         cond_in = np.logical_and(Y > 0, np.abs(Z) <= slope * R_cyl)
@@ -278,7 +288,7 @@ def choose_observers(observers_xyz, choice):
     x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
     all_idx_obs = np.arange(len(x_obs))
 
-    if choice in ['left_right_z', 'in_out_z', 'left_right_in_out_z', 'all', 'tenths', 'chunky_axes', 'azimuthal', 'funnel']:
+    if choice in ['left_right_z', 'in_out_z', 'left_right_in_out_z', 'all', 'tenths', 'chunky_axes', 'azimuthal', 'funnel', '3d_arch']:
         indices_sorted = []
         sections_ph = choose_sections(x_obs, y_obs, z_obs, choice = choice)
 
