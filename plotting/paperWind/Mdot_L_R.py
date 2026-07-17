@@ -23,7 +23,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-choice = 'left_right_z' 
+choice = 'funnel'
 how = '' # '' for sum or 'mean'
 which_plot = 'ML' # 'ML' or 'ML_conv'
 commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
@@ -72,7 +72,7 @@ if which_plot == 'ML':
         trap = np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz')
         x_tr, y_tr, z_tr = trap['x_tr'], trap['y_tr'], trap['z_tr']
         r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-        if choice in ['tenths','azimuthal']:
+        if choice in ['tenths','azimuthal', 'funnel', '3d_arch']:
             Lum_slab = np.zeros(len(indices_obs))
             mask = []
             rph_slab = np.zeros(len(indices_obs))
@@ -92,13 +92,13 @@ if which_plot == 'ML':
     rph_sec = np.transpose(np.array(rph_sec))
     rtr_sec = np.transpose(np.array(rtr_sec))
     
-    wind = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}05amin{choice}_wind.csv', 
-                    delimiter = ',', 
-                    skiprows=1, 
-                    unpack=True) 
-    tfb = wind[1]
-    rest = wind[2:2+len(label_obs)]
+    # wind = \
+    #         np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}05amin{choice}_wind.csv', 
+    #                 delimiter = ',', 
+    #                 skiprows=1, 
+    #                 unpack=True) 
+    # tfb = wind[1]
+    # rest = wind[2:2+len(label_obs)]
 
     if choice == 'left_right_z':
         outflow = \
@@ -116,7 +116,7 @@ if which_plot == 'ML':
     labels_color = []
     line_styles_parts = ['-', '--']
     labels_parts = [r'$\dot{M}_{\rm w}$', r'$\dot{M}_{\rm out}$']
-    for i in range(len(rest)):
+    for i in range(len(label_obs)):
         if label_obs[i] == 'South pole':
             continue
         if len(label_obs) > 6 :
@@ -129,17 +129,17 @@ if which_plot == 'ML':
             axM_temp.plot(tfb, rest[i]/Medd_sol,  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])
             axL_temp.plot(tfb, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i])
         else:
-            line = axM.plot(tfb, rest[i]/Medd_sol,  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])[0]
-            axL.plot(tfb, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i])
+            # line = axM.plot(tfb, rest[i]/Medd_sol,  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])[0]
+            axL.plot(tfb_Lum, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i])
             if choice == 'left_right_z':
                 axM.plot(tfbO[4:], restO[i][4:]/Medd_sol, linewidth = 2, c = color_obs[i], ls = line_styles_parts[1])
                 if i ==0 :
                     print('ratio wind/outflow at last time step:', rest[i][-1]/restO[i][-1])
-            handles_color.append(line)
-            labels_color.append(label_obs[i])
+            # handles_color.append(line)
+            # labels_color.append(label_obs[i])
         
-        axr.plot(tfb, rtr_sec[i]/Rt, linewidth = 2, c = color_obs[i], ls = ':', label = r'r$_{\rm trap}$' if i == 2 else "")
-        axr.plot(tfb, rph_sec[i]/Rt, linewidth = 2, c = color_obs[i], label = r'r$_{\rm ph}$' if i == 2 else "")
+        axr.plot(tfb_Lum, rtr_sec[i]/Rt, linewidth = 2, c = color_obs[i], ls = ':', label = r'r$_{\rm trap}$' if i == 2 else "")
+        axr.plot(tfb_Lum, rph_sec[i]/Rt, linewidth = 2, c = color_obs[i], label = r'r$_{\rm ph}$' if i == 2 else "")
 
 
 if which_plot == 'ML_conv':
@@ -202,7 +202,7 @@ if which_plot == 'ML_conv':
 
 axL.axhline(Ledd_cgs, color = 'k', ls = '-.')
 axL.text(0.08, 1.2*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$',  fontsize = 20)
-original_ticks = axM.get_xticks()
+original_ticks = axL.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
 labels = [str(np.round(tick,2)) if tick in original_ticks else '' for tick in new_ticks]   
@@ -215,13 +215,13 @@ for ax in axes:
     ax.set_xticklabels(labels)  
     ax.set_yscale('log')
     ax.set_xlabel(r'$t / t_{\rm fb}$')
-    ax.set_xlim(0, np.max(tfb))
+    ax.set_xlim(0, np.max(tfb_Lum))
     ax.tick_params(axis='both', which='major', width=1.2, length=9)
     ax.tick_params(axis='both', which='minor', width=1, length=5)
     ax.grid()
     ax2 = ax.twiny()
     ax2.set_xticks(days_ticks)
-    ax2.set_xlim(0, np.max(tfb)*t_fb_days)
+    ax2.set_xlim(0, np.max(tfb_Lum)*t_fb_days)
     ax2.set_xticklabels(days_labels)
     ax2.set_xlabel(r't (days)', y = 1.1)
 
@@ -231,7 +231,6 @@ legend1 = axM.legend(handles=handles_color,
                     fontsize=15,
                     loc='upper left')
 axM.add_artist(legend1)
-
 # Legend 2: line-style explanation (solid vs dashed)
 proxy_lines = []
 proxy_lines = []
@@ -242,6 +241,10 @@ for l, line in enumerate(line_styles_parts):
     )
 axM.legend(handles=proxy_lines, fontsize=20, 
                                 loc='lower right')
+
+if choice != 'left_right_z':
+    axL.legend(fontsize = 20)
+
 axr.legend(fontsize = 20)
 figM.tight_layout()
 figr.tight_layout()

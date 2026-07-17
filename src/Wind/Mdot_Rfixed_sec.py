@@ -112,6 +112,7 @@ def Mdot_sec(path, snap, r_chosen, choice, how = ''):
     mwind = np.zeros(len(indices_sec))
     Lum_fs = np.zeros(len(indices_sec))
     Lkin = np.zeros(len(indices_sec))
+    area = np.zeros(len(indices_sec))
 
     C_mult = 4/len(indices_sec) # to have the right normalization in all cases
     if not alice:
@@ -155,13 +156,18 @@ def Mdot_sec(path, snap, r_chosen, choice, how = ''):
             mwind[j] = C_mult * r_chosen**2 * np.sum(Mdot[indices]) / np.sum(dim_cell_wind[indices]**2)
             Lum_fs[j] = C_mult * r_chosen**2 * np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs / np.sum(dim_cell_wind[indices]**2)
             Lkin[j] = 0.5 * C_mult * r_chosen**2 * np.sum(Mdot[indices] * v_rad_wind[indices]**2) / np.sum(dim_cell_wind[indices]**2)
+        elif how == 'isoent':   
+            mwind[j] = C_mult * r_chosen**2 * np.sum(Mdot[indices]) / np.sum(dim_cell_wind[indices]**2)
+            Lum_fs[j] = C_mult * r_chosen**2 * np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs / np.sum(dim_cell_wind[indices]**2)
+            Lkin[j] = 0.5 * C_mult * r_chosen**2 * np.sum(Mdot[indices] * v_rad_wind[indices]**2) / np.sum(dim_cell_wind[indices]**2)
+            area[j] = np.pi * np.sum(dim_cell_wind[indices]**2)
         elif how == 'mean': 
             mwind[j] = C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices])
             Lum_fs[j] = C_mult * np.pi * r_chosen**2 * np.mean(Rad_den_wind[indices]) * prel.csol_cgs
             # Lkin[j] = 0.5 * np.mean(Mdot[indices] * v_rad_wind[indices]**2)
             Lkin[j] = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices]**3) 
         
-    data = np.concatenate([mwind, Lum_fs, Lkin])
+    data = np.concatenate([mwind, Lum_fs, Lkin, area])
     if not alice: 
         axd.legend(fontisize = 18)
         fig.tight_layout()
@@ -195,7 +201,7 @@ if __name__ == '__main__':
                 with open(csv_path, 'a', newline='') as file:
                     writer = csv.writer(file)
                     if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                        writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_obs] + [f'Lum_fs {lab}' for lab in label_obs] + [f'Lkin {lab}' for lab in label_obs])
+                        writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_obs] + [f'Lum_fs {lab}' for lab in label_obs] + [f'Lkin {lab}' for lab in label_obs] + [f'Area {lab}' for lab in label_obs])
                     writer.writerow(data_tosave)
                 file.close()
 
@@ -231,7 +237,8 @@ if __name__ == '__main__':
                         unpack=True) 
         tfbH = wind[1]
         rest = wind[2:2+len(label_obs)]
-        # print(len(rest), len(label_obs))
+        if how == 'isoent':
+            area = wind[2+len(label_obs):2+2*len(label_obs)]
         
         for i in range(len(rest)):
             axM.plot(tfbH, rest[i]/Medd_sol,  label = label_obs[i], c = color_obs[i])

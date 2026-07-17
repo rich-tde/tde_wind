@@ -22,7 +22,8 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-which_obs = 'funnel' # 'left_right_z', 'all' or 'in_out_z'
+which_obs = 'split_stream' 
+isoent = True
 r_chosen_name_theta = 'apo' 
 snap = 151
 
@@ -126,9 +127,7 @@ rph_medians = np.median(rph_medians, axis = 0)
 rph_nonzero_medians = np.median(rph_nonzero_medians, axis = 0)
 rtr_medians = np.median(rtr_medians, axis = 0)
 rtr_nonzero_medians = np.median(rtr_nonzero_medians, axis = 0)
-print(rtr_nonzero_medians)
 
-        
 for w, what_varies in enumerate(what_varies_all):
     norm = norms[w]
     for k, which_part in enumerate(which_parts):
@@ -140,8 +139,14 @@ for w, what_varies in enumerate(what_varies_all):
             r_arr = profiles[lab]['r'] 
             d = profiles[lab]['d_prof']
             v_rad = profiles[lab]['v_rad_prof'] 
-            Mdot = profiles[lab]['Mdot_prof'] #Mdotmean_prof
-            L_kin = profiles[lab]['L_kin_prof'] #L_kinmean_prof
+            if isoent:
+                print('Isoentropic Mdto and Lum')
+                area = profiles[lab]['area']
+                Mdot = 4 * np.pi * r_arr**2 / area * profiles[lab]['Mdot_prof'] 
+                L_kin = 4 * np.pi * r_arr**2 / area * profiles[lab]['L_kin_prof']
+            else:
+                Mdot = profiles[lab]['Mdot_prof'] #Mdotmean_prof
+                L_kin = profiles[lab]['L_kin_prof'] #L_kinmean_prof
             colors_sec = colors_obs[i] 
             not_zero = np.where(np.logical_and(d != 0, r_arr > 0))
             if what_varies == 'r':
@@ -149,16 +154,17 @@ for w, what_varies in enumerate(what_varies_all):
                     make_slices([r_arr, d, v_rad, Mdot, L_kin], not_zero)
                 idx_rtr = np.argmin(np.abs(r_plot - rtr_nonzero_medians[i]))
                 idx_rph = np.argmin(np.abs(r_plot - rph_nonzero_medians[i]))
-                if lab == 'Stream side': # just to cut the initially unbound material
+                if lab == 'Stream side (orb.pl.)': # just to cut the initially unbound material
                     idx_stop_d = np.where(np.logical_and(d > d[0], r_plot > apo))[0][0] #np.argmin(np.abs(r_plot - idx_stop_d_unb[k]*Rt)) 
-                    # d[idx_stop_d:] = 1e-20
-                    # Mdot[idx_stop_d:] = 1e-20
-                    # L_kin[idx_stop_d:] = 1e-20
-                    r_plot = r_plot[:idx_stop_d]
-                    d = d[:idx_stop_d]
-                    v_rad = v_rad[:idx_stop_d]
-                    Mdot = Mdot[:idx_stop_d]
-                    L_kin = L_kin[:idx_stop_d]
+                    d[idx_stop_d:] = 1e-20
+                    v_rad[idx_stop_d:] = 1e-20
+                    Mdot[idx_stop_d:] = 1e-20
+                    L_kin[idx_stop_d:] = 1e-20
+                    # r_plot = r_plot[:idx_stop_d]
+                    # d = d[:idx_stop_d]
+                    # v_rad = v_rad[:idx_stop_d]
+                    # Mdot = Mdot[:idx_stop_d]
+                    # L_kin = L_kin[:idx_stop_d]
             else:
                 r_plot = r_arr 
             
@@ -169,8 +175,10 @@ for w, what_varies in enumerate(what_varies_all):
             else:
                 all_axes[0][w].plot(r_plot*norm, d * prel.den_converter, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
             all_axes[1][w].plot(r_plot*norm, v_rad * conversion_sol_kms, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
-            all_axes[2][w].plot(r_plot*norm, Mdot/Medd_sol, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
-            all_axes[3][w].plot(r_plot*norm, L_kin/Ledd_sol, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
+            if which_part != 'outflow':
+                all_axes[0][w].set_title(r_chosen_names[w], fontsize = 35)
+                all_axes[2][w].plot(r_plot*norm, Mdot/Medd_sol, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
+                all_axes[3][w].plot(r_plot*norm, L_kin/Ledd_sol, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
 
             if np.logical_and(what_varies =='r' , which_part == 'wind'):
                 all_axes[0][w].scatter(r_plot[idx_rph]*norm, d[idx_rph] * prel.den_converter, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k])
@@ -182,8 +190,6 @@ for w, what_varies in enumerate(what_varies_all):
                 all_axes[1][w].scatter(r_plot[idx_rtr]*norm, v_rad[idx_rtr] * conversion_sol_kms, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k])
                 all_axes[2][w].scatter(r_plot[idx_rtr]*norm, Mdot[idx_rtr]/Medd_sol, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k])
                 all_axes[3][w].scatter(r_plot[idx_rtr]*norm, L_kin[idx_rtr]/Ledd_sol, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k])
-                
-
 
 # Legend 1: colored observer lines (three colors)
 legend1 = all_axes[0][0].legend(handles=handles_color,

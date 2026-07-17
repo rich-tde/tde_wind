@@ -129,7 +129,7 @@ pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre_saving = f'{abspath}/data/{folder}'
 loadpath = f'{pre}/{snap}'
-which_obs = 'left_right_z' 
+which_obs = 'split_stream' 
 compute = False 
 
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) # shape: (3, 192)
@@ -248,7 +248,7 @@ else:
         ax.tick_params(axis='both', which='major', length=12, width=1.2)
         ax.tick_params(axis='both', which='minor', length=6, width=1)
         ax.set_xlim(1, 5e2)
-        ax.set_ylim(.1, 20)
+        ax.set_ylim(.1, 25)
         ax.axhline(0.34, color='k', ls='--', lw=1.5)
         ax.text(3e2, 0.36, r'$\kappa_{\rm es}$', fontsize=25)
         ax.legend(fontsize=15, loc='upper left')

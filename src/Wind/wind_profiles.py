@@ -51,7 +51,7 @@ Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 
 #%% FUNCTIONS
-def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies = 'r'):
+def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies = 'r', isoent = False):
     if what_varies == 'r':
         rmin, rmax, Nray = ray_params
         ray_array = np.logspace(np.log10(rmin), np.log10(rmax), Nray)
@@ -72,9 +72,6 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
     # split in sections the wind cells
     if what_varies == 'r':
         Rsph_all = Rsph.copy()
-        X_all = X.copy()
-        Y_all = Y.copy()
-        Z_all = Z.copy()
     elif what_varies == 'theta':
         _, lat_all, _ = op.to_spherical_coordinate(X, Y, Z, r_frame = 'us') 
 
@@ -142,6 +139,7 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
             const_C = 2 * r_fixed**2 * delta_theta / len(cond_sec)
             min_lat = np.min(lat[cond_sec[j]])
         cond_all = cond_sec_all[j]
+        area = np.zeros(Nray)
         t_prof = np.zeros(Nray)
         v_rad_prof = np.zeros(Nray)
         d_prof = np.zeros(Nray)
@@ -155,7 +153,6 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
         ratio_un = np.zeros(Nray)
         Mass_tot = np.zeros(Nray)
         Mass_wind = np.zeros(Nray)
-        # ratio_Mass = np.zeros(Nray)
         
         for i, r in enumerate(ray_array): 
             if what_varies == 'r':
@@ -200,9 +197,15 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
             t_prof[i] = np.sum(ray_t*ray_vol) / np.sum(ray_vol)
             v_rad_prof[i] = np.sum(ray_V_r*ray_m) / np.sum(ray_m)
             d_prof[i] = np.sum(ray_d*ray_m)/ np.sum(ray_m)
-            Mdot_prof[i] = const_C / np.sum(ray_dim**2) * np.pi * np.sum(ray_dim**2 * ray_d * ray_V_r)
-            L_kin_prof[i] = const_C / np.sum(ray_dim**2)* 0.5 * np.pi *np.sum(ray_dim**2 * ray_d * ray_V_r**3)
-            L_adv_prof[i] = const_C / np.sum(ray_dim**2) * np.pi * np.sum(ray_dim**2 * L_adv)
+            area[i] = np.pi * np.sum(ray_dim**2)
+            if isoent:
+                Mdot_prof[i] = np.pi * np.sum(ray_dim**2 * ray_d * ray_V_r)
+                L_kin_prof[i] = 0.5 * np.pi *np.sum(ray_dim**2 * ray_d * ray_V_r**3)
+                L_adv_prof[i] = np.pi * np.sum(ray_dim**2 * L_adv)
+            else:
+                Mdot_prof[i] = const_C / np.sum(ray_dim**2) * np.pi * np.sum(ray_dim**2 * ray_d * ray_V_r)
+                L_kin_prof[i] = const_C / np.sum(ray_dim**2)* 0.5 * np.pi *np.sum(ray_dim**2 * ray_d * ray_V_r**3)
+                L_adv_prof[i] = const_C / np.sum(ray_dim**2) * np.pi * np.sum(ray_dim**2 * L_adv)
             ratio_un[i] = len(ray_d) / len_all if len_all > 0 else 0
             lens_tot[i] = len_all
             Mass_tot[i] = np.sum(Mass_all[idx_all])
@@ -215,6 +218,7 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
 
         outflow = {
             'r': ray_array,
+            'area': area,
             't_prof': t_prof,
             'v_rad_prof': v_rad_prof,
             'm_prof': ray_m,
@@ -259,9 +263,10 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
 ## MAIN
 #
 compute = True
-which_part = 'outflow' # 'outflow' or 'all' or 'wind' to have the wind
-what_varies = 'theta' # 'r' or 'theta', only for radial profiles
-which_obs = '3d_arch' # 'left_right_z', 'all' or 'in_out_z'
+which_part = 'wind' # 'outflow' or 'all' or 'wind' to have the wind
+what_varies = 'r' # 'r' or 'theta', only for radial profiles
+which_obs = 'split_stream' # 'left_right_z', 'all' or 'in_out_z'
+isoent = True
 if what_varies == 'r':
     r_chosen_name = '' 
 elif what_varies == 'theta':
@@ -277,7 +282,7 @@ if compute:
         elif what_varies == 'theta':
             ray_params = [r_chosen, 100]
 
-        all_outflows = profiles(path, snap, ray_params, which_obs, which_part, what_varies)
+        all_outflows = profiles(path, snap, ray_params, which_obs, which_part, what_varies, isoent)
         out_path = f"{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}_profSec{snap}_{which_obs}_{which_part}.npy"
         np.save(out_path, all_outflows, allow_pickle=True)
 

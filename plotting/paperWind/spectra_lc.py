@@ -9,6 +9,7 @@ sys.path.append('/Users/paolamartire/shocks')
 abspath = '/Users/paolamartire/shocks'
 import numpy as np
 import healpy as hp
+import os
 import scipy.integrate as sci
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -35,6 +36,7 @@ Rt = things['Rt']
 x_axis = 'Temp'  # 'Freq' or 'Temp'
 choice = 'left_right_z' #
 
+folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 # Visible: 4.8e14-7.5e14 Hz  // UV: 7.5e14-3e15 // Xray: 3e15-3e19 Hz (tera:1e12, peta: 1e14, exa: 1e18)
 low_freq_optical = 1.6767 * prel.ev_toHz 
 high_freq_optical = 3.358 * prel.ev_toHz #7.5e14
@@ -44,7 +46,13 @@ high_freq_Xray = 2e4 * prel.ev_toHz #3e19
 L_min, L_max = 1e37, 1.1e42
 T_min, T_max = 1e3, 1e7
 nu_min, nu_max = 1e14, 1e19
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+# Observations expectations 
+L_Einstein = 3.5e43 #erg/s
+L_eRos = 6e40
+L_Rubin = 4e39
+L_ZTF = 1.3e41
+L_ULTRA = 5e40
+# expectations = {'EP/WXT': L_Einstein, 'eROSITA': L_eRos, 'LSST': L_Rubin, 'ZTF': L_ZTF, 'ULTRASAT': L_ULTRA}
 
 def lumfit(n, R, T):
     const = 2*prel.h_cgs/prel.c_cgs**2 
@@ -434,6 +442,17 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
         ax_op.set_ylabel(r'$\nu L_{\nu}$ (erg/s)', fontsize = 30)
         ax_Xray.set_ylabel(r'$\nu L_{\nu}$ (erg/s)', fontsize = 30)
 
+    ax_op.axhline(L_ZTF, c = 'gray', ls = '-.', linewidth = 1)
+    ax_op.text(0, 0.6*L_ZTF, 'g-ZTF', fontsize = 16, color = 'gray')
+    ax_op.axhline(L_Rubin, c = 'gray', ls = '-.', linewidth = 1)
+    ax_op.text(0, 0.6*L_Rubin, ' g-Rubin', fontsize = 16, color = 'gray')
+    ax_UV.axhline(L_ULTRA, c = 'gray', ls = '-.', linewidth = 1)
+    ax_UV.text(0, 0.6*L_ULTRA, 'ULTRASAT', fontsize = 16, color = 'gray')
+    ax_Xray.axhline(L_eRos, c = 'gray', ls = '-.', linewidth = 1)
+    ax_Xray.text(1.75, 0.6*L_eRos, 'eROSITA', fontsize = 16, color = 'gray')
+    ax_Xray.axhline(L_Einstein, c = 'gray', ls = '-.', linewidth = 1)
+    # ax_Xray.text(1.75, 0.6*L_Einstein, 'EP/WXT', fontsize = 16, color = 'gray')
+    
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
     new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
     labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]   
@@ -517,8 +536,8 @@ def TRfit_in_time(folder, check, choice):
         L_col = np.matmul(cross_dot, L_col)
         Lbolom, Rfit, Tfit, Lumfit = np.zeros(len(indices_sorted)), np.zeros(len(indices_sorted)), np.zeros(len(indices_sorted)), np.zeros(len(indices_sorted))
         for i_idx, idx in enumerate(indices_sorted):
-            if i_idx == 3:
-                continue
+            # if i_idx == 3:
+            #     continue
             if len(idx) == 1:
                 Lum = np.concatenate(L_col[idx])
             else:
@@ -538,6 +557,18 @@ def TRfit_in_time(folder, check, choice):
     Rfit_sec = np.array(Rfit_sec)
     Tfit_sec = np.array(Tfit_sec)
     Lumfit_sec = np.array(Lumfit_sec)
+    header_cols = ['t_fb'] \
+            + [f'Tfit_sec {obs}' for obs in label_obs] \
+            + [f'Rfit_sec {obs}' for obs in label_obs]
+
+    header_str = ','.join(header_cols)  # or delimiter if not comma
+
+    np.savetxt(
+        f'{abspath}/data/{folder}/wind/Tfit_intime_{choice}.txt',
+        np.column_stack((tfb, Tfit_sec, Rfit_sec)),
+        delimiter=',',
+        header=header_str)
+    
     for i_idx, idx in enumerate(indices_sorted):
         if label_obs[i_idx] == 'South pole':
             continue
@@ -564,16 +595,14 @@ def TRfit_in_time(folder, check, choice):
 
     plt.tight_layout()
     plt.savefig(f'{abspath}/Figs/{folder}/Wind/Tfit_intime_{choice}.png', dpi=300)
-
-
+    
 pmodel = Model(lumfit)
 params = pmodel.make_params(R=1e13, T=1e4)
 params['R'].min = 0.0    # R ≥ 0
 params['T'].min = 0.0    # T ≥ 0  
 # plot_spectra(folder, check, snaps_spectra, x_axis, choice)
-# TRfit_in_time(folder, check, choice)
-plot_light_curves(folder, check, choice, group = 'bands')
+TRfit_in_time(folder, check, choice)
+# plot_light_curves(folder, check, choice, group = 'bands')
 # plot_light_curves(folder, check, choice, group = 'sections')
 # plot_light_curves(folder, check, choice, group = 'bandsMG')
 # lc_from_fit(folder, check, choice, group = 'sections')
-
