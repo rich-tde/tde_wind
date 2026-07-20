@@ -262,9 +262,9 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
 #   
 ## MAIN
 #
-compute = False
+compute = True
 which_part = 'wind' # 'outflow' or 'all' or 'wind' to have the wind
-what_varies = 'r' # 'r' or 'theta', only for radial profiles
+what_varies = 'theta' # 'r' or 'theta', only for radial profiles
 which_obs = 'split_stream' # 'left_right_z', 'all' or 'in_out_z'
 isoent = 'isoent' 
 if what_varies == 'r':
@@ -291,7 +291,7 @@ else:
     # arrange for plotting
     observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
     x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
-    indices_obs, label_obs, colors_obs, _ = op.choose_observers(observers_xyz, which_obs)
+    indices_obs, label_obs, colors_obs, _, _ = op.choose_observers(observers_xyz, which_obs)
     fig, (axd, axV, axM, axLkin) = plt.subplots(4, 1, figsize=(8, 22)) 
     figM, (axT, axLadv) = plt.subplots(1, 2, figsize=(15, 8))
     fiC, axC = plt.subplots(1, 1, figsize=(8, 8))
@@ -383,17 +383,16 @@ else:
             non_zero = idx_list[r_tr_all[idx_list]> Rt]
         #     # if non_zero.any():
         #     print(f'{label_obs[i]}: Rtr in {len(non_zero)/len(idx_list)*100:.2f}%')
-            rph_nonzero_medians.append(np.median(rph_all[non_zero]))
-            rtr_nonzero_medians.append(np.median(r_tr_all[non_zero]))
+            rph_nonzero_medians.append(np.median(rph_all[non_zero]) if len(non_zero) > 0 else 0)
+            rtr_nonzero_medians.append(np.median(r_tr_all[non_zero]) if len(non_zero) > 0 else 0)
         #     # Plot the observers with trapping radius non zero
         #     ax1.scatter(x_obs[non_zero], y_obs[non_zero], color = colors_obs[i], linewidths = 1)
         #     ax2.scatter(x_obs[non_zero], z_obs[non_zero], color = colors_obs[i], linewidths = 1, label = r'r$_{\rm tr}\neq0$' if i == 0 else '')
         # Load profiles
         for k, which_part in enumerate(which_parts):
-            profiles = np.load(f'{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
+            profiles = np.load(f'{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}{isoent}_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
             for i, lab in enumerate(profiles.keys()):
-                print(lab)
-                if label_obs[i] == 'South pole':
+                if label_obs[i] == 'South pole' or rtr_nonzero_medians[i]==0:
                     continue 
                 if which_plot == 'single_time':
                     lab_plot = label_obs[i]
@@ -403,9 +402,21 @@ else:
                 d = profiles[lab]['d_prof']
                 v_rad = np.abs(profiles[lab]['v_rad_prof'])
                 t = profiles[lab]['t_prof']
-                Mdot = np.abs(profiles[lab]['Mdot_prof']) #Mdotmean_prof
-                L_adv = np.abs(profiles[lab]['L_adv_prof']) #L_advmean_prof
-                L_kin = np.abs(profiles[lab]['L_kin_prof']) #L_kinmean_prof
+                if isoent == 'isoent':
+                    print('Isoentropic Mdot and Lum')
+                    area = profiles[lab]['area']
+                    if what_varies == 'r':
+                        Mdot = (4 * np.pi * r_arr**2) /area * profiles[lab]['Mdot_prof']
+                        L_kin = (4 * np.pi * r_arr**2) / area * profiles[lab]['L_kin_prof']
+                    elif what_varies == 'theta':
+                        Mdot = (4 * np.pi * r_chosen**2) /area * profiles[lab]['Mdot_prof']
+                        L_kin = (4 * np.pi * r_chosen**2) /area * profiles[lab]['L_kin_prof']
+                        L_adv = (4 * np.pi * r_chosen**2) /area * profiles[lab]['L_adv_prof']
+                else:
+                    Mdot = profiles[lab]['Mdot_prof'] #Mdotmean_prof
+                    L_kin = profiles[lab]['L_kin_prof'] #L_kinmean_prof
+                    L_adv = profiles[lab]['L_adv_prof'] #L_advmean_prof
+
                 Mdotmean = profiles[lab]['Mdotmean_prof'] 
                 L_advmean = profiles[lab]['L_advmean_prof'] 
                 L_kinmean = profiles[lab]['L_kinmean_prof'] 

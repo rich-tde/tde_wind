@@ -35,8 +35,7 @@ which_obs = 'split_stream'  # 'funnel', '3d_arch', 'split_stream', 'left_right_z
 moll_spl = 'x_posneg'  # 'x_posneg' or '' for standard mollweide
 
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
-indices_obs, label_obs, colors_obs, _ = choose_observers(observers_xyz, which_obs)
-markers_obs = ['o', 'p', 's', 'H', 'X', 'X']
+indices_obs, label_obs, colors_obs, _, markers_obs = choose_observers(observers_xyz, which_obs)
 observers_xyz = np.array(observers_xyz).T
 x, y, z = observers_xyz[:, 0], observers_xyz[:, 1], observers_xyz[:, 2]
 r = np.sqrt(x**2 + y**2 + z**2)   # Radius (should be 1 for unit vectors)
@@ -129,10 +128,6 @@ for s, snap in enumerate(snaps):
         ax.set_yticks(np.radians(np.arange(-90, 91, 45)))
         ax.set_yticklabels(ytick_labels)
         if which_obs in ['funnel', '3d_arch', 'split_stream']:
-            if which_obs == 'split_stream':
-                lim_plot_lines = np.pi/18
-            if which_obs == '3d_arch':
-                lim_plot_lines = np.pi/6
             # horizontal lines to separate the funnel region with dashed lines
             ax.axhline(np.pi/3, color='k', ls='--')
             ax.axhline(-np.pi/3, color='k', ls='--')
@@ -141,21 +136,23 @@ for s, snap in enumerate(snaps):
                 axvline = ax.axvline(0, color='k', ls='--')
                 # horizontal lines for stream
                 if which_obs == 'split_stream':
-                    ax.plot([-np.pi, 0], [lim_plot_lines, lim_plot_lines], color='k', ls='--') #10 deg
-                    ax.plot([-np.pi, 0], [-lim_plot_lines, -lim_plot_lines], color='k', ls='--')
+                    ax.plot([-np.pi, 0], [np.pi/18, np.pi/18], color='k', ls='--') #10 deg
+                    ax.plot([-np.pi, 0], [-np.pi/18, -np.pi/18], color='k', ls='--')
+                    ax.plot([-np.pi, 0], [2*np.pi/9, 2*np.pi/9], color='k', ls='--') 
+                    ax.plot([-np.pi, 0], [-2*np.pi/9, -2*np.pi/9], color='k', ls='--')
                 elif which_obs == '3d_arch':
-                    ax.axhline(lim_plot_lines, color='k', ls='--')
-                    ax.axhline(-lim_plot_lines, color='k', ls='--')
+                    ax.axhline(np.pi/6, color='k', ls='--')
+                    ax.axhline(-np.pi/6, color='k', ls='--')
             if moll_spl == '':
                 # horizontal lines for stream
                 if which_obs == 'split_stream':
-                    ax.plot([-np.pi, -np.pi/2], [lim_plot_lines, lim_plot_lines], color='k', ls='--') 
-                    ax.plot([-np.pi, -np.pi/2], [-lim_plot_lines, -lim_plot_lines], color='k', ls='--')
-                    ax.plot([np.pi/2, np.pi], [lim_plot_lines, lim_plot_lines], color='k', ls='--')
-                    ax.plot([np.pi/2, np.pi], [-lim_plot_lines, -lim_plot_lines], color='k', ls='--')
+                    ax.plot([-np.pi, -np.pi/2], [np.pi/18, np.pi/18], color='k', ls='--') 
+                    ax.plot([-np.pi, -np.pi/2], [-np.pi/18, -np.pi/18], color='k', ls='--')
+                    ax.plot([np.pi/2, np.pi], [np.pi/18, np.pi/18], color='k', ls='--')
+                    ax.plot([np.pi/2, np.pi], [-np.pi/18, -np.pi/18], color='k', ls='--')
                 elif which_obs == '3d_arch': 
-                    ax.axhline(lim_plot_lines, color='k', ls='--')
-                    ax.axhline(-lim_plot_lines, color='k', ls='--')
+                    ax.axhline(np.pi/6, color='k', ls='--')
+                    ax.axhline(-np.pi/6, color='k', ls='--')
                 # vertical lines for pericentre
                 ax.plot([-np.pi/2, -np.pi/2], [-np.pi/3, np.pi/3], color='k', ls='--')
                 ax.plot([np.pi/2, np.pi/2], [-np.pi/3, np.pi/3], color='k', ls='--')

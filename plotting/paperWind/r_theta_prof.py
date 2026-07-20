@@ -23,7 +23,7 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
 which_obs = 'split_stream' 
-isoent = ''
+isoent = 'isoent'
 snap = 151
 
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -53,7 +53,7 @@ y_test23 = op.draw_line(x_test, [2e2, -2/3], 'powerlaw')
 # arrange for plotting
 observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
 x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
-indices_obs, label_obs, colors_obs, _ = op.choose_observers(observers_xyz, which_obs)
+indices_obs, label_obs, colors_obs, _, _ = op.choose_observers(observers_xyz, which_obs)
 
 r_chosen_theta = apo 
 r_chosen_name_theta = 'apo' 
@@ -121,8 +121,8 @@ for i, idx_list in enumerate(indices_obs):
     rph_medians[i] = np.median(rph_all[idx_list])
     rtr_medians[i] = np.median(r_tr_all[idx_list])
     non_zero = idx_list[r_tr_all[idx_list]> Rt]
-    rph_nonzero_medians[i] = np.median(rph_all[non_zero])
-    rtr_nonzero_medians[i] = np.median(r_tr_all[non_zero])
+    rph_nonzero_medians[i] = np.median(rph_all[non_zero] if len(non_zero) > 0 else 0)
+    rtr_nonzero_medians[i] = np.median(r_tr_all[non_zero] if len(non_zero) > 0 else 0)
     Lumph_nonzero[i] = np.median(Lumph[non_zero])
 
 for w, what_varies in enumerate(what_varies_all):
@@ -131,7 +131,7 @@ for w, what_varies in enumerate(what_varies_all):
         # Load profiles
         profiles = np.load(f'{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_names[w]}{isoent}_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
         for i, lab in enumerate(profiles.keys()):
-            if lab == 'South pole':
+            if lab == 'South pole' or rtr_nonzero_medians[i]==0:
                 continue 
             r_arr = profiles[lab]['r'] 
             d = profiles[lab]['d_prof']
@@ -186,7 +186,7 @@ for w, what_varies in enumerate(what_varies_all):
                 all_axes[1][w].scatter(r_plot[idx_rph]*norm, v_rad[idx_rph] * conversion_sol_kms, marker = 'o', s = 100, color = colors_sec)
                 all_axes[2][w].scatter(r_plot[idx_rph]*norm, Mdot[idx_rph]/Medd_sol, marker = 'o', s = 100, color = colors_sec)
                 all_axes[3][w].scatter(r_plot[idx_rph]*norm, L_kin[idx_rph]/Ledd_sol, marker = 'o', s = 100, color = colors_sec)
-                all_axes[3][w].scatter(r_plot[idx_rph]*norm, Lumph_nonzero[i]/Ledd_cgs, marker = 's', s = 100, color = colors_sec)
+                # all_axes[3][w].scatter(r_plot[idx_rph]*norm, Lumph_nonzero[i]/Ledd_cgs, marker = 's', s = 100, color = colors_sec)
 
                 all_axes[0][w].scatter(r_plot[idx_rtr]*norm, d[idx_rtr] * prel.den_converter, marker = 'd', s = 100, color = colors_sec)
                 all_axes[1][w].scatter(r_plot[idx_rtr]*norm, v_rad[idx_rtr] * conversion_sol_kms, marker = 'd', s = 100, color = colors_sec)

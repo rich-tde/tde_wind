@@ -153,6 +153,7 @@ def find_step(theta_arr, i):
     return step
 
 def choose_sections(X, Y, Z, choice):
+    # angles are defined considering alpha=0 at the orbital plane and alpha increasing towards the North pole.
     R_cyl = np.sqrt(X**2 + Y**2)
     if choice in ['left_right_z', 'in_out_z', 'left_right_in_out_z', 'funnel', '3d_arch', 'split_stream']:
         if choice == 'left_right_in_out_z':
@@ -166,8 +167,8 @@ def choose_sections(X, Y, Z, choice):
         slope = np.tan(alpha_pole)  
         cond_Npole = np.logical_and(np.abs(Z) > slope *  R_cyl, Z > 0)
         cond_Spole = np.logical_and(np.abs(Z) > slope *  R_cyl, Z < 0)
-        north = {'cond': cond_Npole, 'label': r'North pole', 'color': 'xkcd:sky blue', 'line': 'dotted'}
-        south = {'cond': cond_Spole, 'label': r'South pole', 'color': 'cornflowerblue', 'line': 'dotted'}
+        north = {'cond': cond_Npole, 'label': r'North pole', 'color': '#56cfe1', 'line': 'dotted', 'marker': 'X'}
+        south = {'cond': cond_Spole, 'label': r'South pole', 'color': 'cornflowerblue', 'line': 'dotted', 'marker': 'X'}
 
     if choice == 'all':
         cond_all = np.abs(X) != 1  # all True
@@ -217,14 +218,14 @@ def choose_sections(X, Y, Z, choice):
         slope_opd = np.tan(np.pi/18)
         slope_opu = np.tan(2*np.pi/9)
         cond_left_op = np.logical_and(X < 0, np.abs(Z) <= slope_opd *  R_cyl)
-        cond_left_mlu = np.logical_and(X < 0, np.logical_and(np.abs(Z) <= slope *  R_cyl, np.abs(Z) > slope_opu *  R_cyl))
         cond_left_mld = np.logical_and(X < 0, np.logical_and(np.abs(Z) <= slope_opu *  R_cyl, np.abs(Z) > slope_opd *  R_cyl))
+        cond_left_mlu = np.logical_and(X < 0, np.logical_and(np.abs(Z) <= slope *  R_cyl, np.abs(Z) > slope_opu *  R_cyl))
         cond_right = np.logical_and(X >= 0, np.abs(Z) < slope * R_cyl)
-        left_op = {'cond': cond_left_op, 'label': r'Stream side (orb.pl.)', 'color': 'darkviolet', 'line': 'solid'}
-        left_mlu = {'cond': cond_left_mlu, 'label': r'Stream side (20-50)', 'color': 'xkcd:bubble gum pink', 'line': 'solid'}
-        left_mld = {'cond': cond_left_mld, 'label': r'Stream side (50-80)', 'color': 'xkcd:light pink', 'line': 'solid'}
-        right = {'cond': cond_right, 'label': r'Pericentre side', 'color': 'xkcd:apple', 'line': 'dashed'}
-        sec = {'left_op': left_op, 'left_mlu': left_mlu, 'left_mld': left_mld, 'right': right, 'north': north, 'south': south}
+        left_op = {'cond': cond_left_op, 'label': r'Stream side (orb.pl.)', 'color': '#ff90b3', 'line': 'solid', 'marker': 'H'} #d63230
+        left_mld = {'cond': cond_left_mld, 'label': r'Stream side ($\theta\in[\pi/9,5\pi/18]$)', 'color': '#ff499e', 'line': 'solid', 'marker': 'o'} #f39237
+        left_mlu = {'cond': cond_left_mlu, 'label': r'Stream side ($\theta\in[5\pi/18,4\pi/9]$)', 'color': '#6e44ff', 'line': 'solid', 'marker': 'p'} 
+        right = {'cond': cond_right, 'label': r'Pericentre side', 'color': '#b5e48c', 'line': 'dashed', 'marker': 's'} #99c24d
+        sec = {'left_op': left_op, 'left_mld': left_mld, 'left_mlu': left_mlu, 'right': right, 'north': north, 'south': south}
     
     if choice == 'in_out_z': 
         cond_in = np.logical_and(Y > 0, np.abs(Z) <= slope * R_cyl)
@@ -320,6 +321,7 @@ def choose_observers(observers_xyz, choice):
         label_obs = [sections_ph[key]['label'] for key in sections_ph]
         colors_obs = [sections_ph[key]['color'] for key in sections_ph]
         lines_obs = [sections_ph[key]['line'] for key in sections_ph]
+        markers_obs = [sections_ph[key].get('marker', None) for key in sections_ph] # get marker if exists, else None
 
         if choice in ['left_right_z', 'in_out_z']:
             if choice == 'left_right_z':
@@ -450,7 +452,7 @@ def choose_observers(observers_xyz, choice):
         plt.tight_layout()
         # plt.show()
 
-    return indices_sorted, label_obs, colors_obs, lines_obs
+    return indices_sorted, label_obs, colors_obs, lines_obs, markers_obs
 
 def sort_list(list_passive, leading_list, unique = False):
     """Sort list_passive based on the order of leading_list. 
