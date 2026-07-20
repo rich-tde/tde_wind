@@ -97,7 +97,7 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll = False):
     cross_dot = np.matmul(observers_xyz.T,  observers_xyz)
     cross_dot[cross_dot<0] = 0
     cross_dot /= 192
-    indices_sorted, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, choice = choice)
+    indices_sorted, label_obs, colors_obs, _, _ = choose_observers(observers_xyz, choice = choice)
 
     if in_moll:
         lon_1d = longitude_moll
@@ -113,6 +113,8 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll = False):
 
     fig_sp, ax = plt.subplots(1, len(snaps), figsize=(24,8))
     fig_fit, ax_fit = plt.subplots(2, len(snaps), figsize=(18,8))
+    handles_color, labels_color = [], []
+    handles_local, labels_local = [], []
     for s, snap in enumerate(snaps):
         time = tfb[snaps_fld == snap][0]
         L_col = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
@@ -215,17 +217,22 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll = False):
             Tfit[i_idx] = fit.params['T'].value
             # print(fit.fit_report())
             print(f'At t = {np.round(time, 1)}' + r't$_{\rm fb}$' + f'Observer {label_obs[i_idx]}: Tfit = {Tfit[i_idx]:.2e} K, Rfit = {Rfit[i_idx]/prel.Rsol_cgs:.2e} rsol')
-            ax[s].plot(x_value, freqs * Lum, label = f'{label_obs[i_idx]}'  if s == 0 else None, c = colors_obs[i_idx],linewidth = 2) #ls = lines_obs[i_idx]
-            # if i_idx == len(indices_sorted)-2:
-            #     ax[s].plot(x_value, freqs * BBfit, c = 'k', ls = '-.', linewidth = 2, label = f'BB fit') # just for the legend
+            line = ax[s].plot(x_value, freqs * Lum, label = f'{label_obs[i_idx]}' if s == 0 else None, c = colors_obs[i_idx], linewidth = 2)[0]
+            if s == 0: 
+                handles_color.append(line)
+                labels_color.append(label_obs[i_idx])
         ax[s].set_title(f't = {np.round(time, 1)}' + r't$_{\rm fb}$', fontsize = 30, y = 1.15)
 
-        if len(indices_sorted) < 6:
-            for i_idx, idx in enumerate(indices_sorted): 
-                if label_obs[i_idx] == 'South pole':
-                    continue
-                BBfit = np.array([lumfit(freq, Rfit[i_idx], Tfit[i_idx]) for freq in freqs])
-                ax[s].plot(x_value, freqs * BBfit, c = colors_obs[i_idx], ls = '-.', label = f'T={Tfit[i_idx]*1e-4:.1f}' + r' $\times 10^4$ K' if s < 2 else f'T={Tfit[i_idx]*1e-3:.1f}' + r' $\times 10^3$ K', linewidth = 2)
+        # if len(indices_sorted) < 6:
+        for i_idx, idx in enumerate(indices_sorted): 
+            if label_obs[i_idx] == 'South pole':
+                continue
+            BBfit = np.array([lumfit(freq, Rfit[i_idx], Tfit[i_idx]) for freq in freqs])
+            lineB = ax[s].plot(x_value, freqs * BBfit, c = colors_obs[i_idx], ls = '-.', label = f'T={Tfit[i_idx]*1e-4:.1f}' + r' $\times 10^4$ K' if s < 2 else f'T={Tfit[i_idx]*1e-3:.1f}' + r' $\times 10^3$ K', linewidth = 2)[0]
+            
+            if s == 0: 
+                handles_local.append(lineB)
+                labels_local.append(f'T={Tfit[i_idx]*1e-4:.1f}' + r' $\times 10^4$ K' )
 
         Rfit_hist = np.zeros(len(L_col))
         Tfit_hist = np.zeros(len(L_col))
@@ -268,12 +275,44 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll = False):
         ax_fit[1][s].set_xlabel(r'T ($10^4$ K)', fontsize = 20)
         ax_fit[1][s].set_xlim(0, 6)
         ax[s].legend(fontsize=16, loc = 'upper right')
+    
+    # legend1 = ax[0].legend(handles=handles_color,
+    #                     labels=labels_color,
+    #                     fontsize=17, loc='upper center',
+    #                     bbox_to_anchor=(1.7, -.2),  # near bottom, centered
+    #                     ncol=len(labels_color))
+
+    legend_local = ax[0].legend(
+                    handles=handles_local,      # your existing local handles
+                    labels=labels_local,
+                    loc='upper right',          # or wherever you want inside ax[0]
+                    fontsize=14
+                    )
+
+    legend_colors = fig_sp.legend(
+            handles=handles_color,
+            labels=labels_color,
+            loc='upper center',
+            bbox_to_anchor=(0.5, 0.02),  # centered, near bottom of figure
+            ncol=len(labels_color),
+            fontsize=17)
+
+
+    # Legend 2: line-style explanation (solid vs dashed)
+    # proxy_lines = []
+    # proxy_lines = []
+    # for l, line in enumerate(line_styles_parts):
+    #     proxy_lines.append(
+    #         mlines.Line2D([0], [0], color='k', ls=line, linewidth=2,
+    #                     label=labels_parts[l])
+    #     )
+
     ax_fit[0][0].set_ylabel(r'Counts', fontsize = 20)
     ax_fit[1][0].set_ylabel(r'Counts', fontsize = 20)
     ax[0].set_ylabel(r'$\nu L_{\nu}$ (erg/s)', fontsize = 30)
     fig_sp.tight_layout()
     fig_fit.tight_layout()
-    fig_sp.savefig(f'{abspath}/Figs/2.paperWind/spectra_{choice}.pdf', dpi=300)
+    fig_sp.savefig(f'{abspath}/Figs/2.paperWind/spectra_{choice}.pdf', dpi=300, bbox_inches='tight')
     fig_fit.savefig(f'{abspath}/Figs/{folder}/spectraFIT.png', dpi=300)
     
     if in_moll:
@@ -311,7 +350,7 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
     # observers
     observers_xyz = hp.pix2vec(prel.NSIDE, np.arange(prel.NPIX)) #shape: (3, 192)
     observers_xyz = np.array(observers_xyz)
-    indices_sorted, label_obs, colors_obs, _ = choose_observers(observers_xyz, choice = choice)
+    indices_sorted, label_obs, colors_obs, _, _ = choose_observers(observers_xyz, choice = choice)
 
     Lum_op_mean = []
     Lum_UV_mean = []
@@ -331,10 +370,15 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
             Lum_op[i] = np.trapezoid(L_col[i,idx_opt], freqs[idx_opt])
             Lum_UV[i] = np.trapezoid(L_col[i,idx_UV], freqs[idx_UV])
             Lum_Xray[i] = np.trapezoid(L_col[i,idx_Xray], freqs[idx_Xray])
-
-        Lum_op_mean.append(np.mean(Lum_op[indices_sorted], axis = 1))
-        Lum_UV_mean.append(np.mean(Lum_UV[indices_sorted], axis = 1))
-        Lum_Xray_mean.append(np.mean(Lum_Xray[indices_sorted], axis = 1))
+        
+        Lum_op_i, Lum_UV_i, Lum_Xray_i = np.zeros(len(indices_sorted)), np.zeros(len(indices_sorted)), np.zeros(len(indices_sorted))
+        for i_idx, idx in enumerate(indices_sorted):
+            Lum_op_i[i_idx] = np.mean(Lum_op[idx])
+            Lum_UV_i[i_idx] = np.mean(Lum_UV[idx])
+            Lum_Xray_i[i_idx] = np.mean(Lum_Xray[idx])
+        Lum_op_mean.append(Lum_op_i)
+        Lum_UV_mean.append(Lum_UV_i)
+        Lum_Xray_mean.append(Lum_Xray_i)
         time_col.append(tfb[s])
     Lum_op_mean = np.transpose(np.array(Lum_op_mean))
     Lum_UV_mean = np.transpose(np.array(Lum_UV_mean))
@@ -348,7 +392,7 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
     nside_mg = 8
     observers_xyz_MG = hp.pix2vec(nside_mg, np.arange(hp.nside2npix(nside_mg))) #shape: (3, 768)
     observers_xyz_MG = np.array(observers_xyz_MG)
-    indices_sorted_MG, _, _, _ = choose_observers(observers_xyz_MG, choice = choice)
+    indices_sorted_MG, _, _, _, _ = choose_observers(observers_xyz_MG, choice = choice)
     snaps_times_MG = np.loadtxt(f'{pre_saving}/MG/{check}_timesMG.csv', delimiter=',', dtype=float)
     snaps_MG = snaps_times_MG[:, 0].astype(int)
     time_MG = snaps_times_MG[:, 1]
@@ -414,14 +458,14 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
         fig_x, ax_Xray = plt.subplots(1, 1, figsize=(9, 7))
         axes = [ax_op, ax_UV, ax_Xray] 
         for k, obs in enumerate(label_obs):
-            if k == 3:
+            if label_obs[k] == 'South pole':
                 continue
             Lum_op = Lum_op_mean[k]
             Lum_UV = Lum_UV_mean[k] 
             Lum_XrayMG = Lum_Xray_MG[k]
             ax_op.plot(tfb, Lum_op, label = f'{obs}', c = colors_obs[k], linewidth = 2)
             ax_UV.plot(tfb, Lum_UV, label = f'This work' if k == 2 else None, c = colors_obs[k], linewidth = 2)
-            ax_Xray.plot(time_MG, Lum_XrayMG, c = colors_obs[k], ls = '--' if group == 'bandsMG' else '-', linewidth = 2)
+            ax_Xray.plot(time_MG, Lum_XrayMG, c = colors_obs[k], label = f'{obs}', ls = '--' if group == 'bandsMG' else '-', linewidth = 2)
             if group == 'bands':
                 ax_op.scatter(tfb[np.argmax(Lum_op)], np.max(Lum_op), c = colors_obs[k], s = 200, marker = '*')
                 ax_UV.scatter(tfb[np.argmax(Lum_UV)], np.max(Lum_UV), c = colors_obs[k], s = 200, marker = '*')
@@ -436,9 +480,10 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
         ax_UV.text(0.1, L_max/5, 'UV', fontsize = 26)
         ax_Xray.text(0.1, L_max/5, 'X-ray', fontsize = 26)
         original_ticks = ax_op.get_xticks()
-        ax_op.legend(fontsize = 22)
+        ax_op.legend(fontsize = 16)
+        ax_Xray.legend(fontsize = 15, bbox_to_anchor=(0.65, 0.01), loc='lower right')
         if group == 'bandsMG':
-            ax_UV.legend(fontsize = 22)
+            ax_UV.legend(fontsize = 16)
         ax_op.set_ylabel(r'$\nu L_{\nu}$ (erg/s)', fontsize = 30)
         ax_Xray.set_ylabel(r'$\nu L_{\nu}$ (erg/s)', fontsize = 30)
 
@@ -520,7 +565,7 @@ def TRfit_in_time(folder, check, choice):
     cross_dot = np.matmul(observers_xyz.T,  observers_xyz)
     cross_dot[cross_dot<0] = 0
     cross_dot /= 192
-    indices_sorted, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, choice = choice)
+    indices_sorted, label_obs, colors_obs, _, _ = choose_observers(observers_xyz, choice = choice)
 
     fig_sp, (axT, axR, axL) = plt.subplots(1, 3, figsize=(28,8))
     Lbolom_sec, Rfit_sec, Tfit_sec, Lumfit_sec = [], [], [], []
@@ -600,8 +645,8 @@ pmodel = Model(lumfit)
 params = pmodel.make_params(R=1e13, T=1e4)
 params['R'].min = 0.0    # R ≥ 0
 params['T'].min = 0.0    # T ≥ 0  
-plot_spectra(folder, check, snaps_spectra, x_axis, choice)
-TRfit_in_time(folder, check, choice)
+# plot_spectra(folder, check, snaps_spectra, x_axis, choice)
+# TRfit_in_time(folder, check, choice)
 plot_light_curves(folder, check, choice, group = 'bands')
 # plot_light_curves(folder, check, choice, group = 'sections')
 # plot_light_curves(folder, check, choice, group = 'bandsMG')

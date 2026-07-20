@@ -133,7 +133,7 @@ which_obs = 'split_stream'
 compute = False 
 
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) # shape: (3, 192)
-indices_obs, label_obs, colors_obs, _ = choose_observers(observers_xyz, which_obs)
+indices_obs, label_obs, colors_obs, _, _= choose_observers(observers_xyz, which_obs)
 observers_xyz = np.array(observers_xyz).T
 
 # Load opacity tables
@@ -225,7 +225,7 @@ else:
         fig, ax1 = plt.subplots(1,1, figsize=(9, 7))
         axes = np.concatenate([[ax1], [axs[l] for l in range(len(indices_obs))]])
     for i in range(len(indices_obs)):
-        if label_obs[i] == 'South pole':
+        if label_obs[i] == 'South pole' or rtr_nonzero_medians[i] == 0:
             continue
         if len(label_obs) > 6:
             if np.logical_or(label_obs[i] in ['0-30', '30-60', '60-90', '270-300', '300-330', '330-360'], np.logical_and(i < len(label_obs)/2, which_obs == 'tenths')):
@@ -255,11 +255,11 @@ else:
         ax.grid()
         plt.tight_layout()
 
-    # if which_obs == 'left_right_z':
-    #     fig.savefig(f'{abspath}/Figs/2.paperWind/opacity.pdf', dpi=300, bbox_inches='tight')
-    # else:
-    fig.savefig(f'{abspath}/Figs/{folder}/wind/opacity_Rprof{snap}_{which_obs}.png', dpi=300, bbox_inches='tight')
-    figs.savefig(f'{abspath}/Figs/{folder}/wind/opacity_Rprof{snap}_{which_obs}ALL.png', dpi=300, bbox_inches='tight')
+    if which_obs == 'split_stream':
+        fig.savefig(f'{abspath}/Figs/2.paperWind/opacity.pdf', dpi=300, bbox_inches='tight')
+    else:
+        fig.savefig(f'{abspath}/Figs/{folder}/wind/opacity_Rprof{snap}_{which_obs}.png', dpi=300, bbox_inches='tight')
+        figs.savefig(f'{abspath}/Figs/{folder}/wind/opacity_Rprof{snap}_{which_obs}ALL.png', dpi=300, bbox_inches='tight')
 
     # %% test for photosphere
     gamma = 1/7

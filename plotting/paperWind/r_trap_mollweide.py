@@ -52,7 +52,7 @@ snaps = snaps.astype(int)
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 
 for s, snap in enumerate(snaps):
-    if snap != 151:
+    if snap < 76:
         continue
     pathtrap = f"{abspath}/data/{folder}/trap"
     dataRtr = load_and_smooth_rtrap(pathtrap, check, snap)
@@ -169,5 +169,5 @@ for s, snap in enumerate(snaps):
     # Shared decorations
     fig.suptitle(f'time = {tfbs[s]:.1f} ' + r't$_{\rm fb}$', fontsize=20)
     fig.tight_layout()
-    # plt.savefig(f'{abspath}/Figs/{folder}/Wind/Rtr{which_obs}/Rtr_{snap}.png', dpi=300)
-    # plt.close()
+    plt.savefig(f'{abspath}/Figs/{folder}/Wind/Rtr{which_obs}/Rtr_{snap}.png', dpi=300)
+    plt.close()

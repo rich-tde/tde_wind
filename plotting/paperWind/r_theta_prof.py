@@ -59,6 +59,10 @@ r_chosen_theta = apo
 r_chosen_name_theta = 'apo' 
 what_varies_all = ['r','theta'] 
 r_chosen_names = ['', r_chosen_name_theta]
+if r_chosen_name_theta == 'apo':
+    r_label = r'$r_{\rm a}$'
+else:
+    r_label = r_chosen_name_theta
 norms = [1/Rt, radians]
 which_parts = ['outflow', 'wind'] 
 labels_parts =  ['(unbound + bound) Outflow', 'Unbound outflow (wind)'] #['Unbound outflow (wind)']#
@@ -69,8 +73,8 @@ for j in range(2):
     all_axes[0][j].set_ylim(2e-13, 1e-5)
     all_axes[1][j].axhline(v_esc_kms, c = 'k', ls = 'dotted')
     all_axes[1][j].set_ylim(1.5e3, 1.5e4)
-    all_axes[2][j].set_ylim(5e1, 5e6)
-    all_axes[3][j].set_ylim(1e-3, 2e3)
+    all_axes[2][j].set_ylim(2e3, 2e7)
+    all_axes[3][j].set_ylim(1e0, 2e3)
     for i in range(4):
         all_axes[i][j].grid()
         all_axes[i][j].tick_params(axis='both', which='minor', length = 8, width = 1, labelsize = 35)
@@ -81,7 +85,7 @@ for j in range(2):
             all_axes[i][j].set_xlim(1, 1.4e2)
         elif j == 1:
             all_axes[i][j].set_yscale('log')
-            all_axes[i][j].set_xlim(0, 2*np.pi/3)
+            all_axes[i][j].set_xlim(0, np.pi/2) #2*np.pi/3)
             if i != 3:
                 all_axes[i][1].set_xlabel('', fontsize = 35)
 
@@ -91,7 +95,7 @@ all_axes[3][1].set_xlabel(r'$\theta$ (rad)', fontsize = 35)
 all_axes[0][0].text(0.8*apo*norms[0], 0.2*all_axes[0][0].get_ylim()[1], r'$r_{\rm a}$', fontsize = 25, color = 'gray', rotation = 90)   
 all_axes[0][0].plot(x_test, y_test2, c = 'gray', ls = '-.', label = r'$\rho \propto r^{-2}$')
 all_axes[3][0].plot(x_test, y_test23, c = 'gray', ls = '-.', label = r'$\rho \propto r^{-2/3}$')
-all_axes[0][0].text(76, 2e-11, r'$\rho \propto r^{-2}$', fontsize = 25, color = 'gray', rotation = -20)            
+all_axes[0][0].text(70, 2e-11, r'$\rho \propto r^{-2}$', fontsize = 25, color = 'gray', rotation = -20)            
 handles_color = []
 labels_color = []
 
@@ -177,7 +181,6 @@ for w, what_varies in enumerate(what_varies_all):
                 all_axes[0][w].plot(r_plot*norm, d * prel.den_converter, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
             all_axes[1][w].plot(r_plot*norm, v_rad * conversion_sol_kms, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
             if which_part != 'outflow':
-                all_axes[0][w].set_title(r_chosen_names[w], fontsize = 35)
                 all_axes[2][w].plot(r_plot*norm, Mdot/Medd_sol, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
                 all_axes[3][w].plot(r_plot*norm, L_kin/Ledd_sol, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
 
@@ -194,6 +197,7 @@ for w, what_varies in enumerate(what_varies_all):
                 all_axes[3][w].scatter(r_plot[idx_rtr]*norm, L_kin[idx_rtr]/Ledd_sol, marker = 'd', s = 100, color = colors_sec)
 
 
+all_axes[0][1].text(0.1, 1e-6, f'r = {r_label}', fontsize = 35)
 # Legend 1: colored observer lines (three colors)
 legend1 = all_axes[0][0].legend(handles=handles_color,
                     labels=labels_color,
@@ -220,3 +224,4 @@ all_axes[3][0].set_ylabel(r'$L_{\rm adv} (L_{\rm Edd})$', fontsize = 35)
 fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 28, y = 1, x = 0.53)
 fig.tight_layout(w_pad=15.0)  
 fig.savefig(f'{abspath}/Figs/{folder}/Wind/r_theta{r_chosen_name_theta}{isoent}prof_{which_obs}_{snap}.png', bbox_inches = 'tight')
+fig.savefig(f'{abspath}/Figs/2.paperWind/Rthetaprof_{which_obs}_{snap}.pdf', bbox_inches = 'tight')

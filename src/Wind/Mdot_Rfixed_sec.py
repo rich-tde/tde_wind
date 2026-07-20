@@ -178,7 +178,7 @@ if __name__ == '__main__':
     NPIX = hp.nside2npix(prel.NSIDE)
     observers_xyz = hp.pix2vec(prel.NSIDE, range(NPIX))
     observers_xyz = np.array(observers_xyz)
-    _, label_obs, color_obs, _ = choose_observers(observers_xyz, choice)
+    _, label_obs, color_obs, _, _ = choose_observers(observers_xyz, choice)
         
     if compute: 
         r_chosen = 0.5*amin

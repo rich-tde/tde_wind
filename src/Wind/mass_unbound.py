@@ -8,9 +8,11 @@ alice, plot = isalice()
 if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
     path = '/home/martirep/data_pi-rossiem/TDE_data'
+    compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
     path = f'{abspath}/TDE'
+    compute = True
 import numpy as np
 import matplotlib.pyplot as plt
 import Utilities.prelude as prel
@@ -51,14 +53,20 @@ R0 = things['R0']
 norm = things['E_mb']
 amin = things['a_mb'] # semimajor axis of the bound orbit
 
-if alice:
-    snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
+if compute:
+    if alice:
+        snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
+        prepath = f'{path}/{folder}/snap_'
+    else:
+        snaps = [151]
+        tfb = [2.23]
+        prepath = f'{path}/{folder}/'
 
     # compute the outflow/wind mass for all the snapshots
     for i, snap in enumerate(snaps):
         time = tfb[i]
         print(snap, flush = True)
-        pathfold = f'{path}/{folder}/snap_{snap}'
+        pathfold = f'{prepath}{snap}'
         data = make_tree(pathfold, snap)
         X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
         data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Press, data.VX, data.VY, data.VZ, data.IE, data.Rad
@@ -93,20 +101,21 @@ if alice:
 
         data = np.concatenate([[snap, time], tot_M, M_out, M_wind])
 
-        csv_path = f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv'
-        with open(csv_path,'a', newline='') as file:
-            writer = csv.writer(file)
-            if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                writer.writerow(['snap', 'tfb'] + [f'M_tot {lab}' for lab in label_obs] + [f'M_out {lab}' for lab in label_obs] + [f'M_w {lab}' for lab in label_obs])
-            writer.writerow(data)
-            file.close()
-        
+        if alice:
+            csv_path = f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv'
+            with open(csv_path,'a', newline='') as file:
+                writer = csv.writer(file)
+                if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
+                    writer.writerow(['snap', 'tfb'] + [f'M_tot {lab}' for lab in label_obs] + [f'M_out {lab}' for lab in label_obs] + [f'M_w {lab}' for lab in label_obs])
+                writer.writerow(data)
+                file.close()
+
 if plot:
     import healpy as hp
     from src.Wind.Mdot_Rfixed_sec import choose_observers
     observers_xyz = hp.pix2vec(prel.NSIDE, np.arange(prel.NPIX)) #shape: (3, 192)
     observers_xyz = np.array(observers_xyz)
-    indices_sorted, label_obs, colors_obs, _ = choose_observers(observers_xyz, choice = choice)
+    indices_sorted, label_obs, colors_obs, _, _ = choose_observers(observers_xyz, choice = choice)
 
     csv_path = f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv'
     data = np.loadtxt(csv_path, delimiter=',', skiprows=1, unpack=True)

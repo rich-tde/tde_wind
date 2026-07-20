@@ -264,7 +264,7 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
 #
 compute = True
 which_part = 'outflow' # 'outflow' or 'all' or 'wind' to have the wind
-what_varies = 'r' # 'r' or 'theta', only for radial profiles
+what_varies = 'theta' # 'r' or 'theta', only for radial profiles
 which_obs = 'split_stream' # 'left_right_z', 'all' or 'in_out_z'
 isoent = 'isoent' 
 if what_varies == 'r':
@@ -320,7 +320,7 @@ else:
         axratioM.set_ylim(1e-2, 1.1)
         axd.text(0.8*apo*norm, 0.2*axd.get_ylim()[1], r'$r_{\rm a}$', fontsize = 20, color = 'gray', rotation = 90)   
         axd.plot(x_test, y_test2, c = 'gray', ls = '-.', label = r'$\rho \propto r^{-2}$')
-        axd.text(75, 2e-11, r'$\rho \propto r^{-2}$', fontsize = 18, color = 'gray', rotation = -20)            
+        axd.text(71, 1.2e-11, r'$\rho \propto r^{-2}$', fontsize = 18, color = 'gray', rotation = -20)            
     elif what_varies == 'theta':
         from Utilities.basic_units import radians
         norm = radians 
