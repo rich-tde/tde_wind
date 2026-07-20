@@ -36,8 +36,8 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
-choice = 'tenths' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
-how = '' # '' for the normalized sum or 'mean' for mean of Mw of each cells
+choice = 'split_stream' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
+how = 'isoent' # '' for the normalized sum or 'mean' for mean of Mw of each cells
 what = 'wind' # '' for wind or 'outflow'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -206,6 +206,7 @@ if __name__ == '__main__':
                 file.close()
 
     else:
+        r_chosen = 0.5*amin
         which_r_title = '05amin'
         
         # snap_for_scatter = 109
@@ -239,6 +240,7 @@ if __name__ == '__main__':
         rest = wind[2:2+len(label_obs)]
         if how == 'isoent':
             area = wind[2+len(label_obs):2+2*len(label_obs)]
+            rest = rest * 4 * np.pi * r_chosen**2 / area 
         
         for i in range(len(rest)):
             axM.plot(tfbH, rest[i]/Medd_sol,  label = label_obs[i], c = color_obs[i])

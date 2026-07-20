@@ -157,8 +157,10 @@ def choose_sections(X, Y, Z, choice):
     if choice in ['left_right_z', 'in_out_z', 'left_right_in_out_z', 'funnel', '3d_arch', 'split_stream']:
         if choice == 'left_right_in_out_z':
             alpha_pole = np.arcsin(2/3)
-        elif choice == 'funnel' or choice == '3d_arch' or choice == 'split_stream':
+        elif choice == 'funnel' or choice == '3d_arch':
             alpha_pole = np.pi/3
+        elif choice == 'split_stream':
+            alpha_pole = 7*np.pi/18
         else:
             alpha_pole = np.pi/6 
         slope = np.tan(alpha_pole)  
@@ -212,14 +214,17 @@ def choose_sections(X, Y, Z, choice):
         sec = {'left_op': left_op, 'left_ml': left_ml, 'right_op': right_op, 'right_ml': right_ml, 'north': north, 'south': south}
     
     if choice == 'split_stream': 
-        slope_op = np.tan(np.pi/6)
-        cond_left_op = np.logical_and(X < 0, np.abs(Z) <= slope_op *  R_cyl)
-        cond_left_ml = np.logical_and(X < 0, np.logical_and(np.abs(Z) <= slope *  R_cyl, np.abs(Z) > slope_op *  R_cyl))
+        slope_opd = np.tan(np.pi/18)
+        slope_opu = np.tan(2*np.pi/9)
+        cond_left_op = np.logical_and(X < 0, np.abs(Z) <= slope_opd *  R_cyl)
+        cond_left_mlu = np.logical_and(X < 0, np.logical_and(np.abs(Z) <= slope *  R_cyl, np.abs(Z) > slope_opu *  R_cyl))
+        cond_left_mld = np.logical_and(X < 0, np.logical_and(np.abs(Z) <= slope_opu *  R_cyl, np.abs(Z) > slope_opd *  R_cyl))
         cond_right = np.logical_and(X >= 0, np.abs(Z) < slope * R_cyl)
         left_op = {'cond': cond_left_op, 'label': r'Stream side (orb.pl.)', 'color': 'darkviolet', 'line': 'solid'}
-        left_ml = {'cond': cond_left_ml, 'label': r'Stream side (mid. lat.)', 'color': 'xkcd:bubble gum pink', 'line': 'solid'}
+        left_mlu = {'cond': cond_left_mlu, 'label': r'Stream side (20-50)', 'color': 'xkcd:bubble gum pink', 'line': 'solid'}
+        left_mld = {'cond': cond_left_mld, 'label': r'Stream side (50-80)', 'color': 'xkcd:light pink', 'line': 'solid'}
         right = {'cond': cond_right, 'label': r'Pericentre side', 'color': 'xkcd:apple', 'line': 'dashed'}
-        sec = {'left_op': left_op, 'left_ml': left_ml, 'right': right, 'north': north, 'south': south}
+        sec = {'left_op': left_op, 'left_mlu': left_mlu, 'left_mld': left_mld, 'right': right, 'north': north, 'south': south}
     
     if choice == 'in_out_z': 
         cond_in = np.logical_and(Y > 0, np.abs(Z) <= slope * R_cyl)

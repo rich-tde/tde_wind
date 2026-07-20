@@ -23,7 +23,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-choice = 'funnel'
+choice = 'split_stream'
 how = '' # '' for sum or 'mean'
 which_plot = 'ML' # 'ML' or 'ML_conv'
 commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
@@ -72,7 +72,7 @@ if which_plot == 'ML':
         trap = np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz')
         x_tr, y_tr, z_tr = trap['x_tr'], trap['y_tr'], trap['z_tr']
         r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-        if choice in ['tenths','azimuthal', 'funnel', '3d_arch']:
+        if choice in ['tenths','azimuthal', 'funnel', '3d_arch', 'split_stream']:
             Lum_slab = np.zeros(len(indices_obs))
             mask = []
             rph_slab = np.zeros(len(indices_obs))

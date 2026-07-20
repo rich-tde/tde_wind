@@ -51,7 +51,7 @@ Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 
 #%% FUNCTIONS
-def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies = 'r', isoent = False):
+def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies = 'r', isoent = ''):
     if what_varies == 'r':
         rmin, rmax, Nray = ray_params
         ray_array = np.logspace(np.log10(rmin), np.log10(rmax), Nray)
@@ -198,7 +198,7 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
             v_rad_prof[i] = np.sum(ray_V_r*ray_m) / np.sum(ray_m)
             d_prof[i] = np.sum(ray_d*ray_m)/ np.sum(ray_m)
             area[i] = np.pi * np.sum(ray_dim**2)
-            if isoent:
+            if isoent == 'isoent':
                 Mdot_prof[i] = np.pi * np.sum(ray_dim**2 * ray_d * ray_V_r)
                 L_kin_prof[i] = 0.5 * np.pi *np.sum(ray_dim**2 * ray_d * ray_V_r**3)
                 L_adv_prof[i] = np.pi * np.sum(ray_dim**2 * L_adv)
@@ -262,11 +262,11 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
 #   
 ## MAIN
 #
-compute = True
+compute = False
 which_part = 'wind' # 'outflow' or 'all' or 'wind' to have the wind
 what_varies = 'r' # 'r' or 'theta', only for radial profiles
 which_obs = 'split_stream' # 'left_right_z', 'all' or 'in_out_z'
-isoent = True
+isoent = 'isoent' 
 if what_varies == 'r':
     r_chosen_name = '' 
 elif what_varies == 'theta':
@@ -283,7 +283,7 @@ if compute:
             ray_params = [r_chosen, 100]
 
         all_outflows = profiles(path, snap, ray_params, which_obs, which_part, what_varies, isoent)
-        out_path = f"{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}_profSec{snap}_{which_obs}_{which_part}.npy"
+        out_path = f"{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}{isoent}_profSec{snap}_{which_obs}_{which_part}.npy"
         np.save(out_path, all_outflows, allow_pickle=True)
 
 else:
@@ -338,9 +338,9 @@ else:
         
     else:
         snaps = [151] 
-        which_parts = ['outflow', 'wind']#, 'acc'] 
-        labels_parts =  ['(unbound + bound) Outflow', 'Unbound outflow (wind)']#, 'Accretion'] #['Unbound outflow (wind)']#
-        line_styles_parts = ['--', '-']#, '-.'] 
+        which_parts = ['wind']#['outflow', 'wind']#, 'acc'] 
+        labels_parts =  ['wind'] #['(unbound + bound) Outflow', 'Unbound outflow (wind)']#, 'Accretion'] #['Unbound outflow (wind)']#
+        line_styles_parts = ['-'] #['--', '-']#, '-.'] 
 
     handles_color = []
     labels_color = []
@@ -392,10 +392,11 @@ else:
         for k, which_part in enumerate(which_parts):
             profiles = np.load(f'{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
             for i, lab in enumerate(profiles.keys()):
+                print(lab)
                 if label_obs[i] == 'South pole':
                     continue 
                 if which_plot == 'single_time':
-                    lab_plot = lab
+                    lab_plot = label_obs[i]
                 else:
                     lab_plot = f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$'
                 r_arr = profiles[lab]['r'] 
@@ -460,7 +461,6 @@ else:
                 else:
                     r_plot = r_arr
 
-                
                 line = axd.plot(r_plot*norm, d * prel.den_converter, label = f'{lab_plot}' if which_part == 'wind' else None, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)[0]
                 # elif which_plot == 'time_compare':
                 #     line = axd.plot(r_plot*norm, d * prel.den_converter, label = f'{lab_plot}' if i ==0 else None, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)[0]
@@ -472,7 +472,8 @@ else:
 
                 if np.logical_and(which_part == 'wind', s == 0): 
                     handles_color.append(line)
-                    labels_color.append(lab)
+                    labels_color.append(lab_plot)
+                    # print(lab, lab_plot)
                 
                 if which_part == 'wind':
                     deltaR = np.diff(np.concatenate([r_plot, [r_plot[-1] + np.diff(r_plot)[-1]]]))

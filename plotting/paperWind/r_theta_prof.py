@@ -23,8 +23,7 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
 which_obs = 'split_stream' 
-isoent = True
-r_chosen_name_theta = 'apo' 
+isoent = ''
 snap = 151
 
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -50,11 +49,14 @@ Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 x_test = np.arange(1., 350)
 y_test2 = op.draw_line(x_test, [2e-7, -2], 'powerlaw')
+y_test23 = op.draw_line(x_test, [2e2, -2/3], 'powerlaw')
 # arrange for plotting
 observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
 x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
 indices_obs, label_obs, colors_obs, _ = op.choose_observers(observers_xyz, which_obs)
 
+r_chosen_theta = apo 
+r_chosen_name_theta = 'apo' 
 what_varies_all = ['r','theta'] 
 r_chosen_names = ['', r_chosen_name_theta]
 norms = [1/Rt, radians]
@@ -68,7 +70,7 @@ for j in range(2):
     all_axes[1][j].axhline(v_esc_kms, c = 'k', ls = 'dotted')
     all_axes[1][j].set_ylim(1.5e3, 1.5e4)
     all_axes[2][j].set_ylim(5e1, 5e6)
-    all_axes[3][j].set_ylim(1e-3, 7e2)
+    all_axes[3][j].set_ylim(1e-3, 2e3)
     for i in range(4):
         all_axes[i][j].grid()
         all_axes[i][j].tick_params(axis='both', which='minor', length = 8, width = 1, labelsize = 35)
@@ -76,7 +78,7 @@ for j in range(2):
         if j == 0:
             all_axes[i][j].loglog()
             all_axes[i][j].axvline(apo*norms[j], color = 'gray', ls = '--')
-            all_axes[i][j].set_xlim(1.5, 1.4e2)
+            all_axes[i][j].set_xlim(1, 1.4e2)
         elif j == 1:
             all_axes[i][j].set_yscale('log')
             all_axes[i][j].set_xlim(0, 2*np.pi/3)
@@ -88,17 +90,19 @@ all_axes[3][1].set_xlabel(r'$\theta$ (rad)', fontsize = 35)
 
 all_axes[0][0].text(0.8*apo*norms[0], 0.2*all_axes[0][0].get_ylim()[1], r'$r_{\rm a}$', fontsize = 25, color = 'gray', rotation = 90)   
 all_axes[0][0].plot(x_test, y_test2, c = 'gray', ls = '-.', label = r'$\rho \propto r^{-2}$')
+all_axes[3][0].plot(x_test, y_test23, c = 'gray', ls = '-.', label = r'$\rho \propto r^{-2/3}$')
 all_axes[0][0].text(76, 2e-11, r'$\rho \propto r^{-2}$', fontsize = 25, color = 'gray', rotation = -20)            
 handles_color = []
 labels_color = []
 
-rph_medians = []
-rph_nonzero_medians = []
-rtr_medians = []
-rtr_nonzero_medians = []
+# rph_medians = []
+# rph_nonzero_medians = []
+# Lumph_nonzero_medians = []
+# rtr_medians = []
+# rtr_nonzero_medians = []
 if check == 'HiResNewAMR':
     photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
-    xph, yph, zph = photo['x'], photo['y'], photo['z']
+    xph, yph, zph, Lumph = photo['x'], photo['y'], photo['z'], photo['Lum']
 else:
     photo = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
     xph, yph, zph = photo[0], photo[1], photo[2]
@@ -108,42 +112,39 @@ pathtrap = f"{abspath}/data/{folder}/trap"
 dataRtr = load_and_smooth_rtrap(pathtrap, check, snap)
 x_tr, y_tr, z_tr, den_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr']
 r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-rph_medians_snap = np.zeros(len(indices_obs))
-rph_nonzero_medians_snap = np.zeros(len(indices_obs))
-rtr_medians_snap = np.zeros(len(indices_obs))
-rtr_nonzero_medians_snap = np.zeros(len(indices_obs))
-for i, idx_list in enumerate(indices_obs): 
-    rph_medians_snap[i] = np.median(rph_all[idx_list])
-    rtr_medians_snap[i] = np.median(r_tr_all[idx_list])
+rph_medians = np.zeros(len(indices_obs))
+rph_nonzero_medians = np.zeros(len(indices_obs))
+rtr_medians = np.zeros(len(indices_obs))
+rtr_nonzero_medians = np.zeros(len(indices_obs))
+Lumph_nonzero = np.zeros(len(indices_obs))
+for i, idx_list in enumerate(indices_obs):  
+    rph_medians[i] = np.median(rph_all[idx_list])
+    rtr_medians[i] = np.median(r_tr_all[idx_list])
     non_zero = idx_list[r_tr_all[idx_list]> Rt]
-    rph_nonzero_medians_snap[i] = np.median(rph_all[non_zero])
-    rtr_nonzero_medians_snap[i] = np.median(r_tr_all[non_zero])
-rph_medians.append(rph_medians_snap)
-rph_nonzero_medians.append(rph_nonzero_medians_snap)
-rtr_medians.append(rtr_medians_snap)
-rtr_nonzero_medians.append(rtr_nonzero_medians_snap)
-
-rph_medians = np.median(rph_medians, axis = 0)
-rph_nonzero_medians = np.median(rph_nonzero_medians, axis = 0)
-rtr_medians = np.median(rtr_medians, axis = 0)
-rtr_nonzero_medians = np.median(rtr_nonzero_medians, axis = 0)
+    rph_nonzero_medians[i] = np.median(rph_all[non_zero])
+    rtr_nonzero_medians[i] = np.median(r_tr_all[non_zero])
+    Lumph_nonzero[i] = np.median(Lumph[non_zero])
 
 for w, what_varies in enumerate(what_varies_all):
     norm = norms[w]
     for k, which_part in enumerate(which_parts):
         # Load profiles
-        profiles = np.load(f'{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_names[w]}_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
+        profiles = np.load(f'{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_names[w]}{isoent}_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
         for i, lab in enumerate(profiles.keys()):
             if lab == 'South pole':
                 continue 
             r_arr = profiles[lab]['r'] 
             d = profiles[lab]['d_prof']
             v_rad = profiles[lab]['v_rad_prof'] 
-            if isoent:
-                print('Isoentropic Mdto and Lum')
+            if isoent == 'isoent':
+                print('Isoentropic Mdot and Lum')
                 area = profiles[lab]['area']
-                Mdot = 4 * np.pi * r_arr**2 / area * profiles[lab]['Mdot_prof'] 
-                L_kin = 4 * np.pi * r_arr**2 / area * profiles[lab]['L_kin_prof']
+                if what_varies == 'r':
+                    Mdot = (4 * np.pi * r_arr**2) /area * profiles[lab]['Mdot_prof']
+                    L_kin = (4 * np.pi * r_arr**2) / area * profiles[lab]['L_kin_prof']
+                elif what_varies == 'theta':
+                    Mdot = (4 * np.pi * r_chosen_theta**2) /area * profiles[lab]['Mdot_prof']
+                    L_kin = (4 * np.pi * r_chosen_theta**2) /area * profiles[lab]['L_kin_prof']
             else:
                 Mdot = profiles[lab]['Mdot_prof'] #Mdotmean_prof
                 L_kin = profiles[lab]['L_kin_prof'] #L_kinmean_prof
@@ -181,15 +182,17 @@ for w, what_varies in enumerate(what_varies_all):
                 all_axes[3][w].plot(r_plot*norm, L_kin/Ledd_sol, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
 
             if np.logical_and(what_varies =='r' , which_part == 'wind'):
-                all_axes[0][w].scatter(r_plot[idx_rph]*norm, d[idx_rph] * prel.den_converter, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k])
-                all_axes[1][w].scatter(r_plot[idx_rph]*norm, v_rad[idx_rph] * conversion_sol_kms, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k])
-                all_axes[2][w].scatter(r_plot[idx_rph]*norm, Mdot[idx_rph]/Medd_sol, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k])
-                all_axes[3][w].scatter(r_plot[idx_rph]*norm, L_kin[idx_rph]/Ledd_sol, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k])
+                all_axes[0][w].scatter(r_plot[idx_rph]*norm, d[idx_rph] * prel.den_converter, marker = 'o', s = 100, color = colors_sec)
+                all_axes[1][w].scatter(r_plot[idx_rph]*norm, v_rad[idx_rph] * conversion_sol_kms, marker = 'o', s = 100, color = colors_sec)
+                all_axes[2][w].scatter(r_plot[idx_rph]*norm, Mdot[idx_rph]/Medd_sol, marker = 'o', s = 100, color = colors_sec)
+                all_axes[3][w].scatter(r_plot[idx_rph]*norm, L_kin[idx_rph]/Ledd_sol, marker = 'o', s = 100, color = colors_sec)
+                all_axes[3][w].scatter(r_plot[idx_rph]*norm, Lumph_nonzero[i]/Ledd_cgs, marker = 's', s = 100, color = colors_sec)
 
-                all_axes[0][w].scatter(r_plot[idx_rtr]*norm, d[idx_rtr] * prel.den_converter, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k])
-                all_axes[1][w].scatter(r_plot[idx_rtr]*norm, v_rad[idx_rtr] * conversion_sol_kms, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k])
-                all_axes[2][w].scatter(r_plot[idx_rtr]*norm, Mdot[idx_rtr]/Medd_sol, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k])
-                all_axes[3][w].scatter(r_plot[idx_rtr]*norm, L_kin[idx_rtr]/Ledd_sol, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k])
+                all_axes[0][w].scatter(r_plot[idx_rtr]*norm, d[idx_rtr] * prel.den_converter, marker = 'd', s = 100, color = colors_sec)
+                all_axes[1][w].scatter(r_plot[idx_rtr]*norm, v_rad[idx_rtr] * conversion_sol_kms, marker = 'd', s = 100, color = colors_sec)
+                all_axes[2][w].scatter(r_plot[idx_rtr]*norm, Mdot[idx_rtr]/Medd_sol, marker = 'd', s = 100, color = colors_sec)
+                all_axes[3][w].scatter(r_plot[idx_rtr]*norm, L_kin[idx_rtr]/Ledd_sol, marker = 'd', s = 100, color = colors_sec)
+
 
 # Legend 1: colored observer lines (three colors)
 legend1 = all_axes[0][0].legend(handles=handles_color,
@@ -212,8 +215,8 @@ all_axes[0][0].legend(handles=proxy_lines, fontsize=20,
 
 all_axes[0][0].set_ylabel(r'$\rho$ (g/cm$^3$)', fontsize = 35)
 all_axes[1][0].set_ylabel(r'v$_{\rm r}$ (km/s)', fontsize = 35)
-all_axes[2][0].set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$', fontsize = 35)
+all_axes[2][0].set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$', fontsize = 35) 
 all_axes[3][0].set_ylabel(r'$L_{\rm adv} (L_{\rm Edd})$', fontsize = 35)
 fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 28, y = 1, x = 0.53)
 fig.tight_layout(w_pad=15.0)  
-fig.savefig(f'{abspath}/Figs/{folder}/Wind/r_theta{r_chosen_name_theta}prof_{which_obs}_{snap}.png', bbox_inches = 'tight')
+fig.savefig(f'{abspath}/Figs/{folder}/Wind/r_theta{r_chosen_name_theta}{isoent}prof_{which_obs}_{snap}.png', bbox_inches = 'tight')

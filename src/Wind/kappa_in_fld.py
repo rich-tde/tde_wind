@@ -119,7 +119,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-snap = 109
+snap = 151
 N_ray = 1_000
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -262,7 +262,7 @@ else:
     figs.savefig(f'{abspath}/Figs/{folder}/wind/opacity_Rprof{snap}_{which_obs}ALL.png', dpi=300, bbox_inches='tight')
 
     # %% test for photosphere
-    gamma = 1/4
+    gamma = 1/7
     d_ph, alphaRoss_ph, Vx_ph, Vy_ph, Vz_ph, radden_ph, Lumph = \
         photo['den'], photo['alpha_rossland'], photo['vx'], photo['vy'], photo['vz'], photo['radden'], photo['Lum']
     Trad_ph = (radden_ph * prel.en_den_converter/prel.alpha_cgs)**(1/4)
@@ -280,15 +280,13 @@ else:
     axRratio.set_xlim(0, 5)
     axRratio.set_ylim(0, 5)
 
-    rtr_approx = kappa_tr * Mdot_tr / (4 * np.pi * prel.c_cgs)
-    rtr_approx /= np.abs(3.5*gamma-1)
+    rtr_approx = kappa_tr * Mdot_tr / (4 * np.pi * prel.c_cgs * np.abs(3.5*gamma-2))
     Mdot_ph = 4 * np.pi * (rph_all*prel.Rsol_cgs)**2 * d_ph * Vr_ph
-    rph_approx = kappa_ph * Mdot_ph / (4 * np.pi * Vr_ph)
-    rph_approx /= np.abs(3.5*gamma-2)
+    rph_approx = kappa_ph * Mdot_ph / (4 * np.pi * Vr_ph * np.abs(3.5*gamma-3))
     axR.scatter(np.arange(len(rph_all)), rph_all * prel.Rsol_cgs / rph_approx, color='k', s=60, label = r'$r_{\rm ph}$')
     axR.scatter(np.arange(len(r_tr_all)), r_tr_all * prel.Rsol_cgs / rtr_approx, color='b', s=60, label = r'$r_{\rm tr}$')
     axR.axhline(1, color='r', ls='--', lw=1.5)
-    axR.set_ylabel(r'$r_{\rm ph, sim}/ r_{\rm ph, approx}$')
+    axR.set_ylabel(r'$r_{\rm sim}/ r_{\rm approx}$')
     axR.set_xlabel(r'$N_{\rm obs}$')
     axR.set_yscale('log')
 
@@ -308,11 +306,12 @@ else:
     axL.set_ylabel(r'$L_{\rm tr, sim}$')
     axL.set_xlim(1e40, 1e43)
     axL.set_ylim(1e40, 1e43)
-
+    axR.legend(fontsize=20)
     for ax in [axRratio, axR, axT, axL]:
         ax.tick_params(axis='both', which='major', length=8, width=1.2)
         ax.tick_params(axis='both', which='minor', length=5, width=1)
         ax.grid()
+    plt.suptitle(f'snap {snap}, gamma = {gamma:.2f}', fontsize=20)
     plt.tight_layout()
 
 # %%

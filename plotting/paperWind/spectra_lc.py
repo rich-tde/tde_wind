@@ -34,7 +34,7 @@ things = orb.get_things_about(params)
 t_fb_days = things['t_fb_days']
 Rt = things['Rt']
 x_axis = 'Temp'  # 'Freq' or 'Temp'
-choice = 'left_right_z' #
+choice = 'split_stream' #
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 # Visible: 4.8e14-7.5e14 Hz  // UV: 7.5e14-3e15 // Xray: 3e15-3e19 Hz (tera:1e12, peta: 1e14, exa: 1e18)
@@ -600,9 +600,9 @@ pmodel = Model(lumfit)
 params = pmodel.make_params(R=1e13, T=1e4)
 params['R'].min = 0.0    # R ≥ 0
 params['T'].min = 0.0    # T ≥ 0  
-# plot_spectra(folder, check, snaps_spectra, x_axis, choice)
+plot_spectra(folder, check, snaps_spectra, x_axis, choice)
 TRfit_in_time(folder, check, choice)
-# plot_light_curves(folder, check, choice, group = 'bands')
+plot_light_curves(folder, check, choice, group = 'bands')
 # plot_light_curves(folder, check, choice, group = 'sections')
 # plot_light_curves(folder, check, choice, group = 'bandsMG')
 # lc_from_fit(folder, check, choice, group = 'sections')
