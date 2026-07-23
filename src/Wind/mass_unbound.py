@@ -8,11 +8,9 @@ alice, plot = isalice()
 if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
     path = '/home/martirep/data_pi-rossiem/TDE_data'
-    compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
     path = f'{abspath}/TDE'
-    compute = True
 import numpy as np
 import matplotlib.pyplot as plt
 import Utilities.prelude as prel
@@ -36,7 +34,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
-choice = 'left_right_z'
+choice = 'split_stream'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 #%%
@@ -53,14 +51,9 @@ R0 = things['R0']
 norm = things['E_mb']
 amin = things['a_mb'] # semimajor axis of the bound orbit
 
-if compute:
-    if alice:
-        snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
-        prepath = f'{path}/{folder}/snap_'
-    else:
-        snaps = [151]
-        tfb = [2.23]
-        prepath = f'{path}/{folder}/'
+if alice:
+    snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
+    prepath = f'{path}/{folder}/snap_'
 
     # compute the outflow/wind mass for all the snapshots
     for i, snap in enumerate(snaps):
@@ -101,14 +94,13 @@ if compute:
 
         data = np.concatenate([[snap, time], tot_M, M_out, M_wind])
 
-        if alice:
-            csv_path = f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv'
-            with open(csv_path,'a', newline='') as file:
-                writer = csv.writer(file)
-                if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                    writer.writerow(['snap', 'tfb'] + [f'M_tot {lab}' for lab in label_obs] + [f'M_out {lab}' for lab in label_obs] + [f'M_w {lab}' for lab in label_obs])
-                writer.writerow(data)
-                file.close()
+        csv_path = f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv'
+        with open(csv_path,'a', newline='') as file:
+            writer = csv.writer(file)
+            if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
+                writer.writerow(['snap', 'tfb'] + [f'M_tot {lab}' for lab in label_obs] + [f'M_out {lab}' for lab in label_obs] + [f'M_w {lab}' for lab in label_obs])
+            writer.writerow(data)
+            file.close()
 
 if plot:
     import healpy as hp
@@ -135,6 +127,7 @@ if plot:
         plt.plot(tfb, M_out[i]/M_tot[i], c = colors_obs[i],  ls = '--' )
         plt.plot(tfb, M_wind[i]/M_out[i], c = colors_obs[i], label = lab)
         print(lab, 'outflow/star mass: ', M_out[i, -1]/0.5, ', wind/out: ', M_wind[i, -1]/M_out[i, -1])
+    print('sum stream: ', (M_out[0, -1]+M_out[2, -1]+M_out[1, -1])/0.5, ', sum wind/out: ', np.sum(M_wind[0, -1]+M_wind[2, -1]+M_wind[1, -1])/np.sum(M_out[0, -1]+M_out[2, -1]+M_out[1, -1]))
     plt.xlabel(r'$t/t_{\rm fb}$')
     plt.ylabel('Mass ratio')
     plt.yscale('log')

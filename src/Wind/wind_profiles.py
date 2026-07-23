@@ -262,9 +262,9 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
 #   
 ## MAIN
 #
-compute = True
-which_part = 'outflow' # 'outflow' or 'all' or 'wind' to have the wind
-what_varies = 'theta' # 'r' or 'theta', only for radial profiles
+compute = False
+which_part = 'wind' # 'outflow' or 'all' or 'wind' to have the wind
+what_varies = 'r' # 'r' or 'theta', only for radial profiles
 which_obs = 'split_stream' # 'left_right_z', 'all' or 'in_out_z'
 isoent = 'isoent' 
 if what_varies == 'r':
@@ -280,7 +280,7 @@ if compute:
         if what_varies == 'r':
             ray_params = [Rt, 1e3*Rt, 300] 
         elif what_varies == 'theta':
-            ray_params = [r_chosen, 100]
+            ray_params = [r_chosen, 80]
 
         all_outflows = profiles(path, snap, ray_params, which_obs, which_part, what_varies, isoent)
         out_path = f"{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}{isoent}_profSec{snap}_{which_obs}_{which_part}.npy"
@@ -295,12 +295,13 @@ else:
     fig, (axd, axV, axM, axLkin) = plt.subplots(4, 1, figsize=(8, 22)) 
     figM, (axT, axLadv) = plt.subplots(1, 2, figsize=(15, 8))
     fiC, axC = plt.subplots(1, 1, figsize=(8, 8))
+    fign, axn = plt.subplots(1, 1, figsize=(8, 8))
     figr, ((axNcell, axNmass), (axratio, axratioM)) = plt.subplots(2, 2, figsize=(18, 18))
     # if which_plot == 'time_compare':
     #     figr, (axratio, axratioM) = plt.subplots(1, 2, figsize=(24, 10))
         # all_axes = [axd, axV, axT, axM, axLadv, axLkin, axratio, axratioM, axC]
     # elif which_plot == 'single_time':
-    all_axes = [axd, axV, axT, axM, axLadv, axLkin, axratio, axratioM, axNcell, axNmass, axC]
+    all_axes = [axd, axV, axT, axM, axLadv, axLkin, axratio, axratioM, axNcell, axNmass, axC, axn]
 
     if what_varies == 'r':
         norm = 1/Rt
@@ -408,6 +409,7 @@ else:
                     if what_varies == 'r':
                         Mdot = (4 * np.pi * r_arr**2) /area * profiles[lab]['Mdot_prof']
                         L_kin = (4 * np.pi * r_arr**2) / area * profiles[lab]['L_kin_prof']
+                        L_adv = (4 * np.pi * r_arr**2) / area * profiles[lab]['L_adv_prof']
                     elif what_varies == 'theta':
                         Mdot = (4 * np.pi * r_chosen**2) /area * profiles[lab]['Mdot_prof']
                         L_kin = (4 * np.pi * r_chosen**2) /area * profiles[lab]['L_kin_prof']
@@ -427,7 +429,6 @@ else:
                 Mass_tot = profiles[lab]['Mass_tot']
                 ratio_Mass = Mass_wind/Mass_tot
                 colors_sec = colors_obs[i] #profiles[lab]['colors_obs']
-                # Mdot = d * r_plot**2 * v_rad
                 not_zero = np.where(np.logical_and(d != 0, r_arr > 0))
                 if what_varies == 'r':
                     r_plot, d, v_rad, t, Mdot, L_adv, L_kin, ratio_un, ratio_Mass, Mdotmean = \
@@ -435,6 +436,8 @@ else:
                     if which_part == 'wind':
                         Nwind_cells, Ntot_cells, Mass_wind, Mass_tot = \
                             make_slices([Nwind_cells, Ntot_cells, Mass_wind, Mass_tot], not_zero)
+                        n_e = Mdot/(prel.m_p_cgs/prel.Msol_cgs * 4 * np.pi * r_plot**2 * v_rad)
+                        xi = L_adv/(n_e * r_plot**2) * prel.en_converter * prel.Rsol_cgs/prel.tsol_cgs
                     idx_rtr = np.argmin(np.abs(r_plot - rtr_nonzero_medians[i]))
                     idx_rph = np.argmin(np.abs(r_plot - rph_nonzero_medians[i]))
                     if label_obs[i] == 'Stream side': # just to cut the initially unbound material
@@ -498,7 +501,8 @@ else:
                     axC.plot(r_plot*norm, Mdot/Medd_sol, color = colors_sec, label = 'corrected sum' if np.logical_and(i == 0, s == 0) else None)
                     axC.plot(r_plot*norm, Mdotmean/Medd_sol, color = colors_sec, ls = '--', label = 'uniform mean' if np.logical_and(i == 0, s == 0) else None)
                     axC.plot(r_plot*norm, tocheck/Medd_sol, color = colors_sec, label = r'M$v_r/\Delta r$'  if np.logical_and(i == 0, s == 0) else None, ls = ':')
-                    
+                    axn.plot(r_plot*norm, xi, color = colors_sec)
+
                 if np.logical_and(what_varies =='r' , which_part == 'wind'):
                     axd.scatter(r_plot[idx_rph]*norm, d[idx_rph] * prel.den_converter, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
                     axM.scatter(r_plot[idx_rph]*norm, Mdot[idx_rph]/Medd_sol, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
@@ -542,9 +546,10 @@ else:
     axM.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$', fontsize = 28)
     axLadv.set_ylabel(r'$L_{\rm adv} (L_{\rm Edd})$', fontsize = 28)
     axLkin.set_ylabel(r'$L_{\rm kin} (L_{\rm Edd})$', fontsize = 28)
+    axC.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$', fontsize = 28)
     axratio.set_ylabel(r'f$_{\rm unb}$', fontsize = 28)
     axratioM.set_ylabel(r'M$_{\rm wind}/M_{\rm sec}$', fontsize = 28)
-    figM.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 22)
+    axn.set_ylabel(r'$\xi$', fontsize = 28)
     axNcell.set_ylabel(r'N$_{\rm cells}$', fontsize = 28)
     axNmass.set_ylabel(r'M$_{\rm cells} [M_\odot]$', fontsize = 28)
     axNcell.legend(fontsize = 22)
@@ -570,21 +575,22 @@ else:
             # ax.set_xticklabels([r'$\pi/3$', r'$4\pi/9$', r'$\pi/2$', r'$5\pi/9$', r'$2\pi/3$'])
             # ax.set_xticks([0, np.pi/6, np.pi/3, np.pi/2, 2*np.pi/3, 5*np.pi/6, np.pi])
             # ax.set_xticklabels([r'$0$', r'$\pi/6$', r'$\pi/3$', r'$\pi/2$', r'$2\pi/3$', r'$5\pi/6$', r'$\pi$'])
-            if ax != axLkin:
+            if ax not in [axLkin, axC, axratio, axratioM]:
                 ax.set_xlabel('')
         ax.grid()
     fig.tight_layout()
+    figM.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 22)
     figM.tight_layout()
     figr.tight_layout()
     figr.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 22)
     figr.tight_layout()
-    if which_plot == 'time_compare':
-        fig.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/den_{what_varies}{r_chosen_name}_evol.png', bbox_inches = 'tight')
-        figr.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/ratio_un_{what_varies}{r_chosen_name}_evol.png', bbox_inches = 'tight')
-    else:
-        axd.set_title(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 22)
-        fig.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/den_{r_chosen_name}_{snap}.pdf', bbox_inches = 'tight')
-        figM.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/LT_{r_chosen_name}_{snap}.pdf', bbox_inches = 'tight')
-        figr.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/ratio_{r_chosen_name}_{snap}.pdf', bbox_inches = 'tight')
+    # if which_plot == 'time_compare':
+    #     fig.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/den_{what_varies}{r_chosen_name}_evol.png', bbox_inches = 'tight')
+    #     figr.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/ratio_un_{what_varies}{r_chosen_name}_evol.png', bbox_inches = 'tight')
+    # else:
+    #     axd.set_title(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 22)
+    #     fig.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/den_{r_chosen_name}_{snap}.pdf', bbox_inches = 'tight')
+    #     figM.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/LT_{r_chosen_name}_{snap}.pdf', bbox_inches = 'tight')
+    #     figr.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/ratio_{r_chosen_name}_{snap}.pdf', bbox_inches = 'tight')
 
 # %%

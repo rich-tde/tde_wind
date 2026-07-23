@@ -11,13 +11,13 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-what = 'Wind/Rtr' # 'projection', 'slices', 'testOpac', 'Outflow', 'stream', 'Wind/Rtr
-how_many = 'split_stream' # numbers of parameter which_obs for what == 'funnel'
+what = 'projection' # 'projection', 'slices', 'testOpac', 'Outflow', 'stream', 'Wind/Rtr
+how_many = '2' # numbers of parameter which_obs for what == 'funnel'
 coord_to_cut = '' # 'x', 'y', 'z'
 cut_name = 0
 figs_path = f'{abspath}/Figs/{folder}/{what}{how_many}' 
 
-start = 76
+start = 21
 slow_down_factor = 3 # Increase this value to make the video slower
 
 # Get the height of the first image to calculate the scale

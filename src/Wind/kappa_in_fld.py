@@ -97,19 +97,6 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
 
     return all_obs
 
-# def load_and_adjust_rtrap(path, check, snap):
-#     dataRtr = np.load(f"{path}/{check}_Rtr{snap}.npz")
-#     indices_bigVol, indices_overRph = dataRtr['indices_bigVol'], dataRtr['indices_overRph']
-#     print(f'For snap {snap}, skipping {indices_overRph} observers with Rtr > Rph', flush=True)
-#     print(f'For snap {snap}, skipping {indices_bigVol} observers with huge gap in Rtr', flush=True)
-#     data_adjusted = {k: dataRtr[k].copy() for k in dataRtr.files}
-    # for key in data_adjusted.keys():
-    #     if key not in ['indices_bigVol', 'indices_overRph']:
-    #         if len(indices_bigVol) > 0:
-    #             data_adjusted[key][indices_bigVol] = 0  
-    #         if len(indices_overRph) > 0:
-    #             data_adjusted[key][indices_overRph] = 0
-    # return dataRtr
 #%%
 m = 4
 Mbh = 10**m
@@ -130,6 +117,7 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre_saving = f'{abspath}/data/{folder}'
 loadpath = f'{pre}/{snap}'
 which_obs = 'split_stream' 
+isoent = 'isoent'
 compute = False 
 
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) # shape: (3, 192)
@@ -149,6 +137,7 @@ if compute:
     all_obs = single_fld(loadpath, snap, observers_xyz, N_ray) 
     np.save(f'{pre_saving}/wind/kappa_fromFLD{snap}.npy', all_obs, allow_pickle=True)
 else:
+    
     all_obs = np.load(f'{pre_saving}/wind/kappa_fromFLD{snap}.npy', allow_pickle=True).item()
     photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
     xph, yph, zph = photo['x'], photo['y'], photo['z']
@@ -158,7 +147,9 @@ else:
     x_tr, y_tr, z_tr, d_tr, Vr_tr, radden_tr = \
         dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['Rad_den_tr']
     r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-    # print(r_tr_all)
+    # check xi from Miller15 (eq.6)
+    profiles = np.load(f'{abspath}/data/{folder}/wind/r_profile/r{isoent}_profSec{snap}_{which_obs}_wind.npy', allow_pickle=True).item()
+
     kappa_tr = np.zeros(len(r_tr_all))
     Mdot_tr = 4 * np.pi * r_tr_all**2 * d_tr* Vr_tr
     Mdot_tr *= prel.Msol_cgs/prel.tsol_cgs
@@ -189,6 +180,7 @@ else:
         t_sec = []
         kappa_sec = []
         for i in range(len(observers_xyz)):
+            axs[k].set_title(label_obs[k])
             if r_tr_all[i] == 0:
                 continue
             r = all_obs[f'obs_{i}']['r']
@@ -204,7 +196,6 @@ else:
             # if label_obs[k] == 'Stream side':
             axs[k].plot(r/Rt, kappa, label = f'Obs {i}')
             axs[k].scatter(r[idx_tr]/Rt, kappa[idx_tr], marker='d', edgecolors='k', s=60, zorder=3)
-            axs[k].set_title(label_obs[k])
 
             r_sec.append(r)
             d_sec.append(d)
@@ -216,50 +207,59 @@ else:
         d_all.append(np.median(np.array(d_sec), axis=0))
         t_all.append(np.median(np.array(t_sec), axis=0))
         kappa_all.append(np.median(np.array(kappa_sec), axis=0))
-
-
-    if len(indices_obs) > 6:
-        fig, (ax1, ax2) = plt.subplots(1,2, figsize=(15, 7))
-        axes = np.concatenate([[ax1], [ax2], [axs[l] for l in range(len(indices_obs))]])
-    else:
-        fig, ax1 = plt.subplots(1,1, figsize=(9, 7))
-        axes = np.concatenate([[ax1], [axs[l] for l in range(len(indices_obs))]])
-    for i in range(len(indices_obs)):
-        if label_obs[i] == 'South pole' or rtr_nonzero_medians[i] == 0:
-            continue
-        if len(label_obs) > 6:
-            if np.logical_or(label_obs[i] in ['0-30', '30-60', '60-90', '270-300', '300-330', '330-360'], np.logical_and(i < len(label_obs)/2, which_obs == 'tenths')):
-                ax = ax2
-            else:
-                ax = ax1
+    
+    fig, (axx, axk) = plt.subplots(2,1, figsize=(7, 10))
+    axes = np.concatenate([[axx, axk], [axs[l] for l in range(len(indices_obs))]])
+    for i, lab in enumerate(profiles.keys()):
+        r_arr = profiles[lab]['r'] 
+        v_rad = np.abs(profiles[lab]['v_rad_prof'])
+        if isoent == 'isoent': 
+            print('Isoentropic Mdot and Lum for xi')
+            area = profiles[lab]['area']
+            Mdot = (4 * np.pi * r_arr**2) /area * profiles[lab]['Mdot_prof']
+            L_adv = (4 * np.pi * r_arr**2) / area * profiles[lab]['L_adv_prof']
         else:
-            ax = ax1
-        ax.plot(r_all[i]/Rt, kappa_all[i], label=label_obs[i], color=colors_obs[i])
+            Mdot = profiles[lab]['Mdot_prof'] 
+            L_adv = profiles[lab]['L_adv_prof']
+        n_e = Mdot/(prel.m_p_cgs/prel.Msol_cgs * 4 * np.pi * r_arr**2 * v_rad)
+        xi = L_adv/(n_e * r_arr**2) 
+        xi_cgs = xi * prel.en_converter * prel.Rsol_cgs/prel.tsol_cgs
+        # delete the nan values in xi_cgs and the corresponding r_arr values
+        nan_mask = np.isnan(xi_cgs)
+        xi_cgs = xi_cgs[~nan_mask]
+        r_arr = r_arr[~nan_mask]
+
+        if lab == 'South pole' or rtr_nonzero_medians[i] == 0:
+            continue
+        idx_stop_xi = np.argmin(np.abs(r_arr - rtr_nonzero_medians[i]))
         idx_rtr = np.argmin(np.abs(r_all[i] - rtr_nonzero_medians[i]))
         idx_rph = np.argmin(np.abs(r_all[i] - rph_nonzero_medians[i]))
-        if idx_rtr != 0:
-            ax.scatter(rph_nonzero_medians[i]/Rt, kappa_all[i][idx_rph], color=colors_obs[i], marker='o', s=60, edgecolors = 'k', zorder=3)
-            ax.scatter(rtr_nonzero_medians[i]/Rt, kappa_all[i][idx_rtr], color=colors_obs[i], marker='d', s=60, edgecolors = 'k', zorder=3)
+
+        axk.plot(r_all[i]/Rt, kappa_all[i], label=lab, color=colors_obs[i])
+        axk.scatter(rph_nonzero_medians[i]/Rt, kappa_all[i][idx_rph], color=colors_obs[i], marker='o', s=60, edgecolors = 'k', zorder=3)
+        axk.scatter(rtr_nonzero_medians[i]/Rt, kappa_all[i][idx_rtr], color=colors_obs[i], marker='d', s=60, edgecolors = 'k', zorder=3)
+        axx.plot(r_arr[:idx_stop_xi]/Rt, xi_cgs[:idx_stop_xi], color=colors_obs[i],  label=lab)
+        axx.scatter(rtr_nonzero_medians[i]/Rt, xi_cgs[idx_stop_xi], color=colors_obs[i], marker='d', s=60, edgecolors = 'k', zorder=3)
     
-    ax1.set_ylabel(r'$\kappa$ (cm$^2$/g)')
+    axk.axhline(0.34, color='k', ls='-.')
+    axk.text(2.7e2, 0.4, r'$\kappa_{\rm es}$', fontsize=24)
+    axk.set_ylim(.1, 25)
+    axk.set_ylabel(r'$\kappa$ (cm$^2$/g)')
+    axk.set_xlabel(r'$r /r_{\rm t}$')
+    axx.axhline(5000, color='k', ls='-.')
+    axx.set_ylim(1e1, 1.2e5)
+    axx.set_ylabel(r'$\xi$ (erg cm/s)')
+    axx.legend(fontsize=14)
     for ax in axes:
         ax.loglog()
-        ax.set_xlabel(r'$r (r_t)$')
+        ax.set_xlim(1, 5e2)
         ax.tick_params(axis='both', which='major', length=12, width=1.2)
         ax.tick_params(axis='both', which='minor', length=6, width=1)
-        ax.set_xlim(1, 5e2)
-        ax.set_ylim(.1, 25)
-        ax.axhline(0.34, color='k', ls='--', lw=1.5)
-        ax.text(3e2, 0.36, r'$\kappa_{\rm es}$', fontsize=25)
-        ax.legend(fontsize=15, loc='upper left')
         ax.grid()
         plt.tight_layout()
-
-    if which_obs == 'split_stream':
-        fig.savefig(f'{abspath}/Figs/2.paperWind/opacity.pdf', dpi=300, bbox_inches='tight')
-    else:
-        fig.savefig(f'{abspath}/Figs/{folder}/wind/opacity_Rprof{snap}_{which_obs}.png', dpi=300, bbox_inches='tight')
-        figs.savefig(f'{abspath}/Figs/{folder}/wind/opacity_Rprof{snap}_{which_obs}ALL.png', dpi=300, bbox_inches='tight')
+    
+    fig.savefig(f'{abspath}/Figs/2.paperWind/opacity.pdf', dpi=300, bbox_inches='tight')
+    figs.savefig(f'{abspath}/Figs/{folder}/wind/opacity_Rprof{snap}_{which_obs}ALL.png', dpi=300, bbox_inches='tight')
 
     # %% test for photosphere
     gamma = 1/7

@@ -64,13 +64,13 @@ if r_chosen_name_theta == 'apo':
 else:
     r_label = r_chosen_name_theta
 norms = [1/Rt, radians]
-which_parts = ['outflow', 'wind'] 
-labels_parts =  ['(unbound + bound) Outflow', 'Unbound outflow (wind)'] #['Unbound outflow (wind)']#
-line_styles_parts = ['--', '-'] 
+which_parts = ['wind'] 
+line_styles_parts = ['-', '-'] 
     
 fig, all_axes = plt.subplots(4, 2, figsize=(22, 26)) 
+xtick_labels = ['0', r'$\pi/6$',  r'$\pi/3$', r'$\pi/2$']
 for j in range(2):
-    all_axes[0][j].set_ylim(2e-13, 1e-5)
+    all_axes[0][j].set_ylim(4e-13, 1e-6)
     all_axes[1][j].axhline(v_esc_kms, c = 'k', ls = 'dotted')
     all_axes[1][j].set_ylim(1.5e3, 1.5e4)
     all_axes[2][j].set_ylim(2e3, 2e7)
@@ -84,13 +84,15 @@ for j in range(2):
             all_axes[i][j].axvline(apo*norms[j], color = 'gray', ls = '--')
             all_axes[i][j].set_xlim(1, 1.4e2)
         elif j == 1:
+            all_axes[i][j].set_xticks([0, np.pi/6, np.pi/3, np.pi/2])
+            all_axes[i][j].set_xticklabels(xtick_labels)
             all_axes[i][j].set_yscale('log')
             all_axes[i][j].set_xlim(0, np.pi/2) #2*np.pi/3)
-            if i != 3:
-                all_axes[i][1].set_xlabel('', fontsize = 35)
+            if i != 1:
+                all_axes[i][1].set_xlabel('', fontsize = 40)
 
-all_axes[3][0].set_xlabel(r'$r /r_{\rm t}$', fontsize = 35)
-all_axes[3][1].set_xlabel(r'$\theta$ (rad)', fontsize = 35)
+all_axes[1][0].set_xlabel(r'$r /r_{\rm t}$', fontsize = 40)
+all_axes[1][1].set_xlabel(r'$\theta$ (rad)', fontsize = 40)
 
 all_axes[0][0].text(0.8*apo*norms[0], 0.2*all_axes[0][0].get_ylim()[1], r'$r_{\rm a}$', fontsize = 25, color = 'gray', rotation = 90)   
 all_axes[0][0].plot(x_test, y_test2, c = 'gray', ls = '-.', label = r'$\rho \propto r^{-2}$')
@@ -100,17 +102,8 @@ all_axes[3][0].text(57, 9, r'$L \propto r^{-2/3}$', fontsize = 25, color = 'gray
 handles_color = []
 labels_color = []
 
-# rph_medians = []
-# rph_nonzero_medians = []
-# Lumph_nonzero_medians = []
-# rtr_medians = []
-# rtr_nonzero_medians = []
-if check == 'HiResNewAMR':
-    photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
-    xph, yph, zph, Lumph = photo['x'], photo['y'], photo['z'], photo['Lum']
-else:
-    photo = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
-    xph, yph, zph = photo[0], photo[1], photo[2]
+photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
+xph, yph, zph, Lumph = photo['x'], photo['y'], photo['z'], photo['Lum']
 rph_all = np.sqrt(xph**2 + yph**2 + zph**2)
 pathtrap = f"{abspath}/data/{folder}/trap"
 # dataRtr = load_and_adjust_rtrap(pathtrap, check, snap, params)
@@ -136,7 +129,7 @@ for w, what_varies in enumerate(what_varies_all):
         # Load profiles
         profiles = np.load(f'{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_names[w]}{isoent}_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
         for i, lab in enumerate(profiles.keys()):
-            if lab == 'South pole' :
+            if lab == 'South pole' or i < 4:
                 continue 
             r_arr = profiles[lab]['r'] 
             d = profiles[lab]['d_prof']
@@ -210,39 +203,9 @@ for w, what_varies in enumerate(what_varies_all):
                 all_axes[3][w].scatter(r_plot[idx_rtr]*norm, L_adv[idx_rtr]/Ledd_sol, marker = 'd', s = 100, color = colors_sec)
 
 
-# # Legend 1: colored observer lines (three colors)
-# all_axes[0][1].text(0.1, 1e-6, f'r = {r_label}', fontsize = 35)
-# legend1 = all_axes[0][0].legend(handles=handles_color,
-#                     labels=labels_color,
-#                     fontsize=20,
-#                     loc='upper right')
-# all_axes[0][0].add_artist(legend1)
-
-fig.legend(
-            handles=handles_color,
-            labels=labels_color,
-            loc='upper center',
-            bbox_to_anchor=(0.525, 1.03),  # centered, near bottom of figure
-            ncol=len(labels_color),
-            fontsize=20)
-
-# Legend 2: line-style explanation (solid vs dashed)
-proxy_lines = []
-proxy_lines = []
-for l, line in enumerate(line_styles_parts):
-    proxy_lines.append(
-        mlines.Line2D([0], [0], color='k', ls=line, linewidth=2,
-                    label=labels_parts[l])
-    )
-
-all_axes[0][0].legend(handles=proxy_lines, fontsize=20, 
-                loc='lower left')
-
-all_axes[0][0].set_ylabel(r'$\rho$ (g/cm$^3$)', fontsize = 35)
-all_axes[1][0].set_ylabel(r'v$_{\rm r}$ (km/s)', fontsize = 35)
-all_axes[2][0].set_ylabel(r'$\dot{M}_{\rm w} (\dot{M}_{\rm Edd})$', fontsize = 35) 
-all_axes[3][0].set_ylabel(r'$L_{\rm adv} (L_{\rm Edd})$', fontsize = 35)
-# fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 28, y = 1, x = 0.53)
+all_axes[0][0].set_ylabel(r'$\rho$ (g/cm$^3$)', fontsize = 40)
+all_axes[1][0].set_ylabel(r'v$_{\rm r}$ (km/s)', fontsize = 40)
+all_axes[2][0].set_ylabel(r'$\dot{M}_{\rm w} (\dot{M}_{\rm Edd})$', fontsize = 40) 
+all_axes[3][0].set_ylabel(r'$L_{\rm adv} (L_{\rm Edd})$', fontsize = 40)
+fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 35, y = 1, x = 0.53)
 fig.tight_layout(w_pad=15.0)  
-fig.savefig(f'{abspath}/Figs/{folder}/Wind/r_theta{r_chosen_name_theta}{isoent}prof_{which_obs}_{snap}.png', bbox_inches = 'tight')
-fig.savefig(f'{abspath}/Figs/2.paperWind/Rthetaprof_{which_obs}_{snap}.pdf', bbox_inches = 'tight')

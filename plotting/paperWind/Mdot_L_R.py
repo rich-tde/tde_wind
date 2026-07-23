@@ -24,13 +24,13 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
 choice = 'split_stream'
-how = '' # '' for sum or 'mean'
+how = 'isoent'
 which_plot = 'ML' # 'ML' or 'ML_conv'
 commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 folder = f'{commonfolder}{check}'
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
 observers_xyz = np.array(observers_xyz)
-indices_obs, label_obs, color_obs, _ = choose_observers(observers_xyz, choice)
+indices_obs, label_obs, color_obs, _, _ = choose_observers(observers_xyz, choice)
 Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
@@ -44,7 +44,7 @@ if len(label_obs) > 6 :
     figM, ((axM, axMr), (axLl, axLr)) =plt.subplots(2,2, figsize = (18,18))
     axes = [axMr, axM, axLr, axLl, axr]
     for ax in [axM, axMr]:
-        ax.set_ylim(1e1, 7e6)
+        ax.set_ylim(1e2, 2e7)
         ax.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$')  
     for ax in [axLr, axLl]:
         ax.set_ylim(1e38, 5e42)
@@ -52,9 +52,9 @@ if len(label_obs) > 6 :
 else:
     figM, (axM, axL) =plt.subplots(1,2, figsize = (16,7))  
     axes = [axM, axL, axr]
-    axM.set_ylim(1e1, 7e6)
+    axM.set_ylim(1e2, 2e7)
     axM.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$')  
-    axL.set_ylim(1e38, 2e42)
+    axL.set_ylim(1e38, 5e42)
     axL.set_ylabel(r'$L_{{\rm FLD}}$ (erg/s)') 
 
 if which_plot == 'ML':
@@ -92,15 +92,15 @@ if which_plot == 'ML':
     rph_sec = np.transpose(np.array(rph_sec))
     rtr_sec = np.transpose(np.array(rtr_sec))
     
-    # wind = \
-    #         np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}05amin{choice}_wind.csv', 
-    #                 delimiter = ',', 
-    #                 skiprows=1, 
-    #                 unpack=True) 
-    # tfb = wind[1]
-    # rest = wind[2:2+len(label_obs)]
+    wind = \
+            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}05amin{choice}_wind.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True) 
+    tfb = wind[1]
+    rest = wind[2:2+len(label_obs)]
 
-    if choice == 'left_right_z':
+    if choice == 'left_right_z' or choice == 'split_stream':
         outflow = \
                 np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}05amin{choice}_outflow.csv', 
                         delimiter = ',', 
@@ -119,7 +119,7 @@ if which_plot == 'ML':
     for i in range(len(label_obs)):
         if label_obs[i] == 'South pole':
             continue
-        if len(label_obs) > 6 :
+        if len(label_obs) > 7 :
             if np.logical_or(label_obs[i] in ['0-30', '30-60', '60-90', '270-300', '300-330', '330-360'], np.logical_and(i < len(label_obs)/2, choice == 'tenths')):
                 axM_temp = axMr
                 axL_temp = axLr
@@ -129,12 +129,18 @@ if which_plot == 'ML':
             axM_temp.plot(tfb, rest[i]/Medd_sol,  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])
             axL_temp.plot(tfb, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i])
         else:
-            # line = axM.plot(tfb, rest[i]/Medd_sol,  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])[0]
+            if label_obs[i] != r'Stream side $\theta\in[4\pi/9,\pi/2]$':
+                line = axM.plot(tfb, rest[i]/Medd_sol,  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])[0]
             axL.plot(tfb_Lum, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i])
-            if choice == 'left_right_z':
+            if choice == 'left_right_z' or choice == 'split_stream':
                 axM.plot(tfbO[4:], restO[i][4:]/Medd_sol, linewidth = 2, c = color_obs[i], ls = line_styles_parts[1])
-                if i ==0 :
+                if np.logical_and(i ==0, choice == 'left_right_z' ):
                     print('ratio wind/outflow at last time step:', rest[i][-1]/restO[i][-1])
+                if np.logical_and(i ==0, choice == 'split_stream'):
+                    wind = rest[0][-1] + rest[1][-1] + rest[2][-1]
+                    outflow = restO[0][-1] + restO[1][-1] + restO[2][-1]
+                    print('ratio wind/outflow at last time step:', wind/outflow)
+
             # handles_color.append(line)
             # labels_color.append(label_obs[i])
         
@@ -226,11 +232,10 @@ for ax in axes:
     ax2.set_xlabel(r't (days)', y = 1.1)
 
 # Legend 1: colored observer lines (three colors)
-legend1 = axM.legend(handles=handles_color,
+legend1 = axL.legend(handles=handles_color,
                     labels=labels_color,
-                    fontsize=15,
-                    loc='upper left')
-axM.add_artist(legend1)
+                    fontsize=15)
+axL.add_artist(legend1)
 # Legend 2: line-style explanation (solid vs dashed)
 proxy_lines = []
 proxy_lines = []
@@ -240,10 +245,7 @@ for l, line in enumerate(line_styles_parts):
                     label=labels_parts[l])
     )
 axM.legend(handles=proxy_lines, fontsize=20, 
-                                loc='lower right')
-
-if choice != 'left_right_z':
-    axL.legend(fontsize = 20)
+                                loc='upper left')
 
 axr.legend(fontsize = 20)
 figM.tight_layout()
@@ -252,7 +254,7 @@ if choice == 'tenths':
     figM.suptitle('Angle varying from +x (0 deg), to +z (90 deg), to -x (180 deg)', fontsize = 30, y = 1.02)
 if choice == 'azimuthal':
     figM.suptitle('Azimuthal angle', fontsize = 30, y = 1.02)
-if choice == 'left_right_z':
+if choice == 'split_stream':
     figM.savefig(f'{abspath}/Figs/2.paperWind/{which_plot}_intime.pdf', dpi = 300, bbox_inches = 'tight')
 else:
     figM.savefig(f'{abspath}/Figs/{folder}/wind/{which_plot}_intime_{choice}.png', dpi = 300, bbox_inches = 'tight')

@@ -12,7 +12,7 @@ import healpy as hp
 import src.orbits as orb
 import Utilities.prelude as prel
 from Utilities.operators import from_cylindric
-from plotting.paper.IHopeIsTheLast import split_data_red
+from plotting.paperEdd.IHopeIsTheLast import split_data_red
 import Utilities.prelude as prel
 
 ##
@@ -27,7 +27,7 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
 proj_movie = True
-n_panels = 3
+n_panels = 2
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
 params = [Mbh, Rstar, mstar, beta]
@@ -317,7 +317,7 @@ if not proj_movie:
 if proj_movie:
     data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
     snaps, Lum, tfb = split_data_red(check)
-    dataDiss = np.loadtxt(f'{abspath}/data/{folder}/paper1/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows = 1)
+    dataDiss = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows = 1)
     tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3]
     LDiss = LDiss * prel.en_converter/prel.tsol_cgs # [erg/s]
 
@@ -341,18 +341,14 @@ if proj_movie:
         # if snap != 151:
         #     continue
         print(snap)
-        photo = np.loadtxt(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.txt')
-        xph, yph, zph, volph, denph, Rad_denph, alphaph = photo[0], photo[1], photo[2], photo[3], photo[4], photo[6], photo[-4]
+        photo = np.load(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.npz')
+        xph, yph, zph, volph, denph, Rad_denph, alphaph = \
+            photo['x'], photo['y'], photo['z'], photo['vol'], photo['den'], photo['radden'], photo['alpha_rossland']
         temp_rad_ph = (Rad_denph * prel.en_den_converter / prel.alpha_cgs)**(1/4) 
-        # k = alphaph/denph
         r_ph = np.sqrt(xph**2 + yph**2 + zph**2)
         median_ph[i] = np.median(r_ph)
         median_tempph[i] = np.median(temp_rad_ph)
-        # if snap != 109:
-        #     continue
-        # print(k)
-        # k_mean = 1/np.mean(1/k)
-        # print(f'1/mean(1/k) {k_mean}, median k {np.median(k)}')
+
         x_denproj = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denxarray.npy')
         y_denproj = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denyarray.npy')
         flat_den = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Denproj{snap}.npy')
@@ -379,7 +375,24 @@ if proj_movie:
             axDiss.tick_params(axis='both', which='major', width = 1.5, length = 12, labelsize = 40)
         
         elif n_panels == 2:
-            fig, (axd, axLC) = plt.subplots(1,2, figsize = (45,21))        
+            # fig, (axd, axLC) = plt.subplots(1,2, figsize = (45,21))    
+            flat_diss = np.load(f'/Users/paolamartire/shocks/data/{folder}/projection/Dissproj{snap}.npy')
+            flat_diss_cgs = flat_diss * prel.en_den_converter * prel.Rsol_cgs / prel.tsol_cgs# [erg/s/cm2]
+            # make =1 the nan values so they disappera with logcolor
+            flat_diss_cgs_plot = flat_diss_cgs
+            flat_diss_cgs_plot[np.isnan(flat_diss_cgs_plot)] = 1
+            flat_diss_cgs_plot[flat_diss_cgs_plot == 0] = 1
+
+            fig, (axd, axDiss) = plt.subplots(1,2, figsize = (45,21))    
+            img = axDiss.pcolormesh(x_denproj/Rt, y_denproj/Rt, flat_diss_cgs.T, \
+                            cmap = 'viridis', norm = colors.LogNorm(vmin = 1e14, vmax = 1e19))
+            cbar = plt.colorbar(img, orientation = 'horizontal', pad = 0.15)
+            cbar.set_label(r'Dissipation energy column density [erg s$^{-1}$cm$^{-2}]$', fontsize = 50)
+            cbar.ax.tick_params(which='major', labelsize=60, width = 2, length = 16, pad = 10)
+            cbar.ax.tick_params(which='minor',  width = 1.5, length = 11, pad = 10)
+            axDiss.set_xlim(-40, 10)
+            axDiss.set_ylim(-14, 14)
+            axDiss.tick_params(axis='both', which='major', width = 1.5, length = 12, labelsize = 65)    
         else:
             fig, axd = plt.subplots(1,1, figsize = (22,16))#, constrained_layout=True)
 
@@ -389,10 +402,10 @@ if proj_movie:
         cbar.set_label(r'Column density (g cm$^{-2}$)', fontsize = 60 if n_panels != 3 else 50)
         cbar.ax.tick_params(which='major',width = 1.2, length = 17, labelsize= 45 if n_panels != 3 else 50)
         cbar.ax.tick_params(which='major', width = 1, length = 10)
-        if n_panels != '':
-            axd.plot(xph[indecesorbital]/Rt, yph[indecesorbital]/Rt, c = 'white', markersize = 12, marker = 'H', label = r'$R_{\rm ph}$')
+        # if n_panels != '':
+            # axd.plot(xph[indecesorbital]/Rt, yph[indecesorbital]/Rt, c = 'white', markersize = 12, marker = 'H', label = r'$R_{\rm ph}$')
             # just to connect the first and last 
-            axd.plot([xph[first_idx]/Rt, xph[last_idx]/Rt], [yph[first_idx]/Rt, yph[last_idx]/Rt], c = 'white', markersize = 12, marker = 'H')
+            # axd.plot([xph[first_idx]/Rt, xph[last_idx]/Rt], [yph[first_idx]/Rt, yph[last_idx]/Rt], c = 'white', markersize = 12, marker = 'H')
         if n_panels == 2:
             cbar.ax.tick_params(which='major', labelsize=60, width = 2, length = 16, pad = 10)
             cbar.ax.tick_params(which='minor',  width = 1.5, length = 11, pad = 10)
@@ -401,19 +414,19 @@ if proj_movie:
             cbar.ax.tick_params(which='minor',  width = .8, length = 8, pad = 10)
         axd.set_ylabel(r'Y ($r_{\rm t}$)', fontsize = 70 if n_panels != 3 else 50)
         axd.tick_params(axis='both', which='major', width = 1.5, length = 12, labelsize = 65 if n_panels != 3 else 40)
-        axd.text(-60, 41, f't = {np.round(tfb[i],2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 65 if n_panels != 3 else 25)
+        axd.text(-60, 32, f't = {np.round(tfb[i],2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 65 if n_panels != 3 else 25)
         
         if n_panels != '': 
             if n_panels == 2:  
-                imgLC = axLC.scatter(tfb[:i+1], Lum[:i+1], s = 80, c = median_tempph[:i+1]*1e-4,  cmap = 'viridis', vmin = 1, vmax = 5)
-                cbar = plt.colorbar(imgLC, orientation = 'horizontal', pad = 0.14)
-                cbar.set_label(r'Median $T_{\rm rad, ph}$ (10$^4$ K)', fontsize = 60)
-                cbar.ax.tick_params(which='major', labelsize=65, width = 1.8, length = 18, pad = 10)
-                cbar.ax.tick_params(which='minor',  width = 1.2, length = 15, pad = 10)
-                for ax in [axd, axLC]:
-                    ax.tick_params(axis='both', labelsize=65) 
-                axLC.tick_params(axis='both', which='major', width = 2, length = 18)
-                axLC.tick_params(axis='y', which='minor', width = 1.5, length = 15)
+                # imgLC = axLC.scatter(tfb[:i+1], Lum[:i+1], s = 80, c = median_tempph[:i+1]*1e-4,  cmap = 'viridis', vmin = 1, vmax = 5)
+                # cbar = plt.colorbar(imgLC, orientation = 'horizontal', pad = 0.14)
+                # cbar.set_label(r'Median $T_{\rm rad, ph}$ (10$^4$ K)', fontsize = 60)
+                # cbar.ax.tick_params(which='major', labelsize=65, width = 1.8, length = 18, pad = 10)
+                # cbar.ax.tick_params(which='minor',  width = 1.2, length = 15, pad = 10)
+                # for ax in [axd, axLC]:
+                    # ax.tick_params(axis='both', labelsize=65) 
+                # axLC.tick_params(axis='both', which='major', width = 2, length = 18)
+                # axLC.tick_params(axis='y', which='minor', width = 1.5, length = 15)
                 fig.set_constrained_layout_pads(wspace=0.05)
             else: 
                 imgLC = axLC.scatter(tfb[:i+1], Lum[:i+1], s = 25, label = r'L$_{\rm FLD}$', c = 'k')
@@ -423,19 +436,19 @@ if proj_movie:
                 axLC.tick_params(axis='both', which='major', width = 1, length = 12, labelsize = 40)
                 axLC.tick_params(axis='y', which='minor', width = .8, length = 10, labelsize = 40)
                 # fig.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection3/denproj_diss{snap}.png')
-            axLC.set_xlabel(r't / $t_{\rm fb}$', fontsize = 72 if n_panels != 3 else 50)
-            axLC.set_ylabel(r'L (erg/s)', fontsize = 70 if n_panels != 3 else 25)
-            axLC.set_yscale('log')
-            axLC.set_xlim(0.06, 2.25)
-            axLC.text(0.15, 5e42, f't = {np.round(tfb[i]*t_fall_hour,1)}' + r' hours', fontsize = 65 if n_panels != 3 else 35)
-            axLC.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
-            axLC.text(0.15, 1.2*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', fontsize = 35)
+            # axLC.set_xlabel(r't / $t_{\rm fb}$', fontsize = 72 if n_panels != 3 else 50)
+            # axLC.set_ylabel(r'L (erg/s)', fontsize = 70 if n_panels != 3 else 25)
+            # axLC.set_yscale('log')
+            # axLC.set_xlim(0.06, 2.25)
+            # axLC.text(0.15, 5e42, f't = {np.round(tfb[i]*t_fall_hour,1)}' + r' hours', fontsize = 65 if n_panels != 3 else 35)
+            # axLC.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
+            # axLC.text(0.15, 1.2*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', fontsize = 35)
         
-            axLC.set_ylim(1e38, 1.2e43)
+            # axLC.set_ylim(1e38, 1.2e43)
         # axd.contour(xcfr_grid[0], ycfr_grid[0], cfr_grid[0], levels=[0], colors='white')
         axd.scatter(0,0,c= 'k', marker = 'x', s = 120)
         axd.set_xlim(-65, 15)
-        axd.set_ylim(-50, 50)
+        axd.set_ylim(-40, 40)
         axd.set_xlabel(r'X ($r_{\rm t}$)', fontsize = 72 if n_panels != 3 else 50)
 
         plt.tight_layout()

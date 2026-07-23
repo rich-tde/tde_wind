@@ -185,16 +185,20 @@ else:
         from matplotlib import gridspec
         what = '' # '' or '_wind' (if you want to pick the wind and plot only the streamlines that belong to the wind)
         how = '' # '' if you want streamlines, '_arrows' if you want arrows 
-        coords_to_cut = ['z'] #['z','y']
-        cuts_chosen = [0] #['0', '0']
+        coords_to_cut = ['z','y']
+        cuts_chosen = [0, 0]
         idx_wanted = [np.argmin(np.abs(snaps - 76)), 
                       np.argmin(np.abs(snaps - 109)), 
                       np.argmin(np.abs(snaps - 151))]
-        lim_plot = 150 #2*apo
+        lim_plot = 2*apo
         N_arrows = 200
         x_line = np.arange(-lim_plot, lim_plot) * Rt
-        y_line = draw_line(x_line, np.pi/6, what = 'line')
-        y_lineneg = draw_line(x_line, 5*np.pi/6, what = 'line')
+        y_line10 = draw_line(x_line, np.pi/18, what = 'line')
+        y_line40 = draw_line(x_line, 2*np.pi/9, what = 'line')
+        y_line70 = draw_line(x_line, 7*np.pi/18, what = 'line')
+        y_lineneg10 = draw_line(x_line, 17*np.pi/18, what = 'line')
+        y_lineneg40 = draw_line(x_line, 7*np.pi/9, what = 'line')
+        y_lineneg70 = draw_line(x_line, 11*np.pi/18, what = 'line')
         
         fig = plt.figure(figsize=(16*len(idx_wanted), 16*len(coords_to_cut)))
         height_ratios = np.concatenate(([1] * len(coords_to_cut), [0.05]))
@@ -288,9 +292,13 @@ else:
                     ax.streamplot(x_toplot_grid/Rt, y_toplot_grid/Rt, Vx_toplot_grid, Vy_toplot_grid, density = 1.5, linewidth = 1.5, color = 'k', arrowsize=1.5, arrowstyle='->')
                 
                 ax.contour(xcr/Rt, ycr/Rt, cr/Rt, [0], linestyles='dashed', colors = 'k', linewidths = 4)
-                if coord_to_cut == 'y':
-                    ax.plot(x_line/Rt, y_line/Rt, '--', linewidth = 4, c = 'k')
-                    ax.plot(x_line/Rt, y_lineneg/Rt, '--', linewidth = 4, c = 'k')
+                if coord_to_cut == 'y': 
+                    ax.plot(x_line[x_line < 0]/Rt, y_line10[x_line < 0]/Rt, '--', linewidth = 4, c = 'k')
+                    ax.plot(x_line[x_line < 0]/Rt, y_lineneg10[x_line < 0]/Rt, '--', linewidth = 4, c = 'k')
+                    ax.plot(x_line[x_line < 0]/Rt, y_line40[x_line < 0]/Rt, '--', linewidth = 4, c = 'k')
+                    ax.plot(x_line[x_line < 0]/Rt, y_lineneg40[x_line < 0]/Rt, '--', linewidth = 4, c = 'k')
+                    ax.plot(x_line/Rt, y_line70/Rt, '--', linewidth = 4, c = 'k')       
+                    ax.plot(x_line/Rt, y_lineneg70/Rt, '--', linewidth = 4, c = 'k')
 
                 ax.set_xlim(-lim_plot/Rt, lim_plot/Rt)
                 ax.set_ylim(-lim_plot/Rt, lim_plot/Rt)
@@ -321,8 +329,5 @@ else:
         cb.ax.tick_params(which='major', length=9, width=1.4)
         cb.ax.tick_params(which='minor', length=6, width=1.2)
 
-        if what == '_wind':
+        if what == '':
             plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
-        else:
-            plt.savefig(f'{abspath}/Figs/2.paperWind/deeperanalysis/WindSlices{what}{how}_{coord_to_cut}{cut_name}.png', bbox_inches='tight', pad_inches=0.05)
-            
