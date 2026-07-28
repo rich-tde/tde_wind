@@ -8,8 +8,13 @@ if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
     save = True
 else:
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
     abspath = '/Users/paolamartire/shocks'
     save = False
+    mpl.rcParams['savefig.transparent'] = False 
+    mpl.rcParams['figure.facecolor'] = 'white'    # Figure when displayed
+    mpl.rcParams['axes.facecolor'] = 'white'  
 
 import gc
 import warnings
@@ -42,7 +47,7 @@ def fld_lightcurve(params, compton, check, N_ray):
     observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 
     for idx_s, snap in enumerate(snaps):
-        if snap not in [151]: 
+        if snap not in [109]: 
             continue
         print(f'Snap: {snap}', flush=True)
         if alice:
@@ -81,9 +86,11 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
     colorsphere = {'idx': [], 'x': [], 'y': [], 'z': [], 'vol': [], 'den': [], 'temp': [], 'radden': [], 'vx': [], 'vy': [], 'vz': [], 'P': [], 'ieden': [], 'los': [], 'los_scatt': [], 'alpha_rossland': [], 'alpha_scatter': [], 'alpha_abs': [], 'alpha_eff': []}
     freqs = prel.freqs
     L_col = np.zeros((num_obs, len(prel.freqs)))
+    if plot:
+        figtau, axtau = plt.subplots(figsize = (10, 8))
     for i in range(num_obs):
-        # if i not in [0, 90, 100, 130]:
-        #     continue
+        if i not in [0, 83, 90]:
+            continue
         print(f'Obs: {i}', flush=True)
 
         mu_x = observers_xyz[i][0]
@@ -251,6 +258,10 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         photosphere['Fz'].append(Fz[photo_idx])
         photosphere['Lum'].append(Lphoto) # fluxes was from here as L/4pi r[photo)idx]**2
 
+        if plot:
+            axtau.plot(r/13, los, linewidth = 2, label = f'Obs {i}')
+            axtau.axvline(r[photo_idx]/13, ls = '--', lw = 1.5, c = 'gray')
+
         # Spectra
         try: 
             color_idx = np.where(los_effective<5)[0][0]
@@ -292,6 +303,22 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         del smoothed_flux_r2, ray_radDen, alpha_rossland, alpha_planck, alpha_scatter, los, los_effective, tree, volume, ray_x, ray_y, ray_z, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den 
         gc.collect()
 
+    if plot:
+        axtau.set_ylim(1e-1, 1e3)
+        axtau.set_xlim(1, 1e3) 
+        axtau.legend(fontsize = 22)
+        axtau.axhline(2/3, ls = '-.', lw = 1.5, color = 'gray')
+        axtau.loglog()
+        axtau.set_xlabel(r'r/r$_{\rm t}$')
+        axtau.set_ylabel(r'$\tau$')
+        axtau.tick_params(axis='both', which='major', length = 10, width = 1)
+        axtau.tick_params(axis='both', which='minor', length = 6, width = .8)
+        axtau.grid()
+        plt.suptitle(f'Snap: {snap}', fontsize = 22)
+        plt.tight_layout()
+        plt.savefig(f'{abspath}/Figs/{folder}/Wind/r_profile/tau_{snap}.png', dpi = 300)
+        
+        
     Lphoto_snap = np.mean(photosphere['Lum'])
     print('L :', Lphoto_snap, flush=True)
 
@@ -308,6 +335,7 @@ if __name__ == "__main__":
     check = 'HiResNewAMR' 
     N_ray = 1_000
     params = [m, Rstar, mstar, beta, n, compton]
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     
     # Load opacity tables
     opac_path = f'{abspath}/src/Opacity'

@@ -126,8 +126,10 @@ if plot:
             continue
         plt.plot(tfb, M_out[i]/M_tot[i], c = colors_obs[i],  ls = '--' )
         plt.plot(tfb, M_wind[i]/M_out[i], c = colors_obs[i], label = lab)
-        print(lab, 'outflow/star mass: ', M_out[i, -1]/0.5, ', wind/out: ', M_wind[i, -1]/M_out[i, -1])
-    print('sum stream: ', (M_out[0, -1]+M_out[2, -1]+M_out[1, -1])/0.5, ', sum wind/out: ', np.sum(M_wind[0, -1]+M_wind[2, -1]+M_wind[1, -1])/np.sum(M_out[0, -1]+M_out[2, -1]+M_out[1, -1]))
+        print(lab, 'outflow/half star mass: ', np.median(M_out[i, -3:])/0.5, ', wind/out: ', np.median(M_wind[i, -3:])/np.median(M_out[i, -3:]))
+        # print(lab, 'wind/half star mass: ', M_wind[i, -1]/0.5)
+    print('sum stream: ', (np.median(M_out[0, -3:])+np.median(M_out[1, -3:])+np.median(M_out[2, -3:]))/0.5, ', sum wind/out: ', np.sum(np.median(M_wind[0, -3:])+np.median(M_wind[1, -3:])+np.median(M_wind[2, -3:]))/np.sum(np.median(M_out[0, -3:])+np.median(M_out[1, -3:])+np.median(M_out[2, -3:])))
+    # print('sum wind: ', np.sum(M_wind[0, -3:]+M_wind[2, -3:]+M_wind[1, -3:])/0.5)
     plt.xlabel(r'$t/t_{\rm fb}$')
     plt.ylabel('Mass ratio')
     plt.yscale('log')

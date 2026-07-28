@@ -13,6 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import matplotlib.colors as colors
 from matplotlib import lines as mlines
+import scipy.integrate as sci
 import healpy as hp
 from sklearn.neighbors import KDTree
 import Utilities.prelude as prel
@@ -20,6 +21,7 @@ from Utilities.selectors_for_snap import select_prefix
 from Utilities.sections import make_slices
 import src.orbits as orb
 import Utilities.operators as op
+from src.Opacity.interpolator_vectorized import calc_ross_opacity_vectorized
 
 #
 # PARAMS
@@ -50,6 +52,13 @@ v_esc_kms = v_esc * conversion_sol_kms
 Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
+
+# Load opacity tables
+opac_path = f'{abspath}/src/Opacity'
+T_cool = np.loadtxt(f'{opac_path}/T.txt')
+Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
+rossland = np.loadtxt(f'{opac_path}/ross.txt')
+scattering = np.loadtxt(f'{opac_path}/scatter.txt')
 
 #%% FUNCTIONS
 def split_observers(X, Y, Z, dim_cell, which_obs, r_chosen, params_obs):
@@ -132,7 +141,6 @@ def profiles(loadpath, snap, ray_params, params_obs, which_part = ''):
         for j, r in enumerate(ray_array):
             cut = dist[j] < dim_cell[idx[j]]
             idx_r = np.array(idx[j][cut])
-            print(len(idx_r))
             if len(idx_r) == 0:
                 continue
 
@@ -144,18 +152,27 @@ def profiles(loadpath, snap, ray_params, params_obs, which_part = ''):
             ray_t = (ray_rad_den * prel.en_den_converter / prel.alpha_cgs)**(1/4)
             L_adv = ray_V_r * ray_rad_den
 
-            if j == 100:
-                axmid.scatter(X[idx_r]/Rt, Y[idx_r]/Rt, s = 5, c = ray_d * prel.den_converter, norm = colors.LogNorm(vmin = 1e-12, vmax = 1e-9))
-                img = ax_xz.scatter(X[idx_r]/Rt, Z[idx_r]/Rt, s = 5, c = ray_d * prel.den_converter, norm = colors.LogNorm(vmin = 1e-12, vmax = 1e-9))
+            # if j == 100:
+            #     axmid.scatter(X[idx_r]/Rt, Y[idx_r]/Rt, s = 5, c = ray_d * prel.den_converter, norm = colors.LogNorm(vmin = 1e-12, vmax = 1e-9))
+            #     img = ax_xz.scatter(X[idx_r]/Rt, Z[idx_r]/Rt, s = 5, c = ray_d * prel.den_converter, norm = colors.LogNorm(vmin = 1e-12, vmax = 1e-9))
 
             d_prof[j] = np.sum(ray_d*ray_m)/ np.sum(ray_m) 
             v_rad_prof[j] = np.sum(ray_V_r*ray_m) / np.sum(ray_m)  
             m_prof[j] = np.mean(ray_m)
             t_prof[j] = np.sum(ray_t*ray_vol) / np.sum(ray_vol)
-            L_adv_prof[j] = np.pi/48 * r**2 * np.mean(L_adv) # surface of each helpix cell: 4pir^2/192
-            Mdot_prof[j] = np.pi/48 * r**2 * np.mean(ray_d * ray_V_r)
-            L_kin_prof[j] = np.pi/48 * r**2 * np.mean(ray_d * ray_V_r**3)
+            L_adv_prof[j] = 4 * np.pi * r**2 * np.mean(L_adv) # surface of each helpix cell: 4pir^2/192
+            Mdot_prof[j] = 4 * np.pi * r**2 * np.mean(ray_d * ray_V_r)
+            L_kin_prof[j] = 4 * np.pi * r**2 * np.mean(ray_d * ray_V_r**3)
         
+        alpha_rossland = calc_ross_opacity_vectorized(T_cool, Rho_cool, rossland, scattering, np.log(t_prof), np.log(d_prof))
+        alpha_rossland = np.array(alpha_rossland)
+        # underflow_mask = np.log(alpha_rossland) != 0.0
+        # idx = np.array(idx)
+
+        # Optical depth
+        r_fuT = np.flipud(ray_array) #.T
+        alpha_rossland_fuT = np.flipud(alpha_rossland) 
+        los = - np.flipud(sci.cumulative_trapezoid(alpha_rossland_fuT, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
 
         outflow = {
             'r': ray_array,
@@ -163,6 +180,7 @@ def profiles(loadpath, snap, ray_params, params_obs, which_part = ''):
             'v_rad_prof': v_rad_prof,
             'm_prof': m_prof,
             't_prof': t_prof,
+            'tau': los,
             'Mdot_prof': Mdot_prof,
             'L_kin_prof': L_kin_prof,
             'L_adv_prof': L_adv_prof
@@ -171,9 +189,6 @@ def profiles(loadpath, snap, ray_params, params_obs, which_part = ''):
         key = f"{i}"
         all_outflows[key] = outflow
 
-    cbar = fig.colorbar(img)
-    cbar.set_label(r'$\rho$ (g/cm$^3$)', fontsize = 18)
-    fig.tight_layout()
     return all_outflows
 
 
@@ -182,12 +197,12 @@ def profiles(loadpath, snap, ray_params, params_obs, which_part = ''):
 #
 compute = False
 which_part = 'wind' # 'outflow' or 'all' or 'wind' to have the wind
-which_obs = 'left_right_z' # 'left_right_z', 'all' or 'in_out_z'
-NSIDE = 8 # observers = 12 * NSIDE **2
+which_obs = 'split_stream' # 'left_right_z', 'all' or 'in_out_z'
+NSIDE = 4 # observers = 12 * NSIDE **2
 NPIX = hp.nside2npix(NSIDE)
 observers_xyz = np.array(hp.pix2vec(NSIDE, range(NPIX))) # shape is 3,N
 x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
-indices_obs, label_obs, colors_obs, lines_obs = op.choose_observers(observers_xyz, which_obs)
+indices_obs, label_obs, colors_obs, lines_obs, _ = op.choose_observers(observers_xyz, which_obs)
 params_obs = [x_obs, y_obs, z_obs, indices_obs, colors_obs, lines_obs]
 
 if compute:
@@ -213,6 +228,9 @@ else:
     Mdot_all = []
     Mdot_sec = []
     d_sec = []
+    figtau, axtau = plt.subplots(1, 1, figsize = (8, 8))
+    axtau.set_ylim(1e-2, 1e2)
+    axtau.loglog()
     for j, idx in enumerate(indices_obs):
         d_temp = []
         m_temp = []
@@ -224,9 +242,12 @@ else:
             r_plot = profiles[lab]['r'] 
             m_prof = profiles[lab]['m_prof']
             d_prof = profiles[lab]['d_prof']
+            tau = profiles[lab]['tau']
             d_temp.append(d_prof)
             m_temp.append(m_prof)
             Mdot_temp.append(Mdot)
+            if i in [0, 84, 90]:
+                axtau.plot(r_plot/Rt, tau, color = colors_obs[j], label = f'Observer {i}', linewidth = 2)
         d_temp = np.array(d_temp) 
         m_temp = np.array(m_temp)
         Mdot_temp = np.array(Mdot_temp)
@@ -234,9 +255,7 @@ else:
         d_sec.append(np.sum(d_temp * m_temp, axis = 0)/np.sum(m_temp, axis = 0)) 
         # d_sec.append(np.mean(d_temp, axis = 0))
 
-    # print(np.shape(d_sec))
-    # print(d_sec[0]-d_sec[1])
-    
+    axtau.legend(fontsize = 18)
     Mdot_sec = np.array(Mdot_sec) # shape:4, 300
     d_sec = np.array(d_sec)
     Mdot_all = np.array(Mdot_all) # shape is Nobs, Nray 

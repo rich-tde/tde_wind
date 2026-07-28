@@ -17,6 +17,7 @@ from Utilities.sections import make_slices
 import src.orbits as orb
 import Utilities.operators as op
 from src.Wind.Rtrapp_tdiff import load_and_smooth_rtrap
+from src.Opacity.interpolator_vectorized import calc_ross_opacity_vectorized, calc_scattering_opacity_vectorized
 
 #
 # PARAMS
@@ -50,6 +51,13 @@ Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 
+# Load opacity tables
+opac_path = f'{abspath}/src/Opacity'
+T_cool = np.loadtxt(f'{opac_path}/T.txt')
+Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
+rossland = np.loadtxt(f'{opac_path}/ross.txt')
+scattering = np.loadtxt(f'{opac_path}/scatter.txt')
+
 #%% FUNCTIONS
 def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies = 'r', isoent = ''):
     if what_varies == 'r':
@@ -60,11 +68,11 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
         ray_array = np.linspace(0, np.pi, Nray)
         delta_theta = ray_array[1] - ray_array[0]
     data = op.make_tree(loadpath, snap)
-    X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
-        data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Temp, data.Press, data.IE, data.Rad
+    X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den, Temp = \
+        data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.VX, data.VY, data.VZ, data.Temp, data.Press, data.IE, data.Rad, data.Temp
     cut = Den > 1e-19
-    X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den = \
-        make_slices([X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den], cut)
+    X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den, Temp = \
+        make_slices([X, Y, Z, Vol, Den, Mass, VX, VY, VZ, T, Press, IE_den, Rad_den, Temp], cut)
     Rsph = np.sqrt(X**2 + Y**2 + Z**2)  
     dim_cell = Vol**(1/3)
     indices_all = np.arange(len(X))
@@ -93,8 +101,8 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
         cut = np.logical_and(V_r < 0, bern < 0)
     if what_varies == 'theta':
         cut = np.logical_and(cut, np.abs(Rsph - r_fixed) < dim_cell)
-    X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell, bern = \
-        make_slices([X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell, bern], cut)       
+    X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell, bern, Temp = \
+        make_slices([X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell, bern, Temp], cut)       
     indices = np.arange(len(X))
     print(f'For {which_part}, Vr is non positive for: ', indices[V_r <= 0])
     print(f'For {which_part}, Bern is non positive for: ', indices[bern <= 0])
@@ -141,6 +149,7 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
         cond_all = cond_sec_all[j]
         area = np.zeros(Nray)
         t_prof = np.zeros(Nray)
+        tgas_prof = np.zeros(Nray)
         v_rad_prof = np.zeros(Nray)
         d_prof = np.zeros(Nray)
         Mdot_prof = np.zeros(Nray)
@@ -192,9 +201,11 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
             ray_rad_den = Rad_den[idx]
             ray_vol = Vol[idx]
             ray_dim = dim_cell[idx]
+            ray_tgas = Temp[idx]
             ray_t = (ray_rad_den * prel.en_den_converter / prel.alpha_cgs)**(1/4) 
             L_adv =  ray_V_r * ray_rad_den
             t_prof[i] = np.sum(ray_t*ray_vol) / np.sum(ray_vol)
+            tgas_prof[i] = np.sum(ray_tgas*ray_vol) / np.sum(ray_vol)
             v_rad_prof[i] = np.sum(ray_V_r*ray_m) / np.sum(ray_m)
             d_prof[i] = np.sum(ray_d*ray_m)/ np.sum(ray_m)
             area[i] = np.pi * np.sum(ray_dim**2)
@@ -216,10 +227,26 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
             Mdotmean_prof[i] = const_C * np.pi * np.mean(ray_d * ray_V_r) if ray_V_r.size > 0 else 0 
             L_kinmean_prof[i] = const_C * np.pi * np.mean(ray_d * ray_V_r**3) if ray_V_r.size > 0 else 0
 
+        alpha_scatter = calc_scattering_opacity_vectorized(T_cool, Rho_cool, scattering, np.log(tgas_prof), np.log(d_prof*prel.den_converter))
+        alpha_scatter = np.array(alpha_scatter)
+        alpha_rossland = calc_ross_opacity_vectorized(T_cool, Rho_cool, rossland, scattering, np.log(tgas_prof), np.log(d_prof*prel.den_converter))
+        alpha_rossland = np.array(alpha_rossland)
+        plt.figure(figsize = (10, 7))
+        img = plt.scatter(d_prof[ray_array<20*Rt]*prel.den_converter, alpha_rossland[ray_array<20*Rt]/(d_prof[ray_array<20*Rt]*prel.den_converter), c = tgas_prof[ray_array<20*Rt], norm = colors.LogNorm(vmin = 8e3, vmax = 1e7), cmap = 'rainbow')
+        cbar = plt.colorbar(img)
+        cbar.set_label('Temperature')
+        plt.scatter(d_prof[ray_array<20*Rt]*prel.den_converter, alpha_scatter[ray_array<20*Rt]/(d_prof[ray_array<20*Rt]*prel.den_converter), c = 'k', s = 2)
+        plt.loglog()
+        plt.xlim(1e-14, 1e-7)
+        plt.title(label_obs[j], fontsize = 25)
+        plt.xlabel(r'Density [g/cm$^3$', fontsize = 20)
+        plt.ylabel(r'Opacity [cm$^2$/g]', fontsize = 20)
+
         outflow = {
             'r': ray_array,
             'area': area,
             't_prof': t_prof,
+            'tgas_prof': tgas_prof,
             'v_rad_prof': v_rad_prof,
             'm_prof': ray_m,
             'd_prof': d_prof,
@@ -232,8 +259,9 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
             'Ntot_cells': lens_tot,
             'ratio_un': ratio_un,
             'Mass_tot': Mass_tot,
-            # 'ratio_Mass': ratio_Mass,
             'Mass_wind': Mass_wind,
+            'alpha_scatter': alpha_scatter,
+            'alpha_rossland': alpha_rossland,
             'colors_obs': colors_obs[j],
             'lines_obs': lines_obs[j]
         }
@@ -294,14 +322,14 @@ else:
     indices_obs, label_obs, colors_obs, _, _ = op.choose_observers(observers_xyz, which_obs)
     fig, (axd, axV, axM, axLkin) = plt.subplots(4, 1, figsize=(8, 22)) 
     figM, (axT, axLadv) = plt.subplots(1, 2, figsize=(15, 8))
-    fiC, axC = plt.subplots(1, 1, figsize=(8, 8))
-    fign, axn = plt.subplots(1, 1, figsize=(8, 8))
+    figC, axC = plt.subplots(1, 1, figsize=(8, 8))
+    figx, (axx, axk) = plt.subplots(2, 1, figsize=(8, 14))
     figr, ((axNcell, axNmass), (axratio, axratioM)) = plt.subplots(2, 2, figsize=(18, 18))
     # if which_plot == 'time_compare':
     #     figr, (axratio, axratioM) = plt.subplots(1, 2, figsize=(24, 10))
         # all_axes = [axd, axV, axT, axM, axLadv, axLkin, axratio, axratioM, axC]
     # elif which_plot == 'single_time':
-    all_axes = [axd, axV, axT, axM, axLadv, axLkin, axratio, axratioM, axNcell, axNmass, axC, axn]
+    all_axes = [axd, axV, axT, axM, axLadv, axLkin, axratio, axratioM, axNcell, axNmass, axC, axx, axk]
 
     if what_varies == 'r':
         norm = 1/Rt
@@ -319,6 +347,8 @@ else:
         axLkin.set_ylim(1e-1, 5e2) 
         axratio.set_ylim(1e-2, 1.1)
         axratioM.set_ylim(1e-2, 1.1)
+        axx.set_ylim(5, 1e5)
+        # axk.set_ylim(1e-1, 20)
         axd.text(0.8*apo*norm, 0.2*axd.get_ylim()[1], r'$r_{\rm a}$', fontsize = 20, color = 'gray', rotation = 90)   
         axd.plot(x_test, y_test2, c = 'gray', ls = '-.', label = r'$\rho \propto r^{-2}$')
         axd.text(71, 1.2e-11, r'$\rho \propto r^{-2}$', fontsize = 18, color = 'gray', rotation = -20)            
@@ -364,7 +394,7 @@ else:
         rph_all = np.sqrt(xph**2 + yph**2 + zph**2)
         pathtrap = f"{abspath}/data/{folder}/trap"
         dataRtr = load_and_smooth_rtrap(pathtrap, check, snap)
-        x_tr, y_tr, z_tr, den_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr']
+        x_tr, y_tr, z_tr, den_tr, kappa_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['kappa_tr']
         r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
         # sections_ph = op.choose_sections(xph, yph, zph, which_obs)
         # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5))
@@ -427,19 +457,23 @@ else:
                 Nwind_cells = ratio_un * Ntot_cells
                 Mass_wind = profiles[lab]['Mass_wind']
                 Mass_tot = profiles[lab]['Mass_tot']
+                alpha_scatter = profiles[lab]['alpha_scatter']
+                alpha_rossland = profiles[lab]['alpha_rossland']
                 ratio_Mass = Mass_wind/Mass_tot
                 colors_sec = colors_obs[i] #profiles[lab]['colors_obs']
                 not_zero = np.where(np.logical_and(d != 0, r_arr > 0))
                 if what_varies == 'r':
-                    r_plot, d, v_rad, t, Mdot, L_adv, L_kin, ratio_un, ratio_Mass, Mdotmean = \
-                        make_slices([r_arr, d, v_rad, t, Mdot, L_adv, L_kin, ratio_un, ratio_Mass, Mdotmean], not_zero)
+                    r_plot, d, v_rad, t, Mdot, L_adv, L_kin, ratio_un, ratio_Mass, Mdotmean, alpha_scatter, alpha_rossland = \
+                        make_slices([r_arr, d, v_rad, t, Mdot, L_adv, L_kin, ratio_un, ratio_Mass, Mdotmean, alpha_scatter, alpha_rossland], not_zero)
                     if which_part == 'wind':
                         Nwind_cells, Ntot_cells, Mass_wind, Mass_tot = \
                             make_slices([Nwind_cells, Ntot_cells, Mass_wind, Mass_tot], not_zero)
-                        n_e = Mdot/(prel.m_p_cgs/prel.Msol_cgs * 4 * np.pi * r_plot**2 * v_rad)
-                        xi = L_adv/(n_e * r_plot**2) * prel.en_converter * prel.Rsol_cgs/prel.tsol_cgs
                     idx_rtr = np.argmin(np.abs(r_plot - rtr_nonzero_medians[i]))
                     idx_rph = np.argmin(np.abs(r_plot - rph_nonzero_medians[i]))
+                    n_e = d/(prel.m_p_cgs/prel.Msol_cgs)
+                    albedo = alpha_scatter/ alpha_rossland
+                    xi = L_adv/(n_e * r_plot**2) 
+                    xi_cgs = xi * prel.en_converter * prel.Rsol_cgs/prel.tsol_cgs
                     if label_obs[i] == 'Stream side': # just to cut the initially unbound material
                         # if which_part == 'wind':
                         #     idx_stop_d = np.where(np.logical_and(d > d[0], r_plot > apo))[0][0] #np.argmin(np.abs(r_plot - idx_stop_d_unb[k]*Rt)) 
@@ -501,24 +535,32 @@ else:
                     axC.plot(r_plot*norm, Mdot/Medd_sol, color = colors_sec, label = 'corrected sum' if np.logical_and(i == 0, s == 0) else None)
                     axC.plot(r_plot*norm, Mdotmean/Medd_sol, color = colors_sec, ls = '--', label = 'uniform mean' if np.logical_and(i == 0, s == 0) else None)
                     axC.plot(r_plot*norm, tocheck/Medd_sol, color = colors_sec, label = r'M$v_r/\Delta r$'  if np.logical_and(i == 0, s == 0) else None, ls = ':')
-                    axn.plot(r_plot*norm, xi, color = colors_sec)
+                    axx.plot(r_plot*norm, xi_cgs, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
+                    axk.plot(r_plot*norm, alpha_rossland/(d*prel.den_converter), color = colors_sec)
+                    axk.plot(r_plot*norm, alpha_scatter/(d*prel.den_converter), color = colors_sec, ls = '--')
 
                 if np.logical_and(what_varies =='r' , which_part == 'wind'):
-                    axd.scatter(r_plot[idx_rph]*norm, d[idx_rph] * prel.den_converter, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
-                    axM.scatter(r_plot[idx_rph]*norm, Mdot[idx_rph]/Medd_sol, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
-                    axV.scatter(r_plot[idx_rph]*norm, v_rad[idx_rph] * conversion_sol_kms, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
-                    axLadv.scatter(r_plot[idx_rph]*norm, L_adv[idx_rph]/Ledd_sol, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
-                    axT.scatter(r_plot[idx_rph]*norm, t[idx_rph], marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
-                    axLkin.scatter(r_plot[idx_rph]*norm, L_kin[idx_rph]/Ledd_sol, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
+                    axd.scatter(r_plot[idx_rph]*norm, d[idx_rph] * prel.den_converter, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
+                    axM.scatter(r_plot[idx_rph]*norm, Mdot[idx_rph]/Medd_sol, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
+                    axV.scatter(r_plot[idx_rph]*norm, v_rad[idx_rph] * conversion_sol_kms, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
+                    axLadv.scatter(r_plot[idx_rph]*norm, L_adv[idx_rph]/Ledd_sol, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
+                    axT.scatter(r_plot[idx_rph]*norm, t[idx_rph], marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
+                    axLkin.scatter(r_plot[idx_rph]*norm, L_kin[idx_rph]/Ledd_sol, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
 
-                    axd.scatter(r_plot[idx_rtr]*norm, d[idx_rtr] * prel.den_converter, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
-                    axM.scatter(r_plot[idx_rtr]*norm, Mdot[idx_rtr]/Medd_sol, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
-                    axV.scatter(r_plot[idx_rtr]*norm, v_rad[idx_rtr] * conversion_sol_kms, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
-                    axLadv.scatter(r_plot[idx_rtr]*norm, L_adv[idx_rtr]/Ledd_sol, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
-                    axT.scatter(r_plot[idx_rtr]*norm, t[idx_rtr], marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
-                    axLkin.scatter(r_plot[idx_rtr]*norm, L_kin[idx_rtr]/Ledd_sol, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
+                    axd.scatter(r_plot[idx_rtr]*norm, d[idx_rtr] * prel.den_converter, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
+                    axM.scatter(r_plot[idx_rtr]*norm, Mdot[idx_rtr]/Medd_sol, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
+                    axV.scatter(r_plot[idx_rtr]*norm, v_rad[idx_rtr] * conversion_sol_kms, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
+                    axLadv.scatter(r_plot[idx_rtr]*norm, L_adv[idx_rtr]/Ledd_sol, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
+                    axT.scatter(r_plot[idx_rtr]*norm, t[idx_rtr], marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
+                    axLkin.scatter(r_plot[idx_rtr]*norm, L_kin[idx_rtr]/Ledd_sol, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
+                    axx.scatter(r_plot[idx_rtr]*norm, xi_cgs[idx_rtr], marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
+                    axk.scatter(r_plot[idx_rtr]*norm, alpha_rossland[idx_rtr]/(d[idx_rtr]*prel.den_converter), marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
 
     axV.axhline(v_esc_kms, c = 'k', ls = 'dotted')
+    axx.axhline(5000, color='gray', ls='-.')
+    axk.axhline(0.34, color='gray', ls='-.')
+    axk.text(1.8, 0.26, r'$\kappa_{\rm es}$', fontsize=24)
+
     for i in range(len(snaps)-1):
         print('Effective delta r: ', R_peakM[i+1]-R_peakM[i], 't_peak/v_r: ' , (tfbs[i+1]-tfbs[i])*tfallback_code_units/v_snap_peakM[i])
 
@@ -549,7 +591,8 @@ else:
     axC.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$', fontsize = 28)
     axratio.set_ylabel(r'f$_{\rm unb}$', fontsize = 28)
     axratioM.set_ylabel(r'M$_{\rm wind}/M_{\rm sec}$', fontsize = 28)
-    axn.set_ylabel(r'$\xi$', fontsize = 28)
+    axx.set_ylabel(r'$\xi$ (erg cm/s)', fontsize = 28)
+    axk.set_ylabel(r'$\kappa_{\rm Ross}$ (cm$^2$/g)', fontsize = 28)
     axNcell.set_ylabel(r'N$_{\rm cells}$', fontsize = 28)
     axNmass.set_ylabel(r'M$_{\rm cells} [M_\odot]$', fontsize = 28)
     axNcell.legend(fontsize = 22)
@@ -563,9 +606,10 @@ else:
         ax.tick_params(axis='both', which='major', length = 15, width = 1.5)
         if what_varies == 'r':
             ax.loglog()
-            ax.axvline(apo*norm, color = 'gray', ls = '--')
+            if ax not in [axx, axk]:
+                ax.axvline(apo*norm, color = 'gray', ls = '--')
             ax.set_xlim(1.5, 1.4e2)
-            if ax in [axLadv, axLkin, axT, axratio, axratioM]:
+            if ax in [axLadv, axLkin, axT, axratio, axratioM, axk]:
                 ax.set_xlabel(r'$r /r_{\rm t}$' if what_varies == 'r' else r'$\theta$', fontsize = 28)
         elif what_varies == 'theta':
             ax.set_yscale('log')
@@ -584,6 +628,8 @@ else:
     figr.tight_layout()
     figr.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 22)
     figr.tight_layout()
+    figx.savefig(f'{abspath}/Figs/2.paperWind/opacity.pdf', dpi=300, bbox_inches='tight')
+
     # if which_plot == 'time_compare':
     #     fig.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/den_{what_varies}{r_chosen_name}_evol.png', bbox_inches = 'tight')
     #     figr.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/ratio_un_{what_varies}{r_chosen_name}_evol.png', bbox_inches = 'tight')

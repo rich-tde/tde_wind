@@ -19,16 +19,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import healpy as hp
 import scipy.integrate as sci
-from scipy.interpolate import griddata
-import matlab.engine
-from sklearn.neighbors import KDTree
-from scipy.ndimage import uniform_filter1d
 
 import Utilities.prelude as prel
-from Utilities.selectors_for_snap import select_snap, select_prefix
-from Utilities.sections import make_slices
 import src.orbits as orb
-from Utilities.operators import make_tree
+from Utilities import operators as op
 
 def bilinear_interpolation(x_vec, y_vec, data, x, y):
     """
@@ -187,7 +181,7 @@ def calc_ross_opacity(T_, rho_, rossland_, scatter_, Tcell, rhocell, return_coef
             return sigma_rossland
         else:
             if return_coeff:
-                return scattering, Tscatt_slope, dscatt_slope
+                return scattering, np.nan, np.nan
             return scattering
 
     if d > rho_[-1]:
@@ -388,7 +382,7 @@ if __name__ == "__main__":
     figR, (axR_t, axR_d) = plt.subplots(1,2, figsize = (20,15))
     figP, (axP_t, axP_d) = plt.subplots(1,2, figsize = (20,15))
     figS, (axS_t, axS_d) = plt.subplots(1,2, figsize = (20,15))
-    img = ax0.pcolormesh(np.log10(T_extr), np.log10(Rho_extr), kappa_scatter_extr.T,  norm = LogNorm(vmin = 1e-4, vmax=.5), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
+    img = ax0.pcolormesh(np.log10(T_extr), np.log10(Rho_extr), kappa_scatter_extr.T,  norm = LogNorm(vmin = 1e-2, vmax=.5), cmap = 'jet', alpha = 0.7) #exp_ross.T have rows = fixed rho, columns = fixed T
     cbar = plt.colorbar(img, orientation = 'horizontal')
     cbar.set_label(r'$\kappa_{\rm s}$ (cm$^2$/g)', fontsize=40)
 
@@ -439,22 +433,31 @@ if __name__ == "__main__":
     cbar = plt.colorbar(img, orientation = 'horizontal')
     cbar.set_label(r'A', fontsize=40)
     axP_d.set_title('Density extrapolation coefficient', fontsize = 40)
-    
+
+    snap = 151
+    i_obs = 0
     sim_path = f"{abspath}/data/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR"
-    dataph = np.load(f"{sim_path}/photo/{check}_photo151.npz") 
+    dataph = np.load(f"{sim_path}/photo/{check}_photo{snap}.npz") 
     den_ph, T_ph = dataph['den'], dataph['temp'] 
-    dataRtr = np.load(f"{sim_path}/trap/{check}_Rtr151.npz") 
-    den_tr, T_tr = dataRtr['den_tr'], dataRtr['Temp_tr'] 
+    dataRtr = np.load(f"{sim_path}/trap/{check}_Rtr{snap}.npz") 
+    x_tr, y_tr, z_tr, den_tr, T_tr = dataph['x'], dataph['y'], dataph['z'], dataRtr['den_tr'], dataRtr['Temp_tr'] 
+    r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+    kappa_all = np.load(f'{sim_path}/wind/kappa_fromFLD{snap}.npy', allow_pickle=True).item()
+    r_prof = kappa_all[f'obs_{i_obs}']['r']
+    d_prof = kappa_all[f'obs_{i_obs}']['d']
+    t_prof = kappa_all[f'obs_{i_obs}']['t']
+    d_prof = d_prof[r_prof>r_tr[i_obs]]
+    t_prof = t_prof[r_prof>r_tr[i_obs]]
+    r_prof = r_prof[r_prof>r_tr[i_obs]]
         
     for ax in [ax0, axR, axP, axratio1, axratio2, axP_t, axP_d, axR_t, axR_d, axS_t, axS_d]:
         ax.axvline(np.log10(min_T), color = 'grey', linestyle = '--', label = 'lim table')
         ax.axvline(np.log10(max_T), color = 'grey', linestyle = '--')
         ax.axhline(np.log10(min_Rho), color = 'grey', linestyle = '--')
         ax.axhline(np.log10(max_Rho), color = 'grey', linestyle = '--')
-        if ax in [ax0, axR, axP]:
-            ax.scatter(np.log10(T_ph), np.log10(den_ph), c = 'white', s = 100)
-            ax.scatter(np.log10(T_tr), np.log10(den_tr), c = 'black', s = 100)
-        # ax.axhline(np.log10(1e-19*prel.Msol_cgs/prel.Rsol_cgs**3), color = 'grey', linestyle = ':', label = 'simulation cut')
+        # ax.scatter(np.log10(T_ph), np.log10(den_ph), c = 'r', s = 100)
+        # ax.scatter(np.log10(T_tr), np.log10(den_tr), c = 'black', s = 100)
+        ax.scatter(np.log10(t_prof), np.log10(d_prof*prel.den_converter), c = r_prof/330, s = 100, cmap = 'rainbow')
         # Get the existing ticks on the x-axis
         big_ticks = [-10, -5, 0, 5, 10, 15] #ax.get_xticks()
         # Calculate midpoints between each pair of ticks
@@ -485,8 +488,10 @@ if __name__ == "__main__":
     figR.suptitle(r'Rossland extrapolation coefficients', fontsize = 40)
     figP.suptitle(r'Planck extrapolation coefficients', fontsize = 40)
     plt.tight_layout()
-# %%
-    chosenRhos = [1e-11, 1e-9] # you want 1e-6, 1e-11 kg/m^3 (too far from Elad's table, u want plot it)
+    #%%
+    x_test = np.linspace(1e4, 1e8, 100)
+    y_test = op.draw_line(x_test, [1e18, -3.5], 'powerlaw')
+    chosenRhos = [1e-12, 1e-9] # you want 1e-6, 1e-11 kg/m^3 (too far from Elad's table, u want plot it)
     colors_plot = ['forestgreen', 'r']
     lines = ['solid', 'dashed']
     fig, ax = plt.subplots(1,2,figsize = (15,6))
@@ -505,6 +510,7 @@ if __name__ == "__main__":
         ax[i].axhline(0.2 * (1 + prel.X_nf), color = 'firebrick', linestyle = '--', label = 'Thomson scattering')
         ax[i].loglog()
         ax[i].grid()
+        ax[i].plot(x_test, y_test, c = 'k', ls = ':')
         ax[i].set_title(f'Density: {chosenRho:.0e} g/cm$^3$', fontsize = 16)
     ax[1].set_ylabel(r'$\kappa$ [cm$^2$/g]')
     ax[0].legend(fontsize=15, loc='upper right')

@@ -1,6 +1,8 @@
 """ Compute the time evolution of Mdot fallback and Mdot wind across a spherical surface"""
 abspath = '/Users/paolamartire/shocks'
 import sys
+
+from sympy import re
 sys.path.append(abspath)
 
 import numpy as np
@@ -25,7 +27,7 @@ compton = 'Compton'
 check = 'HiResNewAMR' 
 choice = 'split_stream'
 how = 'isoent'
-which_plot = 'ML' # 'ML' or 'ML_conv'
+which_plot = 'ML_conv' # 'ML' or 'ML_conv'
 commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 folder = f'{commonfolder}{check}'
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
@@ -39,10 +41,9 @@ things = orb.get_things_about(params)
 t_fb_days = things['t_fb_days']
 Rt = things['Rt']
 
-figr, axr  = plt.subplots(1,1, figsize = (9,7))
 if len(label_obs) > 6 :
     figM, ((axM, axMr), (axLl, axLr)) =plt.subplots(2,2, figsize = (18,18))
-    axes = [axMr, axM, axLr, axLl, axr]
+    axes = [axMr, axM, axLr, axLl, axM]
     for ax in [axM, axMr]:
         ax.set_ylim(1e2, 2e7)
         ax.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$')  
@@ -50,8 +51,13 @@ if len(label_obs) > 6 :
         ax.set_ylim(1e38, 5e42)
         ax.set_ylabel(r'$L_{{\rm FLD}}$ (erg/s)')  
 else:
-    figM, (axM, axL) =plt.subplots(1,2, figsize = (16,7))  
-    axes = [axM, axL, axr]
+    figM, (axM, axL) = plt.subplots(1,2, figsize = (16,7))  
+    if which_plot == 'ML':
+        figr, axr  = plt.subplots(1,1, figsize = (9,7))
+        axes = [axM, axL, axr]
+    else: 
+        figr, (axrM, axrL)  = plt.subplots(1,2, figsize = (16,7))
+        axes = [axM, axL, axrM, axrL]
     axM.set_ylim(1e2, 2e7)
     axM.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$')  
     axL.set_ylim(1e38, 5e42)
@@ -143,7 +149,8 @@ if which_plot == 'ML':
 
             # handles_color.append(line)
             # labels_color.append(label_obs[i])
-        
+        axL.axhline(Ledd_cgs, color = 'k', ls = '-.')
+        axL.text(0.08, 1.2*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$',  fontsize = 20)
         axr.plot(tfb_Lum, rtr_sec[i]/Rt, linewidth = 2, c = color_obs[i], ls = ':', label = r'r$_{\rm trap}$' if i == 2 else "")
         axr.plot(tfb_Lum, rph_sec[i]/Rt, linewidth = 2, c = color_obs[i], label = r'r$_{\rm ph}$' if i == 2 else "")
 
@@ -157,7 +164,15 @@ if which_plot == 'ML_conv':
     for s, snap in enumerate(snaps): 
         photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
         Lum_ph = photo['Lum']
-        Lum_sec.append(np.mean(Lum_ph[indices_obs], axis = 1))
+        if choice in ['tenths','azimuthal', 'funnel', '3d_arch', 'split_stream']:
+            Lum_slab = np.zeros(len(indices_obs))
+            rph_slab = np.zeros(len(indices_obs))
+            for i, indices in enumerate(indices_obs):
+                Lum_slab[i] = np.mean(Lum_ph[indices])
+            Lum_sec.append(Lum_slab)
+        else:
+            Lum_sec.append(np.mean(Lum_ph[indices_obs], axis = 1))
+
     Lum_sec = np.transpose(np.array(Lum_sec))
     
     windH = \
@@ -175,7 +190,15 @@ if which_plot == 'ML_conv':
     for s, snap in enumerate(snapsM): 
         photo = np.loadtxt(f'{abspath}/data/{commonfolder}NewAMR/photo/NewAMR_photo{snap}.txt')
         Lum_ph = photo[-2]
-        Lum_secM.append(np.mean(Lum_ph[indices_obs], axis = 1))
+        if choice in ['tenths','azimuthal', 'funnel', '3d_arch', 'split_stream']:
+            Lum_slab = np.zeros(len(indices_obs))
+            rph_slab = np.zeros(len(indices_obs))
+            for i, indices in enumerate(indices_obs):
+                Lum_slab[i] = np.mean(Lum_ph[indices])
+            Lum_secM.append(Lum_slab)
+        else:
+            Lum_secM.append(np.mean(Lum_ph[indices_obs], axis = 1))
+
     Lum_secM = np.transpose(np.array(Lum_secM))
 
     windM = \
@@ -185,14 +208,13 @@ if which_plot == 'ML_conv':
                     unpack=True) 
     tfbM = windM[1]
     restM = windM[2:2+len(label_obs)]
-
     handles_color = []
     labels_color = []
     line_styles_parts = ['-', '-.']
     labels_parts = ['High res', 'Middle res']
 
     for i in range(len(rest)):
-        if label_obs[i] == 'South pole':
+        if label_obs[i] == 'South pole' or label_obs[i] == r'Stream side $\theta\in[4\pi/9,\pi/2]$':
             continue
         line = axM.plot(tfb, rest[i]/Medd_sol,  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])[0]
         axL.plot(tfb, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])
@@ -200,14 +222,16 @@ if which_plot == 'ML_conv':
         axL.plot(tfbM, Lum_secM[i],  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[1])
         handles_color.append(line)
         labels_color.append(label_obs[i])
+        time_ratio, ratio, _ = ratio_BigOverSmall(tfb, rest[i], tfbM, restM[i])
+        axrM.plot(time_ratio, ratio, linewidth = 2, c = color_obs[i], label = label_obs[i])
         time_ratio, ratio, _ = ratio_BigOverSmall(tfb, Lum_sec[i], tfbM, Lum_secM[i])
-        axr.plot(time_ratio, ratio, linewidth = 2, c = color_obs[i], label = label_obs[i])
+        axrL.plot(time_ratio, ratio, linewidth = 2, c = color_obs[i], label = label_obs[i])
 
-    axM.set_xlim(0, np.max(tfb))    # you need it for get.ticks
-    axr.set_ylim(1, 11)
+    axL.set_xlim(0, np.max(tfb))    # you need it for get.ticks
+    axrM.set_ylabel(r'$\dot{M}_{\rm HiRes}/\dot{M}_{\rm MidRes}$')
+    axrL.set_ylabel(r'$L_{\rm HiRes}/L_{\rm MidRes}$')
+    # axr.set_ylim(1, 11)
 
-axL.axhline(Ledd_cgs, color = 'k', ls = '-.')
-axL.text(0.08, 1.2*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$',  fontsize = 20)
 original_ticks = axL.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
@@ -221,13 +245,13 @@ for ax in axes:
     ax.set_xticklabels(labels)  
     ax.set_yscale('log')
     ax.set_xlabel(r'$t / t_{\rm fb}$')
-    ax.set_xlim(0, np.max(tfb_Lum))
+    ax.set_xlim(0, np.max(tfb))
     ax.tick_params(axis='both', which='major', width=1.2, length=9)
     ax.tick_params(axis='both', which='minor', width=1, length=5)
     ax.grid()
     ax2 = ax.twiny()
     ax2.set_xticks(days_ticks)
-    ax2.set_xlim(0, np.max(tfb_Lum)*t_fb_days)
+    ax2.set_xlim(0, np.max(tfb)*t_fb_days)
     ax2.set_xticklabels(days_labels)
     ax2.set_xlabel(r't (days)', y = 1.1)
 
@@ -247,7 +271,7 @@ for l, line in enumerate(line_styles_parts):
 axM.legend(handles=proxy_lines, fontsize=20, 
                                 loc='upper left')
 
-axr.legend(fontsize = 20)
+axrM.legend(fontsize = 20)
 figM.tight_layout()
 figr.tight_layout()
 if choice == 'tenths':
@@ -255,6 +279,6 @@ if choice == 'tenths':
 if choice == 'azimuthal':
     figM.suptitle('Azimuthal angle', fontsize = 30, y = 1.02)
 if choice == 'split_stream':
-    figM.savefig(f'{abspath}/Figs/2.paperWind/{which_plot}_intime.pdf', dpi = 300, bbox_inches = 'tight')
+    figM.savefig(f'{abspath}/Figs/2.paperWind/{which_plot}_intime_{choice}.pdf', dpi = 300, bbox_inches = 'tight')
 else:
     figM.savefig(f'{abspath}/Figs/{folder}/wind/{which_plot}_intime_{choice}.png', dpi = 300, bbox_inches = 'tight')

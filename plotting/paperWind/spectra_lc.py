@@ -359,7 +359,7 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
     indices_sorted, label_obs, colors_obs, _, _ = choose_observers(observers_xyz, choice = choice)
 
     Lum_op_mean = []
-    Lum_UV_mean = []
+    Lum_UV_mean = [] 
     Lum_Xray_mean = []
     time_col = []
     for s, snap in enumerate(snaps_fld):
@@ -371,7 +371,7 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
             L_col[i,:] *= norm
         Lum_op, Lum_UV, Lum_Xray = np.zeros(len(L_col)), np.zeros(len(L_col)), np.zeros(len(L_col))
         for i in range(len(L_col)):
-            # Lum_freq = freqs * L_col[i]
+            # Lum_freq = freqs * L_col[i] 
             # Lum_op[i] = np.sum(Lum_freq[idx_opt])
             Lum_op[i] = np.trapezoid(L_col[i,idx_opt], freqs[idx_opt]) 
             Lum_UV[i] = np.trapezoid(L_col[i,idx_UV], freqs[idx_UV])

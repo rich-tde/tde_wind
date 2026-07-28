@@ -17,16 +17,7 @@ warnings.filterwarnings('ignore')
 
 import numpy as np
 import matplotlib.pyplot as plt
-import healpy as hp
-import scipy.integrate as sci
-from scipy.interpolate import griddata
-from sklearn.neighbors import KDTree
-from scipy.ndimage import uniform_filter1d
-
 import Utilities.prelude as prel
-from Utilities.sections import make_slices
-import src.orbits as orb
-from Utilities.operators import make_tree
 
 
 def bilinear_interpolation_vectorized(x_vec, y_vec, data, x_arr, y_arr):

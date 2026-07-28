@@ -12,9 +12,10 @@ from sklearn.neighbors import KDTree
 from src.Opacity.interpolator_vectorized import calc_planck_opacity_vectorized, calc_ross_opacity_vectorized, calc_scattering_opacity_vectorized
 import matplotlib.pyplot as plt
 import Utilities.prelude as prel
+import scipy.integrate as sci
 from Utilities.selectors_for_snap import select_prefix
 from Utilities.sections import make_slices
-from Utilities.operators import make_tree, choose_observers, to_spherical_components
+from Utilities.operators import make_tree, choose_observers, to_spherical_components, draw_line
 from src import orbits as orb
 from src.Wind.Rtrapp_tdiff import load_and_smooth_rtrap
 
@@ -84,11 +85,17 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         underflow_mask = np.logical_and(np.logical_and(np.log(alpha_rossland) != 0.0, np.log(alpha_planck) != 0.0), np.log(alpha_scatter) != 0.0)
         d, t, r, alpha_rossland, alpha_planck, alpha_scatter = \
             make_slices([d, t, r, alpha_rossland, alpha_planck, alpha_scatter], underflow_mask)
+
+        r_fuT = np.flipud(r) #.T
+        alpha_rossland_fuT = np.flipud(alpha_rossland) 
+        # compute the optical depth from the outside in: tau = - int kappa dr. Then reverse the order to have it from the inside to out, so can query.
+        los = - np.flipud(sci.cumulative_trapezoid(alpha_rossland_fuT, r_fuT, initial = 0)) * prel.Rsol_cgs # this is the conversion for r
         
         single_obs = {'r': r, 
                       'd': d, 
                       't': t, 
                       'alpha_rossland': alpha_rossland, 
+                      'tau': los,
                       'alpha_planck': alpha_planck, 
                       'alpha_scatter': alpha_scatter}
 
@@ -137,7 +144,8 @@ if compute:
     all_obs = single_fld(loadpath, snap, observers_xyz, N_ray) 
     np.save(f'{pre_saving}/wind/kappa_fromFLD{snap}.npy', all_obs, allow_pickle=True)
 else:
-    
+    x_test = np.arange(1., 300)
+    y_test23 = draw_line(x_test, [1e4, -2/3], 'powerlaw')
     all_obs = np.load(f'{pre_saving}/wind/kappa_fromFLD{snap}.npy', allow_pickle=True).item()
     photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
     xph, yph, zph = photo['x'], photo['y'], photo['z']
@@ -147,7 +155,7 @@ else:
     x_tr, y_tr, z_tr, d_tr, Vr_tr, radden_tr = \
         dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['Rad_den_tr']
     r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-    # check xi from Miller15 (eq.6)
+    # check xi from Miller15 (~eq.6)
     profiles = np.load(f'{abspath}/data/{folder}/wind/r_profile/r{isoent}_profSec{snap}_{which_obs}_wind.npy', allow_pickle=True).item()
 
     kappa_tr = np.zeros(len(r_tr_all))
@@ -159,11 +167,12 @@ else:
     d_all = []
     t_all = []
     kappa_all = []
-
+    albedo_all = []
     rph_medians = np.zeros(len(indices_obs))
     rph_nonzero_medians = np.zeros(len(indices_obs))
     rtr_medians = np.zeros(len(indices_obs))
     rtr_nonzero_medians = np.zeros(len(indices_obs))
+
     figs, axs = plt.subplots(1, len(indices_obs), figsize=(7*len(indices_obs), 7))
     for k, indices in enumerate(indices_obs):
         # if label_obs[k] == 'South pole':
@@ -179,6 +188,7 @@ else:
         d_sec = []
         t_sec = []
         kappa_sec = []
+        albedo_sec = []
         for i in range(len(observers_xyz)):
             axs[k].set_title(label_obs[k])
             if r_tr_all[i] == 0:
@@ -187,7 +197,10 @@ else:
             d = all_obs[f'obs_{i}']['d']
             t = all_obs[f'obs_{i}']['t']
             alpha_ross = all_obs[f'obs_{i}']['alpha_rossland']
+            alpha_planck = all_obs[f'obs_{i}']['alpha_planck']
+            alpha_scatter = all_obs[f'obs_{i}']['alpha_scatter']
             kappa = alpha_ross/d
+            albedo = alpha_scatter/alpha_ross
             idx_tr = np.argmin(np.abs(r - r_tr_all[i]))
             kappa_tr[i] = alpha_ross[idx_tr]/d[idx_tr]
             if i not in indices:
@@ -201,17 +214,20 @@ else:
             d_sec.append(d)
             t_sec.append(t)
             kappa_sec.append(kappa) #if len(d)==0 else np.zeros((0,len(r)))
-        
+            albedo_sec.append(albedo) #if len(d)==0 else np.zeros((0,len(r)))
+
         # np.shape(r_sec) = (len(indices[nonzero]), len(r)) where len(r) is the same for all observers in the every section
         r_all.append(np.median(np.array(r_sec), axis=0))
         d_all.append(np.median(np.array(d_sec), axis=0))
         t_all.append(np.median(np.array(t_sec), axis=0))
         kappa_all.append(np.median(np.array(kappa_sec), axis=0))
-    
+        albedo_all.append(np.median(np.array(albedo_sec), axis=0))
+
     fig, (axx, axk) = plt.subplots(2,1, figsize=(7, 10))
     axes = np.concatenate([[axx, axk], [axs[l] for l in range(len(indices_obs))]])
     for i, lab in enumerate(profiles.keys()):
         r_arr = profiles[lab]['r'] 
+        d = profiles[lab]['d_prof']
         v_rad = np.abs(profiles[lab]['v_rad_prof'])
         if isoent == 'isoent': 
             print('Isoentropic Mdot and Lum for xi')
@@ -221,7 +237,8 @@ else:
         else:
             Mdot = profiles[lab]['Mdot_prof'] 
             L_adv = profiles[lab]['L_adv_prof']
-        n_e = Mdot/(prel.m_p_cgs/prel.Msol_cgs * 4 * np.pi * r_arr**2 * v_rad)
+        n_e = d/(prel.m_p_cgs/prel.Msol_cgs) # Mdot/(prel.m_p_cgs/prel.Msol_cgs * 4 * np.pi * r_arr**2 * v_rad)
+
         xi = L_adv/(n_e * r_arr**2) 
         xi_cgs = xi * prel.en_converter * prel.Rsol_cgs/prel.tsol_cgs
         # delete the nan values in xi_cgs and the corresponding r_arr values
@@ -238,18 +255,19 @@ else:
         axk.plot(r_all[i]/Rt, kappa_all[i], label=lab, color=colors_obs[i])
         axk.scatter(rph_nonzero_medians[i]/Rt, kappa_all[i][idx_rph], color=colors_obs[i], marker='o', s=60, edgecolors = 'k', zorder=3)
         axk.scatter(rtr_nonzero_medians[i]/Rt, kappa_all[i][idx_rtr], color=colors_obs[i], marker='d', s=60, edgecolors = 'k', zorder=3)
+        # axx.plot(x_test, y_test23, color='gray', ls='-.') #label=r'$\xi \propto r^{-2/3}$')
         axx.plot(r_arr[:idx_stop_xi]/Rt, xi_cgs[:idx_stop_xi], color=colors_obs[i],  label=lab)
         axx.scatter(rtr_nonzero_medians[i]/Rt, xi_cgs[idx_stop_xi], color=colors_obs[i], marker='d', s=60, edgecolors = 'k', zorder=3)
     
     axk.axhline(0.34, color='k', ls='-.')
-    axk.text(2.7e2, 0.4, r'$\kappa_{\rm es}$', fontsize=24)
+    axk.text(1.4, 0.25, r'$\kappa_{\rm es}$', fontsize=24)
     axk.set_ylim(.1, 25)
-    axk.set_ylabel(r'$\kappa$ (cm$^2$/g)')
+    axk.set_ylabel(r'$\kappa_{\rm Ross}$ (cm$^2$/g)')
     axk.set_xlabel(r'$r /r_{\rm t}$')
     axx.axhline(5000, color='k', ls='-.')
-    axx.set_ylim(1e1, 1.2e5)
+    axx.set_ylim(5, 1.2e5)
     axx.set_ylabel(r'$\xi$ (erg cm/s)')
-    axx.legend(fontsize=14)
+    axx.legend(fontsize=12)
     for ax in axes:
         ax.loglog()
         ax.set_xlim(1, 5e2)
@@ -257,9 +275,12 @@ else:
         ax.tick_params(axis='both', which='minor', length=6, width=1)
         ax.grid()
         plt.tight_layout()
-    
-    fig.savefig(f'{abspath}/Figs/2.paperWind/opacity.pdf', dpi=300, bbox_inches='tight')
-    figs.savefig(f'{abspath}/Figs/{folder}/wind/opacity_Rprof{snap}_{which_obs}ALL.png', dpi=300, bbox_inches='tight')
+
+    # if which_obs == 'split_stream':
+    #     fig.savefig(f'{abspath}/Figs/2.paperWind/opacity.pdf', dpi=300, bbox_inches='tight')
+    # else:
+    #     fig.savefig(f'{abspath}/Figs/{folder}/wind/opacity_{which_obs}.png', dpi=300, bbox_inches='tight')
+    # figs.savefig(f'{abspath}/Figs/{folder}/wind/opacity_Rprof{snap}_{which_obs}ALL.png', dpi=300, bbox_inches='tight')
 
     # %% test for photosphere
     gamma = 1/7
@@ -270,7 +291,7 @@ else:
     Vr_ph, _, _ = to_spherical_components(Vx_ph, Vy_ph, Vz_ph, xph, yph, zph) 
     Vr_ph = np.array(Vr_ph) * prel.Rsol_cgs/prel.tsol_cgs
     # rph_rtr_approx = Vr_tr * ratios_k / prel.csol_cgs * d_tr/d_ph 
-    rph_rtr_approx = (7*gamma-4)/(7*gamma-6) * kappa_ph/kappa_tr * prel.csol_cgs  /Vr_tr
+    rph_rtr_approx = 2/3 * (7*gamma-4)/(7*gamma-6) * kappa_ph/kappa_tr * prel.csol_cgs  /Vr_tr
 
     fig, ((axRratio, axT), (axR, axL)) = plt.subplots(2, 2, figsize=(15, 15))
     axRratio.scatter(rph_all/r_tr_all, rph_rtr_approx, color='k', s=60, edgecolors='k')
@@ -282,7 +303,7 @@ else:
 
     rtr_approx = kappa_tr * Mdot_tr / (4 * np.pi * prel.c_cgs * np.abs(3.5*gamma-2))
     Mdot_ph = 4 * np.pi * (rph_all*prel.Rsol_cgs)**2 * d_ph * Vr_ph
-    rph_approx = kappa_ph * Mdot_ph / (4 * np.pi * Vr_ph * np.abs(3.5*gamma-3))
+    rph_approx = 2/3 * kappa_ph * Mdot_ph / (4 * np.pi * Vr_ph * np.abs(3.5*gamma-3))
     axR.scatter(np.arange(len(rph_all)), rph_all * prel.Rsol_cgs / rph_approx, color='k', s=60, label = r'$r_{\rm ph}$')
     axR.scatter(np.arange(len(r_tr_all)), r_tr_all * prel.Rsol_cgs / rtr_approx, color='b', s=60, label = r'$r_{\rm tr}$')
     axR.axhline(1, color='r', ls='--', lw=1.5)

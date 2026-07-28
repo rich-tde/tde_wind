@@ -129,8 +129,8 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
 what_to_plot = 'time_evol' # 'single_snap_all_obs', 'single_snap_sec', 'time_evol' 'ratio_el'
-choice = 'left_right_z'
-delta_r = 1e14
+choice = 'split_stream'
+# delta_r = 1e14
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
@@ -139,7 +139,7 @@ snaps, Lum, tfb = op.sort_list([snaps, Lum, tfb], tfb, unique=True)
 snaps = snaps.astype(int)
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
 observers_xyz = np.array(observers_xyz)
-indices_obs, label_obs, color_obs, _ = op.choose_observers(observers_xyz, choice)
+indices_obs, label_obs, color_obs, _, _= op.choose_observers(observers_xyz, choice)
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 Rt = things['Rt']
@@ -152,6 +152,7 @@ if what_to_plot == 'single_snap_all_obs' or what_to_plot == 'single_snap_sec':
     photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
     x_ph, y_ph, z_ph, vx_ph, vy_ph, vz_ph, d_ph, temp_ph = \
         photo['x'], photo['y'], photo['z'], photo['vx'], photo['vy'], photo['vz'], photo['den'], photo['temp']
+    r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
     vr_ph, _, _ = op.to_spherical_components(vx_ph, vy_ph, vz_ph, x_ph, y_ph, z_ph) 
     vr_ph *= conversion_vel
     ratiosHa = np.zeros(len(temp_ph))
@@ -159,6 +160,7 @@ if what_to_plot == 'single_snap_all_obs' or what_to_plot == 'single_snap_sec':
     ratiosHe = np.zeros(len(temp_ph))
     fig, ax = plt.subplots(figsize=(8, 6))
     for i in range(len(temp_ph)):
+        delta_r = r_ph[i] * prel.Rsol_cgs
         ratiosHa[i], _, _ = line_ratio_paper(
                                 T=temp_ph[i],
                                 rho=d_ph[i],
@@ -193,12 +195,12 @@ if what_to_plot == 'single_snap_all_obs' or what_to_plot == 'single_snap_sec':
         for i, index in enumerate(indices_obs):
             if label_obs[i] == 'South pole':
                 continue
-            ax.scatter(temp_ph[index], ratiosHa[index], label="Ha" if i == 0 else "", s = 100, marker = markers[i], color='C1')
-            ax.scatter(temp_ph[index], ratiosHb[index], label="Hb" if i == 0 else "", s = 100, marker = markers[i], color='darkviolet')
-            ax.scatter(temp_ph[index], ratiosHe[index], label="HeII4686" if i == 0 else "", s = 100, marker = markers[i], color='dodgerblue')
+            ax.scatter(temp_ph[index], ratiosHa[index], label="Ha" if i == 0 else "", s = 100, marker = markers[i], color='#d00000')
+            ax.scatter(temp_ph[index], ratiosHb[index], label="Hb" if i == 0 else "", s = 100, marker = markers[i], color='#fb8500')
+            ax.scatter(temp_ph[index], ratiosHe[index], label="HeII4686" if i == 0 else "", s = 100, marker = markers[i], color='#ffd166')
         
-        # ax.scatter(temp_ph[88:103], ratiosHa[88:103], s = 100, color='C1', edgecolor='k')
-        # ax.scatter(temp_ph[88:103], ratiosHb[88:103], s = 100, color='darkviolet', edgecolor='k')
+        # ax.scatter(temp_ph[88:103], ratiosHa[88:103], s = 100, color='#d00000', edgecolor='k')
+        # ax.scatter(temp_ph[88:103], ratiosHb[88:103], s = 100, color='#fb8500', edgecolor='k')
         # ax.scatter(temp_ph[88:103], ratiosHe[88:103], s = 100, color='none', edgecolor='k', label = 'orb.pl.')
 
     if what_to_plot == 'single_snap_sec':
@@ -221,9 +223,9 @@ if what_to_plot == 'single_snap_all_obs' or what_to_plot == 'single_snap_sec':
         for i in range(len(indices_obs)):
             if label_obs[i] == 'South pole':
                 continue
-            ax.scatter(temp_ph_sec[i], ratiosHa_sec[i], label="Ha" if i == 0 else "", marker = markers[i], s = 100, color = 'C1')
-            ax.scatter(temp_ph_sec[i], ratiosHb_sec[i], label="Hb" if i == 0 else "", marker = markers[i], s = 100, color = 'darkviolet')
-            ax.scatter(temp_ph_sec[i], ratiosHe_sec[i], label="HeII4686" if i == 0 else "", marker = markers[i], s = 100, color = 'dodgerblue')
+            ax.scatter(temp_ph_sec[i], ratiosHa_sec[i], label="Ha" if i == 0 else "", marker = markers[i], s = 100, color = '#d00000')
+            ax.scatter(temp_ph_sec[i], ratiosHb_sec[i], label="Hb" if i == 0 else "", marker = markers[i], s = 100, color = '#fb8500')
+            ax.scatter(temp_ph_sec[i], ratiosHe_sec[i], label="HeII4686" if i == 0 else "", marker = markers[i], s = 100, color = '#ffd166')
 
     ax.set_xlabel("Temperature")
     ax.set_ylabel(r"$L_{\lambda, \rm {line}}/L_{\lambda, \rm {cont}}$")
@@ -237,6 +239,7 @@ if what_to_plot == 'single_snap_all_obs' or what_to_plot == 'single_snap_sec':
     plt.tight_layout()
 
 if what_to_plot == 'time_evol' or what_to_plot == 'ratio_el':
+    # print(Rt*prel.Rsol_cgs/1e14)
     dataBB = np.loadtxt(f'{abspath}/data/{folder}/wind/Tfit_intime_{choice}.txt', delimiter=',', skiprows=1, unpack=True)
     radiiBB = dataBB[len(indices_obs)+1:2*len(indices_obs)+1, :] # they're saved in cgs
     radiiBB /= prel.Rsol_cgs 
@@ -244,20 +247,27 @@ if what_to_plot == 'time_evol' or what_to_plot == 'ratio_el':
     ratiosHb_t = []
     ratiosHe_t = []
     temp_t = []
-    fig, ax = plt.subplots(1, len(indices_obs), figsize=(8*len(indices_obs), 6))
-    figTR, (axT, axR) = plt.subplots(2, len(indices_obs), figsize=(8*len(indices_obs), 12))
+    delta_r_t = []
+    fig, ax = plt.subplots(1, 3, figsize= (25, 7))
+    figTR, (axT, axR) = plt.subplots(2, len(indices_obs)-1, figsize=(8*len(indices_obs), 12))
+    axes = np.concatenate([[ax[i] for i in range(3)] + [axT[i] for i in range(len(indices_obs)-1)] + [axR[i] for i in range(len(indices_obs)-1)]])
     for snap in snaps:
         time = tfb[snaps == snap][0]
         photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
         x_ph, y_ph, z_ph, vx_ph, vy_ph, vz_ph, d_ph, temp_ph = \
             photo['x'], photo['y'], photo['z'], photo['vx'], photo['vy'], photo['vz'], photo['den'], photo['temp']
+        r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
         vr_ph, _, _ = op.to_spherical_components(vx_ph, vy_ph, vz_ph, x_ph, y_ph, z_ph) 
         vr_ph *= conversion_vel
         ratiosHa = np.zeros(len(temp_ph))
         ratiosHb = np.zeros(len(temp_ph))
         ratiosHe = np.zeros(len(temp_ph))
-
+        deltas_r = np.zeros(len(temp_ph))
         for i in range(len(temp_ph)):
+            if vr_ph[i] < 0:
+                continue
+            delta_r = r_ph[i] * prel.Rsol_cgs
+            deltas_r[i] = delta_r
             ratiosHa[i], _, _ = line_ratio_paper(
                                     T=temp_ph[i],
                                     rho=d_ph[i],
@@ -282,62 +292,80 @@ if what_to_plot == 'time_evol' or what_to_plot == 'ratio_el':
         ratiosHb_sec = np.zeros(len(indices_obs))
         ratiosHe_sec = np.zeros(len(indices_obs))
         temp_sec = np.zeros(len(indices_obs))
+        delta_r_sec = np.zeros(len(indices_obs))
         for i, indices in enumerate(indices_obs): # you need that if the splitting is not homogeneous
-            if snap == 151:
-                print('max ', np.max(ratiosHa[indices]))
             ratiosHa_sec[i] = np.median(ratiosHa[indices])
-            if snap == 151:
-                print('mean ', np.mean(ratiosHa[indices]))
             ratiosHb_sec[i] = np.median(ratiosHb[indices])
             ratiosHe_sec[i] = np.median(ratiosHe[indices])
             temp_sec[i] = np.median(temp_ph[indices])
+            delta_r_sec[i] = np.median(deltas_r[indices])
+            if snap == 151:
+                print(f'delta_R/1e15cm {label_obs[i]}', delta_r_sec[i]/1e15)
         ratiosHa_t.append(ratiosHa_sec)
         ratiosHb_t.append(ratiosHb_sec)
         ratiosHe_t.append(ratiosHe_sec)
         temp_t.append(temp_sec)
-        
+        delta_r_t.append(delta_r_sec)
+
     ratiosHa_t = np.transpose(ratiosHa_t)
     ratiosHb_t = np.transpose(ratiosHb_t)
     ratiosHe_t = np.transpose(ratiosHe_t) 
     temp_t = np.transpose(temp_t)
-    for obs in range(len(indices_obs)):
-        # if label_obs[obs] == 'South pole':
-        #     continue
-        ax[obs].plot(tfb, ratiosHa_t[obs], label="Ha" if obs == 0 else "", color='C1')
-        ax[obs].plot(tfb, ratiosHb_t[obs], label="Hb" if obs == 0 else "", color='darkviolet')
-        ax[obs].plot(tfb, ratiosHe_t[obs], label="HeII4686" if obs == 0 else "", color='dodgerblue')
+    delta_r_t = np.transpose(delta_r_t)
 
-        axT[obs].plot(temp_t[obs], ratiosHa_t[obs], label="Ha" if obs == 0 else "", color='C1')
-        axT[obs].plot(temp_t[obs], ratiosHb_t[obs], label="Hb" if obs == 0 else "", color='darkviolet')
-        axT[obs].plot(temp_t[obs], ratiosHe_t[obs], label="HeII4686" if obs == 0 else "", color='dodgerblue')
+    for obs in range(len(indices_obs)-1):
+        if label_obs[obs] == 'South pole':
+            continue
+        ax[0].plot(tfb, ratiosHa_t[obs], label = label_obs[obs], color = color_obs[obs]) 
+        ax[1].plot(tfb, ratiosHb_t[obs], label = label_obs[obs], color = color_obs[obs])
+        ax[2].plot(tfb, ratiosHe_t[obs], label = label_obs[obs], color = color_obs[obs])
+
+        axT[obs].plot(temp_t[obs], ratiosHa_t[obs], label=r"H$\alpha$" if obs == 0 else "", color='#d00000')
+        axT[obs].plot(temp_t[obs], ratiosHb_t[obs], label=r"H$\beta$" if obs == 0 else "", color='#fb8500')
+        axT[obs].plot(temp_t[obs], ratiosHe_t[obs], label=r"HeII4686" if obs == 0 else "", color='#ffd166')
 
         rBB = radiiBB[obs]
-        axR[obs].plot(rBB/Rt, ratiosHa_t[obs], label="Ha" if obs == 0 else "", color='C1')
-        axR[obs].plot(rBB/Rt, ratiosHb_t[obs], label="Hb" if obs == 0 else "", color='darkviolet')
-        axR[obs].plot(rBB/Rt, ratiosHe_t[obs], label="HeII4686" if obs == 0 else "", color='dodgerblue')
+        axR[obs].plot(rBB/Rt, ratiosHa_t[obs], label=r"H$\alpha$" if obs == 0 else "", color='#d00000')
+        axR[obs].plot(rBB/Rt, ratiosHb_t[obs], label=r"H$\beta$" if obs == 0 else "", color='#fb8500')
+        axR[obs].plot(rBB/Rt, ratiosHe_t[obs], label=r"HeII4686" if obs == 0 else "", color='#ffd166')
 
-        ax[obs].set_xlim(1, 2.25)
-        ax[obs].set_xlabel(r"$t/t_{\rm fb}$")
-        ax[obs].set_yscale('log')
 
         axT[obs].set_xlim(5e3, 1e5)
-        axT[obs].set_xlabel("Temperature (K)")
+        axT[obs].set_title(label_obs[obs], fontsize=20)
         axT[obs].loglog()
 
         axR[obs].plot([1e-3, 1e3], [1e-3, 1e3], color='k', linestyle='--', linewidth=1)
-        axR[obs].set_xlabel(r"$r/r_{\rm t}$")
         axR[obs].loglog()
 
-        for a in [ax[obs], axT[obs], axR[obs]]:
-            a.tick_params(axis='both', which='major', length=7, width=1)
-            a.tick_params(axis='both', which='minor', length=4, width=.9)
+        for a in axes:
+            a.tick_params(axis='both', which='major', length=10, width=1)
+            a.tick_params(axis='both', which='minor', length=6, width=.9)
             a.grid()
-            if a != axR[obs]:
-                a.set_title(label_obs[obs], fontsize=20)
-            a.set_ylim(5e-3, 5e2)
-            if obs == 0:
+            a.set_ylim(5e-2, 5e2)
+            if a not in [ax[0], ax[1], ax[2]]:
+                a.set_xlabel("Temperature (K)" if a == axT[obs] else r"$r/r_{\rm t}$")
                 a.set_ylabel(r"$L_{\lambda, \rm {line}}/L_{\lambda, \rm {cont}}$")
-                a.legend(fontsize=16)
+            else:
+                # if obs == len(indices_obs)-2:
+                a.set_xlim(1, 2.25)
+                a.set_yscale('log')
+                a.set_xlabel(r"$t/t_{\rm fb}$")
+            
+
+    # ax[0].set_ylim(1e-2, 5e2)
+    # ax[1].set_ylim(5e-1, 5e2)
+    # ax[2].set_ylim(1e-1, 5e2)
+    # ax[3].set_ylim(1e-2, 5)
+    # ax[4].set_ylim(1e-2, 5)
+    ax[0].set_ylabel(r'L$_{\lambda,\rm {line}}$/L$_{\lambda, \rm {cont}}$')
+    ax[2].set_ylim(5e-3, 5)
+    ax[2].legend(fontsize=18)
+
+    for i in range(3): # you need the new ylim
+        ax[i].set_title(r'H$\alpha$' if i == 0 else r'H$\beta$' if i == 1 else r'HeII4686', fontsize=25)
+        # ax[i].text(1.08, 0.4*ax[i].get_ylim()[1], r'H$\alpha$' if i == 0 else r'H$\beta$' if i == 1 else r'HeII4686', fontsize=25)
+
     fig.tight_layout()
     figTR.tight_layout()
+    fig.savefig(f'{abspath}/Figs/2.paperWind/line_ratio_time_evol_{choice}.pdf', bbox_inches = 'tight')
 # %%
