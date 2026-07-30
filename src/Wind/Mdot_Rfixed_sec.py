@@ -239,8 +239,8 @@ if __name__ == '__main__':
         tfbH = wind[1]
         rest = wind[2:2+len(label_obs)]
         if how == 'isoent':
-            area = wind[2+len(label_obs):2+2*len(label_obs)]
-            rest = rest * 4 * np.pi * r_chosen**2 / area 
+            area = wind[2+3*len(label_obs):2+4*len(label_obs)]
+            rest *=  4 * np.pi * r_chosen**2 / area 
         
         for i in range(len(rest)):
             axM.plot(tfbH, rest[i]/Medd_sol,  label = label_obs[i], c = color_obs[i])

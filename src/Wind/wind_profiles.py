@@ -1,10 +1,15 @@
 """ Find/plot radial profiles as weighted average on spherical sections. 
-Find/plot polar profiles for fixed r and phi_array. 
-Written to be run locally."""
+Find/plot polar profiles for fixed r and phi_array."""
 
-import sys
-sys.path.append('/Users/paolamartire/shocks')
-abspath = '/Users/paolamartire/shocks'
+from Utilities.isalice import isalice
+alice, plot = isalice()
+if alice:
+    abspath = '/data1/martirep/shocks/shock_capturing'
+else:
+    abspath = '/Users/paolamartire/shocks'
+    import sys
+    sys.path.append(abspath)
+
 import numpy as np
 import matplotlib.pyplot as plt 
 import matplotlib.colors as colors
@@ -59,6 +64,11 @@ rossland = np.loadtxt(f'{opac_path}/ross.txt')
 scattering = np.loadtxt(f'{opac_path}/scatter.txt')
 
 #%% FUNCTIONS
+def L_ionization(M_env, rin, rout, Eev):
+    # from Eq.14 in Roth+16
+    Lion = 4 *1e44 *(M_env/0.5)**2 * 1/(rin*prel.Rsol_cgs/1e14) * 1/(rout*prel.Rsol_cgs/1e14)**2 * Eev/50 
+    return Lion
+
 def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies = 'r', isoent = ''):
     if what_varies == 'r':
         rmin, rmax, Nray = ray_params
@@ -104,8 +114,8 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
     X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell, bern, Temp = \
         make_slices([X, Y, Z, Rsph, Vol, Den, Mass, V_r, T, Press, IE_den, Rad_den, dim_cell, bern, Temp], cut)       
     indices = np.arange(len(X))
-    print(f'For {which_part}, Vr is non positive for: ', indices[V_r <= 0])
-    print(f'For {which_part}, Bern is non positive for: ', indices[bern <= 0])
+    # print(f'For {which_part}, Vr is non positive for: ', indices[V_r <= 0])
+    # print(f'For {which_part}, Bern is non positive for: ', indices[bern <= 0])
 
     if what_varies == 'theta':
         _, lat, _ = op.to_spherical_coordinate(X, Y, Z, r_frame = 'us') #lat in [0, pi] with North pole at 0, orbital plane at pi/2, long counterclockwise in [0, 2pi] with direction of positive x at 0 
@@ -231,16 +241,16 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
         alpha_scatter = np.array(alpha_scatter)
         alpha_rossland = calc_ross_opacity_vectorized(T_cool, Rho_cool, rossland, scattering, np.log(tgas_prof), np.log(d_prof*prel.den_converter))
         alpha_rossland = np.array(alpha_rossland)
-        plt.figure(figsize = (10, 7))
-        img = plt.scatter(d_prof[ray_array<20*Rt]*prel.den_converter, alpha_rossland[ray_array<20*Rt]/(d_prof[ray_array<20*Rt]*prel.den_converter), c = tgas_prof[ray_array<20*Rt], norm = colors.LogNorm(vmin = 8e3, vmax = 1e7), cmap = 'rainbow')
-        cbar = plt.colorbar(img)
-        cbar.set_label('Temperature')
-        plt.scatter(d_prof[ray_array<20*Rt]*prel.den_converter, alpha_scatter[ray_array<20*Rt]/(d_prof[ray_array<20*Rt]*prel.den_converter), c = 'k', s = 2)
-        plt.loglog()
-        plt.xlim(1e-14, 1e-7)
-        plt.title(label_obs[j], fontsize = 25)
-        plt.xlabel(r'Density [g/cm$^3$', fontsize = 20)
-        plt.ylabel(r'Opacity [cm$^2$/g]', fontsize = 20)
+        # plt.figure(figsize = (10, 7))
+        # img = plt.scatter(d_prof[ray_array<20*Rt]*prel.den_converter, alpha_rossland[ray_array<20*Rt]/(d_prof[ray_array<20*Rt]*prel.den_converter), c = tgas_prof[ray_array<20*Rt], norm = colors.LogNorm(vmin = 8e3, vmax = 1e7), cmap = 'rainbow')
+        # cbar = plt.colorbar(img)
+        # cbar.set_label('Temperature')
+        # plt.scatter(d_prof[ray_array<20*Rt]*prel.den_converter, alpha_scatter[ray_array<20*Rt]/(d_prof[ray_array<20*Rt]*prel.den_converter), c = 'k', s = 2)
+        # plt.loglog()
+        # plt.xlim(1e-14, 1e-7)
+        # plt.title(label_obs[j], fontsize = 25)
+        # plt.xlabel(r'Density [g/cm$^3$', fontsize = 20)
+        # plt.ylabel(r'Opacity [cm$^2$/g]', fontsize = 20)
 
         outflow = {
             'r': ray_array,
@@ -302,7 +312,12 @@ elif what_varies == 'theta':
     r_chosen_name = 'apo'
 
 if compute:
-    snaps = [151]
+    if alice:
+        from Utilities.selectors_for_snap import select_snap
+        snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
+        snaps, tfb = snaps[snaps>75], tfb[snaps>75]
+    else:
+        snaps = [76]
     for snap in snaps: 
         path = f'{pre}/{snap}'
         if what_varies == 'r':
@@ -325,11 +340,13 @@ else:
     figC, axC = plt.subplots(1, 1, figsize=(8, 8))
     figx, (axx, axk) = plt.subplots(2, 1, figsize=(8, 14))
     figr, ((axNcell, axNmass), (axratio, axratioM)) = plt.subplots(2, 2, figsize=(18, 18))
-    # if which_plot == 'time_compare':
-    #     figr, (axratio, axratioM) = plt.subplots(1, 2, figsize=(24, 10))
-        # all_axes = [axd, axV, axT, axM, axLadv, axLkin, axratio, axratioM, axC]
-    # elif which_plot == 'single_time':
     all_axes = [axd, axV, axT, axM, axLadv, axLkin, axratio, axratioM, axNcell, axNmass, axC, axx, axk]
+
+    dataM = np.loadtxt(f'{abspath}/data/{folder}/wind/Mass_unbound{which_obs}.csv', delimiter=',', skiprows=1, unpack=True)
+    tfbM = dataM[1]
+    M_wind = dataM[2+2*(len(label_obs)):2+3*(len(label_obs))] 
+    for i in range(len(label_obs)):
+        M_wind[i, :] -= M_wind[i, 0]
 
     if what_varies == 'r':
         norm = 1/Rt
@@ -348,7 +365,7 @@ else:
         axratio.set_ylim(1e-2, 1.1)
         axratioM.set_ylim(1e-2, 1.1)
         axx.set_ylim(5, 1e5)
-        # axk.set_ylim(1e-1, 20)
+        axk.set_ylim(1e-1, 40)
         axd.text(0.8*apo*norm, 0.2*axd.get_ylim()[1], r'$r_{\rm a}$', fontsize = 20, color = 'gray', rotation = 90)   
         axd.plot(x_test, y_test2, c = 'gray', ls = '-.', label = r'$\rho \propto r^{-2}$')
         axd.text(71, 1.2e-11, r'$\rho \propto r^{-2}$', fontsize = 18, color = 'gray', rotation = -20)            
@@ -368,7 +385,7 @@ else:
         line_styles_parts = ['-.', '--', '-']
         
     else:
-        snaps = [151] 
+        snaps = [109] 
         which_parts = ['wind']#['outflow', 'wind']#, 'acc'] 
         labels_parts =  ['wind'] #['(unbound + bound) Outflow', 'Unbound outflow (wind)']#, 'Accretion'] #['Unbound outflow (wind)']#
         line_styles_parts = ['-'] #['--', '-']#, '-.'] 
@@ -424,6 +441,7 @@ else:
             profiles = np.load(f'{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}{isoent}_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
             for i, lab in enumerate(profiles.keys()):
                 if label_obs[i] == 'South pole' or rtr_nonzero_medians[i]==0:
+                    print('no Rtr for ', label_obs[i], ' or South pole')
                     continue 
                 if which_plot == 'single_time':
                     lab_plot = label_obs[i]
@@ -470,7 +488,7 @@ else:
                             make_slices([Nwind_cells, Ntot_cells, Mass_wind, Mass_tot], not_zero)
                     idx_rtr = np.argmin(np.abs(r_plot - rtr_nonzero_medians[i]))
                     idx_rph = np.argmin(np.abs(r_plot - rph_nonzero_medians[i]))
-                    n_e = d/(prel.m_p_cgs/prel.Msol_cgs)
+                    n_e = d/(1.3*prel.m_p_cgs/prel.Msol_cgs)
                     albedo = alpha_scatter/ alpha_rossland
                     xi = L_adv/(n_e * r_plot**2) 
                     xi_cgs = xi * prel.en_converter * prel.Rsol_cgs/prel.tsol_cgs
@@ -518,6 +536,10 @@ else:
                 axLadv.plot(r_plot*norm, L_adv/Ledd_sol, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
                 axLkin.plot(r_plot*norm, L_kin/Ledd_sol, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
 
+                Lion = L_ionization(M_wind[i, np.argmin(np.abs(tfbM-tfb))], Rt, rtr_nonzero_medians[i], 50) #cgs
+                Lion *= prel.tsol_cgs/prel.en_converter
+                print(f'Ladv/Lion for {lab_plot} is {L_adv[idx_rtr]/Lion}')
+
                 if np.logical_and(which_part == 'wind', s == 0): 
                     handles_color.append(line)
                     labels_color.append(lab_plot)
@@ -540,21 +562,21 @@ else:
                     axk.plot(r_plot*norm, alpha_scatter/(d*prel.den_converter), color = colors_sec, ls = '--')
 
                 if np.logical_and(what_varies =='r' , which_part == 'wind'):
-                    axd.scatter(r_plot[idx_rph]*norm, d[idx_rph] * prel.den_converter, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
-                    axM.scatter(r_plot[idx_rph]*norm, Mdot[idx_rph]/Medd_sol, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
-                    axV.scatter(r_plot[idx_rph]*norm, v_rad[idx_rph] * conversion_sol_kms, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
-                    axLadv.scatter(r_plot[idx_rph]*norm, L_adv[idx_rph]/Ledd_sol, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
-                    axT.scatter(r_plot[idx_rph]*norm, t[idx_rph], marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
-                    axLkin.scatter(r_plot[idx_rph]*norm, L_kin[idx_rph]/Ledd_sol, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
+                    axd.scatter(r_plot[idx_rph]*norm, d[idx_rph] * prel.den_converter, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k', zorder = 5)
+                    axM.scatter(r_plot[idx_rph]*norm, Mdot[idx_rph]/Medd_sol, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k', zorder = 5)
+                    axV.scatter(r_plot[idx_rph]*norm, v_rad[idx_rph] * conversion_sol_kms, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k', zorder = 5)
+                    axLadv.scatter(r_plot[idx_rph]*norm, L_adv[idx_rph]/Ledd_sol, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k', zorder = 5)
+                    axT.scatter(r_plot[idx_rph]*norm, t[idx_rph], marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k', zorder = 5)
+                    axLkin.scatter(r_plot[idx_rph]*norm, L_kin[idx_rph]/Ledd_sol, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k', zorder = 5)
 
-                    axd.scatter(r_plot[idx_rtr]*norm, d[idx_rtr] * prel.den_converter, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
-                    axM.scatter(r_plot[idx_rtr]*norm, Mdot[idx_rtr]/Medd_sol, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
-                    axV.scatter(r_plot[idx_rtr]*norm, v_rad[idx_rtr] * conversion_sol_kms, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
-                    axLadv.scatter(r_plot[idx_rtr]*norm, L_adv[idx_rtr]/Ledd_sol, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
-                    axT.scatter(r_plot[idx_rtr]*norm, t[idx_rtr], marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
-                    axLkin.scatter(r_plot[idx_rtr]*norm, L_kin[idx_rtr]/Ledd_sol, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
-                    axx.scatter(r_plot[idx_rtr]*norm, xi_cgs[idx_rtr], marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
-                    axk.scatter(r_plot[idx_rtr]*norm, alpha_rossland[idx_rtr]/(d[idx_rtr]*prel.den_converter), marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k')
+                    axd.scatter(r_plot[idx_rtr]*norm, d[idx_rtr] * prel.den_converter, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k', zorder = 5)
+                    axM.scatter(r_plot[idx_rtr]*norm, Mdot[idx_rtr]/Medd_sol, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k', zorder = 5)
+                    axV.scatter(r_plot[idx_rtr]*norm, v_rad[idx_rtr] * conversion_sol_kms, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k', zorder = 5)
+                    axLadv.scatter(r_plot[idx_rtr]*norm, L_adv[idx_rtr]/Ledd_sol, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k', zorder = 5)
+                    axT.scatter(r_plot[idx_rtr]*norm, t[idx_rtr], marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k', zorder = 5)
+                    axLkin.scatter(r_plot[idx_rtr]*norm, L_kin[idx_rtr]/Ledd_sol, marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k', zorder = 5)
+                    axx.scatter(r_plot[idx_rtr]*norm, xi_cgs[idx_rtr], marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k', zorder = 5)
+                    axk.scatter(r_plot[idx_rtr]*norm, alpha_rossland[idx_rtr]/(d[idx_rtr]*prel.den_converter), marker = 'd', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k', zorder = 5)
 
     axV.axhline(v_esc_kms, c = 'k', ls = 'dotted')
     axx.axhline(5000, color='gray', ls='-.')
@@ -628,7 +650,9 @@ else:
     figr.tight_layout()
     figr.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 22)
     figr.tight_layout()
-    figx.savefig(f'{abspath}/Figs/2.paperWind/opacity.pdf', dpi=300, bbox_inches='tight')
+    if snap == 151:
+        figx.savefig(f'{abspath}/Figs/2.paperWind/opacity.pdf', dpi=300, bbox_inches='tight')
+    figx.savefig(f'{abspath}/Figs/{folder}/Wind/r_profile/opacity{snap}.png', dpi=300, bbox_inches='tight')
 
     # if which_plot == 'time_compare':
     #     fig.savefig(f'{abspath}/Figs/{folder}/Wind/{what_varies}_profile/den_{what_varies}{r_chosen_name}_evol.png', bbox_inches = 'tight')

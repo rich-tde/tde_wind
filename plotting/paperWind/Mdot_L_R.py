@@ -27,7 +27,7 @@ compton = 'Compton'
 check = 'HiResNewAMR' 
 choice = 'split_stream'
 how = 'isoent'
-which_plot = 'ML_conv' # 'ML' or 'ML_conv'
+which_plot = 'ML' # 'ML' or 'ML_conv'
 commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 folder = f'{commonfolder}{check}'
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
@@ -39,6 +39,7 @@ Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 t_fb_days = things['t_fb_days']
+amin = things['a_mb']
 Rt = things['Rt']
 
 if len(label_obs) > 6 :
@@ -51,6 +52,8 @@ if len(label_obs) > 6 :
         ax.set_ylim(1e38, 5e42)
         ax.set_ylabel(r'$L_{{\rm FLD}}$ (erg/s)')  
 else:
+    r_chosen = 0.5*amin
+    which_r_title = '05amin'
     figM, (axM, axL) = plt.subplots(1,2, figsize = (16,7))  
     if which_plot == 'ML':
         figr, axr  = plt.subplots(1,1, figsize = (9,7))
@@ -67,6 +70,14 @@ if which_plot == 'ML':
     dataM = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
     snaps, tfb_Lum, Lums = dataM[:, 0], dataM[:, 1], dataM[:, 2]
     tfb_Lum, snaps, Lums = sort_list([tfb_Lum, snaps, Lums], snaps, unique=True)
+
+    fallback = \
+            np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_{check}{which_r_title}mean.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True)
+    tfbfb, mfb = fallback[1], fallback[2]
+    
     Lum_sec = []
     rph_sec = []
     rtr_sec = []
@@ -99,12 +110,16 @@ if which_plot == 'ML':
     rtr_sec = np.transpose(np.array(rtr_sec))
     
     wind = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}05amin{choice}_wind.csv', 
+            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_wind.csv', 
                     delimiter = ',', 
                     skiprows=1, 
                     unpack=True) 
     tfb = wind[1]
     rest = wind[2:2+len(label_obs)]
+
+    if how == 'isoent':
+        area = wind[-len(label_obs):]
+        rest *=  4 * np.pi * r_chosen**2 / area
 
     if choice == 'left_right_z' or choice == 'split_stream':
         outflow = \
@@ -120,8 +135,8 @@ if which_plot == 'ML':
 
     handles_color = []
     labels_color = []
-    line_styles_parts = ['-', '--']
-    labels_parts = [r'$\dot{M}_{\rm w}$', r'$\dot{M}_{\rm out}$']
+    line_styles_parts = ['-', '--', '-.']
+    labels_parts = [r'$\dot{M}_{\rm w}$', r'$\dot{M}_{\rm out}$', r'$|\dot{M}_{\rm fb}|$']
     for i in range(len(label_obs)):
         if label_obs[i] == 'South pole':
             continue
@@ -137,6 +152,7 @@ if which_plot == 'ML':
         else:
             if label_obs[i] != r'Stream side $\theta\in[4\pi/9,\pi/2]$':
                 line = axM.plot(tfb, rest[i]/Medd_sol,  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])[0]
+            axM.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'gray', ls = '-.', label = r'$|\dot{M}_{\rm fb}|$')
             axL.plot(tfb_Lum, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i])
             if choice == 'left_right_z' or choice == 'split_stream':
                 axM.plot(tfbO[4:], restO[i][4:]/Medd_sol, linewidth = 2, c = color_obs[i], ls = line_styles_parts[1])
@@ -271,7 +287,7 @@ for l, line in enumerate(line_styles_parts):
 axM.legend(handles=proxy_lines, fontsize=20, 
                                 loc='upper left')
 
-axrM.legend(fontsize = 20)
+axr.legend(fontsize = 20)
 figM.tight_layout()
 figr.tight_layout()
 if choice == 'tenths':

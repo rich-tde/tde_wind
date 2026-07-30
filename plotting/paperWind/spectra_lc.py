@@ -43,8 +43,9 @@ high_freq_optical = 3.358 * prel.ev_toHz #7.5e14
 high_freq_UV = 7.7488 * prel.ev_toHz #3e15
 low_freq_Xray = 300 * prel.ev_toHz 
 high_freq_Xray = 2e4 * prel.ev_toHz #3e19
-L_min, L_max = 1e37, 1.5e42
+L_min, L_max = 1e38, 1.5e42
 T_min, T_max = 1e3, 1e7
+tmin, tmax = -0.05, 2.24
 nu_min, nu_max = 1e14, 1e19
 # Observations expectations 
 L_Einstein = 3.5e43 #erg/s
@@ -452,11 +453,11 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
             Lum_UV = Lum_UV_mean[k]
             Lum_XrayMG = Lum_Xray_MG[k]
             axes[k].plot(tfb, Lum_op, label = 'Optical', c = colors_obs[k], linewidth = 2)
-            axes[k].scatter(tfb[np.argmax(Lum_op)], np.max(Lum_op), c = colors_obs[k], s = 200, marker = '*')
+            axes[k].scatter(tfb[np.argmax(Lum_op)], np.max(Lum_op), c = colors_obs[k], s = 200, marker = '*', edgecolors='k', zorder = 5)
             axes[k].plot(tfb, Lum_UV, label = f'UV', c = colors_obs[k], linewidth = 2, ls = '--')
-            axes[k].scatter(tfb[np.argmax(Lum_UV)], np.max(Lum_UV), c = colors_obs[k], s = 200, marker = '*')
+            axes[k].scatter(tfb[np.argmax(Lum_UV)], np.max(Lum_UV), c = colors_obs[k], s = 200, marker = '*', edgecolors='k', zorder = 5)
             axes[k].plot(time_MG, Lum_XrayMG, label = f'Xray', c = colors_obs[k], linewidth = 2, ls = ':')
-            axes[k].scatter(time_MG[np.argmax(Lum_XrayMG)], np.max(Lum_XrayMG), c = colors_obs[k], s = 200, marker = '*')
+            axes[k].scatter(time_MG[np.argmax(Lum_XrayMG)], np.max(Lum_XrayMG), c = colors_obs[k], s = 200, marker = '*', edgecolors='k', zorder = 5)
             axes[k].text(0.1, L_max/5, f'{label_obs[k]}', fontsize = 26)
         original_ticks = axes[0].get_xticks()
         axes[0].legend(fontsize = 25)
@@ -479,9 +480,9 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
             ax_UV.plot(tfb, Lum_UV, label = f'This work' if k == 2 else None, c = colors_obs[k], linewidth = 2)
             ax_Xray.plot(time_MG, Lum_XrayMG, c = colors_obs[k], label = f'{obs}', ls = ':' if group == 'bandsMG' else '-', linewidth = 2)
             if group == 'bands':
-                ax_op.scatter(tfb[np.argmax(Lum_op)], np.max(Lum_op), c = colors_obs[k], s = 200, marker = '*')
-                ax_UV.scatter(tfb[np.argmax(Lum_UV)], np.max(Lum_UV), c = colors_obs[k], s = 200, marker = '*')
-                ax_Xray.scatter(time_MG[np.argmax(Lum_XrayMG)], np.max(Lum_XrayMG), c = colors_obs[k], s = 200, marker = '*')
+                ax_op.scatter(tfb[np.argmax(Lum_op)], np.max(Lum_op), c = colors_obs[k], s = 200, marker = '*', edgecolors='k', zorder = 5)
+                ax_UV.scatter(tfb[np.argmax(Lum_UV)], np.max(Lum_UV), c = colors_obs[k], s = 200, marker = '*', edgecolors='k', zorder = 5)
+                ax_Xray.scatter(time_MG[np.argmax(Lum_XrayMG)], np.max(Lum_XrayMG), c = colors_obs[k], s = 200, marker = '*', edgecolors='k', zorder = 5)
 
             if group == 'bandsMG':
                 ax_Xray.plot(tfb, Lum_Xray_mean[k], c = colors_obs[k], linewidth = 2)
@@ -493,7 +494,7 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
         ax_Xray.text(0.05, L_max/3, 'X-ray', fontsize = 26)
         original_ticks = ax_op.get_xticks()
         ax_op.legend(fontsize = 16)
-        ax_Xray.legend(fontsize = 15, bbox_to_anchor=(0.65, 0.01), loc='lower right')
+        ax_Xray.legend(fontsize = 15, loc = 'upper right') #bbox_to_anchor=(0.65, 0.01), loc='lower right')
         if group == 'bandsMG':
             ax_UV.legend(fontsize = 16)
         ax_op.set_ylabel(r'$\nu L_{\nu}$ (erg/s)', fontsize = 30)
@@ -529,12 +530,12 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
         ax.tick_params(axis='y', which='minor', width = 1, length = 4, color = 'k')
         ax.grid()
         ax.set_ylim(L_min, L_max)
-        ax.set_xlim(-.05, np.max(tfb)) 
+        ax.set_xlim(tmin, tmax) 
 
         ax2 = ax.twiny()
         # ax2.axvline(4.5)
         ax2.set_xticks(days_ticks)
-        ax2.set_xlim(-0.05*t_fb_days, np.max(tfb)*t_fb_days)
+        ax2.set_xlim(tmin*t_fb_days, tmax*t_fb_days)
         ax2.set_xticklabels(days_labels)
         ax2.set_xlabel(r't (days)', fontsize = 30)
     
@@ -661,6 +662,6 @@ params['R'].min = 0.0    # R ≥ 0
 params['T'].min = 0.0    # T ≥ 0  
 # plot_spectra(folder, check, snaps_spectra, x_axis, choice)
 # TRfit_in_time(folder, check, choice)
-# plot_light_curves(folder, check, choice, group = 'bands')
+plot_light_curves(folder, check, choice, group = 'bands')
 # plot_light_curves(folder, check, choice, group = 'sections')
-plot_light_curves(folder, check, choice, group = 'bandsMG')
+# plot_light_curves(folder, check, choice, group = 'bandsMG')
