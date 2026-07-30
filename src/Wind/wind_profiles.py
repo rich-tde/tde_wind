@@ -5,10 +5,12 @@ from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
     abspath = '/data1/martirep/shocks/shock_capturing'
+    compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
     import sys
     sys.path.append(abspath)
+    compute = False
 
 import numpy as np
 import matplotlib.pyplot as plt 
@@ -300,7 +302,6 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
 #   
 ## MAIN
 #
-compute = False
 which_part = 'wind' # 'outflow' or 'all' or 'wind' to have the wind
 what_varies = 'r' # 'r' or 'theta', only for radial profiles
 which_obs = 'split_stream' # 'left_right_z', 'all' or 'in_out_z'
@@ -319,7 +320,11 @@ if compute:
     else:
         snaps = [76]
     for snap in snaps: 
-        path = f'{pre}/{snap}'
+        print(snap, flush = True)
+        if alice:
+            path = f'{pre}/{snap}'
+        else:
+            path = f'{pre}/snap_{snap}'
         if what_varies == 'r':
             ray_params = [Rt, 1e3*Rt, 300] 
         elif what_varies == 'theta':
