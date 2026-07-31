@@ -322,9 +322,9 @@ if compute:
     for snap in snaps: 
         print(snap, flush = True)
         if alice:
-            path = f'{pre}/{snap}'
-        else:
             path = f'{pre}/snap_{snap}'
+        else:
+            path = f'{pre}/{snap}'
         if what_varies == 'r':
             ray_params = [Rt, 1e3*Rt, 300] 
         elif what_varies == 'theta':
