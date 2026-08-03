@@ -59,9 +59,22 @@ L_ULTRA = 5e40
 def lumfit(n, R, T):
     const = 2*prel.h_cgs/prel.c_cgs**2 
     planck = const * n**3 / (np.exp(prel.h_cgs*n/(prel.Kb_cgs*T))-1)
-    Lum = 4 * (np.pi * R)**2 *planck  # L = 4piR^2 * pi * B since pi*B = flux
+    Lum = 4 * (np.pi * R)**2 * planck  # L = 4piR^2 * pi * B since pi*B = flux
     return Lum
 
+#%%
+def lumtest(n, T):
+    const = 2*prel.h_cgs/prel.c_cgs**2 
+    planck = const * n**3 / (np.exp(prel.h_cgs*n/(prel.Kb_cgs*T))-1)
+    return planck
+
+x = prel.freqs
+print(f'Min: {np.min(x):.2e}, Max: {np.max(x):.2e}')
+plt.plot(x*prel.Hz_toK, x*lumtest(x, 8e3))
+plt.loglog()
+plt.ylim(1e5, 1e12)
+plt.xlim(1e3, 1e7)
+#%%
 def plot_spectra(folder, check, snaps, x_axis, choice, in_moll = False):
     # Load
     pre_saving = f'{abspath}/data/{folder}'
@@ -231,7 +244,6 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll = False):
                 labels_color.append(label_obs[i_idx])
         ax[s].set_title(f't = {np.round(time, 1)}' + r't$_{\rm fb}$', fontsize = 30, y = 1.15)
 
-        # if len(indices_sorted) < 6:
         for i_idx, idx in enumerate(indices_sorted): 
             if label_obs[i_idx] == 'South pole':
                 continue
@@ -551,10 +563,7 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
         ax.tick_params(axis='both', which='major', width = 1, length = 7, color = 'k')
         ax.tick_params(axis='y', which='minor', width = 1, length = 4, color = 'k')
         ax.grid()
-        if group == 'bandsMG':
-            ax.set_ylim(L_min, 4e42)
-        else:
-            ax.set_ylim(L_min, L_max)
+        ax.set_ylim(L_min, L_max)
         ax.set_xlim(tmin, tmax) 
 
         ax2 = ax.twiny()
@@ -565,7 +574,7 @@ def plot_light_curves(folder, check, choice, group = 'bands'):
         ax2.set_xlabel(r't (days)', fontsize = 30)
     
     fig_L.tight_layout()
-    fig_L.savefig(f'{abspath}/Figs/2.paperWind/LCs_{choice}_{group}.pdf', dpi=300)
+    fig_L.savefig(f'{abspath}/Figs/2.paperWind/LCs_{choice}_{group}.pdf', dpi=300, bbox_inches='tight')
     if group == 'bands':
         fig_x.tight_layout()
         fig_x.savefig(f'{abspath}/Figs/2.paperWind/LCsXray_{choice}_{group}.pdf', dpi=300)
@@ -685,8 +694,8 @@ pmodel = Model(lumfit)
 params = pmodel.make_params(R=1e13, T=1e4)
 params['R'].min = 0.0    # R ≥ 0
 params['T'].min = 0.0    # T ≥ 0  
-# plot_spectra(folder, check, snaps_spectra, x_axis, choice)
+plot_spectra(folder, check, snaps_spectra, x_axis, choice)
 # TRfit_in_time(folder, check, choice)
 # plot_light_curves(folder, check, choice, group = 'bands')
 # plot_light_curves(folder, check, choice, group = 'sections')
-plot_light_curves(folder, check, choice, group = 'bandsMG')
+# plot_light_curves(folder, check, choice, group = 'bandsMG')

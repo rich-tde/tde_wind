@@ -37,8 +37,8 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
 choice = 'split_stream' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
-how = 'isoent' # '' for the normalized sum or 'mean' for mean of Mw of each cells
-what = 'wind' # '' for wind or 'outflow'
+how = 'isot' # '' for the normalized sum or 'mean' for mean of Mw of each cells
+what = 'boundOut' # '' for wind or 'boundOut'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
@@ -78,7 +78,7 @@ def split_cells(X, Y, Z, choice):
     
     return indices_sec, label_obs
     
-def Mdot_sec(path, snap, r_chosen, choice, how = ''):
+def Mdot_sec(path, snap, r_chosen, choice, what, how = ''):
     # Load data and pick the ones unbound and with positive velocity
     data = make_tree(path, snap)
     X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
@@ -90,15 +90,17 @@ def Mdot_sec(path, snap, r_chosen, choice, how = ''):
     X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
         make_slices([X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
     if X.size == 0:
+        if how == 'isot':
+            return np.array([0]*len(label_obs)*4) # to have the right shape in all cases
         return np.array([0]*len(label_obs)*3) # to have the right shape in all cases
 
-    cut_wind, _, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, cond = 'bern')
+    cut_wind, bern, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, cond = 'bern')
 
     if what == 'wind':
-        cut =  cut_wind
+        cut = cut_wind
 
-    if what == 'outflow':
-        cut =  V_r > 0
+    if what == 'BoundOut':
+        cut =  np.logical_and(V_r > 0, bern < 0)
 
     X_wind, Y_wind, Z_wind, Den_wind, v_rad_wind, dim_cell_wind, Rad_den_wind = \
         make_slices([X, Y, Z, Den, V_r, dim_cell, Rad_den], cut)
@@ -156,7 +158,7 @@ def Mdot_sec(path, snap, r_chosen, choice, how = ''):
             mwind[j] = C_mult * r_chosen**2 * np.sum(Mdot[indices]) / np.sum(dim_cell_wind[indices]**2)
             Lum_fs[j] = C_mult * r_chosen**2 * np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs / np.sum(dim_cell_wind[indices]**2)
             Lkin[j] = 0.5 * C_mult * r_chosen**2 * np.sum(Mdot[indices] * v_rad_wind[indices]**2) / np.sum(dim_cell_wind[indices]**2)
-        elif how == 'isoent':   
+        elif how == 'isot':   
             mwind[j] = np.sum(Mdot[indices])
             Lum_fs[j] = np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs
             Lkin[j] = 0.5 * np.sum(Mdot[indices] * v_rad_wind[indices]**2)
@@ -238,7 +240,7 @@ if __name__ == '__main__':
                         unpack=True) 
         tfbH = wind[1]
         rest = wind[2:2+len(label_obs)]
-        if how == 'isoent':
+        if how == 'isot':
             area = wind[2+3*len(label_obs):2+4*len(label_obs)]
             rest *=  4 * np.pi * r_chosen**2 / area 
         

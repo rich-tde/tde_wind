@@ -1,6 +1,9 @@
 """ Find/plot radial profiles as weighted average on spherical sections. 
 Find/plot polar profiles for fixed r and phi_array."""
 
+import sys
+sys.path.append('/Users/paolamartire/shocks')
+abspath = '/Users/paolamartire/shocks'
 from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
@@ -71,7 +74,7 @@ def L_ionization(M_env, rin, rout, Eev):
     Lion = 4 *1e44 *(M_env/0.5)**2 * 1/(rin*prel.Rsol_cgs/1e14) * 1/(rout*prel.Rsol_cgs/1e14)**2 * Eev/50 
     return Lion
 
-def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies = 'r', isoent = ''):
+def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies = 'r', isot = ''):
     if what_varies == 'r':
         rmin, rmax, Nray = ray_params
         ray_array = np.logspace(np.log10(rmin), np.log10(rmax), Nray)
@@ -161,6 +164,7 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
         cond_all = cond_sec_all[j]
         area = np.zeros(Nray)
         t_prof = np.zeros(Nray)
+        urad_prof = np.zeros(Nray)
         tgas_prof = np.zeros(Nray)
         v_rad_prof = np.zeros(Nray)
         d_prof = np.zeros(Nray)
@@ -217,11 +221,12 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
             ray_t = (ray_rad_den * prel.en_den_converter / prel.alpha_cgs)**(1/4) 
             L_adv =  ray_V_r * ray_rad_den
             t_prof[i] = np.sum(ray_t*ray_vol) / np.sum(ray_vol)
+            urad_prof[i] = np.sum(ray_rad_den*ray_vol) / np.sum(ray_vol)
             tgas_prof[i] = np.sum(ray_tgas*ray_vol) / np.sum(ray_vol)
             v_rad_prof[i] = np.sum(ray_V_r*ray_m) / np.sum(ray_m)
             d_prof[i] = np.sum(ray_d*ray_m)/ np.sum(ray_m)
             area[i] = np.pi * np.sum(ray_dim**2)
-            if isoent == 'isoent':
+            if isot == 'isot':
                 Mdot_prof[i] = np.pi * np.sum(ray_dim**2 * ray_d * ray_V_r)
                 L_kin_prof[i] = 0.5 * np.pi *np.sum(ray_dim**2 * ray_d * ray_V_r**3)
                 L_adv_prof[i] = np.pi * np.sum(ray_dim**2 * L_adv)
@@ -258,6 +263,7 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
             'r': ray_array,
             'area': area,
             't_prof': t_prof,
+            'urad_prof': urad_prof,
             'tgas_prof': tgas_prof,
             'v_rad_prof': v_rad_prof,
             'm_prof': ray_m,
@@ -305,7 +311,7 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
 which_part = 'wind' # 'outflow' or 'all' or 'wind' to have the wind
 what_varies = 'r' # 'r' or 'theta', only for radial profiles
 which_obs = 'split_stream' # 'left_right_z', 'all' or 'in_out_z'
-isoent = 'isoent' 
+isot = 'isot' 
 if what_varies == 'r':
     r_chosen_name = '' 
 elif what_varies == 'theta':
@@ -318,7 +324,7 @@ if compute:
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
         snaps, tfb = snaps[snaps>75], tfb[snaps>75]
     else:
-        snaps = [76]
+        snaps = [151]
     for snap in snaps: 
         print(snap, flush = True)
         if alice:
@@ -330,8 +336,8 @@ if compute:
         elif what_varies == 'theta':
             ray_params = [r_chosen, 80]
 
-        all_outflows = profiles(path, snap, ray_params, which_obs, which_part, what_varies, isoent)
-        out_path = f"{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}{isoent}_profSec{snap}_{which_obs}_{which_part}.npy"
+        all_outflows = profiles(path, snap, ray_params, which_obs, which_part, what_varies, isot)
+        out_path = f"{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}{isot}_profSec{snap}_{which_obs}_{which_part}.npy"
         np.save(out_path, all_outflows, allow_pickle=True)
 
 else:
@@ -369,7 +375,7 @@ else:
         axLkin.set_ylim(1e-1, 5e2) 
         axratio.set_ylim(1e-2, 1.1)
         axratioM.set_ylim(1e-2, 1.1)
-        axx.set_ylim(5, 1e5)
+        axx.set_ylim(1e-5, 1e3)
         axk.set_ylim(1e-1, 40)
         axd.text(0.8*apo*norm, 0.2*axd.get_ylim()[1], r'$r_{\rm a}$', fontsize = 20, color = 'gray', rotation = 90)   
         axd.plot(x_test, y_test2, c = 'gray', ls = '-.', label = r'$\rho \propto r^{-2}$')
@@ -390,7 +396,7 @@ else:
         line_styles_parts = ['-.', '--', '-']
         
     else:
-        snaps = [109] 
+        snaps = [151] 
         which_parts = ['wind']#['outflow', 'wind']#, 'acc'] 
         labels_parts =  ['wind'] #['(unbound + bound) Outflow', 'Unbound outflow (wind)']#, 'Accretion'] #['Unbound outflow (wind)']#
         line_styles_parts = ['-'] #['--', '-']#, '-.'] 
@@ -443,7 +449,7 @@ else:
         #     ax2.scatter(x_obs[non_zero], z_obs[non_zero], color = colors_obs[i], linewidths = 1, label = r'r$_{\rm tr}\neq0$' if i == 0 else '')
         # Load profiles
         for k, which_part in enumerate(which_parts):
-            profiles = np.load(f'{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}{isoent}_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
+            profiles = np.load(f'{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_name}{isot}_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
             for i, lab in enumerate(profiles.keys()):
                 if label_obs[i] == 'South pole' or rtr_nonzero_medians[i]==0:
                     print('no Rtr for ', label_obs[i], ' or South pole')
@@ -456,8 +462,10 @@ else:
                 d = profiles[lab]['d_prof']
                 v_rad = np.abs(profiles[lab]['v_rad_prof'])
                 t = profiles[lab]['t_prof']
-                if isoent == 'isoent':
-                    print('Isoentropic Mdot and Lum')
+                urad_prof = profiles[lab]['urad_prof']
+                cu = prel.csol_cgs * urad_prof
+                if isot == 'isot':
+                    print('isotropic Mdot and Lum')
                     area = profiles[lab]['area']
                     if what_varies == 'r':
                         Mdot = (4 * np.pi * r_arr**2) /area * profiles[lab]['Mdot_prof']
@@ -486,8 +494,8 @@ else:
                 colors_sec = colors_obs[i] #profiles[lab]['colors_obs']
                 not_zero = np.where(np.logical_and(d != 0, r_arr > 0))
                 if what_varies == 'r':
-                    r_plot, d, v_rad, t, Mdot, L_adv, L_kin, ratio_un, ratio_Mass, Mdotmean, alpha_scatter, alpha_rossland = \
-                        make_slices([r_arr, d, v_rad, t, Mdot, L_adv, L_kin, ratio_un, ratio_Mass, Mdotmean, alpha_scatter, alpha_rossland], not_zero)
+                    r_plot, d, v_rad, t, Mdot, L_adv, L_kin, ratio_un, ratio_Mass, Mdotmean, alpha_scatter, alpha_rossland, cu = \
+                        make_slices([r_arr, d, v_rad, t, Mdot, L_adv, L_kin, ratio_un, ratio_Mass, Mdotmean, alpha_scatter, alpha_rossland, cu], not_zero)
                     if which_part == 'wind':
                         Nwind_cells, Ntot_cells, Mass_wind, Mass_tot = \
                             make_slices([Nwind_cells, Ntot_cells, Mass_wind, Mass_tot], not_zero)
@@ -495,7 +503,7 @@ else:
                     idx_rph = np.argmin(np.abs(r_plot - rph_nonzero_medians[i]))
                     n_e = d/(1.3*prel.m_p_cgs/prel.Msol_cgs)
                     albedo = alpha_scatter/ alpha_rossland
-                    xi = L_adv/(n_e * r_plot**2) 
+                    xi = cu/(n_e * r_plot**2) # L_adv/(n_e * r_plot**2) 
                     xi_cgs = xi * prel.en_converter * prel.Rsol_cgs/prel.tsol_cgs
                     if label_obs[i] == 'Stream side': # just to cut the initially unbound material
                         # if which_part == 'wind':

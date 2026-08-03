@@ -13,24 +13,54 @@ import src.orbits as orb
 m_e = 9.10938356e-28    # g
 conversion_vel = prel.Rsol_cgs/prel.tsol_cgs
 
-def hydrogenic_levels(n, chi_eV):
+def hydrogenic_levels_above_ground(n, chi_eV):
+    '''
+    Calculate the statistical weight and energy of a hydrogenic level above the ground state.
+    Parameters:
+    n : int
+        Principal quantum number of the level.
+    chi_eV : float
+        Ionization energy in electron volts (eV).
+    Returns:
+    g : float
+        Statistical weight of the level.
+    E : float
+        Energy of the level in erg.
+    '''
     chi = chi_eV * prel.ev_to_erg
     g = 2.0 * n**2
     E = chi * (1.0 - 1.0 / n**2)
     return g, E
 
+# for n in [1, 2, 3]:
+#     g, E = hydrogenic_levels_above_ground(n, 13.6)
+#     print(n, g, E / prel.ev_to_erg)
+
 def hydrogenic_partition_function(T, chi_eV, n_max=30):
-    # Z = sum_{n=1}^{n_max} g_n * exp(-E_n / (k_B * T)) 
-    # Bradt: https://www.cambridge.org/us/files/5413/6681/8627/7706_Saha_equation.pdf
-    chi = chi_eV * prel.ev_to_erg
+    ''' Compute Z = sum_{n=1}^{n_max} g_n * exp(-E_n / (k_B * T)) from Bradt: https://www.cambridge.org/us/files/5413/6681/8627/7706_Saha_equation.pdf
+    Parameters:
+    T : float
+        Temperature in Kelvin.
+    chi_eV : float
+        Ionization energy in electron volts (eV).
+    n_max : int, optional
+        Maximum principal quantum number to include in the sum (default is 30).
+    Returns:
+    Z : float
+        Partition function value.
+    '''
     Z = 0.0
     for n in range(1, n_max + 1):
-        g, E = hydrogenic_levels(n, chi_eV)
+        g, E = hydrogenic_levels_above_ground(n, chi_eV)
         Z += g * np.exp(-E / (prel.Kb_cgs * T)) # should we have some weights? But n_max is already a cutoff, so maybe not
     return Z
 
+# Test: At sufficiently low T, this should be close to 2 for H. 
+# print(hydrogenic_partition_function(3000.0, 13.6, n_max=30))
+
 def saha_omega(T, n_e, chi_eV, Z_i, Z_ip1):
-    # Eq 35 from Bradt
+    ''' Eq 35 from Bradt
+    '''
     chi = chi_eV * prel.ev_to_erg
     e_debroglie = prel.h_cgs / np.sqrt(2.0 * np.pi * m_e * prel.Kb_cgs * T)
     return 2.0 * Z_ip1 / Z_i * np.exp(-chi / (prel.Kb_cgs * T)) / (n_e * e_debroglie**3)
@@ -41,27 +71,27 @@ def solve_saha_h_he(T, rho, X_H=0.71, X_He=0.28, tol=1e-8, maxiter=200):
 
     Z_HI = hydrogenic_partition_function(T, 13.6, 30) # neutral hydrogen
     Z_HII = 1.0 #  bare proton, so there are no bound electronic levels to sum 
-    Z_HeI = 1.0 # crude placeholder. Neutral helium is not hydrogenic, so this is not physically accurate
+    Z_HeI = 1.0 # crude placeholder. 
     Z_HeII = hydrogenic_partition_function(T, 54.418, 30) # He II is hydrogen-like: one electron around a nucleus
     Z_HeIII = 1.0 # bare helium nucleus, so again no bound electronic levels
 
     # first guess: If all hydrogen is ionized, each H contributes one electron and each He contributes up to two electrons 
     # since you have 1 electron from HI -> HII, and 1 electron from He HeI -> HeII and 1 electron from HeII -> HeIII
-    # it's usually stable andnot far from the final solution, so it should converge quickly
+    # it's usually stable and not far from the final solution, so it should converge quickly
     n_e = n_H + 2.0 * n_He 
 
     for _ in range(maxiter):
-        S_H = saha_omega(T, n_e, 13.6, Z_HI, Z_HII)
-        n_HII = n_H * S_H / (1.0 + S_H)
-        n_HI = n_H - n_HII
+        Omega_H = saha_omega(T, n_e, 13.6, Z_HI, Z_HII)
+        n_HI = n_H / (1.0 + Omega_H)
+        n_HII = n_H - n_HI
 
-        S_He1 = saha_omega(T, n_e, 24.587, Z_HeI, Z_HeII)
-        S_He2 = saha_omega(T, n_e, 54.418, Z_HeII, Z_HeIII)
+        Omega_He1 = saha_omega(T, n_e, 24.587, Z_HeI, Z_HeII)
+        Omega_He2 = saha_omega(T, n_e, 54.418, Z_HeII, Z_HeIII)
 
-        denom = 1.0 + S_He1 + S_He1 * S_He2
+        denom = 1.0 + Omega_He1 + Omega_He1 * Omega_He2
         n_HeI = n_He / denom
-        n_HeII = n_HeI * S_He1
-        n_HeIII = n_HeII * S_He2
+        n_HeII = n_HeI * Omega_He1
+        n_HeIII = n_HeII * Omega_He2
 
         # Update the electron density will have 1 electron for every HII, 1 electron for every HeII, and 2 electrons for every HeIII
         n_e_new = n_HII + n_HeII + 2.0 * n_HeIII
@@ -77,6 +107,36 @@ def solve_saha_h_he(T, rho, X_H=0.71, X_He=0.28, tol=1e-8, maxiter=200):
         "Z_HI": Z_HI, "Z_HII": Z_HII,
         "Z_HeI": Z_HeI, "Z_HeII": Z_HeII, "Z_HeIII": Z_HeIII
     }
+
+# Test for n_i+1/n_i=Omega
+# T_test = 1e5
+# rho_test = 1e-9
+# out = solve_saha_h_he(T_test, rho_test, X_H=1.0, X_He=0.0)
+# omega = saha_omega(T_test, out["n_e"], 13.6, out["Z_HI"], out["Z_HII"])
+# ratio = out["n_HII"] / out["n_HI"]
+# print("Direct consistency check")
+# print("relative diff =", abs(ratio - omega) / max(abs(omega), 1e-300))
+
+# Test for Saha solver
+# rho_test = 1e-6
+# out = solve_saha_h_he(T = 3000.0, rho = rho_test, X_H=1.0, X_He=0.0)
+# n_H = rho_test / prel.m_p_cgs
+# frac_HII = out["n_HII"] / n_H
+# frac_HI = out["n_HI"] / n_H
+# print("Low-T, high-rho (expected: mostly neutral):")
+# print("frac_HII =", frac_HII)
+# print("frac_HI  =", frac_HI)
+# print("n_e / n_H =", out["n_e"] / n_H)
+
+# rho_test = 1e-10
+# out = solve_saha_h_he(T = 1e6, rho = rho_test, X_H=1.0, X_He=0.0)
+# n_H = rho_test / prel.m_p_cgs
+# frac_HII = out["n_HII"] / n_H
+# frac_HI = out["n_HI"] / n_H
+# print("High-T, low-rho (expected: mostly ionized):")
+# print("frac_HII =", frac_HII)
+# print("frac_HI  =", frac_HI)
+# print("n_e / n_H =", out["n_e"] / n_H)
 
 def line_ratio_paper(T, rho, line="Ha", X_H=0.7, X_He=0.28, delta_r=1e13, v=1e9, n_p=None):
     # for A and lambda0 vslues: https://www.nist.gov/system/files/documents/srd/jpcrd382009565p.pdf
@@ -110,7 +170,7 @@ def line_ratio_paper(T, rho, line="Ha", X_H=0.7, X_He=0.28, delta_r=1e13, v=1e9,
     else:
         raise ValueError("line must be 'Ha', 'Hb', or 'HeII4686'")
 
-    g_u, E_u = hydrogenic_levels(n_starter, chi_eV)
+    g_u, E_u = hydrogenic_levels_above_ground(n_starter, chi_eV)
 
     pref = (g_u / Z_i) * np.exp(-E_u / (prel.Kb_cgs * T))
     const = (A * prel.h_cgs * prel.c_cgs / (2.0 * np.pi * prel.Kb_cgs))
@@ -144,6 +204,7 @@ params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 Rt = things['Rt']
 
+    
 if what_to_plot == 'single_snap_all_obs' or what_to_plot == 'single_snap_sec':
     snap = 151
     markers = ['o', 's', 'X']

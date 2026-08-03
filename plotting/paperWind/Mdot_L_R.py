@@ -25,8 +25,8 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
 choice = 'split_stream'
-how = 'isoent'
-which_plot = 'ML_conv' # 'ML' or 'ML_conv'
+how = 'isot'
+which_plot = 'ML' # 'ML' or 'ML_conv'
 commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 folder = f'{commonfolder}{check}'
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
@@ -47,7 +47,9 @@ which_r_title = '05amin'
 figM, (axM, axL) = plt.subplots(1,2, figsize = (16,7))  
 if which_plot == 'ML':
     figr, axr  = plt.subplots(1,1, figsize = (9,7))
-    axes = [axM, axL, axr]
+    figMratio, axMratio  = plt.subplots(1,1, figsize = (9,7))
+    axMratio.set_ylim(1e-2, 2)
+    axes = [axM, axL, axr, axMratio]
 else: 
     figr, (axrM, axrL)  = plt.subplots(1,2, figsize = (18,7))
     axes = [axM, axL, axrM, axrL]
@@ -109,9 +111,21 @@ if which_plot == 'ML':
     tfb = wind[1]
     rest = wind[2:2+len(label_obs)]
 
-    if how == 'isoent':
+
+    outflow = \
+            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}05amin{choice}_outflow.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True) 
+    tfbO = outflow[1]
+    restO = outflow[2:2+len(label_obs)]
+ 
+    if how == 'isot':
         area = wind[-len(label_obs):]
         rest *=  4 * np.pi * r_chosen**2 / area 
+
+        areaO = outflow[-len(label_obs):]
+        restO *=  4 * np.pi * r_chosen**2 / areaO
 
     # for i in range(len(rest)):
         # print(len(rest[i]), len(area[i]))
@@ -120,16 +134,6 @@ if which_plot == 'ML':
         # rest[i][area[i]>0] = uniform_filter1d(rest[i][area[i]>0], 3)
         # Lum_sec[i] = uniform_filter1d(Lum_sec[i], 3)
 
-    if choice == 'left_right_z' or choice == 'split_stream':
-        outflow = \
-                np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}05amin{choice}_outflow.csv', 
-                        delimiter = ',', 
-                        skiprows=1, 
-                        unpack=True) 
-        tfbO = outflow[1]
-        restO = outflow[2:2+len(label_obs)]
- 
-    # for i in range(len(restO)):
         # restO[i] = uniform_filter1d(restO[i], 3)
 
     axr.set_ylabel(r'$r (r_{\rm t})$')
@@ -146,14 +150,14 @@ if which_plot == 'ML':
             line = axM.plot(tfb, rest[i]/Medd_sol,  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])[0]
         axM.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'gray', ls = '-.', label = r'$|\dot{M}_{\rm fb}|$')
         axL.plot(tfb_Lum, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i])
-        if choice == 'left_right_z' or choice == 'split_stream':
-            axM.plot(tfbO[4:], restO[i][4:]/Medd_sol, linewidth = 2, c = color_obs[i], ls = line_styles_parts[1])
-            if np.logical_and(i ==0, choice == 'left_right_z' ):
-                print('ratio wind/outflow at last time step:', rest[i][-1]/restO[i][-1])
-            if np.logical_and(i ==0, choice == 'split_stream'):
-                wind = rest[0][-1] + rest[1][-1] + rest[2][-1]
-                outflow = restO[0][-1] + restO[1][-1] + restO[2][-1]
-                print('ratio wind/outflow at last time step:', wind/outflow)
+        axM.plot(tfbO[4:], restO[i][4:]/Medd_sol, linewidth = 2, c = color_obs[i], ls = line_styles_parts[1])
+        axMratio.plot(tfb[4:], rest[i][4:]/restO[i][4:], linewidth = 2, c = color_obs[i], label = label_obs[i])
+        if np.logical_and(i ==0, choice == 'left_right_z' ):
+            print('ratio wind/outflow at last time step:', rest[i][-1]/restO[i][-1])
+        if np.logical_and(i ==0, choice == 'split_stream'):
+            wind = rest[0][-1] + rest[1][-1] + rest[2][-1]
+            outflow = restO[0][-1] + restO[1][-1] + restO[2][-1]
+            print('ratio wind/outflow at last time step:', wind/outflow)
 
             # handles_color.append(line)
             # labels_color.append(label_obs[i])
@@ -191,7 +195,7 @@ if which_plot == 'ML_conv':
     tfb = windH[1]
     rest = windH[2:2+len(label_obs)]
 
-    if how == 'isoent':
+    if how == 'isot':
         area = windH[-len(label_obs):]
         rest *=  4 * np.pi * r_chosen**2 / area 
 
@@ -225,7 +229,7 @@ if which_plot == 'ML_conv':
     tfbM = windM[1]
     restM = windM[2:2+len(label_obs)]
 
-    if how == 'isoent':
+    if how == 'isot':
         area = windM[-len(label_obs):]
         restM *=  4 * np.pi * r_chosen**2 / area
         
