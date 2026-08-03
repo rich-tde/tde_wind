@@ -9,7 +9,7 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = False
+    compute = True
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -78,7 +78,7 @@ def split_cells(X, Y, Z, choice):
     
     return indices_sec, label_obs
     
-def Mdot_sec(path, snap, r_chosen, choice, what, how = ''):
+def Mdot_sec(path, snap, r_chosen, choice, what, how):
     # Load data and pick the ones unbound and with positive velocity
     data = make_tree(path, snap)
     X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
@@ -97,13 +97,13 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how = ''):
     cut_wind, bern, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, cond = 'bern')
 
     if what == 'wind':
-        cut = cut_wind
+        cutM = cut_wind
 
-    if what == 'BoundOut':
-        cut =  np.logical_and(V_r > 0, bern < 0)
+    if what == 'boundOut':
+        cutM = np.logical_and(V_r > 0, bern < 0)
 
     X_wind, Y_wind, Z_wind, Den_wind, v_rad_wind, dim_cell_wind, Rad_den_wind = \
-        make_slices([X, Y, Z, Den, V_r, dim_cell, Rad_den], cut)
+        make_slices([X, Y, Z, Den, V_r, dim_cell, Rad_den], cutM)
     if Den_wind.size == 0:
         print(f'no positive', flush=True)
         return np.array([0]*len(label_obs)*3)
@@ -171,7 +171,7 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how = ''):
         
     data = np.concatenate([mwind, Lum_fs, Lkin, area])
     if not alice: 
-        axd.legend(fontisize = 18)
+        axd.legend(fontsize = 18)
         fig.tight_layout()
         fig.savefig(f'{abspath}/Figs/{folder}/Wind/stat_MdotSec_{which_r_title}{snap}.png', dpi = 150)
     return data
@@ -191,12 +191,12 @@ if __name__ == '__main__':
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
             else: 
-                if snap not in [76, 109, 151]:
+                if snap not in [45]:
                     continue
                 path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
             print(snap, flush=True)
             
-            data_wind = Mdot_sec(path, snap, r_chosen, choice, how)
+            data_wind = Mdot_sec(path, snap, r_chosen, choice, what, how)
             data_tosave = np.concatenate(([snap], [tfb[i]], data_wind))  
             csv_path = f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_{what}.csv'
             if alice:

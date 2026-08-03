@@ -112,19 +112,19 @@ if which_plot == 'ML':
     rest = wind[2:2+len(label_obs)]
 
 
-    outflow = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}05amin{choice}_outflow.csv', 
+    boundOut = \
+            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_boundOut.csv', 
                     delimiter = ',', 
                     skiprows=1, 
                     unpack=True) 
-    tfbO = outflow[1]
-    restO = outflow[2:2+len(label_obs)]
+    tfbO = boundOut[1]
+    restO = boundOut[2:2+len(label_obs)]
  
     if how == 'isot':
         area = wind[-len(label_obs):]
         rest *=  4 * np.pi * r_chosen**2 / area 
 
-        areaO = outflow[-len(label_obs):]
+        areaO = boundOut[-len(label_obs):]
         restO *=  4 * np.pi * r_chosen**2 / areaO
 
     # for i in range(len(rest)):
