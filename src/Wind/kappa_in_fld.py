@@ -124,7 +124,7 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 pre_saving = f'{abspath}/data/{folder}'
 loadpath = f'{pre}/{snap}'
 which_obs = 'split_stream' 
-isoent = 'isoent'
+isot = 'isot'
 compute = False 
 
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX)) # shape: (3, 192)
@@ -156,7 +156,7 @@ else:
         dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], dataRtr['den_tr'], dataRtr['Vr_tr'], dataRtr['Rad_den_tr']
     r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
     # check xi from Miller15 (~eq.6)
-    profiles = np.load(f'{abspath}/data/{folder}/wind/r_profile/r{isoent}_profSec{snap}_{which_obs}_wind.npy', allow_pickle=True).item()
+    profiles = np.load(f'{abspath}/data/{folder}/wind/r_profile/r{isot}_profSec{snap}_{which_obs}_wind.npy', allow_pickle=True).item()
 
     kappa_tr = np.zeros(len(r_tr_all))
     Mdot_tr = 4 * np.pi * r_tr_all**2 * d_tr* Vr_tr
@@ -229,8 +229,8 @@ else:
         r_arr = profiles[lab]['r'] 
         d = profiles[lab]['d_prof']
         v_rad = np.abs(profiles[lab]['v_rad_prof'])
-        if isoent == 'isoent': 
-            print('Isoentropic Mdot and Lum for xi')
+        if isot == 'isot': 
+            print('isotropic Mdot and Lum for xi')
             area = profiles[lab]['area']
             Mdot = (4 * np.pi * r_arr**2) /area * profiles[lab]['Mdot_prof']
             L_adv = (4 * np.pi * r_arr**2) / area * profiles[lab]['L_adv_prof']
@@ -283,7 +283,7 @@ else:
     # figs.savefig(f'{abspath}/Figs/{folder}/wind/opacity_Rprof{snap}_{which_obs}ALL.png', dpi=300, bbox_inches='tight')
 
     # %% test for photosphere
-    gamma = 1/7
+    gamma = 1/3
     d_ph, alphaRoss_ph, Vx_ph, Vy_ph, Vz_ph, radden_ph, Lumph = \
         photo['den'], photo['alpha_rossland'], photo['vx'], photo['vy'], photo['vz'], photo['radden'], photo['Lum']
     Trad_ph = (radden_ph * prel.en_den_converter/prel.alpha_cgs)**(1/4)
@@ -320,13 +320,13 @@ else:
     axT.set_yscale('log')
     # axR.set_ylim(5e-3, 2)
 
-    axL.scatter(Lumph, Lum_tr, color='k', s=60, edgecolors='k')
-    axL.plot([0, 1e45], [0, 1e45], color='r', ls='--', lw=1.5)
+    axL.scatter(np.arange(len(Lum_tr)), Lum_tr/Lumph, color='k', s=60, edgecolors='k')
+    axL.plot([1, 1e3], [1, 1], color='r', ls='--', lw=1.5)
     axL.loglog()
-    axL.set_xlabel(r'$L_{\rm ph, sim}$')
-    axL.set_ylabel(r'$L_{\rm tr, sim}$')
-    axL.set_xlim(1e40, 1e43)
-    axL.set_ylim(1e40, 1e43)
+    axL.set_xlabel(r'$N_{\rm obs}$')
+    axL.set_ylabel(r'$L_{\rm ph, sim}/L_{\rm tr, sim}$')
+    # axL.set_xlim(1e40, 1e43)
+    axL.set_ylim(1e-1, 1e1)
     axR.legend(fontsize=20)
     for ax in [axRratio, axR, axT, axL]:
         ax.tick_params(axis='both', which='major', length=8, width=1.2)

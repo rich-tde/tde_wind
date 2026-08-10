@@ -9,7 +9,7 @@ if alice:
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
-    compute = True
+    compute = False
 
 import numpy as np
 import matplotlib.pyplot as plt

@@ -13,6 +13,32 @@ import src.orbits as orb
 m_e = 9.10938356e-28    # g
 conversion_vel = prel.Rsol_cgs/prel.tsol_cgs
 
+def continuum_luminosity(line, T, r):
+    '''
+    Calculate the continuum luminosity at a given wavelength according to Planck's law.
+    Parameters:
+    T : float
+        Temperature in Kelvin.
+    r : float
+        Radius of the emitting region in cm.
+    lam : float
+        Wavelength in cm.
+    Returns:
+    L_lambda : float
+        Continuum luminosity at the specified wavelength in erg/s/cm.
+    '''
+    if line == "Ha":
+        lam = 6.5628e-5
+    elif line == "Hb":
+        lam = 4.8613e-5
+    elif line == "HeII4686":
+        lam = 4.6858e-5
+    else:
+        raise ValueError("line must be 'Ha', 'Hb', or 'HeII4686'")
+    B_lambda = 2.0 * prel.h_cgs * prel.c_cgs**2 / lam**5 * (1.0 / (np.exp(prel.h_cgs * prel.c_cgs / (lam * prel.Kb_cgs * T)) - 1.0))
+    L_lambda = 4 * np.pi**2 * r**2 * B_lambda 
+    return L_lambda
+
 def hydrogenic_levels_above_ground(n, chi_eV):
     '''
     Calculate the statistical weight and energy of a hydrogenic level above the ground state.
@@ -58,6 +84,37 @@ def hydrogenic_partition_function(T, chi_eV, n_max=30):
 # Test: At sufficiently low T, this should be close to 2 for H. 
 # print(hydrogenic_partition_function(3000.0, 13.6, n_max=30))
 
+def helium_i_partition_function(T, levels):
+    '''
+    Compute the internal partition function of neutral He I.
+
+    Parameters
+    ----------
+    T : float
+        Temperature in Kelvin.
+    levels : iterable of tuples
+        Each element must be (g, E_eV), where
+
+            g    = statistical weight of the level
+            E_eV = excitation energy above the He I ground state [eV]
+
+        The ground state should be included explicitly.
+
+    Returns
+    -------
+    Z : float
+        Partition function.
+    '''
+    Z = 0.0
+
+    for g, E_eV in levels:
+        E = E_eV * prel.ev_to_erg
+        Z += g * np.exp(-E / (prel.Kb_cgs * T))
+
+    return Z
+
+# Z_HeI = helium_i_partition_function(1e4, helium_i_levels)
+
 def saha_omega(T, n_e, chi_eV, Z_i, Z_ip1):
     ''' Eq 35 from Bradt
     '''
@@ -71,7 +128,7 @@ def solve_saha_h_he(T, rho, X_H=0.71, X_He=0.28, tol=1e-8, maxiter=200):
 
     Z_HI = hydrogenic_partition_function(T, 13.6, 30) # neutral hydrogen
     Z_HII = 1.0 #  bare proton, so there are no bound electronic levels to sum 
-    Z_HeI = 1.0 # crude placeholder. 
+    Z_HeI = helium_i_partition_function(T, helium_i_levels)
     Z_HeII = hydrogenic_partition_function(T, 54.418, 30) # He II is hydrogen-like: one electron around a nucleus
     Z_HeIII = 1.0 # bare helium nucleus, so again no bound electronic levels
 
@@ -138,7 +195,7 @@ def solve_saha_h_he(T, rho, X_H=0.71, X_He=0.28, tol=1e-8, maxiter=200):
 # print("frac_HI  =", frac_HI)
 # print("n_e / n_H =", out["n_e"] / n_H)
 
-def line_ratio_paper(T, rho, line="Ha", X_H=0.7, X_He=0.28, delta_r=1e13, v=1e9, n_p=None):
+def line_ratio_paper(line, T, rho, delta_r, r, v, X_H=0.7, X_He=0.28, n_p=None):
     # for A and lambda0 vslues: https://www.nist.gov/system/files/documents/srd/jpcrd382009565p.pdf
     # for H look at pag 573 (line 40, 41)
     # for HeII look at pag 576 (line 1)
@@ -149,34 +206,42 @@ def line_ratio_paper(T, rho, line="Ha", X_H=0.7, X_He=0.28, delta_r=1e13, v=1e9,
     if line == "Ha": 
         chi_eV = 13.6
         n_starter = 3
-        A = 4.4101e7 # transition 3->2
-        lam0 = 6.56283e-5
+        A = 6.4651e7 # transition 3->2 (retrive from NIST: H I, range 6560–6565 Å, 3d (j=5/2)->2p(j=3/2))
+        lam0 = 6.5628e-5
+        n_i = pops["n_HI"]
         Z_i = pops["Z_HI"]
         omega = saha_omega(T, pops["n_e"], chi_eV, Z_i, pops["Z_HII"])
     elif line == "Hb":
         chi_eV = 13.6
         n_starter = 4
         A = 8.4193e6 # transition 4->2
-        lam0 = 4.86134e-5
+        lam0 = 4.8613e-5
+        n_i = pops["n_HI"]
         Z_i = pops["Z_HI"]
         omega = saha_omega(T, pops["n_e"], chi_eV, Z_i, pops["Z_HII"])
     elif line == "HeII4686":
         chi_eV = 54.418
         n_starter = 4
-        A = 8.215e6
-        lam0 = 4.6857e-5
+        A = 2.2076e8 #  (retrive from NIST: He II, range 4680-4690 Å, 4f (j=7/2)-> 3d (j=5/2))
+        lam0 = 4.6858e-5
+        n_i = pops["n_HeII"]
         Z_i = pops["Z_HeII"]
         omega = saha_omega(T, pops["n_e"], chi_eV, Z_i, pops["Z_HeIII"])
     else:
-        raise ValueError("line must be 'Ha', 'Hb', or 'HeII4686'")
+        raise ValueError("line must be 'Ha', 'Hb', or 'HeII4686'") 
 
     g_u, E_u = hydrogenic_levels_above_ground(n_starter, chi_eV)
 
-    pref = (g_u / Z_i) * np.exp(-E_u / (prel.Kb_cgs * T))
-    const = (A * prel.h_cgs * prel.c_cgs / (2.0 * np.pi * prel.Kb_cgs))
-    ratio = pref * const / (1.0 + omega)  * (n_p * delta_r * lam0**2 / (T * v))
+    # pref = (g_u / Z_i) * np.exp(-E_u / (prel.Kb_cgs * T))
+    # const = (A * prel.h_cgs * prel.c_cgs / (2.0 * np.pi * prel.Kb_cgs))
+    # ratio = pref * const / (1.0 + omega)  * (n_p * delta_r * lam0**2 / (T * v))
 
-    return ratio, pops, {"omega": omega, "g_u": g_u, "E_u": E_u, "Z_i": Z_i}
+    n_u = n_i * g_u / Z_i * np.exp(-E_u / (prel.Kb_cgs * T))
+    eta = n_u * A * prel.h_cgs * prel.c_cgs / lam0
+    vol = 4 * np.pi * r**2 * delta_r
+    Lline = eta * vol * prel.c_cgs / (lam0 * v)
+
+    return Lline, pops, {"omega": omega, "g_u": g_u, "E_u": E_u, "Z_i": Z_i}
 
 ####### MAIN
 
@@ -191,6 +256,18 @@ check = 'HiResNewAMR'
 what_to_plot = 'time_evol' # 'single_snap_all_obs', 'single_snap_sec', 'time_evol' 'ratio_el'
 choice = 'split_stream'
 # delta_r = 1e14
+
+helium_i_levels = [
+    # Configuration       Term       J    g = 2J + 1     E_exc [eV]
+    (1.0,   0.000000000),  # 1s^2      1S       0
+    (3.0,  19.819614525),  # 1s 2s     3S       1
+    (1.0,  20.615774823),  # 1s 2s     1S       0
+    (5.0,  20.964086889),  # 1s 2p     3P^o      2
+    (3.0,  20.964096365),  # 1s 2p     3P^o      1
+    (1.0,  20.964218851),  # 1s 2p     3P^o      0
+    (3.0,  21.218022711),  # 1s 2p     1P^o      1
+    # (3.0,  22.718466419),  # 1s 3s     3I S       0
+]
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
@@ -219,28 +296,32 @@ if what_to_plot == 'single_snap_all_obs' or what_to_plot == 'single_snap_sec':
     ratiosHa = np.zeros(len(temp_ph))
     ratiosHb = np.zeros(len(temp_ph))
     ratiosHe = np.zeros(len(temp_ph))
-    fig, ax = plt.subplots(figsize=(8, 6))
+    fig, ax = plt.subplots(figsize = prel.set_size(columns=1))
+
     for i in range(len(temp_ph)):
         delta_r = r_ph[i] * prel.Rsol_cgs
         ratiosHa[i], _, _ = line_ratio_paper(
+                                line="Ha",
                                 T=temp_ph[i],
                                 rho=d_ph[i],
-                                line="Ha",
                                 delta_r=delta_r,
+                                r=r_ph[i]*prel.Rsol_cgs,
                                 v=vr_ph[i])
         
         ratiosHb[i], _, _ = line_ratio_paper(
+                                line="Hb",
                                 T=temp_ph[i],
                                 rho=d_ph[i],
-                                line="Hb",
                                 delta_r=delta_r,
+                                r=r_ph[i]*prel.Rsol_cgs,
                                 v=vr_ph[i])
         
         ratiosHe[i], _, _ = line_ratio_paper(
+                                line="HeII4686",
                                 T=temp_ph[i],
                                 rho=d_ph[i],
-                                line="HeII4686",
                                 delta_r=delta_r,
+                                r=r_ph[i]*prel.Rsol_cgs,
                                 v=vr_ph[i])
 
     if what_to_plot == 'single_snap_all_obs':
@@ -301,15 +382,23 @@ if what_to_plot == 'single_snap_all_obs' or what_to_plot == 'single_snap_sec':
 
 if what_to_plot == 'time_evol' or what_to_plot == 'ratio_el':
     # print(Rt*prel.Rsol_cgs/1e14)
+    x_testT = [1e3, 1e6]
+    y_testT = op.draw_line(x_testT, [1e50, -1.3], 'powerlaw')
+    x_testR = [10, 1e3]
+    y_testR = op.draw_line(x_testR, [1e43, 1], 'powerlaw')
     dataBB = np.loadtxt(f'{abspath}/data/{folder}/wind/Tfit_intime_{choice}.txt', delimiter=',', skiprows=1, unpack=True)
+    TempBB = dataBB[1:1+len(indices_obs)+1, :] # they're saved in cgs
     radiiBB = dataBB[len(indices_obs)+1:2*len(indices_obs)+1, :] # they're saved in cgs
     radiiBB /= prel.Rsol_cgs 
+    LHa_t = []
+    LHb_t = []
+    LHe_t = []
     ratiosHa_t = []
     ratiosHb_t = []
     ratiosHe_t = []
     temp_t = []
     delta_r_t = []
-    fig, ax = plt.subplots(1, 3, figsize= (25, 7))
+    fig, ax = plt.subplots(1, 3, figsize= (24, 7))
     figTR, (axT, axR) = plt.subplots(2, len(indices_obs)-1, figsize=(8*len(indices_obs), 12))
     axes = np.concatenate([[ax[i] for i in range(3)] + [axT[i] for i in range(len(indices_obs)-1)] + [axR[i] for i in range(len(indices_obs)-1)]])
     for snap in snaps:
@@ -320,6 +409,9 @@ if what_to_plot == 'time_evol' or what_to_plot == 'ratio_el':
         r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
         vr_ph, _, _ = op.to_spherical_components(vx_ph, vy_ph, vz_ph, x_ph, y_ph, z_ph) 
         vr_ph *= conversion_vel
+        LHa = np.zeros(len(temp_ph))
+        LHb = np.zeros(len(temp_ph))
+        LHe = np.zeros(len(temp_ph))
         ratiosHa = np.zeros(len(temp_ph))
         ratiosHb = np.zeros(len(temp_ph))
         ratiosHe = np.zeros(len(temp_ph))
@@ -329,32 +421,48 @@ if what_to_plot == 'time_evol' or what_to_plot == 'ratio_el':
                 continue
             delta_r = r_ph[i] * prel.Rsol_cgs
             deltas_r[i] = delta_r
-            ratiosHa[i], _, _ = line_ratio_paper(
-                                    T=temp_ph[i],
-                                    rho=d_ph[i],
+
+            cont = continuum_luminosity("Ha", temp_ph[i], r_ph[i]*prel.Rsol_cgs)
+            LHa[i], _, _ = line_ratio_paper(
                                     line="Ha",
-                                    delta_r=delta_r,
-                                    v=vr_ph[i])
-            
-            ratiosHb[i], _, _ = line_ratio_paper(
                                     T=temp_ph[i],
                                     rho=d_ph[i],
+                                    delta_r=delta_r,
+                                    r=r_ph[i]*prel.Rsol_cgs,
+                                    v=vr_ph[i])
+            ratiosHa[i] = LHa[i] / cont
+
+            cont = continuum_luminosity("Hb", temp_ph[i], r_ph[i]*prel.Rsol_cgs)
+            LHb[i], _, _ = line_ratio_paper(
                                     line="Hb",
-                                    delta_r=delta_r,
-                                    v=vr_ph[i])
-            
-            ratiosHe[i], _, _ = line_ratio_paper(
                                     T=temp_ph[i],
                                     rho=d_ph[i],
-                                    line="HeII4686",
                                     delta_r=delta_r,
+                                    r=r_ph[i]*prel.Rsol_cgs,
                                     v=vr_ph[i])
+            ratiosHb[i] = LHb[i] / cont
+
+            cont = continuum_luminosity("HeII4686", temp_ph[i], r_ph[i]*prel.Rsol_cgs)
+            LHe[i], _, _ = line_ratio_paper(
+                                    line="HeII4686",
+                                    T=temp_ph[i],
+                                    rho=d_ph[i],
+                                    delta_r=delta_r,
+                                    r=r_ph[i]*prel.Rsol_cgs,
+                                    v=vr_ph[i])
+            ratiosHe[i] = LHe[i] / cont
+        LHa_sec = np.zeros(len(indices_obs))
+        LHb_sec = np.zeros(len(indices_obs))
+        LHe_sec = np.zeros(len(indices_obs))
         ratiosHa_sec = np.zeros(len(indices_obs))
         ratiosHb_sec = np.zeros(len(indices_obs))
         ratiosHe_sec = np.zeros(len(indices_obs))
         temp_sec = np.zeros(len(indices_obs))
         delta_r_sec = np.zeros(len(indices_obs))
         for i, indices in enumerate(indices_obs): # you need that if the splitting is not homogeneous
+            LHa_sec[i] = np.median(LHa[indices])
+            LHb_sec[i] = np.median(LHb[indices])
+            LHe_sec[i] = np.median(LHe[indices]) 
             ratiosHa_sec[i] = np.median(ratiosHa[indices])
             ratiosHb_sec[i] = np.median(ratiosHb[indices])
             ratiosHe_sec[i] = np.median(ratiosHe[indices])
@@ -362,68 +470,83 @@ if what_to_plot == 'time_evol' or what_to_plot == 'ratio_el':
             delta_r_sec[i] = np.median(deltas_r[indices])
             if snap == 151:
                 print(f'delta_R/1e15cm {label_obs[i]}', delta_r_sec[i]/1e15)
+        LHa_t.append(LHa_sec)
+        LHb_t.append(LHb_sec)
+        LHe_t.append(LHe_sec)
         ratiosHa_t.append(ratiosHa_sec)
         ratiosHb_t.append(ratiosHb_sec)
         ratiosHe_t.append(ratiosHe_sec)
         temp_t.append(temp_sec)
         delta_r_t.append(delta_r_sec)
 
+    LHa_t = np.transpose(LHa_t)
+    LHb_t = np.transpose(LHb_t)
+    LHe_t = np.transpose(LHe_t)
     ratiosHa_t = np.transpose(ratiosHa_t)
     ratiosHb_t = np.transpose(ratiosHb_t)
     ratiosHe_t = np.transpose(ratiosHe_t) 
     temp_t = np.transpose(temp_t)
     delta_r_t = np.transpose(delta_r_t)
 
+    handles_color = []
+    labels_color = []
     for obs in range(len(indices_obs)-1):
         if label_obs[obs] == 'South pole':
             continue
-        ax[0].plot(tfb, ratiosHa_t[obs], label = label_obs[obs], color = color_obs[obs]) 
+        line = ax[0].plot(tfb, ratiosHa_t[obs], label = label_obs[obs], color = color_obs[obs])[0]
+        handles_color.append(line)
+        labels_color.append(label_obs[obs])
         ax[1].plot(tfb, ratiosHb_t[obs], label = label_obs[obs], color = color_obs[obs])
         ax[2].plot(tfb, ratiosHe_t[obs], label = label_obs[obs], color = color_obs[obs])
 
-        axT[obs].plot(temp_t[obs], ratiosHa_t[obs], label=r"H$\alpha$" if obs == 0 else "", color='#d00000')
-        axT[obs].plot(temp_t[obs], ratiosHb_t[obs], label=r"H$\beta$" if obs == 0 else "", color='#fb8500')
-        axT[obs].plot(temp_t[obs], ratiosHe_t[obs], label=r"HeII4686" if obs == 0 else "", color='#ffd166')
+        TBB = TempBB[obs] # temp_t[obs]
+        axT[obs].plot(TBB, LHa_t[obs], label=r"H$\alpha$" if obs == 0 else "", color='#d00000')
+        axT[obs].plot(TBB, LHb_t[obs], label=r"H$\beta$" if obs == 0 else "", color='#fb8500')
+        axT[obs].plot(TBB, LHe_t[obs], label=r"HeII4686" if obs == 0 else "", color='#ffd166')
 
         rBB = radiiBB[obs]
-        axR[obs].plot(rBB/Rt, ratiosHa_t[obs], label=r"H$\alpha$" if obs == 0 else "", color='#d00000')
-        axR[obs].plot(rBB/Rt, ratiosHb_t[obs], label=r"H$\beta$" if obs == 0 else "", color='#fb8500')
-        axR[obs].plot(rBB/Rt, ratiosHe_t[obs], label=r"HeII4686" if obs == 0 else "", color='#ffd166')
-
+        axR[obs].plot(rBB/Rt, LHa_t[obs], label=r"H$\alpha$" if obs == 0 else "", color='#d00000')
+        axR[obs].plot(rBB/Rt, LHb_t[obs], label=r"H$\beta$" if obs == 0 else "", color='#fb8500')
+        axR[obs].plot(rBB/Rt, LHe_t[obs], label=r"HeII4686" if obs == 0 else "", color='#ffd166')
 
         axT[obs].set_xlim(5e3, 1e5)
+        axT[obs].plot(x_testT, y_testT, color='k', linestyle='--', linewidth=1)
         axT[obs].set_title(label_obs[obs], fontsize=20)
         axT[obs].loglog()
+        axT[obs].set_xlabel("Temperature (K)")
 
-        axR[obs].plot([1e-3, 1e3], [1e-3, 1e3], color='k', linestyle='--', linewidth=1)
+        axR[obs].plot(x_testR, y_testR, color='k', linestyle='--', linewidth=1)
         axR[obs].loglog()
+        axR[obs].set_xlabel(r"$r/r_{\rm t}$", fontsize= 30)
+        axR[obs].set_xlim(20, 1e3)
 
-        for a in axes:
-            a.tick_params(axis='both', which='major', length=10, width=1)
-            a.tick_params(axis='both', which='minor', length=6, width=.9)
-            a.grid()
-            a.set_ylim(5e-2, 5e2)
-            if a not in [ax[0], ax[1], ax[2]]:
-                a.set_xlabel("Temperature (K)" if a == axT[obs] else r"$r/r_{\rm t}$")
-                a.set_ylabel(r"$L_{\lambda, \rm {line}}/L_{\lambda, \rm {cont}}$")
-            else:
-                # if obs == len(indices_obs)-2:
-                a.set_xlim(1, 2.25)
-                a.set_yscale('log')
-                a.set_xlabel(r"$t/t_{\rm fb}$")
-            
+    for a in axes:
+        a.tick_params(axis='both', which='major', length=10, width=1)
+        a.tick_params(axis='both', which='minor', length=6, width=.9)
+        a.grid()
+        a.set_ylabel(r"$L_{\lambda, \rm {line}}/L_{\lambda, \rm {cont}}$", fontsize= 30)
+        if a in ax[0:3]:
+            if a != ax[2]:
+                a.set_ylim(5e-2, 5e2)
+            a.set_xlim(1, 2.25)
+            a.set_yscale('log')
+            a.set_xlabel(r"$t/t_{\rm fb}$", fontsize= 30)
+        else:
+            a.set_ylim(1e43, 1e47)
 
-    # ax[0].set_ylim(1e-2, 5e2)
-    # ax[1].set_ylim(5e-1, 5e2)
-    # ax[2].set_ylim(1e-1, 5e2)
-    # ax[3].set_ylim(1e-2, 5)
-    # ax[4].set_ylim(1e-2, 5)
-    ax[0].set_ylabel(r'L$_{\lambda,\rm {line}}$/L$_{\lambda, \rm {cont}}$')
     ax[2].set_ylim(5e-3, 5)
-    ax[2].legend(fontsize=18)
+    # ax[2].legend(fontsize=18)
+
+    legend_colors = fig.legend(
+                handles=handles_color,
+                labels=labels_color,
+                loc='upper center',
+                bbox_to_anchor=(0.525, 0.022),  # centered, near bottom of figure
+                ncol=len(labels_color),
+                fontsize=22) 
 
     for i in range(3): # you need the new ylim
-        ax[i].set_title(r'H$\alpha$' if i == 0 else r'H$\beta$' if i == 1 else r'HeII4686', fontsize=25)
+        ax[i].set_title(r'H$\alpha$' if i == 0 else r'H$\beta$' if i == 1 else r'HeII $\lambda$4686', fontsize= 30)
         # ax[i].text(1.08, 0.4*ax[i].get_ylim()[1], r'H$\alpha$' if i == 0 else r'H$\beta$' if i == 1 else r'HeII4686', fontsize=25)
 
     fig.tight_layout()

@@ -23,7 +23,7 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
 which_obs = 'split_stream' 
-isoent = 'isoent'
+isot = 'isot'
 snap = 151
 
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -134,15 +134,15 @@ for w, what_varies in enumerate(what_varies_all):
     norm = norms[w]
     for k, which_part in enumerate(which_parts):
         # Load profiles
-        profiles = np.load(f'{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_names[w]}{isoent}_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
+        profiles = np.load(f'{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_names[w]}{isot}_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
         for i, lab in enumerate(profiles.keys()):
             if lab == 'South pole' :
                 continue 
             r_arr = profiles[lab]['r'] 
             d = profiles[lab]['d_prof']
             v_rad = profiles[lab]['v_rad_prof'] 
-            if isoent == 'isoent':
-                print('Isoentropic Mdot and Lum')
+            if isot == 'isot':
+                print('isotropic Mdot and Lum')
                 area = profiles[lab]['area']
                 if what_varies == 'r':
                     Mdot = (4 * np.pi * r_arr**2) /area * profiles[lab]['Mdot_prof']
@@ -224,7 +224,7 @@ fig.legend(
             loc='upper center',
             bbox_to_anchor=(0.525, 1.03),  # centered, near bottom of figure
             ncol=len(labels_color),
-            fontsize=20)
+            fontsize=25)
 
 # Legend 2: line-style explanation (solid vs dashed)
 proxy_lines = []
@@ -244,5 +244,5 @@ all_axes[2][0].set_ylabel(r'$\dot{M}_{\rm w} (\dot{M}_{\rm Edd})$', fontsize = 3
 all_axes[3][0].set_ylabel(r'$L_{\rm adv} (L_{\rm Edd})$', fontsize = 35)
 # fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 28, y = 1, x = 0.53)
 fig.tight_layout(w_pad=15.0)  
-fig.savefig(f'{abspath}/Figs/{folder}/Wind/r_theta{r_chosen_name_theta}{isoent}prof_{which_obs}_{snap}.png', bbox_inches = 'tight')
+fig.savefig(f'{abspath}/Figs/{folder}/Wind/r_theta{r_chosen_name_theta}{isot}prof_{which_obs}_{snap}.png', bbox_inches = 'tight')
 fig.savefig(f'{abspath}/Figs/2.paperWind/Rthetaprof_{which_obs}_{snap}.pdf', bbox_inches = 'tight')

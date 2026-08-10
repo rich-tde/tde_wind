@@ -105,9 +105,10 @@ plt.rcParams['ytick.labelsize'] = 26
 plt.rcParams['axes.labelsize'] = 25 
 plt.rcParams['xtick.top'] = True
 plt.rcParams['ytick.right'] = True
-mpl.rcParams['savefig.transparent'] = True  # Only figure patch
-mpl.rcParams['figure.facecolor'] = 'none'    # Figure when displayed
-mpl.rcParams['axes.facecolor'] = 'none'      # Axes patch
+# mpl.rcParams['savefig.transparent'] = True  # Only figure patch
+# mpl.rcParams['figure.facecolor'] = 'none'    # Figure when displayed
+# mpl.rcParams['axes.facecolor'] = 'none'      # Axes patch
+mpl.rcParams['lines.linewidth'] = 2
 cmap = mpl.colormaps['tab20']  # nice, but only 8:Dark2
 colors_cy = cmap.colors  # type: list
 mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=colors_cy)
@@ -117,6 +118,12 @@ wanted_colors = ['firebrick', 'coral', 'sandybrown', 'darkviolet', 'orchid', 'ye
 reverse_colors = wanted_colors[::-1]
 wanted_colors = np.concatenate([wanted_colors, reverse_colors])
 mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color = wanted_colors)
+
+# MM_TO_INCH = 1 / 25.4
+# def set_size(columns=1, ratio=0.62):
+#     widths = {1: 84, 2: 174}  # mm (MNRAS)
+#     width = widths[columns] * MM_TO_INCH
+#     return (width, width * ratio)
 
 if __name__ == '__main__':
     # it's the same converting from cgs ans SI ... of course lol

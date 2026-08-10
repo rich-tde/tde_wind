@@ -293,12 +293,16 @@ else:
                 
                 ax.contour(xcr/Rt, ycr/Rt, cr/Rt, [0], linestyles='dashed', colors = 'k', linewidths = 4)
                 if coord_to_cut == 'y': 
-                    ax.plot(x_line[x_line < 0]/Rt, y_line10[x_line < 0]/Rt, '--', linewidth = 4, c = 'k')
-                    ax.plot(x_line[x_line < 0]/Rt, y_lineneg10[x_line < 0]/Rt, '--', linewidth = 4, c = 'k')
-                    ax.plot(x_line[x_line < 0]/Rt, y_line40[x_line < 0]/Rt, '--', linewidth = 4, c = 'k')
-                    ax.plot(x_line[x_line < 0]/Rt, y_lineneg40[x_line < 0]/Rt, '--', linewidth = 4, c = 'k')
-                    ax.plot(x_line/Rt, y_line70/Rt, '--', linewidth = 4, c = 'k')       
-                    ax.plot(x_line/Rt, y_lineneg70/Rt, '--', linewidth = 4, c = 'k')
+                    ax.plot(x_line[x_line < 0]/Rt, y_line10[x_line < 0]/Rt, '--', linewidth = 4, c = 'white')
+                    ax.plot(x_line[x_line < 0]/Rt, y_lineneg10[x_line < 0]/Rt, '--', linewidth = 4, c = 'white')
+                    ax.plot(x_line[x_line < 0]/Rt, y_line40[x_line < 0]/Rt, '--', linewidth = 4, c = 'white')
+                    ax.plot(x_line[x_line < 0]/Rt, y_lineneg40[x_line < 0]/Rt, '--', linewidth = 4, c = 'white')
+                    ax.plot(x_line/Rt, y_line70/Rt, '--', linewidth = 4, c = 'white')   
+                    ax.plot(x_line/Rt, y_lineneg70/Rt, '--', linewidth = 4, c = 'white')  
+                    if i == 0:
+                        ax.text(-49, 8, r'$\theta = 80^{\circ}$', fontsize = 40, color = 'white', rotation = -10)
+                        ax.text(-48, 32, r'$\theta = 50^{\circ}$', fontsize = 40, color = 'white', rotation = -40)
+                        ax.text(-16, 35, r'$\theta = 20^{\circ}$', fontsize = 40, color = 'white', rotation = -70)
 
                 ax.set_xlim(-lim_plot/Rt, lim_plot/Rt)
                 ax.set_ylim(-lim_plot/Rt, lim_plot/Rt)

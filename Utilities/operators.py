@@ -68,6 +68,14 @@ def format_pi_frac(x, pos): # write colorbar ticks in terms of pi fractions
             return label
     return r'${0:.2g}\pi$'.format(frac)
 
+def area_spherical_zone(r, theta):
+    area = 4 * np.pi * r**2 * np.cos(theta) 
+    return area
+
+def area_spherical_cal(r, theta):
+    area = 2 * np.pi * r**2 * (1 - np.cos(theta))
+    return area
+
 def draw_line(x_arr, params, what):
     """ Draw a line in the x-y plane with slope tg(alpha).
     Parameters
@@ -167,8 +175,8 @@ def choose_sections(X, Y, Z, choice):
         slope = np.tan(alpha_pole)  
         cond_Npole = np.logical_and(np.abs(Z) > slope *  R_cyl, Z > 0)
         cond_Spole = np.logical_and(np.abs(Z) > slope *  R_cyl, Z < 0)
-        north = {'cond': cond_Npole, 'label': r'North pole', 'color': '#56cfe1', 'line': 'dotted', 'marker': 'X'}
-        south = {'cond': cond_Spole, 'label': r'South pole', 'color': 'cornflowerblue', 'line': 'dotted', 'marker': 'X'}
+        north = {'cond': cond_Npole, 'label': r'North pole', 'color': '#56cfe1', 'line': 'solid', 'marker': 'X'}
+        south = {'cond': cond_Spole, 'label': r'South pole', 'color': 'cornflowerblue', 'line': 'dashed', 'marker': 'X'}
 
     if choice == 'all':
         cond_all = np.abs(X) != 1  # all True
@@ -221,10 +229,10 @@ def choose_sections(X, Y, Z, choice):
         cond_left_mld = np.logical_and(X < 0, np.logical_and(np.abs(Z) <= slope_opu *  R_cyl, np.abs(Z) > slope_opd *  R_cyl))
         cond_left_mlu = np.logical_and(X < 0, np.logical_and(np.abs(Z) <= slope *  R_cyl, np.abs(Z) > slope_opu *  R_cyl))
         cond_right = np.logical_and(X >= 0, np.abs(Z) <= slope * R_cyl)
-        left_op = {'cond': cond_left_op, 'label': 'Low stream', 'color': '#ffc2d1', 'line': 'solid', 'marker': 'H'} # r'Stream side $\theta\in[4\pi/9,\pi/2]$'
+        left_op = {'cond': cond_left_op, 'label': 'Eccentric flow', 'color': '#ffc2d1', 'line': 'solid', 'marker': 'H'} # r'Stream side $\theta\in[4\pi/9,\pi/2]$'
         left_mld = {'cond': cond_left_mld, 'label': 'Middle stream', 'color': '#ff499e', 'line': 'solid', 'marker': 'o'} # r'Stream side $\theta\in[5\pi/18, 4\pi/9]$'
         left_mlu = {'cond': cond_left_mlu, 'label': 'High stream', 'color': '#6e44ff', 'line': 'solid', 'marker': 'p'} # r'Stream side $\theta\in[\pi/9, 5\pi/18]$'
-        right = {'cond': cond_right, 'label': r'Pericentre side', 'color': '#b5e48c', 'line': 'dashed', 'marker': 's'} 
+        right = {'cond': cond_right, 'label': r'Pericentre side', 'color': '#b5e48c', 'line': 'solid', 'marker': 's'} 
         sec = {'left_op': left_op, 'left_mld': left_mld, 'left_mlu': left_mlu, 'right': right, 'north': north, 'south': south}
     
     if choice == 'in_out_z': 

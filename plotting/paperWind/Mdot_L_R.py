@@ -8,11 +8,11 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import csv
 import os
-from matplotlib import lines as mlines
+from matplotlib import lines as MdotMines
 import healpy as hp
 # from scipy.ndimage import uniform_filter1d
 import Utilities.prelude as prel
-from Utilities.operators import choose_observers, sort_list
+from Utilities.operators import choose_observers, sort_list, area_spherical_zone, area_spherical_cal
 from src import orbits as orb
 from plotting.paperEdd.IHopeIsTheLast import ratio_BigOverSmall
 
@@ -26,12 +26,12 @@ compton = 'Compton'
 check = 'HiResNewAMR' 
 choice = 'split_stream'
 how = 'isot'
-which_plot = 'ML' # 'ML' or 'ML_conv'
+which_plot = 'MdotM' # 'MdotM' or 'MdotM_conv'
 commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 folder = f'{commonfolder}{check}'
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
 observers_xyz = np.array(observers_xyz)
-indices_obs, label_obs, color_obs, _, _ = choose_observers(observers_xyz, choice)
+indices_obs, label_obs, color_obs, lines_obs, _ = choose_observers(observers_xyz, choice)
 Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
@@ -41,29 +41,31 @@ t_fb_days = things['t_fb_days']
 amin = things['a_mb']
 Rt = things['Rt']
 
-
 r_chosen = 0.5*amin
 which_r_title = '05amin'
-figM, (axM, axL) = plt.subplots(1,2, figsize = (16,7))  
-if which_plot == 'ML':
+
+figM, (axM, axzeta, axMratio) = plt.subplots(1, 3, figsize = (24, 7))  
+if which_plot == 'MdotM':
     figr, axr  = plt.subplots(1,1, figsize = (9,7))
-    figMratio, axMratio  = plt.subplots(1,1, figsize = (9,7))
-    axMratio.set_ylim(1e-2, 2)
-    axes = [axM, axL, axr, axMratio]
+    axzeta.set_ylim(1e-3, 2)
+    axMratio.set_ylim(1e-5, 2e-2)
+    axes = [axM, axzeta, axr, axMratio]
+    axr.set_ylabel(r'$r (r_{\rm t})$')
+    axr.set_ylim(1, 1.2e2)
 else: 
     figr, (axrM, axrL)  = plt.subplots(1,2, figsize = (18,7))
-    axes = [axM, axL, axrM, axrL]
+    axes = [axM, axrM, axrL]
     axrM.set_ylim(1, 1e2)
     axrL.set_ylim(1, 1e2)
-axM.set_ylim(1e2, 2e7)
-axL.set_ylim(1e38, 5e42)
+axM.set_ylim(1e2, 8e7)
 axM.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$')  
-axL.set_ylabel(r'$L_{{\rm FLD}}$ (erg/s)') 
+axzeta.set_ylabel(r'$\zeta = |\dot{M}_{\rm w}/\dot{M}_{\rm fb}|$')
+axMratio.set_ylabel(r'M$_{\rm w}/(M_\star$/2)')
 
-if which_plot == 'ML':
+if which_plot == 'MdotM':
     dataM = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
-    snaps, tfb_Lum, Lums = dataM[:, 0], dataM[:, 1], dataM[:, 2]
-    tfb_Lum, snaps, Lums = sort_list([tfb_Lum, snaps, Lums], snaps, unique=True)
+    snaps, tfb_Lum, _ = dataM[:, 0], dataM[:, 1], dataM[:, 2]
+    tfb_Lum, snaps = sort_list([tfb_Lum, snaps], snaps, unique=True)
 
     fallback = \
             np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_{check}{which_r_title}mean.csv', 
@@ -72,7 +74,6 @@ if which_plot == 'ML':
                     unpack=True)
     tfbfb, mfb = fallback[1], fallback[2]
     
-    Lum_sec = []
     rph_sec = []
     rtr_sec = []
     snaps = np.array(snaps, dtype=int)
@@ -84,25 +85,29 @@ if which_plot == 'ML':
         x_tr, y_tr, z_tr = trap['x_tr'], trap['y_tr'], trap['z_tr']
         r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
         if choice in ['tenths','azimuthal', 'funnel', '3d_arch', 'split_stream']:
-            Lum_slab = np.zeros(len(indices_obs))
             mask = []
             rph_slab = np.zeros(len(indices_obs))
             for i, indices in enumerate(indices_obs):
-                Lum_slab[i] = np.mean(Lum_ph[indices])
                 mask.append(r_tr[indices] > 0)
-            Lum_sec.append(Lum_slab)
         else:
-            Lum_sec.append(np.mean(Lum_ph[indices_obs], axis = 1))
             mask = r_tr[indices_obs] > 0
         indices_sec = [row[m] for row, m in zip(indices_obs, mask)]
         rtr_sec.append([np.median(r_tr[row]) for row in indices_sec])
         rph_sec.append([np.median(r_ph[row]) for row in indices_sec])
         # rtr_sec.append(np.mean(r_tr[indices_obs], axis = 1))
         # rph_sec.append(np.mean(r_ph[indices_obs], axis = 1))
-    Lum_sec = np.transpose(np.array(Lum_sec))
     rph_sec = np.transpose(np.array(rph_sec))
     rtr_sec = np.transpose(np.array(rtr_sec))
-    
+
+    if choice == 'split_stream':
+        corr_ecc = area_spherical_zone(r_chosen, 80 * np.pi/180)/2 # since the other half is peric side
+        corr_mid = area_spherical_zone(r_chosen, 50 * np.pi/180)/2 - corr_ecc
+        corr_high = area_spherical_zone(r_chosen, 20 * np.pi/180)/2 - corr_mid - corr_ecc
+        corr_pole = area_spherical_cal(r_chosen, 20 * np.pi/180)
+        corr_peric = area_spherical_zone(r_chosen, 20 * np.pi/180)/2 # since the other half is stream side
+        corr_geom = np.array([corr_ecc, corr_mid, corr_high, corr_peric, corr_pole, corr_pole])
+    # print(np.sum(corr_geom)/(4 * np.pi * r_chosen**2))
+
     wind = \
             np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_wind.csv', 
                     delimiter = ',', 
@@ -110,7 +115,8 @@ if which_plot == 'ML':
                     unpack=True) 
     tfb = wind[1]
     rest = wind[2:2+len(label_obs)]
-
+    Mdotw = np.copy(rest)
+    Mdotw_isot = np.copy(rest)
 
     boundOut = \
             np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_boundOut.csv', 
@@ -118,56 +124,66 @@ if which_plot == 'ML':
                     skiprows=1, 
                     unpack=True) 
     tfbO = boundOut[1]
-    restO = boundOut[2:2+len(label_obs)]
+    restboundOut = boundOut[2:2+len(label_obs)]
+    MdotboundOut = np.copy(restboundOut)
+    MdotboundOut_isot = np.copy(restboundOut)
  
     if how == 'isot':
         area = wind[-len(label_obs):]
-        rest *=  4 * np.pi * r_chosen**2 / area 
+        areaboundOut = boundOut[-len(label_obs):]
+        if choice == 'split_stream':
+            corr = []
+        for i in range(len(rest)):
+            Mdotw_isot[i][area[i]>0] *=  4 * np.pi * r_chosen**2 / area[i][area[i]>0] 
+            corr.append(corr_geom[i] / area[i])
+            MdotboundOut_isot[i][areaboundOut[i]>0] *=  4 * np.pi * r_chosen**2 / areaboundOut[i][areaboundOut[i]>0]
+        corr = np.array(corr)
+    # for i in range(len(rest)): 
+    #     rest[i][area[i]>0] = uniform_filter1d(rest[i][area[i]>0], 5)
+    #     restboundOut[i][areaboundOut[i]>0] = uniform_filter1d(restboundOut[i][areaboundOut[i]>0], 3)
 
-        areaO = boundOut[-len(label_obs):]
-        restO *=  4 * np.pi * r_chosen**2 / areaO
+    MdotO_isot = MdotboundOut_isot + Mdotw_isot
 
-    # for i in range(len(rest)):
-        # print(len(rest[i]), len(area[i]))
-        # rest[i] = rest[i][area[i]>0]
-        # tfb = tfb[area[i]>0]
-        # rest[i][area[i]>0] = uniform_filter1d(rest[i][area[i]>0], 3)
-        # Lum_sec[i] = uniform_filter1d(Lum_sec[i], 3)
+    dataMass = np.loadtxt(f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv', 
+                        delimiter=',', skiprows=1, unpack=True)
+    tfbMass = dataMass[1]
+    M_tot = dataMass[2:2+len(label_obs)] 
+    M_out = dataMass[2+(len(label_obs)):2+2*(len(label_obs))] 
+    M_wind = dataMass[2+2*(len(label_obs)):2+3*(len(label_obs))] 
 
-        # restO[i] = uniform_filter1d(restO[i], 3)
-
-    axr.set_ylabel(r'$r (r_{\rm t})$')
-    axr.set_ylim(1, 1.2e2)
+    for i in range(len(label_obs)):
+        M_out[i, :] -= M_wind[i, 0]
+        M_wind[i, :] -= M_wind[i, 0]
 
     handles_color = []
     labels_color = []
-    line_styles_parts = ['-', '--', '-.']
-    labels_parts = [r'$\dot{M}_{\rm w}$', r'$\dot{M}_{\rm out}$', r'$|\dot{M}_{\rm fb}|$']
+    line_styles_parts = ['-', '--']
+    labels_parts = [r'$\dot{M}_{\rm w}$', r'$\dot{M}_{\rm out}$']
     for i in range(len(label_obs)):
         if label_obs[i] == 'South pole':
             continue
-        if label_obs[i] != r'Stream side $\theta\in[4\pi/9,\pi/2]$':
-            line = axM.plot(tfb, rest[i]/Medd_sol,  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])[0]
-        axM.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'gray', ls = '-.', label = r'$|\dot{M}_{\rm fb}|$')
-        axL.plot(tfb_Lum, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i])
-        axM.plot(tfbO[4:], restO[i][4:]/Medd_sol, linewidth = 2, c = color_obs[i], ls = line_styles_parts[1])
-        axMratio.plot(tfb[4:], rest[i][4:]/restO[i][4:], linewidth = 2, c = color_obs[i], label = label_obs[i])
-        if np.logical_and(i ==0, choice == 'left_right_z' ):
-            print('ratio wind/outflow at last time step:', rest[i][-1]/restO[i][-1])
-        if np.logical_and(i ==0, choice == 'split_stream'):
-            wind = rest[0][-1] + rest[1][-1] + rest[2][-1]
-            outflow = restO[0][-1] + restO[1][-1] + restO[2][-1]
-            print('ratio wind/outflow at last time step:', wind/outflow)
+        if label_obs[i] != r'Eccentric flow':
+            axM.plot(tfb, Mdotw_isot[i]/Medd_sol,  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])
+            axzeta.plot(tfb[7:], corr[i][7:] * Mdotw[i][7:]/np.abs(mfb[7:]),  label = label_obs[i], linewidth = 2, c = color_obs[i])
+            axMratio.plot(tfbMass,  M_wind[i]/(0.5*mstar), linewidth = 2, c = color_obs[i], label = label_obs[i])
+        axM.plot(tfbO[4:], MdotO_isot[i][4:]/Medd_sol, linewidth = 2, c = color_obs[i], ls = line_styles_parts[1])
+        # axMratio.plot(tfbMass, M_out[i]/M_tot[i], linewidth = 2, c = color_obs[i], label = label_obs[i])[0]
 
-            # handles_color.append(line)
-            # labels_color.append(label_obs[i])
-        axL.axhline(Ledd_cgs, color = 'k', ls = '-.')
-        axL.text(0.08, 1.2*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$',  fontsize = 20)
         axr.plot(tfb_Lum, rtr_sec[i]/Rt, linewidth = 2, c = color_obs[i], ls = ':', label = r'r$_{\rm trap}$' if i == 2 else "")
         axr.plot(tfb_Lum, rph_sec[i]/Rt, linewidth = 2, c = color_obs[i], label = r'r$_{\rm ph}$' if i == 2 else "")
+        
+        # if np.logical_and(i ==0, choice == 'left_right_z' ):
+        #     print('ratio wind/outflow at last time step:', rest[i][-1]/restO[i][-1])
+        # if np.logical_and(i == 0, choice == 'split_stream'):
+        #     wind = rest[0][-1] + rest[1][-1] + rest[2][-1]
+        #     outflow = restO[0][-1] + restO[1][-1] + restO[2][-1]
+        #     print('ratio wind/outflow at last time step:', wind/outflow)
 
 
-if which_plot == 'ML_conv':
+        handles_color.append(color_obs[i])
+        labels_color.append(label_obs[i])
+
+if which_plot == 'MdotM_conv':
     data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
     snaps, _, _ = data[:, 0], data[:, 1], data[:, 2]
     _, snaps, _ = sort_list([_, snaps, _], snaps, unique=True)
@@ -263,7 +279,7 @@ if which_plot == 'ML_conv':
     axrL.set_ylabel(r'$L_{\rm HiRes}/L_{\rm MidRes}$')
     # axr.set_ylim(1, 11)
 
-original_ticks = axL.get_xticks()
+original_ticks = axM.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
 labels = [str(np.round(tick,2)) if tick in original_ticks else '' for tick in new_ticks]   
@@ -275,35 +291,55 @@ for ax in axes:
     ax.set_xticks(new_ticks)
     ax.set_xticklabels(labels)  
     ax.set_yscale('log')
-    ax.set_xlabel(r'$t / t_{\rm fb}$')
     ax.set_xlim(0, np.max(tfb))
     ax.tick_params(axis='both', which='major', width=1.2, length=9)
     ax.tick_params(axis='both', which='minor', width=1, length=5)
     ax.grid()
+    
     ax2 = ax.twiny()
     ax2.set_xticks(days_ticks)
     ax2.set_xlim(0, np.max(tfb)*t_fb_days)
-    ax2.set_xticklabels(days_labels)
+    # if ax == axM:
     ax2.set_xlabel(r't (days)', y = 1.1)
+    ax2.set_xticklabels(days_labels)
+    # else: 
+    # ax2.tick_params(axis='x', labeltop=False)
+
+    # if ax == axMratio:
+    ax.set_xlabel(r'$t / t_{\rm fb}$')
+    # else: 
+    # ax.tick_params(axis='x', labelbottom=False)
+
 
 # Legend 1: colored observer lines (three colors)
-legend1 = axL.legend(handles=handles_color,
-                    labels=labels_color,
-                    fontsize=15)
-axL.add_artist(legend1)
+# legend1 = axM.legend(handles=handles_color,
+#                     labels=labels_color,
+#                     fontsize=15)
+proxy_lines = []
+proxy_lines = []
+for l, line in enumerate(lines_obs):
+    if label_obs[l] == 'South pole':
+        continue
+    proxy_lines.append(
+        MdotMines.Line2D([0], [0], color=color_obs[l], ls=line, linewidth=2,
+                    label=label_obs[l]))
+legend1 = axM.legend(handles=proxy_lines, fontsize=18, 
+                                loc='upper left')
+axM.add_artist(legend1)
+
 # Legend 2: line-style explanation (solid vs dashed)
 proxy_lines = []
 proxy_lines = []
 for l, line in enumerate(line_styles_parts):
     proxy_lines.append(
-        mlines.Line2D([0], [0], color='k', ls=line, linewidth=2,
+        MdotMines.Line2D([0], [0], color='k', ls=line, linewidth=2,
                     label=labels_parts[l])
     )
 axM.legend(handles=proxy_lines, fontsize=20, 
-                                loc='upper left')
+                                loc='lower right')
 
 figM.tight_layout()
-if which_plot == 'ML':
+if which_plot == 'MdotM':
     axr.legend(fontsize = 20)
     figr.tight_layout()
 if choice == 'tenths':

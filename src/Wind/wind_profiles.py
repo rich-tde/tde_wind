@@ -28,6 +28,7 @@ import src.orbits as orb
 import Utilities.operators as op
 from src.Wind.Rtrapp_tdiff import load_and_smooth_rtrap
 from src.Opacity.interpolator_vectorized import calc_ross_opacity_vectorized, calc_scattering_opacity_vectorized
+from plotting.paperWind.spectra_lc import fluxfit
 
 #
 # PARAMS
@@ -67,6 +68,7 @@ T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')
 scattering = np.loadtxt(f'{opac_path}/scatter.txt')
+freqs_fit = prel.freqs
 
 #%% FUNCTIONS
 def L_ionization(M_env, rin, rout, Eev):
@@ -259,11 +261,18 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
         # plt.xlabel(r'Density [g/cm$^3$', fontsize = 20)
         # plt.ylabel(r'Opacity [cm$^2$/g]', fontsize = 20)
 
+        # fit BB to have the flux Fnu and then integrate from 13.6eV to infty 
+        Fion_prof = np.zeros(len(t_prof))
+        for i, t_single in enumerate(t_prof):
+            Fion_nu = fluxfit(freqs_fit, t_single)
+            Fion_prof[i] = np.trapezoid(Fion_nu[freqs_fit>13.6*prel.ev_toHz], freqs_fit[freqs_fit>13.6*prel.ev_toHz]) 
+
         outflow = {
             'r': ray_array,
             'area': area,
             't_prof': t_prof,
             'urad_prof': urad_prof,
+            'Fion_prof': Fion_prof,
             'tgas_prof': tgas_prof,
             'v_rad_prof': v_rad_prof,
             'm_prof': ray_m,
@@ -368,14 +377,14 @@ else:
         y_test2 = op.draw_line(x_test, [2e-7, -2], 'powerlaw')
         axd.set_ylim(2e-13, 1e-5)
         axV.set_ylim(1.5e3, 1.5e4)
-        axT.set_ylim(2e4, 1e6)
+        axT.set_ylim(8e3, 1e6)
         axM.set_ylim(1e2, 1e7)
         axC.set_ylim(1e2, 1e7)
         axLadv.set_ylim(1e-2, 1e2)
         axLkin.set_ylim(1e-1, 5e2) 
         axratio.set_ylim(1e-2, 1.1)
         axratioM.set_ylim(1e-2, 1.1)
-        axx.set_ylim(1e-5, 1e3)
+        axx.set_ylim(10, 7e4)
         axk.set_ylim(1e-1, 40)
         axd.text(0.8*apo*norm, 0.2*axd.get_ylim()[1], r'$r_{\rm a}$', fontsize = 20, color = 'gray', rotation = 90)   
         axd.plot(x_test, y_test2, c = 'gray', ls = '-.', label = r'$\rho \propto r^{-2}$')
@@ -462,8 +471,8 @@ else:
                 d = profiles[lab]['d_prof']
                 v_rad = np.abs(profiles[lab]['v_rad_prof'])
                 t = profiles[lab]['t_prof']
-                urad_prof = profiles[lab]['urad_prof']
-                cu = prel.csol_cgs * urad_prof
+                Fion_prof = profiles[lab]['Fion_prof']
+                # cu = prel.csol_cgs * urad_prof
                 if isot == 'isot':
                     print('isotropic Mdot and Lum')
                     area = profiles[lab]['area']
@@ -494,17 +503,16 @@ else:
                 colors_sec = colors_obs[i] #profiles[lab]['colors_obs']
                 not_zero = np.where(np.logical_and(d != 0, r_arr > 0))
                 if what_varies == 'r':
-                    r_plot, d, v_rad, t, Mdot, L_adv, L_kin, ratio_un, ratio_Mass, Mdotmean, alpha_scatter, alpha_rossland, cu = \
-                        make_slices([r_arr, d, v_rad, t, Mdot, L_adv, L_kin, ratio_un, ratio_Mass, Mdotmean, alpha_scatter, alpha_rossland, cu], not_zero)
+                    r_plot, d, v_rad, t, Mdot, L_adv, L_kin, ratio_un, ratio_Mass, Mdotmean, alpha_scatter, alpha_rossland, Fion_prof = \
+                        make_slices([r_arr, d, v_rad, t, Mdot, L_adv, L_kin, ratio_un, ratio_Mass, Mdotmean, alpha_scatter, alpha_rossland, Fion_prof], not_zero)
                     if which_part == 'wind':
                         Nwind_cells, Ntot_cells, Mass_wind, Mass_tot = \
                             make_slices([Nwind_cells, Ntot_cells, Mass_wind, Mass_tot], not_zero)
                     idx_rtr = np.argmin(np.abs(r_plot - rtr_nonzero_medians[i]))
                     idx_rph = np.argmin(np.abs(r_plot - rph_nonzero_medians[i]))
-                    n_e = d/(1.3*prel.m_p_cgs/prel.Msol_cgs)
+                    n_e_cgs = d*prel.den_converter/(1.3*prel.m_p_cgs)
                     albedo = alpha_scatter/ alpha_rossland
-                    xi = cu/(n_e * r_plot**2) # L_adv/(n_e * r_plot**2) 
-                    xi_cgs = xi * prel.en_converter * prel.Rsol_cgs/prel.tsol_cgs
+                    xi_cgs = 4 * np.pi * Fion_prof/n_e_cgs # L_adv/(n_e * r_plot**2) 
                     if label_obs[i] == 'Stream side': # just to cut the initially unbound material
                         # if which_part == 'wind':
                         #     idx_stop_d = np.where(np.logical_and(d > d[0], r_plot > apo))[0][0] #np.argmin(np.abs(r_plot - idx_stop_d_unb[k]*Rt)) 
