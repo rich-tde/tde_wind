@@ -69,36 +69,49 @@ if alice:
         cut = Den > 1e-19
         X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
             make_slices([X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
+        vel = np.sqrt(VX**2 + VY**2 + VZ**2)
+        Ekin = 0.5 * Mass * vel**2
         indices_allsec, label_obs = split_cells(X, Y, Z, choice)
 
         cut_wind, _, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, cond = 'bern')
         cut_out = V_r > 0 
-        X_out, Y_out, Z_out, Mass_out = make_slices([X, Y, Z, Mass], cut_out)
-        X_wind, Y_wind, Z_wind, Mass_wind = make_slices([X, Y, Z, Mass], cut_wind)
+        X_out, Y_out, Z_out, Mass_out, Ekin_out = make_slices([X, Y, Z, Mass, Ekin], cut_out)
+        X_wind, Y_wind, Z_wind, Mass_wind, Ekin_wind = make_slices([X, Y, Z, Mass, Ekin], cut_wind)
         indices_allsec_wind, label_obs = split_cells(X_wind, Y_wind, Z_wind, choice)
         indices_sec_out, _ = split_cells(X_out, Y_out, Z_out, choice)
         
         tot_M = np.zeros(len(indices_allsec_wind))
         M_out = np.zeros(len(indices_sec_out))
+        E_out = np.zeros(len(indices_sec_out))
         M_wind = np.zeros(len(indices_allsec_wind))
+        E_wind = np.zeros(len(indices_allsec_wind))
 
         for i in range(len(indices_allsec_wind)):
             i_singlesec = indices_allsec[i]
             tot_M[i] = np.sum(Mass[i_singlesec])
             i_singlesec_out = indices_sec_out[i]
-            mass_out = Mass_out[i_singlesec_out] if Mass_out.size > 0 else np.array([0])
-            M_out[i] = np.sum(mass_out) 
+            mass_out_single = Mass_out[i_singlesec_out] if Mass_out.size > 0 else np.array([0])
+            M_out[i] = np.sum(mass_out_single) 
+            E_out_single = Ekin_out[i_singlesec_out] if Ekin_out.size > 0 else np.array([0])
+            E_out[i] = np.sum(E_out_single)
             i_singlesec_wind = indices_allsec_wind[i] 
             mass_w = Mass_wind[i_singlesec_wind] if Mass_wind.size > 0 else np.array([0])
             M_wind[i] = np.sum(mass_w) 
+            E_wind_single = Ekin_wind[i_singlesec_wind] if Ekin_wind.size > 0 else np.array([0])
+            E_wind[i] = np.sum(E_wind_single)
 
-        data = np.concatenate([[snap, time], tot_M, M_out, M_wind])
+        data = np.concatenate([[snap, time], tot_M, M_out, M_wind, E_out, E_wind])
 
         csv_path = f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv'
         with open(csv_path,'a', newline='') as file:
             writer = csv.writer(file)
             if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                writer.writerow(['snap', 'tfb'] + [f'M_tot {lab}' for lab in label_obs] + [f'M_out {lab}' for lab in label_obs] + [f'M_w {lab}' for lab in label_obs])
+                writer.writerow(['snap', 'tfb'] + 
+                                [f'M_tot {lab}' for lab in label_obs] + 
+                                [f'M_out {lab}' for lab in label_obs] + 
+                                [f'M_w {lab}' for lab in label_obs] + 
+                                [f'E_out {lab}' for lab in label_obs] + 
+                                [f'E_w {lab}' for lab in label_obs])
             writer.writerow(data)
             file.close()
 
@@ -115,6 +128,8 @@ if plot:
     M_tot = data[2:2+len(label_obs)] 
     M_out = data[2+(len(label_obs)):2+2*(len(label_obs))] 
     M_wind = data[2+2*(len(label_obs)):2+3*(len(label_obs))] 
+    E_out = data[2+3*(len(label_obs)):2+4*(len(label_obs))] 
+    E_wind = data[2+4*(len(label_obs)):2+5*(len(label_obs))] 
 
     for i in range(len(label_obs)):
         M_out[i, :] -= M_wind[i, 0]

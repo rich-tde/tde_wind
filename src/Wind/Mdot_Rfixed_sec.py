@@ -10,10 +10,12 @@ if alice:
 else:
     abspath = '/Users/paolamartire/shocks'
     compute = False
+    import scipy.integrate as sci
+    import matplotlib.pyplot as plt
+    import matplotlib.colors as colors
+    from matplotlib import lines as MdotMines
 
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
 import csv
 import os
 import healpy as hp
@@ -38,7 +40,7 @@ compton = 'Compton'
 check = 'HiResNewAMR'
 choice = 'split_stream' # 'left_right_in_out_z', 'left_right_z', 'all' or 'in_out_z', 'thirties'
 how = 'isot' # '' for the normalized sum or 'mean' for mean of Mw of each cells
-what = 'boundOut' # '' for wind or 'boundOut'
+what = 'wind' # '' for wind or 'boundOut'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
@@ -208,30 +210,27 @@ if __name__ == '__main__':
                 file.close()
 
     else:
-        r_chosen = 0.5*amin
+        r_chosen = 0.5 * amin
         which_r_title = '05amin'
         
-        # snap_for_scatter = 109
-        # path_scat = f'/Users/paolamartire/shocks/TDE/{folder}/{snap_for_scatter}'
-        # data = make_tree(path_scat, snap_for_scatter)
-        # X, Y, Z, VX, VY, VZ, Vol, Den, Mass, Press, IE_den, Rad_den = \
-        #     data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Vol, data.Den, data.Mass, data.Press, data.IE, data.Rad
-        # cut = np.logical_and(Den > 1e-19, np.abs(Y) < Vol**(1/3)) 
-        # X, Y, Z, VX, VY, VZ, Vol, Den, Mass, Press, IE_den, Rad_den = make_slices([X, Y, Z, VX, VY, VZ, Vol, Den, Mass, Press, IE_den, Rad_den], cut)
-        # cut, bern, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params)
-        # X, Y, Z, V_r, Den = make_slices([X, Y, Z, V_r, Den], cut)
-        # Mdot_approx = 4 * np.pi * (X**2 + Y**2 + Z**2) * Den * V_r 
-        # sec, lab_scat = split_cells(X, Y, Z, choice)
+        dataMass = np.loadtxt(f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv', 
+                                delimiter=',', skiprows=1, unpack=True)
+        tfbMass = dataMass[1]
+        M_tot = dataMass[2:2+len(label_obs)] 
+        M_wind = dataMass[2+2*(len(label_obs)):2+3*(len(label_obs))] 
+    
+        for i in range(len(label_obs)):
+            M_wind[i, :] -= M_wind[i, 0]
 
         figM, axM =plt.subplots(1,1, figsize = (10,10))
-        # axM.scatter(X/Rt, Z/Rt, c = Mdot_approx/Medd_sol, s = 2, norm = colors.LogNorm(vmin = 1e3, vmax = 1e6), cmap = 'rainbow',)
+        figMass, axMass =plt.subplots(1,1, figsize = (10,10))
         
-        fallback = \
-                np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_{check}05aminmean.csv', 
-                        delimiter = ',', 
-                        skiprows=1, 
-                        unpack=True)
-        tfbfb, mfb, mwind_dimCellOld = fallback[1], fallback[2], fallback[3]
+        # fallback = \
+        #         np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_{check}05aminmean.csv', 
+        #                 delimiter = ',', 
+        #                 skiprows=1, 
+        #                 unpack=True)
+        # tfbfb, mfb, mwind_dimCellOld = fallback[1], fallback[2], fallback[3]
         
         wind = \
                 np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_{what}.csv', 
@@ -242,28 +241,75 @@ if __name__ == '__main__':
         rest = wind[2:2+len(label_obs)]
         if how == 'isot':
             area = wind[2+3*len(label_obs):2+4*len(label_obs)]
-            rest *=  4 * np.pi * r_chosen**2 / area 
-        
+            rest_isot =  4 * np.pi * r_chosen**2 * rest/ area 
+
+        extra_time_tfb = np.linspace(tfbH[-1], 40, 100)
+        all_time = np.concatenate([tfbH, extra_time_tfb])
+        extend_Mdot = []
+        for i in range(len(label_obs)):
+            extend_Mdot.append(np.concatenate([rest[i], rest[i][-1]*np.ones(len(extra_time_tfb))]))
+        extend_Mdot = np.array(extend_Mdot)
+
+        handles_color = []
+        labels_handles = []
         for i in range(len(rest)):
-            axM.plot(tfbH, rest[i]/Medd_sol,  label = label_obs[i], c = color_obs[i])
+            if label_obs[i] in ['Eccentric flow','South pole']:
+                continue
+            axM.plot(tfbH, rest_isot[i]/Medd_sol,  label = label_obs[i], c = color_obs[i])
+            # axM.plot(all_time, extend_Mdot[i]/Medd_sol,  label = label_obs[i], c = color_obs[i])
+            # from Mdot
+            time_to_int = tfbH * 24 * 3600 / prel.tsol_cgs # convert to code units
+            where_nan = np.isnan(rest[i])
+            rest[i][where_nan] = 0
+            mass = sci.cumulative_trapezoid(rest[i], time_to_int, initial = 0)
+            axMass.plot(tfbH, mass/(mstar/2), label = label_obs[i], c = color_obs[i], ls = '--')
+            ## extending 
+            # time_to_int = all_time * 24 * 3600 / prel.tsol_cgs # convert to code units
+            # where_nan = np.isnan(extend_Mdot[i])
+            # extend_Mdot[i][where_nan] = 0
+            # mass = sci.cumulative_trapezoid(extend_Mdot[i], time_to_int, initial = 0)
+            # axMass.plot(all_time, mass/(mstar/2), label = label_obs[i], c = color_obs[i], ls = '--')
+
+            line = axMass.plot(tfbMass, M_wind[i]/(mstar/2), label = label_obs[i], c = color_obs[i])[0]
+            handles_color.append(line)
+            labels_handles.append(label_obs[i])
 
         original_ticks = axM.get_xticks()
         midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
         new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
         labels = [str(np.round(tick,2)) if tick in original_ticks else '' for tick in new_ticks]    
-        axM.set_yscale('log')
-        axM.set_xlabel(r'$t [t_{\rm fb}]$')
-        axM.set_xticks(new_ticks)
-        axM.set_xticklabels(labels)  
-        axM.set_xlim(0, np.max(tfbH))
-        axM.tick_params(axis='both', which='major', width=1.2, length=9)
-        axM.tick_params(axis='both', which='minor', width=1, length=5)
-        axM.grid()
-        axM.set_ylabel(r'$\dot{M}_{{\rm w}} [\dot{M}_{\rm Edd}]$')  
-        axM.legend(fontsize = 12)
+        for ax in [axMass, axM]: 
+            ax.set_yscale('log')
+            ax.set_xlabel(r'$t [t_{\rm fb}]$')
+            ax.set_xticks(new_ticks)
+            ax.set_xticklabels(labels)  
+            ax.set_xlim(0, np.max(tfbH))
+            ax.tick_params(axis='both', which='major', width=1.2, length=9)
+            ax.tick_params(axis='both', which='minor', width=1, length=5)
+            ax.grid()
+        axM.legend(fontsize = 16)
+        axM.set_ylabel(r'$\dot{M}_{{\rm w}} [\dot{M}_{\rm Edd}]$')
 
-        axM.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--', label = r'$|\dot{M}_{\rm fb}|$')
-        axM.set_ylim(1e1, 7e6)
+        legend1 = axMass.legend(handles=handles_color,
+                    labels=labels_handles, loc='upper left',
+                    fontsize=15)
+
+        axMass.add_artist(legend1)
+        axMass.set_ylabel(r'$M_{{\rm w}} [M_\star/2]$')
+        axMass.set_ylim(1e-5, 1) 
+        line_styles_parts = ['-', '--']
+        labels_parts = [r'direct count', r'$\int \dot{M}_{\rm w} dt$']
+        proxy_lines = []
+        proxy_lines = []
+        for l, line in enumerate(line_styles_parts):
+            proxy_lines.append(
+                MdotMines.Line2D([0], [0], color='k', ls=line, linewidth=2,
+                            label=labels_parts[l])
+            )
+        axMass.legend(handles=proxy_lines, fontsize=20, loc='lower left')
+
+        # axM.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--', label = r'$|\dot{M}_{\rm fb}|$')
+        axM.set_ylim(1e2, 7e7)
         figM.suptitle(rf'$\dot{{M}}_{{\rm w}}$ at {which_r_title}', fontsize = 20)
         figM.tight_layout()
         # figM.savefig(f'{abspath}/Figs/{folder}/Wind/MdotSec_{which_r_title}{choice}.png', dpi = 150)

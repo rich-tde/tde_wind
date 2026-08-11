@@ -1,6 +1,8 @@
 """ Compute the time evolution of Mdot fallback and Mdot wind across a spherical surface"""
 abspath = '/Users/paolamartire/shocks'
 import sys
+
+from scipy import io
 sys.path.append(abspath)
 
 import numpy as np
@@ -26,7 +28,7 @@ compton = 'Compton'
 check = 'HiResNewAMR' 
 choice = 'split_stream'
 how = 'isot'
-which_plot = 'MdotM' # 'MdotM' or 'MdotM_conv'
+which_plot = 'MdotL_conv' # 'MdotM' or 'MdotL_conv'
 commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 folder = f'{commonfolder}{check}'
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
@@ -44,23 +46,25 @@ Rt = things['Rt']
 r_chosen = 0.5*amin
 which_r_title = '05amin'
 
-figM, (axM, axzeta, axMratio) = plt.subplots(1, 3, figsize = (24, 7))  
 if which_plot == 'MdotM':
+    figM, (axM, axzeta, axMratio) = plt.subplots(1, 3, figsize = (24, 7))  
     figr, axr  = plt.subplots(1,1, figsize = (9,7))
     axzeta.set_ylim(1e-3, 2)
     axMratio.set_ylim(1e-5, 2e-2)
+    axzeta.set_ylabel(r'$\zeta = |\dot{M}_{\rm w}/\dot{M}_{\rm fb}|$')
     axes = [axM, axzeta, axr, axMratio]
     axr.set_ylabel(r'$r (r_{\rm t})$')
+    axMratio.set_ylabel(r'M$_{\rm w}/(M_\star$/2)')
     axr.set_ylim(1, 1.2e2)
 else: 
-    figr, (axrM, axrL)  = plt.subplots(1,2, figsize = (18,7))
-    axes = [axM, axrM, axrL]
+    figM, (axM, axL) = plt.subplots(1, 2, figsize = (16, 7))  
+    figr, (axrM, axrL)  = plt.subplots(1,2, figsize = (16,7))
+    axes = [axM, axrM, axL, axrL]
+    axL.set_ylim(1e38, 5e42)
     axrM.set_ylim(1, 1e2)
     axrL.set_ylim(1, 1e2)
 axM.set_ylim(1e2, 8e7)
 axM.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$')  
-axzeta.set_ylabel(r'$\zeta = |\dot{M}_{\rm w}/\dot{M}_{\rm fb}|$')
-axMratio.set_ylabel(r'M$_{\rm w}/(M_\star$/2)')
 
 if which_plot == 'MdotM':
     dataM = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
@@ -183,7 +187,7 @@ if which_plot == 'MdotM':
         handles_color.append(color_obs[i])
         labels_color.append(label_obs[i])
 
-if which_plot == 'MdotM_conv':
+if which_plot == 'MdotL_conv':
     data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
     snaps, _, _ = data[:, 0], data[:, 1], data[:, 2]
     _, snaps, _ = sort_list([_, snaps, _], snaps, unique=True)
@@ -259,7 +263,7 @@ if which_plot == 'MdotM_conv':
     labels_parts = ['High res', 'Middle res']
 
     for i in range(len(rest)):
-        if label_obs[i] == 'South pole' or label_obs[i] == r'Stream side $\theta\in[4\pi/9,\pi/2]$':
+        if label_obs[i] in ['South pole', 'Eccentric flow']:
             continue
         line = axM.plot(tfb, rest[i]/Medd_sol,  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])[0]
         axL.plot(tfb, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])
@@ -279,6 +283,7 @@ if which_plot == 'MdotM_conv':
     axrL.set_ylabel(r'$L_{\rm HiRes}/L_{\rm MidRes}$')
     # axr.set_ylim(1, 11)
 
+axM.set_xlim(0, np.max(tfb))
 original_ticks = axM.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))

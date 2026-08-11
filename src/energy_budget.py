@@ -103,6 +103,7 @@ if compute:
             cut = Rsph > 0.5 * a_mb
             X, Y, Z, Rsph, VX, VY, VZ, vel, mass, vol, den, ie_den, Rad_den, Press, Diss_den = \
                 sec.make_slices([X, Y, Z, Rsph, VX, VY, VZ, vel, mass, vol, den, ie_den, Rad_den, Press, Diss_den], cut)
+            Ekin = 0.5 * mass * vel**2
             orb_en = orb.orbital_energy(Rsph, vel, mass, params, prel.G)
             ie = ie_den * vol
             Rad = Rad_den * vol
@@ -117,6 +118,7 @@ if compute:
                 label_obs.append(sections[key]['label'])
                 cond_sec.append(sections[key]['cond'])
 
+            Ekin_sec = np.zeros(len(sections))
             OE_sec = np.zeros(len(sections))
             IE_sec = np.zeros(len(sections))
             Rad_sec = np.zeros(len(sections))
@@ -124,6 +126,7 @@ if compute:
             bern_neg_sec = np.zeros(len(sections))
             bern_pos_sec = np.zeros(len(sections))
             for k, cond in enumerate(cond_sec):
+                Ekin_sec[k] = np.sum(Ekin[cond]) if cond.size > 0 else 0
                 OE_sec[k] = np.sum(orb_en[cond]) if cond.size > 0 else 0
                 IE_sec[k] = np.sum(ie[cond]) if cond.size > 0 else 0
                 Rad_sec[k] = np.sum(Rad[cond]) if cond.size > 0 else 0
@@ -132,6 +135,7 @@ if compute:
                 bern_pos_sec[k] = np.sum(bern[cond & (bern >= 0)]) if cond.size > 0 else 0
 
             E_snap = {'tfb': tfb[i], 
+                      'Ekin_sec': Ekin_sec,
                       'OE_sec': OE_sec,
                       'IE_sec': IE_sec,
                       'Rad_sec': Rad_sec,
@@ -152,7 +156,7 @@ if compute:
             #     file.close()
             
 
-        del X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den
+        del X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den, Ekin
         gc.collect()   
     out_path = f'{abspath}/data/{folder}/wind/Diss_bern_{choice}.npy'
     np.save(out_path, energies, allow_pickle=True) 
@@ -228,7 +232,7 @@ if plot:
         # define regions
         observers_xyz = hp.pix2vec(prel.NSIDE, np.arange(prel.NPIX)) #shape: (3, 192)
         observers_xyz = np.array(observers_xyz)
-        indices_sorted, label_obs, colors_obs, _ = choose_observers(observers_xyz, choice = choice)
+        indices_sorted, label_obs, colors_obs, _, _ = choose_observers(observers_xyz, choice = choice)
         
         data = np.loadtxt(f'{abspath}/data/{folder}/wind/Diss_bern_{choice}.csv', delimiter=',', skiprows=1)
         tfb = data[:, 1]
