@@ -187,27 +187,27 @@ for w, what_varies in enumerate(what_varies_all):
                 L_adv = np.zeros_like(L_adv)
             
             if np.logical_and(w == 0, which_part == 'wind'): 
-                line = all_axes[0][w].plot(r_plot*norm, d * prel.den_converter, label = f'{lab}', color = colors_sec, ls = line_styles_parts[k], linewidth = 2)[0]
+                line = all_axes[0][w].plot(r_plot*norm, d * prel.den_converter, label = f'{lab}', color = colors_sec, ls = line_styles_parts[k])[0]
                 handles_color.append(line)
                 labels_color.append(lab)
             else:
-                all_axes[0][w].plot(r_plot*norm, d * prel.den_converter, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
-            all_axes[1][w].plot(r_plot*norm, v_rad * conversion_sol_kms, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
+                all_axes[0][w].plot(r_plot*norm, d * prel.den_converter, color = colors_sec, ls = line_styles_parts[k])
+            all_axes[1][w].plot(r_plot*norm, v_rad * conversion_sol_kms, color = colors_sec, ls = line_styles_parts[k])
             if which_part != 'outflow':
-                all_axes[2][w].plot(r_plot*norm, Mdot/Medd_sol, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
-                all_axes[3][w].plot(r_plot*norm, L_adv/Ledd_sol, color = colors_sec, ls = line_styles_parts[k], linewidth = 2)
+                all_axes[2][w].plot(r_plot*norm, Mdot/Medd_sol, color = colors_sec, ls = line_styles_parts[k])
+                all_axes[3][w].plot(r_plot*norm, L_adv/Ledd_sol, color = colors_sec, ls = line_styles_parts[k])
 
             if np.logical_and(np.logical_and(what_varies =='r' , which_part == 'wind'), rph_nonzero_medians[i] != 0):
-                all_axes[0][w].scatter(r_plot[idx_rph]*norm, d[idx_rph] * prel.den_converter, marker = 'o', s = 100, color = colors_sec, edgecolors = 'k', zorder = 5)
-                all_axes[1][w].scatter(r_plot[idx_rph]*norm, v_rad[idx_rph] * conversion_sol_kms, marker = 'o', s = 100, color = colors_sec, edgecolors = 'k', zorder = 5)
-                all_axes[2][w].scatter(r_plot[idx_rph]*norm, Mdot[idx_rph]/Medd_sol, marker = 'o', s = 100, color = colors_sec, edgecolors = 'k', zorder = 5)
-                all_axes[3][w].scatter(r_plot[idx_rph]*norm, L_adv[idx_rph]/Ledd_sol, marker = 'o', s = 100, color = colors_sec, edgecolors = 'k', zorder = 5)
-                # all_axes[3][w].scatter(r_plot[idx_rph]*norm, Lumph_nonzero[i]/Ledd_cgs, marker = 's', s = 100, color = colors_sec, edgecolors = 'k', zorder = 5)
+                all_axes[0][w].scatter(r_plot[idx_rph]*norm, d[idx_rph] * prel.den_converter, marker = 'o', s = 150, color = colors_sec, edgecolors = 'k', zorder = 5)
+                all_axes[1][w].scatter(r_plot[idx_rph]*norm, v_rad[idx_rph] * conversion_sol_kms, marker = 'o', s = 150, color = colors_sec, edgecolors = 'k', zorder = 5)
+                all_axes[2][w].scatter(r_plot[idx_rph]*norm, Mdot[idx_rph]/Medd_sol, marker = 'o', s = 150, color = colors_sec, edgecolors = 'k', zorder = 5)
+                all_axes[3][w].scatter(r_plot[idx_rph]*norm, L_adv[idx_rph]/Ledd_sol, marker = 'o', s = 150, color = colors_sec, edgecolors = 'k', zorder = 5)
+                # all_axes[3][w].scatter(r_plot[idx_rph]*norm, Lumph_nonzero[i]/Ledd_cgs, marker = 's', s = 150, color = colors_sec, edgecolors = 'k', zorder = 5)
 
-                all_axes[0][w].scatter(r_plot[idx_rtr]*norm, d[idx_rtr] * prel.den_converter, marker = 'd', s = 100, color = colors_sec, edgecolors = 'k', zorder = 5)
-                all_axes[1][w].scatter(r_plot[idx_rtr]*norm, v_rad[idx_rtr] * conversion_sol_kms, marker = 'd', s = 100, color = colors_sec, edgecolors = 'k', zorder = 5)
-                all_axes[2][w].scatter(r_plot[idx_rtr]*norm, Mdot[idx_rtr]/Medd_sol, marker = 'd', s = 100, color = colors_sec, edgecolors = 'k', zorder = 5)
-                all_axes[3][w].scatter(r_plot[idx_rtr]*norm, L_adv[idx_rtr]/Ledd_sol, marker = 'd', s = 100, color = colors_sec, edgecolors = 'k', zorder = 5)
+                all_axes[0][w].scatter(r_plot[idx_rtr]*norm, d[idx_rtr] * prel.den_converter, marker = 'd', s = 150, color = colors_sec, edgecolors = 'k', zorder = 5)
+                all_axes[1][w].scatter(r_plot[idx_rtr]*norm, v_rad[idx_rtr] * conversion_sol_kms, marker = 'd', s = 150, color = colors_sec, edgecolors = 'k', zorder = 5)
+                all_axes[2][w].scatter(r_plot[idx_rtr]*norm, Mdot[idx_rtr]/Medd_sol, marker = 'd', s = 150, color = colors_sec, edgecolors = 'k', zorder = 5)
+                all_axes[3][w].scatter(r_plot[idx_rtr]*norm, L_adv[idx_rtr]/Ledd_sol, marker = 'd', s = 150, color = colors_sec, edgecolors = 'k', zorder = 5)
 
 
 # # Legend 1: colored observer lines (three colors)

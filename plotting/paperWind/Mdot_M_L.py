@@ -55,6 +55,7 @@ if which_plot == 'MdotM':
     axes = [axM, axzeta, axr, axMratio]
     axr.set_ylabel(r'$r (r_{\rm t})$')
     axMratio.set_ylabel(r'M$_{\rm w}/(M_\star$/2)')
+    axM.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$')  
     axr.set_ylim(1, 1.2e2)
 else: 
     figM, (axM, axL) = plt.subplots(1, 2, figsize = (16, 7))  
@@ -63,8 +64,9 @@ else:
     axL.set_ylim(1e38, 5e42)
     axrM.set_ylim(1, 1e2)
     axrL.set_ylim(1, 1e2)
+    axL.set_ylabel(r'$L_{\rm FLD}$ (erg/s)')  
+    axM.set_ylabel(r'$\dot{M}_{\rm w} (\dot{M}_{\rm Edd})$')  
 axM.set_ylim(1e2, 8e7)
-axM.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$')  
 
 if which_plot == 'MdotM':
     dataM = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
@@ -323,7 +325,7 @@ for ax in axes:
 proxy_lines = []
 proxy_lines = []
 for l, line in enumerate(lines_obs):
-    if label_obs[l] == 'South pole':
+    if label_obs[l] == 'South pole' or label_obs[l] == 'Eccentric flow':
         continue
     proxy_lines.append(
         MdotMines.Line2D([0], [0], color=color_obs[l], ls=line, linewidth=2,
@@ -340,8 +342,8 @@ for l, line in enumerate(line_styles_parts):
         MdotMines.Line2D([0], [0], color='k', ls=line, linewidth=2,
                     label=labels_parts[l])
     )
-axM.legend(handles=proxy_lines, fontsize=20, 
-                                loc='lower right')
+axM.legend(handles=proxy_lines, fontsize=19, 
+                                loc='upper right' if which_plot == 'MdotL_conv' else 'lower right')
 
 figM.tight_layout()
 if which_plot == 'MdotM':

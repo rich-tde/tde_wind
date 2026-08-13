@@ -23,7 +23,7 @@ compton = 'Compton'
 checks = ['NewAMR', 'HiResNewAMR']
 snaps = [362, 151]
 which_obs = 'split_stream'
-isoent = 'isoent' 
+isot = 'isot' 
 line_styles = ['-.', '-']
 label_res = ['Middle res', 'High res']
 
@@ -86,7 +86,7 @@ for k, check in enumerate(checks):
     tfb = np.loadtxt(f'{path}/tfb_{snap}.txt') 
     print(f'For {check}, t = {tfb} tfb')
 
-    profiles = np.load(f'{abspath}/data/{folder}/wind/r_profile/r{isoent}_profSec{snap}_{which_obs}_wind.npy', allow_pickle=True).item()
+    profiles = np.load(f'{abspath}/data/{folder}/wind/r_profile/r{isot}_profSec{snap}_{which_obs}_wind.npy', allow_pickle=True).item()
     for i, lab in enumerate(profiles.keys()): 
         colors_sec = profiles[lab]['colors_obs']
         r_arr = profiles[lab]['r'] 
@@ -99,8 +99,8 @@ for k, check in enumerate(checks):
         Mass_wind = profiles[lab]['Mass_wind']
         Mass_tot = profiles[lab]['Mass_tot']
         ratio_Mass = Mass_wind/Mass_tot
-        if isoent == 'isoent':
-            print('Isoentropic Mdot and Lum')
+        if isot == 'isot':
+            print('isotropic Mdot and Lum')
             area = profiles[lab]['area']
             Mdot = (4 * np.pi * r_arr**2) /area * profiles[lab]['Mdot_prof']
             L_kin = (4 * np.pi * r_arr**2) / area * profiles[lab]['L_kin_prof']
@@ -130,7 +130,7 @@ for k, check in enumerate(checks):
         r_arr, d, v_rad, t, Mdot, L_adv, ratio_un, ratio_Mass, Nwind_cells, Ntot_cells, Mass_wind, Mass_tot = \
                 make_slices([r_arr, d, v_rad, t, Mdot, L_adv, ratio_un, ratio_Mass, Nwind_cells, Ntot_cells, Mass_wind, Mass_tot], not_zero)
 
-        if lab == 'South pole' or lab == r'Stream side $\theta\in[4\pi/9,\pi/2]$':
+        if lab == 'South pole' or lab == r'Eccentric flow':
                     continue
         line = axd.plot(r_arr/Rt, d * prel.den_converter, color = colors_sec, ls = line_styles[k], linewidth = 2)[0]
         if check == 'HiResNewAMR': 
@@ -174,7 +174,7 @@ for ax in all_axes:
     ax.tick_params(axis='both', which='major', length = 15, width = 1.5)
     ax.loglog()
     # ax.axvline(apo/Rt, color = 'gray', ls = '--')
-    ax.set_xlim(1.5, 1.4e2)
+    ax.set_xlim(1, 1.4e2)
     ax.grid()
 
 # axd.text(0.8*apo/Rt, 0.2*axd.get_ylim()[1], r'$r_{\rm a}$', fontsize = 20, color = 'gray', rotation = 90)

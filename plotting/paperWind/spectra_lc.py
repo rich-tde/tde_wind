@@ -80,6 +80,8 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll = False):
     # Load
     pre_saving = f'{abspath}/data/{folder}'
     freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt') 
+    idx_opt = np.where(np.logical_and(freqs > low_freq_optical, freqs < high_freq_optical))[0]
+    idx_UV = np.where(np.logical_and(freqs > high_freq_optical, freqs < high_freq_UV))[0]
     # idx_opt = np.where(np.logical_and(freqs > low_freq_optical, freqs < high_freq_UV))[0]
     # idx_UV = np.where(np.logical_and(freqs > high_freq_optical, freqs < high_freq_UV))[0][0]
     #band in angstrom = 1e7 cm and are wavelenght so the minimum gives the maximum freq
@@ -89,14 +91,14 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll = False):
     idx_swift_u_band = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_u_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_u_band[0]*1e-7)))[0]
     idx_swift_b_band = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_b_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_b_band[0]*1e-7)))[0]
     idx_swift_v_band = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_v_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_v_band[0]*1e-7)))[0]
-    idx_opt = np.concatenate([idx_ztf_g, idx_ztf_r, idx_ztf_i, idx_swift_u_band, idx_swift_b_band, idx_swift_v_band])
+    idx_opt_fit = np.concatenate([idx_ztf_g, idx_ztf_r, idx_ztf_i, idx_swift_u_band, idx_swift_b_band, idx_swift_v_band])
 
     idx_swift_uvw1 = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_uvw1_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_uvw1_band[0]*1e-7)))[0]
     idx_swift_uvm2 = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_uvm2_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_uvm2_band[0]*1e-7)))[0]
     idx_swift_uvw2 = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_uvw2_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_uvw2_band[0]*1e-7)))[0]
-    idx_UV = np.concatenate([idx_swift_uvw1, idx_swift_uvm2, idx_swift_uvw2])
+    idx_UV_fit = np.concatenate([idx_swift_uvw1, idx_swift_uvm2, idx_swift_uvw2])
     idx_Xray = np.where(np.logical_and(freqs > high_freq_UV, freqs < high_freq_Xray))[0]
-    idx_fit = np.concatenate([idx_UV, idx_opt])
+    idx_fit = np.concatenate([idx_UV_fit, idx_opt_fit])
     # idx_fit = np.where(np.logical_and(freqs > 0, freqs < 1e40))[0]
 
     data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
@@ -159,12 +161,6 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll = False):
                 ax_moll.set_yticks(np.radians(np.arange(-90, 91, 45))) 
                 ax_moll.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
 
-            Lum_op, Lum_UV, Lum_Xray = np.zeros(len(L_col)), np.zeros(len(L_col)), np.zeros(len(L_col))
-            for i in range(len(L_col)):
-                Lum_op[i] = np.trapezoid(L_col[i,idx_opt], freqs[idx_opt]) 
-                Lum_UV[i] = np.trapezoid(L_col[i,idx_UV], freqs[idx_UV])
-                Lum_Xray[i] = np.trapezoid(L_col[i,idx_Xray], freqs[idx_Xray])
-
             data_grid_op = griddata(
             points=(lon_1d, lat_1d),
             values=Lum_op,
@@ -193,6 +189,17 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll = False):
             #     print(f'At t = {np.round(time, 1)}' + r't$_{\rm fb}$' + f'Observer {label_obs[i_idx]}: ratio Xray/opt: {Lum_Xray_i/Lum_op_i:.2e}, ratio opt/UV: {Lum_op_i/Lum_UV_i:.2e}')   
 
         L_col = np.matmul(cross_dot, L_col)
+
+        # Lum_op, Lum_UV, Lum_Xray = np.zeros(len(L_col)), np.zeros(len(L_col)), np.zeros(len(L_col))
+        # for i in range(len(L_col)):
+        #     Lum_op[i] = np.trapezoid(L_col[i,idx_opt], freqs[idx_opt]) 
+        #     Lum_UV[i] = np.trapezoid(L_col[i,idx_UV], freqs[idx_UV])
+
+        # for i_idx, idx in enumerate(indices_sorted):
+        #     Lum_op_i = np.mean(Lum_op[idx])
+        #     Lum_UV_i = np.mean(Lum_UV[idx])
+        #     print(snap, label_obs[i_idx], ' ratio opt/UV: ', Lum_op_i/Lum_UV_i)
+
         if x_axis == 'Temp':
             x_value = freqs * prel.Hz_toK
             ax[s].set_xlabel('Temperature (K)', fontsize = 30)
@@ -742,8 +749,8 @@ def TRfit_in_time(folder, check, choice):
 
     
 if __name__ == '__main__':
-    # plot_spectra(folder, check, snaps_spectra, x_axis, choice)
-    TRfit_in_time(folder, check, choice)
+    plot_spectra(folder, check, snaps_spectra, x_axis, choice)
+    # TRfit_in_time(folder, check, choice)
     # plot_light_curves(folder, check, choice, group = 'bands')
     # plot_light_curves(folder, check, choice, group = 'sections')
     # plot_light_curves(folder, check, choice, group = 'bandsMG')

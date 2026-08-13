@@ -20,6 +20,7 @@ import Utilities.prelude as prel
 import csv
 import os
 import gc
+import healpy as hp
 #
 ## PARAMETERS STAR AND BH
 #%%
@@ -32,7 +33,7 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
 what_paper = 'paper2' # 'paper1' or 'paper2'
-choice = 'left_right_z' # only for paper2
+choice = 'split_stream' # only for paper2
 
 #%%
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -55,8 +56,8 @@ if compute:
         energies = {} 
 
     for i,snap in enumerate(snaps):
-        if snap not in [76, 109]:
-            continue
+        # if snap not in [76, 109]:
+        #     continue
         print(snap, flush = True)
 
         path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -100,7 +101,9 @@ if compute:
             file.close()
 
         if what_paper == 'paper2': 
-            cut = Rsph > 0.5 * a_mb
+            cut_wind, bern_spec, _ = orb.pick_wind(X, Y, Z, VX, VY, VZ, den, mass, Press, ie_den, Rad_den, params, cond = 'bern')
+            dyn_unb = np.logical_and(np.abs(Z)<vol**(1/3), X < -apo)
+            cut = np.logical_and(cut_wind, ~dyn_unb)
             X, Y, Z, Rsph, VX, VY, VZ, vel, mass, vol, den, ie_den, Rad_den, Press, Diss_den = \
                 sec.make_slices([X, Y, Z, Rsph, VX, VY, VZ, vel, mass, vol, den, ie_den, Rad_den, Press, Diss_den], cut)
             Ekin = 0.5 * mass * vel**2
@@ -109,8 +112,6 @@ if compute:
             Rad = Rad_den * vol
             Diss = Diss_den * vol
 
-            cut_wind, bern_spec, _ = orb.pick_wind(X, Y, Z, VX, VY, VZ, den, mass, Press, ie_den, Rad_den, params, cond = 'bern')
-            bern = bern_spec * mass
             sections = choose_sections(X, Y, Z, choice)
             label_obs = []
             cond_sec = []
@@ -123,16 +124,12 @@ if compute:
             IE_sec = np.zeros(len(sections))
             Rad_sec = np.zeros(len(sections))
             Diss_sec = np.zeros(len(sections))
-            bern_neg_sec = np.zeros(len(sections))
-            bern_pos_sec = np.zeros(len(sections))
             for k, cond in enumerate(cond_sec):
                 Ekin_sec[k] = np.sum(Ekin[cond]) if cond.size > 0 else 0
                 OE_sec[k] = np.sum(orb_en[cond]) if cond.size > 0 else 0
                 IE_sec[k] = np.sum(ie[cond]) if cond.size > 0 else 0
                 Rad_sec[k] = np.sum(Rad[cond]) if cond.size > 0 else 0
                 Diss_sec[k] = np.sum(Diss[cond]) if cond.size > 0 else 0
-                bern_neg_sec[k] = np.sum(bern[cond & (bern < 0)]) if cond.size > 0 else 0
-                bern_pos_sec[k] = np.sum(bern[cond & (bern >= 0)]) if cond.size > 0 else 0
 
             E_snap = {'tfb': tfb[i], 
                       'Ekin_sec': Ekin_sec,
@@ -140,21 +137,10 @@ if compute:
                       'IE_sec': IE_sec,
                       'Rad_sec': Rad_sec,
                       'Diss_sec': Diss_sec, 
-                      'bern_neg_sec': bern_neg_sec,
-                      'bern_pos_sec': bern_pos_sec,
                       'label_obs': label_obs}
             
             key = f"{int(snap)}"
             energies[key] = E_snap
-            # data = np.concatenate([[snap, tfb[i]], Diss_sec, bern_sec])
-            # csv_path = f'{abspath}/data/{folder}/wind/Diss_bern_{choice}.csv'
-            # with open(csv_path,'a', newline='') as file:
-            #     writer = csv.writer(file)
-            #     if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-            #         writer.writerow(['snap', 'tfb'] + [f'Diss {lab}' for lab in label_obs] + [f'bern {lab}' for lab in label_obs])
-            #     writer.writerow(data)
-            #     file.close()
-            
 
         del X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den, Ekin
         gc.collect()   
@@ -228,24 +214,23 @@ if plot:
 
 
     if what_paper == 'paper2':
-        import healpy as hp
         # define regions
         observers_xyz = hp.pix2vec(prel.NSIDE, np.arange(prel.NPIX)) #shape: (3, 192)
         observers_xyz = np.array(observers_xyz)
         indices_sorted, label_obs, colors_obs, _, _ = choose_observers(observers_xyz, choice = choice)
         
-        data = np.loadtxt(f'{abspath}/data/{folder}/wind/Diss_bern_{choice}.csv', delimiter=',', skiprows=1)
-        tfb = data[:, 1]
-        tfb_cgs = tfb * t_fall_cgs
-        Diss_sec = data[:, 2:2+len(label_obs)]
-        bern_sec = data[:, 2+len(label_obs):2+2*len(label_obs)] 
+        # data = np.load(f'{abspath}/data/{folder}/wind/Diss_bern_{choice}.npy', allow_pickle=True).item()
+        # tfb = data[:, 1]
+        # tfb_cgs = tfb * t_fall_cgs
+        # Diss_sec = data[:, 2:2+len(label_obs)]
+        # bern_sec = data[:, 2+len(label_obs):2+2*len(label_obs)] 
         data = np.load(f'{abspath}/data/{folder}/wind/Diss_bern_{choice}.npy', allow_pickle=True).item()
         
-        # tfb = np.array([data[key]['tfb'] for key in data.keys()])
-        # OE_sec = np.array([data[key]['OE_sec'] for key in data.keys()])
-        # IE_sec = np.array([data[key]['IE_sec'] for key in data.keys()])
-        # Rad_sec = np.array([data[key]['Rad_sec'] for key in data.keys()])
-        # Diss_sec = np.array([data[key]['Diss_sec'] for key in data.keys()])
+        tfb = np.array([data[key]['tfb'] for key in data.keys()])
+        OE_sec = np.array([data[key]['OE_sec'] for key in data.keys()])
+        IE_sec = np.array([data[key]['IE_sec'] for key in data.keys()])
+        Rad_sec = np.array([data[key]['Rad_sec'] for key in data.keys()])
+        Diss_sec = np.array([data[key]['Diss_sec'] for key in data.keys()])
         # bern_neg_sec = np.array([data[key]['bern_neg_sec'] for key in data.keys()])
         # bern_pos_sec = np.array([data[key]['bern_pos_sec'] for key in data.keys()])
         # bern_sec = bern_neg_sec + bern_pos_sec
@@ -253,17 +238,17 @@ if plot:
 
         Diss_sec_cgs = Diss_sec * prel.en_converter/prel.tsol_cgs 
         en_diss_cgs = Diss_sec_cgs * t_fall_cgs
-        bern_sec_cgs = bern_sec * prel.en_converter
-        delta_en = np.diff(bern_sec_cgs, axis = 0)
+        # bern_sec_cgs = bern_sec * prel.en_converter
+        # delta_en = np.diff(bern_sec_cgs, axis = 0)
         delta_diss = np.diff(en_diss_cgs, axis = 0)
 
         figE, (axE, axD) = plt.subplots(1, 2, figsize=(18,6))
         for i, lab in enumerate(label_obs): 
             if i not in [0,1]:
                 continue
-            axE.plot(tfb, bern_sec_cgs[:, i], c = colors_obs[i], ls = '--') 
+            # axE.plot(tfb, bern_sec_cgs[:, i], c = colors_obs[i], ls = '--') 
             axE.plot(tfb, en_diss_cgs[:, i], c = colors_obs[i], label = lab)
-            axD.plot(tfb[1:], delta_en[:, i], c = colors_obs[i], ls = '--', label = f'total energy' if i == 0 else None)
+            # axD.plot(tfb[1:], delta_en[:, i], c = colors_obs[i], ls = '--', label = f'total energy' if i == 0 else None)
             axD.plot(tfb[1:], delta_diss[:, i], c = colors_obs[i],  label = f'dissipation' if i == 0 else None)
 
         for ax in (axE, axD):

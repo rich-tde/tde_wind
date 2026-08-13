@@ -196,7 +196,8 @@ def solve_saha_h_he(T, rho, X_H=0.71, X_He=0.28, tol=1e-8, maxiter=200):
 # print("n_e / n_H =", out["n_e"] / n_H)
 
 def line_ratio_paper(line, T, rho, delta_r, r, v, X_H=0.7, X_He=0.28, n_p=None):
-    # for A and lambda0 vslues: https://www.nist.gov/system/files/documents/srd/jpcrd382009565p.pdf
+    # for A and lambda0 values: 
+    # https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=He+II&output_type=0&low_w=4680&upp_w=4690&unit=0&submit=Retrieve+Data&de=0&plot_out=0&I_scale_type=1&format=0&line_out=0&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on
     # for H look at pag 573 (line 40, 41)
     # for HeII look at pag 576 (line 1)
     pops = solve_saha_h_he(T, rho, X_H=X_H, X_He=X_He)
