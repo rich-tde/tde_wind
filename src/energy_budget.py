@@ -12,15 +12,16 @@ else:
     compute = False
 
 import numpy as np
+import csv
+import os
+import gc
+import healpy as hp
+from scipy import integrate as sci
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.operators import make_tree, choose_sections, choose_observers
 import Utilities.sections as sec
 import src.orbits as orb
 import Utilities.prelude as prel
-import csv
-import os
-import gc
-import healpy as hp
 #
 ## PARAMETERS STAR AND BH
 #%%
@@ -34,6 +35,7 @@ compton = 'Compton'
 check = 'HiResNewAMR' 
 what_paper = 'paper2' # 'paper1' or 'paper2'
 choice = 'split_stream' # only for paper2
+what_to_keep = '' # only for paper2, '_dynUnb' or ''
 
 #%%
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -103,14 +105,22 @@ if compute:
         if what_paper == 'paper2': 
             cut_wind, bern_spec, _ = orb.pick_wind(X, Y, Z, VX, VY, VZ, den, mass, Press, ie_den, Rad_den, params, cond = 'bern')
             dyn_unb = np.logical_and(np.abs(Z)<vol**(1/3), X < -apo)
-            cut = np.logical_and(cut_wind, ~dyn_unb)
-            X, Y, Z, Rsph, VX, VY, VZ, vel, mass, vol, den, ie_den, Rad_den, Press, Diss_den = \
-                sec.make_slices([X, Y, Z, Rsph, VX, VY, VZ, vel, mass, vol, den, ie_den, Rad_den, Press, Diss_den], cut)
+            if what_to_keep == '_keepDynUnb':
+                if i == 0:
+                    print('Keeping dynamically unbound material in the energy budget', flush = True)
+                cut = cut_wind
+            else:
+                if i == 0:
+                    print('Removing dynamically unbound material from the energy budget', flush = True)
+                cut = np.logical_and(cut_wind, ~dyn_unb)
+            X, Y, Z, Rsph, VX, VY, VZ, vel, mass, vol, den, ie_den, Rad_den, Press, Diss_den, bern_spec = \
+                sec.make_slices([X, Y, Z, Rsph, VX, VY, VZ, vel, mass, vol, den, ie_den, Rad_den, Press, Diss_den, bern_spec], cut)
             Ekin = 0.5 * mass * vel**2
             orb_en = orb.orbital_energy(Rsph, vel, mass, params, prel.G)
             ie = ie_den * vol
             Rad = Rad_den * vol
             Diss = Diss_den * vol
+            bern = bern_spec * mass
 
             sections = choose_sections(X, Y, Z, choice)
             label_obs = []
@@ -124,12 +134,14 @@ if compute:
             IE_sec = np.zeros(len(sections))
             Rad_sec = np.zeros(len(sections))
             Diss_sec = np.zeros(len(sections))
+            bern_sec = np.zeros(len(sections))
             for k, cond in enumerate(cond_sec):
                 Ekin_sec[k] = np.sum(Ekin[cond]) if cond.size > 0 else 0
                 OE_sec[k] = np.sum(orb_en[cond]) if cond.size > 0 else 0
                 IE_sec[k] = np.sum(ie[cond]) if cond.size > 0 else 0
                 Rad_sec[k] = np.sum(Rad[cond]) if cond.size > 0 else 0
                 Diss_sec[k] = np.sum(Diss[cond]) if cond.size > 0 else 0
+                bern_sec[k] = np.sum(bern[cond]) if cond.size > 0 else 0
 
             E_snap = {'tfb': tfb[i], 
                       'Ekin_sec': Ekin_sec,
@@ -137,6 +149,7 @@ if compute:
                       'IE_sec': IE_sec,
                       'Rad_sec': Rad_sec,
                       'Diss_sec': Diss_sec, 
+                      'bern_sec': bern_sec,
                       'label_obs': label_obs}
             
             key = f"{int(snap)}"
@@ -144,7 +157,7 @@ if compute:
 
         del X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den, Ekin
         gc.collect()   
-    out_path = f'{abspath}/data/{folder}/wind/Diss_bern_{choice}.npy'
+    out_path = f'{abspath}/data/{folder}/wind/energies_{choice}.npy'
     np.save(out_path, energies, allow_pickle=True) 
 
 if plot:
@@ -219,14 +232,10 @@ if plot:
         observers_xyz = np.array(observers_xyz)
         indices_sorted, label_obs, colors_obs, _, _ = choose_observers(observers_xyz, choice = choice)
         
-        # data = np.load(f'{abspath}/data/{folder}/wind/Diss_bern_{choice}.npy', allow_pickle=True).item()
-        # tfb = data[:, 1]
-        # tfb_cgs = tfb * t_fall_cgs
-        # Diss_sec = data[:, 2:2+len(label_obs)]
-        # bern_sec = data[:, 2+len(label_obs):2+2*len(label_obs)] 
-        data = np.load(f'{abspath}/data/{folder}/wind/Diss_bern_{choice}.npy', allow_pickle=True).item()
+        data = np.load(f'{abspath}/data/{folder}/wind/energies{what_to_keep}_{choice}.npy', allow_pickle=True).item()
         
         tfb = np.array([data[key]['tfb'] for key in data.keys()])
+        Ekin_sec = np.array([data[key]['Ekin_sec'] for key in data.keys()])
         OE_sec = np.array([data[key]['OE_sec'] for key in data.keys()])
         IE_sec = np.array([data[key]['IE_sec'] for key in data.keys()])
         Rad_sec = np.array([data[key]['Rad_sec'] for key in data.keys()])
@@ -236,29 +245,40 @@ if plot:
         # bern_sec = bern_neg_sec + bern_pos_sec
         # bern_sec[bern_sec < 0] = 1e-20
 
+        Ekin_sec_cgs = Ekin_sec * prel.en_converter
+        OE_sec_cgs = OE_sec * prel.en_converter
+        IE_sec_cgs = IE_sec * prel.en_converter
+        Rad_sec_cgs = Rad_sec * prel.en_converter
         Diss_sec_cgs = Diss_sec * prel.en_converter/prel.tsol_cgs 
-        en_diss_cgs = Diss_sec_cgs * t_fall_cgs
+        tfb_cgs = tfb * t_fall_cgs
+        en_diss_cgs = sci.cumulative_trapezoid(Diss_sec_cgs, tfb_cgs, axis = 0, initial = 0)
         # bern_sec_cgs = bern_sec * prel.en_converter
         # delta_en = np.diff(bern_sec_cgs, axis = 0)
-        delta_diss = np.diff(en_diss_cgs, axis = 0)
+        diss_kin = en_diss_cgs / Ekin_sec_cgs
 
-        figE, (axE, axD) = plt.subplots(1, 2, figsize=(18,6))
+        figE, (axE, axD) = plt.subplots(1, 2, figsize=(18,7))
         for i, lab in enumerate(label_obs): 
-            if i not in [0,1]:
+            if lab == 'South pole':
                 continue
-            # axE.plot(tfb, bern_sec_cgs[:, i], c = colors_obs[i], ls = '--') 
-            axE.plot(tfb, en_diss_cgs[:, i], c = colors_obs[i], label = lab)
+            axE.plot(tfb, Ekin_sec_cgs[:, i], c = colors_obs[i], label = f'kinetic' if i == 0 else None)
+            axE.plot(tfb, en_diss_cgs[:, i], c = colors_obs[i], ls = '--', label = f'dissipation' if i == 0 else None)
             # axD.plot(tfb[1:], delta_en[:, i], c = colors_obs[i], ls = '--', label = f'total energy' if i == 0 else None)
-            axD.plot(tfb[1:], delta_diss[:, i], c = colors_obs[i],  label = f'dissipation' if i == 0 else None)
+            axD.plot(tfb, diss_kin[:, i], c = colors_obs[i], label = lab)
 
         for ax in (axE, axD):
             ax.tick_params(axis='both', which='major', width=1.2, length=7)
-            ax.tick_params(axis='both', which='minor', width=0.9, length=5)
+            ax.tick_params(axis='both', which='minor', width=0.9, length=5) 
             ax.grid()
             ax.set_xlabel(r'$t/t_{\rm fb}$')
             ax.set_yscale('log')
             ax.legend(fontsize = 16)
+        axE.set_ylim(1e44, 1e50)
         axE.set_ylabel(r'E (erg)')
-        axD.set_ylabel(r'$\Delta$E (erg)')
+        axD.set_ylabel(r'$E_{\rm diss}/E_{\rm kin}$')
+
+# %%
+print('estimate for Ekin from Mw and v', flush = True)
+print('stream: ', 0.5*1e-2*mstar/2*prel.Msol_cgs*(0.014*prel.c_cgs)**2, flush = True)
+print('pole: ', 0.5*1e-4*mstar/2*prel.Msol_cgs*(0.018*prel.c_cgs)**2, flush = True)
 
 # %%

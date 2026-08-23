@@ -23,7 +23,7 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
 which_obs = 'split_stream' 
-isoent = 'isoent'
+isot = 'isot'
 snap = 151
 
 pre = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -127,15 +127,15 @@ for w, what_varies in enumerate(what_varies_all):
     norm = norms[w]
     for k, which_part in enumerate(which_parts):
         # Load profiles
-        profiles = np.load(f'{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_names[w]}{isoent}_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
+        profiles = np.load(f'{abspath}/data/{folder}/wind/{what_varies}_profile/{what_varies}{r_chosen_names[w]}{isot}_profSec{snap}_{which_obs}_{which_part}.npy', allow_pickle=True).item()
         for i, lab in enumerate(profiles.keys()):
-            if lab == 'South pole' or i < 4:
+            if lab == 'South pole':
                 continue 
             r_arr = profiles[lab]['r'] 
             d = profiles[lab]['d_prof']
             v_rad = profiles[lab]['v_rad_prof'] 
-            if isoent == 'isoent':
-                print('Isoentropic Mdot and Lum')
+            if isot == 'isot':
+                print('isotropic Mdot and Lum')
                 area = profiles[lab]['area']
                 if what_varies == 'r':
                     Mdot = (4 * np.pi * r_arr**2) /area * profiles[lab]['Mdot_prof']
@@ -209,3 +209,75 @@ all_axes[2][0].set_ylabel(r'$\dot{M}_{\rm w} (\dot{M}_{\rm Edd})$', fontsize = 4
 all_axes[3][0].set_ylabel(r'$L_{\rm adv} (L_{\rm Edd})$', fontsize = 40)
 fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 35, y = 1, x = 0.53)
 fig.tight_layout(w_pad=15.0)  
+
+###################
+r_chosen = 0.5 * amin
+r_chosen_name = '05amin'
+wind = \
+        np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{isot}_{check}{r_chosen_name}{which_obs}_wind.csv', 
+                delimiter = ',', 
+                skiprows=1, 
+                unpack=True) 
+tfb = wind[1]
+time_to_int = tfb * 24 * 3600 / prel.tsol_cgs
+rest = wind[2:2+len(label_obs)]
+Mdotw = np.copy(rest)
+Mdotw_isot = np.copy(rest)
+
+data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
+snaps, _, _ = data[:, 0], data[:, 1], data[:, 2]
+_, snaps, _ = op.sort_list([_, snaps, _], snaps, unique=True)
+Lum_sec = []
+snaps = np.array(snaps, dtype=int)
+for s, snap in enumerate(snaps): 
+    photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
+    Lum_ph = photo['Lum']
+    Lum_slab = np.zeros(len(indices_obs))
+    rph_slab = np.zeros(len(indices_obs))
+    for i, indices in enumerate(indices_obs):
+        Lum_slab[i] = np.mean(Lum_ph[indices])
+    Lum_sec.append(Lum_slab)
+Lum_sec = np.transpose(np.array(Lum_sec))
+
+if isot == 'isot':
+    area = wind[-len(label_obs):]
+    for i in range(len(rest)):
+        Mdotw_isot[i][area[i]>0] *=  4 * np.pi * r_chosen**2 / area[i][area[i]>0] 
+
+fig, (axM, axL) = plt.subplots(1, 2, figsize=(16, 7))
+for i in range(len(label_obs)):
+    if label_obs[i] == 'South pole' or label_obs[i] == 'Eccentric flow side':
+        continue
+    axM.plot(tfb, Mdotw_isot[i]/Medd_sol,  label = label_obs[i], c = colors_obs[i], ls = line_styles_parts[0])
+    axL.plot(tfb, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = colors_obs[i], ls = line_styles_parts[0])
+
+original_ticks = axM.get_xticks()
+midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+labels = [str(np.round(tick,2)) if tick in original_ticks else '' for tick in new_ticks]   
+days_ticks = new_ticks * tfallback
+days_labels = [str(np.round(days_ticks[k],2)) if new_ticks[k] in original_ticks else "" for k in range(len(days_ticks))] 
+for ax in [axM, axL]:
+    ax.set_xticks(new_ticks)
+    ax.set_xticklabels(labels)
+    ax.set_xticks(new_ticks)
+    ax.set_xticklabels(labels)  
+    ax.set_yscale('log')
+    ax.set_xlim(0, np.max(tfb))
+    ax.tick_params(axis='both', which='major', width=1.2, length=9)
+    ax.tick_params(axis='both', which='minor', width=1, length=5)
+    ax.grid()
+    
+    ax2 = ax.twiny()
+    ax2.set_xticks(days_ticks)
+    ax2.set_xlim(0, np.max(tfb)*tfallback)
+    ax2.set_xlabel(r't (days)', y = 1.1)
+    ax2.set_xticklabels(days_labels)
+    ax.set_xlabel(r'$t / t_{\rm fb}$')
+axM.set_ylim(1e2, 5e6)
+axM.set_ylabel(r'$\dot{M}_{\rm w} (\dot{M}_{\rm Edd})$', fontsize = 28)
+axL.set_ylabel(r'Mean luminosity (erg/s)', fontsize = 28)
+axL.set_ylim(1e38, 5e42)
+axL.axhline(Ledd_cgs, color = 'k', ls = '-.', linewidth = 1)
+axL.text(0.08, 1.2*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', color = 'k', fontsize = 20)              
+plt.tight_layout()

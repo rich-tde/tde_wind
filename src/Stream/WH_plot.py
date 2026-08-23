@@ -15,7 +15,7 @@ import Utilities.prelude as prel
 import Utilities.sections as sec
 import src.orbits as orb
 from Utilities.operators import draw_line, format_pi_frac
-from plotting.paper.IHopeIsTheLast import split_data_red
+from plotting.paperEdd.IHopeIsTheLast import split_data_red
 from matplotlib.ticker import FuncFormatter
 
 m = 4
@@ -27,7 +27,7 @@ n = 1.5
 params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
 what = 'max_compr' # 'onlysection' or 'section4' or 'compare_res' or 'max_compr' or 'single_snap_behavior' or 'compare_perc' or 'ev_fixedTheta or "follow_orbit"
-
+mass_perc = 0.9
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 Rs = things['Rs']
@@ -37,8 +37,8 @@ Rp = things['Rp']
 R0 = things['R0']
 apo = things['apo']
 x_arr = np.arange(-20, 0.1, .1)
-line3_4 = draw_line(x_arr, 3/4*np.pi)
-lineminus3_4 = draw_line(x_arr, -3/4*np.pi)
+# line3_4 = draw_line(x_arr, 3/4*np.pi)
+# lineminus3_4 = draw_line(x_arr, -3/4*np.pi)
 
 if what == 'compare_res':
     # line at 3/4 and -3/4 pi
@@ -381,9 +381,9 @@ if what in ['single_snap_behavior', 'compare_perc', 'section4', 'onlysection', '
 
 
 if what == 'max_compr':
-    checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
-    colors_checks = ['C1', 'yellowgreen', 'darkviolet']
-    names_checks = ['Low', 'Middle', 'High']
+    checks = ['HiResNewAMR'] #['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
+    colors_checks = ['darkviolet'] #['C1', 'yellowgreen', 'darkviolet']
+    names_checks = ['High'] #['Low', 'Middle', 'High']
     markers_checks = ['x', 'o', 's']
     ratio_of_pi = 2
     vmin_ang = -np.pi/8
@@ -396,7 +396,7 @@ if what == 'max_compr':
 
     # to plot where is the maximum compression
     fig_compr, ax1_compr = plt.subplots(1,1, figsize = (12,7))
-    ax1_compr.set_ylabel(r'H$_{\rm min} [R_\star]$')
+    ax1_compr.set_ylabel(r'H$_{\rm min} [R_\odot]$')
 
     for j, check in enumerate(checks):
         # if check != 'HiResNewAMR':
@@ -449,7 +449,7 @@ if what == 'max_compr':
         ax1.plot(tfb_befaft, after_before_width, c = colors_checks[j], label = names_checks[j])
         ax2.plot(tfb_befaft, after_before_h, c = colors_checks[j])
     
-        img_compr = ax1_compr.scatter(tfbs, height_compr/Rstar, c = theta_compr, marker = markers_checks[j], label = names_checks[j], vmin = vmin_ang, vmax = vmax_ang, cmap = 'rainbow', s = 50)
+        img_compr = ax1_compr.scatter(tfbs, height_compr, c = theta_compr, marker = markers_checks[j], label = names_checks[j], vmin = vmin_ang, vmax = vmax_ang, cmap = 'rainbow', s = 50)
     
     cbar = plt.colorbar(img_compr)
     cbar.set_label(r'$\alpha$ [rad]')

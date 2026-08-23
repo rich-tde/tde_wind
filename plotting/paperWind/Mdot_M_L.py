@@ -12,11 +12,13 @@ import csv
 import os
 from matplotlib import lines as MdotMines
 import healpy as hp
+from scipy import integrate as sci
 # from scipy.ndimage import uniform_filter1d
 import Utilities.prelude as prel
 from Utilities.operators import choose_observers, sort_list, area_spherical_zone, area_spherical_cal
 from src import orbits as orb
 from plotting.paperEdd.IHopeIsTheLast import ratio_BigOverSmall
+from src.Wind.Rtrapp_tdiff import load_and_smooth_rtrap
 
 m = 4
 Mbh = 10**m
@@ -28,7 +30,7 @@ compton = 'Compton'
 check = 'HiResNewAMR' 
 choice = 'split_stream'
 how = 'isot'
-which_plot = 'MdotL_conv' # 'MdotM' or 'MdotL_conv'
+which_plot = 'MdotM' # 'MdotM' or 'MdotL_conv'
 commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 folder = f'{commonfolder}{check}'
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
@@ -47,15 +49,15 @@ r_chosen = 0.5*amin
 which_r_title = '05amin'
 
 if which_plot == 'MdotM':
-    figM, (axM, axzeta, axMratio) = plt.subplots(1, 3, figsize = (24, 7))  
+    figM, (axM, axzeta, axMass) = plt.subplots(1, 3, figsize = (24, 7))  
     figr, axr  = plt.subplots(1,1, figsize = (9,7))
     axzeta.set_ylim(1e-3, 2)
-    axMratio.set_ylim(1e-5, 2e-2)
+    axMass.set_ylim(1e-5, 1.5)
     axzeta.set_ylabel(r'$\zeta = |\dot{M}_{\rm w}/\dot{M}_{\rm fb}|$')
-    axes = [axM, axzeta, axr, axMratio]
+    axes = [axM, axzeta, axr, axMass]
     axr.set_ylabel(r'$r (r_{\rm t})$')
-    axMratio.set_ylabel(r'M$_{\rm w}/(M_\star$/2)')
-    axM.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$')  
+    axMass.set_ylabel(r'M$_{\rm w}/(m_\star$/2)')
+    axM.set_ylabel(r'$\dot{M} (r=0.5a_{\rm mb}) /\dot{M}_{\rm Edd}$')  
     axr.set_ylim(1, 1.2e2)
 else: 
     figM, (axM, axL) = plt.subplots(1, 2, figsize = (16, 7))  
@@ -79,7 +81,11 @@ if which_plot == 'MdotM':
                     skiprows=1, 
                     unpack=True)
     tfbfb, mfb = fallback[1], fallback[2]
-    
+    tfb_to_int = tfbfb * 24 * 3600 / prel.tsol_cgs
+    where_nan = np.isnan(mfb)
+    mfb[where_nan] = 0
+    mass_fb = sci.cumulative_trapezoid(np.abs(mfb), tfb_to_int, initial = 0)
+
     rph_sec = []
     rtr_sec = []
     snaps = np.array(snaps, dtype=int)
@@ -87,7 +93,7 @@ if which_plot == 'MdotM':
         photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
         x_ph, y_ph, z_ph, Lum_ph = photo['x'], photo['y'], photo['z'], photo['Lum']
         r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
-        trap = np.load(f'{abspath}/data/{folder}/trap/{check}_Rtr{snap}.npz')
+        trap = load_and_smooth_rtrap(f'{abspath}/data/{folder}/trap', check, snap)
         x_tr, y_tr, z_tr = trap['x_tr'], trap['y_tr'], trap['z_tr']
         r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
         if choice in ['tenths','azimuthal', 'funnel', '3d_arch', 'split_stream']:
@@ -114,12 +120,14 @@ if which_plot == 'MdotM':
         corr_geom = np.array([corr_ecc, corr_mid, corr_high, corr_peric, corr_pole, corr_pole])
     # print(np.sum(corr_geom)/(4 * np.pi * r_chosen**2))
 
+
     wind = \
             np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_wind.csv', 
                     delimiter = ',', 
                     skiprows=1, 
                     unpack=True) 
     tfb = wind[1]
+    time_to_int = tfb * 24 * 3600 / prel.tsol_cgs
     rest = wind[2:2+len(label_obs)]
     Mdotw = np.copy(rest)
     Mdotw_isot = np.copy(rest)
@@ -130,6 +138,7 @@ if which_plot == 'MdotM':
                     skiprows=1, 
                     unpack=True) 
     tfbO = boundOut[1]
+    timeBoundOut_to_int = tfbO * 24 * 3600 / prel.tsol_cgs
     restboundOut = boundOut[2:2+len(label_obs)]
     MdotboundOut = np.copy(restboundOut)
     MdotboundOut_isot = np.copy(restboundOut)
@@ -137,18 +146,24 @@ if which_plot == 'MdotM':
     if how == 'isot':
         area = wind[-len(label_obs):]
         areaboundOut = boundOut[-len(label_obs):]
-        if choice == 'split_stream':
-            corr = []
+        corr = []
+        corrboundOut = []
         for i in range(len(rest)):
             Mdotw_isot[i][area[i]>0] *=  4 * np.pi * r_chosen**2 / area[i][area[i]>0] 
-            corr.append(corr_geom[i] / area[i])
+            factor_corr = corr_geom[i] / area[i]
+            factor_corr[area[i]==0] = 0
+            corr.append(factor_corr)
             MdotboundOut_isot[i][areaboundOut[i]>0] *=  4 * np.pi * r_chosen**2 / areaboundOut[i][areaboundOut[i]>0]
+            factor_corrboundOut = corr_geom[i] / areaboundOut[i]
+            factor_corrboundOut[areaboundOut[i]==0] = 0
+            corrboundOut.append(factor_corrboundOut)
+            # rest[i][np.isnan(rest[i])] = 0
+            # restboundOut[i][np.isnan(restboundOut[i])] = 0
         corr = np.array(corr)
-    # for i in range(len(rest)): 
-    #     rest[i][area[i]>0] = uniform_filter1d(rest[i][area[i]>0], 5)
-    #     restboundOut[i][areaboundOut[i]>0] = uniform_filter1d(restboundOut[i][areaboundOut[i]>0], 3)
+        corrboundOut = np.array(corrboundOut)
 
     MdotO_isot = MdotboundOut_isot + Mdotw_isot
+    MdotO= MdotboundOut + Mdotw
 
     dataMass = np.loadtxt(f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv', 
                         delimiter=',', skiprows=1, unpack=True)
@@ -157,34 +172,48 @@ if which_plot == 'MdotM':
     M_out = dataMass[2+(len(label_obs)):2+2*(len(label_obs))] 
     M_wind = dataMass[2+2*(len(label_obs)):2+3*(len(label_obs))] 
 
+    M_out_corr = np.copy(M_out)
+    M_wind_corr = np.copy(M_wind)
+    Mass_boundOut_int = []
+    Mass_wind_int = []
     for i in range(len(label_obs)):
-        M_out[i, :] -= M_wind[i, 0]
-        M_wind[i, :] -= M_wind[i, 0]
-
+        MdotO[i][np.isnan(MdotO[i])] = 0
+        Mdotw[i][np.isnan(Mdotw[i])] = 0
+        Mass_boundOut_int_sigle = sci.cumulative_trapezoid(MdotboundOut[i]*corrboundOut[i], timeBoundOut_to_int, initial = 0)
+        Mass_wind_int_single = sci.cumulative_trapezoid(Mdotw[i], time_to_int, initial = 0)
+        Mass_boundOut_int.append(Mass_boundOut_int_sigle)
+        Mass_wind_int.append(Mass_wind_int_single)
+        # don't need to substract to the integral form since you compute Mdot at 0.5amin
+        # Mass_out_int_sigle -= M_wind[i, 0]
+        # Mass_wind_int_single -= M_wind[i, 0]
+        M_out_corr[i, :] -= M_wind[i, 0]
+        M_wind_corr[i, :] -= M_wind[i, 0]
+        
+    Mass_out_int = Mass_boundOut_int + Mass_wind_int 
     handles_color = []
     labels_color = []
     line_styles_parts = ['-', '--']
     labels_parts = [r'$\dot{M}_{\rm w}$', r'$\dot{M}_{\rm out}$']
+    axMass.plot(tfbMass, mass_fb/(0.5*mstar), c = 'gray', ls = ':', linewidth = 2)
+    axMass.text(1.91, 0.17, r'$\int\,\dot{M}_{\rm fb} {\rm d}t$', fontsize = 16, color = 'gray', rotation = 5)
+    # axMass.legend(fontsize = 20, loc = 'upper left')
     for i in range(len(label_obs)):
         if label_obs[i] == 'South pole':
             continue
-        if label_obs[i] != r'Eccentric flow':
-            axM.plot(tfb, Mdotw_isot[i]/Medd_sol,  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])
-            axzeta.plot(tfb[7:], corr[i][7:] * Mdotw[i][7:]/np.abs(mfb[7:]),  label = label_obs[i], linewidth = 2, c = color_obs[i])
-            axMratio.plot(tfbMass,  M_wind[i]/(0.5*mstar), linewidth = 2, c = color_obs[i], label = label_obs[i])
-        axM.plot(tfbO[4:], MdotO_isot[i][4:]/Medd_sol, linewidth = 2, c = color_obs[i], ls = line_styles_parts[1])
-        # axMratio.plot(tfbMass, M_out[i]/M_tot[i], linewidth = 2, c = color_obs[i], label = label_obs[i])[0]
+        axM.plot(tfbO[4:], MdotO_isot[i][4:]/Medd_sol, c = color_obs[i], ls = line_styles_parts[1])
+        # axMass.plot(tfbO,  Mass_out_int[i]/(0.5*mstar), c = color_obs[i], label = label_obs[i], ls = ':')
+        axMass.plot(tfbMass,  M_out_corr[i]/(0.5*mstar), c = color_obs[i], label = label_obs[i], ls = '--')
+        if label_obs[i] != 'Eccentric flow side':
+            axM.plot(tfb, Mdotw_isot[i]/Medd_sol,  label = label_obs[i], c = color_obs[i], ls = line_styles_parts[0])
+            # axMass.plot(tfbMass,  Mass_wind_int[i]/(0.5*mstar), c = color_obs[i], label = label_obs[i], ls = ':') 
+            axMass.plot(tfbMass,  M_wind_corr[i]/(0.5*mstar), c = color_obs[i])
+            axzeta.plot(tfb[7:], corr[i][7:] * Mdotw[i][7:]/np.abs(mfb[7:]),  label = label_obs[i], c = color_obs[i])
+            print(label_obs[i], 'outflow/half star mass: ', np.median(M_out_corr[i, -3:])/(0.5*mstar), ', wind/out: ', np.median(M_wind_corr[i, -3:])/np.median(M_out_corr[i, -3:]))
+        print('sum stream: ', (np.median(M_out_corr[0,-3:])+np.median(M_out_corr[1, -3:])+np.median(M_out_corr[2, -3:]))/(0.5*mstar), ', sum wind/out: ', np.sum(np.median(M_wind_corr[0, -3:])+np.median(M_wind_corr[1, -3:])+np.median(M_wind_corr[2, -3:]))/(np.median(M_out_corr[0, -3:])+np.median(M_out_corr[1, -3:])+np.median(M_out_corr[2, -3:])))
+        # print('sum mid+high stream: ', (np.median(M_out_corr[1, -3:])+np.median(M_out_corr[2, -3:]))/(0.5*mstar), ', sum wind/out: ', np.sum(np.median(M_wind_corr[1, -3:])+np.median(M_wind_corr[2, -3:]))/np.sum(np.median(M_out_corr[1, -3:])+np.median(M_out_corr[2, -3:])))
 
-        axr.plot(tfb_Lum, rtr_sec[i]/Rt, linewidth = 2, c = color_obs[i], ls = ':', label = r'r$_{\rm trap}$' if i == 2 else "")
-        axr.plot(tfb_Lum, rph_sec[i]/Rt, linewidth = 2, c = color_obs[i], label = r'r$_{\rm ph}$' if i == 2 else "")
-        
-        # if np.logical_and(i ==0, choice == 'left_right_z' ):
-        #     print('ratio wind/outflow at last time step:', rest[i][-1]/restO[i][-1])
-        # if np.logical_and(i == 0, choice == 'split_stream'):
-        #     wind = rest[0][-1] + rest[1][-1] + rest[2][-1]
-        #     outflow = restO[0][-1] + restO[1][-1] + restO[2][-1]
-        #     print('ratio wind/outflow at last time step:', wind/outflow)
-
+        axr.plot(tfb_Lum, rtr_sec[i]/Rt, c = color_obs[i], ls = ':', label = r'r$_{\rm trap}$' if i == 2 else "")
+        axr.plot(tfb_Lum, rph_sec[i]/Rt, c = color_obs[i], label = r'r$_{\rm ph}$' if i == 2 else "")
 
         handles_color.append(color_obs[i])
         labels_color.append(label_obs[i])
@@ -265,7 +294,7 @@ if which_plot == 'MdotL_conv':
     labels_parts = ['High res', 'Middle res']
 
     for i in range(len(rest)):
-        if label_obs[i] in ['South pole', 'Eccentric flow']:
+        if label_obs[i] in ['South pole', 'Eccentric flow side']:
             continue
         line = axM.plot(tfb, rest[i]/Medd_sol,  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])[0]
         axL.plot(tfb, Lum_sec[i],  label = label_obs[i], linewidth = 2, c = color_obs[i], ls = line_styles_parts[0])
@@ -274,11 +303,13 @@ if which_plot == 'MdotL_conv':
         handles_color.append(line)
         labels_color.append(label_obs[i])
         time_ratio, ratio, _ = ratio_BigOverSmall(tfb, rest[i], tfbM, restM[i])
+        print(label_obs[i], 'Mdot ratio after 1.5: ', np.median(ratio[time_ratio> 1.5]))
         cut = np.logical_and(~np.isinf(ratio), ~np.isnan(ratio))
         axrM.plot(time_ratio[cut], ratio[cut], linewidth = 2, c = color_obs[i], label = label_obs[i])
         time_ratio, ratio, _ = ratio_BigOverSmall(tfb, Lum_sec[i], tfbM, Lum_secM[i])
         cut = np.logical_and(~np.isinf(ratio), ~np.isnan(ratio))
         axrL.plot(time_ratio[cut], ratio[cut], linewidth = 2, c = color_obs[i], label = label_obs[i])
+        print(label_obs[i], 'Lum ratio after 1.5: ', np.median(ratio[time_ratio > 1.5]))
 
     axL.set_xlim(0, np.max(tfb))    # you need it for get.ticks
     axrM.set_ylabel(r'$\dot{M}_{\rm HiRes}/\dot{M}_{\rm MidRes}$')
@@ -312,7 +343,7 @@ for ax in axes:
     # else: 
     # ax2.tick_params(axis='x', labeltop=False)
 
-    # if ax == axMratio:
+    # if ax == axMass:
     ax.set_xlabel(r'$t / t_{\rm fb}$')
     # else: 
     # ax.tick_params(axis='x', labelbottom=False)

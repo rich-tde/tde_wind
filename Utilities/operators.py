@@ -229,9 +229,9 @@ def choose_sections(X, Y, Z, choice):
         cond_left_mld = np.logical_and(X < 0, np.logical_and(np.abs(Z) <= slope_opu *  R_cyl, np.abs(Z) > slope_opd *  R_cyl))
         cond_left_mlu = np.logical_and(X < 0, np.logical_and(np.abs(Z) <= slope *  R_cyl, np.abs(Z) > slope_opu *  R_cyl))
         cond_right = np.logical_and(X >= 0, np.abs(Z) <= slope * R_cyl)
-        left_op = {'cond': cond_left_op, 'label': 'Eccentric flow', 'color': '#ffc2d1', 'line': 'solid', 'marker': 'H'} # r'Stream side $\theta\in[4\pi/9,\pi/2]$'
-        left_mld = {'cond': cond_left_mld, 'label': 'Middle stream', 'color': '#ff499e', 'line': 'solid', 'marker': 'o'} # r'Stream side $\theta\in[5\pi/18, 4\pi/9]$'
-        left_mlu = {'cond': cond_left_mlu, 'label': 'High stream', 'color': '#6e44ff', 'line': 'solid', 'marker': 'p'} # r'Stream side $\theta\in[\pi/9, 5\pi/18]$'
+        left_op = {'cond': cond_left_op, 'label': 'Eccentric flow side', 'color': '#ffc2d1', 'line': 'solid', 'marker': 'H'} # r'Stream side $\theta\in[4\pi/9,\pi/2]$'
+        left_mld = {'cond': cond_left_mld, 'label': 'Middle stream side', 'color': '#ff499e', 'line': 'solid', 'marker': 'o'} # r'Stream side $\theta\in[5\pi/18, 4\pi/9]$'
+        left_mlu = {'cond': cond_left_mlu, 'label': 'High stream side', 'color': '#6e44ff', 'line': 'solid', 'marker': 'p'} # r'Stream side $\theta\in[\pi/9, 5\pi/18]$'
         right = {'cond': cond_right, 'label': r'Pericentre side', 'color': '#b5e48c', 'line': 'solid', 'marker': 's'} 
         sec = {'left_op': left_op, 'left_mld': left_mld, 'left_mlu': left_mlu, 'right': right, 'north': north, 'south': south}
     
@@ -318,12 +318,12 @@ def choose_observers(observers_xyz, choice):
         indices_sorted = []
         sections_ph = choose_sections(x_obs, y_obs, z_obs, choice = choice)
 
-        print(f"Choice: {choice}")
-        print("Sections:", list(sections_ph.keys()))
-        coverage = np.sum([np.sum(sec['cond']) for sec in sections_ph.values()])
-        print(f"Total coverage: {coverage}/{len(x_obs)}")
-        overlaps = np.sum(np.any([sec['cond'] for sec in sections_ph.values()], axis=0) > 1)
-        print(f"Overlaps: {overlaps}")
+        # print(f"Choice: {choice}")
+        # print("Sections:", list(sections_ph.keys()))
+        # coverage = np.sum([np.sum(sec['cond']) for sec in sections_ph.values()])
+        # print(f"Total coverage: {coverage}/{len(x_obs)}")
+        # overlaps = np.sum(np.any([sec['cond'] for sec in sections_ph.values()], axis=0) > 1)
+        # print(f"Overlaps: {overlaps}")
 
         indices_sorted = [all_idx_obs[sections_ph[key]['cond']] for key in sections_ph]
         label_obs = [sections_ph[key]['label'] for key in sections_ph]
@@ -440,7 +440,7 @@ def choose_observers(observers_xyz, choice):
         import matplotlib.pyplot as plt
         fig_obs, (ax1_obs, ax2_obs) = plt.subplots(1, 2, figsize=(11, 5))
         for j, idx_list in enumerate(indices_sorted):
-            print(idx_list)
+            # print(idx_list)
             ax1_obs.scatter(x_obs[idx_list], y_obs[idx_list], s = 20, c = colors_obs[j], label = label_obs[j])
             ax2_obs.scatter(x_obs[idx_list], z_obs[idx_list], s = 20, c = colors_obs[j], label = label_obs[j])
         for ax in [ax1_obs, ax2_obs]:

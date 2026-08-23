@@ -131,24 +131,26 @@ if plot:
     E_out = data[2+3*(len(label_obs)):2+4*(len(label_obs))] 
     E_wind = data[2+4*(len(label_obs)):2+5*(len(label_obs))] 
 
-    for i in range(len(label_obs)):
-        M_out[i, :] -= M_wind[i, 0]
-        M_wind[i, :] -= M_wind[i, 0]
-    
+    # for i in range(len(label_obs)):
+    #     M_out[i, :] -= M_wind[i, 0]
+    #     M_wind[i, :] -= M_wind[i, 0]
     plt.figure(figsize=(8,6))
     for i, lab in enumerate(label_obs):
         if lab == 'South pole':
             continue
-        plt.plot(tfb, M_out[i]/M_tot[i], c = colors_obs[i],  ls = '--' )
-        plt.plot(tfb, M_wind[i]/M_out[i], c = colors_obs[i], label = lab)
-        print(lab, 'outflow/half star mass: ', np.median(M_out[i, -3:])/0.5, ', wind/out: ', np.median(M_wind[i, -3:])/np.median(M_out[i, -3:]))
+        # print(lab, M_wind[i,0])
+        print(lab, M_out[i,0])
+        plt.plot(tfb, M_out[i]/mstar, c = colors_obs[i],  ls = '--' )
+        plt.plot(tfb, M_wind[i]/mstar, c = colors_obs[i], label = lab)
+        # print(lab, 'outflow/half star mass: ', np.median(M_out[i, -3:])/(0.5*mstar), ', wind/out: ', np.median(M_wind[i, -3:])/np.median(M_out[i, -3:]))
         # print(lab, 'wind/half star mass: ', M_wind[i, -1]/0.5)
-    print('sum stream: ', (np.median(M_out[0, -3:])+np.median(M_out[1, -3:])+np.median(M_out[2, -3:]))/0.5, ', sum wind/out: ', np.sum(np.median(M_wind[0, -3:])+np.median(M_wind[1, -3:])+np.median(M_wind[2, -3:]))/np.sum(np.median(M_out[0, -3:])+np.median(M_out[1, -3:])+np.median(M_out[2, -3:])))
+    # print('sum stream: ', (np.median(M_out[0, -3:])+np.median(M_out[1, -3:])+np.median(M_out[2, -3:]))/(0.5*mstar), ', sum wind/out: ', np.sum(np.median(M_wind[0, -3:])+np.median(M_wind[1, -3:])+np.median(M_wind[2, -3:]))/np.sum(np.median(M_out[0, -3:])+np.median(M_out[1, -3:])+np.median(M_out[2, -3:])))
+    # print('sum mid+high stream: ', (np.median(M_out[1, -3:])+np.median(M_out[2, -3:]))/(0.5*mstar), ', sum wind/out: ', np.sum(np.median(M_wind[1, -3:])+np.median(M_wind[2, -3:]))/np.sum(np.median(M_out[1, -3:])+np.median(M_out[2, -3:])))
     # print('sum wind: ', np.sum(M_wind[0, -3:]+M_wind[2, -3:]+M_wind[1, -3:])/0.5)
     plt.xlabel(r'$t/t_{\rm fb}$')
     plt.ylabel('Mass ratio')
     plt.yscale('log')
-    plt.ylim(1e-2, 1.2)
+    plt.ylim(1e-4, 1.2)
     plt.legend(fontsize = 16)
     # plt.savefig(f'{abspath}/plots/{folder}/wind/Mass_unbound{choice}.png')
     plt.show()

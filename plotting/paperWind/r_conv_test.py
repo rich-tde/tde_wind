@@ -12,6 +12,7 @@ from Utilities import operators as op
 from Utilities.selectors_for_snap import select_prefix
 from Utilities.sections import make_slices
 import src.orbits as orb
+from plotting.paperEdd.IHopeIsTheLast import ratio_BigOverSmall
 
 m = 4
 Mbh = 10**m
@@ -50,7 +51,7 @@ axd.set_ylabel(r'$\rho$ (g/cm$^3$)', fontsize = 28)
 # axd.text(75, 2e-11, r'$\rho \propto r^{-2}$', fontsize = 18, color = 'gray', rotation = -20)
 axV.set_ylabel(r'v$_{\rm r}$ (km/s)', fontsize = 28)
 axT.set_ylabel(r'$T_{\rm rad}$ (K)', fontsize = 28)
-axM.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$', fontsize = 28)
+axM.set_ylabel(r'$\dot{M}_{\rm w} (\dot{M}_{\rm Edd})$', fontsize = 28)
 axLadv.set_ylabel(r'$L_{\rm adv} (L_{\rm Edd})$', fontsize = 28)
 # axLadv.plot(x_test, y_test23, c = 'gray', ls = '-.', label = r'$\rho \propto r^{-2/3}$')
 # axLadv.text(58, 11, r'$L \propto r^{-2/3}$', fontsize = 18, color = 'gray', rotation = -15)   
@@ -130,7 +131,7 @@ for k, check in enumerate(checks):
         r_arr, d, v_rad, t, Mdot, L_adv, ratio_un, ratio_Mass, Nwind_cells, Ntot_cells, Mass_wind, Mass_tot = \
                 make_slices([r_arr, d, v_rad, t, Mdot, L_adv, ratio_un, ratio_Mass, Nwind_cells, Ntot_cells, Mass_wind, Mass_tot], not_zero)
 
-        if lab == 'South pole' or lab == r'Eccentric flow':
+        if lab == 'South pole' or lab == r'Eccentric flow side':
                     continue
         line = axd.plot(r_arr/Rt, d * prel.den_converter, color = colors_sec, ls = line_styles[k], linewidth = 2)[0]
         if check == 'HiResNewAMR': 
@@ -187,20 +188,23 @@ figd.savefig(f'{abspath}/Figs/2.paperWind/conv_test_rprof_{which_obs}.pdf', bbox
 
 #%% check by which factor they differ at the same radius, for the density and the mass outflow rate
 figC, (axd_C, axV_C, axM_C) = plt.subplots(3, 1, figsize=(8, 16)) 
-axd_C.set_ylabel(r'$\rho_{\rm middle}/\rho_{\rm high}$', fontsize = 28)
-axV_C.set_ylabel(r'v$_{\rm r, middle}$/v$_{\rm r, high}$', fontsize = 28)
-axM_C.set_ylabel(r'$\dot{M}_{\rm middle}/\dot{M}_{\rm high}$', fontsize = 28)
+axd_C.set_ylabel(r'$\rho$ ratio', fontsize = 28)
+axV_C.set_ylabel(r'v$_{\rm r}$ ratio', fontsize = 28)
+axM_C.set_ylabel(r'$\dot{M}$ ratio', fontsize = 28)
 for i, lab in enumerate(profiles.keys()):
     if lab == 'South pole' or lab == r'Stream side $\theta\in[4\pi/9,\pi/2]$':
         continue 
-    ratio = d_forratio[i]/d_forratio[i+len(profiles.keys())]
-    where_nan = np.where(np.isnan(ratio))
+    r_plot, ratio, _ = ratio_BigOverSmall(r_arr_forratio[i], d_forratio[i], r_arr_forratio[i], d_forratio[i+len(profiles.keys())])
+    print('mean density ratio for ', lab, ' = ', np.median(ratio[ratio < 100]))
+    # where_nan = np.where(np.isnan(ratio)) [r_arr_forratio[i]/Rt < 1000]
     # ratio[where_nan] = 0
-    axd_C.plot(r_arr_forratio[i]/Rt, ratio, color = colors_forratio[i], linewidth = 2)
-    ratio = v_rad_forratio[i]/v_rad_forratio[i+len(profiles.keys())]
-    axV_C.plot(r_arr_forratio[i]/Rt, ratio, color = colors_forratio[i], linewidth = 2)
-    ratio = Mdot_forratio[i]/Mdot_forratio[i+len(profiles.keys())]
-    axM_C.plot(r_arr_forratio[i]/Rt, ratio, color = colors_forratio[i], linewidth = 2)
+    axd_C.plot(r_plot/Rt, ratio, color = colors_forratio[i], linewidth = 2)
+    r_plot, ratio, _ = ratio_BigOverSmall(r_arr_forratio[i], v_rad_forratio[i], r_arr_forratio[i], v_rad_forratio[i+len(profiles.keys())])
+    print('mean v_rad ratio for ', lab, ' = ', np.median(ratio[ratio < 100]))
+    axV_C.plot(r_plot/Rt, ratio, color = colors_forratio[i], linewidth = 2)
+    r_plot, ratio, _ = ratio_BigOverSmall(r_arr_forratio[i], Mdot_forratio[i], r_arr_forratio[i], Mdot_forratio[i+len(profiles.keys())])
+    print('mean Mdot ratio for ', lab, ' = ', np.median(ratio[ratio < 100]))
+    axM_C.plot(r_plot/Rt, ratio, color = colors_forratio[i], linewidth = 2)
 for ax in [axd_C, axV_C, axM_C]:
     ax.set_xlim(1.5, 1.4e2)
     ax.tick_params(axis='both', which='minor', length = 8, width = 1)
@@ -208,5 +212,5 @@ for ax in [axd_C, axV_C, axM_C]:
     ax.grid()
     ax.loglog()
     ax.set_ylim(0.5, 5)
-
+axM_C.set_xlabel(r'$r /r_{\rm t}$', fontsize = 28)
 # %%

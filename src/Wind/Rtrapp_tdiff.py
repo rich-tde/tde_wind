@@ -342,7 +342,10 @@ def load_and_smooth_rtrap(path, check, snap, window = 4):
     last_data_adjusted = None
     for snap_avg in snaps:   
         filenameRtr = f"{path}/{check}_Rtr{snap_avg}.npz"
-        dataRtr = np.load(filenameRtr)
+        try:
+            dataRtr = np.load(filenameRtr)
+        except FileNotFoundError:
+            continue
         indices_bigVol, indices_overRph = dataRtr['indices_bigVol'], dataRtr['indices_overRph']
         x_tr, z_tr, vol_tr = dataRtr['x_tr'], dataRtr['z_tr'], dataRtr['vol_tr']
         cut_dynUnbound = np.logical_and(x_tr < -3*apo, np.abs(z_tr) < vol_tr**(1/3)) # np.logical_and(orb_en_spec > E_mb, np.abs(z_tr) < vol_tr**(1/3))

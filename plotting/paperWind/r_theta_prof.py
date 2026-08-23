@@ -107,7 +107,8 @@ labels_color = []
 # rtr_nonzero_medians = []
 if check == 'HiResNewAMR':
     photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
-    xph, yph, zph, Lumph = photo['x'], photo['y'], photo['z'], photo['Lum']
+    xph, yph, zph, Lumph, denph, vxph, vyph, vzph = photo['x'], photo['y'], photo['z'], photo['Lum'], photo['den'], photo['vx'], photo['vy'], photo['vz']
+    velr_ph, _, _ = op.to_spherical_components(vxph, vyph, vzph, xph, yph, zph)
 else:
     photo = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
     xph, yph, zph = photo[0], photo[1], photo[2]
@@ -119,6 +120,8 @@ x_tr, y_tr, z_tr, den_tr = dataRtr['x_tr'], dataRtr['y_tr'], dataRtr['z_tr'], da
 r_tr_all = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
 rph_medians = np.zeros(len(indices_obs))
 rph_nonzero_medians = np.zeros(len(indices_obs))
+denph_nonzero_medians = np.zeros(len(indices_obs))
+velrph_nonzero_medians = np.zeros(len(indices_obs))
 rtr_medians = np.zeros(len(indices_obs))
 rtr_nonzero_medians = np.zeros(len(indices_obs))
 Lumph_nonzero = np.zeros(len(indices_obs))
@@ -126,9 +129,13 @@ for i, idx_list in enumerate(indices_obs):
     rph_medians[i] = np.median(rph_all[idx_list])
     rtr_medians[i] = np.median(r_tr_all[idx_list])
     non_zero = idx_list[r_tr_all[idx_list]> Rt]
+    # if i == 0:
+    #     print(r_tr_all[idx_list])
     rph_nonzero_medians[i] = np.median(rph_all[non_zero] if len(non_zero) > 0 else 0)
     rtr_nonzero_medians[i] = np.median(r_tr_all[non_zero] if len(non_zero) > 0 else 0)
     Lumph_nonzero[i] = np.median(Lumph[non_zero])
+    denph_nonzero_medians[i] = np.median(denph[non_zero])
+    velrph_nonzero_medians[i] = np.median(velr_ph[non_zero])
 
 for w, what_varies in enumerate(what_varies_all):
     norm = norms[w]
@@ -164,7 +171,7 @@ for w, what_varies in enumerate(what_varies_all):
                     make_slices([r_arr, d, v_rad, Mdot, L_kin, L_adv], not_zero)
                 idx_rtr = np.argmin(np.abs(r_plot - rtr_nonzero_medians[i])) if rtr_nonzero_medians[i] != 0 else 0
                 idx_rph = np.argmin(np.abs(r_plot - rph_nonzero_medians[i])) if rph_nonzero_medians[i] != 0 else 0
-                if lab == 'Stream side' or lab == r'Stream side $\theta\in[4\pi/9,\pi/2]$': # just to cut the initially unbound material
+                if lab == 'Stream side' or lab == r'Eccentric flow side': # just to cut the initially unbound material
                     idx_stop_d = np.where(np.logical_and(d > d[0], r_plot > apo))[0][0] 
                     d[idx_stop_d:] = 1e-20
                     v_rad[idx_stop_d:] = 1e-20
@@ -180,6 +187,7 @@ for w, what_varies in enumerate(what_varies_all):
                 r_plot = r_arr 
 
             if np.logical_and(rtr_nonzero_medians[i]==0, which_part == 'wind'):
+                print(f"Warning: rtr_nonzero_medians is zero for {lab}")
                 d = np.zeros_like(d)
                 v_rad = np.zeros_like(v_rad)
                 Mdot = np.zeros_like(Mdot)
@@ -199,7 +207,10 @@ for w, what_varies in enumerate(what_varies_all):
 
             if np.logical_and(np.logical_and(what_varies =='r' , which_part == 'wind'), rph_nonzero_medians[i] != 0):
                 all_axes[0][w].scatter(r_plot[idx_rph]*norm, d[idx_rph] * prel.den_converter, marker = 'o', s = 150, color = colors_sec, edgecolors = 'k', zorder = 5)
+                # all_axes[0][w].scatter(rph_nonzero_medians[i]*norm, denph_nonzero_medians[i] * prel.den_converter, marker = 's', s = 150, color = colors_sec, edgecolors = 'k', zorder = 5)
                 all_axes[1][w].scatter(r_plot[idx_rph]*norm, v_rad[idx_rph] * conversion_sol_kms, marker = 'o', s = 150, color = colors_sec, edgecolors = 'k', zorder = 5)
+                print(f'Median velocity beyond apocentre for {lab}: {np.median(v_rad[r_plot > apo]) / prel.csol_cgs} c')
+                # all_axes[1][w].scatter(rph_nonzero_medians[i]*norm, velrph_nonzero_medians[i] * conversion_sol_kms, marker = 's', s = 150, color = colors_sec, edgecolors = 'k', zorder = 5)
                 all_axes[2][w].scatter(r_plot[idx_rph]*norm, Mdot[idx_rph]/Medd_sol, marker = 'o', s = 150, color = colors_sec, edgecolors = 'k', zorder = 5)
                 all_axes[3][w].scatter(r_plot[idx_rph]*norm, L_adv[idx_rph]/Ledd_sol, marker = 'o', s = 150, color = colors_sec, edgecolors = 'k', zorder = 5)
                 # all_axes[3][w].scatter(r_plot[idx_rph]*norm, Lumph_nonzero[i]/Ledd_cgs, marker = 's', s = 150, color = colors_sec, edgecolors = 'k', zorder = 5)

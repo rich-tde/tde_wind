@@ -333,7 +333,7 @@ if compute:
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
         snaps, tfb = snaps[snaps>75], tfb[snaps>75]
     else:
-        snaps = [151]
+        snaps = [109]
     for snap in snaps: 
         print(snap, flush = True)
         if alice:
@@ -405,7 +405,7 @@ else:
         line_styles_parts = ['-.', '--', '-']
         
     else:
-        snaps = [151] 
+        snaps = [109] 
         which_parts = ['wind']#['outflow', 'wind']#, 'acc'] 
         labels_parts =  ['wind'] #['(unbound + bound) Outflow', 'Unbound outflow (wind)']#, 'Accretion'] #['Unbound outflow (wind)']#
         line_styles_parts = ['-'] #['--', '-']#, '-.'] 
@@ -578,9 +578,9 @@ else:
                     axC.plot(r_plot*norm, Mdot/Medd_sol, color = colors_sec, label = 'corrected sum' if np.logical_and(i == 0, s == 0) else None)
                     axC.plot(r_plot*norm, Mdotmean/Medd_sol, color = colors_sec, ls = '--', label = 'uniform mean' if np.logical_and(i == 0, s == 0) else None)
                     axC.plot(r_plot*norm, tocheck/Medd_sol, color = colors_sec, label = r'M$v_r/\Delta r$'  if np.logical_and(i == 0, s == 0) else None, ls = ':')
-                    axx.plot(r_plot*norm, xi_cgs, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2)
+                    axx.plot(r_plot*norm, xi_cgs, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], linewidth = 2, label = f'{lab_plot}')
                     axk.plot(r_plot*norm, alpha_rossland/(d*prel.den_converter), color = colors_sec)
-                    axk.plot(r_plot*norm, alpha_scatter/(d*prel.den_converter), color = colors_sec, ls = '--')
+                    # axk.plot(r_plot*norm, alpha_scatter/(d*prel.den_converter), color = colors_sec, ls = '--')
 
                 if np.logical_and(what_varies =='r' , which_part == 'wind'):
                     axd.scatter(r_plot[idx_rph]*norm, d[idx_rph] * prel.den_converter, marker = 'o', s = 100, color = colors_sec, ls = line_styles_parts[k] if which_plot == 'single_time' else line_styles_parts[s], edgecolor = 'k', zorder = 5)
@@ -625,6 +625,7 @@ else:
 
     axT.legend(fontsize = 17)
     axC.legend(fontsize = 17)
+    axx.legend(fontsize = 17)
     axd.set_ylabel(r'$\rho$ (g/cm$^3$)', fontsize = 28)
     axV.set_ylabel(r'v$_{\rm r}$ (km/s)', fontsize = 28)
     axT.set_ylabel(r'$T_{\rm rad}$ (K)', fontsize = 28)
