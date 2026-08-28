@@ -42,6 +42,7 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 Rs = things['Rs']
+Rg = things['Rg']
 Rt = things['Rt']
 Rp = things['Rp']
 R0 = things['R0']
@@ -49,7 +50,6 @@ apo = things['apo']
 a_mb = things['a_mb']
 t_fall = things['t_fb_days']
 t_fall_cgs = t_fall * 24 * 3600
-
 
 #%%
 if compute:
