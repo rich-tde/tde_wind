@@ -108,7 +108,7 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
         make_slices([X, Y, Z, Den, V_r, dim_cell, Rad_den], cutM)
     if Den_wind.size == 0:
         print(f'no positive', flush=True)
-        return np.array([0]*len(label_obs)*3)
+        return np.array([0]*len(label_obs)*4)
 
     Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
     indices_sec, _ = split_cells(X_wind, Y_wind, Z_wind, choice)

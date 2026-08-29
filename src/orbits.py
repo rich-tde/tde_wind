@@ -73,7 +73,7 @@ def bern_coeff(Rsph, vel, den, mass, Press, IE_den, Rad_den, params, G = prel.G)
     orb_en = orbital_energy(Rsph, vel, mass, params, G) 
     orb_en_spec = orb_en/mass
     IE_spec = IE_den / den
-    Press_spec = (Rad_den/3 + Press) / den
+    Press_spec = (4*Rad_den/3 + Press) / den
     B = orb_en_spec + IE_spec + Press_spec
     return B
 

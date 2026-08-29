@@ -122,7 +122,7 @@ if which_plot == 'MdotM':
 
 
     wind = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_wind.csv', 
+            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_wind_NO_P.csv', 
                     delimiter = ',', 
                     skiprows=1, 
                     unpack=True) 

@@ -333,7 +333,7 @@ if compute:
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
         snaps, tfb = snaps[snaps>75], tfb[snaps>75]
     else:
-        snaps = [109]
+        snaps = [151]
     for snap in snaps: 
         print(snap, flush = True)
         if alice:
@@ -405,7 +405,7 @@ else:
         line_styles_parts = ['-.', '--', '-']
         
     else:
-        snaps = [109] 
+        snaps = [151] 
         which_parts = ['wind']#['outflow', 'wind']#, 'acc'] 
         labels_parts =  ['wind'] #['(unbound + bound) Outflow', 'Unbound outflow (wind)']#, 'Accretion'] #['Unbound outflow (wind)']#
         line_styles_parts = ['-'] #['--', '-']#, '-.'] 
