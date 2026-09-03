@@ -13,7 +13,7 @@ else:
     abspath = '/Users/paolamartire/shocks'
     import sys
     sys.path.append(abspath)
-    compute = False
+    compute = True
 
 import numpy as np
 import matplotlib.pyplot as plt 
@@ -317,8 +317,8 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
 #   
 ## MAIN
 #
-which_part = 'wind' # 'outflow' or 'all' or 'wind' to have the wind
-what_varies = 'r' # 'r' or 'theta', only for radial profiles
+which_part = 'outflow' # 'outflow' or 'all' or 'wind' to have the wind
+what_varies = 'theta' # 'r' or 'theta', only for radial profiles
 which_obs = 'split_stream' # 'left_right_z', 'all' or 'in_out_z'
 isot = 'isot' 
 if what_varies == 'r':
