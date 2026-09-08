@@ -1,25 +1,30 @@
-"""Post-processing of spectra:
-1. Load the spectra computed in fld_curve.py, 
-2. Weight the contribution by cos\theta of each ray to another
-3. Plot them.
+"""Post-process and plot spectra produced by ``fld_curve.py``.
+The script normalizes spectra to the FLD photospheric luminosity, 
+performs a cosine-weighted angular average, integrates standard bands, 
+compares with the MG calculation, 
+and fits optical/UV blackbodies.
 """
 import sys
 sys.path.append('/Users/paolamartire/shocks')
 abspath = '/Users/paolamartire/shocks'
+import astropy.units as u
 import numpy as np
 import healpy as hp
-import os
 import scipy.integrate as sci
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-import matplotlib.colors as colors
-from lmfit import Model
-from matplotlib import lines as mlines
-import Utilities.prelude as prel
-from Utilities.operators import choose_observers, sort_list, area_spherical_zone, area_spherical_cal
 from scipy.interpolate import griddata
 import src.orbits as orb
+from lmfit import Model
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+from matplotlib import lines as mlines
+import matplotlib.colors as colors
+from astropy.cosmology import FlatLambdaCDM
+import Utilities.prelude as prel
+from Utilities.operators import choose_observers, sort_list
+from src.fld_curve import load_fld_data
+from src.Paper1.predictions_for_obs import find_horizon
 from plotting.paperEdd.IHopeIsTheLast import ratio_BigOverSmall
+
 
 m = 4
 Mbh = 10**m
@@ -29,754 +34,565 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
+choice = 'split_stream' #
+x_axis = 'Temp'  # 'Freq' or 'Temp'
 snaps_spectra = [76, 109, 151]
+
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 t_fb_days = things['t_fb_days']
 Rt = things['Rt']
-x_axis = 'Temp'  # 'Freq' or 'Temp'
-choice = 'split_stream' #
-
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+
+cosmo = FlatLambdaCDM(H0=70, Om0=0.3) # implies Omega_Lambda = 0.7
 # Visible: 4.8e14-7.5e14 Hz  // UV: 7.5e14-3e15 // Xray: 3e15-3e19 Hz (tera:1e12, peta: 1e14, exa: 1e18)
-low_freq_optical = 1.6767 * prel.ev_toHz 
-high_freq_optical = 3.358 * prel.ev_toHz #7.5e14
-high_freq_UV = 7.7488 * prel.ev_toHz #3e15
-high_freq_EUV = 300 * prel.ev_toHz 
-high_freq_Xray = 2e4 * prel.ev_toHz #3e19
+BANDS = {
+    "optical": (1.6767 * prel.ev_toHz, 3.358 * prel.ev_toHz), 
+    "ZTF_g": (prel.c_cgs/ (prel.ztf_g_band[1] * 1e-8), prel.c_cgs/ (prel.ztf_g_band[0] * 1e-8)),
+    "Rubin_g": (prel.c_cgs/ (prel.Rubin_g_band[1] * 1e-8), prel.c_cgs/ (prel.Rubin_g_band[0] * 1e-8)),
+    # "ZTF_r": (prel.c_cgs/ (prel.ztf_g_band[1] * 1e-8), prel.c_cgs/ (prel.ztf_g_band[0] * 1e-8)),
+    # "ZTF_i": (prel.c_cgs/ (prel.ztf_g_band[1] * 1e-8), prel.c_cgs/ (prel.ztf_g_band[0] * 1e-8)),
+    "UV": (3.358 * prel.ev_toHz, 7.7488 * prel.ev_toHz),
+    "ULTRASAT": (prel.c_cgs/ (prel.lam_ULTR_max * 1e-8), prel.c_cgs/ (prel.lam_ULTR_min * 1e-8)),
+    "EUV": (7.7488 * prel.ev_toHz, 300 * prel.ev_toHz),
+    "Xray": (300 * prel.ev_toHz, 2e4 * prel.ev_toHz),
+    "eROSITA": (200 * prel.ev_toHz, 2300 * prel.ev_toHz),
+}
+
 L_min, L_max = 1e38, 6e42
 T_min, T_max = 1e3, 1e7
-tmin, tmax = -0.05, 2.24
+tfb_min, tfb_max = -0.05, 2.24
 nu_min, nu_max = T_min /prel.Hz_toK, T_max/prel.Hz_toK
-# Observations expectations 
-L_Einstein = 3.5e43 #erg/s
-L_eRos = 6e40
-L_Rubin = 4e39
-L_ZTF = 1.3e41
-L_ULTRA = 5e40
+
+SURVEY_LIMITS = {
+    "Einstein": 3.5e43,
+    "eROSITA": 1e41,
+    "Rubin": 4e39,
+    "ZTF": 1.3e41,
+    "ULTRASAT": 5e40,
+}
+
 Ledd_sol, _ = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
-Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
+Ledd_cgs = Ledd_sol * prel.en_converter / prel.tsol_cgs
+
+# -----------------------------------------------------------------------------
+# Data and numerical helpers
+# -----------------------------------------------------------------------------
 
 def magnitude_ab(Lnu):
     m_ab = -2.5 * np.log10(Lnu) + 51.60
     return m_ab
 
-def fluxfit(n, T):
-    const = 2*prel.h_cgs/prel.c_cgs**2 
-    planck = const * n**3 / (np.exp(prel.h_cgs*n/(prel.Kb_cgs*T))-1)
-    return planck
+def planck_nu(nu, T):
+    x = prel.h_cgs * nu / (prel.Kb_cgs * T)
+    return 2 * prel.h_cgs * nu**3 / prel.c_cgs**2 / np.expm1(x)
 
-def lumfit(n, R, T):
-    planck = fluxfit(n, T)
-    Lum = 4 * (np.pi * R)**2 * planck  # L = 4piR^2 * pi * B since pi*B = flux
-    return Lum
+def blackbody_lnu(nu, R, T):
+    return 4 * np.pi**2 * R**2 * planck_nu(nu, T)
 
-pmodel = Model(lumfit)
-paramsfit = pmodel.make_params(R=1e13, T=1e4)
-paramsfit['R'].min = 0.0    # R ≥ 0
-paramsfit['T'].min = 0.0    # T ≥ 0  
+BB_MODEL = Model(blackbody_lnu, independent_vars=["nu"])
 
-def plot_spectra(folder, check, snaps, x_axis, choice, in_moll = False):
-    # Load
+def fit_blackbody(freqs, luminosity, fit_indices):
+    params = BB_MODEL.make_params(R=1e13, T=1e4)
+    params["R"].min = 0.0
+    params["T"].min = 0.0
+    fit = BB_MODEL.fit(
+        luminosity[fit_indices], nu=freqs[fit_indices], params=params
+    )
+    return fit.params["R"].value, fit.params["T"].value
+
+def band_indices(freqs):
+    return {
+        name: np.flatnonzero((freqs > lower) & (freqs < upper))
+        for name, (lower, upper) in BANDS.items()
+    }
+
+def wavelength_indices(freqs, wavelength_band):
+    """Return frequency indices for a wavelength interval in Ångström."""
+    wavelength_min, wavelength_max = wavelength_band
+
+    # Since ν = c/λ, lambda_max gives nu_min and vice versa.
+    nu_min = prel.c_cgs / (wavelength_max * 1e-8)
+    nu_max = prel.c_cgs / (wavelength_min * 1e-8)
+    return np.flatnonzero((freqs > nu_min) & (freqs < nu_max))
+
+def blackbody_fit_indices(freqs):
+    bands = (
+        prel.ztf_r_band,
+        prel.ztf_i_band,
+        prel.swift_u_band,
+        prel.swift_b_band,
+        prel.swift_v_band,
+        prel.swift_uvw1_band,
+        prel.swift_uvm2_band,
+        prel.swift_uvw2_band,
+    )
+    return np.unique(np.concatenate([wavelength_indices(freqs, b) for b in bands]))
+
+def observer_geometry(choice, nside=None):
+    nside = prel.NSIDE if nside is None else nside
+    npix = hp.nside2npix(nside)
+    xyz = np.asarray(hp.pix2vec(nside, np.arange(npix)))
+    sector_indices, labels, colours, _, _, central_indices = choose_observers(xyz, choice=choice)
+    cosine = np.clip(xyz.T @ xyz, 0.0, None) 
+    return xyz, cosine, sector_indices, labels, colours, central_indices
+
+def load_spectrum(folder, check, snap):
+    ''' Load and normalize the spectrum for a given snapshot. '''
     pre_saving = f'{abspath}/data/{folder}'
     freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt') 
-    idx_opt = np.where(np.logical_and(freqs > low_freq_optical, freqs < high_freq_optical))[0]
-    idx_UV = np.where(np.logical_and(freqs > high_freq_optical, freqs < high_freq_UV))[0]
-    # idx_opt = np.where(np.logical_and(freqs > low_freq_optical, freqs < high_freq_UV))[0]
-    # idx_UV = np.where(np.logical_and(freqs > high_freq_optical, freqs < high_freq_UV))[0][0]
-    #band in angstrom = 1e7 cm and are wavelenght so the minimum gives the maximum freq
-    idx_ztf_g = np.where(np.logical_and(freqs > prel.c_cgs/(prel.ztf_g_band[1]*1e-7), freqs <  prel.c_cgs/(prel.ztf_g_band[0]*1e-7)))[0]
-    idx_ztf_r = np.where(np.logical_and(freqs > prel.c_cgs/(prel.ztf_r_band[1]*1e-7), freqs <  prel.c_cgs/(prel.ztf_r_band[0]*1e-7)))[0]
-    idx_ztf_i = np.where(np.logical_and(freqs > prel.c_cgs/(prel.ztf_i_band[1]*1e-7), freqs <  prel.c_cgs/(prel.ztf_i_band[0]*1e-7)))[0]
-    idx_swift_u_band = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_u_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_u_band[0]*1e-7)))[0]
-    idx_swift_b_band = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_b_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_b_band[0]*1e-7)))[0]
-    idx_swift_v_band = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_v_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_v_band[0]*1e-7)))[0]
-    idx_opt_fit = np.concatenate([idx_ztf_g, idx_ztf_r, idx_ztf_i, idx_swift_u_band, idx_swift_b_band, idx_swift_v_band])
+    spectra = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
+    luminosity = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')["Lum"]
+    integrals = np.trapezoid(spectra, freqs, axis=1)
+    if np.any(~np.isfinite(integrals)) or np.any(integrals == 0):
+        raise ValueError(f"Invalid spectral integral in snapshot {snap}")
+    return spectra * (luminosity / integrals)[:, None], luminosity
 
-    idx_swift_uvw1 = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_uvw1_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_uvw1_band[0]*1e-7)))[0]
-    idx_swift_uvm2 = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_uvm2_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_uvm2_band[0]*1e-7)))[0]
-    idx_swift_uvw2 = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_uvw2_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_uvw2_band[0]*1e-7)))[0]
-    idx_UV_fit = np.concatenate([idx_swift_uvw1, idx_swift_uvm2, idx_swift_uvw2])
-    idx_Xray = np.where(np.logical_and(freqs > high_freq_UV, freqs < high_freq_Xray))[0]
-    idx_fit = np.concatenate([idx_UV_fit, idx_opt_fit])
-    # idx_fit = np.where(np.logical_and(freqs > 0, freqs < 1e40))[0]
+def angular_average(spectra, cosine):
+    weights = cosine / cosine.sum(axis=1, keepdims=True)
+    return weights @ spectra
 
-    data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
-    snaps_fld, tfb, Lum_fld = data[:, 0], data[:, 1], data[:, 2]
-    snaps_fld, Lum_fld, tfb = sort_list([snaps_fld, Lum_fld, tfb], tfb, unique=True) 
-    snaps_fld = snaps_fld.astype(int)
+def integrate_bands(spectra, freqs, indices):
+    return {
+        name: np.trapezoid(spectra[:, idx], freqs[idx], axis=1)
+        for name, idx in indices.items()
+    }
 
-    # observers
-    observers_xyz = hp.pix2vec(prel.NSIDE, np.arange(prel.NPIX)) #shape: (3, 192)
-    observers_xyz = np.array(observers_xyz)
-    longitude_moll = np.arctan2(observers_xyz[1], observers_xyz[0]) # from -pi to pi, 0 at x axis, positive towards y axis
-    theta_obs = np.arccos(observers_xyz[2]) # from 0 (+z axis) to pi (-z axis)
-    latitude_moll = np.pi/2 - theta_obs  # from np.pi/2 (z axis) to -np.pi/2 (-z axis)
-    cross_dot = np.matmul(observers_xyz.T,  observers_xyz)
-    cross_dot[cross_dot<0] = 0
-    indices_sorted, label_obs, colors_obs, _, _ = choose_observers(observers_xyz, choice = choice)
+def sector_average(values, sector_indices):
+    return np.asarray([np.mean(values[idx]) for idx in sector_indices])
+
+def load_mg_lightcurves(folder, check, choice):
+    pre_saving = f'{abspath}/data/{folder}'
+    _, cosine, sectors, _, _, central_indices = observer_geometry(choice, nside=8)
+    table = np.loadtxt(f'{pre_saving}/MG/{check}_timesMG.csv', delimiter=',', dtype=float)
+    snaps, times = table[:, 0].astype(int), table[:, 1]
+
+    curves = {name: [] for name in ("optical", "UV", "Xray")}
+    mean_all_Xray = np.zeros(len(snaps))
+
+    curves_x = []
+    for s, snap in enumerate(snaps):
+        values = np.loadtxt(f'{pre_saving}/MG/snap_{snap}/L_snap_{snap}.txt')
+        bands = {
+            "optical": values[:, 1:3].sum(axis=1),
+            "UV": values[:, 3:5].sum(axis=1),
+            "Xray": values[:, 8:].sum(axis=1),
+        }
+        curves_x.append(bands["Xray"])
+        for name, luminosity in bands.items():
+            luminosity = angular_average(luminosity, cosine)
+            curves[name].append(sector_average(luminosity, sectors))
+            # curves[name].append(luminosity[central_indices])
+        mean_all_Xray[s] = np.mean(bands["Xray"])
+    curves_x = np.asarray(curves_x).T
+    curves = {name: np.asarray(value).T for name, value in curves.items()}
+    return times, curves, curves_x, mean_all_Xray
+
+
+# -----------------------------------------------------------------------------
+# Plot helpers
+# -----------------------------------------------------------------------------
+
+def add_spectral_regions(ax, x_axis, text_band = False):
+    colours = {"optical": "bisque", "UV": "#ffc6ff", "EUV": "lightsteelblue", "Xray": "#c77dff"}
+    for name, (lower, upper) in BANDS.items():
+        if name in ["ZTF_g", "Rubin_g", "ULTRASAT", "eROSITA"]:
+            continue
+        left, right = (lower * prel.Hz_toK, upper * prel.Hz_toK) if x_axis == "Temp" else (lower, upper)
+        ax.axvspan(left, right, color=colours[name], alpha=0.2)
+    if x_axis == "Temp":
+        ax.set_xlabel("Temperature (K)", fontsize=30)
+        ax.set_xlim(T_min, T_max)
+        
+    else:
+        ax.set_xlabel("Frequency (Hz)", fontsize=30)
+        ax.set_xlim(nu_min, nu_max)
+    if text_band:
+        for name, (lower, upper) in BANDS.items():
+            if name in ["ZTF_g", "Rubin_g", "ULTRASAT", "eROSITA"]:
+                continue
+            left, right = (lower * prel.Hz_toK, upper * prel.Hz_toK) if x_axis == "Temp" else (lower, upper)
+            mid = 0.6 * right if name in ["optical", "UV"] else 1.2 * left 
+            ax.text(mid, L_max/35, name, fontsize=20, rotation = 90)
+
+def format_time_axes(axes, original_ticks, ratio_axes=()):
+    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+    ticks = np.sort(np.concatenate([original_ticks, midpoints]))
+    labels = [f"{x:.2f}" if x in original_ticks else "" for x in ticks]
+    day_ticks = ticks * t_fb_days
+    day_labels = [f"{d:.2f}" if x in original_ticks else "" for x, d in zip(ticks, day_ticks)]
+
+    for ax in axes:
+        ax.set_xticks(ticks, labels)
+        ax.set_xlabel(r"$t/t_{\rm fb}$", fontsize=30)
+        ax.set_xlim(tfb_min, tfb_max)
+        ax.set_ylim((1, 20) if ax in ratio_axes else (L_min, L_max))
+        ax.set_yscale("log")
+        ax.tick_params(axis="both", which="major", width=1.2, length=10)
+        ax.tick_params(axis="y", which="minor", width=1, length=6)
+        ax.grid()
+        ax_days = ax.twiny()
+        ax_days.set_xticks(day_ticks, day_labels)
+        ax_days.set_xlim(tfb_min * t_fb_days, tfb_max * t_fb_days)
+        ax_days.set_xlabel(r"$t$ (days)", fontsize=30)
+
+# -----------------------------------------------------------------------------
+# Main plots
+# -----------------------------------------------------------------------------
+def plot_spectra(folder, check, snaps, x_axis, choice, in_moll=False):
+    # base = data_path(folder)
+    # freqs = np.loadtxt(base / "spectra" / "freqs.txt")
+    pre_saving = f'{abspath}/data/{folder}'
+    freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt') 
+    bands_idx = band_indices(freqs)
+    fit_idx = blackbody_fit_indices(freqs)
+    snaps_fld, tfb, _ = load_fld_data(folder, check)
+    xyz, cosine, sectors, labels, colours, central_indices = observer_geometry(choice)
+    longitude = np.arctan2(xyz[1], xyz[0])
+    latitude = np.pi / 2 - np.arccos(xyz[2])
+
+    axes_count = len(snaps)
+    fig, axes = plt.subplots(1, axes_count, figsize=(8 * axes_count, 8))
+    # axes = axes[0]
+    colour_handles, colour_labels = [], []
+    handles_T, labels_T = [], []
 
     if in_moll:
-        lon_1d = longitude_moll
-        lat_1d = latitude_moll
-        lon_grid = np.linspace(lon_1d.min(), lon_1d.max(), 360)
-        lat_grid = np.linspace(lat_1d.min(), lat_1d.max(), 180)
-        lon_mesh, lat_mesh = np.meshgrid(lon_grid, lat_grid)
-        
-        fig_mollop = plt.figure(figsize=(len(snaps)*11, 7))
-        gs_op = gridspec.GridSpec(2, len(snaps), wspace = 0.1, hspace = 0, height_ratios=[1, 0.08])
-        fig_mollx = plt.figure(figsize=(len(snaps)*11, 7))
-        gs_x = gridspec.GridSpec(2, len(snaps), wspace = 0.1, hspace = 0, height_ratios=[1, 0.08])
+        lon_mesh, lat_mesh = np.meshgrid(
+            np.linspace(-np.pi, np.pi, 360), np.linspace(-np.pi / 2, np.pi / 2, 180)
+        )
+        moll_figs = {}
+        for band in ("optical", "Xray"):
+            moll_figs[band] = (
+                plt.figure(figsize=(11 * axes_count, 7)),
+                gridspec.GridSpec(2, axes_count, wspace=0.1, hspace=0, height_ratios=[1, 0.08]),
+            )
 
-    fig_sp, ax = plt.subplots(1, len(snaps), figsize=(24,8))
-    # fig_fit, ax_fit = plt.subplots(2, len(snaps), figsize=(18,8))
-    handles_color, labels_color = [], []
-    handles_local, labels_local = [], []
     for s, snap in enumerate(snaps):
-        time = tfb[snaps_fld == snap][0]
-        L_col = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
+        matches = np.flatnonzero(snaps_fld == snap)
+        if not len(matches):
+            raise ValueError(f"Snapshot {snap} is absent from the FLD table")
+        time = tfb[matches[0]]
+        spectra, _ = load_spectrum(folder, check, snap)
 
-        photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
-        Lum_ph = photo['Lum']
-        for i in range(len(L_col)):
-            norm = Lum_ph[i] / np.trapezoid(L_col[i,:], freqs)
-            L_col[i,:] *= norm
-        
         if in_moll:
-            ax_op = fig_mollop.add_subplot(gs_op[0, s], projection='mollweide')
-            # ax_uv = fig_moll.add_subplot(gs_uv[0, s], projection='mollweide')
-            ax_x = fig_mollx.add_subplot(gs_x[0, s], projection='mollweide')
-
-            ax_op.set_title(f'{np.round(time, 2)}' + r' t$_{\rm fb}$', fontsize=24, y = 1.15) 
-            ax_x.set_title(f'{np.round(time, 2)}' + r' t$_{\rm fb}$', fontsize=24, y = 1.15)
-            # else: 
-            #     # invisible title to keep the same padding
-            #     ax_op.set_title(" ", fontsize=1, y = 1.1)
-            #     ax_x.set_title(" ", fontsize=1, y = 1.1)
-    
-            for ax_moll in [ax_op, ax_x]:
-                ax_moll.set_xticks(np.radians(np.arange(-180, 181, 90))) 
-                ax_moll.set_xticklabels(['-180°', '-90°', '0°','90°', '180°'])
-                ax_moll.set_yticks(np.radians(np.arange(-90, 91, 45))) 
-                ax_moll.set_yticklabels(['-90°', '-45°', '0°', '45°','90°'])
-
-            data_grid_op = griddata(
-            points=(lon_1d, lat_1d),
-            values=Lum_op,
-            xi=(lon_mesh, lat_mesh),
-            method='linear')
-            ax_op.pcolormesh(lon_mesh, lat_mesh, data_grid_op, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=10*L_max))
-
-            # data_grid_uv = griddata(
-            # points=(lon_1d, lat_1d),
-            # values=Lum_UV,
-            # xi=(lon_mesh, lat_mesh),
-            # method='linear')
-            # ax_uv.pcolormesh(lon_mesh, lat_mesh, data_grid_uv, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=L_max))
+            integrated = integrate_bands(spectra, freqs, bands_idx)
+            for band in ("optical", "Xray"):
+                moll_fig, gs = moll_figs[band]
+                ax_moll = moll_fig.add_subplot(gs[0, s], projection="mollweide")
+                values = griddata(
+                    (longitude, latitude), integrated[band], (lon_mesh, lat_mesh), method="linear"
+                )
+                image = ax_moll.pcolormesh(
+                    lon_mesh, lat_mesh, values, cmap="rainbow",
+                    norm=mcolors.LogNorm(vmin=L_min, vmax=(10 if band == "optical" else 4) * L_max),
+                )
+                ax_moll.set_title(rf"${time:.2f}\,t_{{\rm fb}}$", fontsize=24, y=1.15)
+                ax_moll.grid()
+                moll_figs[band] = moll_fig, gs, image
         
-            data_grid_x = griddata(
-            points=(lon_1d, lat_1d),
-            values=Lum_Xray,
-            xi=(lon_mesh, lat_mesh),
-            method='linear')
-            img = ax_x.pcolormesh(lon_mesh, lat_mesh, data_grid_x, cmap = 'rainbow', norm=colors.LogNorm(vmin=L_min, vmax=4*L_max))
+        spectra = angular_average(spectra, cosine)
+        x_values = freqs * prel.Hz_toK if x_axis == "Temp" else freqs
+        add_spectral_regions(axes[s], x_axis, text_band=True if s == 0 else False)
 
-            # for i_idx, idx in enumerate(indices_sorted):
-            #     Lum_op_i = np.mean(Lum_op[idx])
-            #     Lum_UV_i = np.mean(Lum_UV[idx])
-            #     Lum_Xray_i = np.mean(Lum_Xray[idx])  
-            #     print(f'At t = {np.round(time, 1)}' + r't$_{\rm fb}$' + f'Observer {label_obs[i_idx]}: ratio Xray/opt: {Lum_Xray_i/Lum_op_i:.2e}, ratio opt/UV: {Lum_op_i/Lum_UV_i:.2e}')   
-
-        L_col = np.matmul(cross_dot, L_col)/cross_dot.sum(axis=1)[:, None]
-
-        # Lum_op, Lum_UV, Lum_Xray = np.zeros(len(L_col)), np.zeros(len(L_col)), np.zeros(len(L_col))
-        # for i in range(len(L_col)):
-        #     Lum_op[i] = np.trapezoid(L_col[i,idx_opt], freqs[idx_opt]) 
-        #     Lum_UV[i] = np.trapezoid(L_col[i,idx_UV], freqs[idx_UV])
-
-        # for i_idx, idx in enumerate(indices_sorted):
-        #     Lum_op_i = np.mean(Lum_op[idx])
-        #     Lum_UV_i = np.mean(Lum_UV[idx])
-        #     print(snap, label_obs[i_idx], ' ratio opt/UV: ', Lum_op_i/Lum_UV_i)
-
-        if x_axis == 'Temp':
-            x_value = freqs * prel.Hz_toK
-            ax[s].set_xlabel('Temperature (K)', fontsize = 30)
-            ax[s].axvline(low_freq_optical * prel.Hz_toK, c = 'bisque', linewidth = .2)
-            ax[s].axvspan(low_freq_optical * prel.Hz_toK, high_freq_optical * prel.Hz_toK, color='bisque', alpha=0.3)
-            ax[s].axvline(high_freq_optical * prel.Hz_toK, c = '#ffc6ff', linewidth = .2)
-            ax[s].axvspan(high_freq_optical * prel.Hz_toK, high_freq_UV * prel.Hz_toK, color='#ffc6ff', alpha=0.2)
-            ax[s].axvline(high_freq_UV * prel.Hz_toK, c = 'lightsteelblue', linewidth = .2)
-            ax[s].axvspan(high_freq_UV * prel.Hz_toK, high_freq_EUV * prel.Hz_toK, color='lightsteelblue', alpha=0.2)
-            ax[s].axvline(high_freq_EUV * prel.Hz_toK, c = '#c77dff', linewidth = .2)
-            ax[s].axvspan(high_freq_EUV * prel.Hz_toK, high_freq_Xray * prel.Hz_toK, color='#c77dff', alpha=0.15)
-            ax[s].set_xlim(T_min, T_max)
+        fitted = []
+        for k, idx in enumerate(sectors):
+            if labels[k] in {"South pole"}:
+                continue
+            luminosity = np.mean(spectra[idx], axis=0)
+            observer_index = central_indices[k]
+            # luminosity = spectra[observer_index]
+            if np.any(~np.isfinite(luminosity)):
+                print(f"Skipping non-finite sector {labels[k]} at snapshot {snap}")
+                continue
+            radius, temperature = fit_blackbody(freqs, luminosity, fit_idx)
+            fitted.append((k, radius, temperature))
+            print(
+                f"At t={time:.1f} t_fb, observer {labels[k]}: "
+                f"Tfit={temperature:.2e} K, Rfit={radius/prel.Rsol_cgs:.2e} Rsol"
+            )
+            line = axes[s].plot(x_values, freqs * luminosity, color=colours[k], label=labels[k] if s == 0 else None)[0]
             if s == 0:
-                ax[s].text(0.6 * high_freq_optical * prel.Hz_toK, L_max/35, 'Optical', rotation=90, fontsize=20)
-                ax[s].text(0.6 * high_freq_UV * prel.Hz_toK, L_max/35, 'UV', rotation=90, fontsize=20)
-                ax[s].text(1.5 * high_freq_UV * prel.Hz_toK, L_max/35, 'EUV', rotation=90, fontsize=20)
-                ax[s].text(1.2 * high_freq_EUV * prel.Hz_toK, L_max/35, 'X-ray', rotation=90, fontsize=20)
-        else:
-            x_value = freqs
-            ax[s].axvline(low_freq_optical, c = 'k')
-            ax[s].axvspan(low_freq_optical, high_freq_optical, color='bisque', alpha=0.2)
-            ax[s].axvline(high_freq_UV, c = 'k')
-            # ax[s].axvline(low_freq_Xray, c = 'k')
-            ax[s].axvline(high_freq_Xray, c = 'k')
-            ax[s].set_xlabel('Frequency (Hz)', fontsize = 30)
-            ax[s].set_xlim(nu_min, nu_max)
-        
-        Rfit = np.zeros(len(indices_sorted))
-        Tfit = np.zeros(len(indices_sorted))
-        for i_idx, idx in enumerate(indices_sorted):
-            # if i_idx > 8:
-            #     continue
-            if label_obs[i_idx] == 'South pole':
-                continue
-            if len(idx) == 1:
-                Lum = np.concatenate(L_col[idx])
-            else:
-                Lum = np.mean(L_col[idx], axis = 0)
-            if np.any(np.isnan(Lum)):
-                print('skip ', i_idx)
-                continue
-            fit = pmodel.fit(Lum[idx_fit], n = freqs[idx_fit],  params=paramsfit)
-            # fit = pmodel.fit(Lum, n = freqs,  params=params)
-            Rfit[i_idx] = fit.params['R'].value
-            Tfit[i_idx] = fit.params['T'].value
-            # print(fit.fit_report())
-            if not in_moll:
-                print(f'At t = {np.round(time, 1)}' + r't$_{\rm fb}$' + f'Observer {label_obs[i_idx]}: Tfit = {Tfit[i_idx]:.2e} K, Rfit = {Rfit[i_idx]/prel.Rsol_cgs:.2e} rsol')
-            line = ax[s].plot(x_value, freqs * Lum, label = f'{label_obs[i_idx]}' if s == 0 else None, c = colors_obs[i_idx])[0]
-            if s == 0: 
-                handles_color.append(line)
-                labels_color.append(label_obs[i_idx])
-        ax[s].set_title(f't = {np.round(time, 1)}' + r't$_{\rm fb}$', fontsize = 30, y = 1.17)
+                colour_handles.append(line)
+                colour_labels.append(labels[k])
 
-        for i_idx, idx in enumerate(indices_sorted): 
-            if label_obs[i_idx] == 'South pole':
-                continue
-            BBfit = np.array([lumfit(freq, Rfit[i_idx], Tfit[i_idx]) for freq in freqs])
-            lineB = ax[s].plot(x_value, freqs * BBfit, c = colors_obs[i_idx], ls = '-.', label = f'T={Tfit[i_idx]*1e-4:.1f}' + r' $\times 10^4$ K' if s < 2 else f'T={Tfit[i_idx]*1e-3:.1f}' + r' $\times 10^3$ K')[0]
+        for k, radius, temperature in fitted:
+            bb = blackbody_lnu(freqs, radius, temperature)
+            lineB = axes[s].plot(x_values, freqs * bb, color=colours[k], ls="-.", label = f'T={temperature*1e-4:.1f}' + r' $\times 10^4$ K')[0] # if s < 2 else f'T={temperature*1e-3:.1f}' + r' $\times 10^3$ K')[0]
+            if s == 0: 
+                handles_T.append(lineB)
+                labels_T.append(f'T={temperature*1e-4:.1f}' + r' $\times 10^4$ K' )
             
-            if s == 0: 
-                handles_local.append(lineB)
-                labels_local.append(f'T={Tfit[i_idx]*1e-4:.1f}' + r' $\times 10^4$ K' )
 
-        # Rfit_hist = np.zeros(len(L_col))
-        # Tfit_hist = np.zeros(len(L_col))
-        # for i in range(len(L_col)):
-        #     fit_hist = pmodel.fit(L_col[i], n = freqs,  params=paramsfit)
-        #     Rfit_hist[i] = fit_hist.params['R'].value
-        #     Tfit_hist[i] = fit_hist.params['T'].value
-        # ax_fit[0][s].hist(Rfit_hist/(prel.Rsol_cgs), bins=20)
-        # ax_fit[1][s].hist(Tfit_hist*1e-4, bins=20)
-        
-    if x_axis == 'Temp':
-        T_ticks = np.logspace(np.log10(T_min), np.log10(T_max), num=5)
-        lambda_ticks = prel.c_cgs * 1e8 / (T_ticks/ prel.Hz_toK)
-        lambda_labels = [f"{val:.2f}" for val in lambda_ticks]
-        lambda_min = prel.c_cgs * 1e8 / (T_max / prel.Hz_toK)
-        lambda_max = prel.c_cgs * 1e8 / (T_min / prel.Hz_toK)
-    else: 
-        nu_ticks = np.logspace(np.log10(nu_min), np.log10(nu_max), num=5) #ax[0].get_xticks()
-        nu_ticks = nu_ticks[nu_ticks > 0]
-        lambda_ticks = prel.c_cgs * 1e8 / nu_ticks
-        lambda_labels = [f"{val:.2f}" for val in lambda_ticks]
-        lambda_min = prel.c_cgs * 1e8 / nu_max
-        lambda_max = prel.c_cgs * 1e8 / nu_min
-
-    for s in range(len(snaps)):
-        ax[s].set_xticks(T_ticks) if x_axis == 'Temp' else ax[s].set_xticks(nu_ticks)
-        ax[s].set_ylim(L_min, 1e42)
-        ax[s].tick_params(axis='both', which='major', length=8, width=1.2)
-        ax[s].tick_params(axis='both', which='minor', length=5, width=1)
-        ax2 = ax[s].twiny()
-        ax2.set_xticks(lambda_ticks) 
-        ax2.set_xlim(lambda_max, lambda_min)
-        ax2.set_xticklabels(lambda_labels)
-        ax2.set_xlabel(r'$\lambda (\AA$)', fontsize = 30)
-        ax2.set_xscale('log')
-        ax[s].loglog()
-        ax2.tick_params(axis='both', which='major', length=8, width=1.2)
-        ax2.tick_params(axis='both', which='minor', length=5, width=1)
-        # ax_fit[0][s].set_xlabel(r'r$_{\rm BB} (r_\odot)$', fontsize = 20)
-        # ax_fit[1][s].set_xlabel(r'T ($10^4$ K)', fontsize = 20)
-        # ax_fit[1][s].set_xlim(0, 6)
-        if s != 2:
-            legend_local = ax[s].legend(
-                            handles=handles_local,      # your existing local handles
-                            labels=labels_local,
-                            loc='upper left',          # or wherever you want inside ax[0]
+        axes[s].set_title(rf"$t={time:.1f}\,t_{{\rm fb}}$", fontsize=30, y=1.17)
+        axes[s].set_ylim(L_min, 1e42)
+        axes[s].loglog()
+        axes[s].tick_params(axis='both', which='major', length=8, width=1.2)
+        axes[s].tick_params(axis='both', which='minor', length=5, width=1)
+                
+        if s == 0:
+            legend_local = axes[s].legend(
+                            handles=handles_T,      
+                            labels=labels_T,
+                            loc='upper left',         
                             fontsize=15)
         else:
-            ax[s].legend(fontsize=16, loc = 'upper right')
-            
-    # legend1 = ax[0].legend(handles=handles_color,
-    #                     labels=labels_color,
-    #                     fontsize=17, loc='upper center',
-    #                     bbox_to_anchor=(1.7, -.2),  # near bottom, centered
-    #                     ncol=len(labels_color))
+            axes[s].legend(fontsize=16, loc = 'upper left' if s == 1 else 'upper right')
 
+        top = axes[s].twiny()
+        primary_ticks = np.logspace(np.log10(T_min if x_axis == "Temp" else nu_min), np.log10(T_max if x_axis == "Temp" else nu_max), 5)
+        frequencies = primary_ticks / prel.Hz_toK if x_axis == "Temp" else primary_ticks
+        wavelengths = prel.c_cgs * 1e8 / frequencies
+        top.set_xticks(wavelengths, [f"{x:.2f}" for x in wavelengths])
+        top.set_xlim(wavelengths.max(), wavelengths.min())
+        top.set_xscale("log")
+        top.set_xlabel(r"$\lambda\;(\AA)$", fontsize=30)
 
-    legend_colors = fig_sp.legend(
-            handles=handles_color,
-            labels=labels_color,
-            loc='upper center',
-            bbox_to_anchor=(0.525, 0.02),  # centered, near bottom of figure
-            ncol=len(labels_color),
-            fontsize=22) 
+    axes[0].set_ylabel(r"$\nu L_\nu$ (erg s$^{-1}$)", fontsize=30)
+    fig.legend(colour_handles, colour_labels, loc="lower center", bbox_to_anchor=(0.525, -0.09), ncol=len(colour_labels), fontsize=20)
+    fig.tight_layout()
+    fig.savefig(f'{abspath}/Figs/2.paperWind/spectra_{choice}.pdf', dpi=300, bbox_inches='tight')
 
-    # Legend 2: line-style explanation (solid vs dashed)
-    # proxy_lines = []
-    # proxy_lines = []
-    # for l, line in enumerate(line_styles_parts):
-    #     proxy_lines.append(
-    #         mlines.Line2D([0], [0], color='k', ls=line, linewidth=2,
-    #                     label=labels_parts[l])
-    #     )
-
-    # ax_fit[0][0].set_ylabel(r'Counts', fontsize = 20)
-    # ax_fit[1][0].set_ylabel(r'Counts', fontsize = 20)
-    ax[0].set_ylabel(r'$\nu L_{\nu}$ (erg/s)', fontsize = 30)
-    fig_sp.tight_layout()
-    # fig_fit.tight_layout()
-    fig_sp.savefig(f'{abspath}/Figs/2.paperWind/spectra_{choice}.pdf', dpi=300, bbox_inches='tight')
-    # fig_fit.savefig(f'{abspath}/Figs/{folder}/spectraFIT.png', dpi=300)
-    
     if in_moll:
-        cbar_ax = fig_mollop.add_subplot(gs_op[1, 0:3])  # Colorbar subplot below the first two
-        cb = fig_mollop.colorbar(img, cax=cbar_ax, orientation='horizontal', pad=0.07)
-        cb.set_label(r'$\nu L_\nu$ [erg s$^{-1}$]')
-        cb.ax.tick_params(which='major',length = 10)
-        cb.ax.tick_params(which='minor',length = 6) 
-        fig_mollop.suptitle("Optical + UV", fontsize=24) 
-        cbar_ax = fig_mollx.add_subplot(gs_op[1, 0:3])  # Colorbar subplot below the first two
-        cb = fig_mollx.colorbar(img, cax=cbar_ax, orientation='horizontal', pad=0.07)
-        cb.set_label(r'$\nu L_\nu$ [erg s$^{-1}$]')
-        cb.ax.tick_params(which='major',length = 10)
-        cb.ax.tick_params(which='minor',length = 6) 
-        fig_mollx.suptitle("X-ray", fontsize=24)
-        # fig_moll.subplots_adjust(top=0.90, bottom=0.2, left=0.06, right=0.96)
-        fig_mollop.tight_layout()
-    
+        for band, (moll_fig, gs, image) in moll_figs.items():
+            cax = moll_fig.add_subplot(gs[1, :])
+            cb = moll_fig.colorbar(image, cax=cax, orientation="horizontal")
+            cb.set_label(r"$L_{\rm band}$ (erg s$^{-1}$)")
+            moll_fig.suptitle("Optical" if band == "optical" else "X-ray", fontsize=24)
+            moll_fig.savefig(f'{abspath}/Figs/2.paperWind/moll_{band}_{choice}.pdf', dpi=300, bbox_inches="tight")
 
-def plot_light_curves(folder, check, choice, group = 'bands'):
-    # Load
+def distance_telescope(folder, check, choice):
     pre_saving = f'{abspath}/data/{folder}'
     freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt')
-    idx_opt = np.where(np.logical_and(freqs > low_freq_optical, freqs < high_freq_optical))[0]
-    idx_UV = np.where(np.logical_and(freqs > high_freq_optical, freqs < high_freq_UV))[0]
-    idx_Xray = np.where(np.logical_and(freqs > high_freq_UV, freqs < high_freq_Xray))[0]
+    bands_idx = band_indices(freqs)
+    snaps, tfb, luminosity_fld = load_fld_data(folder, check)
+    idx_maxL = np.argmax(luminosity_fld)
+    snap_maxL = snaps[idx_maxL]
+    _, mg, curves_x, _ = load_mg_lightcurves(folder, check, choice)
+    _, _, sectors, labels, colours, central_indices = observer_geometry(choice)
+    n_sectors, n_times = len(sectors), len(snaps)
+    fld_sector = np.zeros((n_sectors, n_times))
+    curves = {name: np.zeros((n_sectors, n_times)) for name in ("ZTF_g", "Rubin_g", "ULTRASAT", "eROSITA")}
 
-    data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
-    snaps_fld, tfb, Lum_fld = data[:, 0], data[:, 1], data[:, 2]
-    snaps_fld, Lum_fld, tfb = sort_list([snaps_fld, Lum_fld, tfb], tfb, unique=True) 
-    snaps_fld = snaps_fld.astype(int)
-    tfb = np.array(tfb, dtype=float)
-    idx_maxL = np.argmax(Lum_fld)
-
-    # observers
-    observers_xyz = hp.pix2vec(prel.NSIDE, np.arange(prel.NPIX)) #shape: (3, 192)
-    observers_xyz = np.array(observers_xyz)
-    cross_dot = np.matmul(observers_xyz.T,  observers_xyz)
-    cross_dot[cross_dot<0] = 0
-    # print(cross_dot.sum(axis=1))
-    indices_sorted, label_obs, colors_obs, _, _ = choose_observers(observers_xyz, choice = choice)
-
-    # if choice == 'split_stream':
-    #     corr_ecc = area_spherical_zone(1, 80 * np.pi/180)/2 # since the other half is peric side
-    #     corr_mid = area_spherical_zone(1, 50 * np.pi/180)/2 - corr_ecc
-    #     corr_high = area_spherical_zone(1, 20 * np.pi/180)/2 - corr_mid - corr_ecc
-    #     corr_pole = area_spherical_cal(1, 20 * np.pi/180)
-    #     corr_peric = area_spherical_zone(1, 20 * np.pi/180)/2 # since the other half is stream side
-    #     areas = np.array([corr_ecc, corr_mid, corr_high, corr_peric, corr_pole, corr_pole])
-    #     corr_geom = 4 * np.pi / areas
-
-    Lum_op_mean = []
-    Lum_UV_mean = [] 
-    Lum_Xray_mean = []
-    time_col = []
-    Lum_sec = []
-    Lum_op_all, Lum_UV_all = np.zeros(len(snaps_fld)), np.zeros(len(snaps_fld))
-    line_styles_parts = ['-', ':']
-    labels_parts = [r'This work', r'Giron+26']
-    for s, snap in enumerate(snaps_fld):
-        L_col = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
-        photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
-        Lum_ph = photo['Lum'] 
-        for i in range(len(L_col)):
-            norm = Lum_ph[i] / np.trapezoid(L_col[i,:], freqs)
-            L_col[i,:] *= norm
-
-        # Lum_ph = np.matmul(cross_dot, Lum_ph)/cross_dot.sum(axis=1)
-        # L_col = np.matmul(cross_dot, L_col)/cross_dot.sum(axis=1)[:, None]
-        Lum_op, Lum_UV, Lum_Xray = np.zeros(len(L_col)), np.zeros(len(L_col)), np.zeros(len(L_col))
-        for i in range(len(L_col)):
-            # Lum_freq = freqs * L_col[i] 
-            # Lum_op[i] = np.sum(Lum_freq[idx_opt])
-            Lum_op[i] = np.trapezoid(L_col[i,idx_opt], freqs[idx_opt]) 
-            Lum_UV[i] = np.trapezoid(L_col[i,idx_UV], freqs[idx_UV])
-            Lum_Xray[i] = np.trapezoid(L_col[i,idx_Xray], freqs[idx_Xray])
-        
-        Lum_op_i, Lum_UV_i, Lum_Xray_i = np.zeros(len(indices_sorted)), np.zeros(len(indices_sorted)), np.zeros(len(indices_sorted))
-        Lum_fld_i = np.zeros(len(indices_sorted))
-        Lum_op_all[s] = np.mean(Lum_op)
-        Lum_UV_all[s] = np.mean(Lum_UV) 
-
-        for i_idx, idx in enumerate(indices_sorted):
-            # the solid angle of each sector is: 4 * np.pi * len(idx) / 192. To have the isotropic luminosity you should do * (4 pi / solid_angle_s)
-            # corr_geom = 192 / len(idx)
-            # print(label_obs[i_idx], corr_geom)
-            Lum_op_i[i_idx] = np.mean(Lum_op[idx])
-            Lum_UV_i[i_idx] = np.mean(Lum_UV[idx])
-            Lum_Xray_i[i_idx] = np.mean(Lum_Xray[idx])
-            Lum_fld_i[i_idx] = np.mean(Lum_ph[idx])
-        Lum_op_mean.append(Lum_op_i)
-        Lum_UV_mean.append(Lum_UV_i)
-        Lum_Xray_mean.append(Lum_Xray_i)
-        time_col.append(tfb[s])
-        Lum_sec.append(Lum_fld_i)
-    Lum_op_mean = np.transpose(np.array(Lum_op_mean))
-    Lum_UV_mean = np.transpose(np.array(Lum_UV_mean))
-    Lum_Xray_mean = np.transpose(np.array(Lum_Xray_mean))
-    Lum_sec = np.transpose(np.array(Lum_sec))
-
-    Lum_op_MG = []
-    Lum_UV_MG = []
-    Lum_Xray_mean_MG = []
-    time_MG = []
-    # observers MG
-    nside_mg = 8
-    observers_xyz_MG = hp.pix2vec(nside_mg, np.arange(hp.nside2npix(nside_mg))) #shape: (3, 768)
-    observers_xyz_MG = np.array(observers_xyz_MG)
-    indices_sorted_MG, _, _, _, _ = choose_observers(observers_xyz_MG, choice = choice)
-    snaps_times_MG = np.loadtxt(f'{pre_saving}/MG/{check}_timesMG.csv', delimiter=',', dtype=float)
-    snaps_MG = snaps_times_MG[:, 0].astype(int)
-    time_MG = snaps_times_MG[:, 1]
-    idx_MG_spectra = [np.argmin(np.abs(time_MG - 1.00)),
-                        np.argmin(np.abs(time_MG - 1.54)), 
-                        np.argmin(np.abs(time_MG - 2.23))]
-    idx_fld_spectra = [np.argmin(np.abs(tfb - 1.00)),
-                        np.argmin(np.abs(tfb - 1.54)), 
-                        np.argmin(np.abs(tfb - 2.23))]
-    idx_MG_spectra = np.array(idx_MG_spectra, dtype=int)
-    idx_fld_spectra = np.array(idx_fld_spectra, dtype=int)
-
-    Lum_Xray_all_MG = np.zeros(len(snaps_MG))
-    for s, snap in enumerate(snaps_MG):
-        L_colMG = np.loadtxt(f'{pre_saving}/MG/snap_{snap}/L_snap_{snap}.txt')
-        t_MG = np.argmin(np.abs(snaps_MG - snap))
-        Lum_op_MG_sum = np.sum(L_colMG[:, 1:3], axis = 1)
-        Lum_UV_MG_sum = np.sum(L_colMG[:, 3:5], axis = 1)
-        Lum_Xray_mean_MG_sum = np.sum(L_colMG[:, 8:], axis = 1)
-        # Lum_op_MG_mean = L_colMG[:, 1]
-        # Lum_UV_MG_mean = L_colMG[:, 3]
-        # Lum_Xray_mean_MG_mean = L_colMG[:, 8]
-        Lum_op_MG.append([np.mean(Lum_op_MG_sum[idx]) for idx in indices_sorted_MG])
-        Lum_UV_MG.append([np.mean(Lum_UV_MG_sum[idx]) for idx in indices_sorted_MG])
-        Lum_Xray_mean_MG.append([np.mean(Lum_Xray_mean_MG_sum[idx]) for idx in indices_sorted_MG])
-        Lum_Xray_all_MG[s] = np.mean(Lum_Xray_mean_MG_sum)
-
-    Lum_op_MG = np.transpose(np.array(Lum_op_MG))
-    Lum_UV_MG = np.transpose(np.array(Lum_UV_MG))
-    Lum_Xray_mean_MG = np.transpose(np.array(Lum_Xray_mean_MG))
-    for i in np.arange(3):
-        idx_t_MG = idx_MG_spectra[i]
-        idx_t_fld = idx_fld_spectra[i]
-        print(f'For t = {np.round(tfb[idx_t_fld], 2)} t_fb, MG time is {np.round(time_MG[idx_t_MG], 2)} t_fb')
-        for k, obs in enumerate(label_obs):
-            # if k == 3:
-            #     continue
-            if group == 'bandsMG':
-                print(obs, '|| ratio Xray/opt: ', Lum_Xray_mean_MG[k][idx_t_MG]/Lum_op_MG[k][idx_t_MG], ' ratio opt/UV: ', Lum_op_MG[k][idx_t_MG]/Lum_UV_MG[k][idx_t_MG])
+    for s, snap in enumerate(snaps):
+        spectra, luminosity_photo = load_spectrum(folder, check, snap)
+        integrated = integrate_bands(spectra, freqs, bands_idx)
+        # fld_sector[:, s] = luminosity_photo[central_indices]
+        for band in curves:
+            if band != "eROSITA":
+                curves[band][:, s] = sector_average(integrated[band], sectors)
+                # curves[band][:, s] = integrated[band][central_indices]
             else:
-                print(obs, '|| ratio Xray/opt: ', Lum_Xray_mean_MG[k][idx_t_MG]/Lum_op_mean[k][idx_t_fld], ' ratio opt/UV: ', Lum_op_mean[k][idx_t_fld]/Lum_UV_mean[k][idx_t_fld])
+                curves[band][:, s] = mg["Xray"][:, s]
 
-    if group == 'sections': # each panel show a spherical sector
-        len_plot = len(label_obs) if len(label_obs) > 1 else 2 # because then u substract 1
-        if np.array(label_obs).all() not in ['South pole', r'-$\hat{z}$']:
-            print('Do not consider the south pole')
-            len_plot -= 1
-        fig_L, ax_L = plt.subplots(1, len_plot, figsize=(9*len_plot, 7)) 
-        axes = [ax_L[k] for k in range(len_plot)] if len_plot > 1 else [ax_L]
-        for k in np.arange(len(axes)):
-            Lum_op = Lum_op_mean[k]
-            Lum_UV = Lum_UV_mean[k]
-            Lum_XrayMG = Lum_Xray_mean_MG[k]
-            axes[k].plot(tfb, Lum_op, label = 'Optical', c = colors_obs[k])
-            axes[k].scatter(tfb[np.argmax(Lum_op)], np.max(Lum_op), c = colors_obs[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
-            axes[k].plot(tfb, Lum_UV, label = f'UV', c = colors_obs[k], ls = '--')
-            axes[k].scatter(tfb[np.argmax(Lum_UV)], np.max(Lum_UV), c = colors_obs[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
-            axes[k].plot(time_MG, Lum_XrayMG, label = f'Xray', c = colors_obs[k], ls = ':')
-            axes[k].scatter(time_MG[np.argmax(Lum_XrayMG)], np.max(Lum_XrayMG), c = colors_obs[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
-            axes[k].text(0.1, L_max/5, f'{label_obs[k]}', fontsize = 26)
-        original_ticks = axes[0].get_xticks()
-        axes[0].legend(fontsize = 25)
-        axes[0].set_ylabel(r'$\nu L_{\nu}$ (erg/s)', fontsize = 30)
+    plotted = [k for k, label in enumerate(labels) if label not in {"South pole", r"-$\hat{z}$"}]
+    for k in plotted:
+        # z_horizon_ZTF = find_horizon(np.max(curves["ZTF_g"][k]), -1, -1, prel.mg_lim_ZTF, which_L = 'band', nu_min=BANDS["ZTF_g"][0], nu_max=BANDS["ZTF_g"][1])
+        # print(f'#######\nZTF g-band horizon for {labels[k]}: Lum = {np.max(curves["ZTF_g"][k]):.2e}, z = {z_horizon_ZTF:.3f}, in Mpc = {cosmo.luminosity_distance(z_horizon_ZTF).to(u.Mpc).value:.1f}')
+        z_horizon_Rubin = find_horizon(np.max(curves["Rubin_g"][k]), -1, -1, prel.mg_lim_Rubin, which_L = 'band', nu_min=BANDS["Rubin_g"][0], nu_max=BANDS["Rubin_g"][1])
+        print(f'#######\nRubin g-band horizon for {labels[k]}: Lum = {np.max(curves["Rubin_g"][k]):.2e}, z = {z_horizon_Rubin:.3f}, in Mpc = {cosmo.luminosity_distance(z_horizon_Rubin).to(u.Mpc).value:.1f}')
+        # z_horizon_ULTRASAT = find_horizon(np.max(curves["ULTRASAT"][k]), -1, -1, prel.m_lim_ULTRASAT, which_L = 'band', nu_min=BANDS["ULTRASAT"][0], nu_max=BANDS["ULTRASAT"][1])
+        # print(f'#######\nULTRASAT horizon for {labels[k]}: z = {z_horizon_ULTRASAT:.3f}, in Mpc = {cosmo.luminosity_distance(z_horizon_ULTRASAT).to(u.Mpc).value:.1f}') 
+        # flux_eROS = 1e-13 # erg/s/cm^2
+        # distance_eROS_Mpc = np.sqrt(np.max(curves["eROSITA"][k]) / (4 * np.pi * flux_eROS)) / 3.086e24  # in Mpc (https://en.wikipedia.org/wiki/Parsec 1pc = 3.086e16 m)
+        # print(f"#######\neROSITA horizon for {labels[k]}: {distance_eROS_Mpc:.1f} Mpc")
+        
+def plot_light_curves(folder, check, choice, group="bands"):
+    if group not in {"sections", "bands", "bandsMG"}:
+        raise ValueError("group must be 'sections', 'bands', or 'bandsMG'")
 
-    if group == 'bands' or group == 'bandsMG': # each panel show a band
-        if group == 'bands' :
-            fig_L, (axL, ax_op, ax_UV) = plt.subplots(1, 3, figsize=(24, 7))
-            fig_x, ax_Xray = plt.subplots(1, 1, figsize=(9, 7))
-            axes = [axL, ax_op, ax_UV, ax_Xray] 
-        else:
-            fig_L, (ax_op, ax_UV, ax_Xray) = plt.subplots(1, 3, figsize=(24, 7))
-            fig_r, (axratio_op, axratio_UV, axratio_Xray) = plt.subplots(1, 3, figsize=(24, 7))
-            axes = [ax_op, ax_UV, ax_Xray, axratio_op, axratio_UV, axratio_Xray] 
+    pre_saving = f'{abspath}/data/{folder}'
+    freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt')
+    bands_idx = band_indices(freqs)
+    snaps, tfb, luminosity_fld = load_fld_data(folder, check)
+    idx_maxL = np.argmax(luminosity_fld)
+    _, cosine, sectors, labels, colours, central_indices = observer_geometry(choice)
+    _, _, sectors_mg, _, _, _ = observer_geometry(choice, nside=8)
+    n_sectors, n_times = len(sectors), len(snaps)
+    fld_sector = np.zeros((n_sectors, n_times))
+    curves = {name: np.zeros((n_sectors, n_times)) for name in ("optical", "UV", "Xray")}
+    curves_fld, curves_op, curves_uv = [], [], []
+
+    for s, snap in enumerate(snaps):
+        spectra, luminosity_photo = load_spectrum(folder, check, snap)
+        spectra, _ = load_spectrum(folder, check, snap)
+        spectra = angular_average(spectra, cosine)
+        integrated = integrate_bands(spectra, freqs, bands_idx)
+        luminosity_photo = angular_average(luminosity_photo, cosine)
+        # fld_sector[:, s] = luminosity_photo[central_indices]
+        curves_fld.append(luminosity_photo)
+        curves_op.append(integrated["optical"])
+        curves_uv.append(integrated["UV"]) 
+        fld_sector[:, s] = sector_average(luminosity_photo, sectors)
+        for band in curves: 
+            curves[band][:, s] = sector_average(integrated[band], sectors)
+            # curves[band][:, s] = integrated[band][central_indices]
+    curves_fld = np.asarray(curves_fld).T
+    curves_op, curves_uv = np.asarray(curves_op).T, np.asarray(curves_uv).T
+ 
+    time_mg, mg, curves_x, all_xray_mg = load_mg_lightcurves(folder, check, choice)
+    # curves_x = []
+    # curves_x.append(mg["Xray"]) 
+    # curves_x = np.asarray(curves_x).T
+    for target in (1.00, 1.54, 2.23):
+        i_fld, i_mg = np.argmin(abs(tfb-target)), np.argmin(abs(time_mg-target))
+        print(f"For t={tfb[i_fld]:.2f} t_fb, MG time is {time_mg[i_mg]:.2f} t_fb")
+        for k, label in enumerate(labels):
+            optical = mg["optical"][k, i_mg] if group == "bandsMG" else curves["optical"][k, i_fld]
+            uv = mg["UV"][k, i_mg] if group == "bandsMG" else curves["UV"][k, i_fld]
+            print(label, "|| Xray/opt:", mg["Xray"][k, i_mg]/optical, "opt/UV:", optical/uv)
+
+    plotted = [k for k, label in enumerate(labels) if label not in {"South pole", r"-$\hat{z}$"}]
+    if group == "sections":
+        fig, axes = plt.subplots(1, len(plotted), figsize=(9*len(plotted), 7), squeeze=False)
+        axes = list(axes[0])
+        for ax, k in zip(axes, plotted):
+            ax.plot(tfb, curves["optical"][k], color=colours[k], label="Optical")
+            ax.plot(tfb, curves["UV"][k], color=colours[k], ls="--", label="UV")
+            ax.plot(time_mg, mg["Xray"][k], color=colours[k], ls=":", label="X-ray")
+            ax.text(0.1, L_max/5, labels[k], fontsize=24)
+        axes[0].legend(fontsize=20)
+        axes[0].set_ylabel(r"$L_{\rm band}$ (erg s$^{-1}$)", fontsize=30)
+        ratio_axes = ()
+    elif group == "bands":
+        fig, (ax_bol, ax_opt, ax_uv) = plt.subplots(1, 3, figsize=(24, 7))
+        fig_x, ax_x = plt.subplots(figsize=(9, 7))
+        axes = [ax_bol, ax_opt, ax_uv, ax_x]
+        for k in plotted:
+            for sec in sectors[k]:
+                ax_bol.plot(tfb, curves_fld[sec], color=colours[k], alpha = 0.1, lw = 1)
+                ax_opt.plot(tfb, curves_op[sec], color=colours[k], alpha = 0.1, lw = 1) 
+                ax_uv.plot(tfb, curves_uv[sec], color=colours[k], alpha = 0.1, lw = 1)
+            for sec in sectors_mg[k]:
+                ax_x.plot(time_mg, curves_x[sec], color=colours[k], alpha = 0.05, lw = .5)
+            # ax_opt.plot(tfb, np.mean(curves_op[sectors[k]], axis = 0), color='k', ls = '--')
+            ax_bol.plot(tfb, fld_sector[k], color=colours[k], label=labels[k], lw = 3,  zorder = 4)
+            ax_bol.scatter(tfb[np.argmax(fld_sector[k])], np.max(fld_sector[k]), c = colours[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
+            ax_opt.plot(tfb, curves["optical"][k], color=colours[k], lw = 2, zorder = 4)
+            ax_opt.scatter(tfb[np.argmax(curves["optical"][k])], np.max(curves["optical"][k]), c = colours[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
+            print(f'{labels[k]}: {np.max(curves["optical"][k]):.2e}')
+            ax_uv.plot(tfb, curves["UV"][k], color=colours[k], lw = 3, zorder = 4)
+            ax_uv.scatter(tfb[np.argmax(curves["UV"][k])], np.max(curves["UV"][k]), c = colours[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
+            ax_x.plot(time_mg, mg["Xray"][k], color=colours[k], label=labels[k], lw = 2, zorder = 4)
+            ax_x.scatter(time_mg[np.argmax(mg["Xray"][k])], np.max(mg["Xray"][k]), c = colours[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
+        ax_bol.axhline(Ledd_cgs, color="gray", ls="-.")
+        ax_opt.text(0.05, L_max/3, r'Optical', fontsize = 26)
+        ax_uv.text(0.05, L_max/3, r'UV', fontsize = 26)
+        ax_x.text(0.05, L_max/3, 'X-ray (Giron+26)', fontsize = 26)
+        ax_bol.text(0.08, 1.2*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', color = 'gray', fontsize = 20)
+        ax_bol.text(0.05, L_max/3, r'Bolometric L$_{\rm FLD}$', fontsize = 26)
+        ax_opt.axhline(SURVEY_LIMITS["ZTF"], color="gray", ls="-.")
+        ax_opt.text(0, 0.6*SURVEY_LIMITS["ZTF"], 'g-ZTF', fontsize = 16, color = 'gray')
+        ax_opt.axhline(SURVEY_LIMITS["Rubin"], color="gray", ls="-.")
+        ax_opt.text(0, 0.6*SURVEY_LIMITS["Rubin"], ' g-Rubin', fontsize = 16, color = 'gray')
+        ax_uv.axhline(SURVEY_LIMITS["ULTRASAT"], color="gray", ls="-.")
+        ax_uv.text(0, 0.6*SURVEY_LIMITS["ULTRASAT"], 'ULTRASAT', fontsize = 16, color = 'gray')
+        ax_x.axhline(SURVEY_LIMITS["eROSITA"], color="gray", ls="-.")
+        ax_x.text(1.75, 0.6*SURVEY_LIMITS["eROSITA"], 'eROSITA', fontsize = 16, color = 'gray')
+        ax_x.axhline(SURVEY_LIMITS["Einstein"], color="gray", ls="-.")
+        for ax in (ax_bol, ax_opt, ax_uv):
+            ax.plot(tfb, luminosity_fld, "k--", label="All")
+            ax.scatter(tfb[idx_maxL], luminosity_fld[idx_maxL], c = 'k', s = 250, marker = '*')
+        ax_bol.set_ylabel(r"$L$ (erg s$^{-1}$)", fontsize=30)
+        ax_x.set_ylabel(r"$\nu L_\nu$ (erg s$^{-1}$)", fontsize=30)
+        ax_bol.legend(fontsize=15)
+        ax_x.legend(fontsize=15)
+        ratio_axes = ()
+    else:
+        fig, (ax_opt, ax_uv, ax_x) = plt.subplots(1, 3, figsize=(24, 7))
+        fig_ratio, (ratio_opt, ratio_uv, ratio_x) = plt.subplots(1, 3, figsize=(24, 7))
+        axes = [ax_opt, ax_uv, ax_x, ratio_opt, ratio_uv, ratio_x]
         handles_color, labels_color = [], []
+        for k in plotted:
+            for ax, band in zip((ax_opt, ax_uv, ax_x), ("optical", "UV", "Xray")):
+                line = ax.plot(tfb, curves[band][k], color=colours[k], label=labels[k])[0]
+                if ax == ax_opt:
+                    handles_color.append(line)
+                    labels_color.append(labels[k])
+                ax.plot(time_mg, mg[band][k], color=colours[k], ls=":")
+            for ax, band in zip((ratio_opt, ratio_uv, ratio_x), ("optical", "UV", "Xray")):
+                time_ratio, ratio, _ = ratio_BigOverSmall(tfb, curves[band][k], time_mg, mg[band][k])
+                ax.plot(time_ratio, ratio, color=colours[k])
+                if band != "Xray":
+                    print('Median ratio for ', labels[k], 'in', band, 'band =', np.median(ratio[np.argmin(np.abs(time_ratio-1.5)):]))
+        ratio_opt.set_ylabel("This work / Giron+26", fontsize=25)
+        ratio_axes = (ratio_opt, ratio_uv, ratio_x)
+        ax_opt.text(1.76, L_max/3, r'Optical', fontsize = 26)
+        ax_uv.text(0.05, L_max/3, r'UV', fontsize = 26)
+        ax_x.text(0.05, L_max/3, 'X-ray', fontsize = 26)
+        ax_opt.set_ylabel(r"$\nu L_\nu$ (erg s$^{-1}$)", fontsize=30)
 
-        for k, obs in enumerate(label_obs):
-            if label_obs[k] == 'South pole':
-                continue
-            Lum_op = Lum_op_mean[k]
-            Lum_UV = Lum_UV_mean[k] 
-            Lum_XrayMG = Lum_Xray_mean_MG[k]
-            Lum_ph = Lum_sec[k]
+        legend1 = ax_opt.legend(
+                    handles=handles_color,
+                    labels=labels_color,
+                    fontsize=20,
+                    loc='upper left')
+        ax_opt.add_artist(legend1)  # Add the first legend to the axes
+        method_legend = [mlines.Line2D([0], [0], color="k", ls=ls, label=lab) for ls, lab in zip(("-", ":"), ("This work", "Giron+26"))]
+        ax_opt.legend(handles=method_legend, fontsize=18, loc='lower right')
 
-            line = ax_op.plot(tfb, Lum_op, label = f'{obs}', c = colors_obs[k])[0]
-            handles_color.append(line)
-            labels_color.append(f'{obs}')
-            ax_UV.plot(tfb, Lum_UV, c = colors_obs[k])
-            ax_Xray.plot(time_MG, Lum_XrayMG, c = colors_obs[k], label = f'{obs}', ls = line_styles_parts[1] if group == 'bandsMG' else line_styles_parts[0])
-            if group == 'bands':
-                # ax_op.plot(tfb, Lum_op_all, c = 'k', ls = ':')
-                # ax_UV.plot(tfb, Lum_UV_all, c = 'k', ls = ':')
-                # ax_Xray.plot(time_MG, Lum_Xray_all_MG, c = 'k', ls = ':')
-                axL.plot(tfb, Lum_ph, c = colors_obs[k], label = f'{obs}')
-                axL.axhline(Ledd_cgs, color = 'gray', ls = '-.', linewidth = 1)
-                axL.text(0.08, 1.2*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', color = 'gray', fontsize = 20)
-                axL.scatter(tfb[np.argmax(Lum_ph)], np.max(Lum_ph), c = colors_obs[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
-                ax_op.scatter(tfb[np.argmax(Lum_op)], np.max(Lum_op), c = colors_obs[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
-                ax_UV.scatter(tfb[np.argmax(Lum_UV)], np.max(Lum_UV), c = colors_obs[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
-                ax_Xray.scatter(time_MG[np.argmax(Lum_XrayMG)], np.max(Lum_XrayMG), c = colors_obs[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
-                axL.text(0.05, L_max/3, r'Bolometric L$_{\rm FLD}$', fontsize = 26)
-
-            if group == 'bandsMG':
-                ax_Xray.plot(tfb, Lum_Xray_mean[k], c = colors_obs[k], ls = line_styles_parts[0])
-                ax_op.plot(time_MG, Lum_op_MG[k], c = colors_obs[k], ls = line_styles_parts[1])
-                ax_UV.plot(time_MG, Lum_UV_MG[k], c = colors_obs[k], ls = line_styles_parts[1])
-
-                time_ratio, ratio, _ = ratio_BigOverSmall(tfb, Lum_op_mean[k], time_MG, Lum_op_MG[k])
-                axratio_op.plot(time_ratio, ratio, c = colors_obs[k], label = f'{obs}')
-
-                time_ratio, ratio, _ = ratio_BigOverSmall(tfb, Lum_UV_mean[k], time_MG, Lum_UV_MG[k])
-                axratio_UV.plot(time_ratio, ratio, c = colors_obs[k])
-
-                time_ratio, ratio, _ = ratio_BigOverSmall(tfb, Lum_Xray_mean[k], time_MG, Lum_Xray_mean_MG[k])
-                axratio_Xray.plot(time_ratio, ratio, c = colors_obs[k])
-
-            original_ticks = ax_op.get_xticks()
-
-    if group == 'bandsMG':
-        ax_op.text(1.76, L_max/3, r'Optical', fontsize = 26)
-        ax_UV.text(1.76, L_max/3, r'UV', fontsize = 26)
-        ax_Xray.text(1.76, L_max/3, 'X-ray', fontsize = 26)
-        axratio_op.legend(fontsize = 22)
-        axratio_op.set_ylabel(r'Us/Giron', fontsize = 30)
-        
-        legend1 = ax_op.legend(
-            handles=handles_color,
-            labels=labels_color,
-            fontsize=20,
-            loc='upper left')
-        
-        ax_op.add_artist(legend1)  # Add the first legend to the axes
-
-        proxy_lines = []
-        proxy_lines = []
-        for l, line in enumerate(line_styles_parts):
-            proxy_lines.append(mlines.Line2D([0], [0], color='k', ls=line, linewidth=2,
-                            label=labels_parts[l]))
-        ax_op.legend(handles=proxy_lines, fontsize=22, 
-                            loc='lower right')
-        ax_op.set_ylabel(r'$\nu L_{\nu}$ (erg/s)', fontsize = 30)
-        fig_r.tight_layout()
-
-    if group == 'bands':
-        ax_op.text(0.05, L_max/3, r'Optical', fontsize = 26)
-        ax_UV.text(0.05, L_max/3, r'UV', fontsize = 26)
-        ax_Xray.text(0.05, L_max/3, 'X-ray (Giron+26)', fontsize = 26)
-        axL.set_ylabel(r'$\nu L_\nu$ (erg/s)', fontsize = 30)
-        ax_Xray.set_ylabel(r'Mean luminosity (erg/s)', fontsize = 30)
-        ax_op.axhline(L_ZTF, c = 'gray', ls = '-.', linewidth = 1)
-        ax_op.text(0, 0.6*L_ZTF, 'g-ZTF', fontsize = 16, color = 'gray')
-        ax_op.axhline(L_Rubin, c = 'gray', ls = '-.', linewidth = 1)
-        ax_op.text(0, 0.6*L_Rubin, ' g-Rubin', fontsize = 16, color = 'gray')
-        ax_UV.axhline(L_ULTRA, c = 'gray', ls = '-.', linewidth = 1)
-        ax_UV.text(0, 0.6*L_ULTRA, 'ULTRASAT', fontsize = 16, color = 'gray')
-        ax_Xray.axhline(L_eRos, c = 'gray', ls = '-.', linewidth = 1)
-        ax_Xray.text(1.75, 0.6*L_eRos, 'eROSITA', fontsize = 16, color = 'gray')
-        ax_Xray.axhline(L_Einstein, c = 'gray', ls = '-.', linewidth = 1)
-        # ax_Xray.text(1.75, 0.6*L_Einstein, 'EP/WXT', fontsize = 16, color = 'gray')
-    
-    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]   
-    days_ticks = new_ticks*t_fb_days
-    days_labels = [str(np.round(days_ticks[k],2)) if new_ticks[k] in original_ticks else "" for k in range(len(days_ticks))]
-    for ax in axes:
-        if group == 'bands':
-            if ax != ax_Xray:
-                ax.plot(tfb, Lum_fld, c = 'k', ls = '--', label = 'All')
-                # ax.plot(tfb, np.sum(L_col, axis=1), c = 'r', ls = '--', label = 'All sum')
-                ax.scatter(tfb[idx_maxL], Lum_fld[idx_maxL], c = 'k', s = 250, marker = '*')
-            if ax not in [axL, ax_Xray]:
-                ax.tick_params(axis='y', labelleft=False)
-        ax.set_xticks(new_ticks)
-        ax.set_xlabel(r't / t$_{\rm fb}$', fontsize = 30)
-        ax.set_xticklabels(labels)
-        ax.tick_params(axis='both', which='major', width = 1.2, length = 10, color = 'k')
-        ax.tick_params(axis='y', which='minor', width = 1, length = 6, color = 'k')
-        ax.grid()
-        ax.set_xlim(tmin, tmax) 
-        ax.set_ylim(L_min, L_max)
-        ax.set_yscale('log')
-        if group == 'bandsMG':
-            if ax in [axratio_op, axratio_UV, axratio_Xray]:
-                ax.set_ylim(1, 20)
-
-        ax2 = ax.twiny()
-        ax2.set_xticks(days_ticks)
-        ax2.set_xlim(tmin*t_fb_days, tmax*t_fb_days)
-        ax2.set_xticklabels(days_labels)
-        ax2.set_xlabel(r't (days)', fontsize = 30)
-
-    # new_ticks = ax_op.get_yticks()
-    # mab_ticks = magnitude_ab(new_ticks/freqs)
-    # # days_labels = [str(np.round(days_ticks[k],2)) if new_ticks[k] in original_ticks else "" for k in range(len(days_ticks))]
-    # ax_mag = ax_UV.twinx()
-    # ax2.set_yticks(mab_ticks)
-    # ax2.set_xlim(magnitude_ab(L_min, L_max*t_fb_days)
-    # # ax2.set_xticklabels(days_labels)
-    # ax_mag.set_ylabel(r'm$_{\rm AB}$', fontsize = 30)
-    
-    if group == 'bands':
-        axL.legend(fontsize = 16)
-        ax_Xray.legend(fontsize = 15, loc = 'center left', bbox_to_anchor=(.225, 0.15))
+    original_ticks = axes[0].get_xticks()
+    format_time_axes(axes, original_ticks, ratio_axes)
+    fig.tight_layout()
+    fig.savefig(f'{abspath}/Figs/2.paperWind/LCs_{choice}_{group}.pdf', dpi=300, bbox_inches="tight")
+    if group == "bands":
         fig_x.tight_layout()
         fig_x.savefig(f'{abspath}/Figs/2.paperWind/LCsXray_{choice}_{group}.pdf', dpi=300)
-    fig_L.tight_layout()
-    fig_L.savefig(f'{abspath}/Figs/2.paperWind/LCs_{choice}_{group}.pdf', dpi=300, bbox_inches='tight')
+    if group == "bandsMG":
+        fig_ratio.tight_layout()
+        fig_ratio.savefig(f'{abspath}/Figs/2.paperWind/LCratios_{choice}_{group}.pdf', dpi=300)
 
 def TRfit_in_time(folder, check, choice):
-    # Load
     pre_saving = f'{abspath}/data/{folder}'
     freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt') 
-    #band in angstrom = 1e7 cm and are wavelenght so the minimum gives the maximum freq
-    idx_ztf_g = np.where(np.logical_and(freqs > prel.c_cgs/(prel.ztf_g_band[1]*1e-7), freqs <  prel.c_cgs/(prel.ztf_g_band[0]*1e-7)))[0]
-    idx_ztf_r = np.where(np.logical_and(freqs > prel.c_cgs/(prel.ztf_r_band[1]*1e-7), freqs <  prel.c_cgs/(prel.ztf_r_band[0]*1e-7)))[0]
-    idx_ztf_i = np.where(np.logical_and(freqs > prel.c_cgs/(prel.ztf_i_band[1]*1e-7), freqs <  prel.c_cgs/(prel.ztf_i_band[0]*1e-7)))[0]
-    idx_swift_u_band = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_u_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_u_band[0]*1e-7)))[0]
-    idx_swift_b_band = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_b_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_b_band[0]*1e-7)))[0]
-    idx_swift_v_band = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_v_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_v_band[0]*1e-7)))[0]
-    idx_opt = np.concatenate([idx_ztf_g, idx_ztf_r, idx_ztf_i, idx_swift_u_band, idx_swift_b_band, idx_swift_v_band])
+    fit_idx = blackbody_fit_indices(freqs)
+    snaps, tfb, _ = load_fld_data(folder, check)
+    _, cosine, sectors, labels, colours = observer_geometry(choice)
+    shape = (len(snaps), len(sectors))
+    lbol, radii, temperatures, fitted_luminosity = (np.zeros(shape) for _ in range(4))
 
-    idx_swift_uvw1 = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_uvw1_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_uvw1_band[0]*1e-7)))[0]
-    idx_swift_uvm2 = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_uvm2_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_uvm2_band[0]*1e-7)))[0]
-    idx_swift_uvw2 = np.where(np.logical_and(freqs > prel.c_cgs/(prel.swift_uvw2_band[1]*1e-7), freqs <  prel.c_cgs/(prel.swift_uvw2_band[0]*1e-7)))[0]
-    idx_UV = np.concatenate([idx_swift_uvw1, idx_swift_uvm2, idx_swift_uvw2])
-    idx_fit = np.concatenate([idx_UV, idx_opt])
-    # idx_fit = np.where(np.logical_and(freqs > 0, freqs <  1e40))[0]
+    for s, snap in enumerate(snaps):
+        spectra, luminosity_photo = load_spectrum(folder, check, snap)
+        spectra = angular_average(spectra, cosine)
+        for k, idx in enumerate(sectors):
+            luminosity = np.mean(spectra[idx], axis=0)
+            radii[s, k], temperatures[s, k] = fit_blackbody(freqs, luminosity, fit_idx)
+            bb = blackbody_lnu(freqs, radii[s, k], temperatures[s, k])
+            fitted_luminosity[s, k] = np.trapezoid(bb, freqs)
+            lbol[s, k] = np.mean(luminosity_photo[idx])
 
-    data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
-    snaps_fld, tfb, Lum_fld = data[:, 0], data[:, 1], data[:, 2]
-    snaps_fld, Lum_fld, tfb = sort_list([snaps_fld, Lum_fld, tfb], tfb, unique=True) 
-    snaps_fld = snaps_fld.astype(int)
-    tfb = np.array(tfb, dtype=float)
+    header = ",".join(["t_fb"] + [f"Tfit_sec {x}" for x in labels] + [f"Rfit_sec {x}" for x in labels])
+    np.savetxt(f'{abspath}/data/{folder}/wind/Tfit_intime_{choice}.txt', np.column_stack((tfb, temperatures, radii)), delimiter=",", header=header)
 
-   # observers
-    observers_xyz = hp.pix2vec(prel.NSIDE, np.arange(prel.NPIX)) #shape: (3, 192)
-    observers_xyz = np.array(observers_xyz)
-    longitude_moll = np.arctan2(observers_xyz[1], observers_xyz[0]) # from -pi to pi, 0 at x axis, positive towards y axis
-    theta_obs = np.arccos(observers_xyz[2]) # from 0 (+z axis) to pi (-z axis)
-    latitude_moll = np.pi/2 - theta_obs  # from np.pi/2 (z axis) to -np.pi/2 (-z axis)
-    cross_dot = np.matmul(observers_xyz.T,  observers_xyz)
-    cross_dot[cross_dot<0] = 0
-    # cross_dot /= 192
-    indices_sorted, label_obs, colors_obs, _, _ = choose_observers(observers_xyz, choice = choice)
-
-    fig_sp, (axT, axR, axL) = plt.subplots(1, 3, figsize=(28,8))
-    Lbolom_sec, Rfit_sec, Tfit_sec, Lumfit_sec = [], [], [], []
-    for s, snap in enumerate(snaps_fld):
-        L_col = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
-
-        photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
-        Lum_ph = photo['Lum']
-        for i in range(len(L_col)):
-            norm = Lum_ph[i] / np.trapezoid(L_col[i,:], freqs)
-            L_col[i,:] *= norm
-        
-        L_col = np.matmul(cross_dot, L_col)/cross_dot.sum(axis=1)[:, None]
-        Lbolom, Rfit, Tfit, Lumfit = np.zeros(len(indices_sorted)), np.zeros(len(indices_sorted)), np.zeros(len(indices_sorted)), np.zeros(len(indices_sorted))
-        for i_idx, idx in enumerate(indices_sorted):
-            # if i_idx == 3:
-            #     continue
-            if len(idx) == 1:
-                Lum = np.concatenate(L_col[idx])
-            else:
-                Lum = np.mean(L_col[idx], axis = 0)
-            fit = pmodel.fit(Lum[idx_fit], n = freqs[idx_fit],  params=paramsfit)
-            # fit = pmodel.fit(Lum, n = freqs,  params=paramsfit)
-            Rfit[i_idx] = fit.params['R'].value
-            Tfit[i_idx] = fit.params['T'].value
-            BBfit = np.array([lumfit(freq, Rfit[i_idx], Tfit[i_idx]) for freq in freqs])
-            Lumfit[i_idx] =  sci.trapezoid(BBfit, freqs)
-            Lbolom[i_idx] = np.mean(Lum_ph[idx])
-        Lbolom_sec.append(Lbolom)
-        Rfit_sec.append(Rfit)
-        Tfit_sec.append(Tfit)
-        Lumfit_sec.append(Lumfit)
-    Lbolom_sec = np.array(Lbolom_sec)
-    Rfit_sec = np.array(Rfit_sec)
-    Tfit_sec = np.array(Tfit_sec)
-    Lumfit_sec = np.array(Lumfit_sec)
-    header_cols = ['t_fb'] \
-            + [f'Tfit_sec {obs}' for obs in label_obs] \
-            + [f'Rfit_sec {obs}' for obs in label_obs]
-
-    header_str = ','.join(header_cols)  # or delimiter if not comma
-
-    np.savetxt(
-        f'{abspath}/data/{folder}/wind/Tfit_intime_{choice}.txt',
-        np.column_stack((tfb, Tfit_sec, Rfit_sec)),
-        delimiter=',',
-        header=header_str)
-    
-    for i_idx, idx in enumerate(indices_sorted):
-        if label_obs[i_idx] == 'South pole':
+    fig, (ax_t, ax_r, ax_l) = plt.subplots(1, 3, figsize=(28, 8))
+    for k, label in enumerate(labels):
+        if label in {"South pole", r"-$\hat{z}$"}:
             continue
-        Rfit = Rfit_sec[:, i_idx]
-        Tfit = Tfit_sec[:, i_idx]
-        Lumfit = Lumfit_sec[:, i_idx]
-        Lbolom = Lbolom_sec[:, i_idx]
-        axT.plot(tfb, Tfit, c = colors_obs[i_idx], label = f'{label_obs[i_idx]}')
-        axR.plot(tfb, Rfit, c = colors_obs[i_idx], label = f'{label_obs[i_idx]}')
-        axL.plot(tfb, Lumfit/Lbolom, c = colors_obs[i_idx], label = f'{label_obs[i_idx]}')
-    axR.set_ylabel(r'r$_{\rm BB}$ (cm)', fontsize = 30)
-    axT.set_ylabel(r'T$_{\rm BB}$ (K)', fontsize = 30)
-    axL.set_ylabel(r'L$_{\rm BB}/$L$_{\rm bol}$', fontsize = 30)
-    axT.set_ylim(4e3, 8e4)
-    axT.legend(fontsize=18)
-    axR.set_ylim(1e11, 1e14)
-    axL.set_ylim(1e-2, 1)
-    for ax in [axT, axR, axL]:
-        ax.set_xlabel(r't / t$_{\rm fb}$', fontsize = 30)
-        ax.set_yscale('log')
-        ax.tick_params(axis='both', which='major', width = 1.2, length = 9, color = 'k')
-        ax.tick_params(axis='y', which='minor', width = 1, length = 5, color = 'k')
+        ax_t.plot(tfb, temperatures[:, k], color=colours[k], label=label)
+        ax_r.plot(tfb, radii[:, k], color=colours[k])
+        ax_l.plot(tfb, fitted_luminosity[:, k] / lbol[:, k], color=colours[k])
+    ax_t.set_ylabel(r"$T_{\rm BB}$ (K)", fontsize=30)
+    ax_r.set_ylabel(r"$R_{\rm BB}$ (cm)", fontsize=30)
+    ax_l.set_ylabel(r"$L_{\rm BB}/L_{\rm bol}$", fontsize=30)
+    ax_t.set_ylim(4e3, 8e4)
+    ax_r.set_ylim(1e11, 1e14)
+    ax_l.set_ylim(1e-2, 1)
+    ax_t.legend(fontsize=18)
+    for ax in (ax_t, ax_r, ax_l):
+        ax.set_xlabel(r"$t/t_{\rm fb}$", fontsize=30)
+        ax.set_yscale("log")
         ax.grid()
-
-    plt.tight_layout()
+    fig.tight_layout()
     plt.savefig(f'{abspath}/Figs/{folder}/Wind/Tfit_intime_{choice}.png', dpi=300)
 
     
 if __name__ == '__main__':
     # plot_spectra(folder, check, snaps_spectra, x_axis, choice)
     # TRfit_in_time(folder, check, choice)
-    # plot_light_curves(folder, check, choice, group = 'bands')
+    plot_light_curves(folder, check, choice, group = 'bands')
     # plot_light_curves(folder, check, choice, group = 'sections')
-    plot_light_curves(folder, check, choice, group = 'bandsMG')
+    # plot_light_curves(folder, check, choice, group = 'bandsMG')
+    # distance_telescope(folder, check, choice)
 
     def lumtest(n, T):
         const = 2*prel.h_cgs/prel.c_cgs**2 

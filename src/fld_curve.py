@@ -32,7 +32,7 @@ from scipy.ndimage import uniform_filter1d
 import Utilities.prelude as prel
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
-from Utilities.operators import make_tree
+from Utilities.operators import make_tree, sort_list
 
 def fld_lightcurve(params, compton, check, N_ray):
     m, Rstar, mstar, beta, n, compton = params
@@ -323,6 +323,15 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
     print('L :', Lphoto_snap, flush=True)
 
     return Lphoto_snap, photosphere, colorsphere, freqs, L_col
+
+
+def load_fld_data(folder, check):
+    data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter = ",")
+    snaps, tfb, luminosity = data[:, 0], data[:, 1], data[:, 2]
+    snaps, luminosity, tfb = sort_list([snaps, luminosity, tfb], tfb, unique=True)
+    return (np.asarray(snaps, dtype=int),
+        np.asarray(tfb, dtype=float),
+        np.asarray(luminosity, dtype=float))
 
 if __name__ == "__main__":
     m = 4

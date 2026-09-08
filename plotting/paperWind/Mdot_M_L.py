@@ -51,7 +51,7 @@ which_r_title = '05amin'
 if which_plot == 'MdotM':
     figM, (axM, axzeta, axMass) = plt.subplots(1, 3, figsize = (24, 7))  
     figr, axr  = plt.subplots(1,1, figsize = (9,7))
-    axzeta.set_ylim(1e-3, 2)
+    axzeta.set_ylim(1e-3, 0.7)
     axMass.set_ylim(1e-5, 1.5)
     axzeta.set_ylabel(r'$\zeta = |\dot{M}_{\rm w}/\dot{M}_{\rm fb}|$')
     axes = [axM, axzeta, axr, axMass]
@@ -194,7 +194,7 @@ if which_plot == 'MdotM':
     labels_color = []
     line_styles_parts = ['-', '--']
     labels_parts = [r'$\dot{M}_{\rm w}$', r'$\dot{M}_{\rm out}$']
-    axMass.plot(tfbMass, mass_fb/(0.5*mstar), c = 'gray', ls = ':', linewidth = 2)
+    axMass.plot(tfbfb, mass_fb/(0.5*mstar), c = 'gray', ls = ':', linewidth = 2)
     axMass.text(1.91, 0.17, r'$\int\,\dot{M}_{\rm fb} {\rm d}t$', fontsize = 16, color = 'gray', rotation = 5)
     # axMass.legend(fontsize = 20, loc = 'upper left')
     for i in range(len(label_obs)):

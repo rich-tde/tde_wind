@@ -106,9 +106,9 @@ ylim_min, ylim_max = -70, 70
 color_min, color_max = -1e2, 1e2
 scale_v = 2
 for i, snap in enumerate(snaps):
-    # print(snap)
-    x_ph, y_ph, z_ph, vol_ph, den_ph, Temp_ph, Rad_den_ph, Vx_ph, Vy_ph, Vz_ph, Press_ph, IE_den_ph, _, _, _, _ = \
-        np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.txt')
+    photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
+    x_ph, y_ph, z_ph, vol_ph, den_ph, Temp_ph, Rad_den_ph, Vx_ph, Vy_ph, Vz_ph, Press_ph, IE_den_ph = \
+        photo["x"], photo["y"], photo["z"], photo["vol"], photo["den"], photo["temp"], photo["radden"], photo["vx"], photo["vy"], photo["vz"], photo["P"], photo["ieden"]
     r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
     vel_ph = np.sqrt(Vx_ph**2 + Vy_ph**2 + Vz_ph**2)
     mass_ph = den_ph * vol_ph

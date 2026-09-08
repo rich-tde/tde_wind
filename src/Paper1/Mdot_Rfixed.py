@@ -67,10 +67,10 @@ if compute: # compute dM/dt = dM/dE * dE/dt
 
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
     tfb_cgs = tfb * tfallback_cgs #converted to seconds
-    bins = np.loadtxt(f'{abspath}/data/{folder}/paper1/wind/dMdE_{check}_bins.txt')
+    bins = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/dMdE_{check}_bins.txt')
     max_bin_negative = np.abs(np.min(bins))
     mid_points = (bins[:-1]+bins[1:]) * norm_dMdE/2  # get rid of the normalization
-    dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/paper1/wind/dMdE_{check}.txt')[0] # distribution just after the disruption
+    dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/dMdE_{check}.txt')[0] # distribution just after the disruption
     bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
    
     for i, snap in enumerate(snaps):
@@ -95,7 +95,7 @@ if compute: # compute dM/dt = dM/dE * dE/dt
 
         # Compute \dot{M}_w
         # Load data and pick the ones unbound and with positive velocity
-        data = make_tree(path, snap, energy = True)
+        data = make_tree(path, snap)
         X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
             data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Press, data.VX, data.VY, data.VZ, data.IE, data.Rad
         cut = Den > 1e-19
@@ -151,14 +151,14 @@ if compute: # compute dM/dt = dM/dE * dE/dt
 
 if plot:
     # from scipy.integrate import cumulative_trapezoid
-    from plotting.paper.IHopeIsTheLast import ratio_BigOverSmall
+    from plotting.paperEdd.IHopeIsTheLast import ratio_BigOverSmall
     from Utilities.operators import sort_list
     import matplotlib.colors as mcolors
     which_r_title = '05amin'
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     checks = ['LowResNewAMR', 'NewAMR', 'HiResNewAMR']
     checks_label = ['Low', 'Middle', 'High']    
-    in_yr = True
+    in_yr = False
     if in_yr:
         norm = convers_yr
     else:
@@ -195,13 +195,13 @@ if plot:
     LumsH, tfbsH_lum = sort_list([LumsH, tfbsH_lum], tfbsH_lum, unique=True)
     tfbH_max = tfbsH_lum[np.argmax(LumsH)]
     _, tfbH, mfallH, mwind_dimCellH, mwind_RH, mwind_R_nonzeroH, _, _, tot_IE_H, tot_Rad_H = \
-            np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/paper1/wind/Mdot_HiResNewAMR{which_r_title}{statist}.csv', 
+            np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/1.paperEdd/wind/Mdot_HiResNewAMR{which_r_title}{statist}.csv', 
                     delimiter = ',', 
                     skiprows=1, 
                     unpack=True) 
     MdotHmax = mwind_dimCellH[np.argmin(np.abs(tfbH - tfbH_max))]
     tfb_ratioH, ratioH, rel_errH  = ratio_BigOverSmall(tfbM, mwind_RM, tfbH, mwind_RH)
-    data_E = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/paper1/convE_{check}.csv', delimiter=',', dtype=float, skiprows=1)    
+    data_E = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/1.paperEdd/convE_{check}.csv', delimiter=',', dtype=float, skiprows=1)    
     # tfb_E, IE, Rad = data_E[:, 1], data_E[:, 2], data_E[:, 5]
     ratio_RadIE = tot_Rad_H/tot_IE_H #Rad/IE
     # not the best way to do it, but Mdot starts later than energies
@@ -262,8 +262,8 @@ if plot:
     fig.tight_layout()
     figCon.tight_layout()
     if not in_yr:
-        fig.savefig(f'{abspath}/Figs/paper/Mw.pdf', bbox_inches = 'tight')
-        figCon.savefig(f'{abspath}/Figs/paper/Mw_conv.pdf', bbox_inches = 'tight')
+        fig.savefig(f'{abspath}/Figs/1.paperEdd/Mw.pdf', bbox_inches = 'tight')
+        figCon.savefig(f'{abspath}/Figs/1.paperEdd/Mw_conv.pdf', bbox_inches = 'tight')
 
     fig, ax = plt.subplots(1,1, figsize = (8,6))
     ax.plot(tfbH, np.abs(mwind_dimCellH/mfallH), c = 'k')
@@ -288,7 +288,7 @@ if plot:
 # %%
 print('naive L from dotM_fb: ', 0.1 * np.max(np.abs(mfallH)) * prel.Msol_cgs/prel.tsol_cgs * prel.c_cgs**2)
 # %% compute constant wind
-dataDiss = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/paper1/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
+dataDiss = np.loadtxt(f'{abspath}/data/{folder}HiResNewAMR/1.paperEdd/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
 timeRDiss, RDiss = dataDiss[:,1], dataDiss[:,2] 
 print('predicted Ltr at tfbH_max tfb (in Ledd) from Eq.15: ', (Rg*mwind_dimCellH[np.argmax(LumsH)]/(Rp*Medd_sol))**(1/3))
 print('Rdiss at max lum', RDiss[np.argmax(LumsH)]/Rp, ' Rp')

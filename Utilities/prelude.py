@@ -68,12 +68,29 @@ f_min = Kb_cgs * 1e3 / h_cgs
 f_max = Kb_cgs * 3e13 / h_cgs
 f_num = 1_000
 freqs = np.logspace(np.log10(f_min), np.log10(f_max), f_num)
-# bands
-## ZTF 
-ztf_g_band = (4100, 5500)
-ztf_r_band = (5600, 7100)
-ztf_i_band = (7000, 8400)
-## Swift
+# telescope mag
+mr_lim_ZTF = 20.5
+mg_lim_ZTF = 20.8
+mr_lim_Rubin = 24.7
+mg_lim_Rubin = 24.8
+m_lim_ULTRASAT = 22.4
+# bands in Angstroms
+## ZTF (Fig.2 https://svo2.cab.inta-csic.es/theory/fps/index.php?mode=browse&gname=Palomar&gname2=ZTF&asttype=)
+ztf_g_band = (3676, 5613.82)
+lamZTF_g_mean = 4829.50
+ztf_r_band = (5497.60, 7394.40)
+lamZTF_r_mean = 6463.75
+ztf_i_band = (6870.97, 8964.61)
+lamZTF_i_mean = 7903.55
+## ULTRASAT in Angstroms
+lam_ULTR_min, lam_ULTR_max = 2300, 2900 
+lam_ULTR_mean = (lam_ULTR_min + lam_ULTR_max)/2
+## Rubin in Angstroms: tab 2.1 https://www.lsst.org/sites/default/files/docs/sciencebook/SB_2.pdf?utm_source=chatgpt.com 
+Rubin_g_band = (4000, 5520)
+lamLSST_g_mean = (4000 + 5520)/2
+Rubin_r_band = (5520, 6910)
+lamLSST_r_mean = (5520 + 6910)/2
+## Swift in Angstroms
 swift_uvw2_center, swift_uvw2_fwhm = 1928, 657 
 swift_uvm2_center, swift_uvm2_fwhm = 2246, 498
 swift_uvw1_center, swift_uvw1_fwhm = 2600, 693

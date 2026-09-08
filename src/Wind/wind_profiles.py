@@ -13,7 +13,7 @@ else:
     abspath = '/Users/paolamartire/shocks'
     import sys
     sys.path.append(abspath)
-    compute = True
+    compute = False
 
 import numpy as np
 import matplotlib.pyplot as plt 
@@ -317,8 +317,8 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
 #   
 ## MAIN
 #
-which_part = 'outflow' # 'outflow' or 'all' or 'wind' to have the wind
-what_varies = 'theta' # 'r' or 'theta', only for radial profiles
+which_part = 'wind' # 'outflow' or 'all' or 'wind' to have the wind
+what_varies = 'r' # 'r' or 'theta', only for radial profiles
 which_obs = 'split_stream' # 'left_right_z', 'all' or 'in_out_z'
 isot = 'isot' 
 if what_varies == 'r':
@@ -559,7 +559,7 @@ else:
 
                 Lion = L_ionization(M_wind[i, np.argmin(np.abs(tfbM-tfb))], Rt, rtr_nonzero_medians[i], 50) #cgs
                 Lion *= prel.tsol_cgs/prel.en_converter
-                print(f'Ladv/Lion for {lab_plot} is {L_adv[idx_rtr]/Lion}')
+                # print(f'Ladv/Lion for {lab_plot} is {L_adv[idx_rtr]/Lion}')
 
                 if np.logical_and(which_part == 'wind', s == 0): 
                     handles_color.append(line)

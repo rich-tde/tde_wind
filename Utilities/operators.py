@@ -121,6 +121,21 @@ def to_spherical_coordinate(x, y, z, r_frame = 'math'):
             long = -long # in [-pi, pi] clockwise with direction of positive x at 0 and y at -pi/2. 
     return r, lat, long
 
+def from_spherical_coordinate(r, theta, phi):
+    """
+    Unit vector for latitude theta and azimuth phi.
+
+    theta = 0       north pole
+    theta = pi/2    orbital plane
+    phi = 0         pericentre side (+x)
+    phi = pi        stream side (-x)
+    """
+    x = np.array([
+        np.sin(theta) * np.cos(phi),
+        np.sin(theta) * np.sin(phi),
+        np.cos(theta)])
+    return r * x
+
 def to_spherical_components(vec_x, vec_y, vec_z, x, y, z):
     """ Transform the components of a vector from cartesian to spherical coordinates."""
     _, lat, long = to_spherical_coordinate(x, y, z, r_frame = 'math')
@@ -291,7 +306,7 @@ def choose_sections(X, Y, Z, choice):
 
     return sec
     
-def choose_observers(observers_xyz, choice):
+def choose_observers(observers_xyz, choice, find_centre = False):
     """ Choose observers based on the choice string.  
     Parameters
     ----------
@@ -435,6 +450,10 @@ def choose_observers(observers_xyz, choice):
         colors_obs = ['xkcd:apple green',  '#073b4c', 'xkcd:sky blue', '#ffd166', 'xkcd:bubble gum pink']
         lines_obs = ['solid', 'dashed', 'solid', 'dashed', 'solid', 'dashed']
 
+    if choice == 'split_stream':
+        central_indices = central_observers(observers_xyz, indices_sorted, label_obs)
+    else:
+        central_indices = None
 
     if plot:
         import matplotlib.pyplot as plt
@@ -443,6 +462,9 @@ def choose_observers(observers_xyz, choice):
             # print(idx_list)
             ax1_obs.scatter(x_obs[idx_list], y_obs[idx_list], s = 20, c = colors_obs[j], label = label_obs[j])
             ax2_obs.scatter(x_obs[idx_list], z_obs[idx_list], s = 20, c = colors_obs[j], label = label_obs[j])
+            if choice == 'split_stream':
+                ax1_obs.scatter(x_obs[central_indices[j]], y_obs[central_indices[j]], s = 25, c = colors_obs[j], edgecolors = 'k')
+                ax2_obs.scatter(x_obs[central_indices[j]], z_obs[central_indices[j]], s = 25, c = colors_obs[j], edgecolors = 'k')
         for ax in [ax1_obs, ax2_obs]:
             ax.set_xlabel(r'$X$')
             ax.set_xlim(-1.5, 1.5)
@@ -460,7 +482,80 @@ def choose_observers(observers_xyz, choice):
         plt.tight_layout()
         # plt.show()
 
-    return indices_sorted, label_obs, colors_obs, lines_obs, markers_obs
+    return indices_sorted, label_obs, colors_obs, lines_obs, markers_obs, central_indices
+
+def central_latitude(theta_min, theta_max):
+    """Equal-area central latitude of a spherical interval."""
+    return np.arcsin( 0.5 * ( np.sin(theta_min) + np.sin(theta_max)))
+
+def split_stream_centres():
+    """Representative directions, choosing the northern component."""
+
+    theta_middle = central_latitude(
+        5 * np.pi / 18,
+        4 * np.pi / 9,     # 10°–40°
+    )
+
+    theta_high = central_latitude(
+        np.pi / 9,
+        5 * np.pi / 18,    # 40°–70°
+    )
+
+    return {
+        "Eccentric flow side": from_spherical_coordinate(
+            1,
+            np.pi/2,
+            np.pi,
+        ),
+        "Middle stream side": from_spherical_coordinate(
+            1,
+            theta_middle,
+            np.pi,
+        ),
+        "High stream side": from_spherical_coordinate(
+            1,
+            theta_high,
+            np.pi,
+        ),
+        "Pericentre side": from_spherical_coordinate(
+            1,
+            np.pi / 2,
+            0,
+        ),
+        "North pole": from_spherical_coordinate(
+            1,
+            0,
+            0,
+        ),
+        "South pole": from_spherical_coordinate(
+            1,
+            np.pi,
+            0,
+        ),
+    }
+
+def central_observers(observers_xyz, indices_sorted, labels):
+    """
+    Return the HEALPix observer closest to the northern centre
+    of each sector.
+    """
+    centres = split_stream_centres()
+    central_indices = []
+
+    for sector_indices, label in zip(indices_sorted, labels):
+        target = centres[label]
+
+        # Shape: (number of observers in sector, 3)
+        sector_vectors = observers_xyz[:, sector_indices].T
+
+        # Largest dot product = smallest angular separation.
+        local_index = np.argmax(sector_vectors @ target)
+
+        central_indices.append(
+            sector_indices[local_index]
+        )
+
+    return np.asarray(central_indices)
 
 def sort_list(list_passive, leading_list, unique = False):
     """Sort list_passive based on the order of leading_list. 
