@@ -58,9 +58,9 @@ def hydrogenic_levels_above_ground(n, chi_eV):
     E = chi * (1.0 - 1.0 / n**2)
     return g, E
 
-# for n in [1, 2, 3]:
+# for n in [1, 2, 3, 4]:
 #     g, E = hydrogenic_levels_above_ground(n, 13.6)
-#     print(n, g, E / prel.ev_to_erg)
+#     print(n, g, E)
 
 def hydrogenic_partition_function(T, chi_eV, n_max=30):
     ''' Compute Z = sum_{n=1}^{n_max} g_n * exp(-E_n / (k_B * T)) from Bradt: https://www.cambridge.org/us/files/5413/6681/8627/7706_Saha_equation.pdf
@@ -277,7 +277,7 @@ snaps, Lum, tfb = op.sort_list([snaps, Lum, tfb], tfb, unique=True)
 snaps = snaps.astype(int)
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
 observers_xyz = np.array(observers_xyz)
-indices_obs, label_obs, color_obs, _, _= op.choose_observers(observers_xyz, choice)
+indices_obs, label_obs, color_obs, _, _, _= op.choose_observers(observers_xyz, choice)
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 Rt = things['Rt']

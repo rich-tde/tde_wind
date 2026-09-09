@@ -53,7 +53,7 @@ y_test23 = op.draw_line(x_test, [2e2, -2/3], 'powerlaw')
 # arrange for plotting
 observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
 x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
-indices_obs, label_obs, colors_obs, _, _ = op.choose_observers(observers_xyz, which_obs)
+indices_obs, label_obs, colors_obs, _, _, _ = op.choose_observers(observers_xyz, which_obs)
 
 r_chosen_theta = apo 
 r_chosen_name_theta = 'apo' 
@@ -246,13 +246,13 @@ for l, line in enumerate(line_styles_parts):
                     label=labels_parts[l])
     )
 
+all_axes[0][1].text(0.1, 1e-6, f' r = {r_label}', fontsize = 35)
 all_axes[0][0].legend(handles=proxy_lines, fontsize=20, 
                 loc='lower left')
-
 all_axes[0][0].set_ylabel(r'$\rho$ (g/cm$^3$)', fontsize = 35)
 all_axes[1][0].set_ylabel(r'v$_{\rm r}$ (km/s)', fontsize = 35)
-all_axes[2][0].set_ylabel(r'$\dot{M}_{\rm w} (\dot{M}_{\rm Edd})$', fontsize = 35) 
-all_axes[3][0].set_ylabel(r'$L_{\rm adv} (L_{\rm Edd})$', fontsize = 35)
+all_axes[2][0].set_ylabel(r'$\dot{M}_{\rm w, iso} (\dot{M}_{\rm Edd})$', fontsize = 35) 
+all_axes[3][0].set_ylabel(r'$L_{\rm adv, iso} (L_{\rm Edd})$', fontsize = 35)
 # fig.suptitle(f't = {np.round(tfb,2)} ' + r'$t_{\rm fb}$', fontsize = 28, y = 1, x = 0.53)
 fig.tight_layout(w_pad=15.0)  
 fig.savefig(f'{abspath}/Figs/{folder}/Wind/r_theta{r_chosen_name_theta}{isot}prof_{which_obs}_{snap}.png', bbox_inches = 'tight')

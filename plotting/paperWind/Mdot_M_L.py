@@ -35,7 +35,7 @@ commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 folder = f'{commonfolder}{check}'
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
 observers_xyz = np.array(observers_xyz)
-indices_obs, label_obs, color_obs, lines_obs, _ = choose_observers(observers_xyz, choice)
+indices_obs, label_obs, color_obs, lines_obs, _, _ = choose_observers(observers_xyz, choice)
 Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
@@ -56,8 +56,8 @@ if which_plot == 'MdotM':
     axzeta.set_ylabel(r'$\zeta = |\dot{M}_{\rm w}/\dot{M}_{\rm fb}|$')
     axes = [axM, axzeta, axr, axMass]
     axr.set_ylabel(r'$r (r_{\rm t})$')
-    axMass.set_ylabel(r'M$_{\rm w}/(m_\star$/2)')
-    axM.set_ylabel(r'$\dot{M} (r=0.5a_{\rm mb}) /\dot{M}_{\rm Edd}$')  
+    axMass.set_ylabel(r'M$/(m_\star$/2)')
+    axM.set_ylabel(r'$\dot{M}_{\rm iso} (r=0.5a_{\rm mb}) /\dot{M}_{\rm Edd}$')  
     axr.set_ylim(1, 1.2e2)
 else: 
     figM, (axM, axL) = plt.subplots(1, 2, figsize = (16, 7))  
@@ -67,7 +67,7 @@ else:
     axrM.set_ylim(1, 1e2)
     axrL.set_ylim(1, 1e2)
     axL.set_ylabel(r'$L_{\rm FLD}$ (erg/s)')  
-    axM.set_ylabel(r'$\dot{M}_{\rm w} (\dot{M}_{\rm Edd})$')  
+    axM.set_ylabel(r'$\dot{M}_{\rm w,iso} (\dot{M}_{\rm Edd})$')  
 axM.set_ylim(1e2, 8e7)
 
 if which_plot == 'MdotM':
@@ -192,19 +192,19 @@ if which_plot == 'MdotM':
     Mass_out_int = Mass_boundOut_int + Mass_wind_int 
     handles_color = []
     labels_color = []
-    line_styles_parts = ['-', '--']
-    labels_parts = [r'$\dot{M}_{\rm w}$', r'$\dot{M}_{\rm out}$']
+    line_styles_parts = ['--', '-']
+    labels_parts = [r'$\dot{M}_{\rm out, iso}$', r'$\dot{M}_{\rm w, iso}$']
     axMass.plot(tfbfb, mass_fb/(0.5*mstar), c = 'gray', ls = ':', linewidth = 2)
     axMass.text(1.91, 0.17, r'$\int\,\dot{M}_{\rm fb} {\rm d}t$', fontsize = 16, color = 'gray', rotation = 5)
     # axMass.legend(fontsize = 20, loc = 'upper left')
     for i in range(len(label_obs)):
         if label_obs[i] == 'South pole':
             continue
-        axM.plot(tfbO[4:], MdotO_isot[i][4:]/Medd_sol, c = color_obs[i], ls = line_styles_parts[1])
+        axM.plot(tfbO[4:], MdotO_isot[i][4:]/Medd_sol, c = color_obs[i], ls = line_styles_parts[0])
         # axMass.plot(tfbO,  Mass_out_int[i]/(0.5*mstar), c = color_obs[i], label = label_obs[i], ls = ':')
         axMass.plot(tfbMass,  M_out_corr[i]/(0.5*mstar), c = color_obs[i], label = label_obs[i], ls = '--')
         if label_obs[i] != 'Eccentric flow side':
-            axM.plot(tfb, Mdotw_isot[i]/Medd_sol,  label = label_obs[i], c = color_obs[i], ls = line_styles_parts[0])
+            axM.plot(tfb, Mdotw_isot[i]/Medd_sol,  label = label_obs[i], c = color_obs[i], ls = line_styles_parts[1])
             # axMass.plot(tfbMass,  Mass_wind_int[i]/(0.5*mstar), c = color_obs[i], label = label_obs[i], ls = ':') 
             axMass.plot(tfbMass,  M_wind_corr[i]/(0.5*mstar), c = color_obs[i])
             axzeta.plot(tfb[7:], corr[i][7:] * Mdotw[i][7:]/np.abs(mfb[7:]),  label = label_obs[i], c = color_obs[i])
@@ -312,7 +312,7 @@ if which_plot == 'MdotL_conv':
         print(label_obs[i], 'Lum ratio after 1.5: ', np.median(ratio[time_ratio > 1.5]))
 
     axL.set_xlim(0, np.max(tfb))    # you need it for get.ticks
-    axrM.set_ylabel(r'$\dot{M}_{\rm HiRes}/\dot{M}_{\rm MidRes}$')
+    axrM.set_ylabel(r'$\dot{M}_{\rm iso, HiRes}/\dot{M}_{\rm iso, MidRes}$')
     axrL.set_ylabel(r'$L_{\rm HiRes}/L_{\rm MidRes}$')
     # axr.set_ylim(1, 11)
 

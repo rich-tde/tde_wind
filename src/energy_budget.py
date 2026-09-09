@@ -230,7 +230,7 @@ if plot:
         # define regions
         observers_xyz = hp.pix2vec(prel.NSIDE, np.arange(prel.NPIX)) #shape: (3, 192)
         observers_xyz = np.array(observers_xyz)
-        indices_sorted, label_obs, colors_obs, _, _ = choose_observers(observers_xyz, choice = choice)
+        indices_sorted, label_obs, colors_obs, _, _, _ = choose_observers(observers_xyz, choice = choice)
         
         data = np.load(f'{abspath}/data/{folder}/wind/energies{what_to_keep}_{choice}.npy', allow_pickle=True).item()
         

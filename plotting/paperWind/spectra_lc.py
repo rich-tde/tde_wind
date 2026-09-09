@@ -348,7 +348,7 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll=False):
         top.set_xscale("log")
         top.set_xlabel(r"$\lambda\;(\AA)$", fontsize=30)
 
-    axes[0].set_ylabel(r"$\nu L_\nu$ (erg s$^{-1}$)", fontsize=30)
+    axes[0].set_ylabel(r"$\nu L_\nu$ (erg/s)", fontsize=30)
     fig.legend(colour_handles, colour_labels, loc="lower center", bbox_to_anchor=(0.525, -0.09), ncol=len(colour_labels), fontsize=20)
     fig.tight_layout()
     fig.savefig(f'{abspath}/Figs/2.paperWind/spectra_{choice}.pdf', dpi=300, bbox_inches='tight')
@@ -357,7 +357,7 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll=False):
         for band, (moll_fig, gs, image) in moll_figs.items():
             cax = moll_fig.add_subplot(gs[1, :])
             cb = moll_fig.colorbar(image, cax=cax, orientation="horizontal")
-            cb.set_label(r"$L_{\rm band}$ (erg s$^{-1}$)")
+            cb.set_label(r"$L_{\rm band}$ (erg/s)")
             moll_fig.suptitle("Optical" if band == "optical" else "X-ray", fontsize=24)
             moll_fig.savefig(f'{abspath}/Figs/2.paperWind/moll_{band}_{choice}.pdf', dpi=300, bbox_inches="tight")
 
@@ -493,8 +493,8 @@ def plot_light_curves(folder, check, choice, group="bands"):
         for ax in (ax_bol, ax_opt, ax_uv):
             ax.plot(tfb, luminosity_fld, "k--", label="All")
             ax.scatter(tfb[idx_maxL], luminosity_fld[idx_maxL], c = 'k', s = 250, marker = '*')
-        ax_bol.set_ylabel(r"$L$ (erg s$^{-1}$)", fontsize=30)
-        ax_x.set_ylabel(r"$\nu L_\nu$ (erg s$^{-1}$)", fontsize=30)
+        ax_bol.set_ylabel(r"$L$ (erg/s)", fontsize=30)
+        ax_x.set_ylabel(r"$\nu L_\nu$ (erg/s)", fontsize=30)
         ax_bol.legend(fontsize=15)
         ax_x.legend(fontsize=15)
         ratio_axes = ()
@@ -514,13 +514,13 @@ def plot_light_curves(folder, check, choice, group="bands"):
                 time_ratio, ratio, _ = ratio_BigOverSmall(tfb, curves[band][k], time_mg, mg[band][k])
                 ax.plot(time_ratio, ratio, color=colours[k])
                 if band != "Xray":
-                    print('Median ratio for ', labels[k], 'in', band, 'band =', np.median(ratio[np.argmin(np.abs(time_ratio-1.5)):]))
+                    print('Median ratio for ', labels[k], 'in', band, 'band =', np.median(ratio[np.argmin(np.abs(time_ratio-1)):]))
         ratio_opt.set_ylabel("This work / Giron+26", fontsize=25)
         ratio_axes = (ratio_opt, ratio_uv, ratio_x)
-        ax_opt.text(1.76, L_max/3, r'Optical', fontsize = 26)
-        ax_uv.text(0.05, L_max/3, r'UV', fontsize = 26)
-        ax_x.text(0.05, L_max/3, 'X-ray', fontsize = 26)
-        ax_opt.set_ylabel(r"$\nu L_\nu$ (erg s$^{-1}$)", fontsize=30)
+        ax_opt.text(1.76, L_max/5, r'Optical', fontsize = 26)
+        ax_uv.text(1.8, L_max/5, r'UV', fontsize = 26)
+        ax_x.text(1.76, L_max/5, 'X-ray', fontsize = 26)
+        ax_opt.set_ylabel(r"$\nu L_\nu$ (erg/s)", fontsize=30)
 
         legend1 = ax_opt.legend(
                     handles=handles_color,
@@ -589,9 +589,9 @@ def TRfit_in_time(folder, check, choice):
 if __name__ == '__main__':
     # plot_spectra(folder, check, snaps_spectra, x_axis, choice)
     # TRfit_in_time(folder, check, choice)
-    plot_light_curves(folder, check, choice, group = 'bands')
+    # plot_light_curves(folder, check, choice, group = 'bands')
     # plot_light_curves(folder, check, choice, group = 'sections')
-    # plot_light_curves(folder, check, choice, group = 'bandsMG')
+    plot_light_curves(folder, check, choice, group = 'bandsMG')
     # distance_telescope(folder, check, choice)
 
     def lumtest(n, T):

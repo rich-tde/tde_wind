@@ -120,7 +120,7 @@ if plot:
     from src.Wind.Mdot_Rfixed_sec import choose_observers
     observers_xyz = hp.pix2vec(prel.NSIDE, np.arange(prel.NPIX)) #shape: (3, 192)
     observers_xyz = np.array(observers_xyz)
-    indices_sorted, label_obs, colors_obs, _, _ = choose_observers(observers_xyz, choice = choice)
+    indices_sorted, label_obs, colors_obs, _, _, _ = choose_observers(observers_xyz, choice = choice)
 
     csv_path = f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv'
     data = np.loadtxt(csv_path, delimiter=',', skiprows=1, unpack=True)
