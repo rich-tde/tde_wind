@@ -55,11 +55,16 @@ t_fall_cgs = t_fall * 24 * 3600
 if compute:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
     if what_paper == 'paper2':
-        energies = {} 
+        out_path = f'{abspath}/data/{folder}/wind/energies_{choice}.npy'
+
+        if os.path.exists(out_path):
+            energies = np.load(out_path, allow_pickle=True).item()
+        else:
+            energies = {}
 
     for i,snap in enumerate(snaps):
-        # if snap not in [76, 109]:
-        #     continue
+        if snap != 151:
+            continue
         print(snap, flush = True)
 
         path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -102,7 +107,14 @@ if compute:
                 writer.writerow(data_E)
             file.close()
 
-        if what_paper == 'paper2': 
+        if what_paper == 'paper2':
+            key = f"{int(snap)}"
+
+            # Skip snapshots that were already completed
+            if key in energies:
+                print(f'Snapshot {snap} already saved, skipping', flush=True)
+                continue
+        
             cut_wind, bern_spec, _ = orb.pick_wind(X, Y, Z, VX, VY, VZ, den, mass, Press, ie_den, Rad_den, params, cond = 'bern')
             dyn_unb = np.logical_and(np.abs(Z)<vol**(1/3), X < -apo)
             if what_to_keep == '_keepDynUnb':
@@ -125,9 +137,9 @@ if compute:
             sections = choose_sections(X, Y, Z, choice)
             label_obs = []
             cond_sec = []
-            for key in sections.keys():
-                label_obs.append(sections[key]['label'])
-                cond_sec.append(sections[key]['cond'])
+            for key_sec in sections._secs():
+                label_obs.append(sections[key_sec]['label'])
+                cond_sec.append(sections[key_sec]['cond'])
 
             Ekin_sec = np.zeros(len(sections))
             OE_sec = np.zeros(len(sections))
@@ -152,13 +164,12 @@ if compute:
                       'bern_sec': bern_sec,
                       'label_obs': label_obs}
             
-            key = f"{int(snap)}"
             energies[key] = E_snap
 
-        del X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den, Ekin
-        gc.collect()   
-    out_path = f'{abspath}/data/{folder}/wind/energies_{choice}.npy'
-    np.save(out_path, energies, allow_pickle=True) 
+            np.save(out_path, energies, allow_pickle=True) 
+
+            del X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, Rad_den, Ekin
+            gc.collect()   
 
 if plot:
     import matplotlib.pyplot as plt

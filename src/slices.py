@@ -334,4 +334,4 @@ else:
         cb.ax.tick_params(which='minor', length=6, width=1.2)
 
         if what == '':
-            plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlices{what}{how}.png', bbox_inches='tight', pad_inches=0.05)
+            plt.savefig(f'{abspath}/Figs/2.paperWind/WindSlices{what}{how}.png', bbox_inches='tight', pad_inches=0.05, dpi=150)

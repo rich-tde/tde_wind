@@ -537,7 +537,7 @@ def plot_light_curves(folder, check, choice, group="bands"):
     fig.savefig(f'{abspath}/Figs/2.paperWind/LCs_{choice}_{group}.pdf', dpi=300, bbox_inches="tight")
     if group == "bands":
         fig_x.tight_layout()
-        fig_x.savefig(f'{abspath}/Figs/2.paperWind/LCsXray_{choice}_{group}.pdf', dpi=300)
+        fig_x.savefig(f'{abspath}/Figs/2.paperWind/LCsXray_{choice}_{group}.pdf', dpi=200)
     if group == "bandsMG":
         fig_ratio.tight_layout()
         fig_ratio.savefig(f'{abspath}/Figs/2.paperWind/LCratios_{choice}_{group}.pdf', dpi=300)
@@ -589,9 +589,9 @@ def TRfit_in_time(folder, check, choice):
 if __name__ == '__main__':
     # plot_spectra(folder, check, snaps_spectra, x_axis, choice)
     # TRfit_in_time(folder, check, choice)
-    # plot_light_curves(folder, check, choice, group = 'bands')
+    plot_light_curves(folder, check, choice, group = 'bands')
     # plot_light_curves(folder, check, choice, group = 'sections')
-    plot_light_curves(folder, check, choice, group = 'bandsMG')
+    # plot_light_curves(folder, check, choice, group = 'bandsMG')
     # distance_telescope(folder, check, choice)
 
     def lumtest(n, T):
