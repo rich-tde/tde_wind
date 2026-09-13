@@ -11,6 +11,8 @@ if alice:
 else:
     abspath = '/Users/paolamartire/shocks'
     path = f'{abspath}/TDE'
+import csv
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import Utilities.prelude as prel
@@ -18,8 +20,6 @@ from Utilities.operators import make_tree
 from Utilities.selectors_for_snap import select_snap
 from Utilities.sections import make_slices
 import src.orbits as orb
-import csv
-import os
 from src.Wind.Mdot_Rfixed_sec import split_cells
 
 #
@@ -41,31 +41,29 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 # MAIN
 ##
 params = [Mbh, Rstar, mstar, beta]
-things = orb.get_things_about(params)
-tfallback = things['t_fb_days']
-tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
-Rs = things['Rs']
-Rt = things['Rt']
-Rp = things['Rp']
-R0 = things['R0']
-norm = things['E_mb']
-amin = things['a_mb'] # semimajor axis of the bound orbit
 
 if alice:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
     prepath = f'{path}/{folder}/snap_'
 
-    # compute the outflow/wind mass for all the snapshots
-    for i, snap in enumerate(snaps):
-        time = tfb[i]
+    csv_path = f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv'
+    if os.path.exists(csv_path) and os.path.getsize(csv_path) > 0:
+        existing = np.loadtxt(csv_path, delimiter=',', skiprows=1)
+        existing_snaps = set(existing[:, 0].astype(int))
+    else:
+        existing_snaps = set()
+
+    for snap_idx, snap in enumerate(snaps):
+        if snap in existing_snaps:
+            print(f'Snapshot {snap} already computed, skipping.', flush=True)
+            continue
+        time = tfb[snap_idx]
         print(snap, flush = True)
         pathfold = f'{prepath}{snap}'
         data = make_tree(pathfold, snap)
         X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
         data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Press, data.VX, data.VY, data.VZ, data.IE, data.Rad
-        Rsph = np.sqrt(X**2 + Y**2 + Z**2)
         dim_cell = Vol**(1/3)
-        # find the spherical shell with r = r_chosen
         cut = Den > 1e-19
         X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
             make_slices([X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
@@ -79,30 +77,30 @@ if alice:
         X_wind, Y_wind, Z_wind, Mass_wind, Ekin_wind = make_slices([X, Y, Z, Mass, Ekin], cut_wind)
         indices_allsec_wind, label_obs = split_cells(X_wind, Y_wind, Z_wind, choice)
         indices_sec_out, _ = split_cells(X_out, Y_out, Z_out, choice)
-        
-        tot_M = np.zeros(len(indices_allsec_wind))
-        M_out = np.zeros(len(indices_sec_out))
-        E_out = np.zeros(len(indices_sec_out))
-        M_wind = np.zeros(len(indices_allsec_wind))
-        E_wind = np.zeros(len(indices_allsec_wind))
+
+        nsec = len(label_obs)
+        tot_M_snap = np.zeros(nsec)
+        M_out_snap = np.zeros(nsec)
+        E_out_snap = np.zeros(nsec)
+        M_wind_snap = np.zeros(nsec)
+        E_wind_snap = np.zeros(nsec)
 
         for i in range(len(indices_allsec_wind)):
             i_singlesec = indices_allsec[i]
-            tot_M[i] = np.sum(Mass[i_singlesec])
+            tot_M_snap[i] = np.sum(Mass[i_singlesec])
             i_singlesec_out = indices_sec_out[i]
-            mass_out_single = Mass_out[i_singlesec_out] if Mass_out.size > 0 else np.array([0])
-            M_out[i] = np.sum(mass_out_single) 
-            E_out_single = Ekin_out[i_singlesec_out] if Ekin_out.size > 0 else np.array([0])
-            E_out[i] = np.sum(E_out_single)
+            mass_out_single = Mass_out[i_singlesec_out] #if Mass_out.size > 0 else np.array([0])
+            M_out_snap[i] = np.sum(mass_out_single) 
+            Ekin_out_single = Ekin_out[i_singlesec_out] 
+            E_out_snap[i] = np.sum(Ekin_out_single)
             i_singlesec_wind = indices_allsec_wind[i] 
-            mass_w = Mass_wind[i_singlesec_wind] if Mass_wind.size > 0 else np.array([0])
-            M_wind[i] = np.sum(mass_w) 
-            E_wind_single = Ekin_wind[i_singlesec_wind] if Ekin_wind.size > 0 else np.array([0])
-            E_wind[i] = np.sum(E_wind_single)
+            mass_w = Mass_wind[i_singlesec_wind] 
+            M_wind_snap[i] = np.sum(mass_w) 
+            Ekin_wind_single = Ekin_wind[i_singlesec_wind] 
+            E_wind_snap[i] = np.sum(Ekin_wind_single)
 
-        data = np.concatenate([[snap, time], tot_M, M_out, M_wind, E_out, E_wind])
+        data = np.concatenate([[snap, time], tot_M_snap, M_out_snap, M_wind_snap, E_out_snap, E_wind_snap])
 
-        csv_path = f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv'
         with open(csv_path,'a', newline='') as file:
             writer = csv.writer(file)
             if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
@@ -110,10 +108,9 @@ if alice:
                                 [f'M_tot {lab}' for lab in label_obs] + 
                                 [f'M_out {lab}' for lab in label_obs] + 
                                 [f'M_w {lab}' for lab in label_obs] + 
-                                [f'E_out {lab}' for lab in label_obs] + 
-                                [f'E_w {lab}' for lab in label_obs])
+                                [f'Ekin_out {lab}' for lab in label_obs] + 
+                                [f'Ekin_w {lab}' for lab in label_obs])
             writer.writerow(data)
-            file.close()
 
 if plot:
     import healpy as hp
@@ -131,15 +128,13 @@ if plot:
     E_out = data[2+3*(len(label_obs)):2+4*(len(label_obs))] 
     E_wind = data[2+4*(len(label_obs)):2+5*(len(label_obs))] 
 
-    # for i in range(len(label_obs)):
-    #     M_out[i, :] -= M_wind[i, 0]
-    #     M_wind[i, :] -= M_wind[i, 0]
+    for i in range(len(label_obs)):
+        M_out[i, :] -= M_wind[i, 0]
+        M_wind[i, :] -= M_wind[i, 0]
     plt.figure(figsize=(8,6))
     for i, lab in enumerate(label_obs):
         if lab == 'South pole':
             continue
-        # print(lab, M_wind[i,0])
-        print(lab, M_out[i,0])
         plt.plot(tfb, M_out[i]/mstar, c = colors_obs[i],  ls = '--' )
         plt.plot(tfb, M_wind[i]/mstar, c = colors_obs[i], label = lab)
         # print(lab, 'outflow/half star mass: ', np.median(M_out[i, -3:])/(0.5*mstar), ', wind/out: ', np.median(M_wind[i, -3:])/np.median(M_out[i, -3:]))
@@ -148,10 +143,9 @@ if plot:
     # print('sum mid+high stream: ', (np.median(M_out[1, -3:])+np.median(M_out[2, -3:]))/(0.5*mstar), ', sum wind/out: ', np.sum(np.median(M_wind[1, -3:])+np.median(M_wind[2, -3:]))/np.sum(np.median(M_out[1, -3:])+np.median(M_out[2, -3:])))
     # print('sum wind: ', np.sum(M_wind[0, -3:]+M_wind[2, -3:]+M_wind[1, -3:])/0.5)
     plt.xlabel(r'$t/t_{\rm fb}$')
-    plt.ylabel('Mass ratio')
+    plt.ylabel(r'$M/M_\star$')    
     plt.yscale('log')
     plt.ylim(1e-4, 1.2)
     plt.legend(fontsize = 16)
-    # plt.savefig(f'{abspath}/plots/{folder}/wind/Mass_unbound{choice}.png')
     plt.show()
 # %%

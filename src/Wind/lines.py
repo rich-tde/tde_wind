@@ -116,8 +116,7 @@ def helium_i_partition_function(T, levels):
 # Z_HeI = helium_i_partition_function(1e4, helium_i_levels)
 
 def saha_omega(T, n_e, chi_eV, Z_i, Z_ip1):
-    ''' Eq 35 from Bradt
-    '''
+    ''' Eq 35 from Bradt'''
     chi = chi_eV * prel.ev_to_erg
     e_debroglie = prel.h_cgs / np.sqrt(2.0 * np.pi * m_e * prel.Kb_cgs * T)
     return 2.0 * Z_ip1 / Z_i * np.exp(-chi / (prel.Kb_cgs * T)) / (n_e * e_debroglie**3)

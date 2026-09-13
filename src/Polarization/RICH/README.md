@@ -19,7 +19,9 @@ Load the compiler and MPI environment provided by the machine. Then, from the
 RICH repository root, build with that environment's MPI build name:
 
 ```bash
-RICH_BUILD_NAME=yourMPIBuild
+RICH_BUILD_NAME=yourMPIBuild 
+# substitute "$RICH_BUILD_NAME" with gnuReleaseMPI
+# test_name tell you in which folder look for the test.cpp
 ./build_rich.sh "$RICH_BUILD_NAME" \
   --test_name=imc_postprocess_tde_gray_mg_polarization \
   --energy_groups_num=10 \
@@ -40,8 +42,8 @@ Export absolute paths to the snapshot and the executable produced by the build:
 
 ```bash
 cd runs/imc_postprocess_tde_gray_mg_polarization
-export RICH_POSTPROCESS_SNAPSHOT=/absolute/path/to/snapshot.h5
-export RICH_EXECUTABLE=/absolute/path/to/rich
+export RICH_POSTPROCESS_SNAPSHOT=/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_151/snap_151.h5
+export RICH_EXECUTABLE=/home/pmartire/RICH/build/gnuReleaseMPI/rich
 sbatch submit.sh
 ```
 

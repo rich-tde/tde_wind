@@ -2,8 +2,20 @@
 #SBATCH --job-name=tde-gray-mg-pol
 #SBATCH --output=output_%j.txt
 #SBATCH --error=error_%j.txt
+#SBATCH --nodes=4
+#SBATCH --ntasks=768
+#SBATCH --exclusive
+#SBATCH --partition=genoa
+#SBATCH --time=1-10:00:00
+
+#SBATCH --mail-user="martire@strw.leidenuniv.nl"
+#SBATCH --mail-type=TIME_LIMIT_50,TIME_LIMIT_90,ALL
+
 
 set -euo pipefail
+module restore rich_gnu_2025 # I added this line
+RICH_POSTPROCESS_SNAPSHOT=/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_151/snap_151.h5
+RICH_EXECUTABLE=/home/pmartire/RICH/build/gnuReleaseMPI/rich
 
 # These are the only user-set numerical controls for the calculation.
 LEARNING_ITERATIONS=21
@@ -44,10 +56,10 @@ if [[ ${run_directory##*/} != imc_postprocess_tde_gray_mg_polarization ]]; then
     echo "Submit this job from runs/imc_postprocess_tde_gray_mg_polarization" >&2
     exit 2
 fi
-rich_root=$(cd -- "$run_directory/../../.." && pwd -P)
-sta_multigroup="$rich_root/data/STA/MG/"
-sta_gray="$rich_root/data/STA/"
-eos_tables="$rich_root/data/EOS/"
+rich_root=$(cd -- "$run_directory/../../../RICH/" && pwd -P) # it was $(cd -- "$run_directory/../../.." && pwd -P)
+sta_multigroup="$rich_root/data/STA/MG/" #/gpfs/home3/pmartire/ # it was: "$rich_root/data/STA/MG/"
+sta_gray="$rich_root/data/STA/" 
+eos_tables="$rich_root/data/EOS/" 
 
 for required_path in \
     "$RICH_POSTPROCESS_SNAPSHOT" \

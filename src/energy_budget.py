@@ -137,7 +137,7 @@ if compute:
             sections = choose_sections(X, Y, Z, choice)
             label_obs = []
             cond_sec = []
-            for key_sec in sections._secs():
+            for key_sec in sections.keys():
                 label_obs.append(sections[key_sec]['label'])
                 cond_sec.append(sections[key_sec]['cond'])
 
@@ -275,7 +275,7 @@ if plot:
             axE.plot(tfb, en_diss_cgs[:, i], c = colors_obs[i], ls = '--', label = f'dissipation' if i == 0 else None)
             # axD.plot(tfb[1:], delta_en[:, i], c = colors_obs[i], ls = '--', label = f'total energy' if i == 0 else None)
             axD.plot(tfb, diss_kin[:, i], c = colors_obs[i], label = lab)
-
+        
         for ax in (axE, axD):
             ax.tick_params(axis='both', which='major', width=1.2, length=7)
             ax.tick_params(axis='both', which='minor', width=0.9, length=5) 
@@ -288,6 +288,9 @@ if plot:
         axD.set_ylabel(r'$E_{\rm diss}/E_{\rm kin}$')
 
 # %%
+print('Last value of Ekin')
+print('middle stream: ', Ekin_sec_cgs[-1, 1], flush = True)
+print('pole: ', Ekin_sec_cgs[-1, 4], flush = True)
 print('estimate for Ekin from Mw and v', flush = True)
 print('stream: ', 0.5*1e-2*mstar/2*prel.Msol_cgs*(0.014*prel.c_cgs)**2, flush = True)
 print('pole: ', 0.5*1e-4*mstar/2*prel.Msol_cgs*(0.018*prel.c_cgs)**2, flush = True)
