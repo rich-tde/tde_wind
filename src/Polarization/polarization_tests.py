@@ -10,7 +10,7 @@ import matplotlib.colors as colors
 import Utilities.prelude as prel
 import wesanderson
 from Utilities.basic_units import radians
-from src.Wind.polarization import compute_polarization, ellipsoid_surface, ellipsoid_unit_normal
+from Polarization.polarization import compute_polarization, ellipsoid_surface, ellipsoid_unit_normal
 wes_palette = wesanderson.film_palette('Rushmore', 0)
 cmap = colors.LinearSegmentedColormap.from_list('Rushmore0', wes_palette)
 
