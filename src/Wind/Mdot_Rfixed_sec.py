@@ -1,4 +1,4 @@
-""" Compute the time evolution of Mdot fallback and Mdot wind across a spherical surface"""
+""" Compute the time evolution of Mdot wind across a spherical surface"""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 
@@ -46,11 +46,7 @@ params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 tfallback = things['t_fb_days']
 tfallback_cgs = tfallback * 24 * 3600 # converted to seconds
-Rs = things['Rs']
-Rg = things['Rg']
 Rt = things['Rt']
-Rp = things['Rp']
-R0 = things['R0']
 apo = things['apo']
 amin = things['a_mb'] # semimajor axis of the bound orbit
 
@@ -70,7 +66,6 @@ def split_cells(X, Y, Z, choice):
     for key in sections.keys():
         cond_sec.append(sections[key]['cond'])
         label_obs.append(sections[key]['label'])
-        # color_obs.append(sections[key]['color'])
 
     for j, cond in enumerate(cond_sec):
         # select the particles in the chosen section and at the chosen radius
@@ -95,11 +90,12 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
     if X.size == 0:
         return {
             lab: {
-                'Mwind': np.nan,
+                'mwind': np.nan,
                 'Lum_fs': np.nan,
                 'Lkin': np.nan,
                 'Ekin': np.nan,
-                'Area': np.nan
+                'area': np.nan,
+                'mass': np.nan
             } for lab in label_obs} 
 
     cut_wind, bern, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, cond = 'bern')
@@ -115,11 +111,12 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
     if Den_wind.size == 0:
         return {
             lab: {
-                'Mwind': np.nan,
+                'mwind': np.nan,
                 'Lum_fs': np.nan,
                 'Lkin': np.nan,
                 'Ekin': np.nan,
-                'Area': np.nan
+                'area': np.nan,
+                'mass': np.nan
             } for lab in label_obs} 
 
     Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
@@ -180,9 +177,9 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
             # Lkin = 0.5 * np.mean(Mdot[indices] * v_rad_wind[indices]**2)
             Lkin = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices]**3) 
             Ekin = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Mass_wind[indices] * v_rad_wind[indices]**3) 
-
+        mass = np.sum(Mass_wind[indices])
         area = np.pi * np.sum(dim_cell_wind[indices]**2)
-        data[label_obs[j]] = {'mwind': mwind, 'Lum_fs': Lum_fs, 'Lkin': Lkin, 'Ekin': Ekin, 'area': area}
+        data[label_obs[j]] = {'mwind': mwind, 'Lum_fs': Lum_fs, 'Lkin': Lkin, 'Ekin': Ekin, 'area': area, 'mass': mass}
 
     return data
 
@@ -193,8 +190,8 @@ if __name__ == '__main__':
     _, label_obs, color_obs, _, _, _ = choose_observers(observers_xyz, choice)
         
     if compute: 
-        r_chosen = 2 * apo
-        which_r_title = '2apo' 
+        r_chosen = 0.5 * amin
+        which_r_title = '05amin' 
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
         save_path = f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_{what}.npy'
@@ -206,7 +203,7 @@ if __name__ == '__main__':
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
             else: 
-                if snap not in [151]:
+                if snap not in [109, 151]:
                     continue
                 path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
             print(snap, flush=True)
@@ -257,7 +254,8 @@ if __name__ == '__main__':
         tfbH = np.array([wind[snap]['tfb'] for snap in sorted(wind.keys())])
         rest = np.array([[wind[snap][label]['mwind'] for label in label_obs] for snap in sorted(wind.keys())]).T
         if how == 'isot':
-            area = wind[2+3*len(label_obs):2+4*len(label_obs)]
+            # area = wind[2+3*len(label_obs):2+4*len(label_obs)]
+            area = np.array([[wind[snap][label]['area'] for label in label_obs] for snap in sorted(wind.keys())]).T
             rest_isot =  4 * np.pi * r_chosen**2 * rest/ area 
 
         extra_time_tfb = np.linspace(tfbH[-1], 40, 100)
@@ -322,8 +320,8 @@ if __name__ == '__main__':
         axMass.set_ylabel(r'$M (m_\star/2)$')
         axMass.set_ylim(1e-5, 1) 
 
-        legend1 = axM.legend(handles=handles_colorMdot,
-                            labels=labels_handlesMdot, loc='upper left',
+        legend1 = axM.legend(handles=handles_colorMdot[1:],
+                            labels=labels_handlesMdot[1:], loc='upper left',
                             fontsize=18)
         axM.add_artist(legend1)
 
