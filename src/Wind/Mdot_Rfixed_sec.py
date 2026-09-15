@@ -19,10 +19,9 @@ import numpy as np
 import csv
 import os
 import healpy as hp
-from sklearn.neighbors import KDTree
 import Utilities.prelude as prel
 import src.orbits as orb
-from Utilities.operators import make_tree, to_spherical_components, choose_sections, choose_observers, to_cylindric
+from Utilities.operators import make_tree, choose_sections, choose_observers
 from Utilities.selectors_for_snap import select_snap
 from Utilities.sections import make_slices
 
@@ -81,20 +80,27 @@ def split_cells(X, Y, Z, choice):
     return indices_sec, label_obs
     
 def Mdot_sec(path, snap, r_chosen, choice, what, how):
+    global label_obs
     # Load data and pick the ones unbound and with positive velocity
-    data = make_tree(path, snap)
+    data_snap = make_tree(path, snap)
     X, Y, Z, Vol, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
-        data.X, data.Y, data.Z, data.Vol, data.Den, data.Mass, data.Press, data.VX, data.VY, data.VZ, data.IE, data.Rad
+        data_snap.X, data_snap.Y, data_snap.Z, data_snap.Vol, data_snap.Den, data_snap.Mass, data_snap.Press, data_snap.VX, data_snap.VY, data_snap.VZ, data_snap.IE, data_snap.Rad
     Rsph = np.sqrt(X**2 + Y**2 + Z**2)
     dim_cell = Vol**(1/3)
     # find the spherical shell with r = r_chosen
     cut = np.logical_and(Den > 1e-19, np.abs(Rsph - r_chosen) < dim_cell)
     X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den = \
         make_slices([X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
+    
     if X.size == 0:
-        if how == 'isot':
-            return np.array([0]*len(label_obs)*4) # to have the right shape in all cases
-        return np.array([0]*len(label_obs)*3) # to have the right shape in all cases
+        return {
+            lab: {
+                'Mwind': np.nan,
+                'Lum_fs': np.nan,
+                'Lkin': np.nan,
+                'Ekin': np.nan,
+                'Area': np.nan
+            } for lab in label_obs} 
 
     cut_wind, bern, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, cond = 'bern')
 
@@ -107,55 +113,55 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
     X_wind, Y_wind, Z_wind, Den_wind, Mass_wind, v_rad_wind, dim_cell_wind, Rad_den_wind = \
         make_slices([X, Y, Z, Den, Mass, V_r, dim_cell, Rad_den], cutM)
     if Den_wind.size == 0:
-        print(f'no positive', flush=True)
-        return np.array([0]*len(label_obs)*4)
+        return {
+            lab: {
+                'Mwind': np.nan,
+                'Lum_fs': np.nan,
+                'Lkin': np.nan,
+                'Ekin': np.nan,
+                'Area': np.nan
+            } for lab in label_obs} 
 
     Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
     indices_sec, _ = split_cells(X_wind, Y_wind, Z_wind, choice)
 
-    # mwind = np.zeros(len(indices_sec))
-    # Lum_fs = np.zeros(len(indices_sec))
-    # Lkin = np.zeros(len(indices_sec))
-    # Ekin = np.zeros(len(indices_sec))
-    # area = np.zeros(len(indices_sec))
-
     data = {}
     C_mult = 4/len(indices_sec) # to have the right normalization in all cases
-    if not alice:
-        fig, ((axd, axR, axdim), (axX, axY, axZ)) = plt.subplots(2,3, figsize = (18, 12))
-        R_wind = np.sqrt(X_wind**2 + Y_wind**2 + Z_wind**2)
-        for ax in [axd, axR, axdim, axX, axY, axZ]:
-            ax.set_yscale('log')
-            ax.grid()
-        axd.set_xscale('log')
-        axd.set_xlabel(r'$\rho$ [g/cm$^3$]')
-        axd.set_ylabel(r'$N_{\rm cell}$')
-        axR.set_xlabel(r'$r/r_{\rm t}$')
-        axdim.set_xlabel(r'$r_{\rm cell}/r_{\rm t}$')
-        axX.set_ylabel(r'$N_{\rm cell}$')
-        axX.set_xlabel(r'$X/r_{\rm t}$')
-        axY.set_xlabel(r'$Y/r_{\rm t}$')
-        axZ.set_xlabel(r'$Z/r_{\rm t}$')
-        fig.suptitle(f't = {tfb[i]:.2f} ' + r't$_{\rm fb}$', fontsize = 20)
-        axR.axvline(r_chosen/Rt, c = 'k', ls = '--')
+    # if not alice:
+    #     fig, ((axd, axR, axdim), (axX, axY, axZ)) = plt.subplots(2,3, figsize = (18, 12))
+    #     R_wind = np.sqrt(X_wind**2 + Y_wind**2 + Z_wind**2)
+    #     for ax in [axd, axR, axdim, axX, axY, axZ]:
+    #         ax.set_yscale('log')
+    #         ax.grid()
+    #     axd.set_xscale('log')
+    #     axd.set_xlabel(r'$\rho$ [g/cm$^3$]')
+    #     axd.set_ylabel(r'$N_{\rm cell}$')
+    #     axR.set_xlabel(r'$r/r_{\rm t}$')
+    #     axdim.set_xlabel(r'$r_{\rm cell}/r_{\rm t}$')
+    #     axX.set_ylabel(r'$N_{\rm cell}$')
+    #     axX.set_xlabel(r'$X/r_{\rm t}$')
+    #     axY.set_xlabel(r'$Y/r_{\rm t}$')
+    #     axZ.set_xlabel(r'$Z/r_{\rm t}$')
+    #     fig.suptitle(f't = {tfb[i]:.2f} ' + r't$_{\rm fb}$', fontsize = 20)
+    #     axR.axvline(r_chosen/Rt, c = 'k', ls = '--')
     for j, indices in enumerate(indices_sec):
-        if not alice: 
-            if j not in [0, 1]: 
-                continue
-            # ratio = dim_cell_wind[indices]/np.abs(R_wind[indices]-r_chosen)
-            # print(ratio[ratio<=1])
-            counts_d, bin_d = np.histogram(Den_wind[indices], bins = 80)
-            counts_R, bin_R = np.histogram(R_wind[indices], bins = 80)
-            counts_dim, bin_dim = np.histogram(dim_cell_wind[indices], bins = 80)
-            counts_X, bin_X = np.histogram(X_wind[indices], bins = 80)
-            counts_Y, bin_Y = np.histogram(Y_wind[indices], bins = 80)
-            counts_Z, bin_Z = np.histogram(Z_wind[indices], bins = 80)
-            axd.plot(bin_d[:-1]*prel.den_converter, counts_d, label = label_obs[j], color = color_obs[j])
-            axR.plot(bin_R[:-1]/Rt, counts_R, color = color_obs[j])
-            axdim.plot(bin_dim[:-1]/Rt, counts_dim, color = color_obs[j])
-            axX.plot(bin_X[:-1]/Rt, counts_X, color = color_obs[j])
-            axY.plot(bin_Y[:-1]/Rt, counts_Y, color = color_obs[j])
-            axZ.plot(bin_Z[:-1]/Rt, counts_Z, color = color_obs[j])
+        # if not alice: 
+        #     if j not in [0, 1]: 
+        #         continue
+        #     # ratio = dim_cell_wind[indices]/np.abs(R_wind[indices]-r_chosen)
+        #     # print(ratio[ratio<=1])
+        #     counts_d, bin_d = np.histogram(Den_wind[indices], bins = 80)
+        #     counts_R, bin_R = np.histogram(R_wind[indices], bins = 80)
+        #     counts_dim, bin_dim = np.histogram(dim_cell_wind[indices], bins = 80)
+        #     counts_X, bin_X = np.histogram(X_wind[indices], bins = 80)
+        #     counts_Y, bin_Y = np.histogram(Y_wind[indices], bins = 80)
+        #     counts_Z, bin_Z = np.histogram(Z_wind[indices], bins = 80)
+        #     axd.plot(bin_d[:-1]*prel.den_converter, counts_d, label = label_obs[j], color = color_obs[j])
+        #     axR.plot(bin_R[:-1]/Rt, counts_R, color = color_obs[j])
+        #     axdim.plot(bin_dim[:-1]/Rt, counts_dim, color = color_obs[j])
+        #     axX.plot(bin_X[:-1]/Rt, counts_X, color = color_obs[j])
+        #     axY.plot(bin_Y[:-1]/Rt, counts_Y, color = color_obs[j])
+        #     axZ.plot(bin_Z[:-1]/Rt, counts_Z, color = color_obs[j])
             
         # select the particles in the chosen section and at the chosen radius
         if how == '':   
@@ -168,7 +174,6 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
             Lum_fs = np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs
             Lkin = 0.5 * np.sum(Mdot[indices] * v_rad_wind[indices]**2)
             Ekin = 0.5 * np.sum(Mass_wind[indices] * v_rad_wind[indices]**2)
-            area = np.pi * np.sum(dim_cell_wind[indices]**2)
         elif how == 'mean': 
             mwind = C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices])
             Lum_fs = C_mult * np.pi * r_chosen**2 * np.mean(Rad_den_wind[indices]) * prel.csol_cgs
@@ -176,6 +181,7 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
             Lkin = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices]**3) 
             Ekin = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Mass_wind[indices] * v_rad_wind[indices]**3) 
 
+        area = np.pi * np.sum(dim_cell_wind[indices]**2)
         data[label_obs[j]] = {'mwind': mwind, 'Lum_fs': Lum_fs, 'Lkin': Lkin, 'Ekin': Ekin, 'area': area}
 
     return data
@@ -184,7 +190,7 @@ if __name__ == '__main__':
     NPIX = hp.nside2npix(prel.NSIDE)
     observers_xyz = hp.pix2vec(prel.NSIDE, range(NPIX))
     observers_xyz = np.array(observers_xyz)
-    _, label_obs, color_obs, _, _ = choose_observers(observers_xyz, choice)
+    _, label_obs, color_obs, _, _, _ = choose_observers(observers_xyz, choice)
         
     if compute: 
         r_chosen = 2 * apo
@@ -240,13 +246,16 @@ if __name__ == '__main__':
         mfb[where_nan] = 0
         mass_fb = sci.cumulative_trapezoid(np.abs(mfb), tfb_to_int, initial = 0)
 
-        wind = \
-                np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_{what}.csv', 
-                        delimiter = ',', 
-                        skiprows=1, 
-                        unpack=True) 
-        tfbH = wind[1]
-        rest = wind[2:2+len(label_obs)]
+        # wind = \
+        #         np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_{what}.csv', 
+        #                 delimiter = ',', 
+        #                 skiprows=1, 
+        #                 unpack=True) 
+        # tfbH = wind[1]
+        # rest = wind[2:2+len(label_obs)]
+        wind = np.load(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_{what}.npy', allow_pickle=True).item()
+        tfbH = np.array([wind[snap]['tfb'] for snap in sorted(wind.keys())])
+        rest = np.array([[wind[snap][label]['mwind'] for label in label_obs] for snap in sorted(wind.keys())]).T
         if how == 'isot':
             area = wind[2+3*len(label_obs):2+4*len(label_obs)]
             rest_isot =  4 * np.pi * r_chosen**2 * rest/ area 
