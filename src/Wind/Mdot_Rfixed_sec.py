@@ -212,8 +212,7 @@ if __name__ == '__main__':
             data_wind = Mdot_sec(path, snap, r_chosen, choice, what, how)
             all_data[snap] = {'tfb': tfb[i], **data_wind}
 
-            if alice:
-                np.save(save_path, all_data, allow_pickle=True)
+            np.save(save_path, all_data, allow_pickle=True)
 
     else:
         r_chosen = 0.5 * amin
