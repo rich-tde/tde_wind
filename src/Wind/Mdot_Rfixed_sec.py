@@ -104,8 +104,8 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
     if what == 'boundOut':
         cutM = np.logical_and(V_r > 0, bern < 0)
 
-    X_wind, Y_wind, Z_wind, Den_wind, v_rad_wind, dim_cell_wind, Rad_den_wind = \
-        make_slices([X, Y, Z, Den, V_r, dim_cell, Rad_den], cutM)
+    X_wind, Y_wind, Z_wind, Den_wind, Mass_wind, v_rad_wind, dim_cell_wind, Rad_den_wind = \
+        make_slices([X, Y, Z, Den, Mass, V_r, dim_cell, Rad_den], cutM)
     if Den_wind.size == 0:
         print(f'no positive', flush=True)
         return np.array([0]*len(label_obs)*4)
@@ -113,11 +113,13 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
     Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
     indices_sec, _ = split_cells(X_wind, Y_wind, Z_wind, choice)
 
-    mwind = np.zeros(len(indices_sec))
-    Lum_fs = np.zeros(len(indices_sec))
-    Lkin = np.zeros(len(indices_sec))
-    area = np.zeros(len(indices_sec))
+    # mwind = np.zeros(len(indices_sec))
+    # Lum_fs = np.zeros(len(indices_sec))
+    # Lkin = np.zeros(len(indices_sec))
+    # Ekin = np.zeros(len(indices_sec))
+    # area = np.zeros(len(indices_sec))
 
+    data = {}
     C_mult = 4/len(indices_sec) # to have the right normalization in all cases
     if not alice:
         fig, ((axd, axR, axdim), (axX, axY, axZ)) = plt.subplots(2,3, figsize = (18, 12))
@@ -157,25 +159,25 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
             
         # select the particles in the chosen section and at the chosen radius
         if how == '':   
-            mwind[j] = C_mult * r_chosen**2 * np.sum(Mdot[indices]) / np.sum(dim_cell_wind[indices]**2)
-            Lum_fs[j] = C_mult * r_chosen**2 * np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs / np.sum(dim_cell_wind[indices]**2)
-            Lkin[j] = 0.5 * C_mult * r_chosen**2 * np.sum(Mdot[indices] * v_rad_wind[indices]**2) / np.sum(dim_cell_wind[indices]**2)
+            mwind = C_mult * r_chosen**2 * np.sum(Mdot[indices]) / np.sum(dim_cell_wind[indices]**2)
+            Lum_fs = C_mult * r_chosen**2 * np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs / np.sum(dim_cell_wind[indices]**2)
+            Lkin = 0.5 * C_mult * r_chosen**2 * np.sum(Mdot[indices] * v_rad_wind[indices]**2) / np.sum(dim_cell_wind[indices]**2)
+            Ekin = 0.5 * C_mult * r_chosen**2 * np.sum(Mass_wind[indices] * v_rad_wind[indices]**2) / np.sum(dim_cell_wind[indices]**2)
         elif how == 'isot':   
-            mwind[j] = np.sum(Mdot[indices])
-            Lum_fs[j] = np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs
-            Lkin[j] = 0.5 * np.sum(Mdot[indices] * v_rad_wind[indices]**2)
-            area[j] = np.pi * np.sum(dim_cell_wind[indices]**2)
+            mwind = np.sum(Mdot[indices])
+            Lum_fs = np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs
+            Lkin = 0.5 * np.sum(Mdot[indices] * v_rad_wind[indices]**2)
+            Ekin = 0.5 * np.sum(Mass_wind[indices] * v_rad_wind[indices]**2)
+            area = np.pi * np.sum(dim_cell_wind[indices]**2)
         elif how == 'mean': 
-            mwind[j] = C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices])
-            Lum_fs[j] = C_mult * np.pi * r_chosen**2 * np.mean(Rad_den_wind[indices]) * prel.csol_cgs
-            # Lkin[j] = 0.5 * np.mean(Mdot[indices] * v_rad_wind[indices]**2)
-            Lkin[j] = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices]**3) 
-        
-    data = np.concatenate([mwind, Lum_fs, Lkin, area])
-    if not alice: 
-        axd.legend(fontsize = 18)
-        fig.tight_layout()
-        fig.savefig(f'{abspath}/Figs/{folder}/Wind/stat_MdotSec_{which_r_title}{snap}.png', dpi = 150)
+            mwind = C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices])
+            Lum_fs = C_mult * np.pi * r_chosen**2 * np.mean(Rad_den_wind[indices]) * prel.csol_cgs
+            # Lkin = 0.5 * np.mean(Mdot[indices] * v_rad_wind[indices]**2)
+            Lkin = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices]**3) 
+            Ekin = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Mass_wind[indices] * v_rad_wind[indices]**3) 
+
+        data[label_obs[j]] = {'mwind': mwind, 'Lum_fs': Lum_fs, 'Lkin': Lkin, 'Ekin': Ekin, 'area': area}
+
     return data
 
 if __name__ == '__main__':
@@ -185,29 +187,33 @@ if __name__ == '__main__':
     _, label_obs, color_obs, _, _ = choose_observers(observers_xyz, choice)
         
     if compute: 
-        r_chosen = 0.5*amin
-        which_r_title = '05amin' 
+        r_chosen = 2 * apo
+        which_r_title = '2apo' 
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
 
+        save_path = f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_{what}.npy'
+        if os.path.exists(save_path):
+            all_data = np.load(save_path, allow_pickle=True).item()
+        else:
+            all_data = {}
         for i, snap in enumerate(snaps):
             if alice:
                 path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
             else: 
-                if snap not in [45]:
+                if snap not in [151]:
                     continue
                 path = f'/Users/paolamartire/shocks/TDE/{folder}/{snap}'
             print(snap, flush=True)
-            
+
+            if snap in all_data:
+                print(f'Snapshot {snap} already computed, skipping', flush=True)
+                continue
+
             data_wind = Mdot_sec(path, snap, r_chosen, choice, what, how)
-            data_tosave = np.concatenate(([snap], [tfb[i]], data_wind))  
-            csv_path = f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_{what}.csv'
+            all_data[snap] = {'tfb': tfb[i], **data_wind}
+
             if alice:
-                with open(csv_path, 'a', newline='') as file:
-                    writer = csv.writer(file)
-                    if (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0:
-                        writer.writerow(['snap', 'tfb'] + [f'Mw {lab}' for lab in label_obs] + [f'Lum_fs {lab}' for lab in label_obs] + [f'Lkin {lab}' for lab in label_obs] + [f'Area {lab}' for lab in label_obs])
-                    writer.writerow(data_tosave)
-                file.close()
+                np.save(save_path, all_data, allow_pickle=True)
 
     else:
         r_chosen = 0.5 * amin

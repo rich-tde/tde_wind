@@ -111,6 +111,8 @@ if alice:
                                 [f'Ekin_out {lab}' for lab in label_obs] + 
                                 [f'Ekin_w {lab}' for lab in label_obs])
             writer.writerow(data)
+        del data, X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den
+
 
 if plot:
     import healpy as hp

@@ -28,7 +28,7 @@ import src.orbits as orb
 import Utilities.operators as op
 from src.Wind.Rtrapp_tdiff import load_and_smooth_rtrap
 from src.Opacity.interpolator_vectorized import calc_ross_opacity_vectorized, calc_scattering_opacity_vectorized
-from plotting.paperWind.spectra_lc import fluxfit
+from plotting.paperWind.spectra_lc import planck_nu
 
 #
 # PARAMS
@@ -264,7 +264,7 @@ def profiles(loadpath, snap, ray_params, which_obs, which_part = '', what_varies
         # fit BB to have the flux Fnu and then integrate from 13.6eV to infty 
         Fion_prof = np.zeros(len(t_prof))
         for i, t_single in enumerate(t_prof):
-            Fion_nu = fluxfit(freqs_fit, t_single)
+            Fion_nu = planck_nu(freqs_fit, t_single)
             Fion_prof[i] = np.trapezoid(Fion_nu[freqs_fit>13.6*prel.ev_toHz], freqs_fit[freqs_fit>13.6*prel.ev_toHz]) 
 
         outflow = {
@@ -354,7 +354,7 @@ else:
     # arrange for plotting
     observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
     x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
-    indices_obs, label_obs, colors_obs, _, _ = op.choose_observers(observers_xyz, which_obs)
+    indices_obs, label_obs, colors_obs, _, _, _ = op.choose_observers(observers_xyz, which_obs)
     fig, (axd, axV, axM, axLkin) = plt.subplots(4, 1, figsize=(8, 22)) 
     figM, (axT, axLadv) = plt.subplots(1, 2, figsize=(15, 8))
     figC, axC = plt.subplots(1, 1, figsize=(8, 8))
