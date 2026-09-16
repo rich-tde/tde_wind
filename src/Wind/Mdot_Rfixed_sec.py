@@ -106,8 +106,8 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
     if what == 'boundOut':
         cutM = np.logical_and(V_r > 0, bern < 0)
 
-    X_wind, Y_wind, Z_wind, R_wind, Den_wind, Mass_wind, v_rad_wind, dim_cell_wind, Rad_den_wind = \
-        make_slices([X, Y, Z, Rsph, Den, Mass, V_r, dim_cell, Rad_den], cutM)
+    X_wind, Y_wind, Z_wind, Den_wind, Mass_wind, v_rad_wind, dim_cell_wind, Rad_den_wind = \
+        make_slices([X, Y, Z, Den, Mass, V_r, dim_cell, Rad_den], cutM)
     if Den_wind.size == 0:
         return {
             lab: {
