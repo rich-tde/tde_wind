@@ -95,7 +95,8 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
                 'Lkin': np.nan,
                 'Ekin': np.nan,
                 'area': np.nan,
-                'mass': np.nan
+                'mass': np.nan,
+                'R': np.nan
             } for lab in label_obs} 
 
     cut_wind, bern, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, cond = 'bern')
@@ -106,8 +107,8 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
     if what == 'boundOut':
         cutM = np.logical_and(V_r > 0, bern < 0)
 
-    X_wind, Y_wind, Z_wind, Den_wind, Mass_wind, v_rad_wind, dim_cell_wind, Rad_den_wind = \
-        make_slices([X, Y, Z, Den, Mass, V_r, dim_cell, Rad_den], cutM)
+    X_wind, Y_wind, Z_wind, R_wind, Den_wind, Mass_wind, v_rad_wind, dim_cell_wind, Rad_den_wind = \
+        make_slices([X, Y, Z, Rsph, Den, Mass, V_r, dim_cell, Rad_den], cutM)
     if Den_wind.size == 0:
         return {
             lab: {
@@ -116,7 +117,8 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
                 'Lkin': np.nan,
                 'Ekin': np.nan,
                 'area': np.nan,
-                'mass': np.nan
+                'mass': np.nan,
+                'R': np.nan 
             } for lab in label_obs} 
 
     Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
@@ -178,8 +180,9 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
             Lkin = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices]**3) 
             Ekin = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Mass_wind[indices] * v_rad_wind[indices]**3) 
         mass = np.sum(Mass_wind[indices])
+        Ravg = np.sum(R_wind[indices] * Mass_wind[indices]) / np.sum(Mass_wind[indices])
         area = np.pi * np.sum(dim_cell_wind[indices]**2)
-        data[label_obs[j]] = {'mwind': mwind, 'Lum_fs': Lum_fs, 'Lkin': Lkin, 'Ekin': Ekin, 'area': area, 'mass': mass}
+        data[label_obs[j]] = {'mwind': mwind, 'Lum_fs': Lum_fs, 'Lkin': Lkin, 'Ekin': Ekin, 'area': area, 'mass': mass, 'R': Ravg}
 
     return data
 
@@ -218,8 +221,8 @@ if __name__ == '__main__':
             np.save(save_path, all_data, allow_pickle=True)
 
     else:
-        r_chosen = 0.5 * amin
-        which_r_title = '05amin'
+        r_chosen = 2 * apo
+        which_r_title = '2apo'
         
         dataMass = np.loadtxt(f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv', 
                                 delimiter=',', skiprows=1, unpack=True)

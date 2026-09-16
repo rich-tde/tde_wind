@@ -63,8 +63,12 @@ if compute:
             energies = {}
 
     for i,snap in enumerate(snaps):
-        if snap != 151:
-            continue
+        if what_paper == 'paper2':
+            key = f"{int(snap)}"
+            # Skip snapshots that were already completed
+            if key in energies:
+                print(f'Snapshot {snap} already saved, skipping', flush=True)
+                continue
         print(snap, flush = True)
 
         path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
@@ -108,13 +112,6 @@ if compute:
             file.close()
 
         if what_paper == 'paper2':
-            key = f"{int(snap)}"
-
-            # Skip snapshots that were already completed
-            if key in energies:
-                print(f'Snapshot {snap} already saved, skipping', flush=True)
-                continue
-        
             cut_wind, bern_spec, _ = orb.pick_wind(X, Y, Z, VX, VY, VZ, den, mass, Press, ie_den, Rad_den, params, cond = 'bern')
             dyn_unb = np.logical_and(np.abs(Z)<vol**(1/3), X < -apo)
             if what_to_keep == '_keepDynUnb':
@@ -242,7 +239,7 @@ if plot:
         observers_xyz = hp.pix2vec(prel.NSIDE, np.arange(prel.NPIX)) #shape: (3, 192)
         observers_xyz = np.array(observers_xyz)
         indices_sorted, label_obs, colors_obs, _, _, _ = choose_observers(observers_xyz, choice = choice)
-        
+
         data = np.load(f'{abspath}/data/{folder}/wind/energies{what_to_keep}_{choice}.npy', allow_pickle=True).item()
         tfb = np.array([data[key]['tfb'] for key in data.keys()])
         Ekin_sec = np.array([data[key]['Ekin_sec'] for key in data.keys()])
@@ -286,12 +283,12 @@ if plot:
         axE.set_ylabel(r'E (erg)')
         axD.set_ylabel(r'$E_{\rm diss}/E_{\rm kin}$')
 
-# %%
-print('Last value of Ekin')
-print('middle stream: ', Ekin_sec_cgs[-1, 1], flush = True)
-print('pole: ', Ekin_sec_cgs[-1, 4], flush = True)
-print('estimate for Ekin from Mw and v', flush = True)
-print('stream: ', 0.5*1e-2*mstar/2*prel.Msol_cgs*(0.014*prel.c_cgs)**2, flush = True)
-print('pole: ', 0.5*1e-4*mstar/2*prel.Msol_cgs*(0.018*prel.c_cgs)**2, flush = True)
+    # %%
+    print('Last value of Ekin')
+    print('middle stream: ', Ekin_sec_cgs[-1, 1], flush = True)
+    print('pole: ', Ekin_sec_cgs[-1, 4], flush = True)
+    print('estimate for Ekin from Mw and v', flush = True)
+    print('stream: ', 0.5*1e-2*mstar/2*prel.Msol_cgs*(0.014*prel.c_cgs)**2, flush = True)
+    print('pole: ', 0.5*1e-4*mstar/2*prel.Msol_cgs*(0.018*prel.c_cgs)**2, flush = True)
 
-# %%
+    # %%
