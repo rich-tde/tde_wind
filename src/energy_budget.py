@@ -244,7 +244,6 @@ if plot:
         indices_sorted, label_obs, colors_obs, _, _, _ = choose_observers(observers_xyz, choice = choice)
         
         data = np.load(f'{abspath}/data/{folder}/wind/energies{what_to_keep}_{choice}.npy', allow_pickle=True).item()
-        
         tfb = np.array([data[key]['tfb'] for key in data.keys()])
         Ekin_sec = np.array([data[key]['Ekin_sec'] for key in data.keys()])
         OE_sec = np.array([data[key]['OE_sec'] for key in data.keys()])

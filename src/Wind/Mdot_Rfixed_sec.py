@@ -230,7 +230,8 @@ if __name__ == '__main__':
         for i in range(len(label_obs)):
             M_wind[i, :] -= M_wind[i, 0]
 
-        figM, (axM, axMass) =plt.subplots(1,2, figsize = (16,8))
+        figM, (axM, axEkin) = plt.subplots(1,2, figsize = (16,8))
+        figMass_tot, axMass_tot = plt.subplots(1,1, figsize = (9,8))
         
         fallback = \
                 np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_{check}05aminmean.csv', 
@@ -251,47 +252,57 @@ if __name__ == '__main__':
         # tfbH = wind[1]
         # rest = wind[2:2+len(label_obs)]
         wind = np.load(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_{what}.npy', allow_pickle=True).item()
-        tfbH = np.array([wind[snap]['tfb'] for snap in sorted(wind.keys())])
-        rest = np.array([[wind[snap][label]['mwind'] for label in label_obs] for snap in sorted(wind.keys())]).T
+        snaps = list(wind.keys())
+        tfbH = np.array([wind[snap]['tfb'] for snap in snaps])
+        mwind = np.array([[wind[snap][label]['mwind'] for label in label_obs] for snap in snaps]).T
+        Ekin = np.array([[wind[snap][label]['Ekin'] for label in label_obs] for snap in snaps]).T
+        # masswind = np.array([[wind[snap][label]['mass'] for label in label_obs] for snap in snaps]).T
         if how == 'isot':
             # area = wind[2+3*len(label_obs):2+4*len(label_obs)]
-            area = np.array([[wind[snap][label]['area'] for label in label_obs] for snap in sorted(wind.keys())]).T
-            rest_isot =  4 * np.pi * r_chosen**2 * rest/ area 
+            area = np.array([[wind[snap][label]['area'] for label in label_obs] for snap in snaps]).T
+            mwind_isot =  4 * np.pi * r_chosen**2 * mwind/ area 
 
-        extra_time_tfb = np.linspace(tfbH[-1], 40, 100)
-        all_time = np.concatenate([tfbH, extra_time_tfb])
-        extend_Mdot = []
-        for i in range(len(label_obs)):
-            extend_Mdot.append(np.concatenate([rest[i], rest[i][-1]*np.ones(len(extra_time_tfb))]))
-        extend_Mdot = np.array(extend_Mdot)
+        # extra_time_tfb = np.linspace(tfbH[-1], 40, 100)
+        # all_time = np.concatenate([tfbH, extra_time_tfb])
+        # extend_Mdot = []
+        # for i in range(len(label_obs)): 
+        #     extend_Mdot.append(np.concatenate([mwind[i], mwind[i][-1]*np.ones(len(extra_time_tfb))]))
+        # extend_Mdot = np.array(extend_Mdot)
 
         handles_colorMass = []
         labels_handlesMass = []
 
         handles_colorMdot = []
         labels_handlesMdot = []
-        for i in range(len(rest)):
-            if label_obs[i] in ['Eccentric flow','South pole']:
+        for i in range(len(mwind)):
+            if label_obs[i] in ['Eccentric flow side','South pole']:
                 continue
-            axM.plot(tfbH, rest[i]/Medd_sol, c = color_obs[i], ls = '--')
-            line = axM.plot(tfbH, rest_isot[i]/Medd_sol,  label = label_obs[i], c = color_obs[i])[0]
+            axM.plot(tfbH, mwind[i]/Medd_sol, c = color_obs[i], ls = '--')
+            line = axM.plot(tfbH, mwind_isot[i]/Medd_sol,  label = label_obs[i], c = color_obs[i])[0]
             handles_colorMdot.append(line)
             labels_handlesMdot.append(label_obs[i])
+
+            # plot Ekin
+            axEkin.plot(tfbH, Ekin[i]*prel.en_converter, label = label_obs[i], c = color_obs[i])
+
+            # plot Mass
+            # axMass.plot(tfbH, masswind[i]/(mstar/2), label = label_obs[i], c = color_obs[i])
+
+            # total mass
             # axM.plot(all_time, extend_Mdot[i]/Medd_sol,  label = label_obs[i], c = color_obs[i])
             # from Mdot
             time_to_int = tfbH * 24 * 3600 / prel.tsol_cgs # convert to code units
-            where_nan = np.isnan(rest[i])
-            rest[i][where_nan] = 0
-            mass = sci.cumulative_trapezoid(rest[i], time_to_int, initial = 0)
-            axMass.plot(tfbH, mass/(mstar/2), label = label_obs[i], c = color_obs[i], ls = '--')
-            ## extending 
+            where_nan = np.isnan(mwind[i])
+            mwind[i][where_nan] = 0
+            mass = sci.cumulative_trapezoid(mwind[i], time_to_int, initial = 0)
+            axMass_tot.plot(tfbH, mass/(mstar/2), label = label_obs[i], c = color_obs[i], ls = '--')
+            # extending 
             # time_to_int = all_time * 24 * 3600 / prel.tsol_cgs # convert to code units
             # where_nan = np.isnan(extend_Mdot[i])
             # extend_Mdot[i][where_nan] = 0
             # mass = sci.cumulative_trapezoid(extend_Mdot[i], time_to_int, initial = 0)
-            # axMass.plot(all_time, mass/(mstar/2), label = label_obs[i], c = color_obs[i], ls = '--')
-
-            line = axMass.plot(tfbMass, M_wind[i]/(mstar/2), label = label_obs[i], c = color_obs[i])[0]
+            # axMass_tot.plot(all_time, mass/(mstar/2), label = label_obs[i], c = color_obs[i], ls = '--')
+            line = axMass_tot.plot(tfbMass, M_wind[i]/(mstar/2), label = label_obs[i], c = color_obs[i])[0]
             handles_colorMass.append(line)
             labels_handlesMass.append(label_obs[i])
 
@@ -299,7 +310,7 @@ if __name__ == '__main__':
         handles_colorMdot.append(line)
         labels_handlesMdot.append(r'$|\dot{M}_{\rm fb}|$')
 
-        line = axMass.plot(tfbfb, mass_fb/(mstar/2), c = 'k', ls = ':', label = r'$|\dot{M}_{\rm fb}|$')[0]
+        line = axMass_tot.plot(tfbfb, mass_fb/(mstar/2), c = 'k', ls = ':', label = r'$|\dot{M}_{\rm fb}|$')[0]
         handles_colorMass.append(line)
         labels_handlesMass.append(r'$|\dot{M}_{\rm fb}|$')
 
@@ -307,7 +318,7 @@ if __name__ == '__main__':
         midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
         new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
         labels = [str(np.round(tick,2)) if tick in original_ticks else '' for tick in new_ticks]    
-        for ax in [axMass, axM]: 
+        for ax in [axMass_tot, axM, axEkin]: 
             ax.set_yscale('log')
             ax.set_xlabel(r'$t [t_{\rm fb}]$')
             ax.set_xticks(new_ticks)
@@ -316,22 +327,25 @@ if __name__ == '__main__':
             ax.tick_params(axis='both', which='major', width=1.2, length=9)
             ax.tick_params(axis='both', which='minor', width=1, length=5)
             ax.grid()
-        axM.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$')
-        axMass.set_ylabel(r'$M (m_\star/2)$')
-        axMass.set_ylim(1e-5, 1) 
+        axM.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$' + f' at {which_r_title}')
+        # axMass.set_ylabel(r'$M_{\rm w} (m_\star/2)$')
+        axMass_tot.set_ylabel(r'$M_{\rm tot} (m_\star/2)$')
+        axEkin.set_ylabel(r'$E_{\rm kin}$ [erg]' + f' at {which_r_title}')
+        axEkin.set_ylim(1e42, 5e45)
+        axMass_tot.set_ylim(1e-5, 1) 
 
-        legend1 = axM.legend(handles=handles_colorMdot[1:],
-                            labels=labels_handlesMdot[1:], loc='upper left',
+        legend1 = axM.legend(handles=handles_colorMdot,
+                            labels=labels_handlesMdot, loc='upper left',
                             fontsize=18)
         axM.add_artist(legend1)
 
-        legend1 = axMass.legend(handles=handles_colorMass,
+        legend1 = axMass_tot.legend(handles=handles_colorMass,
                     labels=labels_handlesMass, loc='upper left',
                     fontsize=18)
 
-        axMass.add_artist(legend1)
+        axMass_tot.add_artist(legend1)
         line_styles_parts = ['-', '--']
-        labels_partsM = [r'isotropic $\dot{M}_{\rm w}$', r'real $\dot{M}_{\rm w}$'] 
+        labels_partsM = [r'isotropic $\dot{M}_{\rm w}$', r'sectoral $\dot{M}_{\rm w}$'] 
         labels_partsMass = [r'direct count $M_{\rm w}$', r'$\int \dot{M}_{\rm w} dt$']
         proxy_linesM = []
         proxy_linesMass = []
@@ -345,7 +359,7 @@ if __name__ == '__main__':
                             label=labels_partsMass[l]))
 
         axM.legend(handles=proxy_linesM, fontsize=20, loc='upper right')
-        axMass.legend(handles=proxy_linesMass, fontsize=20, loc='upper right')
+        axMass_tot.legend(handles=proxy_linesMass, fontsize=20, loc='upper right')
 
         # axM.plot(tfbfb, np.abs(mfb)/Medd_sol, c = 'grey', ls = '--', label = r'$|\dot{M}_{\rm fb}|$')
         axM.set_ylim(1e2, 7e7)
