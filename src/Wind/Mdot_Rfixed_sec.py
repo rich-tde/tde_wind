@@ -171,7 +171,6 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
             Lum_fs = np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs
             Lkin = 0.5 * np.sum(Mdot[indices] * v_rad_wind[indices]**2)
             Ekin = 0.5 * np.sum(Mass_wind[indices] * v_rad_wind[indices]**2)
-            Ravg = np.sum(R_wind[indices] * Mass_wind[indices]) / np.sum(Mass_wind[indices])
         elif how == 'mean': 
             mwind = C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices])
             Lum_fs = C_mult * np.pi * r_chosen**2 * np.mean(Rad_den_wind[indices]) * prel.csol_cgs
@@ -219,8 +218,8 @@ if __name__ == '__main__':
             np.save(save_path, all_data, allow_pickle=True)
 
     else:
-        r_chosen = 2 * apo
-        which_r_title = '2apo'
+        r_chosen = 1e14/prel.Rsol_cgs
+        which_r_title = '1e14'
         
         dataMass = np.loadtxt(f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv', 
                                 delimiter=',', skiprows=1, unpack=True)
@@ -231,7 +230,7 @@ if __name__ == '__main__':
         for i in range(len(label_obs)):
             M_wind[i, :] -= M_wind[i, 0]
 
-        figM, (axM, axEkin) = plt.subplots(1,2, figsize = (16,8))
+        figM, (axM, axEkin, axMass) = plt.subplots(1,3, figsize = (26,8))
         figMass_tot, axMass_tot = plt.subplots(1,1, figsize = (9,8))
         
         fallback = \
@@ -257,7 +256,7 @@ if __name__ == '__main__':
         tfbH = np.array([wind[snap]['tfb'] for snap in snaps])
         mwind = np.array([[wind[snap][label]['mwind'] for label in label_obs] for snap in snaps]).T
         Ekin = np.array([[wind[snap][label]['Ekin'] for label in label_obs] for snap in snaps]).T
-        # masswind = np.array([[wind[snap][label]['mass'] for label in label_obs] for snap in snaps]).T
+        masswind = np.array([[wind[snap][label]['mass'] for label in label_obs] for snap in snaps]).T
         if how == 'isot':
             # area = wind[2+3*len(label_obs):2+4*len(label_obs)]
             area = np.array([[wind[snap][label]['area'] for label in label_obs] for snap in snaps]).T
@@ -278,7 +277,7 @@ if __name__ == '__main__':
         for i in range(len(mwind)):
             if label_obs[i] in ['Eccentric flow side','South pole']:
                 continue
-            axM.plot(tfbH, mwind[i]/Medd_sol, c = color_obs[i], ls = '--')
+            # axM.plot(tfbH, mwind[i]/Medd_sol, c = color_obs[i], ls = '--')
             line = axM.plot(tfbH, mwind_isot[i]/Medd_sol,  label = label_obs[i], c = color_obs[i])[0]
             handles_colorMdot.append(line)
             labels_handlesMdot.append(label_obs[i])
@@ -287,16 +286,16 @@ if __name__ == '__main__':
             axEkin.plot(tfbH, Ekin[i]*prel.en_converter, label = label_obs[i], c = color_obs[i])
 
             # plot Mass
-            # axMass.plot(tfbH, masswind[i]/(mstar/2), label = label_obs[i], c = color_obs[i])
+            axMass.plot(tfbH, masswind[i]/(mstar/2), label = label_obs[i], c = color_obs[i])
 
             # total mass
             # axM.plot(all_time, extend_Mdot[i]/Medd_sol,  label = label_obs[i], c = color_obs[i])
             # from Mdot
-            time_to_int = tfbH * 24 * 3600 / prel.tsol_cgs # convert to code units
-            where_nan = np.isnan(mwind[i])
-            mwind[i][where_nan] = 0
-            mass = sci.cumulative_trapezoid(mwind[i], time_to_int, initial = 0)
-            axMass_tot.plot(tfbH, mass/(mstar/2), label = label_obs[i], c = color_obs[i], ls = '--')
+            # time_to_int = tfbH * 24 * 3600 / prel.tsol_cgs # convert to code units
+            # where_nan = np.isnan(mwind[i])
+            # mwind[i][where_nan] = 0
+            # mass = sci.cumulative_trapezoid(mwind[i], time_to_int, initial = 0)
+            # axMass_tot.plot(tfbH, mass/(mstar/2), label = label_obs[i], c = color_obs[i], ls = '--')
             # extending 
             # time_to_int = all_time * 24 * 3600 / prel.tsol_cgs # convert to code units
             # where_nan = np.isnan(extend_Mdot[i])
@@ -319,7 +318,7 @@ if __name__ == '__main__':
         midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
         new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
         labels = [str(np.round(tick,2)) if tick in original_ticks else '' for tick in new_ticks]    
-        for ax in [axMass_tot, axM, axEkin]: 
+        for ax in [axMass_tot, axM, axEkin, axMass]: 
             ax.set_yscale('log')
             ax.set_xlabel(r'$t [t_{\rm fb}]$')
             ax.set_xticks(new_ticks)
@@ -328,11 +327,12 @@ if __name__ == '__main__':
             ax.tick_params(axis='both', which='major', width=1.2, length=9)
             ax.tick_params(axis='both', which='minor', width=1, length=5)
             ax.grid()
-        axM.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$' + f' at {which_r_title}')
-        # axMass.set_ylabel(r'$M_{\rm w} (m_\star/2)$')
+        axM.set_ylabel(r'$\dot{M} (\dot{M}_{\rm Edd})$')
+        axMass.set_ylabel(r'$M_{\rm w} (m_\star/2)$')
         axMass_tot.set_ylabel(r'$M_{\rm tot} (m_\star/2)$')
-        axEkin.set_ylabel(r'$E_{\rm kin}$ [erg]' + f' at {which_r_title}')
+        axEkin.set_ylabel(r'$E_{\rm kin}$ [erg]')
         axEkin.set_ylim(1e42, 5e45)
+        axMass.set_ylim(1e-6, 1e-4) 
         axMass_tot.set_ylim(1e-5, 1) 
 
         legend1 = axM.legend(handles=handles_colorMdot,

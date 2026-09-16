@@ -125,6 +125,7 @@ if compute:
             X, Y, Z, Rsph, VX, VY, VZ, vel, mass, vol, den, ie_den, Rad_den, Press, Diss_den, bern_spec = \
                 sec.make_slices([X, Y, Z, Rsph, VX, VY, VZ, vel, mass, vol, den, ie_den, Rad_den, Press, Diss_den, bern_spec], cut)
             Ekin = 0.5 * mass * vel**2
+            Lkin = 0.5 * 4 * np.pi * Rsph**2* den * vel**3 
             orb_en = orb.orbital_energy(Rsph, vel, mass, params, prel.G)
             ie = ie_den * vol
             Rad = Rad_den * vol
@@ -139,6 +140,7 @@ if compute:
                 cond_sec.append(sections[key_sec]['cond'])
 
             Ekin_sec = np.zeros(len(sections))
+            Lkin_sec = np.zeros(len(sections))
             OE_sec = np.zeros(len(sections))
             IE_sec = np.zeros(len(sections))
             Rad_sec = np.zeros(len(sections))
@@ -147,6 +149,7 @@ if compute:
             R_sec = np.zeros(len(sections))
             for k, cond in enumerate(cond_sec):
                 Ekin_sec[k] = np.sum(Ekin[cond]) if cond.size > 0 else 0
+                Lkin_sec[k] = np.sum(Lkin[cond]) if cond.size > 0 else 0
                 OE_sec[k] = np.sum(orb_en[cond]) if cond.size > 0 else 0
                 IE_sec[k] = np.sum(ie[cond]) if cond.size > 0 else 0
                 Rad_sec[k] = np.sum(Rad[cond]) if cond.size > 0 else 0
@@ -156,6 +159,7 @@ if compute:
 
             E_snap = {'tfb': tfb[i], 
                       'Ekin_sec': Ekin_sec,
+                      'Lkin_sec': Lkin_sec,
                       'OE_sec': OE_sec,
                       'IE_sec': IE_sec,
                       'Rad_sec': Rad_sec,
@@ -271,7 +275,7 @@ if plot:
             if lab == 'South pole':
                 continue
             axE.plot(tfb, Ekin_sec_cgs[:, i], c = colors_obs[i], label = f'kinetic' if i == 0 else None)
-            axE.plot(tfb, en_diss_cgs[:, i], c = colors_obs[i], ls = '--', label = f'dissipation' if i == 0 else None)
+            # axE.plot(tfb, en_diss_cgs[:, i], c = colors_obs[i], ls = '--', label = f'dissipation' if i == 0 else None)
             # axD.plot(tfb[1:], delta_en[:, i], c = colors_obs[i], ls = '--', label = f'total energy' if i == 0 else None)
             axD.plot(tfb, diss_kin[:, i], c = colors_obs[i], label = lab)
         

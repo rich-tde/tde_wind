@@ -42,6 +42,8 @@ params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 t_fb_days = things['t_fb_days']
 Rt = things['Rt']
+tfallback = things['t_fb_days']
+tfallback_cgs = tfallback * 24 * 3600
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3) # implies Omega_Lambda = 0.7
@@ -406,12 +408,19 @@ def plot_light_curves(folder, check, choice, group="bands"):
     bands_idx = band_indices(freqs)
     snaps, tfb, luminosity_fld = load_fld_data(folder, check)
     idx_maxL = np.argmax(luminosity_fld)
+    
     _, cosine, sectors, labels, colours, central_indices = observer_geometry(choice)
     _, _, sectors_mg, _, _, _ = observer_geometry(choice, nside=8)
     n_sectors, n_times = len(sectors), len(snaps)
     fld_sector = np.zeros((n_sectors, n_times))
     curves = {name: np.zeros((n_sectors, n_times)) for name in ("optical", "UV", "Xray")}
     curves_fld, curves_op, curves_uv = [], [], []
+
+    data_kin = np.load(f'{abspath}/data/{folder}/wind/energies_{choice}.npy', allow_pickle=True).item()
+    tfb_kin = np.array([data_kin[key]['tfb'] for key in data_kin.keys()])
+    tfb_kin_cgs = tfb_kin * tfallback_cgs
+    Ekin = np.array([data_kin[key]['Ekin_sec'] for key in data_kin.keys()]).T
+    Ekin_cgs = Ekin * prel.en_converter
 
     for s, snap in enumerate(snaps):
         spectra, luminosity_photo = load_spectrum(folder, check, snap)
@@ -456,10 +465,14 @@ def plot_light_curves(folder, check, choice, group="bands"):
         ratio_axes = ()
     elif group == "bands":
         fig, (ax_bol, ax_opt, ax_uv) = plt.subplots(1, 3, figsize=(24, 7))
+        fig_Ruv, ax_Ruv = plt.subplots(figsize=(9, 7))
         fig_x, ax_x = plt.subplots(figsize=(9, 7))
         axes = [ax_bol, ax_opt, ax_uv, ax_x]
         for k in plotted:
+            Lkin = np.diff(Ekin_cgs[k]) / np.diff(tfb_kin_cgs)
+            ax_Ruv.plot(tfb[2:], curves["optical"][k][2:]/Lkin, color=colours[k])
             for sec in sectors[k]:
+                # Ekin_sec
                 ax_bol.plot(tfb, curves_fld[sec], color=colours[k], alpha = 0.1, lw = 1)
                 ax_opt.plot(tfb, curves_op[sec], color=colours[k], alpha = 0.1, lw = 1) 
                 ax_uv.plot(tfb, curves_uv[sec], color=colours[k], alpha = 0.1, lw = 1)
@@ -498,6 +511,9 @@ def plot_light_curves(folder, check, choice, group="bands"):
         ax_bol.legend(fontsize=15)
         ax_x.legend(fontsize=15)
         ratio_axes = ()
+        ax_Ruv.set_ylabel(r"optical/radio", fontsize=30)
+        ax_Ruv.set_ylim(1e-4, 1e6)
+        ax_Ruv.set_yscale("log")
     else:
         fig, (ax_opt, ax_uv, ax_x) = plt.subplots(1, 3, figsize=(24, 7))
         fig_ratio, (ratio_opt, ratio_uv, ratio_x) = plt.subplots(1, 3, figsize=(24, 7))
