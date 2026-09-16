@@ -144,6 +144,7 @@ if compute:
             Rad_sec = np.zeros(len(sections))
             Diss_sec = np.zeros(len(sections))
             bern_sec = np.zeros(len(sections))
+            R_sec = np.zeros(len(sections))
             for k, cond in enumerate(cond_sec):
                 Ekin_sec[k] = np.sum(Ekin[cond]) if cond.size > 0 else 0
                 OE_sec[k] = np.sum(orb_en[cond]) if cond.size > 0 else 0
@@ -151,6 +152,7 @@ if compute:
                 Rad_sec[k] = np.sum(Rad[cond]) if cond.size > 0 else 0
                 Diss_sec[k] = np.sum(Diss[cond]) if cond.size > 0 else 0
                 bern_sec[k] = np.sum(bern[cond]) if cond.size > 0 else 0
+                R_sec[k] = np.sum(Rsph[cond]*mass[cond])/np.sum(mass[cond]) if cond.size > 0 else 0
 
             E_snap = {'tfb': tfb[i], 
                       'Ekin_sec': Ekin_sec,
@@ -159,6 +161,7 @@ if compute:
                       'Rad_sec': Rad_sec,
                       'Diss_sec': Diss_sec, 
                       'bern_sec': bern_sec,
+                      'Ravg_sec': R_sec,
                       'label_obs': label_obs}
             
             energies[key] = E_snap

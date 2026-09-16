@@ -95,8 +95,7 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
                 'Lkin': np.nan,
                 'Ekin': np.nan,
                 'area': np.nan,
-                'mass': np.nan,
-                'R': np.nan
+                'mass': np.nan
             } for lab in label_obs} 
 
     cut_wind, bern, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, cond = 'bern')
@@ -117,8 +116,7 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
                 'Lkin': np.nan,
                 'Ekin': np.nan,
                 'area': np.nan,
-                'mass': np.nan,
-                'R': np.nan 
+                'mass': np.nan 
             } for lab in label_obs} 
 
     Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
@@ -173,6 +171,7 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
             Lum_fs = np.pi * np.sum(Rad_den_wind[indices] * dim_cell_wind[indices]**2) * prel.csol_cgs
             Lkin = 0.5 * np.sum(Mdot[indices] * v_rad_wind[indices]**2)
             Ekin = 0.5 * np.sum(Mass_wind[indices] * v_rad_wind[indices]**2)
+            Ravg = np.sum(R_wind[indices] * Mass_wind[indices]) / np.sum(Mass_wind[indices])
         elif how == 'mean': 
             mwind = C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices])
             Lum_fs = C_mult * np.pi * r_chosen**2 * np.mean(Rad_den_wind[indices]) * prel.csol_cgs
@@ -180,9 +179,8 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
             Lkin = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Den_wind[indices] * v_rad_wind[indices]**3) 
             Ekin = 0.5 * C_mult * np.pi * r_chosen**2 * np.mean(Mass_wind[indices] * v_rad_wind[indices]**3) 
         mass = np.sum(Mass_wind[indices])
-        Ravg = np.sum(R_wind[indices] * Mass_wind[indices]) / np.sum(Mass_wind[indices])
         area = np.pi * np.sum(dim_cell_wind[indices]**2)
-        data[label_obs[j]] = {'mwind': mwind, 'Lum_fs': Lum_fs, 'Lkin': Lkin, 'Ekin': Ekin, 'area': area, 'mass': mass, 'R': Ravg}
+        data[label_obs[j]] = {'mwind': mwind, 'Lum_fs': Lum_fs, 'Lkin': Lkin, 'Ekin': Ekin, 'area': area, 'mass': mass}
 
     return data
 
