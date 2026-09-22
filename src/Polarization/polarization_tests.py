@@ -10,30 +10,13 @@ import matplotlib.colors as colors
 import Utilities.prelude as prel
 import wesanderson
 from Utilities.basic_units import radians
-from Polarization.polarization import compute_polarization, ellipsoid_surface, ellipsoid_unit_normal
+from src.Polarization.polarization import compute_polarization
+from src.Polarization.geometries import create_disk, ellipsoid_surface, ellipsoid_unit_normal
 wes_palette = wesanderson.film_palette('Rushmore', 0)
 cmap = colors.LinearSegmentedColormap.from_list('Rushmore0', wes_palette)
+which_test = 'disk_test'
 
-def create_disk(radius=1.0, height=0.1, n_radial=50, n_vertical=10):
-    """
-    Create full 3D disk: height H centered at z=0 (from -H to +H).
-    Returns: X, Y, Z meshes for volumetric plotting or simulation.
-    """
-    theta = np.linspace(0, 2*np.pi, n_radial)
-    r_vals = np.linspace(0, radius, n_radial)
-    z_vals = np.linspace(-height, height, n_vertical)
-    
-    Theta, R, Z = np.meshgrid(theta, r_vals, z_vals, indexing='ij')
-    
-    X = R * np.cos(Theta)
-    Y = R * np.sin(Theta)
-    X = X.ravel()
-    Y = Y.ravel()
-    Z = Z.ravel()
-    
-    return X, Y, Z
-
-def polarization_for_disk(obs, angle):
+def Ploc_for_disk(obs, angle):
     """
     Compute polarization for a disk with normal along z, observed from obs.
     Assumes uniform intensity across the disk.
@@ -50,129 +33,185 @@ def polarization_for_disk(obs, angle):
     P = (1 - cos_theta_scat**2) / (1 + cos_theta_scat**2)
     
     return P
-#%%
-print("TEST one wave with incident/observer direction parallel to scattered (expect: P = 0).")
-ph_obs = np.array([0, 0, 1]) # observer along z
-I_obs = ph_obs # flux along x
-n_obs = ph_obs
-P, I, Q, U = compute_polarization(
-    # ph_obs[0], ph_obs[1], ph_obs[2],
-    I_obs[0], I_obs[1], I_obs[2],
-    1.,
-    n_obs)
-print(f"n_obs: {n_obs}, I_obs: {I_obs}, P = {P}\n---------")
-print("TEST one wave. incident/observer direction perpendicular to scattered (expect: P = 1).")
-ph_obs = np.array([0, 0, 1]) # observer along z
-I_obs = np.array([1, 0, 0]) # flux along x
-n_obs = ph_obs
-P, I, Q, U = compute_polarization(
-    # ph_obs[0], ph_obs[1], ph_obs[2],
-    I_obs[0], I_obs[1], I_obs[2],
-    1.,
-    n_obs)
-print(f"n_obs: {n_obs}, I_obs: {I_obs}, Q = {Q}, U = {U}, P = {P}\n---------")
-#%%
-# NB Healpix doesn't necessarily give symmetric points, so we expect a small polarization signal (anyway ~0)
-print("TEST of symmetry (all radial intensities) with healpix")
-nside = 64
-Npix = hp.nside2npix(nside)
-observers_xyz = hp.pix2vec(nside, np.arange(Npix)) # shape: (3, 192)
-x_obs, y_obs, z_obs = observers_xyz
-Ir_obs = np.ones_like(x_obs) * 4
-Ix_obs = Ir_obs * x_obs
-Iy_obs = Ir_obs * y_obs
-Iz_obs = Ir_obs * z_obs
 
-if nside <= 8: # check points and fluxes
-    fig = plt.figure(figsize=(10, 10))
-    ax = fig.add_subplot(111, projection = '3d')
-    ax.scatter(x_obs, y_obs, z_obs, s = 40)
-    ax.quiver(x_obs, y_obs, z_obs, Ix_obs, Iy_obs, Iz_obs, length=0.1, color='k')
-    ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
-    ax.set_xlim(-1.45, 1.45); ax.set_ylim(-1.45, 1.45); ax.set_zlim(-1.45, 1.45)
-    plt.tight_layout()
+def code_lambda05(mu, F=1.0):
+    """
+    Code (1950), lambda = 0.5, third approximation.
+    Returns Il, Ir, I, Q, P for emergent radiation.
+    """
+    mu = np.asarray(mu, dtype=float)
 
-plt.figure(figsize=(5,5))
-n_obs = [1, 0, 0]  
-P, I, Q, U = compute_polarization(
-    Ix_obs, Iy_obs, Iz_obs,
-    1.,
-    n_obs, flux = True)
-print(f"n_obs: {n_obs}, P = {P}")
-plt.scatter(Q/I, U/I, label = f'n_obs: {n_obs}')
-n_obs = [0, 1, 0]  
-P, I, Q, U = compute_polarization(
-    Ix_obs, Iy_obs, Iz_obs,
-    1.,
-    n_obs, flux = True)
-print(f"n_obs: {n_obs}, P = {P}")
-plt.scatter(Q/I, U/I, label = f'n_obs: {n_obs}')
-n_obs = [0, 0, 1]  
-P, I, Q, U = compute_polarization(
-    Ix_obs, Iy_obs, Iz_obs,
-    1.,
-    n_obs, flux = True)
-plt.scatter(Q/I, U/I, label = f'n_obs: {n_obs}')
-plt.legend(fontsize=16)
-plt.xlim(-1,1)
-plt.ylim(-1,1)
-plt.xlabel('Q/I')
-plt.ylabel('U/I')
-print(f"n_obs: {n_obs}, P = {P}\n---------")
-#%%
-print("TEST disk")
-x_obs, y_obs, z_obs = create_disk(radius=1.0, height=0.5, n_radial = 20, n_vertical=20)
-Ix_obs = np.zeros_like(x_obs)
-Iy_obs = np.zeros_like(y_obs)
-Iz_obs = 2 *np.ones_like(z_obs) 
-Iz_obs[z_obs<0] = -Iz_obs[z_obs<0] # points outward
+    Il = (3.0/8.0)*F*(
+        mu + 0.702509
+        - 0.141231*(1.0 - 0.494543*mu**2)/(1.0 + 3.088167*mu)
+        - 0.0400918*(1.0 - 0.4558133*mu**2)/(1.0 + 1.208943*mu)
+        + 0.0124928*(1.0 - 2.561096*mu**2)/(1.0 + 3.725616*mu)
+        + 0.0014601*(1.0 - 1.447584*mu**2)/(1.0 + 1.444011*mu)
+        - 0.0002295*(1.0 - 1.0717898*mu**2)/(1.0 + 1.070789*mu)
+    )
 
-if len(x_obs) < 100: # check points and fluxes
-    fig = plt.figure(figsize=(10, 10))
-    ax = fig.add_subplot(111, projection = '3d')
-    ax.scatter(x_obs, y_obs, z_obs, s = 40)
-    ax.quiver(x_obs, y_obs, z_obs, Ix_obs, Iy_obs, Iz_obs, length=0.1, color='k')
-    ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
-    ax.set_xlim(-1.45, 1.45); ax.set_ylim(-1.45, 1.45); ax.set_zlim(-1.45, 1.45)
-    plt.tight_layout()
+    Ir = (3.0/8.0)*F*(
+        mu + 0.702509
+        - 0.0713861/(1.0 + 3.088167*mu)
+        - 0.0218174/(1.0 + 1.208943*mu)
+        - 0.0195024/(1.0 + 3.725616*mu)
+        - 0.0006535/(1.0 + 1.444011*mu)
+        - 0.00001648/(1.0 + 1.070789*mu)
+    )
 
-n_obs_all_params = [[[1, 0, 0], 'solid', 'navy'],
-            [[-1, 0, 0], 'dashed', 'dodgerblue'],
-            [[0, 1, 0], 'solid', 'darkorange'],
-            [[0, -1, 0], 'dashed', 'r'],
-            [[0, 0, 1], 'solid', 'forestgreen'],
-            [[0, 0, -1], 'dashed', 'yellowgreen'],
-            [[1, 0, 1], 'dotted', 'k'],
-            [[1, 0, -1], 'dotted', 'k'],
-            [[np.sin(np.pi/3), 0, np.cos(np.pi/3)], 'dotted', 'k'],
-            [[np.sin(np.pi/3), 0, -np.cos(np.pi/3)], 'dotted', 'k']]
+    I = Il + Ir
+    Q = Ir - Il
+    P = Q / I
+    return Il, Ir, I, Q, P
 
-n_obs_all = [params[0] for params in n_obs_all_params]
-P_HR_n = np.zeros(len(n_obs_all))
-# P_an = np.zeros(len(n_obs_all))
-theta_obs = np.zeros(len(n_obs_all))
-for n_idx in range(len(n_obs_all)):
-    n_obs = n_obs_all[n_idx]
-    theta_obs[n_idx] = np.arccos(n_obs[2]/np.linalg.norm(n_obs))
-for n_idx in range(len(n_obs_all)):
+
+if which_test == 'easy_tests':
+    print("TEST one wave with incident/observer direction parallel to scattered (expect: P = 0).")
+    ph_obs = np.array([0, 0, 1]) # observer along z
+    I_obs = ph_obs # flux along x
+    n_obs = ph_obs
+    P, I, Q, U = compute_polarization(
+        # ph_obs[0], ph_obs[1], ph_obs[2],
+        I_obs[0], I_obs[1], I_obs[2],
+        1.,
+        n_obs)
+    print(f"n_obs: {n_obs}, I_obs: {I_obs}, P = {P}\n---------")
+    print("TEST one wave. incident/observer direction perpendicular to scattered (expect: P = 1).")
+    ph_obs = np.array([0, 0, 1]) # observer along z
+    I_obs = np.array([1, 0, 0]) # flux along x
+    n_obs = ph_obs
+    P, I, Q, U = compute_polarization(
+        # ph_obs[0], ph_obs[1], ph_obs[2],
+        I_obs[0], I_obs[1], I_obs[2],
+        1.,
+        n_obs)
+    print(f"n_obs: {n_obs}, I_obs: {I_obs}, Q = {Q}, U = {U}, P = {P}\n---------")
+
+    # NB Healpix doesn't necessarily give symmetric points, so we expect a small polarization signal (anyway ~0)
+    print("TEST of symmetry (all radial intensities) with healpix")
+    nside = 64
+    Npix = hp.nside2npix(nside)
+    observers_xyz = hp.pix2vec(nside, np.arange(Npix)) # shape: (3, 192)
+    x_obs, y_obs, z_obs = observers_xyz
+    Ir_obs = np.ones_like(x_obs) * 4
+    Ix_obs = Ir_obs * x_obs
+    Iy_obs = Ir_obs * y_obs
+    Iz_obs = Ir_obs * z_obs
+
+    if nside <= 8: # check points and fluxes
+        fig = plt.figure(figsize=(10, 10))
+        ax = fig.add_subplot(111, projection = '3d')
+        ax.scatter(x_obs, y_obs, z_obs, s = 40)
+        ax.quiver(x_obs, y_obs, z_obs, Ix_obs, Iy_obs, Iz_obs, length=0.1, color='k')
+        ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
+        ax.set_xlim(-1.45, 1.45); ax.set_ylim(-1.45, 1.45); ax.set_zlim(-1.45, 1.45)
+        plt.tight_layout()
+
+    plt.figure(figsize=(5,5))
+    n_obs = [1, 0, 0]  
+    P, I, Q, U = compute_polarization(
+        Ix_obs, Iy_obs, Iz_obs,
+        1.,
+        n_obs, flux = True)
+    print(f"n_obs: {n_obs}, P = {P}")
+    plt.scatter(Q/I, U/I, label = f'n_obs: {n_obs}')
+    n_obs = [0, 1, 0]  
+    P, I, Q, U = compute_polarization(
+        Ix_obs, Iy_obs, Iz_obs,
+        1.,
+        n_obs, flux = True)
+    print(f"n_obs: {n_obs}, P = {P}")
+    plt.scatter(Q/I, U/I, label = f'n_obs: {n_obs}')
+    n_obs = [0, 0, 1]  
+    P, I, Q, U = compute_polarization(
+        Ix_obs, Iy_obs, Iz_obs,
+        1.,
+        n_obs, flux = True)
+    plt.scatter(Q/I, U/I, label = f'n_obs: {n_obs}')
+    plt.legend(fontsize=16)
+    plt.xlim(-1,1)
+    plt.ylim(-1,1)
+    plt.xlabel('Q/I')
+    plt.ylabel('U/I')
+    print(f"n_obs: {n_obs}, P = {P}\n---------")
+
+if which_test == 'disk_test':
+    print("TEST disk")
+    x_obs, y_obs, z_obs = create_disk(radius=1.0, height=0.5, n_radial = 10, n_vertical=10)
+    Ix_obs = np.zeros_like(x_obs)
+    Iy_obs = np.zeros_like(y_obs)
+    Iz_obs = 2 *np.ones_like(z_obs) 
+    Iz_obs[z_obs<0] = -Iz_obs[z_obs<0] # points outward
+    Ivec = np.column_stack((Ix_obs, Iy_obs, Iz_obs))
+    Imag = np.linalg.norm(Ivec, axis=1)
+    Ihat = Ivec / Imag[:, None]
+    albedo = 0.5
+
+    if len(x_obs) < 100: # check points and fluxes
+        fig = plt.figure(figsize=(10, 10))
+        ax = fig.add_subplot(111, projection = '3d')
+        ax.scatter(x_obs, y_obs, z_obs, s = 40)
+        ax.quiver(x_obs, y_obs, z_obs, Ix_obs, Iy_obs, Iz_obs, length=0.1, color='k')
+        ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
+        ax.set_xlim(-1.45, 1.45); ax.set_ylim(-1.45, 1.45); ax.set_zlim(-1.45, 1.45)
+        plt.tight_layout()
+
+    n_obs_all_params = [[[1, 0, 0], 'solid', 'navy'],
+                [[0, 0, 1], 'solid', 'forestgreen'],
+                [[0, 0, -1], 'dashed', 'yellowgreen'],
+                [[1, 0, 1], 'dotted', 'k'],
+                [[1, 0, -1], 'dotted', 'k'],
+                [[np.sin(np.pi/3), 0, np.cos(np.pi/3)], 'dotted', 'k'],
+                [[np.sin(np.pi/3), 0, -np.cos(np.pi/3)], 'dotted', 'k']]
+
+    n_obs_all = [params[0] for params in n_obs_all_params]
+    mu_obs = np.zeros(len(n_obs_all))
+    P_HR_n = np.zeros(len(n_obs_all))
+    P_an = np.zeros(len(n_obs_all))
+    P_code = np.zeros(len(n_obs_all))
+    theta_obs = np.zeros(len(n_obs_all))
+    for n_idx in range(len(n_obs_all)):
         n_obs = n_obs_all[n_idx]
-        P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, 1., n_obs)
-        P_HR_n[n_idx] = P
+        mu_obs[n_idx] = n_obs[2]/np.linalg.norm(n_obs)
+        theta_obs[n_idx] = np.arccos(mu_obs[n_idx])
+    for n_idx in range(len(n_obs_all)):
+            n_obs = n_obs_all[n_idx]
+            P, I, Q, U = compute_polarization(Ix_obs, Iy_obs, Iz_obs, albedo, n_obs)
+            P_HR_n[n_idx] = P
 
-angle_test = np.linspace(0, 1.1*np.pi, 100)
-P_an = np.zeros_like(angle_test)
-for idx, a in enumerate(angle_test):
-    P_an[idx] = polarization_for_disk(a, angle = True)
+    angle_test = np.linspace(0, 1.1*np.pi, 100) 
+    P_an = np.zeros_like(angle_test)
+    for idx, a in enumerate(angle_test):
+        P_an[idx] = Ploc_for_disk(a, angle = True)
 
-plt.figure(figsize=(8,8))
-plt.scatter(theta_obs*radians, P_HR_n, label='numerical', c = wes_palette[4], s = 50)
-plt.plot(angle_test*radians, P_an, label='Analytic', ls = 'dashed', c = 'k')
-plt.xlabel(r'$\theta$')
-plt.ylabel('Polarization Fraction P')
-plt.legend(fontsize=16)
-plt.savefig(f'{abspath}/Figs/wind_paper/disk_test.pdf', bbox_inches='tight')
-# plt.title('Disk test', fontsize=20)
+     # local mu for every disk cell
+    # mu_obsmu_all = Ihat @ n_obs_all
+    # only cells whose flux points toward the observer
+    # visible = mu_obs > 0
+    # mu_vis = mu_obs[visible]
+    # print(mu_vis)
 
+    
+    for n_idx in range(len(n_obs_all)):
+        mu_code = mu_obs[n_idx] # they are all the same
+        if mu_code >= 0 : 
+            _, _, _, _, P_loc = code_lambda05(
+                mu_code,
+                F=Imag[0])
+            P_code[n_idx] = P_loc
+        else:
+            P_code[n_idx] = np.nan
+
+    plt.figure(figsize=(8,8))
+    # plt.plot(angle_test*radians, P_an, label='Analytic full scatt', ls = 'dashed', c = 'k')
+    # plt.scatter(theta_obs*radians, P_HR_n, label='numerical', c = wes_palette[4], s = 50)
+    plt.scatter(theta_obs*radians, P_code, label='Code (1950)', ls = 'dotted', c = wes_palette[1])
+    plt.xlabel(r'Latitude (radians)')
+    plt.ylabel('Net Polarization Fraction P')
+    plt.legend(fontsize=16)
+    plt.title(f'Disk, albedo = {albedo}', fontsize=20)
+
+#%%
 #%%
 print("TEST ellipsoid surface")
 a = 1.0

@@ -470,7 +470,7 @@ def plot_light_curves(folder, check, choice, group="bands"):
         axes = [ax_bol, ax_opt, ax_uv, ax_x]
         for k in plotted:
             Lkin = np.diff(Ekin_cgs[k]) / np.diff(tfb_kin_cgs)
-            ax_Ruv.plot(tfb[2:], curves["optical"][k][2:]/Lkin, color=colours[k])
+            ax_Ruv.plot(tfb[2:], curves["optical"][k][2:]/Lkin, color=colours[k], label=labels[k])
             for sec in sectors[k]:
                 # Ekin_sec
                 ax_bol.plot(tfb, curves_fld[sec], color=colours[k], alpha = 0.1, lw = 1)
@@ -512,8 +512,11 @@ def plot_light_curves(folder, check, choice, group="bands"):
         ax_x.legend(fontsize=15)
         ratio_axes = ()
         ax_Ruv.set_ylabel(r"optical/radio", fontsize=30)
-        ax_Ruv.set_ylim(1e-4, 1e6)
+        ax_Ruv.set_ylim(1e-2, 1e6)
         ax_Ruv.set_yscale("log")
+        ax_Ruv.set_xlabel(r"$t/t_{\rm fb}$", fontsize=30)
+        ax_Ruv.grid(True)
+        ax_Ruv.legend(fontsize=15)
     else:
         fig, (ax_opt, ax_uv, ax_x) = plt.subplots(1, 3, figsize=(24, 7))
         fig_ratio, (ratio_opt, ratio_uv, ratio_x) = plt.subplots(1, 3, figsize=(24, 7))

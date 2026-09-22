@@ -2,8 +2,8 @@
 #SBATCH --job-name=tde-gray-mg-pol
 #SBATCH --output=output_%j.txt
 #SBATCH --error=error_%j.txt
-#SBATCH --nodes=4
-#SBATCH --ntasks=768
+#SBATCH --nodes=8
+#SBATCH --ntasks-per-node=192
 #SBATCH --exclusive
 #SBATCH --partition=genoa
 #SBATCH --time=1-10:00:00
@@ -11,98 +11,74 @@
 #SBATCH --mail-user="martire@strw.leidenuniv.nl"
 #SBATCH --mail-type=TIME_LIMIT_50,TIME_LIMIT_90,ALL
 
+#
+# Grey + multigroup polarization post-process of one Snapshot3D.
+#
+# Usage (from this directory, so output_<jobid>.txt lands here):
+#     cp ../../build/gnuReleaseMPI/rich ./rich      # after building
+#     sbatch submit.sh
+# Extra arguments are passed straight to the executable, e.g.
+#     sbatch submit.sh --output.stem output/my_run
+#
+# Physics settings (Fleck factor 1, emission from every cell outside the deep
+# surface, exploration-packet weight cap) live in test.cpp and are compiled in.
 
 set -euo pipefail
 module restore rich_gnu_2025 # I added this line
-RICH_POSTPROCESS_SNAPSHOT=/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_151/snap_151.h5
-RICH_EXECUTABLE=/home/pmartire/RICH/build/gnuReleaseMPI/rich
 
-# These are the only user-set numerical controls for the calculation.
-LEARNING_ITERATIONS=21
-STATISTICS_ITERATIONS=75
+# ----------------------------------------------------------------------------
+# STATISTICS KNOBS
+#
+# GENERATIONS is the number of final (statistics) generations. The result is
+# the average over them, so the statistical error scales as 1/sqrt(GENERATIONS).
+# The run adds 21 fixed burn-in/probe generations in front; with the budgets
+# below, one MG generation takes ~10 s and one grey generation ~12 s, so the
+# total run time is roughly 6 min + GENERATIONS * 22 s (75 -> ~38 min).
+# Raise --time above when raising GENERATIONS.
+GENERATIONS=75
 
-require_integer_at_least()
-{
-    local name=$1
-    local value=$2
-    local minimum=$3
-    if [[ ! $value =~ ^[0-9]+$ ]] || (( value < minimum )); then
-        echo "$name must be an integer >= $minimum (got '$value')" >&2
-        exit 2
-    fi
-}
+# Packets per generation for the cells that were learned to produce escaping
+# light: average packets per learned cell (budget) and the cap per cell.
+# MG: 1600/cell -> ~26M learned + ~10M exploration packets = ~36M per generation.
+MG_LEARNED_BUDGET=1600
+GREY_LEARNED_BUDGET=500
+LEARNED_MAX_PER_CELL=50000
+# ----------------------------------------------------------------------------
 
-require_integer_at_least LEARNING_ITERATIONS "$LEARNING_ITERATIONS" 2
-require_integer_at_least STATISTICS_ITERATIONS "$STATISTICS_ITERATIONS" 1
+# Inputs
+SNAPSHOT=/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_151/snap_151.h5
 
-: "${RICH_POSTPROCESS_SNAPSHOT:?Export RICH_POSTPROCESS_SNAPSHOT with the input Snapshot3D HDF5 path}"
-: "${RICH_EXECUTABLE:?Export RICH_EXECUTABLE with the absolute path to the built MPI executable}"
+here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+root=$(cd -- "$here/../.." && pwd -P)          # repository root (data/ lives there)
+executable="$here/rich"                         # copied here by the user
 
-if [[ $RICH_POSTPROCESS_SNAPSHOT != /* ]]; then
-    echo "RICH_POSTPROCESS_SNAPSHOT must be an absolute path" >&2
-    exit 2
-fi
-if [[ $RICH_EXECUTABLE != /* ]]; then
-    echo "RICH_EXECUTABLE must be an absolute path" >&2
-    exit 2
-fi
-
-if [[ -n ${SLURM_SUBMIT_DIR:-} ]]; then
-    run_directory=$(cd -- "$SLURM_SUBMIT_DIR" && pwd -P)
-else
-    run_directory=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
-fi
-if [[ ${run_directory##*/} != imc_postprocess_tde_gray_mg_polarization ]]; then
-    echo "Submit this job from runs/imc_postprocess_tde_gray_mg_polarization" >&2
-    exit 2
-fi
-rich_root=$(cd -- "$run_directory/../../../RICH/" && pwd -P) # it was $(cd -- "$run_directory/../../.." && pwd -P)
-sta_multigroup="$rich_root/data/STA/MG/" #/gpfs/home3/pmartire/ # it was: "$rich_root/data/STA/MG/"
-sta_gray="$rich_root/data/STA/" 
-eos_tables="$rich_root/data/EOS/" 
-
-for required_path in \
-    "$RICH_POSTPROCESS_SNAPSHOT" \
-    "$RICH_EXECUTABLE" \
-    "${sta_multigroup}frequency_edges.txt" \
-    "${sta_gray}planck.txt"; do
-    if [[ ! -e $required_path ]]; then
-        echo "Required input does not exist: $required_path" >&2
-        exit 2
-    fi
+for f in "$executable" "$SNAPSHOT" "$root/data/STA/MG/frequency_edges.txt" \
+         "$root/data/STA/planck.txt" "$root/data/EOS/Tfile.txt"; do
+    [[ -e $f ]] || { echo "missing: $f" >&2; exit 2; }
 done
-if [[ ! -x $RICH_EXECUTABLE ]]; then
-    echo "RICH_EXECUTABLE is not executable: $RICH_EXECUTABLE" >&2
-    exit 2
-fi
+[[ -x $executable ]] || { echo "not executable: $executable" >&2; exit 2; }
 
-if [[ -n ${RICH_MPI_LAUNCHER:-} ]]; then
-    command -v "$RICH_MPI_LAUNCHER" >/dev/null 2>&1 || {
-        echo "RICH_MPI_LAUNCHER is not executable or in PATH: $RICH_MPI_LAUNCHER" >&2
-        exit 2
-    }
-    mpi_launcher=("$RICH_MPI_LAUNCHER")
-elif [[ -n ${SLURM_JOB_ID:-} ]]; then
-    command -v srun >/dev/null 2>&1 || {
-        echo "This Slurm job requires srun in PATH" >&2
-        exit 2
-    }
-    mpi_launcher=(srun)
-elif command -v mpirun >/dev/null 2>&1; then
-    mpi_launcher=(mpirun)
-elif command -v mpiexec >/dev/null 2>&1; then
-    mpi_launcher=(mpiexec)
-else
-    echo "No MPI launcher found; load MPI or submit through Slurm" >&2
-    exit 2
-fi
+# The executable links VTK, HDF5 and OpenMPI from the module stack.
+command -v ml >/dev/null 2>&1 || source /etc/profile.d/modules.sh
+ml restore gcc
 
-mkdir -p "$run_directory/output"
-cd "$run_directory"
-"${mpi_launcher[@]}" "$RICH_EXECUTABLE" \
-    --input.snapshot "$RICH_POSTPROCESS_SNAPSHOT" \
-    --input.multigroup-opacity-directory "$sta_multigroup" \
-    --input.grey-opacity-directory "$sta_gray" \
-    --input.eos-directory "$eos_tables" \
-    --adaptive.source.burnin-generations "$LEARNING_ITERATIONS" \
-    --transport.generations "$STATISTICS_ITERATIONS"
+export RICH_MEASURED_LB_DEBUG_MEMORY=1   # per-rank memory lines in error_<jobid>.txt
+
+echo "exe:         $executable"
+echo "snapshot:    $SNAPSHOT"
+echo "tasks:       ${SLURM_NTASKS:-1}"
+echo "generations: $GENERATIONS  (MG budget $MG_LEARNED_BUDGET, grey $GREY_LEARNED_BUDGET, max $LEARNED_MAX_PER_CELL)"
+
+cd "$here"
+mkdir -p output
+
+exec srun "$executable" \
+    --input.snapshot "$SNAPSHOT" \
+    --input.multigroup-opacity-directory "$root/data/STA/MG/" \
+    --input.grey-opacity-directory "$root/data/STA/" \
+    --input.eos-directory "$root/data/EOS/" \
+    --transport.generations "$GENERATIONS" \
+    --volume-emission.learned-photons-per-cell-budget "$MG_LEARNED_BUDGET" \
+    --volume-emission.learned-photons-per-cell-budget-grey "$GREY_LEARNED_BUDGET" \
+    --volume-emission.learned-max-photons "$LEARNED_MAX_PER_CELL" \
+    "$@"

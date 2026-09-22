@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import Utilities.prelude as prel
 from Utilities.operators import sort_list
-from Polarization.polarization import compute_polarization
+from src.Polarization.polarization import compute_polarization
 from scipy.ndimage import uniform_filter1d
 from Utilities.basic_units import radians
 
@@ -27,7 +27,7 @@ albedo_evolution = True
 if time_evolution:
     avg_in_time = True
     avg_in_los = True
-    which_obs = 'left_right_z' # you use it if avg_in_los is True
+    which_obs = 'split_stream' # you use it if avg_in_los is True
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
@@ -45,7 +45,7 @@ Pmax = 0.6
 if time_evolution:
     if avg_in_los:
         from Utilities.operators import choose_observers
-        indices_sorted, label_obs, colors_obs, lines_obs = choose_observers(observers_xyz, choice = which_obs)
+        indices_sorted, label_obs, colors_obs, lines_obs, _, _ = choose_observers(observers_xyz, choice = which_obs)
         # n_obs_all = [observers_xyz[idx] for idx in indices_sorted]
         len_obs = len(indices_sorted)
         
@@ -70,13 +70,13 @@ if time_evolution:
     A_all = np.zeros((len(snaps_lum), len_obs))
     for s, snap in enumerate(snaps_lum): 
         try:
-            photo = np.load(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}.npz')
+            photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
         except FileNotFoundError:
             continue
         Fx, Fy, Fz, alpha_rossland, alpha_scatter = photo['Fx'], photo['Fy'], photo['Fz'], photo['alpha_rossland'], photo['alpha_scatter']
         weight = alpha_scatter/alpha_rossland
 
-        # photo = np.loadtxt(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}POL.txt')
+        # photo = np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snap}POL.txt')
         # x, y, z, den, alpha, Lum, Fx, Fy, Fz = photo[0], photo[1], photo[2], photo[4], photo[12], photo[14], photo[16], photo[17], photo[18]
         # kappa = alpha/den
         for i_o in range(len_obs):
@@ -162,7 +162,7 @@ if angle_evolution:
     fig, ax = plt.subplots(figsize=(8,6))
     for snap in snaps:
         time = tfb_lum[np.argmin(np.abs(snaps_lum - snap))]
-        photo = np.load(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}.npz')
+        photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
         Fx, Fy, Fz, alpha_rossland, alpha_scatter = photo['Fx'], photo['Fy'], photo['Fz'], photo['alpha_rossland'], photo['alpha_scatter']
         weight = alpha_scatter/alpha_rossland
         
@@ -206,7 +206,7 @@ if albedo_evolution:
     fig, ax = plt.subplots(figsize=(8,6))
     for snap in snaps:
         time = tfb_lum[np.argmin(np.abs(snaps_lum - snap))]
-        photo = np.load(f'{abspath}/data/{folder}/photoNEW/{check}_photo{snap}.npz')
+        photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
         Fx, Fy, Fz, alpha_rossland, alpha_scatter = photo['Fx'], photo['Fy'], photo['Fz'], photo['alpha_rossland'], photo['alpha_scatter']
         albedo = alpha_scatter/alpha_rossland
         flux = np.sqrt(Fx**2 + Fy**2 + Fz**2)
