@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=tde800
+#SBATCH --job-name=tde_800
 #SBATCH --output=output_800.txt
 #SBATCH --error=error_800.txt
 #SBATCH --nodes=8
