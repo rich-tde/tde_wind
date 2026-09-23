@@ -27,8 +27,24 @@ def create_disk(radius=1.0, height=0.1, n_radial=50, n_vertical=10):
     
     return X, Y, Z
 
-def ellipsoid_surface(n_bins, a, b, c, x0=0, y0=0, z0=0, healpix = False, stay_helpix = False):
-    """Sample uniform points on ellipsoid surface x²/a² + y²/b² + z²/c² = 1"""
+def ellipsoid_surface(n_bins, a, b, c,
+                      x0=0, y0=0, z0=0,
+                      healpix=False):
+    """
+    Sample points on the ellipsoid surface
+
+        x^2/a^2 + y^2/b^2 + z^2/c^2 = 1
+
+    and compute the finite surface area dA associated with each point.
+
+    Returns
+    -------
+    x, y, z : ndarray
+        Coordinates of the surface points.
+
+    dA : ndarray
+        Surface area associated with each point.
+    """
 
     if healpix:
         if n_bins > 16:
@@ -39,9 +55,14 @@ def ellipsoid_surface(n_bins, a, b, c, x0=0, y0=0, z0=0, healpix = False, stay_h
         npix = hp.nside2npix(nside)
         # Get uniform observer directions (theta, phi) from HEALPix pixels
         theta, phi = hp.pix2ang(nside, np.arange(npix))
+        THETA = theta
+        PHI = phi
+        dOmega = np.full(npix, 4.0 * np.pi / npix)
+        
 
     else:
-        if n_bins % 2: n_bins -= 1  # Force even
+        if n_bins % 2: 
+            n_bins -= 1  # Force even
         n_bins = int(n_bins)
         # make the sample symmetric with respect to cartesian axis
         phi_up = np.concatenate([np.linspace(0, np.pi/2, int(n_bins/4), endpoint=False),
@@ -53,18 +74,41 @@ def ellipsoid_surface(n_bins, a, b, c, x0=0, y0=0, z0=0, healpix = False, stay_h
         theta = np.concatenate([theta_up, theta_down])
         theta = np.unique(theta)
 
-    if stay_helpix:
-        PHI, THETA = phi, theta
-    else:
         PHI, THETA = np.meshgrid(phi, theta)    
+
+        # angle edges
+        theta_edges = np.empty(len(theta) + 1)
+        theta_edges[0] = 0.0
+        theta_edges[-1] = np.pi
+        theta_edges[1:-1] = (theta[:-1] + theta[1:]) / 2.0
+        # ∫ sin(theta) dtheta, while phi is uniformly sampled
+        dmu = (np.cos(theta_edges[:-1]) - np.cos(theta_edges[1:]))
+        dphi = 2.0 * np.pi / len(phi)
+        dOmega = dmu[:, None] * dphi
+        # Repeat along phi
+        dOmega = np.broadcast_to(dOmega, THETA.shape)
+
+
+    # Unit radial vector of the parameter sphere
+    nx = np.sin(THETA) * np.cos(PHI)
+    ny = np.sin(THETA) * np.sin(PHI)
+    nz = np.cos(THETA)
     # Ellipsoid coordinates
-    x = a * np.sin(THETA) * np.cos(PHI)
-    y = b * np.sin(THETA) * np.sin(PHI)
-    z = c * np.cos(THETA)
-    
-    x = x.ravel() + x0
-    y = y.ravel() + y0
-    z = z.ravel() + z0
+    x = a * nx + x0
+    y = b * ny + y0
+    z = c * nz + z0
+
+    dA_dOmega = np.sqrt(
+        (b * c * nx)**2
+        + (a * c * ny)**2
+        + (a * b * nz)**2)
+
+    # Finite area represented by each point
+    dA = dA_dOmega * dOmega
+    x = x.ravel()
+    y = y.ravel()
+    z = z.ravel()
+    dA = dA.ravel()
 
     # plt.figure(figsize=(6,6))
     # plt.scatter(THETA, PHI, s=5)
@@ -76,7 +120,7 @@ def ellipsoid_surface(n_bins, a, b, c, x0=0, y0=0, z0=0, healpix = False, stay_h
     # plt.tight_layout()
     # plt.show()
     
-    return x, y, z
+    return x, y, z, dA
 
 def ellipsoid_unit_normal(x, y, z, a, b, c, x0=0, y0=0, z0=0):
     """
@@ -94,6 +138,12 @@ def ellipsoid_unit_normal(x, y, z, a, b, c, x0=0, y0=0, z0=0):
     nx = 2*(x-x0) / a**2
     ny = 2*(y-y0) / b**2
     nz = 2*(z-z0) / c**2
+    # if it's a disk, adjust the normal to point along z-axis
+    if a == b and c < 1e-6:
+        print('It is a disk')
+        nz = np.sign(z) * np.ones_like(z)  if np.any(z != 0) else np.ones_like(z)
+        nx = np.zeros_like(x)
+        ny = np.zeros_like(y)
     
     # Stack into vectors
     n_vec = np.vstack((nx, ny, nz)).T  # (N,3)

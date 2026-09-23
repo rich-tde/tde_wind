@@ -10,7 +10,7 @@ import matplotlib.colors as colors
 import Utilities.prelude as prel
 import wesanderson
 from Utilities.basic_units import radians
-from src.Polarization.polarization import compute_polarization
+from src.Polarization.polarization_singlescatt import compute_polarization
 from src.Polarization.geometries import create_disk, ellipsoid_surface, ellipsoid_unit_normal
 wes_palette = wesanderson.film_palette('Rushmore', 0)
 cmap = colors.LinearSegmentedColormap.from_list('Rushmore0', wes_palette)
@@ -33,36 +33,6 @@ def Ploc_for_disk(obs, angle):
     P = (1 - cos_theta_scat**2) / (1 + cos_theta_scat**2)
     
     return P
-
-def code_lambda05(mu, F=1.0):
-    """
-    Code (1950), lambda = 0.5, third approximation.
-    Returns Il, Ir, I, Q, P for emergent radiation.
-    """
-    mu = np.asarray(mu, dtype=float)
-
-    Il = (3.0/8.0)*F*(
-        mu + 0.702509
-        - 0.141231*(1.0 - 0.494543*mu**2)/(1.0 + 3.088167*mu)
-        - 0.0400918*(1.0 - 0.4558133*mu**2)/(1.0 + 1.208943*mu)
-        + 0.0124928*(1.0 - 2.561096*mu**2)/(1.0 + 3.725616*mu)
-        + 0.0014601*(1.0 - 1.447584*mu**2)/(1.0 + 1.444011*mu)
-        - 0.0002295*(1.0 - 1.0717898*mu**2)/(1.0 + 1.070789*mu)
-    )
-
-    Ir = (3.0/8.0)*F*(
-        mu + 0.702509
-        - 0.0713861/(1.0 + 3.088167*mu)
-        - 0.0218174/(1.0 + 1.208943*mu)
-        - 0.0195024/(1.0 + 3.725616*mu)
-        - 0.0006535/(1.0 + 1.444011*mu)
-        - 0.00001648/(1.0 + 1.070789*mu)
-    )
-
-    I = Il + Ir
-    Q = Ir - Il
-    P = Q / I
-    return Il, Ir, I, Q, P
 
 
 if which_test == 'easy_tests':
@@ -228,7 +198,7 @@ n_obs_all = [params[0] for params in n_obs_all_params]
 P_HR_n = np.zeros((len(c_all), len(n_obs_all)))
 
 for h_idx, c in enumerate(c_all):
-    x_obs, y_obs, z_obs = ellipsoid_surface(1e3, a, b, c)
+    x_obs, y_obs, z_obs, dA_obs = ellipsoid_surface(1e3, a, b, c)
     I_vec = ellipsoid_unit_normal(x_obs, y_obs, z_obs, a, b, c)
     Ix_obs, Iy_obs, Iz_obs = I_vec[:,0], I_vec[:,1], I_vec[:,2]
     if not np.allclose(np.sum(x_obs), 0, atol=1e-10):

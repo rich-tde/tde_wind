@@ -68,7 +68,8 @@ Use the included entry point to inspect and plot any combined VTK field:
 
 Use a Python 3 environment with NumPy, SciPy, and Matplotlib available.
 
-```bash
+``` From MAOR:
+bash
 python3 plot_sphere.py \
   output/tde_gray_mg_polarization.vtk --list-fields
 
@@ -80,3 +81,16 @@ python3 plot_sphere.py \
   output/tde_gray_mg_polarization.vtk \
   --field grey_polarization_degree
 ```
+
+``` WHAT WE DO
+python3 plot_sphere.py /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/Polarization/tde_gray_mg75polarization151.vtk --list-fields
+
+python3 plot_sphere.py \
+  /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/Polarization/tde_gray_mg75polarization151.vtk \
+  --field forward_luminosity --scale log
+
+python3 plot_sphere.py \
+  /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/Polarization/tde_gray_mg75polarization151.vtk \
+  --field grey_polarization_degree
+
+``` 

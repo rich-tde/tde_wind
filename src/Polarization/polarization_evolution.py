@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import Utilities.prelude as prel
 from Utilities.operators import sort_list
-from src.Polarization.polarization import compute_polarization
+from Polarization.polarization_singlescatt import compute_polarization
 from scipy.ndimage import uniform_filter1d
 from Utilities.basic_units import radians
 

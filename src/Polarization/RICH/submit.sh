@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=tde-gray-mg-pol
-#SBATCH --output=output_%j.txt
-#SBATCH --error=error_%j.txt
+#SBATCH --job-name=tde800
+#SBATCH --output=output_800.txt
+#SBATCH --error=error_800.txt
 #SBATCH --nodes=8
-#SBATCH --ntasks-per-node=192
+#SBATCH --ntasks=1536
 #SBATCH --exclusive
 #SBATCH --partition=genoa
 #SBATCH --time=1-10:00:00
@@ -24,7 +24,6 @@
 # surface, exploration-packet weight cap) live in test.cpp and are compiled in.
 
 set -euo pipefail
-module restore rich_gnu_2025 # I added this line
 
 # ----------------------------------------------------------------------------
 # STATISTICS KNOBS
@@ -35,7 +34,7 @@ module restore rich_gnu_2025 # I added this line
 # below, one MG generation takes ~10 s and one grey generation ~12 s, so the
 # total run time is roughly 6 min + GENERATIONS * 22 s (75 -> ~38 min).
 # Raise --time above when raising GENERATIONS.
-GENERATIONS=75
+GENERATIONS=800
 
 # Packets per generation for the cells that were learned to produce escaping
 # light: average packets per learned cell (budget) and the cap per cell.
@@ -48,8 +47,8 @@ LEARNED_MAX_PER_CELL=50000
 # Inputs
 SNAPSHOT=/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_151/snap_151.h5
 
-here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
-root=$(cd -- "$here/../.." && pwd -P)          # repository root (data/ lives there)
+here=/home/pmartire/RICH/build/gnuReleaseMPI #$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+root=/home/pmartire/RICH #$(cd -- "$here/../.." && pwd -P)           repository root (data/ lives there)
 executable="$here/rich"                         # copied here by the user
 
 for f in "$executable" "$SNAPSHOT" "$root/data/STA/MG/frequency_edges.txt" \
@@ -59,8 +58,8 @@ done
 [[ -x $executable ]] || { echo "not executable: $executable" >&2; exit 2; }
 
 # The executable links VTK, HDF5 and OpenMPI from the module stack.
-command -v ml >/dev/null 2>&1 || source /etc/profile.d/modules.sh
-ml restore gcc
+#command -v ml >/dev/null 2>&1 || source /etc/profile.d/modules.sh
+module restore rich_gnu_2025 # I added this line
 
 export RICH_MEASURED_LB_DEBUG_MEMORY=1   # per-rank memory lines in error_<jobid>.txt
 
