@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=tde_800
-#SBATCH --output=output_800.txt
-#SBATCH --error=error_800.txt
+#SBATCH --job-name=tde_75
+#SBATCH --output=output_75.txt
+#SBATCH --error=error_75.txt
 #SBATCH --nodes=8
 #SBATCH --ntasks=1536
 #SBATCH --exclusive
@@ -14,7 +14,7 @@
 #
 # Grey + multigroup polarization post-process of one Snapshot3D.
 #
-# Usage (from this directory, so output_<jobid>.txt lands here):
+# Usage (from this directory, so output_xx.txt lands here):
 #     cp ../../build/gnuReleaseMPI/rich ./rich      # after building
 #     sbatch submit.sh
 # Extra arguments are passed straight to the executable, e.g.
@@ -34,7 +34,7 @@ set -euo pipefail
 # below, one MG generation takes ~10 s and one grey generation ~12 s, so the
 # total run time is roughly 6 min + GENERATIONS * 22 s (75 -> ~38 min).
 # Raise --time above when raising GENERATIONS.
-GENERATIONS=800
+GENERATIONS=75
 
 # Packets per generation for the cells that were learned to produce escaping
 # light: average packets per learned cell (budget) and the cap per cell.
@@ -45,12 +45,14 @@ LEARNED_MAX_PER_CELL=50000
 # ----------------------------------------------------------------------------
 
 # Inputs
-SNAPSHOT=/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_151/snap_151.h5
+# SNAPSHOT=/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_151/snap_151.h5
+SNAPSHOT=/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/snap_429/snap_429.h5
 
 here=/home/pmartire/RICH/build/gnuReleaseMPI #$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 root=/home/pmartire/RICH #$(cd -- "$here/../.." && pwd -P)           repository root (data/ lives there)
 executable="$here/rich"                         # copied here by the user
 
+# Checks that the executable, snapshot, multigroup opacity tables, Planck table, and EOS table exist before starting.
 for f in "$executable" "$SNAPSHOT" "$root/data/STA/MG/frequency_edges.txt" \
          "$root/data/STA/planck.txt" "$root/data/EOS/Tfile.txt"; do
     [[ -e $f ]] || { echo "missing: $f" >&2; exit 2; }
@@ -61,7 +63,7 @@ done
 #command -v ml >/dev/null 2>&1 || source /etc/profile.d/modules.sh
 module restore rich_gnu_2025 # I added this line
 
-export RICH_MEASURED_LB_DEBUG_MEMORY=1   # per-rank memory lines in error_<jobid>.txt
+export RICH_MEASURED_LB_DEBUG_MEMORY=1   # per-rank memory lines in error_xx.txt for per-rank memory diagnostics
 
 echo "exe:         $executable"
 echo "snapshot:    $SNAPSHOT"

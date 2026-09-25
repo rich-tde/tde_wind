@@ -14,6 +14,44 @@ lam_abs = 1.0
 lam_code = 0.5
 lam_ShSu = 1/6
 
+def single_scattering(mu, F=1.0):
+    """
+    Single Thomson scattering of an initially unpolarized
+    beam travelling along the local normal.
+
+    Parameters
+    ----------
+    mu :
+        cos(scattering angle) = n_local . n_obs
+
+    F :
+        Arbitrary normalization of the incident radiation.
+
+    Returns
+    -------
+    Il, Ir, I, Q, P
+
+    Convention:
+        Q = Ir - Il
+    """
+
+    mu = np.asarray(mu, dtype=float)
+
+    # Thomson scattering:
+    # perpendicular component ~ 1
+    # parallel component      ~ mu^2
+    
+    # normalization is arbitrary here.
+    Ir = F * np.ones_like(mu)
+    Il = F * mu**2
+
+    I = Ir + Il
+    Q = Ir - Il
+
+    P = Q / I
+
+    return Il, Ir, I, Q, P
+
 class Code1950Atmosphere:
     """
     Numerical implementation of A. D. Code (1950), Sections III-V,
@@ -121,10 +159,12 @@ class Code1950Atmosphere:
 
         The exponential modes only modify it near the surface and are defined to respect the boundary conditions.
         """
-        vals, vecs = eig(self.A) # returns ordinary eigenvectors (i.e. of the form y ~ eigenvec * exp(eigenvalue * tau)) for Av = kv, not the full Jordan chain.
+        vals, vecs = eig(self.A) # returns ordinary eigenvectors for Av = kv (i.e. of the form y ~ eigenvec * exp(eigenvalue * tau)), which you exepct to be 2n independent, not the full Jordan chain.
 
         # We want to exclude: 
-        # - the mode for k = 0 (which we compute separately from eq.39)
+        # - the mode for k = 0 (which we compute separately from eq.39). 
+        # The zero eigenvalue has a an ordinary solution v0 s.t. Av0 = 0, which is found with eig(A), but also a generalized eigenvector w satisfying Aw=v0. 
+        # The pair v0,w form a Jordan chain and so y = w + \tau v0 is a solution
         # - the divergent mode (which is not physically relevant). this corresponds to the eigenvalue with Re(eigenvalue) < 0.
         tol = 1e-6
         keep = np.where(np.real(vals) < -tol)[0]
@@ -626,6 +666,7 @@ def compute_polarization_code(
 
 if __name__ == "__main__":
     import healpy as hp
+    from scipy.interpolate import griddata
     import matplotlib.pyplot as plt
     import Utilities.prelude as prel
     from src.Polarization.geometries import ellipsoid_surface, ellipsoid_unit_normal
@@ -667,6 +708,7 @@ if __name__ == "__main__":
     n_obs_chosen = np.array([[0, 0, 1.], [1, 0.0, 1e-4], [1, 0, 1]])
     mu_chosen_obs = n_obs_chosen[:, 2] / np.linalg.norm(n_obs_chosen, axis=1)
     P_disk = np.zeros(len(n_obs_chosen))
+    P_singlescatt = np.zeros(len(n_obs_chosen))
     for n_idx, n_obs in enumerate(n_obs_chosen):
         # mu_d = mu_chosen_obs[n_idx]
         print(f"\nNet polarization for uniform vertical flux for obs {n_obs}:")
@@ -681,6 +723,8 @@ if __name__ == "__main__":
             area_weight=False,
             atmospheres_unit_flux=False)
 
+        # _, _, _, _, P_singlescatt[n_idx] = single_scattering(mu_chosen_obs[n_idx], F=flux_mag)
+        
         P_disk[n_idx] = P
     
         print(f"P = {P:.6f}, I = {I:.6f}, Q = {Q:.6f}, U = {U:.6f}")
@@ -714,6 +758,7 @@ if __name__ == "__main__":
 
     #%% Plotting
     plt.figure(figsize=(8,8))
+    # plt.scatter(mu_chosen_obs, P_singlescatt, s = 70, label = "single scattering", c = 'k')
     plt.plot(mu, P0, label=r"$P_{\rm loc}$", c = 'gray', ls = '--')
     plt.scatter(mu_chosen_obs, P_disk, s = 50, label = "disk")
     plt.scatter(mu_chosen_obs, P_sphere, s = 50, label = "sphere")
@@ -818,7 +863,6 @@ if __name__ == "__main__":
                             atmospheres_unit_flux=True)
         P_ell_Pros[c_idx] = P
     #%%
-    print(xi_Pro)
     fig, (axO, axP) = plt.subplots(1,2, figsize=(16,8)) 
     axO.plot(xi_Obl, P_ell_sc_Obl*100, label = r"$\lambda = $" + f"{lam_sc}")
     axO.plot(xi_Obl, P_ell_Obl*100, label = r"$\lambda = $" + f"{lam_ShSu:.2f}")
@@ -847,6 +891,10 @@ if __name__ == "__main__":
     x_heal, y_heal, z_heal = observers_xyz[0], observers_xyz[1], observers_xyz[2]
     observers_xyz = np.transpose(observers_xyz)
     mu_healp = z_heal / np.linalg.norm(observers_xyz, axis=1)
+    phi_heal = np.arctan2(y_heal, x_heal)
+    theta_heal = np.arccos(z_heal)
+    longitude_heal_moll = phi_heal 
+    latitude_heal_moll = np.pi/2 - theta_heal
 
     photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
     x, y, z, den, Fx, Fy, Fz, alpha_rossland, alpha_scatter, alpha_abs = \
@@ -858,10 +906,6 @@ if __name__ == "__main__":
     atmospheres = [Code1950Atmosphere(
             lam=lam_sim[k], n=3, F=1.0)
             for k in range(len(lam_sim))]
-
-    # ---------------------------------------------------
-    # All observers
-    # ---------------------------------------------------
 
     P_sim = np.zeros(len(observers_xyz))
     I_sim = np.zeros(len(observers_xyz))
@@ -875,17 +919,35 @@ if __name__ == "__main__":
                     atmospheres,
                     x=x, y=y, z=z,
                     area_weight=False,
-                    atmospheres_unit_flux=True
+                    atmospheres_unit_flux=False
                 )
 
         P_sim[n_idx] = P
         I_sim[n_idx] = I
         Q_sim[n_idx] = Q
         U_sim[n_idx] = U
-        
-    plt.figure(figsize=(8,8))
-    plt.scatter(mu_healp, P_sim, s = 50)
-    plt.legend(fontsize=16)
-    plt.xlabel(r"$\mu=\cos\theta$")
-    plt.ylabel(r"$P_{\rm net}$")
-    plt.legend(fontsize=16)
+
+    longitude_heal_moll = phi_heal 
+    latitude_heal_moll = np.pi/2 - theta_heal
+    lon_1d_heal = longitude_heal_moll
+    lat_1d_heal = latitude_heal_moll
+    # Define a regular grid in (lon, lat) for visualization
+    nlon = 360
+    nlat = 180
+    lon_heal_grid = np.linspace(lon_1d_heal.min(), lon_1d_heal.max(), nlon)
+    lat_heal_grid = np.linspace(lat_1d_heal.min(), lat_1d_heal.max(), nlat)
+    lon_heal_mesh, lat_heal_mesh = np.meshgrid(lon_heal_grid, lat_heal_grid)
+    data_grid_P = griddata(
+                points=(lon_1d_heal, lat_1d_heal), 
+                values=P_sim,
+                xi=(lon_heal_mesh, lat_heal_mesh),
+                method='linear')
+
+    #%%
+    fig = plt.figure(figsize=(10, 8))
+    axP = fig.add_subplot(111, projection='mollweide')
+    img = axP.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_P, cmap='viridis', vmin = 0, vmax = 0.009)  #color by intensity
+    cbar = plt.colorbar(img, orientation='horizontal', pad = 0.1, label =r'P')
+    cbar.ax.tick_params(which='major',length = 6)
+
+# %%

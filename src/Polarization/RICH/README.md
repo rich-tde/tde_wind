@@ -19,8 +19,7 @@ Load the compiler and MPI environment provided by the machine. Then, from the
 RICH repository root, build with that environment's MPI build name:
 
 ```bash
-RICH_BUILD_NAME=yourMPIBuild 
-# substitute "$RICH_BUILD_NAME" with gnuReleaseMPI
+RICH_BUILD_NAME=yourMPIBuild # substitute "$RICH_BUILD_NAME" with gnuReleaseMPI
 # test_name tell you in which folder look for the test.cpp
 ./build_rich.sh "$RICH_BUILD_NAME" \
   --test_name=imc_postprocess_tde_gray_mg_polarization \
@@ -33,10 +32,20 @@ The compile-time group count must remain 10 for the current STA table, whose
 
 ## Submit
 
-Edit only `LEARNING_ITERATIONS` and `STATISTICS_ITERATIONS` in `submit.sh`.
-Learning generations update the adaptive source/observer/group proposals and
-are discarded. Statistics generations use the learned proposal and are the
-only generations accumulated into reported means and standard errors.
+Edit GENERATIONS in submit.sh to control the number of final statistics generations.
+The run automatically adds 21 fixed burn-in/probe generations before the statistics generations. Only the final GENERATIONS are accumulated into the reported means and statistical errors, which scale approximately as (1/\sqrt{\mathrm{GENERATIONS}}).
+The packet budgets per generation are controlled by:
+MG_LEARNED_BUDGET=1600
+GREY_LEARNED_BUDGET=500
+LEARNED_MAX_PER_CELL=50000
+The snapshot path and RICH installation paths are set directly in submit.sh. Before submitting, make sure that 
+1. SNAPSHOT, 
+2. here, 
+3. root 
+point to 
+1. the desired snapshot h5 file, 
+2. RICH build directory,  
+3. RICH repository.
 
 Export absolute paths to the snapshot and the executable produced by the build:
 
@@ -69,6 +78,7 @@ Use the included entry point to inspect and plot any combined VTK field:
 Use a Python 3 environment with NumPy, SciPy, and Matplotlib available.
 
 ``` From MAOR:
+
 bash
 python3 plot_sphere.py \
   output/tde_gray_mg_polarization.vtk --list-fields
@@ -82,15 +92,16 @@ python3 plot_sphere.py \
   --field grey_polarization_degree
 ```
 
-``` WHAT WE DO
-python3 plot_sphere.py /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/Polarization/tde_gray_mg75polarization151.vtk --list-fields
+``` ON MY LOCAL MACHINE
+
+python3 plot_sphere.py /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/Polarization/tde_gray_mg800polarization151.vtk --list-fields
 
 python3 plot_sphere.py \
-  /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/Polarization/tde_gray_mg75polarization151.vtk \
+  /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/Polarization/tde_gray_mg2000polarization151.vtk \
   --field forward_luminosity --scale log
 
 python3 plot_sphere.py \
-  /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/Polarization/tde_gray_mg75polarization151.vtk \
+  /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/Polarization/tde_gray_mg2000polarization151.vtk \
   --field grey_polarization_degree
 
 ``` 
