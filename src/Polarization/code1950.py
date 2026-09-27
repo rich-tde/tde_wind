@@ -807,14 +807,14 @@ if __name__ == "__main__":
                     atmospheres_unit_flux=True)
         P_ell_sc_Obl[c_idx] = P
 
-        P, I, Q, U = compute_polarization_code(
-                            Fx_obs, Fy_obs, Fz_obs,
-                            n_obs_perp,
-                            atmospheres=scattering_shsu,
-                            weight=dA_obs,
-                            area_weight=False,
-                            atmospheres_unit_flux=True)
-        P_ell_Obl[c_idx] = P
+        # P, I, Q, U = compute_polarization_code(
+        #                     Fx_obs, Fy_obs, Fz_obs,
+        #                     n_obs_perp,
+        #                     atmospheres=scattering_shsu,
+        #                     weight=dA_obs,
+        #                     area_weight=False,
+        #                     atmospheres_unit_flux=True)
+        # P_ell_Obl[c_idx] = P
 
     #%%
     c_all = np.linspace(a, 10*a, 10)
@@ -824,7 +824,7 @@ if __name__ == "__main__":
     n_obs_perp = np.array([1, 0.0, 1e-4]) # perpendicular to symmetry axis
 
     pure_scattering = Code1950Atmosphere(lam=lam_sc, n=3, F=1)
-    scattering_shsu = Code1950Atmosphere(lam=lam_ShSu, n=3, F=1)
+    # scattering_shsu = Code1950Atmosphere(lam=lam_ShSu, n=3, F=1)
     for c_idx, c in enumerate(c_all):
         x_obs, y_obs, z_obs, dA_obs = ellipsoid_surface(1e2, a, b, c)
         xi_Pro[c_idx] = 1 - min(a,c) / max(a,c) 
@@ -854,20 +854,20 @@ if __name__ == "__main__":
                     atmospheres_unit_flux=True)
         P_ell_sc_Pro[c_idx] = P
 
-        P, I, Q, U = compute_polarization_code(
-                            Fx_obs, Fy_obs, Fz_obs,
-                            n_obs_perp,
-                            atmospheres=scattering_shsu,
-                            weight=dA_obs,
-                            area_weight=False,
-                            atmospheres_unit_flux=True)
-        P_ell_Pros[c_idx] = P
+        # P, I, Q, U = compute_polarization_code(
+        #                     Fx_obs, Fy_obs, Fz_obs,
+        #                     n_obs_perp,
+        #                     atmospheres=scattering_shsu,
+        #                     weight=dA_obs,
+        #                     area_weight=False,
+        #                     atmospheres_unit_flux=True)
+        # P_ell_Pros[c_idx] = P
     #%%
     fig, (axO, axP) = plt.subplots(1,2, figsize=(16,8)) 
     axO.plot(xi_Obl, P_ell_sc_Obl*100, label = r"$\lambda = $" + f"{lam_sc}")
-    axO.plot(xi_Obl, P_ell_Obl*100, label = r"$\lambda = $" + f"{lam_ShSu:.2f}")
+    # axO.plot(xi_Obl, P_ell_Obl*100, label = r"$\lambda = $" + f"{lam_ShSu:.2f}")
     axP.plot(xi_Pro, P_ell_sc_Pro*100, label = r"$\lambda = $" + f"{lam_sc}")
-    axP.plot(xi_Pro, P_ell_Pros*100, label = r"$\lambda = $" + f"{lam_ShSu:.2f}")
+    # axP.plot(xi_Pro, P_ell_Pros*100, label = r"$\lambda = $" + f"{lam_ShSu:.2f}")
     axP.set_xlabel(r"$\xi = 1 - \min(a,c)/\max(a,c)$")
     axO.set_xlabel(r"$\xi = 1 - \min(a,c)/\max(a,c)$")
     axO.set_ylabel(r"$P_{\rm net}$ [%]")

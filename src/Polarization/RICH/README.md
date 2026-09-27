@@ -94,14 +94,14 @@ python3 plot_sphere.py \
 
 ``` ON MY LOCAL MACHINE
 
-python3 plot_sphere.py /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/Polarization/tde_gray_mg800polarization151.vtk --list-fields
+python3 plot_sphere.py /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/Polarization/snap_151/tde_gray_300polarization151.vtk --list-fields
 
 python3 plot_sphere.py \
-  /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/Polarization/tde_gray_mg2000polarization151.vtk \
+  /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/Polarization/snap_151/tde_gray_300polarization151.vtk \
   --field forward_luminosity --scale log
 
 python3 plot_sphere.py \
-  /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/Polarization/tde_gray_mg2000polarization151.vtk \
+  /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/Polarization/snap_151/tde_gray_75polarization151.vtk \
   --field grey_polarization_degree
 
 ``` 
