@@ -63,11 +63,14 @@ SNAPSHOT=/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNew
 
 # Under sbatch the script runs from a copy in the SLURM spool directory, so
 # BASH_SOURCE does not point here; use the submission directory instead.
-if [[ -n ${SLURM_SUBMIT_DIR:-} ]]; then
-    here=$(cd -- "$SLURM_SUBMIT_DIR" && pwd -P)
-else
-    here=/home/pmartire/RICH/build/gnuReleaseMPI #here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
-fi
+## In Elad script:
+# if [[ -n ${SLURM_SUBMIT_DIR:-} ]]; then
+#     here=$(cd -- "$SLURM_SUBMIT_DIR" && pwd -P)
+# else
+#     here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+# fi
+##
+here=/home/pmartire/RICH/build/gnuReleaseMPI
 root=/home/pmartire/RICH #$(cd -- "$here/../.." && pwd -P)          # repository root (data/ lives there)
 executable="$here/rich"                         # copied here by the user
 
