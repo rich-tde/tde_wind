@@ -405,11 +405,11 @@ def compute_polarization_code(
 
     area_weight : bool
         If True, estimate dA from the HEALPix photospheric
-        positions x,y,z. The final observed weight is then mu * dA
+        positions x,y,z. The final observed weight is then eta * dA
 
         If False, the supplied `weight` is treated as dA
         (or simply 1 if weight=None), and the projected-area
-        factor mu is still applied.
+        factor eta is still applied.
 
     atmospheres_unit_flux : bool
         If True, atmospheres were constructed with F=1,
@@ -454,8 +454,8 @@ def compute_polarization_code(
     nhat_loc = Fhat
 
     # Viewing cosine
-    mu = nhat_loc @ n_hat_obs
-    visible = good & (mu > 0.0)
+    eta = nhat_loc @ n_hat_obs
+    visible = good & (eta > 0.0)
     idx_vis = np.where(visible)[0]
 
     if len(idx_vis) == 0:
@@ -464,14 +464,13 @@ def compute_polarization_code(
         return 0., 0., 0., 0.
 
     nhat_loc_vis = nhat_loc[idx_vis]
-    mu_vis = mu[idx_vis]
+    eta_vis = eta[idx_vis]
     Fmag_vis = Fmag[idx_vis]
 
     # Is atmospheres one object or one per patch?
     single_atmosphere = not isinstance(
         atmospheres,
-        (list, tuple, np.ndarray)
-    )
+        (list, tuple, np.ndarray)) #i.e. True if atmospheres is not a list/tuple/NumPy array
 
     # Code local solution
     Il_local = np.zeros(len(idx_vis))
@@ -482,7 +481,7 @@ def compute_polarization_code(
 
     if single_atmosphere:
         # vectorized call: same lambda for all patches
-        Il, Ir, I, Q, P = atmospheres.emergent(mu_vis)
+        Il, Ir, I, Q, P = atmospheres.emergent(eta_vis)
         if atmospheres_unit_flux:
             Il_local = Fmag_vis * Il
             Ir_local = Fmag_vis * Ir
@@ -500,13 +499,12 @@ def compute_polarization_code(
         # each patch has its own atmosphere / lambda
         if len(atmospheres) != len(Fx):
             raise ValueError(
-                "If atmospheres is a list, it must have "
-                "one entry per photospheric patch.")
+                "Atmospheres must have one entry per photospheric patch.")
 
         for j, k in enumerate(idx_vis):
             atm_k = atmospheres[k]
             Il, Ir, I, Q, P = \
-                atm_k.emergent(mu[k])
+                atm_k.emergent(eta[k])
 
             if atmospheres_unit_flux:
                 Il *= Fmag[k]
@@ -552,7 +550,7 @@ def compute_polarization_code(
 
     e_pol[good_pol] /= e_pol_mag[good_pol, None]
 
-    # at mu=1 polarization vanishes anyway
+    # at eta=1 polarization vanishes anyway
     e_pol[~good_pol] = e1
 
     # ---------------------------------------
@@ -608,13 +606,13 @@ def compute_polarization_code(
     #
     # observed flux contribution:
     #
-    #      I(mu) * mu * dA
+    #      I(eta) * eta * dA
     #
     # So mu must be included regardless of whether
     # dA came from `weight` or area_weight=True.
     # --------------------------------------------------
 
-    w_obs = (w * mu_vis)
+    w_obs = (w * eta_vis)
 
     # Net Stokes
     I_tot = np.sum(w_obs* I_local)
@@ -629,7 +627,7 @@ def compute_polarization_code(
             "visible": visible,
             "indices": idx_vis,
 
-            "mu": mu_vis,
+            "eta": eta_vis,
 
             "F_mag": Fmag_vis,
             "F_hat": nhat_loc_vis,

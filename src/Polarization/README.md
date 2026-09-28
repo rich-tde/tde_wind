@@ -270,10 +270,10 @@ This is done in `compute_polarization_code()`, where the steps are:
 
 1.  determines the local normal of each surface patch (we aproximate is as flux direction: $\hat{\mathbf n}_{\rm local} \simeq
 \hat{\mathbf F} = \mathbf F/|\mathbf F|$);
-2.  selects visible elements ($\hat{\mathbf n}_{\rm obs}\cdot\hat{\mathbf n}_{\rm local}>0$);
-3.  calls `atmosphere.emergent(mu_k)`;
+2.  selects visible elements ($\eta\equiv\hat{\mathbf n}_{\rm obs}\cdot\hat{\mathbf n}_{\rm local}>0$);
+3.  calls `atmosphere.emergent(eta_k)` for the k visible surface;
 4.  rotates into the common sky basis;
-5.  find theStokes parameters as
+5.  find the Stokes parameters as
 
 \[ I_{\rm net}=\sum_k w_k I_k, \qquad
 Q_{\rm net}=\sum_k w_k Q_k, \qquad
@@ -285,11 +285,11 @@ The net linear-polarization fraction is
 \frac{\sqrt{Q_{\rm net}^2+U_{\rm net}^2}}
 {I_{\rm net}}. \]
 
-For photospheric surface elements, observed flux includes projected area,
+For photospheric surface elements, the weights are given by the projected area,
 
 \[ dA_{\rm proj}=\mu_k\,dA_k. \]
 
-If `weight` represents $dA_k$, the geometrical weight is therefore $w_k=\mu_kdA_k$. If projected area is already included in `weight`, do not multiply by $\mu_k$ again.
+NB for numerical implementation: If `weight` represents $dA_k$, we compute $w_k=\eta_kdA_k$. If `weight` = projected area, we do not multiply by $\eta_k$ again.
 
 
 
