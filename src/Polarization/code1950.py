@@ -89,7 +89,7 @@ class Code1950Atmosphere:
         self.n = int(n)
         self.F = float(F)
 
-        self.mu_quad, self.a_quad = leggauss(2*self.n) # Gauss-Legendre quadrature to compute the and mu integrals in Code's eqs. (11)-(12) as he did in eqs. (19)-(20).
+        self.mu_quad, self.a_quad = leggauss(2*self.n) # Gauss-Legendre quadrature to compute the integrals in Code's eqs. (11)-(12) as he did in eqs. (19)-(20).
         self.N = len(self.mu_quad)
 
         self.A = self._build_transfer_matrix() 
@@ -431,8 +431,8 @@ def compute_polarization_code(
         data
     """
 
-    n = np.asarray(n_obs, dtype=float)
-    n /= np.linalg.norm(n)
+    n_hat_obs = np.asarray(n_obs, dtype=float)
+    n_hat_obs /= np.linalg.norm(n_hat_obs)
 
     # ---------------------------------------
     # Local flux vectors
@@ -451,20 +451,19 @@ def compute_polarization_code(
 
     # Approximation:
     # local plane-parallel normal = flux direction
-    nhat = Fhat
+    nhat_loc = Fhat
 
     # Viewing cosine
-    mu = nhat @ n
+    mu = nhat_loc @ n_hat_obs
     visible = good & (mu > 0.0)
     idx_vis = np.where(visible)[0]
-
 
     if len(idx_vis) == 0:
         if all_data:
             return 0., 0., 0., 0., {}
         return 0., 0., 0., 0.
 
-    nhat_vis = nhat[idx_vis]
+    nhat_loc_vis = nhat_loc[idx_vis]
     mu_vis = mu[idx_vis]
     Fmag_vis = Fmag[idx_vis]
 
@@ -527,15 +526,15 @@ def compute_polarization_code(
 
     tmp = np.array([0.0, 0.0, 1.0])
 
-    e2 = tmp - np.dot(tmp, n) * n
+    e2 = tmp - np.dot(tmp, n_hat_obs) * n_hat_obs
 
     if np.linalg.norm(e2) < 1e-10:
         tmp = np.array([1.0, 0.0, 0.0])
-        e2 = tmp - np.dot(tmp, n) * n
+        e2 = tmp - np.dot(tmp, n_hat_obs) * n_hat_obs
 
     e2 /= np.linalg.norm(e2)
 
-    e1 = np.cross(e2, n)
+    e1 = np.cross(e2, n_hat_obs)
     e1 /= np.linalg.norm(e1)
 
     # ---------------------------------------
@@ -545,7 +544,7 @@ def compute_polarization_code(
     # is perpendicular to the meridian plane
     # ---------------------------------------
 
-    e_pol = np.cross(n, nhat_vis)
+    e_pol = np.cross(n_hat_obs, nhat_loc_vis)
 
     e_pol_mag = np.linalg.norm(e_pol, axis=1)
 
@@ -599,7 +598,7 @@ def compute_polarization_code(
 
         # dA = r^2 dOmega / |n_local . r_hat|
         dOmega = 4.0 * np.pi / len(x)
-        cos_nr = np.abs(np.sum(nhat_vis * r_hat, axis=1))
+        cos_nr = np.abs(np.sum(nhat_loc_vis * r_hat, axis=1))
 
         dA = r**2* dOmega/ np.maximum(cos_nr, 1e-8)
         w *= dA
@@ -633,7 +632,7 @@ def compute_polarization_code(
             "mu": mu_vis,
 
             "F_mag": Fmag_vis,
-            "F_hat": nhat_vis,
+            "F_hat": nhat_loc_vis,
 
             "Il_local": Il_local,
             "Ir_local": Ir_local,
@@ -702,7 +701,7 @@ if __name__ == "__main__":
     flux_mag = 2.0
     Fx_obs = np.zeros(10)
     Fy_obs = np.zeros(10)
-    Fz_obs = flux_mag * np.ones(10)
+    Fz_obs = flux_mag * np.ones(10) 
 
     pure_scattering = Code1950Atmosphere(lam=lam_sc, n=3, F=flux_mag)
     n_obs_chosen = np.array([[0, 0, 1.], [1, 0.0, 1e-4], [1, 0, 1]])

@@ -82,8 +82,8 @@ done
 
 # The executable links VTK, HDF5 and OpenMPI from the module stack.
 # command -v ml >/dev/null 2>&1 || source /etc/profile.d/modules.sh
+#ml restore gcc
 module restore rich_gnu_2025 # I added this line
-ml restore gcc
 
 export RICH_MEASURED_LB_DEBUG_MEMORY=1   # per-rank memory lines in error_<jobid>.txt
 
