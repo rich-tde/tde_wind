@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=tde_2000
-#SBATCH --output=output_2000.txt
-#SBATCH --error=error_2000.txt
+#SBATCH --job-name=tde_75
+#SBATCH --output=output_%j.txt
+#SBATCH --error=error_%j.txt
 #SBATCH --nodes=8
 #SBATCH --ntasks=1536
 #SBATCH --exclusive
