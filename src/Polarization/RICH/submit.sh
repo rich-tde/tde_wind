@@ -11,15 +11,9 @@
 #SBATCH --mail-user="martire@strw.leidenuniv.nl"
 #SBATCH --mail-type=TIME_LIMIT_50,TIME_LIMIT_90,ALL
 
-#
+
 # Grey + multigroup polarization post-process of one Snapshot3D.
-#
-# Usage (from this directory, so output_<jobid>.txt lands here):
-#     cp ../../build/gnuReleaseMPI/rich ./rich      # after building
-#     sbatch submit.sh
-# Extra arguments are passed straight to the executable, e.g.
-#     sbatch submit.sh --output.stem output/my_run
-#
+
 # Physics settings (Fleck factor 1, emission from every cell outside the deep
 # surface) live in test.cpp and are compiled in; the knobs below override
 # test.cpp at run time, and extra arguments override the knobs.
@@ -32,9 +26,8 @@ set -euo pipefail
 # GENERATIONS is the number of final (statistics) generations. The result is
 # the average over them, so the statistical error scales as 1/sqrt(GENERATIONS).
 # Each pass adds 21 fixed burn-in/probe generations in front. With the budgets
-# and exploration fractions below (both 0.005) the total run time is roughly
+# and exploration fractions written below (both 0.005) the total run time is roughly
 # 12 min + GENERATIONS * 26 s (20 -> ~20 min, 75 -> ~45 min, 200 -> ~1 h 40).
-# Raise --time above when raising GENERATIONS.
 GENERATIONS=75
 
 # Packets per generation for the cells that were learned to produce escaping
@@ -82,7 +75,7 @@ done
 
 # The executable links VTK, HDF5 and OpenMPI from the module stack.
 # command -v ml >/dev/null 2>&1 || source /etc/profile.d/modules.sh
-#ml restore gcc
+# ml restore gcc
 module restore rich_gnu_2025 # I added this line
 
 export RICH_MEASURED_LB_DEBUG_MEMORY=1   # per-rank memory lines in error_<jobid>.txt

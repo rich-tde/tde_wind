@@ -4,10 +4,10 @@
 This entry point reuses the maintained generic VTK sphere plotter from the
 original imc_postprocess_tde run. Examples:
 
-    python3 plot_sphere.py output/tde_gray_mg75polarization.vtk --list-fields
-    python3 plot_sphere.py output/tde_gray_mg75polarization.vtk \
+    python3 plot_sphere.py output/tde_gray_75polarization.vtk --list-fields
+    python3 plot_sphere.py output/tde_gray_75polarization.vtk \
         --field forward_luminosity --scale log
-    python3 plot_sphere.py output/tde_gray_mg75polarization.vtk \
+    python3 plot_sphere.py output/tde_gray_75polarization.vtk \
         --field grey_polarization_degree
 """
 

@@ -12,6 +12,99 @@ import src.orbits as orb
 # Physical constants in cgs
 m_e = 9.10938356e-28    # g
 conversion_vel = prel.Rsol_cgs/prel.tsol_cgs
+# He II lambda 4686: n = 4 -> 3 from NIST (He II, range 4680-4690 Å)
+heii_4686 = [
+    {
+        "upper": "4d 2D_3/2",
+        "lower": "3p 2P_1/2",
+        "J_upper": 3/2,
+        "A": 9.3899e7
+    },
+
+    {
+        "upper": "4p 2P_3/2",
+        "lower": "3s 2S_1/2",
+        "J_upper": 3/2,
+        "A": 4.9070e7
+    },
+
+    {
+        "upper": "4s 2S_1/2",
+        "lower": "3p 2P_1/2",
+        "J_upper": 1/2,
+        "A": 9.7968e6
+    },
+
+    {
+        "upper": "4p 2P_1/2",
+        "lower": "3s 2S_1/2",
+        "J_upper": 1/2,
+        "A": 4.9080e7
+    },
+
+    {
+        "upper": "4f 2F_5/2",
+        "lower": "3d 2D_3/2",
+        "J_upper": 5/2,
+        "A": 2.0605e8
+    },
+
+    {
+        "upper": "4d 2D_5/2",
+        "lower": "3p 2P_3/2",
+        "J_upper": 5/2,
+        "A": 1.1268e8
+    },
+
+    {
+        "upper": "4p 2P_3/2",
+        "lower": "3d 2D_3/2",
+        "J_upper": 3/2,
+        "A": 5.5646e5
+    },
+
+    {
+        "upper": "4d 2D_3/2",
+        "lower": "3p 2P_3/2",
+        "J_upper": 3/2,
+        "A": 1.8780e7
+    },
+
+    {
+        "upper": "4f 2F_7/2",
+        "lower": "3d 2D_5/2",
+        "J_upper": 7/2,
+        "A": 2.2076e8
+    },
+
+    {
+        "upper": "4f 2F_5/2",
+        "lower": "3d 2D_5/2",
+        "J_upper": 5/2,
+        "A": 1.4717e7
+    },
+
+    {
+        "upper": "4p 2P_3/2",
+        "lower": "3d 2D_5/2",
+        "J_upper": 3/2,
+        "A": 5.0091e6
+    },
+
+    {
+        "upper": "4s 2S_1/2",
+        "lower": "3p 2P_3/2",
+        "J_upper": 1/2,
+        "A": 1.9602e7
+    },
+
+    {
+        "upper": "4p 2P_1/2",
+        "lower": "3d 2D_3/2",
+        "J_upper": 1/2,
+        "A": 5.5680e6
+    },
+]
 
 def continuum_luminosity(line, T, r):
     '''
@@ -61,6 +154,63 @@ def hydrogenic_levels_above_ground(n, chi_eV):
 # for n in [1, 2, 3, 4]:
 #     g, E = hydrogenic_levels_above_ground(n, 13.6)
 #     print(n, g, E)
+
+def statistical_weight(J):
+    """
+    Statistical weight of a fine-structure level:
+        g = 2J + 1
+    """
+    return 2.0 * J + 1.0
+
+
+def effective_einstein_A(transitions, n_upper, single_transition=False):
+    """
+    Compute the effective Einstein coefficient for an unresolved
+    hydrogenic transition n_upper -> n_lower:
+
+        A_eff = sum_i (g_i / g_upper) sum_j A_ij
+
+    Parameters
+    ----------
+    transitions : list of dict
+        Each dictionary must contain:
+            'upper' : name of upper fine-structure level
+            'lower' : name of lower fine-structure level
+            'J_upper' : total angular momentum J of upper level
+            'A' : Einstein A coefficient [s^-1]
+
+    n_upper : int
+        Principal quantum number of the upper shell.
+
+    Returns
+    -------
+    A_eff : float
+        Effective Einstein coefficient [s^-1].
+    """
+
+    # Total statistical weight of the unresolved hydrogenic shell
+    g_upper = 2 * n_upper**2
+
+    A_eff = 0.0
+
+    for tr in transitions:
+        g_i = statistical_weight(tr["J_upper"])
+
+        contribution = (g_i / g_upper) * tr["A"]
+
+        A_eff += contribution
+
+        if single_transition:
+            print(
+                f"{tr['upper']:18s} -> {tr['lower']:18s} "
+                f"J_u = {tr['J_upper']:3.1f}, "
+                f"g_i = {g_i:2.0f}, "
+                f"A = {tr['A']:.5e}, "
+                f"contribution = {contribution:.5e}"
+            )
+
+    return A_eff
+
 
 def hydrogenic_partition_function(T, chi_eV, n_max=30):
     ''' Compute Z = sum_{n=1}^{n_max} g_n * exp(-E_n / (k_B * T)) from Bradt: https://www.cambridge.org/us/files/5413/6681/8627/7706_Saha_equation.pdf
@@ -206,7 +356,7 @@ def line_ratio_paper(line, T, rho, delta_r, r, v, X_H=0.7, X_He=0.28, n_p=None):
     if line == "Ha": 
         chi_eV = 13.6
         n_starter = 3
-        A = 6.4651e7 # transition 3->2 (retrive from NIST: H I, range 6560–6565 Å, 3d (j=5/2)->2p(j=3/2))
+        A = 4.4101e7 # transition 3->2 (retrive from NIST: H I, range 6560–6565 Å, unresolved 3->2 transition)
         lam0 = 6.5628e-5
         n_i = pops["n_HI"]
         Z_i = pops["Z_HI"]
@@ -214,7 +364,7 @@ def line_ratio_paper(line, T, rho, delta_r, r, v, X_H=0.7, X_He=0.28, n_p=None):
     elif line == "Hb":
         chi_eV = 13.6
         n_starter = 4
-        A = 8.4193e6 # transition 4->2
+        A = 8.4193e6 # transition 4->2 ( retrive from NIST: H I, range 4860–4863, unresolved 4->2 transition)
         lam0 = 4.8613e-5
         n_i = pops["n_HI"]
         Z_i = pops["Z_HI"]
@@ -222,7 +372,7 @@ def line_ratio_paper(line, T, rho, delta_r, r, v, X_H=0.7, X_He=0.28, n_p=None):
     elif line == "HeII4686":
         chi_eV = 54.418
         n_starter = 4
-        A = 2.2076e8 #  (retrive from NIST: He II, range 4680-4690 Å, 4f (j=7/2)-> 3d (j=5/2))
+        A = effective_einstein_A(transitions = heii_4686, n_upper=n_starter)
         lam0 = 4.6858e-5
         n_i = pops["n_HeII"]
         Z_i = pops["Z_HeII"]

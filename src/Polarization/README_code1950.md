@@ -44,17 +44,21 @@ lambda, n, F
 Gauss-Legendre quadrature to solve rad.transfer 
       |  __init__()
       v
-find the Legendre zeros mu_i and the Gaussian weigthts a_i 
+find the Legendre zeros mu_i 
+and the Gaussian weigthts a_i 
       |  _build_transfer_matrix()
       v
 build matrix A to solve eqs. (19)-(20) in Code50
       | _solve_surface_modes()
       v
-1. fibd eigenmodes of A for general tau, discarding the diverging ones (1st boundary cond)
-2. (add linear constant-flux solution and) compute I at the surface (tau=0, with bound cond. from eqs. (44)-(46)) to find Q and mode amplitudes
+1. fibd eigenmodes of A for general tau, 
+discarding the diverging ones (1st boundary cond)
+2. compute I at the surface (tau=0, with bound cond. from 
+eqs. (44)-(46)) to find Q and mode amplitudes
       |  _y_at_tau(), eqs. 42–43 
       v
-I_l,i, I_r,i for a chosen tau for the Gauss-Legendre directions
+I_l,i, I_r,i for a chosen tau for 
+the Gauss-Legendre directions
       |
       v
 J_l, J_r, K_l with quadrature, eqs. 55-57
@@ -79,7 +83,7 @@ I, Q_local, P_local
 Code replaces angular integrals by Gauss-Legendre quadrature,
 
 \[
-\int_{-1}^{1}f(\mu),d\mu\simeq\sum_i
+\int_{-1}^{1}f(\mu)d\mu\simeq\sum_i
 a_i f(\mu_i). \]
 
 The 2n values $\mu_i$ are roots of $P_{2n}$, with corresponding weights $a_i$.
@@ -271,7 +275,7 @@ This is done in `compute_polarization_code()`, where the steps are:
 1.  determines the local normal of each surface patch (we aproximate is as flux direction: $\hat{\mathbf n}_{\rm local} \simeq
 \hat{\mathbf F} = \mathbf F/|\mathbf F|$);
 2.  selects visible elements ($\eta\equiv\hat{\mathbf n}_{\rm obs}\cdot\hat{\mathbf n}_{\rm local}>0$);
-3.  calls `atmosphere.emergent(eta_k)` for the k visible surface;
+3.  for the k visible surfaces, compute the contribution to polarization in the direction of the fixed observer  calling `atmosphere.emergent(eta_k)` ;
 4.  rotates into the common sky basis;
 5.  find the Stokes parameters as
 
@@ -289,8 +293,6 @@ For photospheric surface elements, the weights are given by the projected area,
 
 \[ dA_{\rm proj}=\mu_k\,dA_k. \]
 
-NB for numerical implementation: If `weight` represents $dA_k$, we compute $w_k=\eta_kdA_k$. If `weight` = projected area, we do not multiply by $\eta_k$ again.
-
 
 
 
@@ -299,10 +301,31 @@ NB for numerical implementation: If `weight` represents $dA_k$, we compute $w_k=
 ### Local atmosphere
 
 First test `Code1950Atmosphere` alone against Code's tabulated $I_l(0,\mu),\, I_r(0,\mu)$ and polarization values. 
-
+OK!
 ### Disk
-A flat disk should satisfy $ P_{\rm net}=P_{\rm local}$. 
-
+A flat disk should satisfy $ P_{\rm net}=P_{\rm local}$. And from Chandrasekhar: $ P_{\rm max}=11.7$%
+OK!
 ### Sphere
-A symmetric sphere should give $P=0$.
+A symmetric sphere should give $P_{\rm net}=0$.
+OK!
+## How to apply it to us
+Use the photospheric values for flux and opacities.
+This means that we  approximate the unresolved atmosphere below this photospheric surface by Code's semi-infinite atmosphere, with constant flux \(F_{\rm ph}\) and constant opacity ratio \(\lambda_{\rm ph}\).
 
+Caveats:
+1. Undefined where $\tau=0$, but it should correspod to a big outer radius, as in RICH postprocessing
+2. plane-parallel --> OK since it's the same assumption underlying the Rosseland approximation that we use in RICH 
+3. Constant flux and opacities, assumed to be the ones at the photosphere (though it's better to use flux at the thermalization radius, which is where emergent photons are predominantly formed)
+
+I think the last one is the biggest caveat. For opacities, Harrington69 implemented the version with varying opacities, we can do that... And the flux?
+Possible routes to follow:
+1. nothing: it's a wrong method
+2. leave things like that, which would corresponds to the case of considering a fictious atmosphere that emits at the constant flux given at the photosphere (...which makes sense since beofre photons are trapped?)
+3. try to implement the non-constant flux
+
+A possible extra correction:
+Consider a finite slab (between $\tau=2/3$ and $\tau=0$), instead of a semi-infinite plane parallel...
+In the semi-infinite plane parallel assumption, we solve radiative transfer from $\tau=\infty$ to $\tau=0$, but this is already done by RICH, which tells us how radiation emerges from the photosphere... so maybe we should just solve from there on?
+
+Caveat:
+I need the boundary condition at the inner radius -->  make an assumption for the angular intensity distribution.

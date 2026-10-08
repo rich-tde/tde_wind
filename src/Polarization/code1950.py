@@ -361,11 +361,11 @@ def compute_polarization_code(
         Fx, Fy, Fz,
         n_obs,
         atmospheres,
-        x=None, y=None, z=None,
-        weight=None,
-        area_weight=False,
-        atmospheres_unit_flux=True,
-        all_data=False
+        x = None, y = None, z = None,
+        dA = None,
+        compute_spherical_dA = False,
+        atmospheres_are_per_unit_flux = True,
+        all_data = False
     ):
     """
     Compute net polarization using the local plane-parallel
@@ -395,23 +395,16 @@ def compute_polarization_code(
 
     x, y, z : arrays, optional
         Photospheric positions.
-        Required only if area_weight=True.
+        Required only if compute_spherical_dA=True.
 
-    weight : scalar or array, optional
-        Additional user-supplied weight.
+    dA : scalar or array, optional
+        Surface area of the patch.
 
-        For example, if you already know the surface area dA
-        of each patch, pass it here.
+    compute_spherical_dA : bool
+        If True, estimate dA from the HEALPix photospheric positions x,y,z.
+        If False and dA=None, dA=1 is used.
 
-    area_weight : bool
-        If True, estimate dA from the HEALPix photospheric
-        positions x,y,z. The final observed weight is then eta * dA
-
-        If False, the supplied `weight` is treated as dA
-        (or simply 1 if weight=None), and the projected-area
-        factor eta is still applied.
-
-    atmospheres_unit_flux : bool
+    atmospheres_are_per_unit_flux : bool
         If True, atmospheres were constructed with F=1,
         and their I,Q are scaled by the local |F|.
 
@@ -482,7 +475,7 @@ def compute_polarization_code(
     if single_atmosphere:
         # vectorized call: same lambda for all patches
         Il, Ir, I, Q, P = atmospheres.emergent(eta_vis)
-        if atmospheres_unit_flux:
+        if atmospheres_are_per_unit_flux:
             Il_local = Fmag_vis * Il
             Ir_local = Fmag_vis * Ir
             I_local  = Fmag_vis * I
@@ -501,12 +494,12 @@ def compute_polarization_code(
             raise ValueError(
                 "Atmospheres must have one entry per photospheric patch.")
 
-        for j, k in enumerate(idx_vis):
+        for j, k in enumerate(idx_vis): # because we eta comes from the direction of the flux, so what is visible
             atm_k = atmospheres[k]
             Il, Ir, I, Q, P = \
                 atm_k.emergent(eta[k])
 
-            if atmospheres_unit_flux:
+            if atmospheres_are_per_unit_flux:
                 Il *= Fmag[k]
                 Ir *= Fmag[k]
                 I  *= Fmag[k]
@@ -518,100 +511,57 @@ def compute_polarization_code(
             Q_local[j]  = Q
             P_local[j]  = P
 
-    # --------------------------------------------------
     # Fixed observer sky basis
-    # --------------------------------------------------
-
     tmp = np.array([0.0, 0.0, 1.0])
-
     e2 = tmp - np.dot(tmp, n_hat_obs) * n_hat_obs
-
     if np.linalg.norm(e2) < 1e-10:
         tmp = np.array([1.0, 0.0, 0.0])
         e2 = tmp - np.dot(tmp, n_hat_obs) * n_hat_obs
-
     e2 /= np.linalg.norm(e2)
-
     e1 = np.cross(e2, n_hat_obs)
     e1 /= np.linalg.norm(e1)
 
-    # ---------------------------------------
-    # Positive local-Q direction
-    #
-    # Q_local = Ir - Il, therefore positive Q
-    # is perpendicular to the meridian plane
-    # ---------------------------------------
-
     e_pol = np.cross(n_hat_obs, nhat_loc_vis)
-
     e_pol_mag = np.linalg.norm(e_pol, axis=1)
-
-    good_pol = e_pol_mag > 1e-12
-
+    good_pol = e_pol_mag > 1e-12 # i.e. the polarization direction is undefined geometrically, which correspond to eta = 1, for which polarization vanish
     e_pol[good_pol] /= e_pol_mag[good_pol, None]
+    e_pol[~good_pol] = e1 # polarization vanishes, so we can choose any direction in the plane of the sky
 
-    # at eta=1 polarization vanishes anyway
-    e_pol[~good_pol] = e1
-
-    # ---------------------------------------
     # Rotate local Q to common sky Q,U
-    # ---------------------------------------
-
     cos_phi = e_pol @ e1
     sin_phi = e_pol @ e2
-
     cos2phi = cos_phi**2 - sin_phi**2
     sin2phi = 2.0 * cos_phi * sin_phi
-
     Q_sky =  Q_local * cos2phi
     U_sky = Q_local * sin2phi
 
-    # Base patch weight
-    if weight is None:
-        w = np.ones(len(idx_vis))
+    # Patch dA
+    if dA is not None:
+        if np.isscalar(dA):
+            w = np.full(len(idx_vis), dA, dtype=float)
+        else:
+            dA = np.asarray(dA, dtype=float)
+            w = dA[idx_vis]
 
-    elif np.isscalar(weight):
-        w = np.full( len(idx_vis),
-                    weight,
-                    dtype=float)
-
-    else:
-        weight = np.asarray(
-            weight,
-            dtype=float)
-
-        w = weight[idx_vis]
-
-    # --------------------------------------------------
-    # Surface area
-    if area_weight:
+    elif compute_spherical_dA:
         if x is None or y is None or z is None:
-            raise ValueError(
-                "x,y,z are required when "
-                "area_weight=True.")
+            raise ValueError("x,y,z are required when compute_spherical_dA=True.")
 
         r_vec = np.column_stack((x, y, z))[idx_vis]
         r = np.linalg.norm(r_vec,axis=1)
         r_hat = (r_vec/ np.maximum(r[:, None], 1e-30))
 
-        # dA = r^2 dOmega / |n_local . r_hat|
+        # dA |n_local . r_hat| = r^2 dOmega i.e. the area of that patch projected onto a sphere perpendicular to r
+        # so dA = r^2 dOmega / |n_local . r_hat| recovers the true physical area of the tilted surface patch
         dOmega = 4.0 * np.pi / len(x)
         cos_nr = np.abs(np.sum(nhat_loc_vis * r_hat, axis=1))
+        w = r**2* dOmega/ np.maximum(cos_nr, 1e-8)
 
-        dA = r**2* dOmega/ np.maximum(cos_nr, 1e-8)
-        w *= dA
+    else:
+        # Treat every patch as having equal area if dA = None and compute_spherical_dA = False
+        w = np.ones(len(idx_vis))
 
-    # --------------------------------------------------
-    # Projected surface area
-    #
-    # observed flux contribution:
-    #
-    #      I(eta) * eta * dA
-    #
-    # So mu must be included regardless of whether
-    # dA came from `weight` or area_weight=True.
-    # --------------------------------------------------
-
+    # Projected area factor (Code's eta)
     w_obs = (w * eta_vis)
 
     # Net Stokes
@@ -690,7 +640,7 @@ if __name__ == "__main__":
     plt.figure(figsize=(8,8))
     plt.plot(mu, P0, label=r"$\lambda=$" + f"{lam_sc}")
     plt.plot(mu, P, label=r"$\lambda=$" + f"{lam_code}")
-    plt.xlabel(r"$\mu$")
+    plt.xlabel(r"$\cos\theta_{\rm obs}$")
     plt.ylabel(r"$P_{\rm loc}$")
     plt.legend(fontsize=16)
 
@@ -702,7 +652,7 @@ if __name__ == "__main__":
     Fz_obs = flux_mag * np.ones(10) 
 
     pure_scattering = Code1950Atmosphere(lam=lam_sc, n=3, F=flux_mag)
-    n_obs_chosen = np.array([[0, 0, 1.], [1, 0.0, 1e-4], [1, 0, 1]])
+    n_obs_chosen = np.array([[0, 0, 1.], [1, 0.0, 1e-12], [1, 0, 1]])
     mu_chosen_obs = n_obs_chosen[:, 2] / np.linalg.norm(n_obs_chosen, axis=1)
     P_disk = np.zeros(len(n_obs_chosen))
     P_singlescatt = np.zeros(len(n_obs_chosen))
@@ -716,9 +666,9 @@ if __name__ == "__main__":
             Fz_obs,
             n_obs,
             atmospheres=pure_scattering,
-            weight=None,
-            area_weight=False,
-            atmospheres_unit_flux=False)
+            dA=None,
+            compute_spherical_dA=False,
+            atmospheres_are_per_unit_flux=False)
 
         # _, _, _, _, P_singlescatt[n_idx] = single_scattering(mu_chosen_obs[n_idx], F=flux_mag)
         
@@ -746,9 +696,9 @@ if __name__ == "__main__":
                     Fx_obs, Fy_obs, Fz_obs,
                     n_obs,
                     atmospheres=pure_scattering,
-                    weight=None,
-                    area_weight=False,
-                    atmospheres_unit_flux=False)
+                    dA=None,
+                    compute_spherical_dA=False,
+                    atmospheres_are_per_unit_flux=False)
         P_sphere[n_idx] = P
     
         print(f"P = {P:.6f}, I = {I:.6f}, Q = {Q:.6f}, U = {U:.6f}")
@@ -757,11 +707,14 @@ if __name__ == "__main__":
     plt.figure(figsize=(8,8))
     # plt.scatter(mu_chosen_obs, P_singlescatt, s = 70, label = "single scattering", c = 'k')
     plt.plot(mu, P0, label=r"$P_{\rm loc}$", c = 'gray', ls = '--')
-    plt.scatter(mu_chosen_obs, P_disk, s = 50, label = "disk")
+    plt.scatter(mu_chosen_obs, P_disk, s = 50, label = r"disk with $F_x=F_y=0$")
     plt.scatter(mu_chosen_obs, P_sphere, s = 50, label = "sphere")
     plt.legend(fontsize=16)
-    plt.xlabel(r"$\mu=\cos\theta$")
+    plt.xlabel(r"$\cos\theta_{\rm obs}$")
     plt.ylabel(r"$P_{\rm net}$")
+    plt.text(0.0, 0.04, 'orb.plane', fontsize=16)
+    plt.text(0.9, 0.04, 'pole', fontsize=16)
+    plt.axhline(0.117, ls = '--', c = 'k', label = 'Chandrasekhar (1960) disk limit')
     plt.legend(fontsize=16)
 
     #%% Example 5: net polarization for ellipsoid from ShapiroSutherland (1982)
@@ -787,30 +740,32 @@ if __name__ == "__main__":
         if not np.allclose(np.sum(z_obs), 0, atol=1e-7):
             print(f"Warning: z-coordinates not symmetric for c={c}. sum(z) = {np.sum(z_obs)}")
 
-        # fig = plt.figure(figsize=(10, 10))
-        # ax = fig.add_subplot(111, projection = '3d')
-        # ax.scatter(x_obs, y_obs, z_obs, s = 20, c = 'sandybrown')
-        # ax.quiver(x_obs[::5], y_obs[::5], z_obs[::5], Fx_obs[::5], Fy_obs[::5], Fz_obs[::5], length=0.1, color='k')
-        # ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
-        # ax.set_xlim(-1.45, 1.45); ax.set_ylim(-1.45, 1.45); ax.set_zlim(-1.45, 1.45)
-        # plt.tight_layout()
+        if c in [c_all[0], c_all[-1]]:
+            print(f"Plotting ellipsoid surface for c={c}")
+            fig = plt.figure(figsize=(10, 10))
+            ax = fig.add_subplot(111, projection = '3d')
+            ax.scatter(x_obs, y_obs, z_obs, s = 20, c = 'sandybrown')
+            ax.quiver(x_obs[::5], y_obs[::5], z_obs[::5], Fx_obs[::5], Fy_obs[::5], Fz_obs[::5], length=0.1, color='k')
+            ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
+            ax.set_xlim(-1.45, 1.45); ax.set_ylim(-1.45, 1.45); ax.set_zlim(-1.45, 1.45)
+            plt.tight_layout()
         
         P, I, Q, U = compute_polarization_code(
                     Fx_obs, Fy_obs, Fz_obs,
                     n_obs_perp,
                     atmospheres=pure_scattering,
-                    weight=dA_obs,
-                    area_weight=False,
-                    atmospheres_unit_flux=True)
+                    dA=dA_obs,
+                    compute_spherical_dA=False,
+                    atmospheres_are_per_unit_flux=True)
         P_ell_sc_Obl[c_idx] = P
 
         # P, I, Q, U = compute_polarization_code(
         #                     Fx_obs, Fy_obs, Fz_obs,
         #                     n_obs_perp,
         #                     atmospheres=scattering_shsu,
-        #                     weight=dA_obs,
-        #                     area_weight=False,
-        #                     atmospheres_unit_flux=True)
+        #                     dA=dA_obs,
+        #                     compute_spherical_dA=False,
+        #                     atmospheres_are_per_unit_flux=True)
         # P_ell_Obl[c_idx] = P
 
     #%%
@@ -834,43 +789,49 @@ if __name__ == "__main__":
         if not np.allclose(np.sum(z_obs), 0, atol=1e-7):
             print(f"Warning: z-coordinates not symmetric for c={c}. sum(z) = {np.sum(z_obs)}")
 
-        # fig = plt.figure(figsize=(10, 10))
-        # ax = fig.add_subplot(111, projection = '3d')
-        # ax.scatter(x_obs, y_obs, z_obs, s = 20, c = 'sandybrown')
-        # ax.quiver(x_obs[::5], y_obs[::5], z_obs[::5], Fx_obs[::5], Fy_obs[::5], Fz_obs[::5], length=0.1, color='k')
-        # ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
-        # ax.set_xlim(-1.45, 1.45); ax.set_ylim(-1.45, 1.45); ax.set_zlim(-1.45, 1.45)
-        # plt.tight_layout()
+        if c in [c_all[0], c_all[-1]]:
+            print(f"Plotting ellipsoid surface for c={c}")
+            fig = plt.figure(figsize=(10, 10))
+            ax = fig.add_subplot(111, projection = '3d')
+            ax.scatter(x_obs, y_obs, z_obs, s = 20, c = 'sandybrown')
+            ax.quiver(x_obs[::5], y_obs[::5], z_obs[::5], Fx_obs[::5], Fy_obs[::5], Fz_obs[::5], length=0.1, color='k')
+            ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
+            ax.set_xlim(-1.45, 1.45); ax.set_ylim(-1.45, 1.45); ax.set_zlim(-1.45, 1.45)
+            plt.tight_layout()
         
         P, I, Q, U = compute_polarization_code(
                     Fx_obs, Fy_obs, Fz_obs,
                     n_obs_perp,
                     atmospheres=pure_scattering,
-                    weight=dA_obs,
-                    area_weight=False,
-                    atmospheres_unit_flux=True)
+                    dA=dA_obs,
+                    compute_spherical_dA=False,
+                    atmospheres_are_per_unit_flux=True)
         P_ell_sc_Pro[c_idx] = P
 
         # P, I, Q, U = compute_polarization_code(
         #                     Fx_obs, Fy_obs, Fz_obs,
         #                     n_obs_perp,
         #                     atmospheres=scattering_shsu,
-        #                     weight=dA_obs,
-        #                     area_weight=False,
-        #                     atmospheres_unit_flux=True)
+        #                     dA=dA_obs,
+        #                     compute_spherical_dA=False,
+        #                     atmospheres_are_per_unit_flux=True)
         # P_ell_Pros[c_idx] = P
     #%%
     fig, (axO, axP) = plt.subplots(1,2, figsize=(16,8)) 
     axO.plot(xi_Obl, P_ell_sc_Obl*100, label = r"$\lambda = $" + f"{lam_sc}")
     # axO.plot(xi_Obl, P_ell_Obl*100, label = r"$\lambda = $" + f"{lam_ShSu:.2f}")
+    axO.set_xlabel(r"$\xi = 1 - \min(a,c)/\max(a,c)$")
+    axO.set_ylabel(r"$P_{\rm net}$ [%]")
+    axO.axhline(11.7, ls = '--', c = 'k', label = 'Chandrasekhar (1960) disk limit')
+    axO.set_title('Oblate ellipsoid (a>c)', fontsize=16)
+    axO.text(0.0, 2, 'sphere', fontsize=16)
+    axO.text(0.9, 2, 'disk', fontsize=16)
     axP.plot(xi_Pro, P_ell_sc_Pro*100, label = r"$\lambda = $" + f"{lam_sc}")
     # axP.plot(xi_Pro, P_ell_Pros*100, label = r"$\lambda = $" + f"{lam_ShSu:.2f}")
     axP.set_xlabel(r"$\xi = 1 - \min(a,c)/\max(a,c)$")
-    axO.set_xlabel(r"$\xi = 1 - \min(a,c)/\max(a,c)$")
-    axO.set_ylabel(r"$P_{\rm net}$ [%]")
     axP.set_ylabel(r"$P_{\rm net}$ [%]")
-    axO.set_title('Oblate ellipsoid, observer perpendicular to symmetry axis', fontsize=16)
-    axP.set_title('Prolate ellipsoid, observer perpendicular to symmetry axis', fontsize=16)
+    axP.set_title('Prolate ellipsoid (a<c)', fontsize=16)
+    plt.suptitle('Ellipsoid with a=b. Net polarization for observer (1,0,0)', fontsize=20)
     plt.legend(fontsize=16)
 
     #%% Our simulation
@@ -894,8 +855,8 @@ if __name__ == "__main__":
     latitude_heal_moll = np.pi/2 - theta_heal
 
     photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
-    x, y, z, den, Fx, Fy, Fz, alpha_rossland, alpha_scatter, alpha_abs = \
-        photo['x'], photo['y'], photo['z'], photo['den'], photo['Fx'], photo['Fy'], photo['Fz'], photo['alpha_rossland'], photo['alpha_scatter'], photo['alpha_abs']
+    x, y, z, den, vol, Fx, Fy, Fz, alpha_rossland, alpha_scatter, alpha_abs = \
+        photo['x'], photo['y'], photo['z'], photo['den'], photo['vol'], photo['Fx'], photo['Fy'], photo['Fz'], photo['alpha_rossland'], photo['alpha_scatter'], photo['alpha_abs']
     lam_sim = 1 - alpha_scatter / alpha_rossland
     # lam_median = np.median(lam_sim)
 
@@ -915,8 +876,8 @@ if __name__ == "__main__":
                     n_obs,
                     atmospheres,
                     x=x, y=y, z=z,
-                    area_weight=False,
-                    atmospheres_unit_flux=False
+                    compute_spherical_dA=True,
+                    atmospheres_are_per_unit_flux=False
                 )
 
         P_sim[n_idx] = P
@@ -940,11 +901,13 @@ if __name__ == "__main__":
                 xi=(lon_heal_mesh, lat_heal_mesh),
                 method='linear')
 
-    #%%
+    
     fig = plt.figure(figsize=(10, 8))
     axP = fig.add_subplot(111, projection='mollweide')
-    img = axP.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_P, cmap='viridis', vmin = 0, vmax = 0.009)  #color by intensity
+    img = axP.pcolormesh(lon_heal_mesh, lat_heal_mesh, data_grid_P, cmap='viridis', vmin = 0, vmax = 0.006)  #color by intensity
     cbar = plt.colorbar(img, orientation='horizontal', pad = 0.1, label =r'P')
     cbar.ax.tick_params(which='major',length = 6)
 
+
+    print(np.median(P_sim))
 # %%
