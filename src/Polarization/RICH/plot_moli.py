@@ -1,40 +1,59 @@
 #!/usr/bin/env python3
+abspath = '/Users/paolamartire/shocks'
+import sys
+sys.path.append(abspath)
+
 """Plot a Mollweide projection from an IMC post-processing VTK file.
-
-VERSION: 4.0-consistent-length-units
-
-This script is tailored to the legacy ASCII POLYDATA files written by
-RICH's SphericalObserver::writeVTK.  It works with both the multigroup and
-Gray/grey outputs because it discovers all POINT_DATA fields dynamically.
-
-Required Python packages:
-    numpy, matplotlib, scipy
 
 Examples
 --------
-List every field in a file::
+How to use it:
+    main([path_file,
+        "--[what you are specifying]", "[VALUE]",
+        "--show"
+        ])
 
-    python3 plot_imc_mollweide.py observer.vtk --list-fields
+    E.g.:
+    main([path_file,
+        "--field", "grey_polarization_degree",
+        "--show"
+        ])
+    NB: the script specifically switches to the non-interactive "Agg" Matplotlib backend unless --show is provided
 
-Plot the bolometric luminosity::
+    To see what you can choose for --field:       
+        List every field in a file: main([path_file, "--list-fields"])
 
-    python3 plot_imc_mollweide.py observer.vtk \
-        --field forward_luminosity --scale log --output luminosity.png
+What you can specify with --: check parser.add_argument(-- 
+    Some examples are:
+        field: the field you want to plot (e.g. grey_polarization_degree)
+        scale: the scale of the plot (linear, log, symlog)
+        vmin: lower color limit
+        vmax: upper color limit
+        length-unit: the unit of length to use for the plot (native, cm, km, solar-radius or rsun, au)
+        mask-le: discard samples whose field value is <= VALUE before interpolation
 
-Plot one multigroup luminosity field::
-
-    python3 plot_imc_mollweide.py observer.vtk \
-        --field forward_group_12_luminosity --scale log
-
-Plot the gray FLD comparison field and mask zero-valued directions::
-
-    python3 plot_imc_mollweide.py observer.vtk \
-        --field fld_surface_luminosity --scale log --mask-le 0
-
-Rescale coordinates and all length-valued plotted fields to solar radii::
-
-    python3 plot_imc_mollweide.py observer.vtk \
-        --field photosphere_grey_radius_tau_total --length-unit solar-radius
+ Which VALUE you have in field (see explanation in README):
+    forward_luminosity: bolometric luminosity from MC at R_obs
+    grey_luminosity: luminosity from MC in grey at R_obs
+    fld_surface_luminosity: FLD luminosity at R_obs
+    forward_flux
+    fld_surface_flux
+    grey_flux
+    fld_surface_flux
+    forward_crossing_count: number of packets crossing the observer sphere
+    forward_polarization_angle: polarization angle 
+    grey_polarization_angle
+    forward_polarization_degree: polarization degree
+    grey_polarization_degree
+    photosphere_grey_radius_tau_total
+    photosphere_grey_radius_thermalization
+    photosphere_grey_valid_tau_total
+    photosphere_grey_valid_thermalization
+    photosphere_integrated_radius_tau_total [et simil]
+    The variants for the multigroup are like:
+        forward_group_0_luminosity: multigroup luminosity for group 0
+        forward_polarization_degree_group_000
+        photosphere_g0_radius_tau_total
 
 The default coordinate convention is
     longitude = atan2(y, x), latitude = asin(z / r).
@@ -42,23 +61,20 @@ Use --central-longitude, --reverse-longitude, or --rotate to alter the view.
 """
 
 from __future__ import annotations
-
 import argparse
 import math
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Sequence, Tuple
-
 import numpy as np
 
 
 SOLAR_RADIUS_CM = 6.957e10
 ASTRONOMICAL_UNIT_CM = 1.495978707e13
 
-# scale_cm is the number of centimeters in one displayed unit.
-# ``native`` means no conversion and is useful when the VTK coordinates are
-# already nondimensional or their unit is unknown.
+# defines how many centimeters correspond to one unit you want to display
+# ``native`` is assumed to be in cm
 LENGTH_UNITS = {
     "native": (1.0, "native VTK length unit", "native VTK length units"),
     "cm": (1.0, "cm", "cm"),
@@ -391,12 +407,7 @@ def list_fields(dataset: LegacyVtkPointData) -> None:
 
 
 def infer_field_dimension(field_name: str) -> str:
-    """Infer whether a VTK scalar is a length.
-
-    RICH's observer VTK files use explicit names for all current length-valued
-    outputs, notably ``photosphere_*_radius_*``.  The broader distance/length
-    checks make the behavior useful for future observer fields as well.
-    """
+    """Infer whether a requested field is a length. """
 
     name = field_name.lower()
     length_tokens = ("radius", "distance", "_dist", "length", "height")
@@ -849,4 +860,47 @@ def main(argv: Iterable[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    # raise SystemExit(main()) # from Maor
+    m = 4
+    Mbh = 10**m
+    beta = 1
+    mstar = .5
+    Rstar = .47
+    n = 1.5
+    compton = 'Compton'
+    check = 'MG' #'HiResNewAMR' 
+    snap = 429
+    generat = 1500
+    group = 8
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+
+    path_file =  f'{abspath}/TDE/{folder}/Polarization/tde_mg_{generat}polarization{snap}.vtk'
+
+    main([path_file,
+            "--field", f"forward_group_{group}_luminosity",
+            # "--length-unit", "solar-radius",
+            "--scale", "log",
+            # "--vmin", "1e+38",
+            # "--vmax", "1e+42",
+            "--show"
+            ])
+    
+    main([path_file,
+        "--field", f"forward_polarization_degree_group_{group:03d}",
+        # "--length-unit", "solar-radius",
+        # "--scale", "log",
+        # "--vmin", "1e+38",
+        # "--vmax", "1e+42",
+        "--show"
+        ])
+
+    main([path_file,
+            "--field", f"forward_polarization_snr_group_{group:03d}",
+            # "--length-unit", "solar-radius",
+            "--scale", "log",
+            # "--vmin", "1e+38",
+            # "--vmax", "1e+42",
+            "--show",
+            ])
+    
+    # main([path_file, '--list-fields'])

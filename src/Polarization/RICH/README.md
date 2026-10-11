@@ -209,12 +209,13 @@ where depolarizationScatterings controls the damping scale (with \(N_{\rm pol}\)
 - it explicitly simulates the last few scatterings with applyManualSyntheticScatterings().
 
 There is also this branch:
+```bash
 if(resetOccurred)
 {
     p.velocity = SampleIsotropicVelocity(...);
     ResetUnpolarized(p);
 }
-
+```
 This represents an effective absorption/re-emission event during accelerated transport. Such an event destroys the incoming polarization memory, so it resets $Q=U=0$ and also randomizes the microscopic photon direction.
 
 ## RadiationIMC.hpp
@@ -304,42 +305,126 @@ The run writes:
 - `output/tde_gray_mg_polarization.vtk`, with `forward_*` and `grey_*`
   observer fields in one sphere map.
 
-## Sphere plots
 
-Use the included entry point to inspect and plot any combined VTK field:
+## Which values are saved for --field:
+In general source/3D/radiation/SphericalObserver.cpp defines the raw field names, and source/3D/radiation/postprocess/PostProcessResultWriter.cpp is where the final forward_ and grey_ prefixes are explicitly added.
 
-Use a Python 3 environment with NumPy, SciPy, and Matplotlib available.
+### forward_luminosity
+It's the bolometric/multigroup Monte Carlo escaping luminosity per observer patch.
+##### How is computed
+In source/3D/radiation/postprocess/ForwardCalculation.cpp, the multigroup/forward calculation uses 
+`auto& observer = runtime.observer;`
 
-``` From MAOR:
+and after all MC generations it does:
+```bash
+observer->loadStatisticalMeanTallies();
+...
+observer->writeVTK(forwardVtk, cfg.sourceDt);
+```
+Then SphericalObserver::writeVTK() writes its generic luminosity as
+```bash
+for (size_t i = 0; i < N; ++i)`
+    file << observerEnergy_[i] * invDt << "\n";
+```
+with  `invDt = 1.0 / sourceDt;`, which physically is:
+\[ L^{\rm forward}_i = \frac{E^{\rm MC}_i}{\Delta t}\]
+where \(E_i^{\rm MC}\) is the energy accumulated from Monte Carlo packets assigned to observer at the point where they cross the observer sphere \(i\).
+Because you have several final generations, observerEnergy_ is first replaced by the statistical mean across those final generations.
 
-bash
-python3 plot_sphere.py \
-  output/tde_gray_mg_polarization.vtk --list-fields
+##### How is written
+What SphericalObserver.cpp writes is:
+`file << "SCALARS luminosity double 1\n";`
+Likewise the group field is written as:
+`file << "SCALARS group_" << g << "_luminosity double 1\n";`
 
-python3 plot_sphere.py \
-  output/tde_gray_mg_polarization.vtk \
-  --field forward_luminosity --scale log
+So at this stage we only have something like:
+luminosity
+group_0_luminosity
 
-python3 plot_sphere.py \
-  output/tde_gray_mg_polarization.vtk \
-  --field grey_polarization_degree
+The forward_ prefix is added later, when the forward and grey VTKs are merged into the final combined VTK in PostProcessResultWriter.cpp. The key function is:
+```bash
+std::string PrefixedField(std::string const& name, std::string const& pass)
+{
+    if (StartsWith(name, "photosphere_"))
+        return name;
+    if (StartsWith(name, "fld_"))
+        return name;
+    if (StartsWith(name, "log10_fld_"))
+        return "fld_log10_" + name.substr(10);
+    return pass + "_" + name;
+}
+```
+This says: for an ordinary field, prepend the pass name. E.g: `PrefixedField("luminosity", "forward")` becomes `forward_luminosity`.
+
+### forward_group_0_luminosity
+Same but restricted to group 0
+
+### fld_surface_luminosity
+ForwardCalculation.cpp separately takes
+
+```bash
+std::vector<double> const& fldLuminosity =
+    runtime.fldLuminosity;
 ```
 
-``` ON MY LOCAL MACHINE
+and directly appends it:
+```bash
+vtkAppend << "SCALARS fld_surface_luminosity double 1\n"
+          << "LOOKUP_TABLE default\n";
 
-python3 plot_sphere.py /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/Polarization/tde_gray_75polarization151.vtk --list-fields
+for (size_t p = 0; p < nObs; ++p)
+    vtkAppend << fldLuminosity[p] << "\n";
+```
+Therefore there is no Monte Carlo propagation in this number and fld_surface_luminosity[i]=runtime.fldLuminosity[i], and runtime.fldLuminosity is built in PostProcessApplication.cpp by summing something of the form 
+\[ L_i^{\rm FLD,surface} = \sum_{j\in i}
+\max(0,F_{r,j}^{\rm FLD})\,\Delta A_j\]
+where radialFlux is the projection on the radial direction of fldFlux[cell], which is build underd FLD approximation
+It is therefore the snapshot's FLD radiative flux integrated over the relevant surface patches.
+Which cell/patch are we looking at? Given our config.observer.radius, the code is evaluating the FLD field in cells intersecting the spherical surface (relative to observer.getCenter()).
 
-python3 plot_sphere.py \
-  /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/Polarization/tde_mg_1500polarization429.vtk \
-  --field forward_luminosity --scale log
+##### How is written
+PrefixedField() in PostProcessResultWriter handles it not adding nothing.
 
-python3 plot_sphere.py \
-  /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/Polarization/tde_mg_1500polarization429.vtk \
-  --field grey_polarization_degree
+### grey_luminosity 
+It's computed in source/3D/radiation/postprocess//GreyCalculation.cpp the same basic way as forward_luminosity: from Monte Carlo packets crossing the observer sphere, but in a grey mode
 
-python3 plot_sphere.py \
-  /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/Polarization/tde_mg_1500polarization429.vtk \
-  --field polarization_degree
+##### How is written
+In PostProcessResultWriter.cpp
+```bash
+RenameScalar(
+    greyLines[i], PrefixedField(name, "grey"))
+```
+so luminosity -> grey_luminosity
 
-``` 
+### fluxes
+We define the physical area of that observer patch as
+\[ A_i = \Delta\Omega_i R_{\rm obs}^2,\]
+where the raius is config.observer.radius, and computes
+\[F_i = \frac{L_i}{A_i}.\]
+We do the same also for FLD, where the flux is not simply fldFlux[cell], but:  
+\[
+F_{{\rm FLD},i}^{\rm output}
+\simeq
+\frac{1}{A_i}
+\int_{A_i}
+\max(0,\mathbf F_{\rm FLD}\cdot\hat r)\,dA.
+\]
 
+### Radii
+They are defined (source/3D/radiation/postprocess/PhotosphereCalculation.cpp) s.t. they are radii along each observer direction where the total optical depth (total for photosphere or effective for thermalization radius) reaches the chosen tauThreshold (2/3 for photosphere, 1 for thermalization).
+The corresponding valid_* fields are flags indicating whether a valid crossing/radius was actually found along that ray.If non valid the radius is set to -1 (and the validity flag to 0).
+
+##### How is computed
+For every observer direction and every requested channel, the code launches a probe ray and lets it propagate through the simulation for the whole diameter of the observer sphere (i.e. 2*r_obs). 
+Opacities are defined as:
+\[ \tau_{\rm tot,new} =
+\tau_{\rm tot,old} +\sigma_{\rm tot}\,ds, \quad
+\tau_{\rm therm,new} = \tau_{\rm therm,old} + \sigma_{\rm therm}\,ds.
+\]
+where
+\[\sigma_{\rm tot} = \sigma_{\rm abs}+\sigma_{\rm scat}, \quad 
+\sigma_{\rm therm} = \sqrt{3\,\sigma_{\rm abs}\left(\sigma_{\rm abs}+\sigma_{\rm scat}\right)}
+\]
+`PhotosphereProbePhysics` checks where each threshold is crossed and return the radius (NB: it does not just use the cell center. It linearly interpolates inside the cell segment)
+
+For photosphere_integrated_radius_tau_total, it first computes frequency-integrated multigroup absorption and scattering and then proceeds as the others.

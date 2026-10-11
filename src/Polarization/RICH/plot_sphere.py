@@ -3,12 +3,16 @@
 
 This entry point reuses the maintained generic VTK sphere plotter from the
 original imc_postprocess_tde run. Examples:
+    eg. path-to-file: 
+    /Users/paolamartire/shocks/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/Polarization/tde_gray_75polarization151.vtk
 
-    python3 plot_sphere.py output/tde_gray_75polarization.vtk --list-fields
-    python3 plot_sphere.py output/tde_gray_75polarization.vtk \
+    python3 plot_sphere.py path-to-file.vtk --list-fields
+    python3 plot_sphere.py path-to-file.vtk \
         --field forward_luminosity --scale log
-    python3 plot_sphere.py output/tde_gray_75polarization.vtk \
-        --field grey_polarization_degree
+    python3 plot_sphere.py path-to-file.vtk \
+        --field polarization_degree \
+    python3 plot_sphere.py path-to-file.vtk \
+            --field grey_polarization_degree
 """
 
 from pathlib import Path
