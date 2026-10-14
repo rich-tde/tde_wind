@@ -20,7 +20,7 @@ from matplotlib import lines as mlines
 import matplotlib.colors as colors
 from astropy.cosmology import FlatLambdaCDM
 import Utilities.prelude as prel
-from Utilities.operators import choose_observers, sort_list
+from Utilities.operators import choose_observers
 from src.fld_curve import load_fld_data
 from src.Paper1.predictions_for_obs import find_horizon
 from plotting.paperEdd.IHopeIsTheLast import ratio_BigOverSmall
@@ -33,10 +33,13 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'HiResNewAMR' 
+check = 'MG' 
 choice = 'split_stream' #
 x_axis = 'Temp'  # 'Freq' or 'Temp'
-snaps_spectra = [76, 109, 151]
+if check == 'MG':
+    snaps_spectra = [250, 320, 420]
+elif check == 'HiResNewAMR':
+    snaps_spectra = [76, 109, 151]
 
 params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
@@ -144,7 +147,14 @@ def load_spectrum(folder, check, snap):
     pre_saving = f'{abspath}/data/{folder}'
     freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt') 
     spectra = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
-    luminosity = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')["Lum"]
+    if check != 'MG':
+        photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
+        luminosity = photo["Lum"]
+    else:
+        data = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz', allow_pickle=True)
+        photo = data['photosphere'].item()
+        luminosity_all = [photo[e_idx]["Lum"] for e_idx in range(len(photo))]
+        luminosity = np.mean(luminosity_all, axis=0)
     integrals = np.trapezoid(spectra, freqs, axis=1)
     if np.any(~np.isfinite(integrals)) or np.any(integrals == 0):
         raise ValueError(f"Invalid spectral integral in snapshot {snap}")
@@ -287,7 +297,7 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll=False):
                 )
                 image = ax_moll.pcolormesh(
                     lon_mesh, lat_mesh, values, cmap="rainbow",
-                    norm=mcolors.LogNorm(vmin=L_min, vmax=(10 if band == "optical" else 4) * L_max),
+                    norm = mcolors.LogNorm(vmin=L_min, vmax=(10 if band == "optical" else 4) * L_max),
                 )
                 ax_moll.set_title(rf"${time:.2f}\,t_{{\rm fb}}$", fontsize=24, y=1.15)
                 ax_moll.grid()
@@ -606,9 +616,9 @@ def TRfit_in_time(folder, check, choice):
 
     
 if __name__ == '__main__':
-    # plot_spectra(folder, check, snaps_spectra, x_axis, choice)
+    plot_spectra(folder, check, snaps_spectra, x_axis, choice)
     # TRfit_in_time(folder, check, choice)
-    plot_light_curves(folder, check, choice, group = 'bands')
+    # plot_light_curves(folder, check, choice, group = 'bands')
     # plot_light_curves(folder, check, choice, group = 'sections')
     # plot_light_curves(folder, check, choice, group = 'bandsMG')
     # distance_telescope(folder, check, choice)

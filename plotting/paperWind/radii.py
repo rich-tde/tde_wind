@@ -38,8 +38,12 @@ indices_obs, label_obs, color_obs, lines_obs, _, _ = choose_observers(observers_
 fig, axes = plt.subplots(1, len(snaps), figsize=(6*len(snaps), 6))
 for s, snap in enumerate(snaps):
     tfb = np.loadtxt(f'{abspath}/TDE/{folder}/{snap}/tfb_{snap}.txt')
+    box = np.load(f'{abspath}/TDE/{folder}/{snap}/box_{snap}.npy')
+    print(f'Box: {box*prel.Rsol_cgs/1e14}', flush=True)
     photosphere = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
     x_ph, y_ph, z_ph = photosphere['x'], photosphere['y'], photosphere['z']
+    r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
+    print(snap, np.max(r_ph)*prel.Rsol_cgs/1e14)
     alpha_rossland_ph, alpha_scatter_ph, alpha_abs_ph = photosphere['alpha_rossland'], photosphere['alpha_scatter'], photosphere['alpha_abs']
 
     colorsphere = np.load(f'{abspath}/data/{folder}/spectra/{check}_Rcol{snap}.npz')
@@ -59,4 +63,4 @@ for ax in axes:
     ax.loglog()
 axes[0].legend()
 axes[0].set_ylabel(r'$\alpha_{\rm abs, Pl}/\alpha_{\rm Ross}$')
-plt.savefig(f'{abspath}/Figs/2.paperWind/referee/alphas.png', dpi=300, bbox_inches='tight')
+# plt.savefig(f'{abspath}/Figs/2.paperWind/referee/alphas.png', dpi=300, bbox_inches='tight')

@@ -347,7 +347,7 @@ if __name__ == "__main__":
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     
     # Load opacity tables
-    opac_path = f'{abspath}/src/Opacity'
+    opac_path = f'{abspath}/src/Opacity/fromRICH/'
     T_cool = np.loadtxt(f'{opac_path}/T.txt')
     Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
     rossland = np.loadtxt(f'{opac_path}/ross.txt')
