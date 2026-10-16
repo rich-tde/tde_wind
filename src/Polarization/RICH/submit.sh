@@ -95,6 +95,12 @@ exec srun "$executable" \
     --input.multigroup-opacity-directory "$root/data/STA/MG/" \
     --input.grey-opacity-directory "$root/data/STA/" \
     --input.eos-directory "$root/data/EOS/" \
+    --flux-source.face-flux hydro \
+    --flux-source.spectrum-temperature radiation \
+    --transport.split-observer-fraction 0.1 \
+    --transport.split-escape-reference 0.1 \
+    --transport.split-copy-budget 300000 \
+    --load-balance.final-period 5 \
     --transport.generations "$GENERATIONS" \
     --volume-emission.learned-photons-per-cell-budget "$MG_LEARNED_BUDGET" \
     --volume-emission.learned-photons-per-cell-budget-grey "$GREY_LEARNED_BUDGET" \
