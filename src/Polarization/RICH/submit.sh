@@ -51,7 +51,7 @@ GREY_EXPLORATION_FRACTION=0.005
 
 
 # Inputs
-SNAPSHOT=/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_151/snap_151.h5
+SNAPSHOT=/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_10/9snap_109.h5
 # SNAPSHOT=/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/snap_429/snap_429.h5
 
 # Under sbatch the script runs from a copy in the SLURM spool directory, so
@@ -79,6 +79,7 @@ done
 module restore rich_gnu_2025 # I added this line
 
 export RICH_MEASURED_LB_DEBUG_MEMORY=1   # per-rank memory lines in error_<jobid>.txt
+export UCX_TLS=ib
 
 echo "exe:         $executable"
 echo "snapshot:    $SNAPSHOT"

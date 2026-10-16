@@ -47,7 +47,7 @@ def fld_lightcurve(params, compton, check, N_ray):
     observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 
     for idx_s, snap in enumerate(snaps):
-        if snap not in [109]: 
+        if snap not in [76, 109, 151]: 
             continue
         print(f'Snap: {snap}', flush=True)
         if alice:
@@ -60,7 +60,7 @@ def fld_lightcurve(params, compton, check, N_ray):
             # Save spectrum
             np.savez(f"{pre_saving}/spectra/{check}_Rcol_mixMG{snap}.npz", **colorsphere)
             np.savetxt(f'{pre_saving}/spectra/freqs_mixMG.txt', freqs)
-            np.savetxt(f'{pre_saving}/spectra/{check}_spectra_migMG{snap}.txt', L_col)
+            np.savetxt(f'{pre_saving}/spectra/{check}_spectra_mixMG{snap}.txt', L_col)
         del colorsphere, L_col
         gc.collect()
 
@@ -81,8 +81,8 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
     L_col = np.zeros((num_obs, len(prel.freqs)))
 
     for i in range(num_obs):
-        if i not in [0]:
-            continue
+        # if i not in [0]:
+        #     continue
         print(f'Obs: {i}', flush=True)
 
         mu_x = observers_xyz[i][0]
@@ -139,6 +139,8 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
 
         # Optical depth
         r_fuT = np.flipud(r) #.T
+        alpha_planck = calc_planck_opacity_vectorized(T_cool, Rho_cool, planck, np.log(t), np.log(d))
+        alpha_planck = np.array(alpha_planck)
         alpha_planck_groups = np.zeros((Ng, len(r)))
         alpha_rossland_groups = np.zeros((Ng, len(r)))
         los_effective_groups = np.zeros((Ng, len(r)))
@@ -163,6 +165,10 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
                                 np.log(t),
                                 np.log(d))
 
+            # underflow_mask = np.logical_and(np.log(alpha_rossland_g) != 0.0, np.log(alpha_planck_g) != 0.0)
+            # alpha_rossland_g[~underflow_mask] = 0.0
+            # alpha_planck_g[~underflow_mask] = 0.0
+
             alpha_rossland_g = np.asarray(alpha_rossland_g)
             alpha_planck_g = np.asarray(alpha_planck_g)
 
@@ -174,7 +180,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
                 * np.minimum(alpha_planck_g, alpha_rossland_g)
                 * alpha_rossland_g)
             
-            los_effective_groups[g] = -np.flipud(sci.cumulative_trapezoid( np.flipud(alpha_effective_g), r_fuT, initial=0)) * prel.Rsol_cgs
+            los_effective_groups[g] = -np.flipud(sci.cumulative_trapezoid(np.flipud(alpha_effective_g), r_fuT, initial=0)) * prel.Rsol_cgs
 
         los_effective_groups[los_effective_groups > 30] = 30
         
@@ -191,7 +197,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         if not np.any(valid):
             print(f'No color surface found for observer {i}', flush=True)
             continue
-        r_th_groups = r[color_idx_groups[valid]]
+        r_th_groups = r[color_idx_groups]
         r_th_min = np.min(r_th_groups)
         color_idx = np.argmin(np.abs(r - r_th_min))
 
@@ -211,7 +217,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         # Spectra ---
         for g in range(Ng):
             # Frequencies belonging to this MG group
-            freq_mask = ((freqs >= f_edges[g, 0]) & (freqs < f_edges[g, 1]))
+            freq_mask = ((freqs >= f_edges[g]) & (freqs < f_edges[g+1]))
             if not np.any(freq_mask):
                 continue
             nu = freqs[freq_mask]
@@ -222,7 +228,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
                 wien = np.exp(prel.h_cgs * nu / (prel.Kb_cgs * t[k])) - 1
                 black_body = nu**3 / wien
                 L_col[i, freq_mask] += (
-                    alpha_planck_groups[g, k]
+                    alpha_planck[k]
                     * Vcell
                     * np.exp(-los_effective_groups[g, k])
                     * black_body)
@@ -273,3 +279,19 @@ if __name__ == "__main__":
     f_edges = f_edges_ev * prel.ev_toHz # [Hz] frequency range for each group. shape: (10, 2)
 
     fld_lightcurve(params, compton, check, N_ray)
+
+    # colorsphere_mix = np.load(f"{abspath}/data/{folder}/spectra/{check}_Rcol_mixMG76.npz")
+    # x_mix, y_mix, z_mix = colorsphere_mix['x'], colorsphere_mix['y'], colorsphere_mix['z']
+    # r_mix = np.sqrt(x_mix**2 + y_mix**2 + z_mix**2)
+
+    # colorsphere = np.load(f"{abspath}/data/{folder}/spectra/{check}_Rcol76.npz")
+    # x, y, z = colorsphere['x'], colorsphere['y'], colorsphere['z']
+    # r = np.sqrt(x**2 + y**2 + z**2)
+
+    # plt.figure(figsize=(6, 6))
+    # plt.scatter(np.arange(len(r))/13, r, color='orange', label='grey')
+    # plt.scatter(np.arange(len(r_mix))/13, r_mix, color='blue', label='mixMG')
+    # plt.xlabel('Observer index', fontsize=18)
+    # plt.ylabel(r'$r_{\rm col} (r_t)$', fontsize=18)
+    # plt.yscale('log')
+    # plt.legend()

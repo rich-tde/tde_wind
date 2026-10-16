@@ -33,7 +33,7 @@ mstar = .5
 Rstar = .47
 n = 1.5
 compton = 'Compton'
-check = 'MG' 
+check = 'HiResNewAMR' 
 choice = 'split_stream' #
 x_axis = 'Temp'  # 'Freq' or 'Temp'
 if check == 'MG':
@@ -146,7 +146,7 @@ def load_spectrum(folder, check, snap):
     ''' Load and normalize the spectrum for a given snapshot. '''
     pre_saving = f'{abspath}/data/{folder}'
     freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt') 
-    spectra = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
+    spectra = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra_mixMG{snap}.txt')
     if check != 'MG':
         photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
         luminosity = photo["Lum"]
