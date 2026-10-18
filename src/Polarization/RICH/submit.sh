@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=tde_75
-#SBATCH --output=output_%j.txt
-#SBATCH --error=error_%j.txt
+#SBATCH --job-name=tde_151
+#SBATCH --output=output_800.txt
+#SBATCH --error=error_800.txt
 #SBATCH --nodes=8
 #SBATCH --ntasks=1536
 #SBATCH --exclusive
@@ -28,7 +28,8 @@ set -euo pipefail
 # Each pass adds 21 fixed burn-in/probe generations in front. With the budgets
 # and exploration fractions written below (both 0.005) the total run time is roughly
 # 12 min + GENERATIONS * 26 s (20 -> ~20 min, 75 -> ~45 min, 200 -> ~1 h 40).
-GENERATIONS=75
+GENERATIONS=800 
+SNAP=320
 
 # Packets per generation for the cells that were learned to produce escaping
 # light: average packets per learned cell (budget) and the cap per cell.
@@ -51,8 +52,8 @@ GREY_EXPLORATION_FRACTION=0.005
 
 
 # Inputs
-SNAPSHOT=/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_10/9snap_109.h5
-# SNAPSHOT=/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/snap_429/snap_429.h5
+# SNAPSHOT="/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_$SNAP.h5"
+SNAPSHOT=/"home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/snap_$SNAP.h5"
 
 # Under sbatch the script runs from a copy in the SLURM spool directory, so
 # BASH_SOURCE does not point here; use the submission directory instead.
@@ -88,10 +89,11 @@ echo "generations: $GENERATIONS  (MG budget $MG_LEARNED_BUDGET, grey $GREY_LEARN
 echo "exploration: MG fraction $MG_EXPLORATION_FRACTION, grey fraction $GREY_EXPLORATION_FRACTION"
 
 cd "$here"
-mkdir -p output
+mkdir -p "output$SNAP"
 
 exec srun "$executable" \
     --input.snapshot "$SNAPSHOT" \
+    --output.stem "output$SNAP/tde_polarization$SNAP" \
     --input.multigroup-opacity-directory "$root/data/STA/MG/" \
     --input.grey-opacity-directory "$root/data/STA/" \
     --input.eos-directory "$root/data/EOS/" \

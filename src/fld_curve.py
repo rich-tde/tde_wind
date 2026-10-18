@@ -47,7 +47,7 @@ def fld_lightcurve(params, compton, check, N_ray):
     observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 
     for idx_s, snap in enumerate(snaps):
-        if snap not in [109]: 
+        if snap not in [76]:#, 109, 151]:
             continue
         print(f'Snap: {snap}', flush=True)
         if alice:
@@ -89,7 +89,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
     if plot:
         figtau, axtau = plt.subplots(figsize = (10, 8))
     for i in range(num_obs):
-        if i not in [0, 83, 90]:
+        if i not in [0]:
             continue
         print(f'Obs: {i}', flush=True)
 
@@ -168,6 +168,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         
         alpha_effective = np.sqrt(3 * np.minimum(alpha_planck, alpha_rossland) * alpha_rossland)
         alpha_effective_fuT = np.flipud(alpha_effective)
+        # print(alpha_effective, flush=True)
         los_effective = - np.flipud(sci.cumulative_trapezoid(alpha_effective_fuT, r_fuT, initial = 0)) * prel.Rsol_cgs
         los_effective[los_effective > 30] = 30
         del r_fuT, alpha_rossland_fuT, alpha_scatter_fuT, alpha_effective_fuT

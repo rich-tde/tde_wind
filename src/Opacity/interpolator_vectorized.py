@@ -1,3 +1,14 @@
+"""
+You can find opacity tables at https://gitlab.com/eladtan/RICH/-/tree/master/data/STA
+For multigroup:
+- the density should be in g/cc and the temperature now is in eV. 
+- sigma_rossland_  is the rossland mean opacity (absorption+scattering). This is used to find the photosphere
+- sigma_rossland_ total  is the gray group integrated opacity
+- sigma_absorption_rossland_ is the rossland opacity in a given group 
+(calculated by collapsing the spectrum into a gray opacity using rossland weighting)
+
+Check wiki: https://gitlab.com/eladtan/RICH/-/blob/master/wiki/Radiation-Transport.md 
+""" 
 abspath = '/Users/paolamartire/shocks'
 import sys
 

@@ -868,39 +868,57 @@ if __name__ == "__main__":
     Rstar = .47
     n = 1.5
     compton = 'Compton'
-    check = 'MG' #'HiResNewAMR' 
-    snap = 429
-    generat = 1500
-    group = 8
-    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    check = 'MG' 
 
-    path_file =  f'{abspath}/TDE/{folder}/Polarization/tde_mg_{generat}polarization{snap}.vtk'
+    snap = 429
+    generat = 800
+    group = 4
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+    if check == 'MG':
+        path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_mg_{generat}polarization{snap}.vtk'
+    else:
+        path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_gray_{generat}polarization{snap}.vtk'
+
+
+    # print("field min/max:", np.nanmin(values), np.nanmax(values))
+    # print("unique:", np.unique(values)[:20]) 
+    # print("nonzero:", np.count_nonzero(values), "/", values.size)
+    # print("finite:", np.count_nonzero(np.isfinite(values)), "/", values.size)
 
     main([path_file,
-            "--field", f"forward_group_{group}_luminosity",
+            "--field", f"forward_polarization_degree",
             # "--length-unit", "solar-radius",
-            "--scale", "log",
-            # "--vmin", "1e+38",
-            # "--vmax", "1e+42",
+            # "--scale", "log",
+            # "--vmin", "1e-3",
+            # "--vmax", "0.01",
             "--show"
             ])
+    
+    # main([path_file,
+    #         "--field", f"forward_group_{group}_luminosity",
+    #         # "--length-unit", "solar-radius",
+    #         "--scale", "log",
+    #         # "--vmin", "1e+38",
+    #         # "--vmax", "1e+42",
+    #         "--show"
+    #         ])
     
     main([path_file,
         "--field", f"forward_polarization_degree_group_{group:03d}",
         # "--length-unit", "solar-radius",
         # "--scale", "log",
-        # "--vmin", "1e+38",
-        # "--vmax", "1e+42",
+        "--vmin", "1e-3",
+        "--vmax", "0.01",
         "--show"
         ])
 
-    main([path_file,
-            "--field", f"forward_polarization_snr_group_{group:03d}",
-            # "--length-unit", "solar-radius",
-            "--scale", "log",
-            # "--vmin", "1e+38",
-            # "--vmax", "1e+42",
-            "--show",
-            ])
+    # main([path_file,
+    #         "--field", f"forward_polarization_snr_group_{group:03d}",
+    #         # "--length-unit", "solar-radius",
+    #         "--scale", "log",
+    #         # "--vmin", "1e+38",
+    #         # "--vmax", "1e+42",
+    #         "--show",
+    #         ])
     
-    # main([path_file, '--list-fields'])
+    main([path_file, '--list-fields'])

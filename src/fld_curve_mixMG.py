@@ -28,7 +28,6 @@ from scipy.interpolate import griddata
 from sklearn.neighbors import KDTree
 from src.Opacity.interpolator_vectorized import calc_planck_opacity_vectorized, calc_ross_opacity_vectorized, calc_scattering_opacity_vectorized
 
-from scipy.ndimage import uniform_filter1d
 import Utilities.prelude as prel
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
@@ -47,7 +46,7 @@ def fld_lightcurve(params, compton, check, N_ray):
     observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 
     for idx_s, snap in enumerate(snaps):
-        if snap not in [76, 109, 151]: 
+        if snap not in [76]: 
             continue
         print(f'Snap: {snap}', flush=True)
         if alice:
@@ -122,7 +121,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         _, idx = tree.query(xyz2, k=1)
         idx = idx.ravel()
         idx = np.array(idx)
-        # idx = np.unique(idx).astype(np.int64) #####
+        # idx = np.unique(idx).astype(np.int64)
         # Quantity corresponding to the ray
         d = Den[idx] * prel.den_converter
         t = T[idx]
@@ -147,14 +146,16 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         for g in range(Ng):
             rossland_g_table = np.loadtxt(f'{opac_path_mg}/sigma_rossland_{g+1}.txt').T # they are NOT in log
             planck_g_table = np.loadtxt(f'{opac_path_mg}/sigma_absorption_rossland_{g+1}.txt').T
+            scattering_g_table = np.loadtxt(f'{opac_path_mg}/sigma_scattering_planck_{g+1}.txt').T
             rossland_g_table = np.log(rossland_g_table)
             planck_g_table = np.log(planck_g_table)
+            scattering_g_table = np.log(scattering_g_table)
 
             alpha_rossland_g = calc_ross_opacity_vectorized(
                                 T_cool_mg,
                                 Rho_cool_mg,
                                 rossland_g_table,
-                                scattering,
+                                scattering_g_table,
                                 np.log(t),
                                 np.log(d))
 
@@ -175,10 +176,8 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
             alpha_rossland_groups[g] = alpha_rossland_g
             alpha_planck_groups[g] = alpha_planck_g
 
-            alpha_effective_g = np.sqrt(
-                3.0
-                * np.minimum(alpha_planck_g, alpha_rossland_g)
-                * alpha_rossland_g)
+            alpha_effective_g = np.sqrt(3.0 * np.minimum(alpha_planck_g, alpha_rossland_g) * alpha_rossland_g)
+            # print(f'alpha_effective_g for group {g}:', alpha_effective_g, flush=True)
             
             los_effective_groups[g] = -np.flipud(sci.cumulative_trapezoid(np.flipud(alpha_effective_g), r_fuT, initial=0)) * prel.Rsol_cgs
 
@@ -268,12 +267,12 @@ if __name__ == "__main__":
     Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
     rossland = np.loadtxt(f'{opac_path}/ross.txt')
     planck = np.loadtxt(f'{opac_path}/planck.txt')
-    scattering = np.loadtxt(f'{opac_path}/scatter.txt') # 1/cm
 
     opac_path_mg = f'{abspath}/src/Opacity/fromRICH/MG'
     T_cool_mg = np.loadtxt(f'{opac_path_mg}/T.txt')
-    Rho_cool_mg = np.loadtxt(f'{opac_path_mg}/rho.txt')
+    T_cool_mg *= prel.ev_toK
     T_cool_mg = np.log(T_cool_mg)
+    Rho_cool_mg = np.loadtxt(f'{opac_path_mg}/rho.txt')
     Rho_cool_mg = np.log(Rho_cool_mg)
     f_edges_ev = np.loadtxt(f'{opac_path_mg}/frequency_edges.txt') # [Hz] frequency range for each group. shape: (10, 2)
     f_edges = f_edges_ev * prel.ev_toHz # [Hz] frequency range for each group. shape: (10, 2)

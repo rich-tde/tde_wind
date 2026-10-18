@@ -15,7 +15,7 @@ PostProcessIMC::PostProcessScenario MakeTdeLuminosityScenario()
     config.output.writeVtk = true;
 
     // Observer sphere. Distances are in cm and times are in seconds.
-    config.observer.radius = 1.5e14;
+    config.observer.radius = 7.5e14;
     config.observer.count = 512;
     config.transport.sourceDt = 100.0;
     config.transport.duration = 1.0e6;

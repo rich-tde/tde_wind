@@ -55,6 +55,7 @@ print('we are in: ', pre, flush=True)
 #%% Opacities: load and interpolate ----------------------------------------------------------------
 opac_path = f'{abspath}/src/Opacity/fromRICH/MG'
 T_cool_lin = np.loadtxt(f'{opac_path}/T.txt')
+T_cool_lin *= prel.ev_toK
 Rho_cool_lin = np.loadtxt(f'{opac_path}/rho.txt')
 T_cool = np.log(T_cool_lin)
 Rho_cool = np.log(Rho_cool_lin)
