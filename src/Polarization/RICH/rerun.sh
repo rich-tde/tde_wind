@@ -53,8 +53,11 @@ GREY_EXPLORATION_FRACTION=0.005
 
 
 # Inputs
-# SNAPSHOT="/home/pmartire/tde_wind/outputs/gray/snap_$SNAP/tde_$OLDGENERATIONSpolarization.h5"
-SNAPSHOT="/home/pmartire/tde_wind/outputs/mg/snap_$SNAP/tde_${OLDGENERATIONS}polarization$SNAP.h5"
+# SNAPSHOT="/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_$SNAP.h5"
+SNAPSHOT=/"home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/snap_$SNAP.h5"
+
+# RESTART_FROM="/home/pmartire/tde_wind/outputs/gray/snap_$SNAP/tde_$OLDGENERATIONSpolarization.h5"
+RESTART_FROM="/home/pmartire/tde_wind/outputs/mg/snap_$SNAP/tde_${OLDGENERATIONS}polarization$SNAP.h5"
 
 # Under sbatch the script runs from a copy in the SLURM spool directory, so
 # BASH_SOURCE does not point here; use the submission directory instead.
