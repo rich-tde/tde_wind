@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=tde_320
-#SBATCH --output=output_800.txt
-#SBATCH --error=error_800.txt
+#SBATCH --job-name=tde_429
+#SBATCH --output=output_%j.txt
+#SBATCH --error=error_%j.txt
 #SBATCH --nodes=8
 #SBATCH --ntasks=1536
 #SBATCH --exclusive
@@ -30,7 +30,7 @@ set -euo pipefail
 # 12 min + GENERATIONS * 26 s (20 -> ~20 min, 75 -> ~45 min, 200 -> ~1 h 40).
 OLDGENERATIONS=800 
 GENERATIONS=700 
-SNAP=320
+SNAP=429
 
 # Packets per generation for the cells that were learned to produce escaping
 # light: average packets per learned cell (budget) and the cap per cell.
@@ -54,7 +54,7 @@ GREY_EXPLORATION_FRACTION=0.005
 
 # Inputs
 # RESTART_FROM="/home/pmartire/tde_wind/outputs/gray/snap_$SNAP/tde_$OLDGENERATIONSpolarization.h5"
-RESTART_FROM="/home/pmartire/tde_wind/outputs/mg/snap_$SNAP/tde_$OLDGENERATIONSpolarization$SNAP.h5"
+RESTART_FROM="/home/pmartire/tde_wind/outputs/mg/snap_$SNAP/tde_${OLDGENERATIONS}polarization$SNAP.h5"
 
 # Under sbatch the script runs from a copy in the SLURM spool directory, so
 # BASH_SOURCE does not point here; use the submission directory instead.
