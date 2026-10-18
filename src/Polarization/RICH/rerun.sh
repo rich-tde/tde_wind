@@ -30,7 +30,7 @@ set -euo pipefail
 # 12 min + GENERATIONS * 26 s (20 -> ~20 min, 75 -> ~45 min, 200 -> ~1 h 40).
 OLDGENERATIONS=800 
 GENERATIONS=700 
-SNAP=429
+SNAPSHOT=429
 
 # Packets per generation for the cells that were learned to produce escaping
 # light: average packets per learned cell (budget) and the cap per cell.
@@ -53,8 +53,8 @@ GREY_EXPLORATION_FRACTION=0.005
 
 
 # Inputs
-# RESTART_FROM="/home/pmartire/tde_wind/outputs/gray/snap_$SNAP/tde_$OLDGENERATIONSpolarization.h5"
-RESTART_FROM="/home/pmartire/tde_wind/outputs/mg/snap_$SNAP/tde_${OLDGENERATIONS}polarization$SNAP.h5"
+# RESTART_FROM="/home/pmartire/tde_wind/outputs/gray/snap_$SNAPSHOT/tde_$OLDGENERATIONSpolarization.h5"
+RESTART_FROM="/home/pmartire/tde_wind/outputs/mg/snap_$SNAPSHOT/tde_${OLDGENERATIONS}polarization$SNAP.h5"
 
 # Under sbatch the script runs from a copy in the SLURM spool directory, so
 # BASH_SOURCE does not point here; use the submission directory instead.
@@ -90,11 +90,11 @@ echo "generations: $GENERATIONS  (MG budget $MG_LEARNED_BUDGET, grey $GREY_LEARN
 echo "exploration: MG fraction $MG_EXPLORATION_FRACTION, grey fraction $GREY_EXPLORATION_FRACTION"
 
 cd "$here"
-mkdir -p "output$SNAP"
+mkdir -p "output$SNAPSHOT"
 
 exec srun "$executable" \
     --input.snapshot "$SNAPSHOT" \
-    --output.stem "output$SNAP/tde_polarization${SNAP}_restart" \
+    --output.stem "output$SNAPSHOT/tde_polarization${SNAPSHOT}_restart" \
     --restart.from "$RESTART_FROM" \
     --input.multigroup-opacity-directory "$root/data/STA/MG/" \
     --input.grey-opacity-directory "$root/data/STA/" \
