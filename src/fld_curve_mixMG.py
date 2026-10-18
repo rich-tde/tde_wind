@@ -19,7 +19,6 @@ else:
 import gc
 import warnings
 warnings.filterwarnings('ignore')
-import csv
 
 import numpy as np
 import healpy as hp
@@ -46,7 +45,7 @@ def fld_lightcurve(params, compton, check, N_ray):
     observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 
     for idx_s, snap in enumerate(snaps):
-        if snap not in [76]: 
+        if snap not in [76, 109, 151]: 
             continue
         print(f'Snap: {snap}', flush=True)
         if alice:
@@ -143,6 +142,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         alpha_planck_groups = np.zeros((Ng, len(r)))
         alpha_rossland_groups = np.zeros((Ng, len(r)))
         los_effective_groups = np.zeros((Ng, len(r)))
+        # print(np.log(t))
         for g in range(Ng):
             rossland_g_table = np.loadtxt(f'{opac_path_mg}/sigma_rossland_{g+1}.txt').T # they are NOT in log
             planck_g_table = np.loadtxt(f'{opac_path_mg}/sigma_absorption_rossland_{g+1}.txt').T
@@ -227,7 +227,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
                 wien = np.exp(prel.h_cgs * nu / (prel.Kb_cgs * t[k])) - 1
                 black_body = nu**3 / wien
                 L_col[i, freq_mask] += (
-                    alpha_planck[k]
+                    alpha_planck_groups[g, k]
                     * Vcell
                     * np.exp(-los_effective_groups[g, k])
                     * black_body)
@@ -267,6 +267,7 @@ if __name__ == "__main__":
     Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
     rossland = np.loadtxt(f'{opac_path}/ross.txt')
     planck = np.loadtxt(f'{opac_path}/planck.txt')
+    # print(np.shape(rossland), np.shape(T_cool), np.shape(Rho_cool), flush=True)
 
     opac_path_mg = f'{abspath}/src/Opacity/fromRICH/MG'
     T_cool_mg = np.loadtxt(f'{opac_path_mg}/T.txt')
@@ -274,8 +275,22 @@ if __name__ == "__main__":
     T_cool_mg = np.log(T_cool_mg)
     Rho_cool_mg = np.loadtxt(f'{opac_path_mg}/rho.txt')
     Rho_cool_mg = np.log(Rho_cool_mg)
+    # print(np.shape(T_cool_mg), np.shape(Rho_cool_mg))
     f_edges_ev = np.loadtxt(f'{opac_path_mg}/frequency_edges.txt') # [Hz] frequency range for each group. shape: (10, 2)
     f_edges = f_edges_ev * prel.ev_toHz # [Hz] frequency range for each group. shape: (10, 2)
+
+    # plt.figure(figsize=(6, 6))
+    # plt.axvline(np.min(T_cool_mg), color='orange', label='MG')
+    # plt.axvline(np.max(T_cool_mg), color='orange')
+    # plt.axvline(np.min(T_cool), color='blue', ls = '--', label='grey')
+    # plt.axvline(np.max(T_cool), color='blue', ls = '--')
+    # plt.axhline(np.min(Rho_cool_mg), color='orange')
+    # plt.axhline(np.max(Rho_cool_mg), color='orange')
+    # plt.axhline(np.min(Rho_cool), color='blue', ls = '--')
+    # plt.axhline(np.max(Rho_cool), color='blue', ls = '--')
+    # plt.xlabel('Temperature [K]', fontsize=18)
+    # plt.ylabel('Density [g/cm^3]', fontsize=18)
+    # plt.legend()
 
     fld_lightcurve(params, compton, check, N_ray)
 

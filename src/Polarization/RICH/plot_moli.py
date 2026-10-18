@@ -870,14 +870,11 @@ if __name__ == "__main__":
     compton = 'Compton'
     check = 'MG' 
 
-    snap = 429
+    snap = 250
     generat = 800
     group = 4
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-    if check == 'MG':
-        path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_mg_{generat}polarization{snap}.vtk'
-    else:
-        path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_gray_{generat}polarization{snap}.vtk'
+    path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_{generat}polarization{snap}.vtk'
 
 
     # print("field min/max:", np.nanmin(values), np.nanmax(values))
@@ -907,8 +904,8 @@ if __name__ == "__main__":
         "--field", f"forward_polarization_degree_group_{group:03d}",
         # "--length-unit", "solar-radius",
         # "--scale", "log",
-        "--vmin", "1e-3",
-        "--vmax", "0.01",
+        # "--vmin", "1e-3",
+        # "--vmax", "0.01",
         "--show"
         ])
 
@@ -921,4 +918,4 @@ if __name__ == "__main__":
     #         "--show",
     #         ])
     
-    main([path_file, '--list-fields'])
+    # main([path_file, '--list-fields'])

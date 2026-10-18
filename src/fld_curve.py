@@ -169,6 +169,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         alpha_effective = np.sqrt(3 * np.minimum(alpha_planck, alpha_rossland) * alpha_rossland)
         alpha_effective_fuT = np.flipud(alpha_effective)
         # print(alpha_effective, flush=True)
+        # print(np.log(t))
         los_effective = - np.flipud(sci.cumulative_trapezoid(alpha_effective_fuT, r_fuT, initial = 0)) * prel.Rsol_cgs
         los_effective[los_effective > 30] = 30
         del r_fuT, alpha_rossland_fuT, alpha_scatter_fuT, alpha_effective_fuT
