@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=tde_151
+#SBATCH --job-name=tde_429
 #SBATCH --output=output_800.txt
 #SBATCH --error=error_800.txt
 #SBATCH --nodes=8
@@ -29,7 +29,7 @@ set -euo pipefail
 # and exploration fractions written below (both 0.005) the total run time is roughly
 # 12 min + GENERATIONS * 26 s (20 -> ~20 min, 75 -> ~45 min, 200 -> ~1 h 40).
 GENERATIONS=800 
-SNAP=320
+SNAP=429
 
 # Packets per generation for the cells that were learned to produce escaping
 # light: average packets per learned cell (budget) and the cap per cell.
@@ -52,8 +52,8 @@ GREY_EXPLORATION_FRACTION=0.005
 
 
 # Inputs
-# SNAPSHOT="/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_$SNAP.h5"
-SNAPSHOT=/"home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/snap_$SNAP.h5"
+# SNAPSHOT="/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_$SNAP/snap_$SNAP.h5"
+SNAPSHOT=/"home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/snap_$SNAP/snap_$SNAP.h5"
 
 # Under sbatch the script runs from a copy in the SLURM spool directory, so
 # BASH_SOURCE does not point here; use the submission directory instead.
