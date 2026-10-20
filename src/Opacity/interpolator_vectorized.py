@@ -1,6 +1,6 @@
 """
 You can find opacity tables at https://gitlab.com/eladtan/RICH/-/tree/master/data/STA
-For multigroup:
+For multigroup, opacities are in cm2/g:
 - the density should be in g/cc and the temperature now is in eV. 
 - sigma_rossland_  is the rossland mean opacity (absorption+scattering). This is used to find the photosphere
 - sigma_rossland_ total  is the gray group integrated opacity
@@ -314,7 +314,7 @@ def calc_planck_opacity_vectorized(T_, rho_, planck_, Tcell_arr, rhocell_arr, re
 
 if __name__ == "__main__":
     # test with the non vectorized version for consistency
-    from src.Opacity.interpolator_rich import calc_scattering_opacity, calc_ross_opacity, calc_planck_opacity, create_bigger_table
+    from Test.interpolator_rich import calc_scattering_opacity, calc_ross_opacity, calc_planck_opacity, create_bigger_table
     opac_path = f'{abspath}/src/Opacity'
     ln_T_tab = np.loadtxt(f'{opac_path}/T.txt') 
     ln_Rho_tab = np.loadtxt(f'{opac_path}/rho.txt') 

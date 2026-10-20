@@ -45,20 +45,21 @@ def fld_lightcurve(params, compton, check, N_ray):
     observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 
     for idx_s, snap in enumerate(snaps):
-        if snap not in [76, 109, 151]: 
+        if snap not in [76]: 
             continue
         print(f'Snap: {snap}', flush=True)
         if alice:
             loadpath = f'{pre}/snap_{snap}'
         else:
             loadpath = f'{pre}/{snap}'
-        colorsphere, freqs, L_col = single_fld(loadpath, snap, observers_xyz, N_ray)
+        colorsphere_groups, colorsphere, freqs, L_col = single_fld(loadpath, snap, observers_xyz, N_ray)
 
         if save:
             # Save spectrum
-            np.savez(f"{pre_saving}/spectra/{check}_Rcol_mixMG{snap}.npz", **colorsphere)
-            np.savetxt(f'{pre_saving}/spectra/freqs_mixMG.txt', freqs)
-            np.savetxt(f'{pre_saving}/spectra/{check}_spectra_mixMG{snap}.txt', L_col)
+            # np.savez(f"{pre_saving}/spectra/mixMG/{check}_Rcolgroup_mixMG{snap}.npz", **colorsphere_groups)
+            np.savez(f"{pre_saving}/spectra/mixMG/{check}_Rcol_mixMG{snap}.npz", **colorsphere)
+            np.savetxt(f'{pre_saving}/spectra/mixMG/freqs_mixMG.txt', freqs)
+            np.savetxt(f'{pre_saving}/spectra/mixMG/{check}_spectra_mixMG{snap}.txt', L_col)
         del colorsphere, L_col
         gc.collect()
 
@@ -74,12 +75,18 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
     xyz = np.array([X, Y, Z]).T
     R = np.sqrt(X**2 + Y**2 + Z**2)
 
-    colorsphere = {'idx': [], 'x': [], 'y': [], 'z': [], 'vol': [], 'den': [], 'temp': [], 'radden': [], 'vx': [], 'vy': [], 'vz': [], 'P': []}
+    colorsphere = {'idx': [], 'x': [], 'y': [], 'z': [], 'vol': [], 'den': [], 'temp': [], 'radden': [], 'vx': [], 'vy': [], 'vz': [], 'P': []} # each list have length num_obs
+    colorsphere_groups = {g: {
+                            'idx': [], 'x': [], 'y': [], 'z': [],
+                            'vol': [], 'den': [], 'temp': [], 'radden': [],
+                            'vx': [], 'vy': [], 'vz': [], 'P': [],
+                            'alpha_rossland': [], 'alpha_scatter': [], 'alpha_abs': [], 'alpha_eff': []}
+                        for g in range(Ng)}
     freqs = prel.freqs
     L_col = np.zeros((num_obs, len(prel.freqs)))
 
     for i in range(num_obs):
-        # if i not in [0]:
+        # if i not in [0, 10, 20, 30, 40, 70, 80, 90, 100, 110, 140, 150, 180]:
         #     continue
         print(f'Obs: {i}', flush=True)
 
@@ -144,34 +151,40 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         los_effective_groups = np.zeros((Ng, len(r)))
         # print(np.log(t))
         for g in range(Ng):
-            rossland_g_table = np.loadtxt(f'{opac_path_mg}/sigma_rossland_{g+1}.txt').T # they are NOT in log
-            planck_g_table = np.loadtxt(f'{opac_path_mg}/sigma_absorption_rossland_{g+1}.txt').T
-            scattering_g_table = np.loadtxt(f'{opac_path_mg}/sigma_scattering_planck_{g+1}.txt').T
+            rossland_kappa_g_table = np.loadtxt(f'{opac_path_mg}/sigma_rossland_{g+1}.txt').T # they are NOT in log, are in cm2/g
+            planck_kappa_g_table = np.loadtxt(f'{opac_path_mg}/sigma_absorption_rossland_{g+1}.txt').T
+            scattering_kappa_g_table = np.loadtxt(f'{opac_path_mg}/sigma_scattering_planck_{g+1}.txt').T
+            rossland_g_table = rossland_kappa_g_table * Rho_cool_mg[:, None]
+            planck_g_table = planck_kappa_g_table * Rho_cool_mg[:, None]
+            scattering_g_table = scattering_kappa_g_table * Rho_cool_mg[:, None]
+            Rho_cool_mg_log = np.log(Rho_cool_mg)
+            T_cool_mg_log = np.log(T_cool_mg)
             rossland_g_table = np.log(rossland_g_table)
             planck_g_table = np.log(planck_g_table)
             scattering_g_table = np.log(scattering_g_table)
 
             alpha_rossland_g = calc_ross_opacity_vectorized(
-                                T_cool_mg,
-                                Rho_cool_mg,
+                                T_cool_mg_log,
+                                Rho_cool_mg_log,
                                 rossland_g_table,
                                 scattering_g_table,
                                 np.log(t),
                                 np.log(d))
 
             alpha_planck_g = calc_planck_opacity_vectorized(
-                                T_cool_mg,
-                                Rho_cool_mg,
+                                T_cool_mg_log,
+                                Rho_cool_mg_log,
                                 planck_g_table,
                                 np.log(t),
                                 np.log(d))
 
+            alpha_rossland_g = np.asarray(alpha_rossland_g)
+            alpha_planck_g = np.asarray(alpha_planck_g)
+
+
             # underflow_mask = np.logical_and(np.log(alpha_rossland_g) != 0.0, np.log(alpha_planck_g) != 0.0)
             # alpha_rossland_g[~underflow_mask] = 0.0
             # alpha_planck_g[~underflow_mask] = 0.0
-
-            alpha_rossland_g = np.asarray(alpha_rossland_g)
-            alpha_planck_g = np.asarray(alpha_planck_g)
 
             alpha_rossland_groups[g] = alpha_rossland_g
             alpha_planck_groups[g] = alpha_planck_g
@@ -189,8 +202,40 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
             idx_g = np.where(los_effective_groups[g] < 5)[0]
             if len(idx_g) == 0:
                 print(f'No color index found for observer {i}, group {g}', flush=True)
+                colorsphere_groups[g]['idx'].append(np.nan)
+                colorsphere_groups[g]['x'].append(np.nan)
+                colorsphere_groups[g]['y'].append(np.nan)
+                colorsphere_groups[g]['z'].append(np.nan)
+                colorsphere_groups[g]['vol'].append(np.nan)
+                colorsphere_groups[g]['den'].append(np.nan)
+                colorsphere_groups[g]['temp'].append(np.nan)
+                colorsphere_groups[g]['radden'].append(np.nan)
+                colorsphere_groups[g]['vx'].append(np.nan)
+                colorsphere_groups[g]['vy'].append(np.nan)
+                colorsphere_groups[g]['vz'].append(np.nan)
+                colorsphere_groups[g]['P'].append(np.nan)
+                colorsphere_groups[g]['alpha_rossland'].append(np.nan)
+                # colorsphere_groups[g]['alpha_scatter'].append(np.nan)
+                colorsphere_groups[g]['alpha_abs'].append(np.nan)
+                colorsphere_groups[g]['alpha_eff'].append(np.nan)
                 continue
             color_idx_groups[g] = idx_g[0]
+            colorsphere_groups[g]['idx'].append(idx[idx_g])
+            colorsphere_groups[g]['x'].append(ray_x[idx_g])
+            colorsphere_groups[g]['y'].append(ray_y[idx_g])
+            colorsphere_groups[g]['z'].append(ray_z[idx_g])
+            colorsphere_groups[g]['vol'].append(volume[idx_g])
+            colorsphere_groups[g]['den'].append(d[idx_g])
+            colorsphere_groups[g]['temp'].append(t[idx_g])
+            colorsphere_groups[g]['radden'].append(ray_radDen[idx_g])
+            colorsphere_groups[g]['vx'].append(ray_vx[idx_g])
+            colorsphere_groups[g]['vy'].append(ray_vy[idx_g])
+            colorsphere_groups[g]['vz'].append(ray_vz[idx_g])
+            colorsphere_groups[g]['P'].append(ray_press[idx_g])
+            colorsphere_groups[g]['alpha_rossland'].append(alpha_rossland_groups[g][idx_g])
+            # colorsphere_groups[g]['alpha_scatter'].append(scattering_g_table[idx_g])
+            colorsphere_groups[g]['alpha_abs'].append(alpha_planck_groups[g][idx_g])
+            colorsphere_groups[g]['alpha_eff'].append(alpha_effective_g[idx_g])
 
         valid = color_idx_groups >= 0
         if not np.any(valid):
@@ -235,8 +280,7 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         del ray_radDen, tree, volume, ray_x, ray_y, ray_z, ray_vx, ray_vy, ray_vz, ray_press, ray_ie_den 
         gc.collect()
 
-
-    return colorsphere, freqs, L_col
+    return colorsphere_groups, colorsphere, freqs, L_col
 
 
 def load_fld_data(folder, check):
@@ -267,30 +311,36 @@ if __name__ == "__main__":
     Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
     rossland = np.loadtxt(f'{opac_path}/ross.txt')
     planck = np.loadtxt(f'{opac_path}/planck.txt')
+    T_cool_plot = np.exp(T_cool)
+    Rho_cool_plot = np.exp(Rho_cool)
+    rossland_plot = np.exp(rossland)
     # print(np.shape(rossland), np.shape(T_cool), np.shape(Rho_cool), flush=True)
 
     opac_path_mg = f'{abspath}/src/Opacity/fromRICH/MG'
     T_cool_mg = np.loadtxt(f'{opac_path_mg}/T.txt')
     T_cool_mg *= prel.ev_toK
-    T_cool_mg = np.log(T_cool_mg)
     Rho_cool_mg = np.loadtxt(f'{opac_path_mg}/rho.txt')
-    Rho_cool_mg = np.log(Rho_cool_mg)
+    rossland_opt_table = np.loadtxt(f'{opac_path_mg}/sigma_rossland_4.txt').T # they are NOT in log
     # print(np.shape(T_cool_mg), np.shape(Rho_cool_mg))
-    f_edges_ev = np.loadtxt(f'{opac_path_mg}/frequency_edges.txt') # [Hz] frequency range for each group. shape: (10, 2)
-    f_edges = f_edges_ev * prel.ev_toHz # [Hz] frequency range for each group. shape: (10, 2)
+    f_edges_ev = np.loadtxt(f'{opac_path_mg}/frequency_edges.txt') # [eV] 
+    f_edges = f_edges_ev * prel.ev_toHz # [Hz] 
 
-    # plt.figure(figsize=(6, 6))
-    # plt.axvline(np.min(T_cool_mg), color='orange', label='MG')
-    # plt.axvline(np.max(T_cool_mg), color='orange')
-    # plt.axvline(np.min(T_cool), color='blue', ls = '--', label='grey')
-    # plt.axvline(np.max(T_cool), color='blue', ls = '--')
-    # plt.axhline(np.min(Rho_cool_mg), color='orange')
-    # plt.axhline(np.max(Rho_cool_mg), color='orange')
-    # plt.axhline(np.min(Rho_cool), color='blue', ls = '--')
-    # plt.axhline(np.max(Rho_cool), color='blue', ls = '--')
-    # plt.xlabel('Temperature [K]', fontsize=18)
-    # plt.ylabel('Density [g/cm^3]', fontsize=18)
-    # plt.legend()
+    # kappa_ross_plot = rossland_plot
+    kappa_ross_plot = []
+    for i in range(len(T_cool_plot)): 
+        kappa_ross_plot.append(rossland_plot[i, :]/Rho_cool_plot)
+    kappa_ross_plot = np.array(kappa_ross_plot)
+
+    # fig, (axg, axm) = plt.subplots(1, 2, figsize=(14, 6))
+    # axg.pcolormesh(np.log10(T_cool_plot), np.log10(Rho_cool_plot), kappa_ross_plot.T, cmap='jet', norm=mpl.colors.LogNorm(vmin=1e-5, vmax=1e7))
+    # img = axm.pcolormesh(np.log10(T_cool_mg_plot), np.log10(Rho_cool_mg_plot), rossland_opt_table.T, cmap='jet', norm=mpl.colors.LogNorm(vmin=1e-5, vmax=1e7))
+    # cbar = plt.colorbar(img)
+    # cbar.set_label(r'$\kappa_R$ (cm$^2$/g)', fontsize=18)
+    # for ax in [axg, axm]:
+    #     ax.set_xlabel(r'$\log_{10}$ Temperature (K)', fontsize=18)
+    #     ax.set_xlim(3.5, 9.5)
+    #     ax.set_ylim(-14, 2)
+    # axg.set_ylabel(r'$\log_{10}$ Density (g/cm$^3$)', fontsize=18)
 
     fld_lightcurve(params, compton, check, N_ray)
 

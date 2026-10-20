@@ -48,6 +48,8 @@ Rt = things['Rt']
 tfallback = things['t_fb_days']
 tfallback_cgs = tfallback * 24 * 3600
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+f_edges_ev = np.loadtxt(f'{abspath}/src/Opacity/fromRICH/MG/frequency_edges.txt') # [Hz] frequency range for each group. shape: (10, 2)
+f_edges = f_edges_ev * prel.ev_toHz
 
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3) # implies Omega_Lambda = 0.7
 # Visible: 4.8e14-7.5e14 Hz  // UV: 7.5e14-3e15 // Xray: 3e15-3e19 Hz (tera:1e12, peta: 1e14, exa: 1e18)
@@ -146,7 +148,7 @@ def load_spectrum(folder, check, snap):
     ''' Load and normalize the spectrum for a given snapshot. '''
     pre_saving = f'{abspath}/data/{folder}'
     freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt') 
-    spectra = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra_mixMG{snap}.txt')
+    spectra = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
     if check != 'MG':
         photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
         luminosity = photo["Lum"]
@@ -155,6 +157,18 @@ def load_spectrum(folder, check, snap):
         photo = data['photosphere'].item()
         luminosity_all = [photo[e_idx]["Lum"] for e_idx in range(len(photo))]
         luminosity = np.mean(luminosity_all, axis=0)
+    integrals = np.trapezoid(spectra, freqs, axis=1)
+    if np.any(~np.isfinite(integrals)) or np.any(integrals == 0):
+        raise ValueError(f"Invalid spectral integral in snapshot {snap}")
+    return spectra * (luminosity / integrals)[:, None], luminosity
+
+def load_spectrum_mixMG(folder, check, snap):
+    ''' Load and normalize the spectrum for a given snapshot. '''
+    pre_saving = f'{abspath}/data/{folder}'
+    freqs = np.loadtxt(f'{pre_saving}/spectra/mixMG/freqs_mixMG.txt') 
+    spectra = np.loadtxt(f'{pre_saving}/spectra/mixMG/{check}_spectra_mixMG{snap}.txt')
+    photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
+    luminosity = photo["Lum"]
     integrals = np.trapezoid(spectra, freqs, axis=1)
     if np.any(~np.isfinite(integrals)) or np.any(integrals == 0):
         raise ValueError(f"Invalid spectral integral in snapshot {snap}")
@@ -287,6 +301,9 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll=False):
         time = tfb[matches[0]]
         spectra, _ = load_spectrum(folder, check, snap)
 
+        freqs_mixsMG = np.loadtxt(f'{pre_saving}/spectra/mixMG/freqs_mixMG.txt') 
+        spectra_mixMG, _ = load_spectrum_mixMG(folder, check, snap)
+
         if in_moll:
             integrated = integrate_bands(spectra, freqs, bands_idx)
             for band in ("optical", "Xray"):
@@ -307,11 +324,15 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll=False):
         x_values = freqs * prel.Hz_toK if x_axis == "Temp" else freqs
         add_spectral_regions(axes[s], x_axis, text_band=True if s == 0 else False)
 
+        spectra_mixMG = angular_average(spectra_mixMG, cosine)
+        x_values_mixMG = freqs_mixsMG * prel.Hz_toK if x_axis == "Temp" else freqs_mixsMG
+
         fitted = []
         for k, idx in enumerate(sectors):
             if labels[k] in {"South pole"}:
                 continue
             luminosity = np.mean(spectra[idx], axis=0)
+            luminosity_mixMG = np.mean(spectra_mixMG[idx], axis=0)
             observer_index = central_indices[k]
             # luminosity = spectra[observer_index]
             if np.any(~np.isfinite(luminosity)):
@@ -324,16 +345,17 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll=False):
                 f"Tfit={temperature:.2e} K, Rfit={radius/prel.Rsol_cgs:.2e} Rsol"
             )
             line = axes[s].plot(x_values, freqs * luminosity, color=colours[k], label=labels[k] if s == 0 else None)[0]
+            axes[s].plot(x_values_mixMG, freqs_mixsMG * luminosity_mixMG, color=colours[k], ls="--")[0]
             if s == 0:
                 colour_handles.append(line)
                 colour_labels.append(labels[k])
 
-        for k, radius, temperature in fitted:
-            bb = blackbody_lnu(freqs, radius, temperature)
-            lineB = axes[s].plot(x_values, freqs * bb, color=colours[k], ls="-.", label = f'T={temperature*1e-4:.1f}' + r' $\times 10^4$ K')[0] # if s < 2 else f'T={temperature*1e-3:.1f}' + r' $\times 10^3$ K')[0]
-            if s == 0: 
-                handles_T.append(lineB)
-                labels_T.append(f'T={temperature*1e-4:.1f}' + r' $\times 10^4$ K' )
+        # for k, radius, temperature in fitted:
+        #     bb = blackbody_lnu(freqs, radius, temperature)
+        #     lineB = axes[s].plot(x_values, freqs * bb, color=colours[k], ls="-.", label = f'T={temperature*1e-4:.1f}' + r' $\times 10^4$ K')[0] # if s < 2 else f'T={temperature*1e-3:.1f}' + r' $\times 10^3$ K')[0]
+        #     if s == 0: 
+        #         handles_T.append(lineB)
+        #         labels_T.append(f'T={temperature*1e-4:.1f}' + r' $\times 10^4$ K' )
             
 
         axes[s].set_title(rf"$t={time:.1f}\,t_{{\rm fb}}$", fontsize=30, y=1.17)
@@ -341,15 +363,17 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll=False):
         axes[s].loglog()
         axes[s].tick_params(axis='both', which='major', length=8, width=1.2)
         axes[s].tick_params(axis='both', which='minor', length=5, width=1)
+        # for freq in f_edges:
+        #     axes[s].axvline(freq * prel.Hz_toK, color='gray')
                 
         if s == 0:
             legend_local = axes[s].legend(
                             handles=handles_T,      
                             labels=labels_T,
                             loc='upper left',         
-                            fontsize=15)
+                            fontsize=14)
         else:
-            axes[s].legend(fontsize=16, loc = 'upper left' if s == 1 else 'upper right')
+            axes[s].legend(fontsize=15, loc = 'upper left' if s == 1 else 'upper right')
 
         top = axes[s].twiny()
         primary_ticks = np.logspace(np.log10(T_min if x_axis == "Temp" else nu_min), np.log10(T_max if x_axis == "Temp" else nu_max), 5)
@@ -363,7 +387,7 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll=False):
     axes[0].set_ylabel(r"$\nu L_\nu$ (erg/s)", fontsize=30)
     fig.legend(colour_handles, colour_labels, loc="lower center", bbox_to_anchor=(0.525, -0.09), ncol=len(colour_labels), fontsize=20)
     fig.tight_layout()
-    fig.savefig(f'{abspath}/Figs/2.paperWind/spectra_{choice}.pdf', dpi=300, bbox_inches='tight')
+    # fig.savefig(f'{abspath}/Figs/2.paperWind/spectra_{choice}.pdf', dpi=300, bbox_inches='tight')
 
     if in_moll:
         for band, (moll_fig, gs, image) in moll_figs.items():

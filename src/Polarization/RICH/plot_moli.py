@@ -870,8 +870,8 @@ if __name__ == "__main__":
     compton = 'Compton'
     check = 'MG' 
 
-    snap = 250
-    generat = 800
+    snap = 429
+    generat = 75
     group = 4
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_{generat}polarization{snap}.vtk'
@@ -882,14 +882,14 @@ if __name__ == "__main__":
     # print("nonzero:", np.count_nonzero(values), "/", values.size)
     # print("finite:", np.count_nonzero(np.isfinite(values)), "/", values.size)
 
-    main([path_file,
-            "--field", f"forward_polarization_degree",
-            # "--length-unit", "solar-radius",
-            # "--scale", "log",
-            # "--vmin", "1e-3",
-            # "--vmax", "0.01",
-            "--show"
-            ])
+    # main([path_file,
+    #         "--field", f"forward_polarization_degree",
+    #         # "--length-unit", "solar-radius",
+    #         # "--scale", "log",
+    #         # "--vmin", "1e-3",
+    #         # "--vmax", "0.01",
+    #         "--show"
+    #         ])
     
     # main([path_file,
     #         "--field", f"forward_group_{group}_luminosity",
@@ -900,22 +900,25 @@ if __name__ == "__main__":
     #         "--show"
     #         ])
     
-    main([path_file,
-        "--field", f"forward_polarization_degree_group_{group:03d}",
-        # "--length-unit", "solar-radius",
-        # "--scale", "log",
-        # "--vmin", "1e-3",
-        # "--vmax", "0.01",
-        "--show"
-        ])
+    # main([path_file,
+    #     "--field", f"photosphere_g{group}_radius_thermalization",
+    #     # "--length-unit", "solar-radius",
+    #     # "--scale", "log",
+    #     "--vmin", "1e12",
+    #     "--vmax", "1e15",
+    #     "--scale", "log",
+    #     "--show"
+    #     ])
 
     # main([path_file,
-    #         "--field", f"forward_polarization_snr_group_{group:03d}",
+    #         "--field", f"forward_polarization_degree_group_{group:03d}",
     #         # "--length-unit", "solar-radius",
-    #         "--scale", "log",
+    #         # "--scale", "log",
     #         # "--vmin", "1e+38",
     #         # "--vmax", "1e+42",
     #         "--show",
     #         ])
     
-    # main([path_file, '--list-fields'])
+    main([path_file, '--list-fields'])
+
+    

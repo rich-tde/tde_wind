@@ -5,6 +5,7 @@ sys.path.append(abspath)
 import numpy as np
 import pyvista as pv
 import matplotlib.pyplot as plt
+# import Utilities.prelude as prel
 
 
 def extract_poli(
@@ -92,18 +93,34 @@ if __name__ == "__main__":
     Rstar = .47
     n = 1.5
     compton = 'Compton'
-    check = 'HiResNewAMR' 
-    snap = 151
-    generat = 75
+    check = 'MG' 
+    snap = 429
+    generat = 800
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
-    path_file =  f'{abspath}/TDE/{folder}/Polarization/tde_gray_{generat}polarization{snap}.vtk'
+    path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_{generat}polarization{snap}.vtk'
     
-    data = extract_poli(
-        path_file,
-        field="forward_polarization_degree",
-    )
 
-    P = data["forward_polarization_degree"]
-    theta = data["theta"]
-    phi = data["phi"]
+    # P = data["forward_polarization_degree"]
+    # theta = data["theta"]
+    # phi = data["phi"]
+
+    plt.figure(figsize=(8, 6))
+    for g in range(0, 9):
+        dataTh = extract_poli(
+            path_file,
+            field=f"photosphere_g{g}_radius_thermalization")
+        
+        r_th = dataTh[f"photosphere_g{g}_radius_thermalization"]
+
+        datatau = extract_poli(
+                    path_file,
+                    field=f"photosphere_g{g}_radius_tau_total")
+        r_tau = datatau[f"photosphere_g{g}_radius_tau_total"]
+
+
+        plt.plot(np.arange(len(r_th)), r_th/r_tau, label=f'group {g}')
+    plt.legend()
+    plt.tick_params(axis='both', which='major', length=8)
+    plt.tick_params(axis='both', which='minor', length=6)
+    plt.yscale('log')
