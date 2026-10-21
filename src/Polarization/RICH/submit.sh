@@ -51,9 +51,11 @@ GREY_EXPLORATION_FRACTION=0.005
 # ----------------------------------------------------------------------------
 
 
-# Inputs
+# Inputs for Snellius
 # SNAPSHOT="/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_$SNAP/snap_$SNAP.h5"
-SNAPSHOT=/"home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/snap_$SNAP/snap_$SNAP.h5"
+# SNAPSHOT="/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/snap_$SNAP/snap_$SNAP.h5"
+# Inputs for Alice
+SNAPSHOT="/home/martirep/data_pi-rossiem/TDE_data/R0.47M0.5BH10000beta1S60n1.5ComptonMG/snap_$SNAP/snap_$SNAP.h5"
 
 # Under sbatch the script runs from a copy in the SLURM spool directory, so
 # BASH_SOURCE does not point here; use the submission directory instead.
