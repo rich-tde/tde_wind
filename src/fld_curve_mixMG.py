@@ -1,36 +1,28 @@
 """ FLD curve accoring to Elad's script (MATLAB: start from 1 with indices, * is matrix multiplication, ' is .T). """
 import sys
 sys.path.append('/Users/paolamartire/shocks')
-# import resource
-from Utilities.isalice import isalice
-alice, plot = isalice()
-if alice:
-    abspath = '/data1/martirep/shocks/shock_capturing'
-    save = True
-else:
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
-    abspath = '/Users/paolamartire/shocks'
-    save = True
-    mpl.rcParams['savefig.transparent'] = False 
-    mpl.rcParams['figure.facecolor'] = 'white'    # Figure when displayed
-    mpl.rcParams['axes.facecolor'] = 'white'  
 
-import gc
-import warnings
-warnings.filterwarnings('ignore')
-
+abspath = '/Users/paolamartire/shocks'
 import numpy as np
 import healpy as hp
 import scipy.integrate as sci
-from scipy.interpolate import griddata
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 from sklearn.neighbors import KDTree
+mpl.rcParams['savefig.transparent'] = False 
+mpl.rcParams['figure.facecolor'] = 'white'    # Figure when displayed
+mpl.rcParams['axes.facecolor'] = 'white'  
 from src.Opacity.interpolator_vectorized import calc_planck_opacity_vectorized, calc_ross_opacity_vectorized, calc_scattering_opacity_vectorized
-
 import Utilities.prelude as prel
 from Utilities.selectors_for_snap import select_snap, select_prefix
 from Utilities.sections import make_slices
 from Utilities.operators import make_tree, sort_list
+import gc
+import warnings
+warnings.filterwarnings('ignore')
+
+compute = False
+save = True
 
 def fld_lightcurve(params, compton, check, N_ray):
     m, Rstar, mstar, beta, n, compton = params
@@ -48,10 +40,7 @@ def fld_lightcurve(params, compton, check, N_ray):
         if snap not in [76]: 
             continue
         print(f'Snap: {snap}', flush=True)
-        if alice:
-            loadpath = f'{pre}/snap_{snap}'
-        else:
-            loadpath = f'{pre}/{snap}'
+        loadpath = f'{pre}/{snap}'
         colorsphere_groups, colorsphere, freqs, L_col = single_fld(loadpath, snap, observers_xyz, N_ray)
 
         if save:
@@ -292,6 +281,7 @@ def load_fld_data(folder, check):
         np.asarray(luminosity, dtype=float))
 
 if __name__ == "__main__":
+    import plotting.paperWind.spectra_lc as sp
     m = 4
     Mbh = 10**m
     beta = 1
@@ -325,37 +315,286 @@ if __name__ == "__main__":
     f_edges_ev = np.loadtxt(f'{opac_path_mg}/frequency_edges.txt') # [eV] 
     f_edges = f_edges_ev * prel.ev_toHz # [Hz] 
 
-    # kappa_ross_plot = rossland_plot
-    kappa_ross_plot = []
-    for i in range(len(T_cool_plot)): 
-        kappa_ross_plot.append(rossland_plot[i, :]/Rho_cool_plot)
-    kappa_ross_plot = np.array(kappa_ross_plot)
+    if compute:
+        fld_lightcurve(params, compton, check, N_ray)
 
-    # fig, (axg, axm) = plt.subplots(1, 2, figsize=(14, 6))
-    # axg.pcolormesh(np.log10(T_cool_plot), np.log10(Rho_cool_plot), kappa_ross_plot.T, cmap='jet', norm=mpl.colors.LogNorm(vmin=1e-5, vmax=1e7))
-    # img = axm.pcolormesh(np.log10(T_cool_mg_plot), np.log10(Rho_cool_mg_plot), rossland_opt_table.T, cmap='jet', norm=mpl.colors.LogNorm(vmin=1e-5, vmax=1e7))
-    # cbar = plt.colorbar(img)
-    # cbar.set_label(r'$\kappa_R$ (cm$^2$/g)', fontsize=18)
-    # for ax in [axg, axm]:
-    #     ax.set_xlabel(r'$\log_{10}$ Temperature (K)', fontsize=18)
-    #     ax.set_xlim(3.5, 9.5)
-    #     ax.set_ylim(-14, 2)
-    # axg.set_ylabel(r'$\log_{10}$ Density (g/cm$^3$)', fontsize=18)
+    else:
+        choice = 'split_stream'
+        snaps_spectra = [76, 109, 151]
+        # kappa_ross_plot = rossland_plot
+        kappa_ross_plot = []
+        for i in range(len(T_cool_plot)): 
+            kappa_ross_plot.append(rossland_plot[i, :]/Rho_cool_plot)
+        kappa_ross_plot = np.array(kappa_ross_plot)
 
-    fld_lightcurve(params, compton, check, N_ray)
+        # fig, (axg, axm) = plt.subplots(1, 2, figsize=(14, 6))
+        # axg.pcolormesh(np.log10(T_cool_plot), np.log10(Rho_cool_plot), kappa_ross_plot.T, cmap='jet', norm=mpl.colors.LogNorm(vmin=1e-5, vmax=1e7))
+        # img = axm.pcolormesh(np.log10(T_cool_mg_plot), np.log10(Rho_cool_mg_plot), rossland_opt_table.T, cmap='jet', norm=mpl.colors.LogNorm(vmin=1e-5, vmax=1e7))
+        # cbar = plt.colorbar(img)
+        # cbar.set_label(r'$\kappa_R$ (cm$^2$/g)', fontsize=18)
+        # for ax in [axg, axm]:
+        #     ax.set_xlabel(r'$\log_{10}$ Temperature (K)', fontsize=18)
+        #     ax.set_xlim(3.5, 9.5)
+        #     ax.set_ylim(-14, 2)
+        # axg.set_ylabel(r'$\log_{10}$ Density (g/cm$^3$)', fontsize=18)
 
-    # colorsphere_mix = np.load(f"{abspath}/data/{folder}/spectra/{check}_Rcol_mixMG76.npz")
-    # x_mix, y_mix, z_mix = colorsphere_mix['x'], colorsphere_mix['y'], colorsphere_mix['z']
-    # r_mix = np.sqrt(x_mix**2 + y_mix**2 + z_mix**2)
 
-    # colorsphere = np.load(f"{abspath}/data/{folder}/spectra/{check}_Rcol76.npz")
-    # x, y, z = colorsphere['x'], colorsphere['y'], colorsphere['z']
-    # r = np.sqrt(x**2 + y**2 + z**2)
+        # colorsphere_mix = np.load(f"{abspath}/data/{folder}/spectra/{check}_Rcol_mixMG76.npz")
+        # x_mix, y_mix, z_mix = colorsphere_mix['x'], colorsphere_mix['y'], colorsphere_mix['z']
+        # r_mix = np.sqrt(x_mix**2 + y_mix**2 + z_mix**2)
 
-    # plt.figure(figsize=(6, 6))
-    # plt.scatter(np.arange(len(r))/13, r, color='orange', label='grey')
-    # plt.scatter(np.arange(len(r_mix))/13, r_mix, color='blue', label='mixMG')
-    # plt.xlabel('Observer index', fontsize=18)
-    # plt.ylabel(r'$r_{\rm col} (r_t)$', fontsize=18)
-    # plt.yscale('log')
-    # plt.legend()
+        # colorsphere = np.load(f"{abspath}/data/{folder}/spectra/{check}_Rcol76.npz")
+        # x, y, z = colorsphere['x'], colorsphere['y'], colorsphere['z']
+        # r = np.sqrt(x**2 + y**2 + z**2)
+
+        # plt.figure(figsize=(6, 6))
+        # plt.scatter(np.arange(len(r))/13, r, color='orange', label='grey')
+        # plt.scatter(np.arange(len(r_mix))/13, r_mix, color='blue', label='mixMG')
+        # plt.xlabel('Observer index', fontsize=18)
+        # plt.ylabel(r'$r_{\rm col} (r_t)$', fontsize=18)
+        # plt.yscale('log')
+        # plt.legend()
+
+        L_min, L_max = 1e38, 6e42
+        T_min, T_max = 1e3, 1e7
+        nu_min, nu_max = T_min /prel.Hz_toK, T_max/prel.Hz_toK
+
+        def load_spectrum_mixMG(folder, check, snap):
+            ''' Load and normalize the spectrum for a given snapshot. '''
+            pre_saving = f'{abspath}/data/{folder}'
+            freqs = np.loadtxt(f'{pre_saving}/spectra/mixMG/freqs_mixMG.txt') 
+            spectra = np.loadtxt(f'{pre_saving}/spectra/mixMG/{check}_spectra_mixMG{snap}.txt')
+            photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
+            luminosity = photo["Lum"]
+            integrals = np.trapezoid(spectra, freqs, axis=1)
+            if np.any(~np.isfinite(integrals)) or np.any(integrals == 0):
+                raise ValueError(f"Invalid spectral integral in snapshot {snap}")
+            return spectra * (luminosity / integrals)[:, None], luminosity
+
+        def plot_spectra_comp(folder, check, snaps, x_axis, choice, make_plot=False):
+            # base = data_path(folder)
+            # freqs = np.loadtxt(base / "spectra" / "freqs.txt")
+            pre_saving = f'{abspath}/data/{folder}'
+            freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt') 
+            freqs_mixMG = np.loadtxt(f'{pre_saving}/spectra/mixMG/freqs_mixMG.txt') 
+            snaps_fld, tfb, _ = load_fld_data(folder, check)
+            xyz, cosine, sectors, labels, colours, central_indices = sp.observer_geometry(choice)
+            spectra_mixMG_out = {}
+            spectra_out = {}
+
+            if make_plot:
+                axes_count = len(snaps)
+                fig, axes = plt.subplots(1, axes_count, figsize=(8 * axes_count, 8))
+                # axes = axes[0]
+                colour_handles, colour_labels = [], []
+                handles_T, labels_T = [], []
+                x_values = freqs * prel.Hz_toK if x_axis == "Temp" else freqs
+                x_values_mixMG = freqs_mixMG * prel.Hz_toK if x_axis == "Temp" else freqs_mixMG
+
+            for s, snap in enumerate(snaps):
+                try:
+                    np.loadtxt(f'{pre_saving}/spectra/mixMG/{check}_spectra_mixMG{snap}.txt')
+                except OSError:
+                    # print(f"Snapshot {snap} not found for mixMG, skipping.")
+                    continue
+                time = tfb[snaps_fld == snap][0]
+                spectra, _ = sp.load_spectrum(folder, check, snap)
+                spectra = sp.angular_average(spectra, cosine)
+
+                spectra_mixMG, _ = load_spectrum_mixMG(folder, check, snap)
+                spectra_mixMG = sp.angular_average(spectra_mixMG, cosine)
+
+                sector_spectra = np.full(
+                    (len(sectors), len(freqs)),
+                    np.nan)
+
+                sector_spectra_mixMG = np.full(
+                                    (len(sectors), len(freqs_mixMG)),
+                                    np.nan)
+                 
+                if make_plot:
+                    sp.add_spectral_regions(axes[s], x_axis, text_band=True if s == 0 else False)
+                    axes[s].set_title(rf"$t={time:.1f}\,t_{{\rm fb}}$", fontsize=30, y=1.17)
+                    axes[s].set_ylim(L_min, 1e42)
+                    axes[s].loglog()
+                    axes[s].tick_params(axis='both', which='major', length=8, width=1.2)
+                    axes[s].tick_params(axis='both', which='minor', length=5, width=1)
+                    for f, freq_mg in enumerate(f_edges):
+                        if f in [0,2,4,6,7,9]: 
+                            continue
+                        axes[s].axvline(freq_mg * prel.Hz_toK if x_axis == "Temp" else freq_mg, color='gray')
+                            
+                    if s == 0:
+                        legend_local = axes[s].legend(
+                                        handles=handles_T,      
+                                        labels=labels_T,
+                                        loc='upper left',         
+                                        fontsize=14)
+                    else:
+                        axes[s].legend(fontsize=15, loc = 'upper left' if s == 1 else 'upper right')
+
+                    top = axes[s].twiny()
+                    primary_ticks = np.logspace(np.log10(T_min if x_axis == "Temp" else nu_min), np.log10(T_max if x_axis == "Temp" else nu_max), 5)
+                    frequencies = primary_ticks / prel.Hz_toK if x_axis == "Temp" else primary_ticks
+                    wavelengths = prel.c_cgs * 1e8 / frequencies
+                    top.set_xticks(wavelengths, [f"{x:.2f}" for x in wavelengths])
+                    top.set_xlim(wavelengths.max(), wavelengths.min())
+                    top.set_xscale("log")
+                    top.set_xlabel(r"$\lambda\;(\AA)$", fontsize=30)
+
+
+                for k, idx in enumerate(sectors):
+                    if labels[k] in {"South pole"}:
+                        continue
+                    luminosity = np.mean(spectra[idx], axis=0)
+                    luminosity_mixMG = np.mean(spectra_mixMG[idx], axis=0)
+                    if np.any(~np.isfinite(luminosity)):
+                        print(f"Skipping non-finite sector {labels[k]} at snapshot {snap}")
+                        continue
+
+                    sector_spectra[k] = luminosity
+                    sector_spectra_mixMG[k] = luminosity_mixMG
+                    if make_plot:
+                        line = axes[s].plot(x_values, freqs * luminosity, color=colours[k], label = 'gray' if np.logical_and(s == 0, k == 0) else None)[0]
+                        axes[s].plot(x_values_mixMG, freqs_mixMG * luminosity_mixMG, color=colours[k], ls="--", label = 'mix MG' if np.logical_and(s == 0, k == 0) else None)[0]
+                        if s == 0:
+                            colour_handles.append(line)
+                            colour_labels.append(labels[k])
+
+                spectra_out[snap] = sector_spectra
+                spectra_mixMG_out[snap] = sector_spectra_mixMG
+
+            if make_plot:
+                axes[0].set_ylabel(r"$\nu L_\nu$ (erg/s)", fontsize=30)
+                fig.legend(colour_handles, colour_labels, loc="lower center", bbox_to_anchor=(0.525, -0.09), ncol=len(colour_labels), fontsize=20)
+                fig.tight_layout()
+            else:
+                return freqs_mixMG, spectra_mixMG_out, freqs, spectra_out
+
+                            
+        def plot_light_curves(folder, check, choice):
+            pre_saving = f'{abspath}/data/{folder}'
+            freqs = np.loadtxt(f'{pre_saving}/spectra/freqs.txt')
+            bands_idx = sp.band_indices(freqs)
+            snaps, tfb, luminosity_fld = load_fld_data(folder, check)
+            time_singlesnap, curves_gray, curves_mixMG= light_curve_from_spectra(folder, check, choice)
+
+            _, cosine, sectors, labels, colours, central_indices = sp.observer_geometry(choice)
+            _, _, sectors_mg, _, _, _ = sp.observer_geometry(choice, nside=8)
+            n_sectors, n_times = len(sectors), len(snaps)
+            fld_sector = np.zeros((n_sectors, n_times))
+            curves = {name: np.zeros((n_sectors, n_times)) for name in ("optical", "UV", "Xray", "EUVXray")}
+
+            for s, snap in enumerate(snaps):
+                spectra, luminosity_photo = sp.load_spectrum(folder, check, snap)
+                spectra, _ = sp.load_spectrum(folder, check, snap)
+                spectra = sp.angular_average(spectra, cosine)
+                integrated = sp.integrate_bands(spectra, freqs, bands_idx)
+                luminosity_photo = sp.angular_average(luminosity_photo, cosine)
+                # fld_sector[:, s] = luminosity_photo[central_indices]
+                fld_sector[:, s] = sp.sector_average(luminosity_photo, sectors)
+                for band in curves: 
+                    curves[band][:, s] = sp.sector_average(integrated[band], sectors)
+        
+            plotted = [k for k, label in enumerate(labels) if label not in {"South pole", r"-$\hat{z}$"}]
+            
+            fig, (ax_opt, ax_uv, ax_x) = plt.subplots(1, 3, figsize=(24, 7))
+            axes = [ax_opt, ax_uv, ax_x]
+            for k in plotted:
+                # ax_bol.plot(tfb, curves_fld[k], color=colours[k], lw = 2, label=labels[k], zorder = 4)
+                # ax_bol.scatter(time_singlesnap, curves_gray["bolometric"][k], color=colours[k], s = 200) 
+                # ax_bol.scatter(time_singlesnap, curves_mixMG["bolometric"][k], color=colours[k], s = 50, zorder = 4, edgecolors = 'k', marker='s')
+                ax_opt.plot(tfb, curves["optical"][k], color=colours[k], lw = 2, label=labels[k], zorder = 4)
+                ax_opt.scatter(time_singlesnap, curves_gray["optical"][k], color=colours[k], s = 200)
+                ax_opt.scatter(time_singlesnap, curves_mixMG["optical"][k], color=colours[k], s = 50, edgecolors = 'k', zorder = 4, marker='s')
+                ax_uv.plot(tfb, curves["UV"][k], color=colours[k], lw = 3, zorder = 4)
+                ax_uv.scatter(time_singlesnap, curves_gray["UV"][k], color=colours[k], s = 200)
+                ax_uv.scatter(time_singlesnap, curves_mixMG["UV"][k], color=colours[k], s = 50, edgecolors = 'k', zorder = 4, marker='s')
+                ax_x.plot(tfb, curves["EUVXray"][k], color=colours[k], label=labels[k], lw = 2, zorder = 4)
+                ax_x.scatter(time_singlesnap, curves_gray["EUVXray"][k], color=colours[k], s = 200)
+                ax_x.scatter(time_singlesnap, curves_mixMG["EUVXray"][k], color=colours[k], s = 50, edgecolors = 'k', zorder = 4, marker='s')
+           
+            ax_opt.text(0.1, 2e42, "Optical", fontsize=25)
+            ax_uv.text(0.1, 2e42, "UV", fontsize=25)
+            # ax_bol.text(0.1, 2e42, "Bolometric", fontsize=25)
+            ax_x.text(0.1, 2e42, "EUV+Xray", fontsize=25)
+            ax_opt.set_ylabel(r"$L$ (erg/s)", fontsize=30)
+            # ax_bol.set_ylabel(r"$L$ (erg/s)", fontsize=30)
+            # ax_x.set_ylabel(r"$\nu L_\nu$ (erg/s)", fontsize=30)
+            ax_opt.legend(fontsize=15)
+            # ax_x.legend(fontsize=15, loc = 'upper left')
+             
+            original_ticks = axes[0].get_xticks()
+            sp.format_time_axes(axes, original_ticks, [])
+            ax_x.set_ylim(1e36, L_max)
+            fig.tight_layout()
+            # fig.savefig(f'{abspath}/Figs/2.paperWind/LCs_{choice}_{group}.pdf', dpi=300, bbox_inches="tight")
+            # fig_x.savefig(f'{abspath}/Figs/2.paperWind/LCsXray_{choice}_{group}.pdf', dpi=200)
+
+            
+        def light_curve_from_spectra(folder, check, choice):
+            f_edges = np.loadtxt(f'{opac_path_mg}/frequency_edges.txt') * prel.ev_toHz # [Hz]
+            
+            snaps, tfb, _ = load_fld_data(folder, check)
+
+            _, _, sectors, labels, colours, _ = sp.observer_geometry(choice)
+
+            freqs_mixMG, spectra_mixMG_out, freqs, spectra_out = plot_spectra_comp(
+                folder,
+                check,
+                snaps,
+                x_axis="freq",
+                choice=choice,
+                make_plot=False)
+
+            # Indices on the mixMG spectral frequency grid
+            bands_idx = {
+                "optical": np.where(
+                    (freqs_mixMG >= f_edges[1]) &
+                    (freqs_mixMG <= f_edges[3])
+                )[0],
+
+                "UV": np.where(
+                    (freqs_mixMG >= f_edges[3]) &
+                    (freqs_mixMG <= f_edges[5])
+                )[0],
+
+                "EUVXray": np.where(
+                    (freqs_mixMG >= f_edges[5]) &
+                    (freqs_mixMG <= f_edges[10])
+                )[0],
+
+                "bolometric": np.arange(len(freqs_mixMG))
+            }
+
+            curves = {band: np.full((len(sectors), len(snaps)), np.nan) for band in bands_idx}
+            curves_mixMG = {band: np.full((len(sectors), len(snaps)), np.nan) for band in bands_idx}
+
+
+            for s, snap in enumerate(snaps):
+                if snap not in spectra_mixMG_out:
+                    continue
+                sector_spectra = spectra_out[snap]
+                sector_spectra_mixMG = spectra_mixMG_out[snap]
+
+                integrated = sp.integrate_bands(
+                    sector_spectra,
+                    freqs,
+                    bands_idx
+                )
+
+                integrated_mixMG = sp.integrate_bands(
+                    sector_spectra_mixMG,
+                    freqs_mixMG,
+                    bands_idx
+                )
+
+                for band in curves:
+                    curves[band][:, s] = integrated[band]
+                    curves_mixMG[band][:, s] = integrated_mixMG[band]
+
+            return tfb, curves, curves_mixMG
+
+
+        plot_spectra_comp(folder, check, snaps_spectra, x_axis = 'freq', choice=choice, make_plot=True)
+        plot_light_curves(folder, check, choice)

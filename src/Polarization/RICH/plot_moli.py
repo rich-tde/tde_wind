@@ -872,7 +872,7 @@ if __name__ == "__main__":
 
     snap = 429
     generat = 75
-    group = 4
+    group = 9
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_{generat}polarization{snap}.vtk'
 
@@ -914,10 +914,19 @@ if __name__ == "__main__":
     #         "--field", f"forward_polarization_degree_group_{group:03d}",
     #         # "--length-unit", "solar-radius",
     #         # "--scale", "log",
-    #         # "--vmin", "1e+38",
-    #         # "--vmax", "1e+42",
+    #         "--vmin", "1e-3",
+    #         "--vmax", "1.5",
     #         "--show",
     #         ])
+
+    # main([path_file,
+    #             "--field", f"forward_polarization_snr_group_{group:03d}",
+    #             # "--length-unit", "solar-radius",
+    #             # "--scale", "log",
+    #             # "--vmin", "1e-3",
+    #             # "--vmax", "1",
+    #             "--show",
+    #             ])
     
     main([path_file, '--list-fields'])
 

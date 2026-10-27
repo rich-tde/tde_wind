@@ -65,10 +65,10 @@ source/monte/radiation/ddmc/DDMCEngine
 ### Setup in test.cpp
 Some notes:
 - $\underline {\rm Thickness}$:
-      1) $\tau_{\rm cell}$ is the thickness of a cell, defined in source/monte/radiation/ddmc/DDMCEngineas as
+      1) $\tau_{\rm cell}$ is the thickness of a cell (this can happen if scattering is very high with respect to absorption), defined in source/monte/radiation/ddmc/DDMCEngine as
       \[\tau_{\rm cell,g}=\sigma_{T,g}\,\ell_{\rm chord},\]
-      where \(\sigma_{T,g}\) is the relevant extinction/transport coefficient for energy group \(g\),
-      $\ell_{\rm chord}$ is the characteristic path length through that cell.
+      where \(\sigma_{T,g}\) is the relevant extinction/transport coefficient for energy group xw\(g\),
+      $\ell_{\rm chord}=4V/A$ is the characteristic path length through that cell.
       Its threshold for the DDMC is set in config.transport.ddmcMinCellOpticalDepth. 
       2) $\tau_{\rm therm}$ is the cumulative thermalization depth toward the exterior (i.e. $\tau_{\rm therm}(s) =\int_s^{\rm outside}\alpha_{\rm therm}(s')\,ds'$).
 - $\underline {\rm MC \,\,types}$:
@@ -117,7 +117,7 @@ Q'\\
 U'
 \end{pmatrix}
 =
-\begin{pmatrix}
+\frac{3}{4}\begin{pmatrix}
 1+\mu^2 & 1-\mu^2 & 0\\
 1-\mu^2 & 1+\mu^2 & 0\\
 0&0&2\mu
@@ -130,10 +130,10 @@ U
 \]
 
       in that scattering-plane basis, so:
-\[ I'/I = (1+\mu^2) + (1-\mu^2)q, \]
-\[ Q'/I =(1-\mu^2)+(1+\mu^2)q,\]
-\[U'/I = 2\mu u,\]
-and stores $q_{\rm new}=Q'/I',\, u_{\rm new}=U'/I'$.
+\[ I'/I = \frac{3}{4}[(1+\mu^2) + (1-\mu^2)q], \]
+\[ Q'/I =\frac{3}{4}[(1-\mu^2)+(1+\mu^2)q],\]
+\[U'/I = \frac{3}{4} \cdot2\mu u,\]
+and stores $q_{\rm new}=Q'/I',\, u_{\rm new}=U'/I'$ (so you don't have the 3/4 anymore, which is why you don't see it in the code).
 
 7) Update the packet velocity with the its actual outgoing velocity
 8) Mark polarization as initialized

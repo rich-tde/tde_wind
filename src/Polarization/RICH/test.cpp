@@ -64,7 +64,7 @@ PostProcessIMC::PostProcessScenario MakeTdeLuminosityScenario()
     config.transport.ddmcMinCellOpticalDepth = 5.0;
     config.transport.randomWalk = false;
     config.transport.compton.enabled = false;
-    config.opacityScaling.mode = PostProcessIMC::OpacityScaleMode::Planck;
+    config.opacityScaling.mode = PostProcessIMC::OpacityScaleMode::Auto;
 
     // Track Stokes Q and U in both passes and retain all observer/photosphere
     // fields in the output bundle.

@@ -63,8 +63,9 @@ BANDS = {
     "ULTRASAT": (prel.c_cgs/ (prel.lam_ULTR_max * 1e-8), prel.c_cgs/ (prel.lam_ULTR_min * 1e-8)),
     "EUV": (7.7488 * prel.ev_toHz, 300 * prel.ev_toHz),
     "Xray": (300 * prel.ev_toHz, 2e4 * prel.ev_toHz),
+    "EUVXray": (7.7488 * prel.ev_toHz, 2e4 * prel.ev_toHz),
     "eROSITA": (200 * prel.ev_toHz, 2300 * prel.ev_toHz),
-}
+} 
 
 L_min, L_max = 1e38, 6e42
 T_min, T_max = 1e3, 1e7
@@ -162,17 +163,6 @@ def load_spectrum(folder, check, snap):
         raise ValueError(f"Invalid spectral integral in snapshot {snap}")
     return spectra * (luminosity / integrals)[:, None], luminosity
 
-def load_spectrum_mixMG(folder, check, snap):
-    ''' Load and normalize the spectrum for a given snapshot. '''
-    pre_saving = f'{abspath}/data/{folder}'
-    freqs = np.loadtxt(f'{pre_saving}/spectra/mixMG/freqs_mixMG.txt') 
-    spectra = np.loadtxt(f'{pre_saving}/spectra/mixMG/{check}_spectra_mixMG{snap}.txt')
-    photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
-    luminosity = photo["Lum"]
-    integrals = np.trapezoid(spectra, freqs, axis=1)
-    if np.any(~np.isfinite(integrals)) or np.any(integrals == 0):
-        raise ValueError(f"Invalid spectral integral in snapshot {snap}")
-    return spectra * (luminosity / integrals)[:, None], luminosity
 
 def angular_average(spectra, cosine):
     weights = cosine / cosine.sum(axis=1, keepdims=True)
@@ -222,7 +212,7 @@ def load_mg_lightcurves(folder, check, choice):
 def add_spectral_regions(ax, x_axis, text_band = False):
     colours = {"optical": "bisque", "UV": "#ffc6ff", "EUV": "lightsteelblue", "Xray": "#c77dff"}
     for name, (lower, upper) in BANDS.items():
-        if name in ["ZTF_g", "Rubin_g", "ULTRASAT", "eROSITA"]:
+        if name in ["ZTF_g", "Rubin_g", "ULTRASAT", "eROSITA", "EUVXray"]:
             continue
         left, right = (lower * prel.Hz_toK, upper * prel.Hz_toK) if x_axis == "Temp" else (lower, upper)
         ax.axvspan(left, right, color=colours[name], alpha=0.2)
@@ -301,9 +291,6 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll=False):
         time = tfb[matches[0]]
         spectra, _ = load_spectrum(folder, check, snap)
 
-        freqs_mixsMG = np.loadtxt(f'{pre_saving}/spectra/mixMG/freqs_mixMG.txt') 
-        spectra_mixMG, _ = load_spectrum_mixMG(folder, check, snap)
-
         if in_moll:
             integrated = integrate_bands(spectra, freqs, bands_idx)
             for band in ("optical", "Xray"):
@@ -324,15 +311,11 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll=False):
         x_values = freqs * prel.Hz_toK if x_axis == "Temp" else freqs
         add_spectral_regions(axes[s], x_axis, text_band=True if s == 0 else False)
 
-        spectra_mixMG = angular_average(spectra_mixMG, cosine)
-        x_values_mixMG = freqs_mixsMG * prel.Hz_toK if x_axis == "Temp" else freqs_mixsMG
-
         fitted = []
         for k, idx in enumerate(sectors):
             if labels[k] in {"South pole"}:
                 continue
             luminosity = np.mean(spectra[idx], axis=0)
-            luminosity_mixMG = np.mean(spectra_mixMG[idx], axis=0)
             observer_index = central_indices[k]
             # luminosity = spectra[observer_index]
             if np.any(~np.isfinite(luminosity)):
@@ -344,20 +327,18 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll=False):
                 f"At t={time:.1f} t_fb, observer {labels[k]}: "
                 f"Tfit={temperature:.2e} K, Rfit={radius/prel.Rsol_cgs:.2e} Rsol"
             )
-            line = axes[s].plot(x_values, freqs * luminosity, color=colours[k], label=labels[k] if s == 0 else None)[0]
-            axes[s].plot(x_values_mixMG, freqs_mixsMG * luminosity_mixMG, color=colours[k], ls="--")[0]
+            line = axes[s].plot(x_values, freqs * luminosity, color=colours[k])[0]
             if s == 0:
                 colour_handles.append(line)
                 colour_labels.append(labels[k])
 
-        # for k, radius, temperature in fitted:
-        #     bb = blackbody_lnu(freqs, radius, temperature)
-        #     lineB = axes[s].plot(x_values, freqs * bb, color=colours[k], ls="-.", label = f'T={temperature*1e-4:.1f}' + r' $\times 10^4$ K')[0] # if s < 2 else f'T={temperature*1e-3:.1f}' + r' $\times 10^3$ K')[0]
-        #     if s == 0: 
-        #         handles_T.append(lineB)
-        #         labels_T.append(f'T={temperature*1e-4:.1f}' + r' $\times 10^4$ K' )
+        for k, radius, temperature in fitted:
+            bb = blackbody_lnu(freqs, radius, temperature)
+            lineB = axes[s].plot(x_values, freqs * bb, color=colours[k], ls="-.", label = f'T={temperature*1e-4:.1f}' + r' $\times 10^4$ K')[0] # if s < 2 else f'T={temperature*1e-3:.1f}' + r' $\times 10^3$ K')[0]
+            if s == 0: 
+                handles_T.append(lineB)
+                labels_T.append(f'T={temperature*1e-4:.1f}' + r' $\times 10^4$ K' )
             
-
         axes[s].set_title(rf"$t={time:.1f}\,t_{{\rm fb}}$", fontsize=30, y=1.17)
         axes[s].set_ylim(L_min, 1e42)
         axes[s].loglog()
@@ -366,14 +347,7 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll=False):
         # for freq in f_edges:
         #     axes[s].axvline(freq * prel.Hz_toK, color='gray')
                 
-        if s == 0:
-            legend_local = axes[s].legend(
-                            handles=handles_T,      
-                            labels=labels_T,
-                            loc='upper left',         
-                            fontsize=14)
-        else:
-            axes[s].legend(fontsize=15, loc = 'upper left' if s == 1 else 'upper right')
+        axes[s].legend(fontsize=15, loc = 'upper right' if s == 2 else 'upper left')
 
         top = axes[s].twiny()
         primary_ticks = np.logspace(np.log10(T_min if x_axis == "Temp" else nu_min), np.log10(T_max if x_axis == "Temp" else nu_max), 5)
@@ -387,7 +361,7 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll=False):
     axes[0].set_ylabel(r"$\nu L_\nu$ (erg/s)", fontsize=30)
     fig.legend(colour_handles, colour_labels, loc="lower center", bbox_to_anchor=(0.525, -0.09), ncol=len(colour_labels), fontsize=20)
     fig.tight_layout()
-    # fig.savefig(f'{abspath}/Figs/2.paperWind/spectra_{choice}.pdf', dpi=300, bbox_inches='tight')
+    fig.savefig(f'{abspath}/Figs/2.paperWind/spectra_{choice}.pdf', dpi=300, bbox_inches='tight')
 
     if in_moll:
         for band, (moll_fig, gs, image) in moll_figs.items():

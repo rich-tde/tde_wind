@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=tde_429
-#SBATCH --output=output_800.txt
-#SBATCH --error=error_800.txt
-#SBATCH --nodes=8
+#SBATCH --output=output_75.txt
+#SBATCH --error=error_75.txt
+#SBATCH --nodes=4
 #SBATCH --ntasks=1536
 #SBATCH --exclusive
 #SBATCH --partition=genoa
@@ -28,7 +28,7 @@ set -euo pipefail
 # Each pass adds 21 fixed burn-in/probe generations in front. With the budgets
 # and exploration fractions written below (both 0.005) the total run time is roughly
 # 12 min + GENERATIONS * 26 s (20 -> ~20 min, 75 -> ~45 min, 200 -> ~1 h 40).
-GENERATIONS=800 
+GENERATIONS=75 
 SNAP=429
 
 # Packets per generation for the cells that were learned to produce escaping

@@ -95,7 +95,7 @@ if __name__ == "__main__":
     compton = 'Compton'
     check = 'MG' 
     snap = 429
-    generat = 800
+    generat = 75
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 
     path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_{generat}polarization{snap}.vtk'
@@ -119,7 +119,8 @@ if __name__ == "__main__":
         r_tau = datatau[f"photosphere_g{g}_radius_tau_total"]
 
 
-        plt.plot(np.arange(len(r_th)), r_th/r_tau, label=f'group {g}')
+        plt.plot(np.arange(len(r_th)), r_th/r_tau, label=f'group {g}', alpha=0.7)
+    plt.ylabel('r_th / r_tau')
     plt.legend()
     plt.tick_params(axis='both', which='major', length=8)
     plt.tick_params(axis='both', which='minor', length=6)
