@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=tde_429
-#SBATCH --output=output_%j.txt
-#SBATCH --error=error_%j.txt
+#SBATCH --output=output_800.txt
+#SBATCH --error=error_800.txt
 #SBATCH --nodes=4
-#SBATCH --ntasks=768
+#SBATCH --ntasks=768 #nodesx192
 #SBATCH --exclusive
 #SBATCH --partition=genoa
 #SBATCH --time=1-10:00:00

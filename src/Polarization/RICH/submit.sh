@@ -3,7 +3,7 @@
 #SBATCH --output=output_75.txt
 #SBATCH --error=error_75.txt
 #SBATCH --nodes=4
-#SBATCH --ntasks=1536
+#SBATCH --ntasks=768 #nodesx192#nodesx192
 #SBATCH --exclusive
 #SBATCH --partition=genoa
 #SBATCH --time=1-10:00:00
