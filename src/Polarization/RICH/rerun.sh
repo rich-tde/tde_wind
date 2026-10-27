@@ -3,7 +3,7 @@
 #SBATCH --output=output_%j.txt
 #SBATCH --error=error_%j.txt
 #SBATCH --nodes=4
-#SBATCH --ntasks=1536
+#SBATCH --ntasks=768
 #SBATCH --exclusive
 #SBATCH --partition=genoa
 #SBATCH --time=1-10:00:00
