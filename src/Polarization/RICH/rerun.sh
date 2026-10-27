@@ -28,8 +28,9 @@ set -euo pipefail
 # Each pass adds 21 fixed burn-in/probe generations in front. With the budgets
 # and exploration fractions written below (both 0.005) the total run time is roughly
 # 12 min + GENERATIONS * 26 s (20 -> ~20 min, 75 -> ~45 min, 200 -> ~1 h 40).
-OLDGENERATIONS=800 
-GENERATIONS=700 
+OLDGENERATIONS=75
+GENERATIONS=725 
+TOTALGENERATIONS=$(( OLDGENERATIONS + GENERATIONS))
 SNAP=429
 
 # Packets per generation for the cells that were learned to produce escaping
@@ -97,7 +98,7 @@ mkdir -p "output$SNAPSHOT"
 
 exec srun "$executable" \
     --input.snapshot "$SNAPSHOT" \
-    --output.stem "output$SNAP/tde_polarization${SNAP}_restart" \
+    --output.stem "output$SNAP/tde_polarization${SNAP}_${TOTALGENERATIONS}" \
     --restart.from "$RESTART_FROM" \
     --input.multigroup-opacity-directory "$root/data/STA/MG/" \
     --input.grey-opacity-directory "$root/data/STA/" \
