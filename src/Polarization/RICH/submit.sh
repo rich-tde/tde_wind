@@ -95,7 +95,7 @@ mkdir -p "output$SNAP"
 
 exec srun "$executable" \
     --input.snapshot "$SNAPSHOT" \
-    --output.stem "output$SNAP/tde_polarization$SNAP" \
+    --output.stem "output$SNAP/tde_${GENERATIONS}polarization$SNAP" \
     --input.multigroup-opacity-directory "$root/data/STA/MG/" \
     --input.grey-opacity-directory "$root/data/STA/" \
     --input.eos-directory "$root/data/EOS/" \

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=tde_429
-#SBATCH --output=output_800_%j.txt
-#SBATCH --error=error_800_%j.txt
+#SBATCH --job-name=tde_rr_250
+#SBATCH --output=output_800.txt
+#SBATCH --error=error_800.txt
 #SBATCH --nodes=4
 #SBATCH --ntasks=768 #nodesx192
 #SBATCH --exclusive
@@ -31,7 +31,7 @@ set -euo pipefail
 OLDGENERATIONS=75
 GENERATIONS=725 
 TOTALGENERATIONS=$(( OLDGENERATIONS + GENERATIONS))
-SNAP=429
+SNAP=250
 
 # Packets per generation for the cells that were learned to produce escaping
 # light: average packets per learned cell (budget) and the cap per cell.
@@ -98,7 +98,7 @@ mkdir -p "output$SNAPSHOT"
 
 exec srun "$executable" \
     --input.snapshot "$SNAPSHOT" \
-    --output.stem "output$SNAP/tde_polarization${SNAP}_${TOTALGENERATIONS}" \
+    --output.stem "output$SNAP/tde_${TOTALGENERATIONS}polarization${SNAP}" \
     --restart.from "$RESTART_FROM" \
     --input.multigroup-opacity-directory "$root/data/STA/MG/" \
     --input.grey-opacity-directory "$root/data/STA/" \
