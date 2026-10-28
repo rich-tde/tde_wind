@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=tde_429
-#SBATCH --output=output_800.txt
-#SBATCH --error=error_800.txt
+#SBATCH --output=output_800_%j.txt
+#SBATCH --error=error_800_%j.txt
 #SBATCH --nodes=4
 #SBATCH --ntasks=768 #nodesx192
 #SBATCH --exclusive
@@ -54,8 +54,8 @@ GREY_EXPLORATION_FRACTION=0.005
 
 
 # Inputs
-# SNAPSHOT="/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_$SNAP.h5"
-SNAPSHOT=/"home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/snap_$SNAP.h5"
+# SNAPSHOT="/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_$SNAP/snap_$SNAP.h5"
+SNAPSHOT="/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/snap_$SNAP/snap_$SNAP.h5"
 
 # RESTART_FROM="/home/pmartire/tde_wind/outputs/gray/snap_$SNAP/tde_$OLDGENERATIONSpolarization.h5"
 RESTART_FROM="/home/pmartire/tde_wind/outputs/mg/snap_$SNAP/tde_${OLDGENERATIONS}polarization$SNAP.h5"
