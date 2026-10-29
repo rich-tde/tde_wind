@@ -101,11 +101,8 @@ if __name__ == "__main__":
     path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_{generat}polarization{snap}.vtk'
     
 
-    # P = data["forward_polarization_degree"]
-    # theta = data["theta"]
-    # phi = data["phi"]
-
-    plt.figure(figsize=(8, 6))
+    figR, axR = plt.subplots(figsize=(8, 6))
+    figP, axP = plt.subplots(figsize=(8, 6))
     for g in range(0, 9):
         dataTh = extract_poli(
             path_file,
@@ -118,10 +115,20 @@ if __name__ == "__main__":
                     field=f"photosphere_g{g}_radius_tau_total")
         r_tau = datatau[f"photosphere_g{g}_radius_tau_total"]
 
+        dataPol = extract_poli(
+                    path_file,
+                    field=f"forward_polarization_degree_group_{g:03d}")
+        P = dataPol[f"forward_polarization_degree_group_{g:03d}"]
+        theta = dataPol["theta"]
+        phi = dataPol["phi"]
 
-        plt.plot(np.arange(len(r_th)), r_th/r_tau, label=f'group {g}', alpha=0.7)
-    plt.ylabel('r_th / r_tau')
-    plt.legend()
-    plt.tick_params(axis='both', which='major', length=8)
-    plt.tick_params(axis='both', which='minor', length=6)
-    plt.yscale('log')
+        axR.plot(np.arange(len(r_th)), r_th/r_tau, label=f'group {g}', alpha=0.7)
+        axP.plot(np.arange(len(P)), P, label=f'group {g}', alpha=0.7)
+
+    axR.set_ylabel(r'$r_{\rm th} / r_{\rm ph}$')
+    axP.set_ylabel(r'$P$')
+    for ax in [axR, axP]:
+        ax.legend()
+        ax.tick_params(axis='both', which='major', length=8)
+        ax.tick_params(axis='both', which='minor', length=6)
+    axR.set_yscale('log')

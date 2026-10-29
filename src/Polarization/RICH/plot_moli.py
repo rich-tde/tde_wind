@@ -871,8 +871,8 @@ if __name__ == "__main__":
     check = 'MG' 
 
     snap = 429
-    generat = 75
-    group = 9
+    generat = 800
+    group = 8
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_{generat}polarization{snap}.vtk'
 
@@ -910,24 +910,24 @@ if __name__ == "__main__":
     #     "--show"
     #     ])
 
-    # main([path_file,
-    #         "--field", f"forward_polarization_degree_group_{group:03d}",
-    #         # "--length-unit", "solar-radius",
-    #         # "--scale", "log",
-    #         "--vmin", "1e-3",
-    #         "--vmax", "1.5",
-    #         "--show",
-    #         ])
+    main([path_file,
+            "--field", f"forward_polarization_degree_group_{group:03d}",
+            # "--length-unit", "solar-radius",
+            # "--scale", "log",
+            # "--vmin", "1e-3",
+            # "--vmax", "1.5",
+            "--show",
+            ])
 
-    # main([path_file,
-    #             "--field", f"forward_polarization_snr_group_{group:03d}",
-    #             # "--length-unit", "solar-radius",
-    #             # "--scale", "log",
-    #             # "--vmin", "1e-3",
-    #             # "--vmax", "1",
-    #             "--show",
-    #             ])
+    main([path_file,
+                "--field", f"forward_polarization_snr_group_{group:03d}",
+                # "--length-unit", "solar-radius",
+                # "--scale", "log",
+                # "--vmin", "1e-3",
+                # "--vmax", "1",
+                "--show",
+                ])
     
-    main([path_file, '--list-fields'])
+    # main([path_file, '--list-fields'])
 
     

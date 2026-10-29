@@ -94,7 +94,7 @@ echo "generations: $GENERATIONS  (MG budget $MG_LEARNED_BUDGET, grey $GREY_LEARN
 echo "exploration: MG fraction $MG_EXPLORATION_FRACTION, grey fraction $GREY_EXPLORATION_FRACTION"
 
 cd "$here"
-mkdir -p "output$SNAPSHOT"
+mkdir -p "output$SNAP"
 
 exec srun "$executable" \
     --input.snapshot "$SNAPSHOT" \
