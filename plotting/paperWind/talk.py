@@ -53,7 +53,7 @@ y_test23 = op.draw_line(x_test, [2e2, -2/3], 'powerlaw')
 # arrange for plotting
 observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
 x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
-indices_obs, label_obs, colors_obs, _, _ = op.choose_observers(observers_xyz, which_obs)
+indices_obs, label_obs, colors_obs, _, _, _ = op.choose_observers(observers_xyz, which_obs)
 
 r_chosen_theta = apo 
 r_chosen_name_theta = 'apo' 

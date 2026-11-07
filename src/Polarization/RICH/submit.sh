@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=tde_429
-#SBATCH --output=output_75.txt
-#SBATCH --error=error_75.txt
-#SBATCH --nodes=4
-#SBATCH --ntasks=768 #nodesx192#nodesx192
+#SBATCH --output=output_2500.txt
+#SBATCH --error=error_2500.txt
+#SBATCH --nodes=8
+#SBATCH --ntasks=1536 #nodesx192#nodesx192
 #SBATCH --exclusive
 #SBATCH --partition=genoa
-#SBATCH --time=1-10:00:00
+#SBATCH --time=2-10:00:00
 
 #SBATCH --mail-user="martire@strw.leidenuniv.nl"
 #SBATCH --mail-type=TIME_LIMIT_50,TIME_LIMIT_90,ALL
@@ -28,7 +28,7 @@ set -euo pipefail
 # Each pass adds 21 fixed burn-in/probe generations in front. With the budgets
 # and exploration fractions written below (both 0.005) the total run time is roughly
 # 12 min + GENERATIONS * 26 s (20 -> ~20 min, 75 -> ~45 min, 200 -> ~1 h 40).
-GENERATIONS=75 
+GENERATIONS=2500
 SNAP=429
 
 # Packets per generation for the cells that were learned to produce escaping
@@ -103,7 +103,10 @@ exec srun "$executable" \
     --flux-source.spectrum-temperature radiation \
     --transport.split-observer-fraction 0.1 \
     --transport.split-escape-reference 0.1 \
-    --transport.split-copy-budget 300000 \
+    --transport.split-per-group true \
+    --transport.split-group-scale 1 \
+    --transport.split-group-floor 1e-3 \
+    --transport.split-copy-budget 1000000 \
     --load-balance.final-period 5 \
     --transport.generations "$GENERATIONS" \
     --volume-emission.learned-photons-per-cell-budget "$MG_LEARNED_BUDGET" \

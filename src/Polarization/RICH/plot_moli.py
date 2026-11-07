@@ -56,7 +56,7 @@ What you can specify with --: check parser.add_argument(--
         photosphere_g0_radius_tau_total
 
 The default coordinate convention is
-    longitude = atan2(y, x), latitude = asin(z / r).
+    longitude = atan2(y, x), latitude = asin(z / r). So longitude is in [-pi, pi], with negative values for neagative y, and latitude in [-pi/2, pi/2]. 
 Use --central-longitude, --reverse-longitude, or --rotate to alter the view.
 """
 
@@ -871,8 +871,8 @@ if __name__ == "__main__":
     check = 'MG' 
 
     snap = 429
-    generat = 800
-    group = 8
+    generat = 1500
+    group = 4
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_{generat}polarization{snap}.vtk'
 
@@ -911,22 +911,40 @@ if __name__ == "__main__":
     #     ])
 
     main([path_file,
-            "--field", f"forward_polarization_degree_group_{group:03d}",
-            # "--length-unit", "solar-radius",
-            # "--scale", "log",
-            # "--vmin", "1e-3",
-            # "--vmax", "1.5",
-            "--show",
-            ])
-
-    main([path_file,
-                "--field", f"forward_polarization_snr_group_{group:03d}",
+                "--field", f"forward_polarization_degree",
                 # "--length-unit", "solar-radius",
                 # "--scale", "log",
                 # "--vmin", "1e-3",
-                # "--vmax", "1",
+                # "--vmax", "1.5",
                 "--show",
                 ])
+
+    main([path_file,
+                    "--field", f"forward_polarization_snr",
+                    # "--length-unit", "solar-radius",
+                    # "--scale", "log",
+                    # "--vmin", "1e-3",
+                    # "--vmax", "1",
+                    "--show",
+                    ])
+    
+    # main([path_file,
+    #         "--field", f"forward_polarization_degree_group_{group:03d}",
+    #         # "--length-unit", "solar-radius",
+    #         # "--scale", "log",
+    #         # "--vmin", "1e-3",
+    #         # "--vmax", "1.5",
+    #         "--show",
+    #         ])
+    
+    # main([path_file,
+    #             "--field", f"forward_polarization_snr_group_{group:03d}",
+    #             # "--length-unit", "solar-radius",
+    #             # "--scale", "log",
+    #             # "--vmin", "1e-3",
+    #             # "--vmax", "1",
+    #             "--show",
+    #             ])
     
     # main([path_file, '--list-fields'])
 

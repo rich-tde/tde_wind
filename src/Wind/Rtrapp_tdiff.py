@@ -58,7 +58,7 @@ tfallback_cgs = tfallback * 24 * 3600 #converted to seconds
 t_fb_sol = tfallback_cgs/prel.tsol_cgs
 
 # Opacity
-opac_path = f'{abspath}/src/Opacity'
+opac_path = f'{abspath}/src/Opacity/fromRICH'
 T_cool = np.loadtxt(f'{opac_path}/T.txt')
 Rho_cool = np.loadtxt(f'{opac_path}/rho.txt')
 rossland = np.loadtxt(f'{opac_path}/ross.txt')

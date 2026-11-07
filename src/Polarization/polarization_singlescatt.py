@@ -158,14 +158,13 @@ def compute_polarization(Ix, Iy, Iz,
     else:
         I_local = I_mag
         # visible = cos_theta_scat >= 0
-
     # Thomson polarization fraction for the  cell
     P_local = (1 - cos_theta_scat**2) / (1 + cos_theta_scat**2)
     if type(weight) != float:
         # print('weight different from 0.34')
         weight = weight[visible]
     
-    # P_local *= np.exp(-weight)
+    # I_local *= weight
     P_local *= weight
 
     # --- Define a (fixed, arbitrary) sky basis with a plane perpendicular to the line-of-sight direction n
@@ -219,16 +218,16 @@ if __name__ == "__main__":
     x_heal, y_heal, z_heal = observers_xyz[0], observers_xyz[1], observers_xyz[2]
     
     photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
-    x, y, z, den, Fx, Fy, Fz, alpha_rossland, alpha_scatter, alpha_abs = \
-        photo['x'], photo['y'], photo['z'], photo['den'], photo['Fx'], photo['Fy'], photo['Fz'], photo['alpha_rossland'], photo['alpha_scatter'], photo['alpha_abs']
+    
+    x, y, z, den, Fx, Fy, Fz, alpha_rossland, alpha_scatter, alpha_ab, tau_scatt = \
+        photo['x'], photo['y'], photo['z'], photo['den'], photo['Fx'], photo['Fy'], photo['Fz'], photo['alpha_rossland'], photo['alpha_scatter'], photo['alpha_abs'], photo['los_scatt']
     
     kappaS = alpha_scatter/den
     kappaR = alpha_rossland/den
     # kappaA = alpha_abs/den
-    # print(kappaA)
-    albedo = alpha_scatter/alpha_rossland
-    # albedo = alpha_scatter/(alpha_scatter + alpha_abs)
-    # weight = tau_scatt
+    weight = tau_scatt
+    # weight = alpha_scatter/alpha_rossland
+    # weight = alpha_scatter/(alpha_scatter + alpha_abs)
     # weight = alpha_abs/alpha_scatter
 
     r_vec = np.vstack((x, y, z)).T
@@ -381,7 +380,7 @@ if __name__ == "__main__":
     for idx in range(len(x)):
         # n_obs = [x[idx], y[idx], z[idx]] # observers = my photospheric cells
         n_obs = [x_heal[idx], y_heal[idx], z_heal[idx]]
-        P, I, Q, U = compute_polarization(Fx, Fy, Fz, albedo, n_obs, flux=True)
+        P, I, Q, U = compute_polarization(Fx, Fy, Fz, weight, n_obs, flux=True)
         P_all[idx] = P
         q_all[idx] = Q/I
         u_all[idx] = U/I
@@ -462,7 +461,7 @@ if __name__ == "__main__":
 
     data_grid_alb = griddata(
     points=(lon_1d, lat_1d),
-    values=albedo, 
+    values=weight, 
     xi=(lon_mesh, lat_mesh),
     method='linear')
     
@@ -515,7 +514,7 @@ if __name__ == "__main__":
     for idx in range(len(x)):
         # n_obs = [x[idx], y[idx], z[idx]]
         n_obs = [x_heal[idx], y_heal[idx], z_heal[idx]]
-        P, I, Q, U = compute_polarization(F_x_rad, F_y_rad, F_z_rad, albedo, n_obs, flux=True)
+        P, I, Q, U = compute_polarization(F_x_rad, F_y_rad, F_z_rad, weight, n_obs, flux=True)
         P_radial[idx] = P
     print(f'Spherical photosphere \n----------\nMean P: {np.mean(P_radial):.2f}, \nMedian P: {np.median(P_radial):.2f}, \nMax P: {np.max(P_radial):.2f}')
 
@@ -552,7 +551,7 @@ if __name__ == "__main__":
     axx.set_yticklabels(['180°','135°', '90°', '45°', '0°']) #['-90°', '-45°', '0°', '45°','90°'])
 
     #%%
-    P_z, I_Z, Q_z, U_z = compute_polarization(Fx, Fy, Fz, albedo, [0, 0, 1], flux=True, all_points=True)
+    P_z, I_Z, Q_z, U_z = compute_polarization(Fx, Fy, Fz, weight, [0, 0, 1], flux=True, all_points=True)
 
     #%% WHAT IF PHOTOSPHERE IS AN ELLIPSOID?
     # a = (np.max(x[op_idx]) - np.min(x[op_idx]))/2
@@ -599,7 +598,7 @@ if __name__ == "__main__":
     for idx in range(len(x)):
         # n_obs = [x[idx], y[idx], z[idx]]
         n_obs = [x_heal[idx], y_heal[idx], z_heal[idx]]
-        P, I, Q, U = compute_polarization(Fx_ell, Fy_ell, Fz_ell, albedo, n_obs, flux=True)
+        P, I, Q, U = compute_polarization(Fx_ell, Fy_ell, Fz_ell, weight, n_obs, flux=True)
         P_ell[idx] = P
     print(f'Ellipsoidal photosphere \n----------\nMean P: {np.mean(P_ell):.2f}, \nMedian P: {np.median(P_ell):.2f}, \nMax P: {np.max(P_ell):.2f}')
 
@@ -645,7 +644,7 @@ if __name__ == "__main__":
     for idx in range(len(x)):
         # n_obs = [x[idx], y[idx], z[idx]] # observers = my photospheric cells
         n_obs = [x_heal[idx], y_heal[idx], z_heal[idx]]
-        P, I, Q, U = compute_polarization(Fx_normal, Fy_normal, Fz_normal, albedo, n_obs, flux=False) # put false so uses F as intensity and magnitude doesn't change
+        P, I, Q, U = compute_polarization(Fx_normal, Fy_normal, Fz_normal, weight, n_obs, flux=False) # put false so uses F as intensity and magnitude doesn't change
         P_normal[idx] = P
     print(f'Equal intensity \n----------\nMean P: {np.mean(P_normal):.2f}, \nMedian P: {np.median(P_normal):.2f}, \nMax P: {np.max(P_normal):.2f}')
 

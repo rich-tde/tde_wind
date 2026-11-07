@@ -21,8 +21,8 @@ import gc
 import warnings
 warnings.filterwarnings('ignore')
 
-compute = False
-save = True
+compute = True
+save = False
 
 def fld_lightcurve(params, compton, check, N_ray):
     m, Rstar, mstar, beta, n, compton = params
@@ -140,9 +140,10 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
         los_effective_groups = np.zeros((Ng, len(r)))
         # print(np.log(t))
         for g in range(Ng):
-            rossland_kappa_g_table = np.loadtxt(f'{opac_path_mg}/sigma_rossland_{g+1}.txt').T # they are NOT in log, are in cm2/g
-            planck_kappa_g_table = np.loadtxt(f'{opac_path_mg}/sigma_absorption_rossland_{g+1}.txt').T
-            scattering_kappa_g_table = np.loadtxt(f'{opac_path_mg}/sigma_scattering_planck_{g+1}.txt').T
+            rossland_kappa_g_table = np.loadtxt(f'{opac_path_mg}/sigma_rossland_{g+1}.txt') # they are NOT in log, are in cm2/g
+            planck_kappa_g_table = np.loadtxt(f'{opac_path_mg}/sigma_absorption_rossland_{g+1}.txt')
+            scattering_kappa_g_table = np.loadtxt(f'{opac_path_mg}/sigma_scattering_planck_{g+1}.txt')
+            # print(np.shape(rossland_kappa_g_table), np.shape(planck_kappa_g_table), np.shape(scattering_kappa_g_table), np.shape(Rho_cool_mg))
             rossland_g_table = rossland_kappa_g_table * Rho_cool_mg[:, None]
             planck_g_table = planck_kappa_g_table * Rho_cool_mg[:, None]
             scattering_g_table = scattering_kappa_g_table * Rho_cool_mg[:, None]

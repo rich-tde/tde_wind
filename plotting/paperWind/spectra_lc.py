@@ -180,7 +180,7 @@ def sector_average(values, sector_indices):
 def load_mg_lightcurves(folder, check, choice):
     pre_saving = f'{abspath}/data/{folder}'
     _, cosine, sectors, _, _, central_indices = observer_geometry(choice, nside=8)
-    table = np.loadtxt(f'{pre_saving}/MG/{check}_timesMG.csv', delimiter=',', dtype=float)
+    table = np.loadtxt(f'{pre_saving}/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}MG/{check}_timesMG.csv', delimiter=',', dtype=float)
     snaps, times = table[:, 0].astype(int), table[:, 1]
 
     curves = {name: [] for name in ("optical", "UV", "Xray")}
@@ -225,11 +225,12 @@ def add_spectral_regions(ax, x_axis, text_band = False):
         ax.set_xlim(nu_min, nu_max)
     if text_band:
         for name, (lower, upper) in BANDS.items():
-            if name in ["ZTF_g", "Rubin_g", "ULTRASAT", "eROSITA"]:
+            if name in ["ZTF_g", "Rubin_g", "ULTRASAT", "eROSITA", "EUVXray"]:
                 continue
             left, right = (lower * prel.Hz_toK, upper * prel.Hz_toK) if x_axis == "Temp" else (lower, upper)
             mid = 0.6 * right if name in ["optical", "UV"] else 1.2 * left 
-            ax.text(mid, L_max/35, name, fontsize=20, rotation = 90)
+            up_lim = ax.get_ylim()[1]
+            ax.text(mid, up_lim/2, name, fontsize=20, rotation = 90)
 
 def format_time_axes(axes, original_ticks, ratio_axes=()):
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
@@ -309,7 +310,6 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll=False):
         
         spectra = angular_average(spectra, cosine)
         x_values = freqs * prel.Hz_toK if x_axis == "Temp" else freqs
-        add_spectral_regions(axes[s], x_axis, text_band=True if s == 0 else False)
 
         fitted = []
         for k, idx in enumerate(sectors):
@@ -341,6 +341,7 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll=False):
             
         axes[s].set_title(rf"$t={time:.1f}\,t_{{\rm fb}}$", fontsize=30, y=1.17)
         axes[s].set_ylim(L_min, 1e42)
+        add_spectral_regions(axes[s], x_axis, text_band=True if s == 0 else False)
         axes[s].loglog()
         axes[s].tick_params(axis='both', which='major', length=8, width=1.2)
         axes[s].tick_params(axis='both', which='minor', length=5, width=1)

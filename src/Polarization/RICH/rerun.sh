@@ -84,6 +84,7 @@ done
 # ml restore gcc
 module restore rich_gnu_2025 # I added this line
 
+
 export RICH_MEASURED_LB_DEBUG_MEMORY=1   # per-rank memory lines in error_<jobid>.txt
 export UCX_TLS=ib
 
@@ -107,7 +108,10 @@ exec srun "$executable" \
     --flux-source.spectrum-temperature radiation \
     --transport.split-observer-fraction 0.1 \
     --transport.split-escape-reference 0.1 \
-    --transport.split-copy-budget 300000 \
+    --transport.split-per-group true \
+    --transport.split-group-scale 1 \
+    --transport.split-group-floor 1e-3 \
+    --transport.split-copy-budget 1000000 \
     --load-balance.final-period 5 \
     --transport.generations "$GENERATIONS" \
     --volume-emission.learned-photons-per-cell-budget "$MG_LEARNED_BUDGET" \
