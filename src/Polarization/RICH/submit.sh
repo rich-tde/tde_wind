@@ -104,11 +104,12 @@ exec srun "$executable" \
     --transport.split-observer-fraction 0.1 \
     --transport.split-escape-reference 0.1 \
     --transport.split-per-group true \
-    --transport.split-group-scale 1 \
-    --transport.split-group-floor 1e-3 \
+    --transport.split-group-scale 0.5 \
+    --transport.split-group-floor 0.001 \
     --transport.split-copy-budget 1000000 \
-    --load-balance.final-period 5 \
+    --transport.split-importance-floor 0 \
     --transport.generations "$GENERATIONS" \
+    --load-balance.final-period 5 \
     --volume-emission.learned-photons-per-cell-budget "$MG_LEARNED_BUDGET" \
     --volume-emission.learned-photons-per-cell-budget-grey "$GREY_LEARNED_BUDGET" \
     --volume-emission.learned-max-photons "$LEARNED_MAX_PER_CELL" \

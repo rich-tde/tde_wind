@@ -27,7 +27,7 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
 proj_movie = True
-n_panels = 2
+n_panels = 1
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}' 
 params = [Mbh, Rstar, mstar, beta]
@@ -338,8 +338,8 @@ if proj_movie:
     median_tempph = np.zeros(len(snaps))
 
     for i, snap in enumerate(snaps):
-        # if snap != 151:
-        #     continue
+        if snap != 105:
+            continue
         print(snap)
         photo = np.load(f'/Users/paolamartire/shocks/data/{folder}/photo/{check}_photo{snap}.npz')
         xph, yph, zph, volph, denph, Rad_denph, alphaph = \
@@ -394,9 +394,9 @@ if proj_movie:
             axDiss.set_ylim(-14, 14)
             axDiss.tick_params(axis='both', which='major', width = 1.5, length = 12, labelsize = 65)    
         else:
-            fig, axd = plt.subplots(1,1, figsize = (22,16))#, constrained_layout=True)
+            fig, axd = plt.subplots(1,1, figsize = (20,20))#, constrained_layout=True)
 
-        img = axd.pcolormesh(x_denproj/Rt, y_denproj/Rt, flat_den_cgs.T, cmap = 'plasma', \
+        img = axd.pcolormesh(x_denproj, y_denproj, flat_den_cgs.T, cmap = 'plasma', \
                           norm = colors.LogNorm(vmin=5e-2, vmax=1e7))
         cbar = plt.colorbar(img, orientation = 'horizontal', pad = 0.14 if n_panels == 2 else 0.14)
         cbar.set_label(r'Column density (g cm$^{-2}$)', fontsize = 60 if n_panels != 3 else 50)
@@ -412,9 +412,9 @@ if proj_movie:
         if n_panels == 3:
             cbar.ax.tick_params(which='major', labelsize=40, width = 1, length = 12, pad = 10)
             cbar.ax.tick_params(which='minor',  width = .8, length = 8, pad = 10)
-        axd.set_ylabel(r'Y ($r_{\rm t}$)', fontsize = 70 if n_panels != 3 else 50)
+        axd.set_ylabel(r'Y ($R_\odot$)', fontsize = 70 if n_panels != 3 else 50)
         axd.tick_params(axis='both', which='major', width = 1.5, length = 12, labelsize = 65 if n_panels != 3 else 40)
-        axd.text(-60, 32, f't = {np.round(tfb[i],2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 65 if n_panels != 3 else 25)
+        # axd.text(-60, 32, f't = {np.round(tfb[i],2)}' + r' $t_{\rm fb}$', color = 'white', fontsize = 65 if n_panels != 3 else 25)
         
         if n_panels != '': 
             if n_panels == 2:  
@@ -428,7 +428,7 @@ if proj_movie:
                 # axLC.tick_params(axis='both', which='major', width = 2, length = 18)
                 # axLC.tick_params(axis='y', which='minor', width = 1.5, length = 15)
                 fig.set_constrained_layout_pads(wspace=0.05)
-            else: 
+            elif n_panels == 3: 
                 imgLC = axLC.scatter(tfb[:i+1], Lum[:i+1], s = 25, label = r'L$_{\rm FLD}$', c = 'k')
                 for ax in [axd, axDiss]:
                     ax.set_xlabel(r'X ($r_{\rm t}$)', fontsize = 50)
@@ -447,13 +447,13 @@ if proj_movie:
             # axLC.set_ylim(1e38, 1.2e43)
         # axd.contour(xcfr_grid[0], ycfr_grid[0], cfr_grid[0], levels=[0], colors='white')
         axd.scatter(0,0,c= 'k', marker = 'x', s = 120)
-        axd.set_xlim(-65, 15)
-        axd.set_ylim(-40, 40)
-        axd.set_xlabel(r'X ($r_{\rm t}$)', fontsize = 72 if n_panels != 3 else 50)
+        axd.set_xlim(-50*Rt, 10*Rt)
+        axd.set_ylim(-25*Rt, 25*Rt)
+        axd.set_xlabel(r'X ($R_\odot$)', fontsize = 72 if n_panels != 3 else 50)
 
         plt.tight_layout()
-        fig.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection{n_panels}/denproj_{snap}.png')
+        # fig.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/projection{n_panels}/denproj_{snap}.png')
 
-        plt.close()
+        # plt.close()
 
 # %%

@@ -21,7 +21,7 @@ import os
 import healpy as hp
 import Utilities.prelude as prel
 import src.orbits as orb
-from Utilities.operators import make_tree, choose_sections, choose_observers
+from Utilities.operators import make_tree, split_cells, choose_observers
 from Utilities.selectors_for_snap import select_snap
 from Utilities.sections import make_slices
 
@@ -56,25 +56,6 @@ Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 conversion_sol_kms = prel.Rsol_cgs*1e-5/prel.tsol_cgs
 #%%
 # MAIN
-
-def split_cells(X, Y, Z, choice):
-    indices = np.arange(len(X))
-    indices_sec = []
-    sections = choose_sections(X, Y, Z, choice)
-    cond_sec = []
-    label_obs = []
-    color_obs = []
-    for key in sections.keys():
-        cond_sec.append(sections[key]['cond'])
-        label_obs.append(sections[key]['label'])
-        color_obs.append(sections[key]['color'])
-
-    for j, cond in enumerate(cond_sec):
-        # select the particles in the chosen section and at the chosen radius
-        condR = cond #np.logical_and(np.abs(Rsph-r_chosen) < dim_cell, cond)
-        indices_sec.append(indices[condR])
-    
-    return indices_sec, label_obs, color_obs
     
 def Mdot_sec(path, snap, r_chosen, choice, what, how):
     global label_obs

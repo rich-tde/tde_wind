@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-abspath = '/Users/paolamartire/shocks'
-import sys
-sys.path.append(abspath)
-
 """Plot a Mollweide projection from an IMC post-processing VTK file.
 
 Examples
@@ -68,6 +64,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Sequence, Tuple
 import numpy as np
+
+abspath = '/Users/paolamartire/shocks'
+sys.path.append(abspath)
 
 
 SOLAR_RADIUS_CM = 6.957e10
@@ -871,8 +870,8 @@ if __name__ == "__main__":
     check = 'MG' 
 
     snap = 429
-    generat = 1500
-    group = 4
+    generat = 2500
+    group = 2
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_{generat}polarization{snap}.vtk'
 
@@ -911,20 +910,20 @@ if __name__ == "__main__":
     #     ])
 
     main([path_file,
-                "--field", f"forward_polarization_degree",
+                "--field", f"forward_polarization_degree_group_{group:03d}",
                 # "--length-unit", "solar-radius",
                 # "--scale", "log",
-                # "--vmin", "1e-3",
-                # "--vmax", "1.5",
+                "--vmin", "1e-3",
+                "--vmax", "5e-2",
                 "--show",
                 ])
 
     main([path_file,
-                    "--field", f"forward_polarization_snr",
+                    "--field", f"forward_polarization_snr_group_{group:03d}",
                     # "--length-unit", "solar-radius",
                     # "--scale", "log",
-                    # "--vmin", "1e-3",
-                    # "--vmax", "1",
+                    "--vmin", "1e-1",
+                    "--vmax", "5",
                     "--show",
                     ])
     

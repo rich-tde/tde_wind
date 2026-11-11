@@ -484,6 +484,25 @@ def choose_observers(observers_xyz, choice, find_centre = False):
 
     return indices_sorted, label_obs, colors_obs, lines_obs, markers_obs, central_indices
 
+def split_cells(X, Y, Z, choice):
+    indices = np.arange(len(X))
+    indices_sec = []
+    sections = choose_sections(X, Y, Z, choice)
+    cond_sec = []
+    label_obs = []
+    color_obs = []
+    for key in sections.keys():
+        cond_sec.append(sections[key]['cond'])
+        label_obs.append(sections[key]['label'])
+        color_obs.append(sections[key]['color'])
+
+    for j, cond in enumerate(cond_sec):
+        # select the particles in the chosen section and at the chosen radius
+        condR = cond #np.logical_and(np.abs(Rsph-r_chosen) < dim_cell, cond)
+        indices_sec.append(indices[condR])
+    
+    return indices_sec, label_obs, color_obs
+
 def central_latitude(theta_min, theta_max):
     """Equal-area central latitude of a spherical interval."""
     return np.arcsin( 0.5 * ( np.sin(theta_min) + np.sin(theta_max)))
