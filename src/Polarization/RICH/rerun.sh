@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=tde_rr_250
-#SBATCH --output=output_800.txt
-#SBATCH --error=error_800.txt
-#SBATCH --nodes=4
-#SBATCH --ntasks=768 #nodesx192
+#SBATCH --job-name=tde_rr_429
+#SBATCH --output=output_7500.txt
+#SBATCH --error=error_7500.txt
+#SBATCH --nodes=8
+#SBATCH --ntasks=1536 #nodesx192
 #SBATCH --exclusive
 #SBATCH --partition=genoa
-#SBATCH --time=1-10:00:00
+#SBATCH --time=2-10:00:00
 
 #SBATCH --mail-user="martire@strw.leidenuniv.nl"
 #SBATCH --mail-type=TIME_LIMIT_50,TIME_LIMIT_90,ALL
@@ -28,10 +28,10 @@ set -euo pipefail
 # Each pass adds 21 fixed burn-in/probe generations in front. With the budgets
 # and exploration fractions written below (both 0.005) the total run time is roughly
 # 12 min + GENERATIONS * 26 s (20 -> ~20 min, 75 -> ~45 min, 200 -> ~1 h 40).
-OLDGENERATIONS=75
-GENERATIONS=725 
+OLDGENERATIONS=2500
+GENERATIONS=5000 
 TOTALGENERATIONS=$(( OLDGENERATIONS + GENERATIONS))
-SNAP=250
+SNAP=429
 
 # Packets per generation for the cells that were learned to produce escaping
 # light: average packets per learned cell (budget) and the cap per cell.

@@ -104,7 +104,7 @@ def extract_poli(
             }
 
 if x_axis == 'wavelength':
-    snap = 320
+    snap = 429
 
     groups = np.arange(10)
     f_edges_ev = np.loadtxt(f'{abspath}/src/Opacity/fromRICH/MG/frequency_edges.txt') # [Hz] frequency range for each group. shape: (10, 2)
