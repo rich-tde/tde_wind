@@ -184,7 +184,7 @@ def extractor(filename, extended = False, MG = False):
 # MAIN
 ##
 
-m = 4
+m = 5
 Mbh = 10**m
 beta = 1
 mstar = .5
@@ -199,13 +199,18 @@ prepath_all = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 snaps = select_snap(m, check, mstar, Rstar, beta, n, time = False)
 
 for i, snap in enumerate(snaps):
-    if snap not in [21, 76, 151]:
-        continue
+    # if snap not in [21, 76, 151]:
+    #     continue
     if alice:
         prepath = f'{prepath_all}/snap_{snap}'
+        if m == 5 :
+            prepath_snap = f'{prepath}/YujieSnellius'
+        else:
+            prepath_snap = prepath
     else: 
         prepath = f'{prepath_all}/{snap}'
-    file = f'{prepath}/snap_{snap}.h5'
+        prepath_snap = prepath
+    file = f'{prepath_snap}/snap_{snap}.h5'
 
     print(snap, flush = True)
     if check == 'MG':
