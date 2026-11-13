@@ -199,8 +199,8 @@ prepath_all = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 snaps = select_snap(m, check, mstar, Rstar, beta, n, time = False)
 
 for i, snap in enumerate(snaps):
-    # if snap not in [21, 76, 151]:
-    #     continue
+    if snap not in np.arange(100, 130):
+        continue
     if alice:
         prepath = f'{prepath_all}/snap_{snap}'
         if m == 5 :
