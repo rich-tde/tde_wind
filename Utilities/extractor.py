@@ -199,7 +199,7 @@ prepath_all = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 snaps = select_snap(m, check, mstar, Rstar, beta, n, time = False)
 print(snaps, flush = True)
 for i, snap in enumerate(snaps):
-    if snap > 130:
+    if snap not in np.arange(100, 150, step = 2):
         continue
     if alice:
         prepath = f'{prepath_all}/snap_{snap}'
