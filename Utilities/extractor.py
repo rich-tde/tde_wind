@@ -197,7 +197,7 @@ print(f'We are in folder: {folder}', flush=True)
 prepath_all = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 
 snaps = select_snap(m, check, mstar, Rstar, beta, n, time = False)
-
+print(snaps, flush = True)
 for i, snap in enumerate(snaps):
     if snap > 130:
         continue
