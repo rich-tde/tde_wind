@@ -14,6 +14,8 @@ def select_prefix(m, check, mstar, rstar, beta, n, compton):
         folder = f'R{rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     if alice:
         prepath = f'/home/martirep/data_pi-rossiem/TDE_data'
+        if m == 5:
+            prepath = f'{prepath}/YujieSnellius'
     else: 
         prepath = f'/Users/paolamartire/shocks/TDE'
 
