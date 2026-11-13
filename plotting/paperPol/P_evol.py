@@ -22,7 +22,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'MG' 
-generat = 2500
+generat = 7500
 choice = 'split_stream'
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
@@ -30,7 +30,7 @@ things = orb.get_things_about(params)
 tfallback = things['t_fb_days']
 tfallback_cgs = tfallback * 24 * 3600
 x_axis = 'wavelength' # wavelength 
-snr_thresh = 3
+snr_thresh = 5
 
 def extract_poli(
     vtk_file,

@@ -336,7 +336,7 @@ def load_fld_data(folder, check):
         np.asarray(luminosity, dtype=float))
 
 if __name__ == "__main__":
-    m = 4
+    m = 5
     Mbh = 10**m
     beta = 1
     mstar = .5
