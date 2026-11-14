@@ -196,15 +196,15 @@ folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 print(f'We are in folder: {folder}', flush=True)
 prepath_all = select_prefix(m, check, mstar, Rstar, beta, n, compton)
 
-snaps = select_snap(m, check, mstar, Rstar, beta, n, time = False)
-print(snaps, flush = True)
+# snaps = select_snap(m, check, mstar, Rstar, beta, n, time = False)
+snaps = np.arange(100, 208, step = 10)
 for i, snap in enumerate(snaps):
-    if snap not in np.arange(100, 150, step = 2):
-        continue
+    # if snap < 100:
+    #     continue
     if alice:
         prepath = f'{prepath_all}/snap_{snap}'
         if m == 5 :
-            prepath_snap = f'{prepath}/YujieSnellius'
+            prepath_snap = f'/home/martirep/data_pi-rossiem/TDE_data/YujieSnellius/{folder}'
         else:
             prepath_snap = prepath
     else: 
