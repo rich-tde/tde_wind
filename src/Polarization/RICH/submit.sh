@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=tde_429
+#SBATCH --job-name=tde_250
 #SBATCH --output=output_2500.txt
 #SBATCH --error=error_2500.txt
 #SBATCH --nodes=8
@@ -29,7 +29,7 @@ set -euo pipefail
 # and exploration fractions written below (both 0.005) the total run time is roughly
 # 12 min + GENERATIONS * 26 s (20 -> ~20 min, 75 -> ~45 min, 200 -> ~1 h 40).
 GENERATIONS=2500
-SNAP=429
+SNAP=250
 
 # Packets per generation for the cells that were learned to produce escaping
 # light: average packets per learned cell (budget) and the cap per cell.
@@ -110,6 +110,7 @@ exec srun "$executable" \
     --transport.split-importance-floor 0 \
     --transport.generations "$GENERATIONS" \
     --load-balance.final-period 5 \
+    --load-balance.clamp-factor 200 \
     --volume-emission.learned-photons-per-cell-budget "$MG_LEARNED_BUDGET" \
     --volume-emission.learned-photons-per-cell-budget-grey "$GREY_LEARNED_BUDGET" \
     --volume-emission.learned-max-photons "$LEARNED_MAX_PER_CELL" \

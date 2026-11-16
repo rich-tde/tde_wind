@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=tde_rr_429
+#SBATCH --job-name=tde_rr_320
 #SBATCH --output=output_7500.txt
 #SBATCH --error=error_7500.txt
 #SBATCH --nodes=8
@@ -31,7 +31,7 @@ set -euo pipefail
 OLDGENERATIONS=2500
 GENERATIONS=5000 
 TOTALGENERATIONS=$(( OLDGENERATIONS + GENERATIONS))
-SNAP=429
+SNAP=320
 
 # Packets per generation for the cells that were learned to produce escaping
 # light: average packets per learned cell (budget) and the cap per cell.
@@ -115,6 +115,7 @@ exec srun "$executable" \
     --transport.split-importance-floor 0 \
     --transport.generations "$GENERATIONS" \
     --load-balance.final-period 5 \
+    --load-balance.clamp-factor 200 \
     --volume-emission.learned-photons-per-cell-budget "$MG_LEARNED_BUDGET" \
     --volume-emission.learned-photons-per-cell-budget-grey "$GREY_LEARNED_BUDGET" \
     --volume-emission.learned-max-photons "$LEARNED_MAX_PER_CELL" \

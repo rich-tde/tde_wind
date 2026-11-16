@@ -945,6 +945,6 @@ if __name__ == "__main__":
     #             "--show",
     #             ])
     
-    # main([path_file, '--list-fields'])
+    main([path_file, '--list-fields'])
 
     

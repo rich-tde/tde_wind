@@ -210,7 +210,10 @@ for i, snap in enumerate(snaps):
     else: 
         prepath = f'{prepath_all}/{snap}'
         prepath_snap = prepath
-    file = f'{prepath_snap}/snap_{snap}.h5'
+    if m == 5:
+        file = f'{prepath_snap}/snap_full_{snap}.h5'
+    else:
+        file = f'{prepath_snap}/snap_{snap}.h5'
 
     print(snap, flush = True)
     if check == 'MG':
