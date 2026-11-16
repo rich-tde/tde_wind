@@ -11,7 +11,7 @@ import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import Utilities.prelude as prel
 from src import orbits as orb
-from Utilities.operators import split_cells
+from Utilities.operators import split_cells, sort_list
 from plotting.paperWind.spectra_lc import add_spectral_regions
 
 def extract_poli(
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     compton = 'Compton'
     check = 'MG' 
     snap = 429
-    generat = 2500
+    generat = 7500
     choice = 'split_stream'
     snr_thresh = 3
 
@@ -108,33 +108,68 @@ if __name__ == "__main__":
     tfallback_cgs = tfallback * 24 * 3600
 
     groups = np.arange(10)
+    path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_{generat}polarization{snap}.vtk'
     f_edges_ev = np.loadtxt(f'{abspath}/src/Opacity/fromRICH/MG/frequency_edges.txt') # [Hz] frequency range for each group. shape: (10, 2)
     f_edges = f_edges_ev * prel.ev_toHz
     f_mid_points = (f_edges[:-1] + f_edges[1:]) / 2
     time = np.loadtxt(f'{abspath}/data/{folder}/snap_{snap}/Time_snap_{snap}.txt')
     time *= prel.tsol_cgs/tfallback_cgs
-    path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_{generat}polarization{snap}.vtk'
+    # print(time)
+
+    folder_fld = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiResNewAMR'
+    data_fld = np.loadtxt(f'{abspath}/data/{folder_fld}/HiResNewAMR_red.csv', delimiter=',', dtype=float)
+    snaps_fld, tfb_fld, Lum_fld = data_fld[:, 0], data_fld[:, 1], data_fld[:, 2]
+    snaps_fld, tfb_fld, Lum_fld = sort_list([snaps_fld, tfb_fld, Lum_fld], tfb_fld, unique=True) 
+    snaps_fld = snaps_fld.astype(int)
+    idx_time_fld = np.argmin(np.abs(tfb_fld - time))
+    snap_fld = snaps_fld[idx_time_fld]
+    photo = np.load(f'{abspath}/data/{folder_fld}/photo/HiResNewAMR_photo{snap_fld}.npz')
+    x_fld, y_fld, z_fld, Lum_fld = photo['x'], photo['y'], photo['z'], photo['Lum']
+    r_ph_fld = np.sqrt(x_fld**2 + y_fld**2 + z_fld**2)
+    indices_sec, labels_sec, color_obs = split_cells(x_fld, y_fld, z_fld, choice=choice)
+    Lum_fld_med_idx = np.zeros(len(indices_sec))
+    r_ph_fld_med_idx = np.zeros(len(indices_sec))
+    for i, indices in enumerate(indices_sec):
+        Lum_fld_med_idx[i] = np.median(Lum_fld[indices])
+        r_ph_fld_med_idx[i] = np.median(r_ph_fld[indices])
 
     data = extract_poli(
                 path_file,
                 fields=[f"forward_polarization_degree",
                         f"forward_polarization_snr",
-                        "forward_polarization_angle"])   
+                        "forward_polarization_angle",
+                        "forward_luminosity",
+                        "photosphere_grey_radius_tau_total"])   
     x = data["x"]
     y = data["y"]
     z = data["z"]
     theta = data["theta"]
     phi = data["phi"]
     indices_sec, labels_sec, color_obs = split_cells(x, y, z, choice=choice)
+    Lum = data["forward_luminosity"]
+    r_ph = data["photosphere_grey_radius_tau_total"]
     P_gray = data["forward_polarization_degree"]
     snr_P_gray = data["forward_polarization_snr"] 
     P_angle = data["forward_polarization_angle"]
     P_gray_med_idx = np.zeros(len(indices_sec))
     snr_P_gray_med_idx = np.zeros(len(indices_sec))
+    Lum_med_idx = np.zeros(len(indices_sec)) 
+    rph_med_idx = np.zeros(len(indices_sec))
     for i, indices in enumerate(indices_sec):
         P_gray_med_idx[i] = np.median(P_gray[indices])
         snr_P_gray_med_idx[i] = np.median(snr_P_gray[indices])
+        Lum_med_idx[i] = np.median(Lum[indices])
+        rph_med_idx[i] = np.median(r_ph[indices])
 
+    figc, axC = plt.subplots(1, 1, figsize=(10, 7))
+    for i in range(len(indices_sec)):
+        axC.scatter(i, rph_med_idx[i]/prel.Rsol_cgs/r_ph_fld_med_idx[i], color=color_obs[i], s = 80, marker='o', label=r'r$_{\rm ph}$' if i == 1 else "")
+        axC.scatter(i, len(Lum) * Lum_med_idx[i]/Lum_fld_med_idx[i], color=color_obs[i], s = 80, marker='x', label=f'Lum' if i == 1 else "")
+    # axC.loglog()
+    axC.grid()
+    axC.set_ylabel('MC/fld')
+    axC.legend(fontsize=18)
+                                    
     P_wave = []
     snr_P_wave = []
     Lum_wave = []
@@ -189,7 +224,7 @@ if __name__ == "__main__":
                             xi=(lon_mesh, lat_mesh),
                             method='linear')
             
-            gs = gridspec.GridSpec(2, 3,  height_ratios=[1, .05], hspace=0.1, wspace = 0.2) 
+            gs = gridspec.GridSpec(2, 2,  height_ratios=[1, .05], hspace=0.1, wspace = 0.2) 
             axPmesh = figmesh.add_subplot(gs[0, 0], projection='mollweide')
             img = axPmesh.pcolormesh(lon_mesh, lat_mesh, P_grid, cmap='viridis', vmin = 1e-3, vmax = 5e-2)
             snr_contour = axPmesh.contour(
@@ -212,7 +247,7 @@ if __name__ == "__main__":
             cbar.ax.tick_params(which='major',length = 5)
             cbar.ax.tick_params(which='minor',length = 3)
             
-            figmesh.suptitle(f'Polarization map for group {group} at t={time:.2f}' + r' t$_{{\rm fb}}$' + f' ({generat} GEN)', fontsize = 20)#, y = 0.85)
+            figmesh.suptitle(f'Polarization map for group {group} at t={time:.2f}' + r' t$_{{\rm fb}}$' + f' ({generat} GEN)', fontsize = 20, y = 0.85)
             # plt.tight_layout()
 
         P_med_idx = np.zeros(len(indices_sec))

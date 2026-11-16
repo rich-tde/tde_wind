@@ -249,7 +249,7 @@ and it solves
 
 The packet is then propagated for exactly that time.
 
-### When scatttering happens
+### When scattering happens
 Inside `else if(min.first == SCATTERING)`, 
 it draws another random number with 
 `double eventRandom = this->randomUnitOpen(particle) * eventOpacity`;

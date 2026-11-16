@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=tde_rr_320
+#SBATCH --account=ulsei21195
 #SBATCH --output=output_7500.txt
 #SBATCH --error=error_7500.txt
 #SBATCH --nodes=8
