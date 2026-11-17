@@ -2,7 +2,6 @@
 #SBATCH --job-name=tde_151
 #SBATCH --output=output_2500.txt
 #SBATCH --error=error_2500.txt
-#SBATCH --account=ulsei21195
 #SBATCH --nodes=8
 #SBATCH --ntasks=1536 #nodesx192#nodesx192
 #SBATCH --exclusive

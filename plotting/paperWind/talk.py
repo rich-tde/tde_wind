@@ -1,4 +1,6 @@
 import sys
+
+from sympy import sec
 sys.path.append('/Users/paolamartire/shocks')
 abspath = '/Users/paolamartire/shocks'
 import numpy as np
@@ -13,6 +15,7 @@ from Utilities.selectors_for_snap import select_prefix
 import src.orbits as orb
 import Utilities.prelude as prel
 from src.Wind.Rtrapp_tdiff import load_and_smooth_rtrap
+from plotting.paperWind.spectra_lc import observer_geometry, angular_average, sector_average
 
 m = 4
 Mbh = 10**m
@@ -104,6 +107,7 @@ labels_color = []
 
 photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
 xph, yph, zph, Lumph = photo['x'], photo['y'], photo['z'], photo['Lum']
+
 rph_all = np.sqrt(xph**2 + yph**2 + zph**2)
 pathtrap = f"{abspath}/data/{folder}/trap"
 # dataRtr = load_and_adjust_rtrap(pathtrap, check, snap, params)
@@ -227,17 +231,20 @@ Mdotw_isot = np.copy(rest)
 data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
 snaps, _, _ = data[:, 0], data[:, 1], data[:, 2]
 _, snaps, _ = op.sort_list([_, snaps, _], snaps, unique=True)
-Lum_sec = []
 snaps = np.array(snaps, dtype=int)
+_, cosine, sectors, labels, colours, central_indices = observer_geometry(which_obs)
+Lum_sec = np.zeros((len(sectors), len(snaps)))
 for s, snap in enumerate(snaps): 
     photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
     Lum_ph = photo['Lum']
-    Lum_slab = np.zeros(len(indices_obs))
-    rph_slab = np.zeros(len(indices_obs))
-    for i, indices in enumerate(indices_obs):
-        Lum_slab[i] = np.mean(Lum_ph[indices])
-    Lum_sec.append(Lum_slab)
-Lum_sec = np.transpose(np.array(Lum_sec))
+    Lum_ph = angular_average(Lum_ph, cosine)
+    Lum_sec[:, s] = sector_average(Lum_ph, sectors)
+    # Lum_slab = np.zeros(len(indices_obs))
+    # rph_slab = np.zeros(len(indices_obs))
+    # for i, indices in enumerate(indices_obs):
+    #     Lum_slab[i] = np.mean(Lum_ph[indices])
+    # Lum_sec.append(Lum_slab)
+# Lum_sec = np.transpose(np.array(Lum_sec))
 
 if isot == 'isot':
     area = wind[-len(label_obs):]

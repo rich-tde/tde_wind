@@ -47,7 +47,7 @@ def fld_lightcurve(params, compton, check, N_ray):
     observers_xyz = np.array(observers_xyz).T # shape: (192, 3)
 
     for idx_s, snap in enumerate(snaps):
-        if snap not in [76]:#, 109, 151]:
+        if snap not in np.arange(60, 100, step = 5): 
             continue
         print(f'Snap: {snap}', flush=True)
         if alice:

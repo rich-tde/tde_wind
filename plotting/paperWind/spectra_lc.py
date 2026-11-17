@@ -163,7 +163,6 @@ def load_spectrum(folder, check, snap):
         raise ValueError(f"Invalid spectral integral in snapshot {snap}")
     return spectra * (luminosity / integrals)[:, None], luminosity
 
-
 def angular_average(spectra, cosine):
     weights = cosine / cosine.sum(axis=1, keepdims=True)
     return weights @ spectra
@@ -177,10 +176,10 @@ def integrate_bands(spectra, freqs, indices):
 def sector_average(values, sector_indices):
     return np.asarray([np.mean(values[idx]) for idx in sector_indices])
 
-def load_mg_lightcurves(folder, check, choice):
-    pre_saving = f'{abspath}/data/{folder}'
+def load_mg_lightcurves(check, choice):
+    pre_saving = f'{abspath}/data/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}MG'
     _, cosine, sectors, _, _, central_indices = observer_geometry(choice, nside=8)
-    table = np.loadtxt(f'{pre_saving}/R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}MG/{check}_timesMG.csv', delimiter=',', dtype=float)
+    table = np.loadtxt(f'{pre_saving}/{check}_timesMG.csv', delimiter=',', dtype=float)
     snaps, times = table[:, 0].astype(int), table[:, 1]
 
     curves = {name: [] for name in ("optical", "UV", "Xray")}
@@ -188,7 +187,7 @@ def load_mg_lightcurves(folder, check, choice):
 
     curves_x = []
     for s, snap in enumerate(snaps):
-        values = np.loadtxt(f'{pre_saving}/MG/snap_{snap}/L_snap_{snap}.txt')
+        values = np.loadtxt(f'{pre_saving}/snap_{snap}/L_snap_{snap}.txt')
         bands = {
             "optical": values[:, 1:3].sum(axis=1),
             "UV": values[:, 3:5].sum(axis=1),
@@ -379,7 +378,7 @@ def distance_telescope(folder, check, choice):
     snaps, tfb, luminosity_fld = load_fld_data(folder, check)
     idx_maxL = np.argmax(luminosity_fld)
     snap_maxL = snaps[idx_maxL]
-    _, mg, curves_x, _ = load_mg_lightcurves(folder, check, choice)
+    _, mg, curves_x, _ = load_mg_lightcurves(check, choice)
     _, _, sectors, labels, colours, central_indices = observer_geometry(choice)
     n_sectors, n_times = len(sectors), len(snaps)
     fld_sector = np.zeros((n_sectors, n_times))
@@ -448,7 +447,7 @@ def plot_light_curves(folder, check, choice, group="bands"):
     curves_fld = np.asarray(curves_fld).T
     curves_op, curves_uv = np.asarray(curves_op).T, np.asarray(curves_uv).T
  
-    time_mg, mg, curves_x, all_xray_mg = load_mg_lightcurves(folder, check, choice)
+    time_mg, mg, curves_x, all_xray_mg = load_mg_lightcurves(check, choice)
     # curves_x = []
     # curves_x.append(mg["Xray"]) 
     # curves_x = np.asarray(curves_x).T
@@ -615,9 +614,9 @@ def TRfit_in_time(folder, check, choice):
 
     
 if __name__ == '__main__':
-    plot_spectra(folder, check, snaps_spectra, x_axis, choice)
+    # plot_spectra(folder, check, snaps_spectra, x_axis, choice)
     # TRfit_in_time(folder, check, choice)
-    # plot_light_curves(folder, check, choice, group = 'bands')
+    plot_light_curves(folder, check, choice, group = 'bands')
     # plot_light_curves(folder, check, choice, group = 'sections')
     # plot_light_curves(folder, check, choice, group = 'bandsMG')
     # distance_telescope(folder, check, choice)
