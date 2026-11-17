@@ -5,7 +5,7 @@ sys.path.append('/Users/paolamartire/shocks/')
 from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
-    abspath = '/data1/martirep/shocks/shock_capturing'
+    abspath = '/home/martirep/data1/postprocess/tde'
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'
@@ -35,7 +35,7 @@ compton = 'Compton'
 check = 'HiResNewAMR' 
 what_paper = 'paper2' # 'paper1' or 'paper2'
 choice = 'split_stream' # only for paper2
-what_to_keep = '' # only for paper2, '_dynUnb' or ''
+what_to_keep = '_keepDynUnb' # only for paper2, '_keepDynUnb' or ''
 
 #%%
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -55,7 +55,7 @@ t_fall_cgs = t_fall * 24 * 3600
 if compute:
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) #[100,115,164,199,216]
     if what_paper == 'paper2':
-        out_path = f'{abspath}/data/{folder}/wind/energies_{choice}.npy'
+        out_path = f'{abspath}/data/{folder}/wind/energies{what_to_keep}_{choice}.npy'
 
         if os.path.exists(out_path):
             energies = np.load(out_path, allow_pickle=True).item()
@@ -113,6 +113,7 @@ if compute:
 
         if what_paper == 'paper2':
             cut_wind, bern_spec, _ = orb.pick_wind(X, Y, Z, VX, VY, VZ, den, mass, Press, ie_den, Rad_den, params, cond = 'bern')
+            cut_bound = ~cut_wind
             dyn_unb = np.logical_and(np.abs(Z)<vol**(1/3), X < -apo)
             if what_to_keep == '_keepDynUnb':
                 if i == 0:
@@ -122,15 +123,14 @@ if compute:
                 if i == 0:
                     print('Removing dynamically unbound material from the energy budget', flush = True)
                 cut = np.logical_and(cut_wind, ~dyn_unb)
-            X, Y, Z, Rsph, VX, VY, VZ, vel, mass, vol, den, ie_den, Rad_den, Press, Diss_den, bern_spec = \
-                sec.make_slices([X, Y, Z, Rsph, VX, VY, VZ, vel, mass, vol, den, ie_den, Rad_den, Press, Diss_den, bern_spec], cut)
-            Ekin = 0.5 * mass * vel**2
-            Lkin = 0.5 * 4 * np.pi * Rsph**2* den * vel**3 
-            orb_en = orb.orbital_energy(Rsph, vel, mass, params, prel.G)
+
             ie = ie_den * vol
             Rad = Rad_den * vol
             Diss = Diss_den * vol
             bern = bern_spec * mass
+            orb_en = orb.orbital_energy(Rsph, vel, mass, params, prel.G)
+            Ekin = 0.5 * mass * vel**2
+            Lkin = 0.5 * 4 * np.pi * Rsph**2* den * vel**3 
 
             sections = choose_sections(X, Y, Z, choice)
             label_obs = []
@@ -138,7 +138,10 @@ if compute:
             for key_sec in sections.keys():
                 label_obs.append(sections[key_sec]['label'])
                 cond_sec.append(sections[key_sec]['cond'])
-
+            IE_sec_tot = np.zeros(len(sections))
+            Rad_sec_tot = np.zeros(len(sections))
+            Diss_sec_tot = np.zeros(len(sections))
+            bern_sec_bound = np.zeros(len(sections))
             Ekin_sec = np.zeros(len(sections))
             Lkin_sec = np.zeros(len(sections))
             OE_sec = np.zeros(len(sections))
@@ -148,16 +151,25 @@ if compute:
             bern_sec = np.zeros(len(sections))
             R_sec = np.zeros(len(sections))
             for k, cond in enumerate(cond_sec):
-                Ekin_sec[k] = np.sum(Ekin[cond]) if cond.size > 0 else 0
-                Lkin_sec[k] = np.sum(Lkin[cond]) if cond.size > 0 else 0
-                OE_sec[k] = np.sum(orb_en[cond]) if cond.size > 0 else 0
-                IE_sec[k] = np.sum(ie[cond]) if cond.size > 0 else 0
-                Rad_sec[k] = np.sum(Rad[cond]) if cond.size > 0 else 0
-                Diss_sec[k] = np.sum(Diss[cond]) if cond.size > 0 else 0
-                bern_sec[k] = np.sum(bern[cond]) if cond.size > 0 else 0
-                R_sec[k] = np.sum(Rsph[cond]*mass[cond])/np.sum(mass[cond]) if cond.size > 0 else 0
+                IE_sec_tot[k] = np.sum(ie[cond]) if cond.size > 0 else 0
+                Rad_sec_tot[k] = np.sum(Rad[cond]) if cond.size > 0 else 0
+                Diss_sec_tot[k] = np.sum(Diss[cond]) if cond.size > 0 else 0
+
+                bern_sec_bound[k] = np.sum(bern[np.logical_and(cond, cut_bound)]) if cond.size > 0 else 0
+            
+                Ekin_sec[k] = np.sum(Ekin[np.logical_and(cond, cut)]) if cond.size > 0 else 0
+                Lkin_sec[k] = np.sum(Lkin[np.logical_and(cond, cut)]) if cond.size > 0 else 0
+                OE_sec[k] = np.sum(orb_en[np.logical_and(cond, cut)]) if cond.size > 0 else 0
+                IE_sec[k] = np.sum(ie[np.logical_and(cond, cut)]) if cond.size > 0 else 0
+                Rad_sec[k] = np.sum(Rad[np.logical_and(cond, cut)]) if cond.size > 0 else 0
+                Diss_sec[k] = np.sum(Diss[np.logical_and(cond, cut)]) if cond.size > 0 else 0
+                bern_sec[k] = np.sum(bern[np.logical_and(cond, cut)]) if cond.size > 0 else 0
+                R_sec[k] = np.sum(Rsph[np.logical_and(cond, cut)]*mass[np.logical_and(cond, cut)])/np.sum(mass[np.logical_and(cond, cut)]) if cond.size > 0 else 0
 
             E_snap = {'tfb': tfb[i], 
+                      'IE_sec_tot': IE_sec_tot,
+                      'Rad_sec_tot': Rad_sec_tot,
+                      'Diss_sec_tot': Diss_sec_tot, 
                       'Ekin_sec': Ekin_sec,
                       'Lkin_sec': Lkin_sec,
                       'OE_sec': OE_sec,
@@ -166,6 +178,7 @@ if compute:
                       'Diss_sec': Diss_sec, 
                       'bern_sec': bern_sec,
                       'Ravg_sec': R_sec,
+                      'bern_sec_bound': bern_sec_bound,
                       'label_obs': label_obs}
             
             energies[key] = E_snap

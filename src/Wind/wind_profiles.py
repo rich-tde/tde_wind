@@ -7,7 +7,7 @@ abspath = '/Users/paolamartire/shocks'
 from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
-    abspath = '/data1/martirep/shocks/shock_capturing'
+    abspath = '/home/martirep/data1/postprocess/tde'
     compute = True
 else:
     abspath = '/Users/paolamartire/shocks'

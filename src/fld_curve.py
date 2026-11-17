@@ -1,11 +1,11 @@
 """ FLD curve accoring to Elad's script (MATLAB: start from 1 with indices, * is matrix multiplication, ' is .T). """
 import sys
 sys.path.append('/Users/paolamartire/shocks')
-# import resource
+
 from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
-    abspath = '/data1/martirep/shocks/shock_capturing'
+    abspath = '/home/martirep/data1/postprocess/tde'
     save = True
 else:
     import matplotlib as mpl
@@ -89,8 +89,8 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
     if plot:
         figtau, axtau = plt.subplots(figsize = (10, 8))
     for i in range(num_obs):
-        if i not in [0]:
-            continue
+        # if i not in [0]:
+        #     continue
         print(f'Obs: {i}', flush=True)
 
         mu_x = observers_xyz[i][0]

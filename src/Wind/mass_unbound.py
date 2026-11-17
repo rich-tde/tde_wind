@@ -6,7 +6,7 @@ sys.path.append('/Users/paolamartire/shocks/')
 from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
-    abspath = '/data1/martirep/shocks/shock_capturing'
+    abspath = '/home/martirep/data1/postprocess/tde'
     path = '/home/martirep/data_pi-rossiem/TDE_data'
 else:
     abspath = '/Users/paolamartire/shocks'
