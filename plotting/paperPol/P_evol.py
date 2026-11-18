@@ -23,9 +23,10 @@ check = 'MG'
 generat = 2500
 snr_thresh = 5
 groups = [2, 4, 7, 8]
-snaps = [320, 429]
+snaps = [320, 360, 429]
 lines_group = ['-', '--', ':']
 choice = 'split_stream'
+snr_thresh = 3
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 params = [Mbh, Rstar, mstar, beta]
@@ -72,8 +73,12 @@ for s, snap in enumerate(snaps):
         snr_P_med_idx = np.zeros(len(indices_sec))
         
         for i, indices in enumerate(indices_sec):
-            P_med_idx[i] = np.median(P[indices])
-            snr_P_med_idx[i] = np.median(snr_P[indices])
+            P_sector = P[indices]
+            snr_P_sector = snr_P[indices]
+            P_tocare = P_sector[snr_P_sector > snr_thresh]
+            snr_P_tocare = snr_P_sector[snr_P_sector > snr_thresh]
+            P_med_idx[i] = np.median(P_tocare) if len(P_tocare) > 0 else np.nan
+            snr_P_med_idx[i] = np.median(snr_P_tocare) if len(snr_P_tocare) > 0 else np.nan
 
         P_group.append(P_med_idx) # at the end:shape: (len(groups), len(indices_sec))
         snr_P_group.append(snr_P_med_idx)
