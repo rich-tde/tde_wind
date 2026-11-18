@@ -94,7 +94,7 @@ if __name__ == "__main__":
     n = 1.5
     compton = 'Compton'
     check = 'MG' 
-    snap = 429
+    snap = 360
     generat = 7500
     choice = 'split_stream'
     snr_thresh = 3
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     f_mid_points = (f_edges[:-1] + f_edges[1:]) / 2
     time = np.loadtxt(f'{abspath}/data/{folder}/snap_{snap}/Time_snap_{snap}.txt')
     time *= prel.tsol_cgs/tfallback_cgs
-    # print(time)
+    print(time)
 
     folder_fld = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiResNewAMR'
     data_fld = np.loadtxt(f'{abspath}/data/{folder_fld}/HiResNewAMR_red.csv', delimiter=',', dtype=float)

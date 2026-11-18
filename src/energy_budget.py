@@ -267,41 +267,40 @@ if plot:
         IE_sec = np.array([data[key]['IE_sec'] for key in data.keys()])
         Rad_sec = np.array([data[key]['Rad_sec'] for key in data.keys()])
         Diss_sec = np.array([data[key]['Diss_sec'] for key in data.keys()])
-        # bern_neg_sec = np.array([data[key]['bern_neg_sec'] for key in data.keys()])
-        # bern_pos_sec = np.array([data[key]['bern_pos_sec'] for key in data.keys()])
-        # bern_sec = bern_neg_sec + bern_pos_sec
-        # bern_sec[bern_sec < 0] = 1e-20
+        IE_sec_tot = np.array([data[key]['IE_sec_tot'] for key in data.keys()])
+        Rad_sec_tot = np.array([data[key]['Rad_sec_tot'] for key in data.keys()])
+        Diss_sec_tot = np.array([data[key]['Diss_sec_tot'] for key in data.keys()])
+        bern_sec = np.array([data[key]['bern_sec'] for key in data.keys()])
+        bern_sec_bound = np.array([data[key]['bern_sec_bound'] for key in data.keys()])
 
         Ekin_sec_cgs = Ekin_sec * prel.en_converter
         OE_sec_cgs = OE_sec * prel.en_converter
         IE_sec_cgs = IE_sec * prel.en_converter
         Rad_sec_cgs = Rad_sec * prel.en_converter
+        Rad_sec_tot_cgs = Rad_sec_tot * prel.en_converter
         Diss_sec_cgs = Diss_sec * prel.en_converter/prel.tsol_cgs 
+        Diss_sec_tot_cgs = Diss_sec_tot * prel.en_converter/prel.tsol_cgs
         tfb_cgs = tfb * t_fall_cgs
         en_diss_cgs = sci.cumulative_trapezoid(Diss_sec_cgs, tfb_cgs, axis = 0, initial = 0)
-        # bern_sec_cgs = bern_sec * prel.en_converter
-        # delta_en = np.diff(bern_sec_cgs, axis = 0)
-        diss_kin = en_diss_cgs / Ekin_sec_cgs
+        en_diss_cgs_tot = sci.cumulative_trapezoid(Diss_sec_tot_cgs, tfb_cgs, axis = 0, initial = 0)
+        bern_sec_cgs = bern_sec * prel.en_converter
+        bern_sec_bound_cgs = bern_sec_bound * prel.en_converter
 
-        figE, (axE, axD) = plt.subplots(1, 2, figsize=(18,7))
+        figE, axE = plt.subplots(1, 1, figsize=(10,7))
         for i, lab in enumerate(label_obs): 
             if lab == 'South pole':
                 continue
-            axE.plot(tfb, Ekin_sec_cgs[:, i], c = colors_obs[i], label = f'kinetic' if i == 0 else None)
-            # axE.plot(tfb, en_diss_cgs[:, i], c = colors_obs[i], ls = '--', label = f'dissipation' if i == 0 else None)
-            # axD.plot(tfb[1:], delta_en[:, i], c = colors_obs[i], ls = '--', label = f'total energy' if i == 0 else None)
-            axD.plot(tfb, diss_kin[:, i], c = colors_obs[i], label = lab)
+            axE.plot(tfb, Rad_sec_tot_cgs[:, i]/Ekin_sec_cgs[:, i], c = colors_obs[i],  label = r'E$_{\rm rad, tot}$' if i == 0 else None)
+            axE.plot(tfb, en_diss_cgs_tot[:, i]/Ekin_sec_cgs[:, i], c = colors_obs[i], ls = ':', label = r'E$_{\rm diss, tot}$' if i == 0 else None)
         
-        for ax in (axE, axD):
-            ax.tick_params(axis='both', which='major', width=1.2, length=7)
-            ax.tick_params(axis='both', which='minor', width=0.9, length=5) 
-            ax.grid()
-            ax.set_xlabel(r'$t/t_{\rm fb}$')
-            ax.set_yscale('log')
-            ax.legend(fontsize = 16)
-        axE.set_ylim(1e44, 1e50)
-        axE.set_ylabel(r'E (erg)')
-        axD.set_ylabel(r'$E_{\rm diss}/E_{\rm kin}$')
+        axE.tick_params(axis='both', which='major', width=1.2, length=7)
+        axE.tick_params(axis='both', which='minor', width=0.9, length=5) 
+        axE.grid()
+        axE.set_xlabel(r'$t/t_{\rm fb}$')
+        axE.set_yscale('log')
+        axE.legend(fontsize = 16)
+        axE.set_ylim(1e-3, 1e3)
+        axE.set_ylabel(r'E / E$_{\rm kin, w}$')
 
     # %%
     print('Last value of Ekin')
