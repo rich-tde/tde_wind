@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=tde_rr_320
 #SBATCH --account=ulsei21195
-#SBATCH --output=output_7500.txt
-#SBATCH --error=error_7500.txt
+#SBATCH --output=output_2500.txt
+#SBATCH --error=error_2500.txt
 #SBATCH --nodes=8
 #SBATCH --ntasks=1536 #nodesx192
 #SBATCH --exclusive
@@ -29,8 +29,8 @@ set -euo pipefail
 # Each pass adds 21 fixed burn-in/probe generations in front. With the budgets
 # and exploration fractions written below (both 0.005) the total run time is roughly
 # 12 min + GENERATIONS * 26 s (20 -> ~20 min, 75 -> ~45 min, 200 -> ~1 h 40).
-OLDGENERATIONS=2500
-GENERATIONS=5000 
+OLDGENERATIONS=10
+GENERATIONS=2490 
 TOTALGENERATIONS=$(( OLDGENERATIONS + GENERATIONS))
 SNAP=320
 
@@ -59,7 +59,7 @@ GREY_EXPLORATION_FRACTION=0.005
 SNAPSHOT="/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/snap_$SNAP/snap_$SNAP.h5"
 
 # RESTART_FROM="/home/pmartire/tde_wind/outputs/gray/snap_$SNAP/tde_$OLDGENERATIONSpolarization.h5"
-RESTART_FROM="/home/pmartire/tde_wind/outputs/mg/snap_$SNAP/tde_${OLDGENERATIONS}polarization$SNAP.h5"
+RESTART_FROM="/home/pmartire1/outputs/mg/snap_$SNAP/tde_${OLDGENERATIONS}polarization$SNAP.h5"
 
 # Under sbatch the script runs from a copy in the SLURM spool directory, so
 # BASH_SOURCE does not point here; use the submission directory instead.
@@ -84,7 +84,6 @@ done
 # command -v ml >/dev/null 2>&1 || source /etc/profile.d/modules.sh
 # ml restore gcc
 module restore rich_gnu_2025 # I added this line
-
 
 export RICH_MEASURED_LB_DEBUG_MEMORY=1   # per-rank memory lines in error_<jobid>.txt
 export UCX_TLS=ib
