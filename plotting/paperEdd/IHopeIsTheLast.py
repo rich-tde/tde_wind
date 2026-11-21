@@ -18,29 +18,6 @@ from Utilities.operators import sort_list, find_ratio
 from src import orbits as orb
 
 ##
-# PARAMETERS
-## 
-m = 4
-Mbh = 10**m
-beta = 1
-mstar = .5
-Rstar = .47
-n = 1.5
-compton = 'Compton'
-
-params = [Mbh, Rstar, mstar, beta]
-things = orb.get_things_about(params)
-Rs = things['Rs']
-Rt = things['Rt']
-Rp = things['Rp']
-R0 = things['R0']
-apo = things['apo']
-Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
-Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
-Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
-commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
-
-##
 # FUNCTIONS
 ##
 def split_data_red(check):
@@ -83,15 +60,19 @@ def ratio_BigOverSmall(tfb1, Lum1, tfb2, Lum2):
     rel_err = (ratio - 1)*100
     return time_ratio, ratio, rel_err
 
-def statistics_photo(snaps, check):
+def statistics_photo(snaps, params_folder):
     """Calculate the statistics of the photosphere for a given set of snapshots."""
+    Mbh, Rstar, mstar, beta, n, compton, check = params_folder
+    beta = int(float(beta))
+    Mbh = int(float(Mbh))
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     mean_ph = np.zeros(len(snaps))
     median_ph = np.zeros(len(snaps))
     percentile16 = np.zeros(len(snaps))
     percentile84 = np.zeros(len(snaps))
     for i, snapi in enumerate(snaps):
         # photo = np.loadtxt(f'{abspath}/data/{commonfold}{check}/photo/{check}_photo{snapi}.txt')
-        photo = np.load(f'{abspath}/data/{commonfold}{check}/photo/{check}_photo{snapi}.npz')
+        photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snapi}.npz')
         xph_i, yph_i, zph_i = photo['x'], photo['y'], photo['z']
         rph_i = np.sqrt(xph_i**2 + yph_i**2 + zph_i**2)
         mean_ph[i] = np.mean(rph_i)
@@ -100,14 +81,18 @@ def statistics_photo(snaps, check):
         percentile84[i] = np.percentile(rph_i, 84)
     return mean_ph, median_ph, percentile16, percentile84
 
-def statistics_col(snaps, check):
+def statistics_col(snaps, params_folder):
     """Calculate the statistics of the colorspehere for a given set of snapshots."""
+    Mbh, Rstar, mstar, beta, n, compton, check = params_folder
+    beta = int(float(beta))
+    Mbh = int(float(Mbh))
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     mean_col = np.zeros(len(snaps))
     median_col = np.zeros(len(snaps))
     percentile16 = np.zeros(len(snaps))
     percentile84 = np.zeros(len(snaps))
     for i, snapi in enumerate(snaps):
-        colorpshere = np.load(f'{abspath}/data/{commonfold}{check}/spectra/{check}_Rcol{snapi}.npz')
+        colorpshere = np.load(f'{abspath}/data/{folder}/spectra/{check}_Rcol{snapi}.npz')
         xcol_i, ycol_i, zcol_i = colorpshere['x'], colorpshere['y'], colorpshere['z']
         rcol_i = np.sqrt(xcol_i**2 + ycol_i**2 + zcol_i**2)
         mean_col[i] = np.mean(rcol_i)
@@ -117,15 +102,34 @@ def statistics_col(snaps, check):
     return mean_col, median_col, percentile16, percentile84
 
 if __name__ == '__main__':
+    m = 4
+    Mbh = 10**m
+    beta = 1
+    mstar = .5
+    Rstar = .47
+    n = 1.5
+    compton = 'Compton'
+
+    params = [Mbh, Rstar, mstar, beta]
+    things = orb.get_things_about(params)
+    Rs = things['Rs']
+    Rt = things['Rt']
+    Rp = things['Rp']
+    R0 = things['R0']
+    apo = things['apo']
+    Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
+    Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
+    Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs 
+    commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     # Load luminosity data
     # Low
     snapL, LumL, tfbL = split_data_red('LowResNewAMR')
     snap, Lum, tfb = split_data_red('NewAMR')
     snapH, LumH, tfbH = split_data_red('HiResNewAMR')
     # Rph 
-    mean_phL, median_phL, percentile16L, percentile84L = statistics_photo(snapL, 'LowResNewAMR')
-    mean_ph, median_ph, percentile16, percentile84 = statistics_photo(snap, 'NewAMR')
-    mean_phH, median_phH, percentile16H, percentile84H = statistics_photo(snapH, 'HiResNewAMR')
+    mean_phL, median_phL, percentile16L, percentile84L = statistics_photo(snapL, np.concatenate((params, [n, compton, 'LowResNewAMR'])))
+    mean_ph, median_ph, percentile16, percentile84 = statistics_photo(snap, np.concatenate((params, [n, compton, 'NewAMR'])))
+    mean_phH, median_phH, percentile16H, percentile84H = statistics_photo(snapH, np.concatenate((params, [n, compton, 'HiResNewAMR'])))
 
     # Load dissipation (positive sign, which is the one of pericenter) data
     dataDissL = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/Rdiss_LowResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)

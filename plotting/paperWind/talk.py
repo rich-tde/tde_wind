@@ -206,7 +206,6 @@ for w, what_varies in enumerate(what_varies_all):
                 all_axes[2][w].scatter(r_plot[idx_rtr]*norm, Mdot[idx_rtr]/Medd_sol, marker = 'd', s = 100, color = colors_sec)
                 all_axes[3][w].scatter(r_plot[idx_rtr]*norm, L_adv[idx_rtr]/Ledd_sol, marker = 'd', s = 100, color = colors_sec)
 
-
 all_axes[0][0].set_ylabel(r'$\rho$ (g/cm$^3$)', fontsize = 40)
 all_axes[1][0].set_ylabel(r'v$_{\rm r}$ (km/s)', fontsize = 40)
 all_axes[2][0].set_ylabel(r'$\dot{M}_{\rm w} (\dot{M}_{\rm Edd})$', fontsize = 40) 

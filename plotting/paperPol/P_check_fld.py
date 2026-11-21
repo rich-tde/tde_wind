@@ -43,11 +43,13 @@ data_fld = np.loadtxt(f'{abspath}/data/{folder_fld}/HiResNewAMR_red.csv', delimi
 snaps_fld, tfb_fld, Lum_fld = data_fld[:, 0], data_fld[:, 1], data_fld[:, 2]
 snaps_fld, tfb_fld, Lum_fld = sort_list([snaps_fld, tfb_fld, Lum_fld], tfb_fld, unique=True) 
 snaps_fld = snaps_fld.astype(int)
-idx_time_fld = np.argmin(np.abs(tfb_fld - time))
+if check == 'MG':
+    idx_time_fld = np.argmin(np.abs(tfb_fld - time))
+if check == 'HiResNewAMR':
+    idx_time_fld = np.argmin(np.abs(snaps_fld - snap))
+time = tfb_fld[idx_time_fld]
 snap_fld = snaps_fld[idx_time_fld]
 print('time fld: ', tfb_fld[idx_time_fld])
-if check == 'HiResNewAMR':
-    time = tfb_fld[idx_time_fld]
 photo = np.load(f'{abspath}/data/{folder_fld}/photo/HiResNewAMR_photo{snap_fld}.npz')
 x_fld, y_fld, z_fld, Lum_fld = photo['x'], photo['y'], photo['z'], photo['Lum']
 r_ph_fld = np.sqrt(x_fld**2 + y_fld**2 + z_fld**2)

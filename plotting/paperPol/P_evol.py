@@ -22,8 +22,8 @@ compton = 'Compton'
 check = 'MG' 
 generat = 2500
 snr_thresh = 5
-groups = [2, 4, 7, 8]
-snaps = [320, 360, 429]
+groups = [2, 5, 8, 9]
+snaps = [250, 320, 429]
 lines_group = ['-', '--', ':']
 choice = 'split_stream'
 snr_thresh = 3
@@ -42,7 +42,10 @@ for s, snap in enumerate(snaps):
     print(f'Processing snap {snap}...')
     time = np.loadtxt(f'{abspath}/data/{folder}/snap_{snap}/Time_snap_{snap}.txt')
     tfbs[s] = time*prel.tsol_cgs/tfallback_cgs
-    path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_{generat}polarization{snap}.vtk'
+    if snap == 360:
+        path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_7500polarization{snap}.vtk'
+    else:
+        path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_{generat}polarization{snap}.vtk'
 
     P_group = []
     snr_P_group = []
@@ -107,7 +110,7 @@ ax[0][0].set_ylabel(r'median $P$')
 ax[1][0].set_ylabel(r'median $S/N$')
 for j in range(len(groups)):
     ax[0][j].set_ylim(5e-3, 1)
-    ax[1][j].set_ylim(1, 20)
+    ax[1][j].set_ylim(2, 50)
     ax[1][j].set_xlabel(r't/t$_{\rm fb}$')
     for i in range(2):
         ax[i][j].legend()
@@ -115,6 +118,7 @@ for j in range(len(groups)):
         ax[i][j].tick_params(axis='both', which='minor', length=6)
         ax[i][j].set_yscale('log')
         ax[i][j].grid()
+        ax[i][j].set_xlim(0.9, 2.3)
 figP.suptitle(f'Polarization evolution for {generat} GEN', fontsize = 20)
 figP.tight_layout()
 

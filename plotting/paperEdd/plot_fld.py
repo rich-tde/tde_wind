@@ -19,7 +19,7 @@ from plotting.paperEdd.IHopeIsTheLast import statistics_photo, statistics_col
 
 ##
 # PARAMETERS
-## 
+#%% 
 m = 4
 Mbh = 10**m
 beta = 1
@@ -28,11 +28,14 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR'
-Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
+if m == 4:
+    Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
+else:
+    Ledd_sol, Medd_sol = orb.Edd(Mbh, 0.34/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
-params = [Mbh, Rstar, mstar, beta]
+params = [Mbh, Rstar, mstar, int(beta)]
 things = orb.get_things_about(params)
 apo = things['apo']
 Rt = things['Rt']
@@ -46,21 +49,23 @@ snaps, tfb, Lum = data[:, 0], data[:, 1], data[:, 2]
 snaps, Lum, tfb = sort_list([snaps, Lum, tfb], tfb, unique=True) 
 snaps = snaps.astype(int)
 idx_maxLum = np.argmax(Lum)
-dataDiss = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
-snapdiss, tfbdiss, LDiss, LDissNeg = dataDiss[:,0], dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs, dataDiss[:,5] * prel.en_converter/prel.tsol_cgs
-dataDissIon = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/Rdiss_{check}ionizationHe.csv', delimiter=',', dtype=float, skiprows=1)
-tfbdiss_split, LDissAb, LdissBl =  dataDissIon[:,1], dataDissIon[:,3] * prel.en_converter/prel.tsol_cgs, dataDissIon[:,5] * prel.en_converter/prel.tsol_cgs
-_, tfbmdot, mfallH, _, _, _, _, _, tot_IE_H, tot_Rad_H = \
-            np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_HiResNewAMR05aminmean.csv', 
-                    delimiter = ',', 
-                    skiprows=1, 
-                    unpack=True) 
-Lum_mdot = 0.1 * np.abs(mfallH) * prel.csol_cgs**2 *prel.en_converter/prel.tsol_cgs 
-time_theory = tfb[210:-1]
-Lum_theory = 5e41*time_theory**(-5/3)
 
-meanRph, medianRph, percentile16, percentile84 = statistics_photo(snaps, check)
-meancol, mediancol, _, _ = statistics_col(snaps, check)
+if m ==4:
+    dataDiss = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
+    snapdiss, tfbdiss, LDiss, LDissNeg = dataDiss[:,0], dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs, dataDiss[:,5] * prel.en_converter/prel.tsol_cgs
+    dataDissIon = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/Rdiss_{check}ionizationHe.csv', delimiter=',', dtype=float, skiprows=1)
+    tfbdiss_split, LDissAb, LdissBl =  dataDissIon[:,1], dataDissIon[:,3] * prel.en_converter/prel.tsol_cgs, dataDissIon[:,5] * prel.en_converter/prel.tsol_cgs
+    _, tfbmdot, mfallH, _, _, _, _, _, tot_IE_H, tot_Rad_H = \
+                np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_HiResNewAMR05aminmean.csv', 
+                        delimiter = ',', 
+                        skiprows=1, 
+                        unpack=True) 
+    Lum_mdot = 0.1 * np.abs(mfallH) * prel.csol_cgs**2 *prel.en_converter/prel.tsol_cgs 
+    time_theory = tfb[210:-1]
+    Lum_theory = 5e41*time_theory**(-5/3)
+
+meanRph, medianRph, percentile16, percentile84 = statistics_photo(snaps, np.concatenate((params, [n, compton, check])))
+meancol, mediancol, _, _ = statistics_col(snaps, np.concatenate((params, [n, compton, check])))
 medianTemprad_ph = np.zeros(len(snaps))
 f_ph = np.zeros(len(snaps))
 for i, snap in enumerate(snaps):
@@ -121,29 +126,35 @@ ax.tick_params(axis='both', which='major', width = 1.2, length = 9, color = 'k')
 ax.tick_params(axis='y', which='minor', width = 1, length = 5, color = 'k')
 ax.set_xlim(np.min(tfb), np.max(tfb))
 ax.legend(fontsize = 16)
-plt.savefig(f'/Users/paolamartire/shocks/Figs/1.paperEdd/onefld_ionizz.jpg', bbox_inches='tight')
+# plt.savefig(f'/Users/paolamartire/shocks/Figs/1.paperEdd/onefld_ionizz.jpg', bbox_inches='tight')
 
 #%%
 fig, (axR, axL) = plt.subplots(1, 2, figsize=(16, 7))
-axR.plot(tfb[2:], percentile84[2:]/Rt, c = 'k', alpha = 0.3, linestyle = '--')
-axR.plot(tfb, percentile16/Rt, c = 'k', alpha = 0.3, linestyle = '--')
-img = axR.scatter(tfb, medianRph/Rt, c = f_ph, s = 12, cmap = 'plasma', vmin = 0, vmax = 1)
-cbar = fig.colorbar(img, orientation = 'horizontal')
-cbar.set_label(r'$f\equiv N_{\rm ph, unbound}/N_{\rm obs}$')
-cbar.ax.tick_params(which='major', length = 5)
-cbar.ax.tick_params(which='minor', length = 3) 
 axR.set_ylabel(r'median $(r_{\rm ph}/r_{\rm t})$')
 axR.axhline(apo/Rt, c = 'k', linestyle = '-.', linewidth = 2)
 axR.text(0.11, 1.1*apo/Rt, r'$r_{\rm a}$', fontsize = 20)
 
-img = axL.scatter(tfb, Lum, s = 12, c = medianTemprad_ph*1e-4, cmap = 'viridis', vmin = 1, vmax = 5)
-cbar = fig.colorbar(img, orientation = 'horizontal')
-cbar.set_label(r'median $T_{\rm rad, ph} (10^4 K)$')#, fontsize = 20)
-cbar.ax.tick_params(which='major', length = 5)
-cbar.ax.tick_params(which='minor', length = 3)
-axL.plot(tfbdiss, LDiss, '--', c= 'gray', label = r'$L_{\rm diss}$')
+if m == 4:
+    img = axL.scatter(tfb, Lum, s = 12, c = medianTemprad_ph*1e-4, cmap = 'viridis', vmin = 1, vmax = 10)
+    cbar = fig.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'median $T_{\rm rad, ph} (10^4 K)$')#, fontsize = 20)
+    cbar.ax.tick_params(which='major', length = 5)
+    cbar.ax.tick_params(which='minor', length = 3)
+    axL.plot(tfbdiss, LDiss, '--', c= 'gray', label = r'$L_{\rm diss}$')
+    axR.plot(tfb[2:], percentile84[2:]/Rt, c = 'k', alpha = 0.3, linestyle = '--')
+    axR.plot(tfb, percentile16/Rt, c = 'k', alpha = 0.3, linestyle = '--')
+    img = axR.scatter(tfb, medianRph/Rt, c = f_ph, s = 12, cmap = 'plasma', vmin = 0, vmax = 1)
+    cbar = fig.colorbar(img, orientation = 'horizontal')
+    cbar.set_label(r'$f\equiv N_{\rm ph, unbound}/N_{\rm obs}$')
+    cbar.ax.tick_params(which='major', length = 5)
+    cbar.ax.tick_params(which='minor', length = 3) 
+    axL.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', fontsize = 20)
+    axL.set_ylim(9e37, 2e43)
+else:
+    axR.plot(tfb, medianRph/Rt, c ='k')
+    axL.plot(tfb, Lum, c = 'k')
+    axL.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd} (\sigma_{\rm T})$', fontsize = 20)
 axL.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
-axL.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', fontsize = 20)
 original_ticks = axR.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
@@ -160,10 +171,12 @@ for ax in [axR, axL]:
 # axL.legend(fontsize = 22)
 axR.set_ylim(1, 1.5e2)
 axL.set_ylabel(r'Luminosity (erg/s)')#, fontsize = 20)
-axL.set_ylim(9e37, 2e43)
 plt.tight_layout()
-plt.savefig(f'/Users/paolamartire/shocks/Figs/1.paperEdd/onefld.pdf', bbox_inches='tight')
-
+if m == 4:
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/1.paperEdd/onefld.pdf', bbox_inches='tight')
+else:
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/onefld.png', bbox_inches='tight')
+print('L_max/L_Edd', np.max(Lum)/Ledd_cgs, 'at snap', snaps[np.argmax(Lum)], f'({tfb[np.argmax(Lum)]} t_fb)')
 
 #%%
 fig, ax = plt.subplots(1, 1, figsize=(10, 7))
@@ -183,37 +196,5 @@ ax.tick_params(axis='y', which='minor', width = 1, length = 4, color = 'k')
 ax.set_xlim(-.1, np.max(tfb))
 ax.grid()
 ax.legend(fontsize = 18)
-
-#%% to check the new FLD code
-data_newF = np.loadtxt(f'{abspath}/data/{folder}/{check}_redNEW.csv', delimiter=',', dtype=float)
-_, tfb_newF, Lum_newF = data_newF[:, 0], data_newF[:, 1], data_newF[:, 2]
-Lum_newF, tfb_newF = sort_list([Lum_newF, tfb_newF], tfb_newF, unique=True) 
-medianRph_new = np.zeros(len(snaps))
-medianRph_old = np.zeros(len(snaps))
-for i, snap in enumerate(snaps):
-    photosphere = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/photo/{check}_photo{snap}.txt')
-    x_ph, y_ph, z_ph = photosphere[0], photosphere[1], photosphere[2]
-    r_old = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
-    medianRph_old[i] = np.median(r_old)
-    photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
-    x_ph, y_ph, z_ph= photo['x'], photo['y'], photo['z']
-    r_new = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
-    medianRph_new[i] = np.median(r_new)
-
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
-ax1.plot(tfb, Lum, label = 'old F')
-ax1.scatter(tfb_newF, Lum_newF, label = 'new F')
-ax1.set_ylabel(r'Luminosity (erg/s)')
-
-ax2.plot(tfb, medianRph_old/Rt, ls = '--', label = 'old F')
-ax2.scatter(tfb, medianRph_new/Rt, label = 'new F')
-ax2.set_ylabel(r'median $(r_{\rm ph}/r_{\rm t})$')
-for ax in [ax1, ax2]:
-    ax.set_xlabel(r'$t / t_{\rm fb}$')
-    ax.set_yscale('log')
-    ax.legend()
-    ax.grid()
-    
-
 
 # %%
