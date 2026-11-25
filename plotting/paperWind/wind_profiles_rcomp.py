@@ -52,7 +52,7 @@ Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 
 observers_xyz = np.array(hp.pix2vec(prel.NSIDE, range(prel.NPIX))) # shape is 3,N
 x_obs, y_obs, z_obs = observers_xyz[0], observers_xyz[1], observers_xyz[2]
-indices_obs, label_obs, colors_obs, _ = op.choose_observers(observers_xyz, which_obs)
+indices_obs, label_obs, colors_obs, _, _, _ = op.choose_observers(observers_xyz, which_obs)
 fig, (axd, axV, axM, axLkin) = plt.subplots(4, 1, figsize=(8, 22)) 
 figM, (axT, axLadv) = plt.subplots(1, 2, figsize=(15, 7))
 figr, axratio = plt.subplots(1, 1, figsize=(12, 10))

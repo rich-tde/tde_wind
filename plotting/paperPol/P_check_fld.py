@@ -10,7 +10,6 @@ from src import orbits as orb
 from Utilities.operators import split_cells, sort_list
 from plotting.paperPol.P_moll import extract_poli
 
-
 m = 4
 Mbh = 10**m
 beta = 1
@@ -20,7 +19,7 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
 snap = 151
-generat = 75
+generat = 2500
 choice = 'split_stream'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'

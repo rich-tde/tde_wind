@@ -19,8 +19,8 @@ from plotting.paperEdd.IHopeIsTheLast import statistics_photo, statistics_col
 
 ##
 # PARAMETERS
-#%% 
-m = 4
+#%%
+m = 5
 Mbh = 10**m
 beta = 1
 mstar = .5
@@ -74,10 +74,6 @@ for i, snap in enumerate(snaps):
     photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
     x_ph, y_ph, z_ph, den_ph, vol_ph, RadDen_ph, Temp_ph, Vx_ph, Vy_ph, Vz_ph, Press_ph, IE_den_ph, alpha_ph= \
         photo['x'], photo['y'], photo['z'], photo['den'], photo['vol'], photo['radden'], photo['temp'], photo['vx'], photo['vy'], photo['vz'], photo['P'], photo['ieden'], photo['alpha_rossland']
-    if snap == 151:
-        colorsphere = np.load(f'{abspath}/data/{folder}/spectra/{check}_Rcol{snap}.npz')
-        T_col = colorsphere['temp']
-        print('mean and median T_col (1e4) at snap 151:', np.mean(T_col)*1e-4, np.median(T_col)*1e-4)
 
     Temprad_ph = (RadDen_ph*prel.en_den_converter/prel.alpha_cgs)**(1/4)  
     if i == idx_maxLum:
@@ -133,33 +129,44 @@ fig, (axR, axL) = plt.subplots(1, 2, figsize=(16, 7))
 axR.set_ylabel(r'median $(r_{\rm ph}/r_{\rm t})$')
 axR.axhline(apo/Rt, c = 'k', linestyle = '-.', linewidth = 2)
 axR.text(0.11, 1.1*apo/Rt, r'$r_{\rm a}$', fontsize = 20)
-
+img = axL.scatter(tfb, Lum, s = 12, c = medianTemprad_ph*1e-4, cmap = 'viridis', vmin = 1, vmax = 10)
+cbar = fig.colorbar(img, orientation = 'horizontal')
+cbar.set_label(r'median $T_{\rm rad, ph} (10^4 K)$')#, fontsize = 20)
+cbar.ax.tick_params(which='major', length = 5)
+cbar.ax.tick_params(which='minor', length = 3)
+axR.plot(tfb[2:], percentile84[2:]/Rt, c = 'k', alpha = 0.3, linestyle = '--')
+axR.plot(tfb, percentile16/Rt, c = 'k', alpha = 0.3, linestyle = '--')
+img = axR.scatter(tfb, medianRph/Rt, c = f_ph, s = 12, cmap = 'plasma', vmin = 0, vmax = 1)
+cbar = fig.colorbar(img, orientation = 'horizontal')
+cbar.set_label(r'$f\equiv N_{\rm ph, unbound}/N_{\rm obs}$')
+cbar.ax.tick_params(which='major', length = 5)
+cbar.ax.tick_params(which='minor', length = 3) 
+axL.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', fontsize = 20)
+axL.set_ylim(9e37, 2e43)
 if m == 4:
-    img = axL.scatter(tfb, Lum, s = 12, c = medianTemprad_ph*1e-4, cmap = 'viridis', vmin = 1, vmax = 10)
-    cbar = fig.colorbar(img, orientation = 'horizontal')
-    cbar.set_label(r'median $T_{\rm rad, ph} (10^4 K)$')#, fontsize = 20)
-    cbar.ax.tick_params(which='major', length = 5)
-    cbar.ax.tick_params(which='minor', length = 3)
     axL.plot(tfbdiss, LDiss, '--', c= 'gray', label = r'$L_{\rm diss}$')
-    axR.plot(tfb[2:], percentile84[2:]/Rt, c = 'k', alpha = 0.3, linestyle = '--')
-    axR.plot(tfb, percentile16/Rt, c = 'k', alpha = 0.3, linestyle = '--')
-    img = axR.scatter(tfb, medianRph/Rt, c = f_ph, s = 12, cmap = 'plasma', vmin = 0, vmax = 1)
-    cbar = fig.colorbar(img, orientation = 'horizontal')
-    cbar.set_label(r'$f\equiv N_{\rm ph, unbound}/N_{\rm obs}$')
-    cbar.ax.tick_params(which='major', length = 5)
-    cbar.ax.tick_params(which='minor', length = 3) 
-    axL.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', fontsize = 20)
-    axL.set_ylim(9e37, 2e43)
-else:
-    axR.plot(tfb, medianRph/Rt, c ='k')
-    axL.plot(tfb, Lum, c = 'k')
-    axL.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd} (\sigma_{\rm T})$', fontsize = 20)
+# else:
+#     axR.plot(tfb, medianRph/Rt, c ='k')
+#     axL.plot(tfb, Lum, c = 'k')
+#     axL.set_ylim(9e37, 5e43)
+#     axL.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd} (\sigma_{\rm T})$', fontsize = 20)
 axL.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
+original_yticks = axR.get_yticks()
+ymidpoints = (original_yticks[:-1] + original_yticks[1:]) / 2
+yticks = np.sort(np.concatenate([original_yticks, ymidpoints]))
+ylabels = [f"{y:.0e}" if y in original_yticks else "" for y in yticks]
+cm_ticks = yticks * Rt * prel.Rsol_cgs
+cm_labels = [f"{t:.0e}" if y in original_yticks else "" for y, t in zip(yticks, cm_ticks)]
+axR.set_yticks(yticks, ylabels)
+axR.set_ylim(1, 1.5e2)
+ax_cm = axR.twinx()
+ax_cm.set_yticks(cm_ticks, cm_labels)
+ax_cm.set_ylim(1 * Rt * prel.Rsol_cgs, 1.5e2 * Rt * prel.Rsol_cgs)
 original_ticks = axR.get_xticks()
 midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
 new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
 labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-for ax in [axR, axL]:
+for ax in [axR, axL, ax_cm]:
     ax.set_yscale('log')
     ax.set_xticks(new_ticks)
     ax.set_xlabel(r't / t$_{\rm fb}$')#, fontsize = 20)
@@ -168,8 +175,6 @@ for ax in [axR, axL]:
     ax.tick_params(axis='y', which='minor', width = 1, length = 4, color = 'k')
     ax.set_xlim(-.1, np.max(tfb))
     ax.grid()
-# axL.legend(fontsize = 22)
-axR.set_ylim(1, 1.5e2)
 axL.set_ylabel(r'Luminosity (erg/s)')#, fontsize = 20)
 plt.tight_layout()
 if m == 4:
@@ -177,7 +182,8 @@ if m == 4:
 else:
     plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/onefld.png', bbox_inches='tight')
 print('L_max/L_Edd', np.max(Lum)/Ledd_cgs, 'at snap', snaps[np.argmax(Lum)], f'({tfb[np.argmax(Lum)]} t_fb)')
-
+idx_one = np.argmax(tfb) #np.argmin(np.abs(tfb-1))
+print(f'last snap: {snaps[idx_one]} (t = {tfb[idx_one]:.2f} t_fb), f_unbound: {f_ph[idx_one]:.4f}')
 #%%
 fig, ax = plt.subplots(1, 1, figsize=(10, 7))
 ax.plot(tfb, meanRph/Rt, ls = '--', label = r'mean $r_{\rm ph}$')

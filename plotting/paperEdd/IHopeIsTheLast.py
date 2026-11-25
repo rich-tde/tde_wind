@@ -60,6 +60,29 @@ def ratio_BigOverSmall(tfb1, Lum1, tfb2, Lum2):
     rel_err = (ratio - 1)*100
     return time_ratio, ratio, rel_err
 
+def ratio_FirstOverSecond(tfb1, Lum1, tfb2, Lum2):
+    """Calculate the ratio of luminosities between two datasets."""
+    if np.max(tfb2) < np.max(tfb1):
+        ValueError("The second dataset must have a longer time range than the first dataset.")
+    ratio = []
+    time_ratio = []
+    step_tfb = max(np.mean(np.diff(tfb1)), 
+                   np.mean(np.diff(tfb2)))
+    for i, time in enumerate(tfb1):
+        if time < np.min(tfb2):
+            continue
+        # Find the closest time in the longer dataset
+        idx = np.argmin(np.abs(tfb2 - time))
+        if np.abs(tfb2[idx] - time) > step_tfb:
+            continue
+        # Calculate the ratio of luminosities
+        ratio.append(Lum1[i]/Lum2[idx])
+        time_ratio.append(time)
+    time_ratio = np.array(time_ratio)
+    ratio = np.array(ratio)
+    rel_err = (ratio - 1)*100
+    return time_ratio, ratio, rel_err
+
 def statistics_photo(snaps, params_folder):
     """Calculate the statistics of the photosphere for a given set of snapshots."""
     Mbh, Rstar, mstar, beta, n, compton, check = params_folder

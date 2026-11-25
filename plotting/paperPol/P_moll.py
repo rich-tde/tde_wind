@@ -86,18 +86,18 @@ def extract_poli(
             }
 
 if __name__ == "__main__":
-    m = 4
+    m = 5
     Mbh = 10**m
     beta = 1
     mstar = .5
     Rstar = .47
     n = 1.5
     compton = 'Compton'
-    check = 'MG' 
-    snap = 360
-    generat = 7500
+    check = 'HiResNewAMR' 
+    snap = 200
+    generat = 2500
     choice = 'split_stream'
-    snr_thresh = 3
+    snr_thresh = 5
 
     folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
     params = [Mbh, Rstar, mstar, beta]
@@ -112,8 +112,16 @@ if __name__ == "__main__":
     f_edges_ev = np.loadtxt(f'{abspath}/src/Opacity/fromRICH/MG/frequency_edges.txt') # [Hz] frequency range for each group. shape: (10, 2)
     f_edges = f_edges_ev * prel.ev_toHz
     f_mid_points = (f_edges[:-1] + f_edges[1:]) / 2
-    time = np.loadtxt(f'{abspath}/data/{folder}/snap_{snap}/Time_snap_{snap}.txt')
-    time *= prel.tsol_cgs/tfallback_cgs
+    if check == 'MG':
+        time = np.loadtxt(f'{abspath}/data/{folder}/snap_{snap}/Time_snap_{snap}.txt')
+        time = time*prel.tsol_cgs/tfallback_cgs
+    if check == 'HiResNewAMR':
+        folder_fld = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiResNewAMR'
+        data_fld = np.loadtxt(f'{abspath}/data/{folder_fld}/HiResNewAMR_red.csv', delimiter=',', dtype=float)
+        snaps_fld, tfb_fld, Lum_fld = data_fld[:, 0], data_fld[:, 1], data_fld[:, 2]
+        snaps_fld = snaps_fld.astype(int)
+        idx_time_fld = np.argmin(np.abs(snaps_fld - snap))
+        time = tfb_fld[idx_time_fld]
     print(time)
 
     folder_fld = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiResNewAMR'

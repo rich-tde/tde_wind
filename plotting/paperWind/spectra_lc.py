@@ -25,29 +25,6 @@ from src.fld_curve import load_fld_data
 from src.Paper1.predictions_for_obs import find_horizon
 from plotting.paperEdd.IHopeIsTheLast import ratio_BigOverSmall
 
-
-m = 4
-Mbh = 10**m
-beta = 1
-mstar = .5
-Rstar = .47
-n = 1.5
-compton = 'Compton'
-check = 'HiResNewAMR' 
-choice = 'split_stream' #
-x_axis = 'Temp'  # 'Freq' or 'Temp'
-if check == 'MG':
-    snaps_spectra = [250, 320, 420]
-elif check == 'HiResNewAMR':
-    snaps_spectra = [76, 109, 151]
-
-params = [Mbh, Rstar, mstar, beta]
-things = orb.get_things_about(params)
-t_fb_days = things['t_fb_days']
-Rt = things['Rt']
-tfallback = things['t_fb_days']
-tfallback_cgs = tfallback * 24 * 3600
-folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 f_edges_ev = np.loadtxt(f'{abspath}/src/Opacity/fromRICH/MG/frequency_edges.txt') # [Hz] frequency range for each group. shape: (10, 2)
 f_edges = f_edges_ev * prel.ev_toHz
 
@@ -67,7 +44,6 @@ BANDS = {
     "eROSITA": (200 * prel.ev_toHz, 2300 * prel.ev_toHz),
 } 
 
-L_min, L_max = 1e38, 6e42
 T_min, T_max = 1e3, 1e7
 tfb_min, tfb_max = -0.05, 2.24
 nu_min, nu_max = T_min /prel.Hz_toK, T_max/prel.Hz_toK
@@ -79,9 +55,6 @@ SURVEY_LIMITS = {
     "ZTF": 1.3e41,
     "ULTRASAT": 5e40,
 }
-
-Ledd_sol, _ = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
-Ledd_cgs = Ledd_sol * prel.en_converter / prel.tsol_cgs
 
 # -----------------------------------------------------------------------------
 # Data and numerical helpers
@@ -159,8 +132,19 @@ def load_spectrum(folder, check, snap):
         luminosity_all = [photo[e_idx]["Lum"] for e_idx in range(len(photo))]
         luminosity = np.mean(luminosity_all, axis=0)
     integrals = np.trapezoid(spectra, freqs, axis=1)
+
+    for i in np.where(integrals == 0)[0]:
+        print(
+            i,
+            "integral =", integrals[i],
+            "luminosity =", luminosity[i],
+            "all spectrum zero =", np.all(spectra[i] == 0),
+            "nonzero bins =", np.count_nonzero(spectra[i])
+        )
+
     if np.any(~np.isfinite(integrals)) or np.any(integrals == 0):
         raise ValueError(f"Invalid spectral integral in snapshot {snap}")
+        # return 0
     return spectra * (luminosity / integrals)[:, None], luminosity
 
 def angular_average(spectra, cosine):
@@ -229,7 +213,7 @@ def add_spectral_regions(ax, x_axis, text_band = False):
             left, right = (lower * prel.Hz_toK, upper * prel.Hz_toK) if x_axis == "Temp" else (lower, upper)
             mid = 0.6 * right if name in ["optical", "UV"] else 1.2 * left 
             up_lim = ax.get_ylim()[1]
-            ax.text(mid, up_lim/2, name, fontsize=20, rotation = 90)
+            ax.text(mid, up_lim/4, name, fontsize=20, rotation = 90)
 
 def format_time_axes(axes, original_ticks, ratio_axes=()):
     midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
@@ -339,7 +323,7 @@ def plot_spectra(folder, check, snaps, x_axis, choice, in_moll=False):
                 labels_T.append(f'T={temperature*1e-4:.1f}' + r' $\times 10^4$ K' )
             
         axes[s].set_title(rf"$t={time:.1f}\,t_{{\rm fb}}$", fontsize=30, y=1.17)
-        axes[s].set_ylim(L_min, 1e42)
+        axes[s].set_ylim(L_min, L_max)
         add_spectral_regions(axes[s], x_axis, text_band=True if s == 0 else False)
         axes[s].loglog()
         axes[s].tick_params(axis='both', which='major', length=8, width=1.2)
@@ -407,7 +391,7 @@ def distance_telescope(folder, check, choice):
         # distance_eROS_Mpc = np.sqrt(np.max(curves["eROSITA"][k]) / (4 * np.pi * flux_eROS)) / 3.086e24  # in Mpc (https://en.wikipedia.org/wiki/Parsec 1pc = 3.086e16 m)
         # print(f"#######\neROSITA horizon for {labels[k]}: {distance_eROS_Mpc:.1f} Mpc")
         
-def plot_light_curves(folder, check, choice, group="bands"):
+def plot_light_curves(folder, m, check, choice, group="bands"):
     if group not in {"sections", "bands", "bandsMG"}:
         raise ValueError("group must be 'sections', 'bands', or 'bandsMG'")
 
@@ -417,18 +401,18 @@ def plot_light_curves(folder, check, choice, group="bands"):
     snaps, tfb, luminosity_fld = load_fld_data(folder, check)
     idx_maxL = np.argmax(luminosity_fld)
     
-    _, cosine, sectors, labels, colours, central_indices = observer_geometry(choice)
-    _, _, sectors_mg, _, _, _ = observer_geometry(choice, nside=8)
+    _, cosine, sectors, labels, colours, _ = observer_geometry(choice)
+    if m == 4:
+        _, _, sectors_mg, _, _, _ = observer_geometry(choice, nside=8)
+        data_kin = np.load(f'{abspath}/data/{folder}/wind/energies_{choice}.npy', allow_pickle=True).item()
+        tfb_kin = np.array([data_kin[key]['tfb'] for key in data_kin.keys()])
+        tfb_kin_cgs = tfb_kin * tfallback_cgs
+        Ekin = np.array([data_kin[key]['Ekin_sec'] for key in data_kin.keys()]).T
+        Ekin_cgs = Ekin * prel.en_converter
     n_sectors, n_times = len(sectors), len(snaps)
     fld_sector = np.zeros((n_sectors, n_times))
     curves = {name: np.zeros((n_sectors, n_times)) for name in ("optical", "UV", "Xray")}
     curves_fld, curves_op, curves_uv = [], [], []
-
-    data_kin = np.load(f'{abspath}/data/{folder}/wind/energies_{choice}.npy', allow_pickle=True).item()
-    tfb_kin = np.array([data_kin[key]['tfb'] for key in data_kin.keys()])
-    tfb_kin_cgs = tfb_kin * tfallback_cgs
-    Ekin = np.array([data_kin[key]['Ekin_sec'] for key in data_kin.keys()]).T
-    Ekin_cgs = Ekin * prel.en_converter
 
     for s, snap in enumerate(snaps):
         spectra, luminosity_photo = load_spectrum(folder, check, snap)
@@ -484,8 +468,11 @@ def plot_light_curves(folder, check, choice, group="bands"):
                 ax_bol.plot(tfb, curves_fld[sec], color=colours[k], alpha = 0.1, lw = 1)
                 ax_opt.plot(tfb, curves_op[sec], color=colours[k], alpha = 0.1, lw = 1) 
                 ax_uv.plot(tfb, curves_uv[sec], color=colours[k], alpha = 0.1, lw = 1)
-            for sec in sectors_mg[k]:
-                ax_x.plot(time_mg, curves_x[sec], color=colours[k], alpha = 0.05, lw = .5)
+                if m != 4:
+                    ax_x.plot(tfb, curves_x[sec], color=colours[k], label=labels[k], lw = 2, zorder = 4)
+            if m == 4:
+                for sec in sectors_mg[k]:
+                    ax_x.plot(time_mg, curves_x[sec], color=colours[k], alpha = 0.05, lw = .5)
             # ax_opt.plot(tfb, np.mean(curves_op[sectors[k]], axis = 0), color='k', ls = '--')
             ax_bol.plot(tfb, fld_sector[k], color=colours[k], label=labels[k], lw = 3,  zorder = 4)
             ax_bol.scatter(tfb[np.argmax(fld_sector[k])], np.max(fld_sector[k]), c = colours[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
@@ -494,12 +481,17 @@ def plot_light_curves(folder, check, choice, group="bands"):
             print(f'{labels[k]}: {np.max(curves["optical"][k]):.2e}')
             ax_uv.plot(tfb, curves["UV"][k], color=colours[k], lw = 3, zorder = 4)
             ax_uv.scatter(tfb[np.argmax(curves["UV"][k])], np.max(curves["UV"][k]), c = colours[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
-            ax_x.plot(time_mg, mg["Xray"][k], color=colours[k], label=labels[k], lw = 2, zorder = 4)
-            ax_x.scatter(time_mg[np.argmax(mg["Xray"][k])], np.max(mg["Xray"][k]), c = colours[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
+            if m == 4:
+                ax_x.plot(time_mg, mg["Xray"][k], color=colours[k], label=labels[k], lw = 2, zorder = 4)
+                ax_x.scatter(time_mg[np.argmax(mg["Xray"][k])], np.max(mg["Xray"][k]), c = colours[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
+            else:
+                ax_x.plot(tfb, curves["Xray"][k], color=colours[k], lw = 2, zorder = 4)
+                ax_x.scatter(tfb[np.argmax(curves["Xray"][k])], np.max(curves["Xray"][k]), c = colours[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
         ax_bol.axhline(Ledd_cgs, color="gray", ls="-.")
         ax_opt.text(0.05, L_max/3, r'Optical', fontsize = 26)
         ax_uv.text(0.05, L_max/3, r'UV', fontsize = 26)
-        ax_x.text(0.05, L_max/3, 'X-ray (Giron+26)', fontsize = 26)
+        if m == 4:
+            ax_x.text(0.05, L_max/3, 'X-ray (Giron+26)', fontsize = 26)
         ax_bol.text(0.08, 1.2*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', color = 'gray', fontsize = 20)
         ax_bol.text(0.05, L_max/3, r'Bolometric L$_{\rm FLD}$', fontsize = 26)
         ax_opt.axhline(SURVEY_LIMITS["ZTF"], color="gray", ls="-.")
@@ -614,11 +606,46 @@ def TRfit_in_time(folder, check, choice):
 
     
 if __name__ == '__main__':
+    m = 5
+    Mbh = 10**m
+    beta = 1
+    mstar = .5
+    Rstar = .47
+    n = 1.5
+    compton = 'Compton'
+    check = 'HiResNewAMR' 
+    choice = 'split_stream' #
+    x_axis = 'Temp'  # 'Freq' or 'Temp'
+    if check == 'MG':
+        snaps_spectra = [250, 320, 420]
+    elif check == 'HiResNewAMR':
+        if m == 4:
+            snaps_spectra = [76, 109, 151]
+            L_min, L_max = 1e38, 6e42
+        if m == 5:
+            snaps_spectra = [152, 200, 241]
+            L_min, L_max = 1e39, 1e43
+
+    if m == 4:
+        Ledd_sol, _ = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
+    else:
+        Ledd_sol, _ = orb.Edd(Mbh, 0.34/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
+    Ledd_cgs = Ledd_sol * prel.en_converter / prel.tsol_cgs
+
+
+    params = [Mbh, Rstar, mstar, beta]
+    things = orb.get_things_about(params)
+    t_fb_days = things['t_fb_days']
+    Rt = things['Rt']
+    tfallback = things['t_fb_days']
+    tfallback_cgs = tfallback * 24 * 3600
+    folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
+
     # plot_spectra(folder, check, snaps_spectra, x_axis, choice)
     # TRfit_in_time(folder, check, choice)
-    plot_light_curves(folder, check, choice, group = 'bands')
-    # plot_light_curves(folder, check, choice, group = 'sections')
-    # plot_light_curves(folder, check, choice, group = 'bandsMG')
+    plot_light_curves(folder, m, check, choice, group = 'bands')
+    # plot_light_curves(folder, m, check, choice, group = 'sections')
+    # plot_light_curves(folder, m, check, choice, group = 'bandsMG')
     # distance_telescope(folder, check, choice)
 
     def lumtest(n, T):

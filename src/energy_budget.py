@@ -33,7 +33,7 @@ Rstar = .47
 n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
-what_paper = 'paper2' # 'paper1' or 'paper2'
+what_paper = 'paper1' # 'paper1' or 'paper2'
 choice = 'split_stream' # only for paper2
 what_to_keep = '_keepDynUnb' # only for paper2, '_keepDynUnb' or ''
 
@@ -49,6 +49,7 @@ R0 = things['R0']
 apo = things['apo']
 a_mb = things['a_mb']
 t_fall = things['t_fb_days']
+E_mb = things['E_mb']
 t_fall_cgs = t_fall * 24 * 3600
 
 #%%
@@ -198,6 +199,7 @@ if plot:
         dataDiss = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
         tfbdiss, LDiss = dataDiss[:,1], dataDiss[:,3] *  prel.en_converter/prel.tsol_cgs
         totalK = Kinneg + Kinpos
+        Ediss = sci.cumulative_trapezoid(LDiss, tfb*t_fall_cgs, initial = 0)
 
         fig, (ax1, ax2) = plt.subplots(1,2, figsize = (18,7))
         figL, axL = plt.subplots(1,1, figsize = (10,6))
@@ -211,6 +213,7 @@ if plot:
         ax2.plot(tfb, prel.en_converter * Rad, c = '#7a0177', label = 'Radiation energy')
         ax2.plot(tfb, prel.en_converter * Kinpos, c = '#fbb4b9', label = 'Kinetic energy unbound gas')
         ax2.plot(tfb, np.abs(prel.en_converter * Kinneg), c = '#fbb4b9', ls = ':', label = 'Kinetic energy bound gas (abs value)')
+        ax2.plot(tfb, Ediss, c = 'orange', label = r'$\int \dot{E}_{\rm irr} dt$')
         ax2.set_title(r'Thermal and radiation (erg)', fontsize = 24) 
 
         # compute rates 
@@ -248,6 +251,7 @@ if plot:
             ax.legend(fontsize = 15, loc = 'lower right')
             ax.grid()
             ax.set_xlim(0, np.max(tfb))
+            # ax.axhline(E_mb * prel.en_converter, c = 'k', ls = '--', label = r'$E_{\rm mb}$')
         fig.tight_layout()
         fig.savefig(f'{abspath}/Figs/1.paperEddEbudget_{check}.png', dpi = 300)
         figL.tight_layout()
@@ -255,59 +259,139 @@ if plot:
 
 
     if what_paper == 'paper2':
+        what = ''
+        if what == 'ratio':
+            from plotting.paperEdd.IHopeIsTheLast import ratio_FirstOverSecond, ratio_BigOverSmall
+        
         # define regions
+        figE, (axB, axRad, axDiss, axtot) = plt.subplots(1, 4, figsize=(35,7))
         observers_xyz = hp.pix2vec(prel.NSIDE, np.arange(prel.NPIX)) #shape: (3, 192)
         observers_xyz = np.array(observers_xyz)
         indices_sorted, label_obs, colors_obs, _, _, _ = choose_observers(observers_xyz, choice = choice)
 
-        data = np.load(f'{abspath}/data/{folder}/wind/energies{what_to_keep}_{choice}.npy', allow_pickle=True).item()
-        tfb = np.array([data[key]['tfb'] for key in data.keys()])
-        Ekin_sec = np.array([data[key]['Ekin_sec'] for key in data.keys()])
-        OE_sec = np.array([data[key]['OE_sec'] for key in data.keys()])
-        IE_sec = np.array([data[key]['IE_sec'] for key in data.keys()])
-        Rad_sec = np.array([data[key]['Rad_sec'] for key in data.keys()])
-        Diss_sec = np.array([data[key]['Diss_sec'] for key in data.keys()])
-        IE_sec_tot = np.array([data[key]['IE_sec_tot'] for key in data.keys()])
-        Rad_sec_tot = np.array([data[key]['Rad_sec_tot'] for key in data.keys()])
-        Diss_sec_tot = np.array([data[key]['Diss_sec_tot'] for key in data.keys()])
-        bern_sec = np.array([data[key]['bern_sec'] for key in data.keys()])
-        bern_sec_bound = np.array([data[key]['bern_sec_bound'] for key in data.keys()])
+        folderH = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiResNewAMR'
+        dataH = np.load(f'{abspath}/data/{folder}/wind/energies{what_to_keep}_{choice}.npy', allow_pickle=True).item()
+        tfbH = np.transpose(np.array([dataH[key]['tfb'] for key in dataH.keys()]))
+        Ekin_secH = np.transpose(np.array([dataH[key]['Ekin_sec'] for key in dataH.keys()]))
+        OE_secH = np.transpose(np.array([dataH[key]['OE_sec'] for key in dataH.keys()]))
+        bern_secH = np.transpose(np.array([dataH[key]['bern_sec'] for key in dataH.keys()]))
+        bern_sec_boundH = np.transpose(np.array([dataH[key]['bern_sec_bound'] for key in dataH.keys()]))
+        IE_secH = np.transpose(np.array([dataH[key]['IE_sec'] for key in dataH.keys()]))
+        Rad_secH = np.transpose(np.array([dataH[key]['Rad_sec'] for key in dataH.keys()]))
+        Diss_secH = np.transpose(np.array([dataH[key]['Diss_sec'] for key in dataH.keys()]))
+        IE_sec_totH = np.transpose(np.array([dataH[key]['IE_sec_tot'] for key in dataH.keys()]))
+        Rad_sec_totH = np.transpose(np.array([dataH[key]['Rad_sec_tot'] for key in dataH.keys()]))
+        Diss_sec_totH = np.transpose(np.array([dataH[key]['Diss_sec_tot'] for key in dataH.keys()]))
 
-        Ekin_sec_cgs = Ekin_sec * prel.en_converter
-        OE_sec_cgs = OE_sec * prel.en_converter
-        IE_sec_cgs = IE_sec * prel.en_converter
-        Rad_sec_cgs = Rad_sec * prel.en_converter
-        Rad_sec_tot_cgs = Rad_sec_tot * prel.en_converter
-        Diss_sec_cgs = Diss_sec * prel.en_converter/prel.tsol_cgs 
-        Diss_sec_tot_cgs = Diss_sec_tot * prel.en_converter/prel.tsol_cgs
-        tfb_cgs = tfb * t_fall_cgs
-        en_diss_cgs = sci.cumulative_trapezoid(Diss_sec_cgs, tfb_cgs, axis = 0, initial = 0)
-        en_diss_cgs_tot = sci.cumulative_trapezoid(Diss_sec_tot_cgs, tfb_cgs, axis = 0, initial = 0)
-        bern_sec_cgs = bern_sec * prel.en_converter
-        bern_sec_bound_cgs = bern_sec_bound * prel.en_converter
+        # Ekin_sec_cgs = Ekin_sec * prel.en_converter
+        # OE_sec_cgs = OE_sec * prel.en_converter
+        # bern_sec_cgs = bern_sec * prel.en_converter
+        # bern_sec_bound_cgs = bern_sec_bound * prel.en_converter
+        # IE_sec_cgs = IE_sec * prel.en_converter
+        # Rad_sec_cgs = Rad_sec * prel.en_converter
+        # Rad_sec_tot_cgs = Rad_sec_tot * prel.en_converter
+        Diss_sec_cgsH = Diss_secH * prel.en_converter/prel.tsol_cgs 
+        Diss_sec_tot_cgsH = Diss_sec_totH * prel.en_converter/prel.tsol_cgs
+        tfb_cgsH = tfbH * t_fall_cgs
+        en_diss_cgsH = sci.cumulative_trapezoid(Diss_sec_cgsH, tfb_cgsH, axis = 1, initial = 0)
+        en_diss_cgs_totH = sci.cumulative_trapezoid(Diss_sec_tot_cgsH, tfb_cgsH, axis = 1, initial = 0)
+        all_EkinH = np.sum(Ekin_secH, axis = 0)
+        all_IEH = np.sum(IE_secH, axis = 0)
+        all_Diss_cgsH = np.sum(en_diss_cgsH, axis = 0)
+        all_RadH = np.sum(Rad_secH, axis = 0)
+        all_IEH_tot = np.sum(IE_sec_totH, axis = 0)
+        all_Diss_cgsH_tot = np.sum(en_diss_cgs_totH, axis = 0)
+        all_RadH_tot = np.sum(Rad_sec_totH, axis = 0)
 
-        figE, axE = plt.subplots(1, 1, figsize=(10,7))
+        folderM = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}NewAMR'
+        dataM = np.load(f'{abspath}/data/{folderM}/wind/energies{what_to_keep}_{choice}.npy', allow_pickle=True).item()
+        tfbM = np.transpose(np.array([dataM[key]['tfb'] for key in dataM.keys()]))
+        Ekin_secM = np.transpose(np.array([dataM[key]['Ekin_sec'] for key in dataM.keys()]))
+        OE_secM = np.transpose(np.array([dataM[key]['OE_sec'] for key in dataM.keys()]))
+        bern_secM = np.transpose(np.array([dataM[key]['bern_sec'] for key in dataM.keys()]))
+        bern_sec_boundM = np.transpose(np.array([dataM[key]['bern_sec_bound'] for key in dataM.keys()]))
+        IE_secM = np.transpose(np.array([dataM[key]['IE_sec'] for key in dataM.keys()]))
+        Rad_secM = np.transpose(np.array([dataM[key]['Rad_sec'] for key in dataM.keys()]))
+        Diss_secM = np.transpose(np.array([dataM[key]['Diss_sec'] for key in dataM.keys()]))
+        IE_sec_totM = np.transpose(np.array([dataM[key]['IE_sec_tot'] for key in dataM.keys()]))
+        Rad_sec_totM = np.transpose(np.array([dataM[key]['Rad_sec_tot'] for key in dataM.keys()]))
+        Diss_sec_totM = np.transpose(np.array([dataM[key]['Diss_sec_tot'] for key in dataM.keys()]))
+
+        Diss_sec_cgsM = Diss_secM * prel.en_converter/prel.tsol_cgs 
+        Diss_sec_tot_cgsM = Diss_sec_totM * prel.en_converter/prel.tsol_cgs
+        tfb_cgsM = tfbM * t_fall_cgs
+        en_diss_cgsM = sci.cumulative_trapezoid(Diss_sec_cgsM, tfb_cgsM, axis = 1, initial = 0)
+        en_diss_cgs_totM = sci.cumulative_trapezoid(Diss_sec_tot_cgsM, tfb_cgsM, axis = 1, initial = 0)
+        all_EkinM = np.sum(Ekin_secM, axis = 0)
+        all_IEM = np.sum(IE_secM, axis = 0)
+        all_Diss_cgsM = np.sum(en_diss_cgsM, axis = 0)
+        all_RadM = np.sum(Rad_secM, axis = 0)
+        all_IEM_tot = np.sum(IE_sec_totM, axis = 0)
+        all_Diss_cgsM_tot = np.sum(en_diss_cgs_totM, axis = 0)
+        all_RadM_tot = np.sum(Rad_sec_totM, axis = 0)
+
+        if what == 'ratio':
+            axB.set_ylabel(r'E$_{\rm M}$/E$_{\rm H}$', fontsize = 20)
+            time_ratio, ratioD_tot, _ = ratio_FirstOverSecond(tfbM, all_Diss_cgsM_tot, tfbH, all_Diss_cgsH_tot)
+            axtot.plot(time_ratio, ratioD_tot, c = 'gray', ls = '--', label = r'$E_{\rm diss, tot}$')
+            time_ratio, ratioR_tot, _ = ratio_FirstOverSecond(tfbM, all_RadM_tot, tfbH, all_RadH_tot)
+            axtot.plot(time_ratio, ratioR_tot, c = 'gray', label = r'$E_{\rm rad, tot}$')
+            time_ratio, ratioD, _ = ratio_FirstOverSecond(tfbM, all_Diss_cgsM, tfbH, all_Diss_cgsH)
+            axtot.plot(time_ratio, ratioD, c = 'k', ls = '--', label = r'$E_{\rm diss, w}$')
+            time_ratio, ratioR, _ = ratio_FirstOverSecond(tfbM, all_RadM, tfbH, all_RadH)
+            axtot.plot(time_ratio, ratioR, c = 'k', label = r'$E_{\rm rad, w}$')
+            time_ratio, ratioEkin, _ = ratio_FirstOverSecond(tfbM, all_EkinM, tfbH, all_EkinH)
+            axtot.plot(time_ratio, ratioEkin, c = 'k', ls = ':', label = r'$E_{\rm kin, w}$')
+
+            # axtot.plot(tfbM, np.sum(Diss_sec_tot_cgsM, axis = 0))
+            # axtot.plot(tfbH, np.sum(Diss_sec_tot_cgsH, axis = 0))
+            # axtot.set_ylim(1e38, 2e43)
+            # axtot.plot(tfbM, all_Diss_cgsM_tot)
+            # axtot.plot(tfbH, all_Diss_cgsH_tot)
+            # axtot.set_ylim(7e-1, 10)
+            axtot.legend(fontsize = 16)
+
         for i, lab in enumerate(label_obs): 
-            if lab == 'South pole':
+            if lab in ['Eccentric flow side','South pole']:
                 continue
-            axE.plot(tfb, Rad_sec_tot_cgs[:, i]/Ekin_sec_cgs[:, i], c = colors_obs[i],  label = r'E$_{\rm rad, tot}$' if i == 0 else None)
-            axE.plot(tfb, en_diss_cgs_tot[:, i]/Ekin_sec_cgs[:, i], c = colors_obs[i], ls = ':', label = r'E$_{\rm diss, tot}$' if i == 0 else None)
-        
-        axE.tick_params(axis='both', which='major', width=1.2, length=7)
-        axE.tick_params(axis='both', which='minor', width=0.9, length=5) 
-        axE.grid()
-        axE.set_xlabel(r'$t/t_{\rm fb}$')
-        axE.set_yscale('log')
-        axE.legend(fontsize = 16)
-        axE.set_ylim(1e-3, 1e3)
-        axE.set_ylabel(r'E / E$_{\rm kin, w}$')
+            if what == 'ratio':
+                # time_ratio, ratioB, _ = ratio_FirstOverSecond(tfbM, bern_secM[i], tfbH, bern_secH[i])
+                # axB.plot(time_ratio, ratioB, c = colors_obs[i], label = label_obs[i])
+                time_ratio, ratioEk, _ = ratio_FirstOverSecond(tfbM, Ekin_secM[i], tfbH, Ekin_secH[i])
+                axB.plot(time_ratio, ratioEk, c = colors_obs[i], label = label_obs[i])
+                time_ratio, ratioRad, _ = ratio_FirstOverSecond(tfbM, Rad_secM[i], tfbH, Rad_secH[i])
+                axRad.plot(time_ratio, ratioRad, c = colors_obs[i], label = label_obs[i])
+                time_ratio, ratioDiss, _ = ratio_FirstOverSecond(tfbM, en_diss_cgsM[i], tfbH, en_diss_cgsH[i])
+                axDiss.plot(time_ratio, ratioDiss, c = colors_obs[i], label = label_obs[i])
+            else:
+                axB.plot(tfbH, all_IEH_tot, c = 'blue', label = 'IE')
+                axRad.plot(tfbH, all_RadH_tot, c = 'orchid', label = 'Rad')
+                axDiss.plot(tfbH, all_Diss_cgsH_tot, c = 'orange', label = 'Diss')
+                axB.plot(tfbM, all_IEM_tot, c = 'blue', ls = '--')
+                axRad.plot(tfbM, all_RadM_tot, c = 'orchid', ls = '--')
+                axDiss.plot(tfbM, all_Diss_cgsM_tot, c = 'orange', ls = '--')
+                
+
+        for ax in (axB, axRad, axDiss, axtot):
+            ax.tick_params(axis='both', which='major', width=1.2, length=7)
+            ax.tick_params(axis='both', which='minor', width=0.9, length=5) 
+            ax.grid()
+            ax.set_xlabel(r'$t/t_{\rm fb}$')
+            ax.set_yscale('log')
+            ax.legend(fontsize = 16)
+            # ax.set_ylim(7e-1, 2e1)
+        axB.legend(fontsize = 16)
+        # axB.set_title(r'Bernouilli parameter', fontsize = 20)
+        axB.set_title(r'Kinetic energy', fontsize = 20)
+        axRad.set_title(r'Radiation energy', fontsize = 20)
+        axDiss.set_title(r'Dissipation energy', fontsize = 20)
 
     # %%
-    print('Last value of Ekin')
-    print('middle stream: ', Ekin_sec_cgs[-1, 1], flush = True)
-    print('pole: ', Ekin_sec_cgs[-1, 4], flush = True)
-    print('estimate for Ekin from Mw and v', flush = True)
-    print('stream: ', 0.5*1e-2*mstar/2*prel.Msol_cgs*(0.014*prel.c_cgs)**2, flush = True)
-    print('pole: ', 0.5*1e-4*mstar/2*prel.Msol_cgs*(0.018*prel.c_cgs)**2, flush = True)
+    # print('Last value of Ekin')
+    # print('middle stream: ', Ekin_sec_cgs[-1, 1], flush = True)
+    # print('pole: ', Ekin_sec_cgs[-1, 4], flush = True)
+    # print('estimate for Ekin from Mw and v', flush = True)
+    # print('stream: ', 0.5*1e-2*mstar/2*prel.Msol_cgs*(0.014*prel.c_cgs)**2, flush = True)
+    # print('pole: ', 0.5*1e-4*mstar/2*prel.Msol_cgs*(0.018*prel.c_cgs)**2, flush = True)
 
     # %%
