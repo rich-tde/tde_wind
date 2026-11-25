@@ -79,7 +79,7 @@ if alice:
             file.write((' '.join(map(str, bins)) + '\n'))
             file.close()
     for i, snap in enumerate(snaps):
-        if len(all_data) < i+1: # because each line correspond to a time and they are in order
+        if i < len(all_data): 
             print(f'Snapshot {snap} already computed, skipping', flush=True)
             continue
         print(f'Snap: {snap}', flush=True)

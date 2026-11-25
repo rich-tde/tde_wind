@@ -23,7 +23,7 @@ import os
 ##
 # PARAMETERS
 ## 
-m = 4
+m = 5
 Mbh = 10**m
 beta = 1
 mstar = .5
@@ -33,6 +33,7 @@ params = [Mbh, Rstar, mstar, beta]
 compton = 'Compton'
 check = 'HiResNewAMR'
 do_cut = 'sections' # '' or 'ionization' or 'ionizationHe' or 'sections'
+choice = 'split_stream'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 print(f'we are in {check}', flush=True)
@@ -69,7 +70,7 @@ if alice:
         
         if do_cut == 'sections':
             X, Y, Z = make_slices([X, Y, Z], cut)
-            sections = choose_sections(X, Y, Z, choice = 'dark_bright_z')
+            sections = choose_sections(X, Y, Z, choice = choice)
             cond_sec = []
             label_obs = []
             for key in sections.keys():
@@ -96,7 +97,7 @@ if alice:
             file.close()
 
 
-        if do_cut == '' or do_cut == 'nocut':
+        elif do_cut == '' or do_cut == 'nocut':
             Ldisstot_pos = np.sum(Ediss[Ediss_den >= 0])
             Rdiss_pos = np.sum(Rsph[Ediss_den >= 0] * Ediss[Ediss_den >= 0]) / np.sum(Ediss[Ediss_den >= 0])
             Ldisstot_neg = np.sum(Ediss[Ediss_den < 0])
@@ -131,18 +132,15 @@ if alice:
                     writer.writerow(header)
                 writer.writerow(data)
             file.close()
-        
-    if do_cut == 'sections':
-        np.savez( f'{abspath}/data/{folder}/wind/{check}_RdissSecTest.npz', diss_list=diss_list)
 
 else:
-    from plotting.paper.IHopeIsTheLast import ratio_BigOverSmall
+    from plotting.paperEdd.IHopeIsTheLast import ratio_BigOverSmall
     commonfold = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
     dataL = np.loadtxt(f'{abspath}/data/{commonfold}LowResNewAMR/Rdiss_LowResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     snapL, tfbL, Rdiss_posL, Ldisstot_posL, Rdiss_negL, Ldisstot_negL =  dataL[:, 0], dataL[:, 1], dataL[:, 2], dataL[:, 3], dataL[:, 4], dataL[:, 5]
     data = np.loadtxt(f'{abspath}/data/{commonfold}NewAMR/Rdiss_NewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     snap, tfb, Rdiss_pos, Ldisstot_pos, Rdiss_neg, Ldisstot_neg = data[:,0], data[:,1], data[:,2], data[:,3], data[:,4], data[:,5]
-    dataH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/paper1/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
+    dataH = np.loadtxt(f'{abspath}/data/{commonfold}HiResNewAMR/1.paperEdd/Rdiss_HiResNewAMR.csv', delimiter=',', dtype=float, skiprows=1)
     snapH, tfbH, Rdiss_posH, Ldisstot_posH, Rdiss_negH, Ldisstot_negH = dataH[:,0], dataH[:,1], dataH[:,2], dataH[:,3], dataH[:,4], dataH[:,5]
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 14))
@@ -168,10 +166,10 @@ else:
     ax2.set_xlabel(r't [t$_{\rm fb}$]')
 
     # with ratios
-    # tfb_ratioDiss_L, ratio_DissL = ratio_BigOverSmall(tfb, Ldisstot_pos, tfbL, Ldisstot_posL)
-    # tfb_ratioDiss_H, ratio_DissH = ratio_BigOverSmall(tfb, Ldisstot_pos, tfbH, Ldisstot_posH)
-    # tfb_ratioRdiss_L, ratio_RdissL = ratio_BigOverSmall(tfb, Rdiss_pos, tfbL, Rdiss_posL)
-    # tfb_ratioRdiss_H, ratio_RdissH = ratio_BigOverSmall(tfb, Rdiss_pos, tfbH, Rdiss_posH)
+    tfb_ratioDiss_L, ratio_DissL, _ = ratio_BigOverSmall(tfb, Ldisstot_pos, tfbL, Ldisstot_posL)
+    tfb_ratioDiss_H, ratio_DissH, _ = ratio_BigOverSmall(tfb, Ldisstot_pos, tfbH, Ldisstot_posH)
+    tfb_ratioRdiss_L, ratio_RdissL, _ = ratio_BigOverSmall(tfb, Rdiss_pos, tfbL, Rdiss_posL)
+    tfb_ratioRdiss_H, ratio_RdissH, _ = ratio_BigOverSmall(tfb, Rdiss_pos, tfbH, Rdiss_posH)
 
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(22, 16))
     ax1.plot(tfbL, Ldisstot_posL * prel.en_converter/prel.tsol_cgs, color = 'C1', label = 'Low')
@@ -180,10 +178,10 @@ else:
     ax1.set_ylabel('Dissipation rate [erg/s]')
     ax1.legend(fontsize = 16)
 
-    # ax3.plot(tfb_ratioDiss_L, ratio_DissL, color = 'C1')
-    # ax3.plot(tfb_ratioDiss_L, ratio_DissL, '--', color = 'yellowgreen')
-    # ax3.plot(tfb_ratioDiss_H, ratio_DissH, color = 'yellowgreen')
-    # ax3.plot(tfb_ratioDiss_H, ratio_DissH, '--', color = 'darkviolet')
+    ax3.plot(tfb_ratioDiss_L, ratio_DissL, color = 'C1')
+    ax3.plot(tfb_ratioDiss_L, ratio_DissL, '--', color = 'yellowgreen')
+    ax3.plot(tfb_ratioDiss_H, ratio_DissH, color = 'yellowgreen')
+    ax3.plot(tfb_ratioDiss_H, ratio_DissH, '--', color = 'darkviolet')
 
     ax2.plot(tfbL, Rdiss_posL/apo, c = 'C1')
     ax2.plot(tfb, Rdiss_pos/apo, c = 'yellowgreen')
@@ -192,10 +190,10 @@ else:
     ax2.axhline(Rt/apo, color = 'k', linestyle = '--', label = r'$R_{\rm t}$')
     ax3.set_ylabel('Ratio of dissipation rate')
 
-    # ax4.plot(tfb_ratioRdiss_L, ratio_RdissL, color = 'C1')
-    # ax4.plot(tfb_ratioRdiss_L, ratio_RdissL, '--', color = 'yellowgreen')
-    # ax4.plot(tfb_ratioRdiss_H, ratio_RdissH, color = 'yellowgreen')
-    # ax4.plot(tfb_ratioRdiss_H, ratio_RdissH, '--', color = 'darkviolet')
+    ax4.plot(tfb_ratioRdiss_L, ratio_RdissL, color = 'C1')
+    ax4.plot(tfb_ratioRdiss_L, ratio_RdissL, '--', color = 'yellowgreen')
+    ax4.plot(tfb_ratioRdiss_H, ratio_RdissH, color = 'yellowgreen')
+    ax4.plot(tfb_ratioRdiss_H, ratio_RdissH, '--', color = 'darkviolet')
     ax4.set_ylabel(r'ratio $R_{\rm diss}$')
 
     for ax in [ax1, ax2, ax3, ax4]:
