@@ -68,11 +68,8 @@ if alice:
     save_path = f'{abspath}/data/{folder}/wind/dMdE_{check}.txt'
     if os.path.exists(save_path):
         all_data = np.loadtxt(save_path, allow_pickle=True).item()
-        all_time = np.loadtxt(f'{abspath}/data/{folder}/wind/dMdE_{check}_days.txt')
-        all_snaps = all_time[0]
-        all_snaps = all_snaps.astype(int)
     else:
-        all_snaps = {}
+        all_data = -1
         with open(f'{abspath}/data/{folder}/wind/dMdE_{check}_days.txt','w') as filedays:
             filedays.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
             filedays.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
@@ -82,7 +79,7 @@ if alice:
             file.write((' '.join(map(str, bins)) + '\n'))
             file.close()
     for i, snap in enumerate(snaps):
-        if snap in all_snaps:
+        if len(all_data) < i+1: # because each line correspond to a time and they are in order
             print(f'Snapshot {snap} already computed, skipping', flush=True)
             continue
         print(f'Snap: {snap}', flush=True)
