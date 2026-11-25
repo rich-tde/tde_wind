@@ -1,5 +1,6 @@
 """ Compute shock efficiency and Rshock from theoretical approximation.
-Plot it and compare with Rdissipation."""
+Plot it and compare with Rdissipation.
+Gives Fig.12 in Martire+26b"""
 import sys
 sys.path.append('/Users/paolamartire/shocks')
 
@@ -79,7 +80,7 @@ check = 'HiResNewAMR' #['LowResNewAMR', 'NewAMR', 'HiResNewAMR' ]
 # Load data
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
 snaps, tfb, mfall, _, _, _, _, _, _, _ = \
-        np.loadtxt(f'{abspath}/data/{folder}/paper1/wind/Mdot_{check}05aminmean.csv', 
+        np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_{check}05aminmean.csv', 
                 delimiter = ',', 
                 skiprows=1, 
                 unpack=True) 
@@ -88,7 +89,7 @@ tfb_cgs = tfb * tfallback_cgs #converted to seconds
 dataLum = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dtype=float)
 snapsLum, tfbLum, Lum = dataLum[:, 0], dataLum[:, 1], dataLum[:, 2] 
 tfbLum, Lum, snapsLum = sort_list([tfbLum, Lum, snapsLum], snapsLum) # becuase Lum data are not ordered
-dataDiss = np.loadtxt(f'{abspath}/data/{folder}/paper1/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
+dataDiss = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
 timeRDiss, RDiss, Ldisstot_posH = dataDiss[:,1], dataDiss[:,2], dataDiss[:,3]
 
 #%%
@@ -123,9 +124,8 @@ for i, t in enumerate(tfb_cgs):
     eta_sh_diss[i] = efficiency_shock(Ldisstot_posH[idx_diss], mdot, prel.csol_cgs)
 
     snapR = int(snaps[i])
-    photo = \
-        np.loadtxt(f'{abspath}/data/{folder}/photo/{check}_photo{snapR}.txt')
-    xph, yph, zph, volph, denph = photo[0], photo[1], photo[2], photo[3], photo[4]
+    photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snapR}.npz')
+    xph, yph, zph, denph, volph = photo['x'], photo['y'], photo['z'], photo['den'], photo['vol']
     mass_ph = volph * denph
     r_ph_all = np.sqrt(xph**2 + yph**2 + zph**2)
     R_ph[i] = np.median(r_ph_all)

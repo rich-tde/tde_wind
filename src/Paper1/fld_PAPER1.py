@@ -1,4 +1,5 @@
-""" FLD curve accoring to Elad's script (MATLAB: start from 1 with indices, * is matrix multiplication, ' is .T). """
+""" FLD curve accoring to Elad's script (MATLAB: start from 1 with indices, * is matrix multiplication, ' is .T).
+This was used to make the light curve in Martire+26b """
 import sys
 sys.path.append('/Users/paolamartire/shocks')
 # import resource

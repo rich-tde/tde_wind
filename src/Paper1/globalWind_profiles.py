@@ -1,4 +1,5 @@
-""" Find density and (radial velocity) profiles for different lines of sight."""
+""" Find global radial profiles.
+Used to make Fig. 7 of Martire+26b """
 import sys
 
 sys.path.append('/Users/paolamartire/shocks')

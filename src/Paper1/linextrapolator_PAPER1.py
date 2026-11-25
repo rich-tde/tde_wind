@@ -1,5 +1,6 @@
 """
-You can find opacity tables at https://gitlab.com/eladtan/RICH/-/tree/master/data/STA
+You can find opacity tables at https://gitlab.com/eladtan/RICH/-/tree/master/data/STA.
+Used for Martire+26b.
 """ 
 import numpy as np
 

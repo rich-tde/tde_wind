@@ -1,5 +1,6 @@
 """ If alice: Compute and save the mass enclosed and the total diss rate in a sphere of radius R0, Rt, a_mb, apo for all the snapshots.
-If local: plots"""
+If local: plots.
+Used for Fig.11 in Martire+26b"""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 
@@ -164,7 +165,7 @@ else:
 
         # Plot mass and dissipation rate enclosed in a sphere of radius Rcheck: 
         # load and covert
-        dataencl = np.loadtxt(f'{abspath}/data/{folder}/paper1/{check}Mass_encl.csv', delimiter=',', skiprows = 1)
+        dataencl = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/{check}Mass_encl.csv', delimiter=',', skiprows = 1)
         tfb_encl = dataencl[:, 1]
         Mass_encl = dataencl[:, 2:5]
         Diss_pos_encl = dataencl[:, 5:8] * prel.en_converter/prel.tsol_cgs
@@ -183,7 +184,7 @@ else:
         plt.ylabel(r'dM/dt $(r\leq r_0)[M_{\rm Edd}$]')
         plt.grid()
         plt.savefig(f'{abspath}/Figs/1.paperEdddMdt0.pdf', bbox_inches='tight')
-        dataall = np.loadtxt(f'{abspath}/data/{folder}/paper1/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows = 1)
+        dataall = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows = 1)
         tfb_all, Ldisstot_pos, Ldisstot_neg = dataall[:,1], dataall[:,3], dataall[:,5]
         Ldisstot_pos *= prel.en_converter/prel.tsol_cgs
         Ldisstot_neg *= prel.en_converter/prel.tsol_cgs

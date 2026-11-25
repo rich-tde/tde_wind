@@ -1,4 +1,5 @@
-""" Compute Mdot fallback and wind across a symmetrical (eventually fixed) surface"""
+""" Compute Mdot fallback and wind across a symmetrical (eventually fixed) surface.
+Used for Fig.5 in Martire+26b"""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 

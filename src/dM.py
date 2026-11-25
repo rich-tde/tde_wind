@@ -14,6 +14,7 @@ else:
     abspath = '/Users/paolamartire/shocks/'
     save = False
 
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from Utilities.operators import make_tree
@@ -25,7 +26,7 @@ import Utilities.prelude as prel
 #
 ## PARAMETERS STAR AND BH
 #
-m = 4
+m = 5
 Mbh = 10**m
 beta = 1
 mstar = .5
@@ -64,20 +65,30 @@ if alice:
     # bins2 = np.arange(-1.5, 0, .01)
     # bins3 = np.arange(0, 2, .1)
     bins = np.arange(-6.5, 2, .01) #np.concatenate((bins1, bins2, bins3))
-    # save snaps, tfb and energy bins
-    with open(f'{abspath}/data/{folder}/wind/dMdE_{check}_days.txt','w') as filedays:
-        filedays.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
-        filedays.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
-        filedays.close()
-    with open(f'{abspath}/data/{folder}/wind/dMdE_{check}_bins.txt','w') as file:
-        file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
-        file.write((' '.join(map(str, bins)) + '\n'))
-        file.close()
-    for snap in snaps:
+    save_path = f'{abspath}/data/{folder}/wind/dMdE_{check}.txt'
+    if os.path.exists(save_path):
+        all_data = np.loadtxt(save_path, allow_pickle=True).item()
+        all_time = np.loadtxt(f'{abspath}/data/{folder}/wind/dMdE_{check}_days.txt')
+        all_snaps = all_time[0]
+        all_snaps = all_snaps.astype(int)
+    else:
+        all_snaps = {}
+        with open(f'{abspath}/data/{folder}/wind/dMdE_{check}_days.txt','w') as filedays:
+            filedays.write(f'# {folder}_{check} \n# Snaps \n' + ' '.join(map(str, snaps)) + '\n')
+            filedays.write('# t/tfb \n' + ' '.join(map(str, tfb)) + '\n')
+            filedays.close()
+        with open(f'{abspath}/data/{folder}/wind/dMdE_{check}_bins.txt','w') as file:
+            file.write(f'# Energy bins normalised (by DeltaE = {norm}) \n')
+            file.write((' '.join(map(str, bins)) + '\n'))
+            file.close()
+    for i, snap in enumerate(snaps):
+        if snap in all_snaps:
+            print(f'Snapshot {snap} already computed, skipping', flush=True)
+            continue
         print(f'Snap: {snap}', flush=True)
         # Load data
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-        data = make_tree(path, snap, energy = False)
+        data = make_tree(path, snap)
         # Compute the orbital energy
         X, Y, Z, VX, VY, VZ, Den, mass, Vol = \
             data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Den, data.Mass, data.Vol
@@ -94,7 +105,7 @@ if alice:
         mass_binned, bins_edges = np.histogram(specOE_norm, bins = bins, weights=mass) # sum the mass in each bin (bins done on specOE_norm)
         dm_dE = mass_binned / (np.diff(bins_edges)*norm)
 
-        with open(f'{abspath}/data/{folder}/wind/dMdE_{check}.txt','a') as file:
+        with open(save_path,'a') as file:
             file.write(f'# dM/dE [code units] snap {snap} \n')
             file.write((' '.join(map(str, dm_dE)) + '\n'))
             file.close()

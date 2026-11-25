@@ -68,7 +68,7 @@ if alice:
         print(snap, flush = True)
 
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-        data = make_tree(path, snap, energy = True)
+        data = make_tree(path, snap)
         X, Y, Z, VX, VY, VZ, mass, vol, den, ie_den, diss_den = \
             data.X, data.Y, data.Z, data.VX, data.VY, data.VZ, data.Mass, data.Vol, data.Den, data.IE, data.Diss
         diss = diss_den * vol
@@ -162,7 +162,7 @@ else:
         plt.xlabel(r'$\log_{10} (T)$ [K]')
         plt.ylabel(r'$\log_{10} (\rho)$ [g/cm$^3$]')
 
-        data = make_tree(path, snap, energy = True)
+        data = make_tree(path, snap)
         cut = data.Den > 1e-19
         X, Y, Z, Vol, Temp, Den, Diss_den, IE_den = \
             make_slices([data.X, data.Y, data.Z, data.Vol, data.Temp, data.Den, data.Diss, data.IE], cut)
