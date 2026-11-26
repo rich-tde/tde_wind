@@ -27,7 +27,7 @@ params = [Mbh, Rstar, mstar, beta]
 things = orb.get_things_about(params)
 tfallback = things['t_fb_days']
 Rt = things['Rt']
-Rt_cgs = Rt * prel.Rsol_cgs
+Rt_cgs = Rt * prel.Rsol_cgs 
 tfallback_cgs = tfallback * 24 * 3600
 
 path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_{generat}polarization{snap}.vtk'

@@ -53,7 +53,10 @@ if alice:
         print(snap, flush=True) 
         
         path = f'/home/martirep/data_pi-rossiem/TDE_data/{folder}/snap_{snap}'
-        csv_path = f'{abspath}/data/{folder}/Rdiss_{check}{do_cut}.csv'
+        if do_cut != 'sections':
+            csv_path = f'{abspath}/data/{folder}/Rdiss_{check}{do_cut}.csv'
+        else:
+            csv_path = f'{abspath}/data/{folder}/Rdiss_{check}{do_cut}_{choice}.csv'
         tfb = np.loadtxt(f'{path}/tfb_{snap}.txt')
         data = make_tree(path, snap)
         X, Y, Z, vol, den, Temp, Rad_den, Ediss_den = \
@@ -96,7 +99,6 @@ if alice:
                     header = ['snap', ' tfb', [f' Rdiss_pos {lab}' for lab in label_obs], [f' Ldisstot_pos {lab}' for lab in label_obs]]
                 writer.writerow(data)
             file.close()
-
 
         elif do_cut == '' or do_cut == 'nocut':
             Ldisstot_pos = np.sum(Ediss[Ediss_den >= 0])

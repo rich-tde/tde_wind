@@ -52,17 +52,19 @@ idx_maxLum = np.argmax(Lum)
 
 if m ==4:
     dataDiss = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
-    snapdiss, tfbdiss, LDiss, LDissNeg = dataDiss[:,0], dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs, dataDiss[:,5] * prel.en_converter/prel.tsol_cgs
-    dataDissIon = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/Rdiss_{check}ionizationHe.csv', delimiter=',', dtype=float, skiprows=1)
-    tfbdiss_split, LDissAb, LdissBl =  dataDissIon[:,1], dataDissIon[:,3] * prel.en_converter/prel.tsol_cgs, dataDissIon[:,5] * prel.en_converter/prel.tsol_cgs
-    _, tfbmdot, mfallH, _, _, _, _, _, tot_IE_H, tot_Rad_H = \
-                np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_HiResNewAMR05aminmean.csv', 
-                        delimiter = ',', 
-                        skiprows=1, 
-                        unpack=True) 
-    Lum_mdot = 0.1 * np.abs(mfallH) * prel.csol_cgs**2 *prel.en_converter/prel.tsol_cgs 
-    time_theory = tfb[210:-1]
-    Lum_theory = 5e41*time_theory**(-5/3)
+else:
+    dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
+snapdiss, tfbdiss, LDiss, LDissNeg = dataDiss[:,0], dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs, dataDiss[:,5] * prel.en_converter/prel.tsol_cgs
+dataDissIon = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/Rdiss_{check}ionizationHe.csv', delimiter=',', dtype=float, skiprows=1)
+tfbdiss_split, LDissAb, LdissBl =  dataDissIon[:,1], dataDissIon[:,3] * prel.en_converter/prel.tsol_cgs, dataDissIon[:,5] * prel.en_converter/prel.tsol_cgs
+_, tfbmdot, mfallH, _, _, _, _, _, tot_IE_H, tot_Rad_H = \
+            np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_HiResNewAMR05aminmean.csv', 
+                    delimiter = ',', 
+                    skiprows=1, 
+                    unpack=True) 
+Lum_mdot = 0.1 * np.abs(mfallH) * prel.csol_cgs**2 *prel.en_converter/prel.tsol_cgs 
+time_theory = tfb[210:-1]
+Lum_theory = 5e41*time_theory**(-5/3)
 
 meanRph, medianRph, percentile16, percentile84 = statistics_photo(snaps, np.concatenate((params, [n, compton, check])))
 meancol, mediancol, _, _ = statistics_col(snaps, np.concatenate((params, [n, compton, check])))
@@ -92,37 +94,38 @@ for i, snap in enumerate(snaps):
     medianTemprad_ph[i] = np.median(Temprad_ph)
 
 #%%
-fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-img = ax.scatter(tfb, Lum, s = 12, c = medianRph/Rt, cmap = 'viridis', norm = colors.LogNorm(
-                 vmin = 1, vmax = 7e1))
-cbar = fig.colorbar(img)
-cbar.set_label(r'median $(r_{\rm ph}/r_{\rm t})$')#, fontsize = 20)
-cbar.ax.tick_params(which='major', length = 7, width = 1)
-cbar.ax.tick_params(which='minor', length = 4, width = .6)
-ax.plot(tfbdiss, LDiss,c = 'gray', ls = '--', label = r'$L_{\rm diss}$')
-ax.plot(tfbdiss_split, LdissBl, ls = 'dotted', c= 'b', label = r'$T_{\rm{gas}} < 1\cdot 10^5 K$')
-ax.plot(tfbdiss_split, LDissAb, '--', c= 'r', label = r'$T_{\rm{gas}} > 1\cdot 10^5 K$')
-ax.plot(tfbmdot, Lum_mdot*1e-5, ls = 'dashdot', c= 'orange', label = r'from $\dot{M}_{\rm fb}$ (scaled by $10^{-5}$)')
-ax.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
-ax.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', fontsize = 20)
-# ax.plot(time_theory, Lum_theory, c = 'k', linestyle = 'dotted', linewidth = 1)
-# ax.text(1.4, 9e40, r'$L\propto t^{-5/3}$', fontsize = 20)
-ax.set_yscale('log')
-ax.set_ylim(9e37, 1e43)
-ax.set_ylabel(r'Luminosity (erg/s)')
-ax.set_xlabel(r'$t / t_{\rm fb}$')
-ax.grid()
-original_ticks = ax.get_xticks()
-midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
-new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
-ax.set_xticks(new_ticks)
-labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
-ax.set_xticklabels(labels)
-ax.tick_params(axis='both', which='major', width = 1.2, length = 9, color = 'k')
-ax.tick_params(axis='y', which='minor', width = 1, length = 5, color = 'k')
-ax.set_xlim(np.min(tfb), np.max(tfb))
-ax.legend(fontsize = 16)
-# plt.savefig(f'/Users/paolamartire/shocks/Figs/1.paperEdd/onefld_ionizz.jpg', bbox_inches='tight')
+if m ==4:
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+    img = ax.scatter(tfb, Lum, s = 12, c = medianRph/Rt, cmap = 'viridis', norm = colors.LogNorm(
+                    vmin = 1, vmax = 7e1))
+    cbar = fig.colorbar(img)
+    cbar.set_label(r'median $(r_{\rm ph}/r_{\rm t})$')#, fontsize = 20)
+    cbar.ax.tick_params(which='major', length = 7, width = 1)
+    cbar.ax.tick_params(which='minor', length = 4, width = .6)
+    ax.plot(tfbdiss, LDiss,c = 'gray', ls = '--', label = r'$L_{\rm diss}$')
+    ax.plot(tfbdiss_split, LdissBl, ls = 'dotted', c= 'b', label = r'$T_{\rm{gas}} < 1\cdot 10^5 K$')
+    ax.plot(tfbdiss_split, LDissAb, '--', c= 'r', label = r'$T_{\rm{gas}} > 1\cdot 10^5 K$')
+    ax.plot(tfbmdot, Lum_mdot*1e-5, ls = 'dashdot', c= 'orange', label = r'from $\dot{M}_{\rm fb}$ (scaled by $10^{-5}$)')
+    ax.axhline(y=Ledd_cgs, c = 'k', linestyle = '-.', linewidth = 2)
+    ax.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', fontsize = 20)
+    # ax.plot(time_theory, Lum_theory, c = 'k', linestyle = 'dotted', linewidth = 1)
+    # ax.text(1.4, 9e40, r'$L\propto t^{-5/3}$', fontsize = 20)
+    ax.set_yscale('log')
+    ax.set_ylim(9e37, 1e43)
+    ax.set_ylabel(r'Luminosity (erg/s)')
+    ax.set_xlabel(r'$t / t_{\rm fb}$')
+    ax.grid()
+    original_ticks = ax.get_xticks()
+    midpoints = (original_ticks[:-1] + original_ticks[1:]) / 2
+    new_ticks = np.sort(np.concatenate((original_ticks, midpoints)))
+    ax.set_xticks(new_ticks)
+    labels = [str(np.round(tick,2)) if tick in original_ticks else "" for tick in new_ticks]       
+    ax.set_xticklabels(labels)
+    ax.tick_params(axis='both', which='major', width = 1.2, length = 9, color = 'k')
+    ax.tick_params(axis='y', which='minor', width = 1, length = 5, color = 'k')
+    ax.set_xlim(np.min(tfb), np.max(tfb))
+    ax.legend(fontsize = 16)
+    plt.savefig(f'/Users/paolamartire/shocks/Figs/1.paperEdd/onefld_ionizz.jpg', bbox_inches='tight')
 
 #%%
 fig, (axR, axL) = plt.subplots(1, 2, figsize=(16, 7))
@@ -143,8 +146,7 @@ cbar.ax.tick_params(which='major', length = 5)
 cbar.ax.tick_params(which='minor', length = 3) 
 axL.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', fontsize = 20)
 axL.set_ylim(9e37, 2e43)
-if m == 4:
-    axL.plot(tfbdiss, LDiss, '--', c= 'gray', label = r'$L_{\rm diss}$')
+axL.plot(tfbdiss, LDiss, '--', c= 'gray', label = r'$L_{\rm diss}$')
 # else:
 #     axR.plot(tfb, medianRph/Rt, c ='k')
 #     axL.plot(tfb, Lum, c = 'k')

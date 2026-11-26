@@ -86,16 +86,16 @@ def extract_poli(
             }
 
 if __name__ == "__main__":
-    m = 5
+    m = 4
     Mbh = 10**m
     beta = 1
     mstar = .5
     Rstar = .47
     n = 1.5
     compton = 'Compton'
-    check = 'HiResNewAMR' 
-    snap = 200
-    generat = 2500
+    check = 'MG' 
+    snap = 360
+    generat = 7500
     choice = 'split_stream'
     snr_thresh = 5
 
@@ -122,7 +122,6 @@ if __name__ == "__main__":
         snaps_fld = snaps_fld.astype(int)
         idx_time_fld = np.argmin(np.abs(snaps_fld - snap))
         time = tfb_fld[idx_time_fld]
-    print(time)
 
     folder_fld = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiResNewAMR'
     data_fld = np.loadtxt(f'{abspath}/data/{folder_fld}/HiResNewAMR_red.csv', delimiter=',', dtype=float)
@@ -169,19 +168,22 @@ if __name__ == "__main__":
         Lum_med_idx[i] = np.median(Lum[indices])
         rph_med_idx[i] = np.median(r_ph[indices])
 
-    figc, axC = plt.subplots(1, 1, figsize=(10, 7))
-    for i in range(len(indices_sec)):
-        axC.scatter(i, rph_med_idx[i]/prel.Rsol_cgs/r_ph_fld_med_idx[i], color=color_obs[i], s = 80, marker='o', label=r'r$_{\rm ph}$' if i == 1 else "")
-        axC.scatter(i, len(Lum) * Lum_med_idx[i]/Lum_fld_med_idx[i], color=color_obs[i], s = 80, marker='x', label=f'Lum' if i == 1 else "")
-    # axC.loglog()
-    axC.grid()
-    axC.set_ylabel('MC/fld')
-    axC.legend(fontsize=18)
+    if check == 'HiResNewAMR':
+        figc, axC = plt.subplots(1, 1, figsize=(10, 7))
+        for i in range(len(indices_sec)):
+            axC.scatter(i, rph_med_idx[i]/prel.Rsol_cgs/r_ph_fld_med_idx[i], color=color_obs[i], s = 80, marker='o', label=r'r$_{\rm ph}$' if i == 1 else "")
+            axC.scatter(i, len(Lum) * Lum_med_idx[i]/Lum_fld_med_idx[i], color=color_obs[i], s = 80, marker='x', label=f'Lum' if i == 1 else "")
+        # axC.loglog()
+        axC.grid()
+        axC.set_ylabel('MC/fld')
+        axC.legend(fontsize=18)
                                     
     P_wave = []
     snr_P_wave = []
     Lum_wave = []
     rph_wave = []
+    rph16_wave = []
+    rph84_wave = []
     figmesh = plt.figure(figsize=(40,15))
     for group in groups:
         data = extract_poli(
@@ -231,10 +233,16 @@ if __name__ == "__main__":
                             values=snr_P,
                             xi=(lon_mesh, lat_mesh),
                             method='linear')
+
+            R_grid = griddata(
+                            points=(longitude_moll, latitude_moll),
+                            values=r_ph,
+                            xi=(lon_mesh, lat_mesh),
+                            method='linear')
             
-            gs = gridspec.GridSpec(2, 2,  height_ratios=[1, .05], hspace=0.1, wspace = 0.2) 
+            gs = gridspec.GridSpec(1, 3, wspace = 0.08) 
             axPmesh = figmesh.add_subplot(gs[0, 0], projection='mollweide')
-            img = axPmesh.pcolormesh(lon_mesh, lat_mesh, P_grid, cmap='viridis', vmin = 1e-3, vmax = 5e-2)
+            img = axPmesh.pcolormesh(lon_mesh, lat_mesh, P_grid*100, cmap='viridis', vmin = 0.1, vmax = 3)
             snr_contour = axPmesh.contour(
                 lon_mesh, lat_mesh, np.ma.masked_invalid(snr_P_grid),
                 levels=[snr_thresh], colors='white', linewidths=4)
@@ -242,26 +250,38 @@ if __name__ == "__main__":
                 snr_contour, fmt={snr_thresh: f'S/N $\geq$ {snr_thresh}'},
                 inline=True, fontsize=20)
             axPmesh.grid()
-            cbar_ax = figmesh.add_subplot(gs[1, 0]) 
-            cbar = figmesh.colorbar(img, cax=cbar_ax, orientation='horizontal', label =r'P')
-            cbar.ax.tick_params(which='major',length = 5)
-            cbar.ax.tick_params(which='minor',length = 3)
+            # cbar_ax = figmesh.add_subplot(gs[1, 0]) 
+            cbar = figmesh.colorbar(img, orientation='horizontal', label =r'P (%)', pad = 0.01)
+            cbar.ax.tick_params(which='major',length = 10, width = 1.2)
+            cbar.ax.tick_params(which='minor',length = 7, width = 1)
 
             axLmesh = figmesh.add_subplot(gs[0, 1], projection='mollweide')
-            img = axLmesh.pcolormesh(lon_mesh, lat_mesh, L_grid, cmap='viridis', norm = colors.LogNorm(vmin=1e36, vmax=4e37))
+            img = axLmesh.pcolormesh(lon_mesh, lat_mesh, L_grid, cmap='viridis', norm = colors.LogNorm(vmin=2e36, vmax=1.1*np.nanmax(L_grid)))
             axLmesh.grid()
-            cbar_ax = figmesh.add_subplot(gs[1, 1]) 
-            cbar = figmesh.colorbar(img, cax=cbar_ax, orientation='horizontal', label =r'Luminosity [erg/s]')
-            cbar.ax.tick_params(which='major',length = 5)
-            cbar.ax.tick_params(which='minor',length = 3)
+            # cbar_ax = figmesh.add_subplot(gs[1, 1]) 
+            cbar = figmesh.colorbar(img, orientation='horizontal', label =r'Luminosity (erg/s)', pad = 0.01)
+            cbar.ax.tick_params(which='major',length = 10, width = 1.2)
+            cbar.ax.tick_params(which='minor',length = 7, width = 1)
             
-            figmesh.suptitle(f'Polarization map for group {group} at t={time:.2f}' + r' t$_{{\rm fb}}$' + f' ({generat} GEN)', fontsize = 20, y = 0.85)
-            # plt.tight_layout()
+            axRmesh = figmesh.add_subplot(gs[0, 2], projection='mollweide')
+            img = axRmesh.pcolormesh(lon_mesh, lat_mesh, R_grid, cmap='viridis', norm = colors.LogNorm(vmin=1e12, vmax=1.1*np.nanmax(R_grid)))
+            axRmesh.grid()
+            # cbar_ax = figmesh.add_subplot(gs[1, 2])
+            cbar = figmesh.colorbar(img, orientation='horizontal', label =r'r$_{\rm ph}$ (cm)', pad = 0.01)
+            cbar.ax.tick_params(which='major',length = 10, width = 1.2)
+            cbar.ax.tick_params(which='minor',length = 7, width = 1)
+
+            figmesh.suptitle(f'Polarization map for group {group} at t={time:.2f}' + r' t$_{{\rm fb}}$' + f' ({generat} GEN), contour for snr>{snr_thresh}', fontsize = 20, y = 0.62)
+            plt.tight_layout()
+            plt.savefig(f'{abspath}/Figs/3.paperPol/moll_{snap}_g{group}.png', dpi=300, bbox_inches='tight')
+
 
         P_med_idx = np.zeros(len(indices_sec))
         snr_P_med_idx = np.zeros(len(indices_sec))
         Lum_med_idx = np.zeros(len(indices_sec))
         rph_med_idx = np.zeros(len(indices_sec))
+        rph16_idx = np.zeros(len(indices_sec))
+        rph84_idx = np.zeros(len(indices_sec))
         
         for i, indices in enumerate(indices_sec):
             P_sector = P[indices]
@@ -272,7 +292,11 @@ if __name__ == "__main__":
             snr_P_med_idx[i] = np.median(snr_P_tocare) if len(snr_P_tocare) > 0 else np.nan
             Lum_med_idx[i] = np.median(Lum[indices])
             rph_med_idx[i] = np.median(r_ph[indices])
+            rph16_idx[i] = np.percentile(r_ph[indices], 16) if len(r_ph[indices]) > 0 else np.nan
+            rph84_idx[i] = np.percentile(r_ph[indices], 84) if len(r_ph[indices]) > 0 else np.nan
         P_wave.append(P_med_idx)
+        rph16_wave.append(rph16_idx)
+        rph84_wave.append(rph84_idx)
         snr_P_wave.append(snr_P_med_idx)
         Lum_wave.append(Lum_med_idx)
         rph_wave.append(rph_med_idx)
@@ -281,12 +305,16 @@ if __name__ == "__main__":
     snr_P_wave = np.transpose(snr_P_wave)
     Lum_wave = np.transpose(Lum_wave)
     rph_wave = np.transpose(rph_wave)
+    rph16_wave = np.transpose(rph16_wave)
+    rph84_wave = np.transpose(rph84_wave)
     figP, ((axP, axLum), (axSNR, axR)) = plt.subplots(2, 2, figsize=(20, 15)) 
     for i, indices in enumerate(indices_sec):
         axP.plot(f_mid_points, P_wave[i], '-o', label=f'{labels_sec[i]}', color=color_obs[i])
         axSNR.plot(f_mid_points, snr_P_wave[i],  '-o', color=color_obs[i])
         axLum.plot(f_mid_points, Lum_wave[i], '-o', label=f'{labels_sec[i]}', color=color_obs[i])
         axR.plot(f_mid_points, rph_wave[i]/Rt_cgs, '-o', label=f'{labels_sec[i]}', color=color_obs[i])
+        axR.plot(f_mid_points, rph16_wave[i]/Rt_cgs, '--', color=color_obs[i])
+        axR.plot(f_mid_points, rph84_wave[i]/Rt_cgs, '--', color=color_obs[i])
         # axP.axhline(P_gray_med_idx[i], ls = '--', color=color_obs[i])
         # axSNR.axhline(snr_P_gray_med_idx[i], ls = '--', color=color_obs[i])
     axP.legend(fontsize=15)
@@ -317,6 +345,9 @@ if __name__ == "__main__":
             top.set_xlabel(r"$\lambda\;(\AA)$", fontsize=30)
     figP.suptitle(f't={time:.2f}' + r't$_{\rm fb}$,' + f' {generat} GEN', fontsize = 20)
     figP.tight_layout()
+    figP.savefig(f'{abspath}/Figs/3.paperPol/fevol_{snap}.png', dpi=300, bbox_inches='tight')
+
+
 
 
 

@@ -30,7 +30,7 @@ compton = 'Compton'
 check = 'HiResNewAMR' 
 choice = 'split_stream'
 how = 'isot'
-which_plot = 'MdotL_conv' # 'MdotM' or 'MdotL_conv'
+which_plot = 'MdotM' # 'MdotM' or 'MdotL_conv'
 commonfolder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}'
 folder = f'{commonfolder}{check}'
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
@@ -75,11 +75,19 @@ if which_plot == 'MdotM':
     snaps, tfb_Lum, _ = dataM[:, 0], dataM[:, 1], dataM[:, 2]
     tfb_Lum, snaps = sort_list([tfb_Lum, snaps], snaps, unique=True)
 
-    fallback = \
-            np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_{check}{which_r_title}mean.csv', 
-                    delimiter = ',', 
-                    skiprows=1, 
-                    unpack=True)
+    if m == 4:
+        fallback = \
+                np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_{check}{which_r_title}mean.csv', 
+                        delimiter = ',', 
+                        skiprows=1, 
+                        unpack=True)
+    else: 
+        fallback = \
+                    np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_{check}{which_r_title}mean.csv', 
+                            delimiter = ',', 
+                            skiprows=1, 
+                            unpack=True)
+
     tfbfb, mfb = fallback[1], fallback[2]
     tfb_to_int = tfbfb * 24 * 3600 / prel.tsol_cgs
     where_nan = np.isnan(mfb)

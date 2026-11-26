@@ -26,8 +26,8 @@ from Utilities.sections import make_slices
 ##
 # PARAMETERS
 #%%
-m = 4
-Mbh = 10**4
+m = 5
+Mbh = 10**m
 Mbh_cgs = Mbh * prel.Msol_cgs
 beta = 1
 mstar = .5
@@ -68,10 +68,14 @@ if compute: # compute dM/dt = dM/dE * dE/dt
 
     snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, compton, time = True) 
     tfb_cgs = tfb * tfallback_cgs #converted to seconds
-    bins = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/dMdE_{check}_bins.txt')
+    if m == 4:
+        bins = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/dMdE_{check}_bins.txt')
+        dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/dMdE_{check}.txt')[0] # distribution just after the disruption
+    else:
+        bins = np.loadtxt(f'{abspath}/data/{folder}/wind/dMdE_{check}_bins.txt')
+        dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/wind/dMdE_{check}.txt')[0] 
     max_bin_negative = np.abs(np.min(bins))
     mid_points = (bins[:-1]+bins[1:]) * norm_dMdE/2  # get rid of the normalization
-    dMdE_distr = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/dMdE_{check}.txt')[0] # distribution just after the disruption
     bins_tokeep, dMdE_distr_tokeep = mid_points[mid_points<0], dMdE_distr[mid_points<0] # keep only the bound energies
    
     for i, snap in enumerate(snaps):
