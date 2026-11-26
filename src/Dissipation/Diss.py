@@ -1,4 +1,5 @@
-""" Compute Rdissipation. Written to be run on alice."""
+""" Compute Rdissipation and total Ldiss, global or i=under different cuts. 
+Written to be run on alice or to plot locally."""
 import sys
 sys.path.append('/Users/paolamartire/shocks/')
 
@@ -23,7 +24,7 @@ import os
 ##
 # PARAMETERS
 ## 
-m = 5
+m = 4
 Mbh = 10**m
 beta = 1
 mstar = .5
@@ -155,7 +156,6 @@ else:
     ax2.plot(tfb, Rdiss_pos/apo, c = 'yellowgreen')
     ax2.plot(tfbH, Rdiss_posH/apo, c = 'darkviolet')
     ax2.axhline(Rt/apo, color = 'k', linestyle = '--', label = r'$R_{\rm t}$')
-
 
     ax2.set_ylabel(r'$R_{\rm diss}$ [R$_{\rm a}$]')
     for ax in [ax1, ax2]:

@@ -29,7 +29,7 @@ from Utilities.sections import make_slices
 # PARAMETERS
 #%%
 m = 4
-Mbh = 10**4
+Mbh = 10**m
 Mbh_cgs = Mbh * prel.Msol_cgs
 beta = 1
 mstar = .5
@@ -103,7 +103,7 @@ def Mdot_sec(path, snap, r_chosen, choice, what, how):
             } for lab in label_obs} 
 
     Mdot = np.pi * dim_cell_wind**2 * Den_wind * v_rad_wind 
-    indices_sec, _ = split_cells(X_wind, Y_wind, Z_wind, choice)
+    indices_sec, _, _ = split_cells(X_wind, Y_wind, Z_wind, choice)
 
     data = {}
     C_mult = 4/len(indices_sec) # to have the right normalization in all cases

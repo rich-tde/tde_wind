@@ -31,7 +31,7 @@ check = 'HiResNewAMR'
 if m == 4:
     Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
 else:
-    Ledd_sol, Medd_sol = orb.Edd(Mbh, 0.34/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
+    Ledd_sol, Medd_sol = orb.Edd(Mbh, 1.5/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
 Ledd_cgs = Ledd_sol * prel.en_converter/prel.tsol_cgs
 Medd_cgs = Medd_sol * prel.Msol_cgs/prel.tsol_cgs
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -182,8 +182,6 @@ if m == 4:
 else:
     plt.savefig(f'/Users/paolamartire/shocks/Figs/{folder}/onefld.png', bbox_inches='tight')
 print('L_max/L_Edd', np.max(Lum)/Ledd_cgs, 'at snap', snaps[np.argmax(Lum)], f'({tfb[np.argmax(Lum)]} t_fb)')
-idx_one = np.argmax(tfb) #np.argmin(np.abs(tfb-1))
-print(f'last snap: {snaps[idx_one]} (t = {tfb[idx_one]:.2f} t_fb), f_unbound: {f_ph[idx_one]:.4f}')
 #%%
 fig, ax = plt.subplots(1, 1, figsize=(10, 7))
 ax.plot(tfb, meanRph/Rt, ls = '--', label = r'mean $r_{\rm ph}$')

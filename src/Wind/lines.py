@@ -1,3 +1,4 @@
+""" Compute the line luminosities for Hα, Hβ, and He II λ4686 from the photoionization data."""
 import sys
 sys.path.append('/Users/paolamartire/shocks')
 abspath = '/Users/paolamartire/shocks'
@@ -424,6 +425,8 @@ data = np.loadtxt(f'{abspath}/data/{folder}/{check}_red.csv', delimiter=',', dty
 snaps, tfb, Lum = data[:, 0], data[:, 1], data[:, 2]
 snaps, Lum, tfb = op.sort_list([snaps, Lum, tfb], tfb, unique=True) 
 snaps = snaps.astype(int)
+idx_maxL = np.argmax(Lum)
+t_peak = tfb[idx_maxL]
 observers_xyz = hp.pix2vec(prel.NSIDE, range(prel.NPIX))
 observers_xyz = np.array(observers_xyz)
 indices_obs, label_obs, color_obs, _, _, _= op.choose_observers(observers_xyz, choice)
@@ -549,8 +552,9 @@ if what_to_plot == 'time_evol' or what_to_plot == 'ratio_el':
     temp_t = []
     delta_r_t = []
     fig, ax = plt.subplots(1, 3, figsize= (24, 7))
+    figL, axL = plt.subplots(1, 3, figsize= (24, 7))
     figTR, (axT, axR) = plt.subplots(2, len(indices_obs)-1, figsize=(8*len(indices_obs), 12))
-    axes = np.concatenate([[ax[i] for i in range(3)] + [axT[i] for i in range(len(indices_obs)-1)] + [axR[i] for i in range(len(indices_obs)-1)]])
+    axes = np.concatenate([[ax[i] for i in range(3)] + [axL[i] for i in range(3)]+ [axT[i] for i in range(len(indices_obs)-1)] + [axR[i] for i in range(len(indices_obs)-1)]])
     for snap in snaps:
         time = tfb[snaps == snap][0]
         photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
@@ -646,8 +650,22 @@ if what_to_plot == 'time_evol' or what_to_plot == 'ratio_el':
         line = ax[0].plot(tfb, ratiosHa_t[obs], label = label_obs[obs], color = color_obs[obs])[0]
         handles_color.append(line)
         labels_color.append(label_obs[obs])
+        i_max_Ha = np.argmax(LHa_t[obs])
+        ax[0].scatter(tfb[i_max_Ha], ratiosHa_t[obs][i_max_Ha], marker = 'd', color = color_obs[obs], edgecolor = 'k', s = 150, zorder = 5)
         ax[1].plot(tfb, ratiosHb_t[obs], label = label_obs[obs], color = color_obs[obs])
+        i_max_Hb = np.argmax(LHb_t[obs])
+        ax[1].scatter(tfb[i_max_Hb], ratiosHb_t[obs][i_max_Hb], marker = 'd', color = color_obs[obs], edgecolor = 'k', s = 150, zorder = 5)
         ax[2].plot(tfb, ratiosHe_t[obs], label = label_obs[obs], color = color_obs[obs])
+        i_max_He = np.argmax(LHe_t[obs])
+        ax[2].scatter(tfb[i_max_He], ratiosHe_t[obs][i_max_He], marker = 'd', color = color_obs[obs], edgecolor = 'k', s = 150, zorder = 5)
+
+        # for the referee report
+        axL[0].plot(tfb, LHa_t[obs], label = label_obs[obs], color = color_obs[obs])[0]
+        axL[0].scatter(tfb[i_max_Ha], LHa_t[obs][i_max_Ha], marker = 'd', color = color_obs[obs], edgecolor = 'k', s = 150, zorder = 5)
+        axL[1].plot(tfb, LHb_t[obs], label = label_obs[obs], color = color_obs[obs])
+        axL[1].scatter(tfb[i_max_Hb], LHb_t[obs][i_max_Hb], marker = 'd', color = color_obs[obs], edgecolor = 'k', s = 150, zorder = 5)
+        axL[2].plot(tfb, LHe_t[obs], label = label_obs[obs], color = color_obs[obs])
+        axL[2].scatter(tfb[i_max_He], LHe_t[obs][i_max_He], marker = 'd', color = color_obs[obs], edgecolor = 'k', s = 150, zorder = 5)
 
         TBB = TempBB[obs] # temp_t[obs]
         axT[obs].plot(TBB, LHa_t[obs], label=r"H$\alpha$" if obs == 0 else "", color='#d00000')
@@ -670,25 +688,38 @@ if what_to_plot == 'time_evol' or what_to_plot == 'ratio_el':
         axR[obs].set_xlabel(r"$r/r_{\rm t}$", fontsize= 30)
         axR[obs].set_xlim(20, 1e3)
 
+    ax[0].set_ylabel(r"$L_{\lambda, \rm {line}}/L_{\lambda, \rm {cont}}$", fontsize= 30)
+    ax[2].set_ylim(5e-3, 5)
     for a in axes:
         a.tick_params(axis='both', which='major', length=10, width=1)
         a.tick_params(axis='both', which='minor', length=6, width=.9)
         a.grid()
-        a.set_ylabel(r"$L_{\lambda, \rm {line}}/L_{\lambda, \rm {cont}}$", fontsize= 30)
+        if a in ax[0:3] or a in axL[0:3]:
+            a.set_xlabel(r"$t/t_{\rm fb}$", fontsize= 30)
+            a.axvline(t_peak, ls = 'dotted', color = 'k')
+            a.set_yscale('log')
+            a.set_xlim(1, 2.25)
+        if a in axL[0:3]:
+            a.text(0.94*t_peak, 4e46, r'$t=t_{\rm fb}$', rotation = 90, fontsize = 24)
         if a in ax[0:3]:
             if a != ax[2]:
+                a.text(0.94*t_peak, 1.2e2, r'$t=t_{\rm fb}$', rotation = 90, fontsize = 24)
                 a.set_ylim(5e-2, 5e2)
-            a.set_xlim(1, 2.25)
-            a.set_yscale('log')
-            a.set_xlabel(r"$t/t_{\rm fb}$", fontsize= 30)
+            else:
+                a.text(0.94*t_peak, 1.2, r'$t=t_{\rm fb}$', rotation = 90, fontsize = 24)
         else:
-            a.set_ylim(1e43, 1e47)
+            a.set_ylim(1e43, 2e47)
+            if a in [axL[0], axR[0], axT[0]]:
+                a.set_ylabel(r"$L_{\lambda, \rm {line}}$ [erg/s]", fontsize= 30)
 
-    ax[2].set_ylim(5e-3, 5)
-    # ax[2].legend(fontsize=18)
+    fig.legend(handles=handles_color,
+                labels=labels_color,
+                loc='upper center',
+                bbox_to_anchor=(0.525, 0.022),  # centered, near bottom of figure
+                ncol=len(labels_color),
+                fontsize=22) 
 
-    legend_colors = fig.legend(
-                handles=handles_color,
+    figL.legend(handles=handles_color,
                 labels=labels_color,
                 loc='upper center',
                 bbox_to_anchor=(0.525, 0.022),  # centered, near bottom of figure
@@ -697,9 +728,11 @@ if what_to_plot == 'time_evol' or what_to_plot == 'ratio_el':
 
     for i in range(3): # you need the new ylim
         ax[i].set_title(r'H$\alpha$' if i == 0 else r'H$\beta$' if i == 1 else r'HeII $\lambda$4686', fontsize= 30)
-        # ax[i].text(1.08, 0.4*ax[i].get_ylim()[1], r'H$\alpha$' if i == 0 else r'H$\beta$' if i == 1 else r'HeII4686', fontsize=25)
+        axL[i].set_title(r'H$\alpha$' if i == 0 else r'H$\beta$' if i == 1 else r'HeII $\lambda$4686', fontsize= 30)
 
     fig.tight_layout()
+    figL.tight_layout()
     figTR.tight_layout()
     fig.savefig(f'{abspath}/Figs/2.paperWind/line_ratio_time_evol_{choice}.pdf', bbox_inches = 'tight')
+    figL.savefig(f'{abspath}/Figs/2.paperWind/referee/line_time_evol_{choice}.png', bbox_inches = 'tight')
 # %%

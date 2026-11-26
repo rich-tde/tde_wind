@@ -382,7 +382,7 @@ if __name__ == '__main__':
                 y_cm = com['y_cm']
                 z_cm = com['z_cm']
             except FileNotFoundError:
-                from src.Stream.com_stream import find_transverse_com
+                from Dissipation.Stream.com_stream import find_transverse_com
                 print('Stream not found, computing it', flush=True)
                 if not alice:
                     theta_arr = theta_arr[idx_forplot-3:idx_forplot+4]
