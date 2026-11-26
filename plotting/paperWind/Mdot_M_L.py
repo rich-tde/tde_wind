@@ -101,23 +101,25 @@ if which_plot == 'MdotM':
         photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
         x_ph, y_ph, z_ph, Lum_ph = photo['x'], photo['y'], photo['z'], photo['Lum']
         r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
-        trap = load_and_smooth_rtrap(f'{abspath}/data/{folder}/trap', check, snap)
-        x_tr, y_tr, z_tr = trap['x_tr'], trap['y_tr'], trap['z_tr']
-        r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-        if choice in ['tenths','azimuthal', 'funnel', '3d_arch', 'split_stream']:
-            mask = []
-            rph_slab = np.zeros(len(indices_obs))
-            for i, indices in enumerate(indices_obs):
-                mask.append(r_tr[indices] > 0)
-        else:
-            mask = r_tr[indices_obs] > 0
-        indices_sec = [row[m] for row, m in zip(indices_obs, mask)]
-        rtr_sec.append([np.median(r_tr[row]) for row in indices_sec])
-        rph_sec.append([np.median(r_ph[row]) for row in indices_sec])
-        # rtr_sec.append(np.mean(r_tr[indices_obs], axis = 1))
-        # rph_sec.append(np.mean(r_ph[indices_obs], axis = 1))
+        if m == 4:
+            trap = load_and_smooth_rtrap(f'{abspath}/data/{folder}/trap', check, snap)
+            x_tr, y_tr, z_tr = trap['x_tr'], trap['y_tr'], trap['z_tr']
+            r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+            if choice in ['tenths','azimuthal', 'funnel', '3d_arch', 'split_stream']:
+                mask = []
+                rph_slab = np.zeros(len(indices_obs))
+                for i, indices in enumerate(indices_obs):
+                    mask.append(r_tr[indices] > 0)
+            else:
+                mask = r_tr[indices_obs] > 0
+            indices_sec = [row[m] for row, m in zip(indices_obs, mask)]
+            rtr_sec.append([np.median(r_tr[row]) for row in indices_sec])
+            rph_sec.append([np.median(r_ph[row]) for row in indices_sec])
+            # rtr_sec.append(np.mean(r_tr[indices_obs], axis = 1))
+            # rph_sec.append(np.mean(r_ph[indices_obs], axis = 1))
     rph_sec = np.transpose(np.array(rph_sec))
-    rtr_sec = np.transpose(np.array(rtr_sec))
+    if m == 4:
+        rtr_sec = np.transpose(np.array(rtr_sec))
 
     if choice == 'split_stream':
         corr_ecc = area_spherical_zone(r_chosen, 80 * np.pi/180)/2 # since the other half is peric side
@@ -128,17 +130,15 @@ if which_plot == 'MdotM':
         corr_geom = np.array([corr_ecc, corr_mid, corr_high, corr_peric, corr_pole, corr_pole])
     # print(np.sum(corr_geom)/(4 * np.pi * r_chosen**2))
 
-
-    wind = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_wind.csv', 
-                    delimiter = ',', 
-                    skiprows=1, 
-                    unpack=True) 
-    tfb = wind[1]
+    wind = np.load(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_wind.npy', allow_pickle=True).item()
+    snaps = list(wind.keys())
+    tfb = np.array([wind[snap]['tfb'] for snap in snaps])
     time_to_int = tfb * 24 * 3600 / prel.tsol_cgs
-    rest = wind[2:2+len(label_obs)]
+    rest = np.array([[wind[snap][label]['mwind'] for label in label_obs] for snap in snaps]).T
     Mdotw = np.copy(rest)
     Mdotw_isot = np.copy(rest)
+    masswind = np.array([[wind[snap][label]['mass'] for label in label_obs] for snap in snaps]).T
+    
 
     boundOut = \
             np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_boundOut.csv', 
@@ -150,9 +150,11 @@ if which_plot == 'MdotM':
     restboundOut = boundOut[2:2+len(label_obs)]
     MdotboundOut = np.copy(restboundOut)
     MdotboundOut_isot = np.copy(restboundOut)
- 
+    
     if how == 'isot':
-        area = wind[-len(label_obs):]
+        area = np.array([[wind[snap][label]['area'] for label in label_obs] for snap in snaps]).T
+        mwind_isot =  4 * np.pi * r_chosen**2 * rest/ area 
+        # area = wind[-len(label_obs):]
         areaboundOut = boundOut[-len(label_obs):]
         corr = []
         corrboundOut = []
@@ -220,7 +222,8 @@ if which_plot == 'MdotM':
         print('sum stream: ', (np.median(M_out_corr[0,-3:])+np.median(M_out_corr[1, -3:])+np.median(M_out_corr[2, -3:]))/(0.5*mstar), ', sum wind/out: ', np.sum(np.median(M_wind_corr[0, -3:])+np.median(M_wind_corr[1, -3:])+np.median(M_wind_corr[2, -3:]))/(np.median(M_out_corr[0, -3:])+np.median(M_out_corr[1, -3:])+np.median(M_out_corr[2, -3:])))
         # print('sum mid+high stream: ', (np.median(M_out_corr[1, -3:])+np.median(M_out_corr[2, -3:]))/(0.5*mstar), ', sum wind/out: ', np.sum(np.median(M_wind_corr[1, -3:])+np.median(M_wind_corr[2, -3:]))/np.sum(np.median(M_out_corr[1, -3:])+np.median(M_out_corr[2, -3:])))
 
-        axr.plot(tfb_Lum, rtr_sec[i]/Rt, c = color_obs[i], ls = ':', label = r'r$_{\rm trap}$' if i == 2 else "")
+        if m ==4:
+            axr.plot(tfb_Lum, rtr_sec[i]/Rt, c = color_obs[i], ls = ':', label = r'r$_{\rm trap}$' if i == 2 else "")
         axr.plot(tfb_Lum, rph_sec[i]/Rt, c = color_obs[i], label = r'r$_{\rm ph}$' if i == 2 else "")
 
         handles_color.append(color_obs[i])

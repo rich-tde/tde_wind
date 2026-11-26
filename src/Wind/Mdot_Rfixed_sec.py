@@ -28,7 +28,7 @@ from Utilities.sections import make_slices
 ##
 # PARAMETERS
 #%%
-m = 4
+m = 5
 Mbh = 10**m
 Mbh_cgs = Mbh * prel.Msol_cgs
 beta = 1
@@ -201,26 +201,33 @@ if __name__ == '__main__':
             np.save(save_path, all_data, allow_pickle=True)
 
     else:
-        r_chosen = 1e14/prel.Rsol_cgs
-        which_r_title = '1e14'
+        r_chosen = 0.5 * amin
+        which_r_title = '05amin' 
         
-        dataMass = np.loadtxt(f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv', 
-                                delimiter=',', skiprows=1, unpack=True)
-        tfbMass = dataMass[1]
-        M_tot = dataMass[2:2+len(label_obs)] 
-        M_wind = dataMass[2+2*(len(label_obs)):2+3*(len(label_obs))] 
+        # dataMass = np.loadtxt(f'{abspath}/data/{folder}/wind/Mass_unbound{choice}.csv', 
+        #                         delimiter=',', skiprows=1, unpack=True)
+        # tfbMass = dataMass[1]
+        # M_tot = dataMass[2:2+len(label_obs)] 
+        # M_wind = dataMass[2+2*(len(label_obs)):2+3*(len(label_obs))] 
     
-        for i in range(len(label_obs)):
-            M_wind[i, :] -= M_wind[i, 0]
+        # for i in range(len(label_obs)):
+        #     M_wind[i, :] -= M_wind[i, 0]
 
         figM, (axM, axEkin, axMass) = plt.subplots(1,3, figsize = (26,8))
         figMass_tot, axMass_tot = plt.subplots(1,1, figsize = (9,8))
         
-        fallback = \
-                np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_{check}05aminmean.csv', 
-                        delimiter = ',', 
-                        skiprows=1, 
-                        unpack=True)
+        if m == 4:
+            fallback = \
+                    np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_{check}{which_r_title}mean.csv', 
+                            delimiter = ',', 
+                            skiprows=1, 
+                            unpack=True)
+        else: 
+            fallback = \
+                        np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_{check}{which_r_title}mean.csv', 
+                                delimiter = ',', 
+                                skiprows=1, 
+                                unpack=True)
         tfbfb, mfb, mwind_dimCellOld = fallback[1], fallback[2], fallback[3]
         tfb_to_int = tfbfb * 24 * 3600 / prel.tsol_cgs
         where_nan = np.isnan(mfb)
@@ -285,7 +292,7 @@ if __name__ == '__main__':
             # extend_Mdot[i][where_nan] = 0
             # mass = sci.cumulative_trapezoid(extend_Mdot[i], time_to_int, initial = 0)
             # axMass_tot.plot(all_time, mass/(mstar/2), label = label_obs[i], c = color_obs[i], ls = '--')
-            line = axMass_tot.plot(tfbMass, M_wind[i]/(mstar/2), label = label_obs[i], c = color_obs[i])[0]
+            # line = axMass_tot.plot(tfbMass, M_wind[i]/(mstar/2), label = label_obs[i], c = color_obs[i])[0]
             handles_colorMass.append(line)
             labels_handlesMass.append(label_obs[i])
 

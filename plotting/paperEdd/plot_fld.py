@@ -52,19 +52,19 @@ idx_maxLum = np.argmax(Lum)
 
 if m ==4:
     dataDiss = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
+    dataDissIon = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/Rdiss_{check}ionizationHe.csv', delimiter=',', dtype=float, skiprows=1)
+    tfbdiss_split, LDissAb, LdissBl =  dataDissIon[:,1], dataDissIon[:,3] * prel.en_converter/prel.tsol_cgs, dataDissIon[:,5] * prel.en_converter/prel.tsol_cgs
+    _, tfbmdot, mfallH, _, _, _, _, _, tot_IE_H, tot_Rad_H = \
+                np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_HiResNewAMR05aminmean.csv', 
+                        delimiter = ',', 
+                        skiprows=1, 
+                        unpack=True) 
+    Lum_mdot = 0.1 * np.abs(mfallH) * prel.csol_cgs**2 *prel.en_converter/prel.tsol_cgs 
+    time_theory = tfb[210:-1]
+    Lum_theory = 5e41*time_theory**(-5/3)
 else:
     dataDiss = np.loadtxt(f'{abspath}/data/{folder}/Rdiss_{check}.csv', delimiter=',', dtype=float, skiprows=1)
-snapdiss, tfbdiss, LDiss, LDissNeg = dataDiss[:,0], dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs, dataDiss[:,5] * prel.en_converter/prel.tsol_cgs
-dataDissIon = np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/Rdiss_{check}ionizationHe.csv', delimiter=',', dtype=float, skiprows=1)
-tfbdiss_split, LDissAb, LdissBl =  dataDissIon[:,1], dataDissIon[:,3] * prel.en_converter/prel.tsol_cgs, dataDissIon[:,5] * prel.en_converter/prel.tsol_cgs
-_, tfbmdot, mfallH, _, _, _, _, _, tot_IE_H, tot_Rad_H = \
-            np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_HiResNewAMR05aminmean.csv', 
-                    delimiter = ',', 
-                    skiprows=1, 
-                    unpack=True) 
-Lum_mdot = 0.1 * np.abs(mfallH) * prel.csol_cgs**2 *prel.en_converter/prel.tsol_cgs 
-time_theory = tfb[210:-1]
-Lum_theory = 5e41*time_theory**(-5/3)
+snapdiss, tfbdiss, LDiss = dataDiss[:,0], dataDiss[:,1], dataDiss[:,3] * prel.en_converter/prel.tsol_cgs
 
 meanRph, medianRph, percentile16, percentile84 = statistics_photo(snaps, np.concatenate((params, [n, compton, check])))
 meancol, mediancol, _, _ = statistics_col(snaps, np.concatenate((params, [n, compton, check])))
@@ -145,7 +145,7 @@ cbar.set_label(r'$f\equiv N_{\rm ph, unbound}/N_{\rm obs}$')
 cbar.ax.tick_params(which='major', length = 5)
 cbar.ax.tick_params(which='minor', length = 3) 
 axL.text(0.15, 1.4*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', fontsize = 20)
-axL.set_ylim(9e37, 2e43)
+axL.set_ylim(9e37, 4e43)
 axL.plot(tfbdiss, LDiss, '--', c= 'gray', label = r'$L_{\rm diss}$')
 # else:
 #     axR.plot(tfb, medianRph/Rt, c ='k')

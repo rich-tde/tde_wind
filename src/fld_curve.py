@@ -228,37 +228,60 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
             photo_idx = np.where( ((smoothed_flux_r2>0) & (los<2/3) ))[0][0] 
         except IndexError: # if you don't find the photosphere, skip the observer
             print(f'No photosphere found for observer {i}', flush=True)
+            photosphere['idx'].append(-1)
+            photosphere['x'].append(0)
+            photosphere['y'].append(0)
+            photosphere['z'].append(0)
+            photosphere['vol'].append(0)
+            photosphere['den'].append(0)
+            photosphere['temp'].append(0)       
+            photosphere['radden'].append(0)
+            photosphere['vx'].append(0)
+            photosphere['vy'].append(0)
+            photosphere['vz'].append(0)
+            photosphere['P'].append(0)
+            photosphere['ieden'].append(0)
+            photosphere['los'].append(0)
+            photosphere['los_scatt'].append(0)
+            photosphere['alpha_rossland'].append(0)
+            photosphere['alpha_scatter'].append(0)
+            photosphere['alpha_abs'].append(0)
+            photosphere['r'].append(0)
+            photosphere['Fx'].append(0)
+            photosphere['Fy'].append(0)
+            photosphere['Fz'].append(0)
+            photosphere['Lum'].append(0)
             continue
-        # Lphoto2 = 4*np.pi * smoothed_flux_r2[photosphere] * prel.Msol_cgs / (prel.tsol_cgs**2) # you have to convert ray_radDen*r^2/lenght = energy/lenght^2 = mass/time^2
-        Lphoto2 = 4*np.pi * smoothed_flux_r2[photo_idx] * prel.Rsol_cgs**2 # you have to convert the r^2 in smoothed_flux_r2
-        if Lphoto2 < 0: 
-            Lphoto2 = 1e100 # it means that it will always pick max_length for the negatives
-        # free streaming emission
-        max_length = 4*np.pi*(r[photo_idx]**2) * prel.c_cgs * ray_radDen[photo_idx] * prel.Msol_cgs * prel.Rsol_cgs / (prel.tsol_cgs**2) #the conversion is for ray_radDen*r^2 = mass*len/time^2
-        Lphoto = np.min( [Lphoto2, max_length]) #that's usually Lphoto2
-        photosphere['idx'].append(idx[photo_idx])
-        photosphere['x'].append(ray_x[photo_idx])
-        photosphere['y'].append(ray_y[photo_idx])
-        photosphere['z'].append(ray_z[photo_idx])
-        photosphere['vol'].append(volume[photo_idx])
-        photosphere['den'].append(d[photo_idx]) # CGS
-        photosphere['temp'].append(t[photo_idx])
-        photosphere['radden'].append(ray_radDen[photo_idx])
-        photosphere['vx'].append(ray_vx[photo_idx])
-        photosphere['vy'].append(ray_vy[photo_idx])
-        photosphere['vz'].append(ray_vz[photo_idx])
-        photosphere['P'].append(ray_press[photo_idx])
-        photosphere['ieden'].append(ray_ie_den[photo_idx])
-        photosphere['los'].append(los[photo_idx])
-        photosphere['los_scatt'].append(los_scatt[photo_idx])
-        photosphere['alpha_rossland'].append(alpha_rossland[photo_idx])
-        photosphere['alpha_scatter'].append(alpha_scatter[photo_idx])
-        photosphere['alpha_abs'].append(alpha_planck[photo_idx])
-        photosphere['r'].append(r[photo_idx])
-        photosphere['Fx'].append(Fx[photo_idx])
-        photosphere['Fy'].append(Fy[photo_idx])
-        photosphere['Fz'].append(Fz[photo_idx])
-        photosphere['Lum'].append(Lphoto) # fluxes was from here as L/4pi r[photo)idx]**2
+        else:
+            Lphoto2 = 4*np.pi * smoothed_flux_r2[photo_idx] * prel.Rsol_cgs**2 # you have to convert the r^2 in smoothed_flux_r2
+            if Lphoto2 < 0: 
+                Lphoto2 = 1e100 # it means that it will always pick max_length for the negatives
+            # free streaming emission
+            max_length = 4*np.pi*(r[photo_idx]**2) * prel.c_cgs * ray_radDen[photo_idx] * prel.Msol_cgs * prel.Rsol_cgs / (prel.tsol_cgs**2) #the conversion is for ray_radDen*r^2 = mass*len/time^2
+            Lphoto = np.min( [Lphoto2, max_length]) #that's usually Lphoto2
+            photosphere['idx'].append(idx[photo_idx])
+            photosphere['x'].append(ray_x[photo_idx])
+            photosphere['y'].append(ray_y[photo_idx])
+            photosphere['z'].append(ray_z[photo_idx])
+            photosphere['vol'].append(volume[photo_idx])
+            photosphere['den'].append(d[photo_idx]) # CGS
+            photosphere['temp'].append(t[photo_idx])
+            photosphere['radden'].append(ray_radDen[photo_idx])
+            photosphere['vx'].append(ray_vx[photo_idx])
+            photosphere['vy'].append(ray_vy[photo_idx])
+            photosphere['vz'].append(ray_vz[photo_idx])
+            photosphere['P'].append(ray_press[photo_idx])
+            photosphere['ieden'].append(ray_ie_den[photo_idx])
+            photosphere['los'].append(los[photo_idx])
+            photosphere['los_scatt'].append(los_scatt[photo_idx])
+            photosphere['alpha_rossland'].append(alpha_rossland[photo_idx])
+            photosphere['alpha_scatter'].append(alpha_scatter[photo_idx])
+            photosphere['alpha_abs'].append(alpha_planck[photo_idx])
+            photosphere['r'].append(r[photo_idx])
+            photosphere['Fx'].append(Fx[photo_idx])
+            photosphere['Fy'].append(Fy[photo_idx])
+            photosphere['Fz'].append(Fz[photo_idx])
+            photosphere['Lum'].append(Lphoto) # fluxes was from here as L/4pi r[photo)idx]**2
 
         if plot:
             axtau.plot(r/13, los, linewidth = 2, label = f'Obs {i}')
@@ -269,6 +292,24 @@ def single_fld(loadpath, snap, observers_xyz, N_ray):
             color_idx = np.where(los_effective<5)[0][0]
         except IndexError:
             print(f'No color index found for observer {i}', flush=True)
+            colorsphere['idx'].append(-1)
+            colorsphere['x'].append(0)  
+            colorsphere['y'].append(0)
+            colorsphere['z'].append(0)
+            colorsphere['vol'].append(0)
+            colorsphere['den'].append(0)
+            colorsphere['temp'].append(0)
+            colorsphere['radden'].append(0)
+            colorsphere['vx'].append(0)
+            colorsphere['vy'].append(0)
+            colorsphere['vz'].append(0)
+            colorsphere['P'].append(0)
+            colorsphere['ieden'].append(0)
+            colorsphere['los_scatt'].append(0)
+            colorsphere['alpha_rossland'].append(0)
+            colorsphere['alpha_scatter'].append(0)
+            colorsphere['alpha_abs'].append(0)
+            colorsphere['alpha_eff'].append(0)
             continue
         colorsphere['idx'].append(idx[color_idx])
         colorsphere['x'].append(ray_x[color_idx])

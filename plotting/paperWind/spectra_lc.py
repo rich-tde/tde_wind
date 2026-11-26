@@ -125,6 +125,7 @@ def load_spectrum(folder, check, snap):
     spectra = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
     if check != 'MG':
         photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
+        print(len(photo['x']))
         luminosity = photo["Lum"]
     else:
         data = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz', allow_pickle=True)
@@ -133,19 +134,28 @@ def load_spectrum(folder, check, snap):
         luminosity = np.mean(luminosity_all, axis=0)
     integrals = np.trapezoid(spectra, freqs, axis=1)
 
-    for i in np.where(integrals == 0)[0]:
-        print(
-            i,
-            "integral =", integrals[i],
-            "luminosity =", luminosity[i],
-            "all spectrum zero =", np.all(spectra[i] == 0),
-            "nonzero bins =", np.count_nonzero(spectra[i])
-        )
-
-    if np.any(~np.isfinite(integrals)) or np.any(integrals == 0):
-        raise ValueError(f"Invalid spectral integral in snapshot {snap}")
+    # if np.any(~np.isfinite(integrals)) or np.any(integrals == 0):
+    #     raise ValueError(f"Invalid spectral integral in snapshot {snap}")
         # return 0
-    return spectra * (luminosity / integrals)[:, None], luminosity
+
+    valid = np.isfinite(integrals) & (integrals > 0)
+    spectra_norm = np.zeros_like(spectra)
+
+    print("spectra:", spectra.shape)
+    print("integrals:", integrals.shape)
+    print("luminosity:", np.shape(luminosity))
+    print("valid:", valid.shape)
+    spectra_norm[valid] = (
+        spectra[valid]
+        * (luminosity[valid] / integrals[valid])[:, None])
+
+    if np.any(~valid):
+        print(
+            f"Snapshot {snap}: spectra unavailable for observers "
+            f"{np.where(~valid)[0]}")
+
+    return spectra_norm, luminosity
+
 
 def angular_average(spectra, cosine):
     weights = cosine / cosine.sum(axis=1, keepdims=True)
@@ -415,6 +425,8 @@ def plot_light_curves(folder, m, check, choice, group="bands"):
     curves_fld, curves_op, curves_uv = [], [], []
 
     for s, snap in enumerate(snaps):
+        # if snap < 90:
+        #     continue
         spectra, luminosity_photo = load_spectrum(folder, check, snap)
         spectra, _ = load_spectrum(folder, check, snap)
         spectra = angular_average(spectra, cosine)
@@ -430,18 +442,19 @@ def plot_light_curves(folder, m, check, choice, group="bands"):
             # curves[band][:, s] = integrated[band][central_indices]
     curves_fld = np.asarray(curves_fld).T
     curves_op, curves_uv = np.asarray(curves_op).T, np.asarray(curves_uv).T
- 
-    time_mg, mg, curves_x, all_xray_mg = load_mg_lightcurves(check, choice)
-    # curves_x = []
-    # curves_x.append(mg["Xray"]) 
-    # curves_x = np.asarray(curves_x).T
-    for target in (1.00, 1.54, 2.23):
-        i_fld, i_mg = np.argmin(abs(tfb-target)), np.argmin(abs(time_mg-target))
-        print(f"For t={tfb[i_fld]:.2f} t_fb, MG time is {time_mg[i_mg]:.2f} t_fb")
-        for k, label in enumerate(labels):
-            optical = mg["optical"][k, i_mg] if group == "bandsMG" else curves["optical"][k, i_fld]
-            uv = mg["UV"][k, i_mg] if group == "bandsMG" else curves["UV"][k, i_fld]
-            print(label, "|| Xray/opt:", mg["Xray"][k, i_mg]/optical, "opt/UV:", optical/uv)
+
+    if m ==4:
+        time_mg, mg, curves_x, all_xray_mg = load_mg_lightcurves(check, choice)
+        # curves_x = []
+        # curves_x.append(mg["Xray"]) 
+        # curves_x = np.asarray(curves_x).T
+        for target in (1.00, 1.54, 2.23):
+            i_fld, i_mg = np.argmin(abs(tfb-target)), np.argmin(abs(time_mg-target))
+            print(f"For t={tfb[i_fld]:.2f} t_fb, MG time is {time_mg[i_mg]:.2f} t_fb")
+            for k, label in enumerate(labels):
+                optical = mg["optical"][k, i_mg] if group == "bandsMG" else curves["optical"][k, i_fld]
+                uv = mg["UV"][k, i_mg] if group == "bandsMG" else curves["UV"][k, i_fld]
+                print(label, "|| Xray/opt:", mg["Xray"][k, i_mg]/optical, "opt/UV:", optical/uv)
 
     plotted = [k for k, label in enumerate(labels) if label not in {"South pole", r"-$\hat{z}$"}]
     if group == "sections":
@@ -461,8 +474,9 @@ def plot_light_curves(folder, m, check, choice, group="bands"):
         fig_x, ax_x = plt.subplots(figsize=(9, 7))
         axes = [ax_bol, ax_opt, ax_uv, ax_x]
         for k in plotted:
-            Lkin = np.diff(Ekin_cgs[k]) / np.diff(tfb_kin_cgs)
-            ax_Ruv.plot(tfb[2:], curves["optical"][k][2:]/Lkin, color=colours[k], label=labels[k])
+            if m == 4:
+                Lkin = np.diff(Ekin_cgs[k]) / np.diff(tfb_kin_cgs)
+                ax_Ruv.plot(tfb[2:], curves["optical"][k][2:]/Lkin, color=colours[k], label=labels[k])
             for sec in sectors[k]:
                 # Ekin_sec
                 ax_bol.plot(tfb, curves_fld[sec], color=colours[k], alpha = 0.1, lw = 1)
@@ -623,7 +637,7 @@ if __name__ == '__main__':
             snaps_spectra = [76, 109, 151]
             L_min, L_max = 1e38, 6e42
         if m == 5:
-            snaps_spectra = [152, 200, 241]
+            snaps_spectra = [170, 201, 249]
             L_min, L_max = 1e39, 1e43
 
     if m == 4:
