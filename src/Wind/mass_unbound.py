@@ -69,14 +69,14 @@ if alice:
             make_slices([X, Y, Z, dim_cell, Den, Mass, Press, VX, VY, VZ, IE_den, Rad_den], cut)
         vel = np.sqrt(VX**2 + VY**2 + VZ**2)
         Ekin = 0.5 * Mass * vel**2
-        indices_allsec, label_obs = split_cells(X, Y, Z, choice)
+        indices_allsec, label_obs, _ = split_cells(X, Y, Z, choice)
 
         cut_wind, _, V_r = orb.pick_wind(X, Y, Z, VX, VY, VZ, Den, Mass, Press, IE_den, Rad_den, params, cond = 'bern')
         cut_out = V_r > 0 
         X_out, Y_out, Z_out, Mass_out, Ekin_out = make_slices([X, Y, Z, Mass, Ekin], cut_out)
         X_wind, Y_wind, Z_wind, Mass_wind, Ekin_wind = make_slices([X, Y, Z, Mass, Ekin], cut_wind)
-        indices_allsec_wind, label_obs = split_cells(X_wind, Y_wind, Z_wind, choice)
-        indices_sec_out, _ = split_cells(X_out, Y_out, Z_out, choice)
+        indices_allsec_wind, label_obs, _ = split_cells(X_wind, Y_wind, Z_wind, choice)
+        indices_sec_out, _, _ = split_cells(X_out, Y_out, Z_out, choice)
 
         nsec = len(label_obs)
         tot_M_snap = np.zeros(nsec)

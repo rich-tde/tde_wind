@@ -94,8 +94,8 @@ if __name__ == "__main__":
     n = 1.5
     compton = 'Compton'
     check = 'MG' 
-    snap = 360
-    generat = 7500
+    snap = 320
+    generat = 10000
     choice = 'split_stream'
     snr_thresh = 5
 
@@ -122,7 +122,7 @@ if __name__ == "__main__":
         snaps_fld = snaps_fld.astype(int)
         idx_time_fld = np.argmin(np.abs(snaps_fld - snap))
         time = tfb_fld[idx_time_fld]
-
+    print(time)
     folder_fld = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}HiResNewAMR'
     data_fld = np.loadtxt(f'{abspath}/data/{folder_fld}/HiResNewAMR_red.csv', delimiter=',', dtype=float)
     snaps_fld, tfb_fld, Lum_fld = data_fld[:, 0], data_fld[:, 1], data_fld[:, 2]

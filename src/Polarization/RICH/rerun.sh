@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=tde_rr_320
+#SBATCH --job-name=tde_rr_279
 #SBATCH --account=ulsei21195
-#SBATCH --output=output_2500.txt
-#SBATCH --error=error_2500.txt
+#SBATCH --output=output_5000.txt
+#SBATCH --error=error_5000.txt
 #SBATCH --nodes=8
 #SBATCH --ntasks=1536 #nodesx192
 #SBATCH --exclusive
@@ -29,10 +29,10 @@ set -euo pipefail
 # Each pass adds 21 fixed burn-in/probe generations in front. With the budgets
 # and exploration fractions written below (both 0.005) the total run time is roughly
 # 12 min + GENERATIONS * 26 s (20 -> ~20 min, 75 -> ~45 min, 200 -> ~1 h 40).
-OLDGENERATIONS=10
-GENERATIONS=2490 
+OLDGENERATIONS=2500
+GENERATIONS=2500
 TOTALGENERATIONS=$(( OLDGENERATIONS + GENERATIONS))
-SNAP=320
+SNAP=279
 
 # Packets per generation for the cells that were learned to produce escaping
 # light: average packets per learned cell (budget) and the cap per cell.
@@ -55,11 +55,11 @@ GREY_EXPLORATION_FRACTION=0.005
 
 
 # Inputs
-# SNAPSHOT="/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_$SNAP/snap_$SNAP.h5"
+#SNAPSHOT="/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_$SNAP/snap_$SNAP.h5"
 SNAPSHOT="/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/snap_$SNAP/snap_$SNAP.h5"
 
-# RESTART_FROM="/home/pmartire/tde_wind/outputs/gray/snap_$SNAP/tde_$OLDGENERATIONSpolarization.h5"
-RESTART_FROM="/home/pmartire1/outputs/mg/snap_$SNAP/tde_${OLDGENERATIONS}polarization$SNAP.h5"
+#RESTART_FROM="/home/pmartire1/outputs/1e4/gray/snap_$SNAP/tde_${OLDGENERATIONS}polarization$SNAP.h5"
+RESTART_FROM="/home/pmartire1/outputs/1e4/mg/snap_$SNAP/tde_${OLDGENERATIONS}polarization$SNAP.h5"
 
 # Under sbatch the script runs from a copy in the SLURM spool directory, so
 # BASH_SOURCE does not point here; use the submission directory instead.
@@ -95,11 +95,11 @@ echo "generations: $GENERATIONS  (MG budget $MG_LEARNED_BUDGET, grey $GREY_LEARN
 echo "exploration: MG fraction $MG_EXPLORATION_FRACTION, grey fraction $GREY_EXPLORATION_FRACTION"
 
 cd "$here"
-mkdir -p "output$SNAP"
+#mkdir -p "output$SNAP"
 
 exec srun "$executable" \
     --input.snapshot "$SNAPSHOT" \
-    --output.stem "output$SNAP/tde_${TOTALGENERATIONS}polarization${SNAP}" \
+    --output.stem "/home/pmartire1/outputs/tde_${TOTALGENERATIONS}polarization${SNAP}" \
     --restart.from "$RESTART_FROM" \
     --input.multigroup-opacity-directory "$root/data/STA/MG/" \
     --input.grey-opacity-directory "$root/data/STA/" \

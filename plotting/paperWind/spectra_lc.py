@@ -45,7 +45,6 @@ BANDS = {
 } 
 
 T_min, T_max = 1e3, 1e7
-tfb_min, tfb_max = -0.05, 2.24
 nu_min, nu_max = T_min /prel.Hz_toK, T_max/prel.Hz_toK
 
 SURVEY_LIMITS = {
@@ -125,7 +124,6 @@ def load_spectrum(folder, check, snap):
     spectra = np.loadtxt(f'{pre_saving}/spectra/{check}_spectra{snap}.txt')
     if check != 'MG':
         photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
-        print(len(photo['x']))
         luminosity = photo["Lum"]
     else:
         data = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz', allow_pickle=True)
@@ -141,10 +139,10 @@ def load_spectrum(folder, check, snap):
     valid = np.isfinite(integrals) & (integrals > 0)
     spectra_norm = np.zeros_like(spectra)
 
-    print("spectra:", spectra.shape)
-    print("integrals:", integrals.shape)
-    print("luminosity:", np.shape(luminosity))
-    print("valid:", valid.shape)
+    # print("spectra:", spectra.shape)
+    # print("integrals:", integrals.shape)
+    # print("luminosity:", np.shape(luminosity))
+    # print("valid:", valid.shape)
     spectra_norm[valid] = (
         spectra[valid]
         * (luminosity[valid] / integrals[valid])[:, None])
@@ -422,7 +420,7 @@ def plot_light_curves(folder, m, check, choice, group="bands"):
     n_sectors, n_times = len(sectors), len(snaps)
     fld_sector = np.zeros((n_sectors, n_times))
     curves = {name: np.zeros((n_sectors, n_times)) for name in ("optical", "UV", "Xray")}
-    curves_fld, curves_op, curves_uv = [], [], []
+    curves_fld, curves_op, curves_uv, curves_x = [], [], [], []
 
     for s, snap in enumerate(snaps):
         # if snap < 90:
@@ -436,12 +434,16 @@ def plot_light_curves(folder, m, check, choice, group="bands"):
         curves_fld.append(luminosity_photo)
         curves_op.append(integrated["optical"])
         curves_uv.append(integrated["UV"]) 
+        if m != 4:
+            curves_x.append(integrated["Xray"])
         fld_sector[:, s] = sector_average(luminosity_photo, sectors)
         for band in curves: 
             curves[band][:, s] = sector_average(integrated[band], sectors)
             # curves[band][:, s] = integrated[band][central_indices]
     curves_fld = np.asarray(curves_fld).T
     curves_op, curves_uv = np.asarray(curves_op).T, np.asarray(curves_uv).T
+    if m != 4:
+        curves_x = np.asarray(curves_x).T
 
     if m ==4:
         time_mg, mg, curves_x, all_xray_mg = load_mg_lightcurves(check, choice)
@@ -483,7 +485,7 @@ def plot_light_curves(folder, m, check, choice, group="bands"):
                 ax_opt.plot(tfb, curves_op[sec], color=colours[k], alpha = 0.1, lw = 1) 
                 ax_uv.plot(tfb, curves_uv[sec], color=colours[k], alpha = 0.1, lw = 1)
                 if m != 4:
-                    ax_x.plot(tfb, curves_x[sec], color=colours[k], label=labels[k], lw = 2, zorder = 4)
+                    ax_x.plot(tfb, curves_x[sec], color=colours[k], alpha = 0.05, lw = 2)
             if m == 4:
                 for sec in sectors_mg[k]:
                     ax_x.plot(time_mg, curves_x[sec], color=colours[k], alpha = 0.05, lw = .5)
@@ -496,7 +498,7 @@ def plot_light_curves(folder, m, check, choice, group="bands"):
             ax_uv.plot(tfb, curves["UV"][k], color=colours[k], lw = 3, zorder = 4)
             ax_uv.scatter(tfb[np.argmax(curves["UV"][k])], np.max(curves["UV"][k]), c = colours[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
             if m == 4:
-                ax_x.plot(time_mg, mg["Xray"][k], color=colours[k], label=labels[k], lw = 2, zorder = 4)
+                ax_x.plot(time_mg, mg["Xray"][k], color=colours[k], lw = 2, zorder = 4)
                 ax_x.scatter(time_mg[np.argmax(mg["Xray"][k])], np.max(mg["Xray"][k]), c = colours[k], s = 250, marker = '*', edgecolors='k', zorder = 5)
             else:
                 ax_x.plot(tfb, curves["Xray"][k], color=colours[k], lw = 2, zorder = 4)
@@ -504,19 +506,19 @@ def plot_light_curves(folder, m, check, choice, group="bands"):
         ax_bol.axhline(Ledd_cgs, color="gray", ls="-.")
         ax_opt.text(0.05, L_max/3, r'Optical', fontsize = 26)
         ax_uv.text(0.05, L_max/3, r'UV', fontsize = 26)
+        ax_bol.text(0.05, L_max/3, r'Bolometric L$_{\rm FLD}$', fontsize = 26)
         if m == 4:
             ax_x.text(0.05, L_max/3, 'X-ray (Giron+26)', fontsize = 26)
+            ax_opt.axhline(SURVEY_LIMITS["ZTF"], color="gray", ls="-.")
+            ax_opt.text(0, 0.6*SURVEY_LIMITS["ZTF"], 'g-ZTF', fontsize = 16, color = 'gray')
+            ax_opt.axhline(SURVEY_LIMITS["Rubin"], color="gray", ls="-.")
+            ax_opt.text(0, 0.6*SURVEY_LIMITS["Rubin"], ' g-Rubin', fontsize = 16, color = 'gray')
+            ax_uv.axhline(SURVEY_LIMITS["ULTRASAT"], color="gray", ls="-.")
+            ax_uv.text(0, 0.6*SURVEY_LIMITS["ULTRASAT"], 'ULTRASAT', fontsize = 16, color = 'gray')
+            ax_x.axhline(SURVEY_LIMITS["eROSITA"], color="gray", ls="-.")
+            ax_x.text(1.75, 0.6*SURVEY_LIMITS["eROSITA"], 'eROSITA', fontsize = 16, color = 'gray')
+            ax_x.axhline(SURVEY_LIMITS["Einstein"], color="gray", ls="-.")
         ax_bol.text(0.08, 1.2*Ledd_cgs, r'$L_{\rm Edd} (\kappa_{\rm p})$', color = 'gray', fontsize = 20)
-        ax_bol.text(0.05, L_max/3, r'Bolometric L$_{\rm FLD}$', fontsize = 26)
-        ax_opt.axhline(SURVEY_LIMITS["ZTF"], color="gray", ls="-.")
-        ax_opt.text(0, 0.6*SURVEY_LIMITS["ZTF"], 'g-ZTF', fontsize = 16, color = 'gray')
-        ax_opt.axhline(SURVEY_LIMITS["Rubin"], color="gray", ls="-.")
-        ax_opt.text(0, 0.6*SURVEY_LIMITS["Rubin"], ' g-Rubin', fontsize = 16, color = 'gray')
-        ax_uv.axhline(SURVEY_LIMITS["ULTRASAT"], color="gray", ls="-.")
-        ax_uv.text(0, 0.6*SURVEY_LIMITS["ULTRASAT"], 'ULTRASAT', fontsize = 16, color = 'gray')
-        ax_x.axhline(SURVEY_LIMITS["eROSITA"], color="gray", ls="-.")
-        ax_x.text(1.75, 0.6*SURVEY_LIMITS["eROSITA"], 'eROSITA', fontsize = 16, color = 'gray')
-        ax_x.axhline(SURVEY_LIMITS["Einstein"], color="gray", ls="-.")
         for ax in (ax_bol, ax_opt, ax_uv):
             ax.plot(tfb, luminosity_fld, "k--", label="All")
             ax.scatter(tfb[idx_maxL], luminosity_fld[idx_maxL], c = 'k', s = 250, marker = '*')
@@ -638,12 +640,14 @@ if __name__ == '__main__':
             L_min, L_max = 1e38, 6e42
         if m == 5:
             snaps_spectra = [170, 201, 249]
-            L_min, L_max = 1e39, 1e43
+            L_min, L_max = 1e39, 2e43
 
-    if m == 4:
+    if m == 4:   
+        tfb_min, tfb_max = -0.05, 2.24
         Ledd_sol, _ = orb.Edd(Mbh, 1.44/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
     else:
-        Ledd_sol, _ = orb.Edd(Mbh, 0.34/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
+        tfb_min, tfb_max = -0.05, 1.5
+        Ledd_sol, _ = orb.Edd(Mbh, 1.5/(prel.Rsol_cgs**2/prel.Msol_cgs), 1, prel.csol_cgs, prel.G)
     Ledd_cgs = Ledd_sol * prel.en_converter / prel.tsol_cgs
 
 

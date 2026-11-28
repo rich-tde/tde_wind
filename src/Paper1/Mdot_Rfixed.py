@@ -26,7 +26,7 @@ from Utilities.sections import make_slices
 ##
 # PARAMETERS
 #%%
-m = 5
+m = 4
 Mbh = 10**m
 Mbh_cgs = Mbh * prel.Msol_cgs
 beta = 1

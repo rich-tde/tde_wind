@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=tde_250
+#SBATCH --job-name=tde_279
 #SBATCH --output=output_2500.txt
 #SBATCH --error=error_2500.txt
 #SBATCH --nodes=8
 #SBATCH --ntasks=1536 #nodesx192#nodesx192
 #SBATCH --exclusive
 #SBATCH --partition=genoa
-#SBATCH --time=2-10:00:00
+#SBATCH --time=3-10:00:00
 
 #SBATCH --mail-user="martire@strw.leidenuniv.nl"
 #SBATCH --mail-type=TIME_LIMIT_50,TIME_LIMIT_90,ALL
@@ -29,13 +29,13 @@ set -euo pipefail
 # and exploration fractions written below (both 0.005) the total run time is roughly
 # 12 min + GENERATIONS * 26 s (20 -> ~20 min, 75 -> ~45 min, 200 -> ~1 h 40).
 GENERATIONS=2500
-SNAP=250
+SNAP=279
 
 # Packets per generation for the cells that were learned to produce escaping
 # light: average packets per learned cell (budget) and the cap per cell.
 # MG: 1600/cell -> ~26M learned + ~10M exploration packets = ~36M per generation.
 MG_LEARNED_BUDGET=1600
-GREY_LEARNED_BUDGET=500 
+GREY_LEARNED_BUDGET=500
 LEARNED_MAX_PER_CELL=50000
 
 # Exploration-packet weight cap: a thick cell outside the learned set is split
@@ -52,8 +52,8 @@ GREY_EXPLORATION_FRACTION=0.005
 
 
 # Inputs for Snellius
-SNAPSHOT="/home/pmartire/tde_wind/TDE/R0.47M0.5BH100000beta1S60n1.5ComptonHiResNewAMR/snap_$SNAP/snap_$SNAP.h5"
-# SNAPSHOT="/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/snap_$SNAP/snap_$SNAP.h5"
+#SNAPSHOT="/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonHiResNewAMR/snap_$SNAP/snap_$SNAP.h5"
+SNAPSHOT="/home/pmartire/tde_wind/TDE/R0.47M0.5BH10000beta1S60n1.5ComptonMG/snap_$SNAP/snap_$SNAP.h5"
 # Inputs for Alice
 # SNAPSHOT="/home/martirep/data_pi-rossiem/TDE_data/R0.47M0.5BH10000beta1S60n1.5ComptonMG/snap_$SNAP/snap_$SNAP.h5"
 

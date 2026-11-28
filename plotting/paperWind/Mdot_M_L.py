@@ -20,7 +20,7 @@ from src import orbits as orb
 from plotting.paperEdd.IHopeIsTheLast import ratio_BigOverSmall
 from src.Wind.Rtrapp_tdiff import load_and_smooth_rtrap
 
-m = 4
+m = 5
 Mbh = 10**m
 beta = 1
 mstar = .5
@@ -75,18 +75,11 @@ if which_plot == 'MdotM':
     snaps, tfb_Lum, _ = dataM[:, 0], dataM[:, 1], dataM[:, 2]
     tfb_Lum, snaps = sort_list([tfb_Lum, snaps], snaps, unique=True)
 
-    if m == 4:
-        fallback = \
-                np.loadtxt(f'{abspath}/data/{folder}/1.paperEdd/wind/Mdot_{check}{which_r_title}mean.csv', 
+    fallback = \
+                np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_{check}{which_r_title}mean.csv', 
                         delimiter = ',', 
                         skiprows=1, 
                         unpack=True)
-    else: 
-        fallback = \
-                    np.loadtxt(f'{abspath}/data/{folder}/wind/Mdot_{check}{which_r_title}mean.csv', 
-                            delimiter = ',', 
-                            skiprows=1, 
-                            unpack=True)
 
     tfbfb, mfb = fallback[1], fallback[2]
     tfb_to_int = tfbfb * 24 * 3600 / prel.tsol_cgs
@@ -114,7 +107,7 @@ if which_plot == 'MdotM':
                 mask = r_tr[indices_obs] > 0
             indices_sec = [row[m] for row, m in zip(indices_obs, mask)]
             rtr_sec.append([np.median(r_tr[row]) for row in indices_sec])
-            rph_sec.append([np.median(r_ph[row]) for row in indices_sec])
+        rph_sec.append([np.median(r_ph[row]) for row in indices_sec])
             # rtr_sec.append(np.mean(r_tr[indices_obs], axis = 1))
             # rph_sec.append(np.mean(r_ph[indices_obs], axis = 1))
     rph_sec = np.transpose(np.array(rph_sec))
@@ -137,25 +130,32 @@ if which_plot == 'MdotM':
     rest = np.array([[wind[snap][label]['mwind'] for label in label_obs] for snap in snaps]).T
     Mdotw = np.copy(rest)
     Mdotw_isot = np.copy(rest)
-    masswind = np.array([[wind[snap][label]['mass'] for label in label_obs] for snap in snaps]).T
     
-
-    boundOut = \
-            np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_boundOut.csv', 
-                    delimiter = ',', 
-                    skiprows=1, 
-                    unpack=True) 
-    tfbO = boundOut[1]
+    boundOut = np.load(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_boundOut.npy', allow_pickle=True).item()
+    tfbO = np.array([boundOut[snap]['tfb'] for snap in snaps])
     timeBoundOut_to_int = tfbO * 24 * 3600 / prel.tsol_cgs
-    restboundOut = boundOut[2:2+len(label_obs)]
+    restboundOut = np.array([[boundOut[snap][label]['mwind'] for label in label_obs] for snap in snaps]).T
     MdotboundOut = np.copy(restboundOut)
     MdotboundOut_isot = np.copy(restboundOut)
     
+    # boundOut = \
+    #         np.loadtxt(f'{abspath}/data/{folder}/wind/MdotSec{how}_{check}{which_r_title}{choice}_boundOut.csv', 
+    #                 delimiter = ',', 
+    #                 skiprows=1, 
+    #                 unpack=True) 
+    # tfbO = boundOut[1]
+    # timeBoundOut_to_int = tfbO * 24 * 3600 / prel.tsol_cgs
+    # restboundOut = boundOut[2:2+len(label_obs)]
+    # MdotboundOut = np.copy(restboundOut)
+    # MdotboundOut_isot = np.copy(restboundOut)
+    
     if how == 'isot':
         area = np.array([[wind[snap][label]['area'] for label in label_obs] for snap in snaps]).T
-        mwind_isot =  4 * np.pi * r_chosen**2 * rest/ area 
+        # mwind_isot =  4 * np.pi * r_chosen**2 * rest/ area 
         # area = wind[-len(label_obs):]
-        areaboundOut = boundOut[-len(label_obs):]
+        # areaboundOut = boundOut[-len(label_obs):]
+        areaboundOut = np.array([[boundOut[snap][label]['area'] for label in label_obs] for snap in snaps]).T
+        # mwind_isot =  4 * np.pi * r_chosen**2 * rest/ area 
         corr = []
         corrboundOut = []
         for i in range(len(rest)):
@@ -391,11 +391,5 @@ figM.tight_layout()
 if which_plot == 'MdotM':
     axr.legend(fontsize = 20)
     figr.tight_layout()
-if choice == 'tenths':
-    figM.suptitle('Angle varying from +x (0 deg), to +z (90 deg), to -x (180 deg)', fontsize = 30, y = 1.02)
-if choice == 'azimuthal':
-    figM.suptitle('Azimuthal angle', fontsize = 30, y = 1.02)
-if choice == 'split_stream':
+if m == 4:
     figM.savefig(f'{abspath}/Figs/2.paperWind/{which_plot}_intime_{choice}.pdf', dpi = 300, bbox_inches = 'tight')
-else:
-    figM.savefig(f'{abspath}/Figs/{folder}/wind/{which_plot}_intime_{choice}.png', dpi = 300, bbox_inches = 'tight')
