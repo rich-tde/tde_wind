@@ -22,7 +22,7 @@ check = 'MG'
 generat =7500
 snr_thresh = 5
 groups = [1, 2, 4, 8]
-snaps = [250, 320, 360, 429]
+snaps = [250, 320, 360, 393, 429]
 lines_group = ['-', '--', ':']
 choice = 'split_stream'
 snr_thresh = 5
@@ -54,7 +54,7 @@ for s, snap in enumerate(snaps):
         idx_time_fld = np.argmin(np.abs(snaps_fld - snap))
         tfbs[s] = tfb_fld[idx_time_fld]
 
-    if snap == 250:
+    if snap in [250, 393]:
         path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_2500polarization{snap}.vtk'
     else:
         path_file =  f'{abspath}/TDE/{folder}/Polarization/{snap}/tde_{generat}polarization{snap}.vtk'

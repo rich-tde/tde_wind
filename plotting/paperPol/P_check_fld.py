@@ -19,7 +19,7 @@ n = 1.5
 compton = 'Compton'
 check = 'HiResNewAMR' 
 snap = 151
-generat = 2500
+generat = 5000
 choice = 'split_stream'
 
 folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
@@ -62,21 +62,31 @@ for i, indices in enumerate(indices_sec):
 data = extract_poli(
             path_file,
             fields=["forward_luminosity",
+                    "forward_isotropic_equivalent_luminosity",
                     "photosphere_grey_radius_tau_total",
                     "photosphere_integrated_radius_tau_total",
+                    "photosphere_grey_radius_thermalization",
                     "grey_luminosity",
-                    "grey_isotropic_equivalent_luminosity"],)   
+                    "grey_isotropic_equivalent_luminosity",
+                    "fld_surface_luminosity",
+                    "fld_surface_flux"],)   
 x = data["x"]
 y = data["y"]
 z = data["z"]
-theta = data["theta"]
+theta = data["theta"] 
 phi = data["phi"]
 indices_sec, labels_sec, color_obs = split_cells(x, y, z, choice=choice)
 r_ph = data["photosphere_grey_radius_tau_total"]
 r_ph_int = data["photosphere_integrated_radius_tau_total"]
+r_th = data["photosphere_grey_radius_thermalization"]
 Lum = data["forward_luminosity"] * len(r_ph) # to make it isotropic
+# print(data["forward_isotropic_equivalent_luminosity"]/Lum)
 Lum_gray = data["grey_luminosity"] * len(r_ph) # to make it isotropic
 Lum_iso = data["grey_isotropic_equivalent_luminosity"] 
+Lum_fld = data["fld_surface_luminosity"] * len(r_ph) # to make it isotropic
+flux = data["fld_surface_flux"] * len(r_ph) # to make it isotropic
+# print(4*np.pi*r_ph**2*flux/Lum_fld)
+
 rph_med_idx = np.zeros(len(indices_sec))
 rph_int_med_idx = np.zeros(len(indices_sec))
 Lum_med_idx = np.zeros(len(indices_sec)) 
@@ -93,9 +103,9 @@ figc, (axR, axL) = plt.subplots(1, 2, figsize=(16, 8))
 for i in range(len(indices_sec)):
     axR.scatter(i, rph_med_idx[i]/prel.Rsol_cgs/r_ph_fld_med_idx[i], color=color_obs[i], s = 120, marker='o', label=r'photosphere_grey_radius_tau_total' if i == 1 else "")
     axR.scatter(i, rph_int_med_idx[i]/prel.Rsol_cgs/r_ph_fld_med_idx[i], color=color_obs[i], s = 120, marker='*', label=r'photosphere_integrated_radius_tau_total' if i == 1 else "")
-    axL.scatter(i, Lum_med_idx[i]/Lum_fld_med_idx[i], color=color_obs[i], s = 120, marker='x', label=r'$N_{\rm obs}\times$ forward_luminosity' if i == 1 else "")
-    axL.scatter(i, Lum_gray_med_idx[i]/Lum_fld_med_idx[i], color=color_obs[i], s = 120, marker='^', label=r'$N_{\rm obs}\times$ grey_luminosity' if i == 1 else "")
-    axL.scatter(i, Lum_iso_med_idx[i]/Lum_fld_med_idx[i], color=color_obs[i], s = 120, marker='s', label=f'grey_isotropic_equivalent_luminosity' if i == 1 else "")
+    axL.scatter(i, Lum_med_idx[i]/Lum_fld_med_idx[i], color=color_obs[i], s = 120, marker='s', label=r'$N_{\rm obs}\times$ forward_luminosity' if i == 1 else "")
+    axL.scatter(i, Lum_gray_med_idx[i]/Lum_fld_med_idx[i], color=color_obs[i], s = 250, marker='x', label=r'$N_{\rm obs}\times$ grey_luminosity' if i == 1 else "")
+    axL.scatter(i, Lum_iso_med_idx[i]/Lum_fld_med_idx[i], color=color_obs[i], s = 120, marker='^', label=f'grey_isotropic_equivalent_luminosity' if i == 1 else "")
 for ax in [axL, axR]:
     ax.grid()
     ax.axhline(1, color='gray', ls='--', lw=1)
@@ -105,4 +115,5 @@ for ax in [axL, axR]:
 axR.set_ylabel('MC/fld')
 plt.suptitle(f'time = {time:.2f} t_fb, generations = {generat}', fontsize=20)
 plt.tight_layout()
+plt.savefig(f'{abspath}/Figs/3.paperPol/checkFLD{snap}_gen{generat}.png', dpi=300)
                                 

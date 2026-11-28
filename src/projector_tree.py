@@ -69,8 +69,8 @@ def grid_maker(path, snap, m, mstar, Rstar, what_to_grid, x_num, y_num, z_num = 
         x_stop = 2*apo #2.5*apo
         y_start = -2*apo #-4*apo 
         y_stop = 2*apo  #3*apo
-        z_start = -0.8*Rt #-2*apo 
-        z_stop = 0.8*Rt #2*apo  
+        z_start = -Rt #-2*apo 
+        z_stop = Rt #2*apo  
     
     xs = np.linspace(x_start, x_stop, num = x_num)
     ys = np.linspace(y_start, y_stop, num = y_num)
@@ -147,7 +147,7 @@ def projector(gridded_den, z_radii):
 
 #%%
 if __name__ == '__main__':    
-    m = 4
+    m = 5
     Mbh = 10**m
     beta = 1
     mstar = .5
@@ -174,16 +174,14 @@ if __name__ == '__main__':
         folder = f'R{Rstar}M{mstar}BH{Mbh}beta{beta}S60n{n}{compton}{check}'
         snaps, tfb = select_snap(m, check, mstar, Rstar, beta, n, time = True) 
         t_fall = 40 * np.power(Mbh/1e6, 1/2) * np.power(mstar,-1) * np.power(Rstar, 3/2)
+        snaps, tfb = np.array(snaps[::2]), np.array(tfb[::2])
 
         snaps = np.array(snaps)
-        if how_far == 'big' or how_far == 'nozzle':
-            idx_chosen = np.array([0,
-                                np.argmin(np.abs(tfb-1)),
-                                np.argmax(tfb)])
-            # idx_chosen = np.array([np.argmin(np.abs(tfb-0.1)),
-            #                     np.argmin(np.abs(tfb-0.2)),
-            #                     np.argmin(np.abs(tfb-0.32))])
-            snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
+        # if how_far == 'big' or how_far == 'nozzle':
+        #     idx_chosen = np.array([0,
+        #                         np.argmin(np.abs(tfb-1)),
+        #                         np.argmax(tfb)])
+        #     snaps, tfb = snaps[idx_chosen], tfb[idx_chosen]
         
         with open(f'{prepath}/data/{folder}/projection/{how_far}{what_to_grid}time_proj.txt', 'w') as f:
             f.write(f'# snaps \n' + ' '.join(map(str, snaps)) + '\n')
@@ -191,8 +189,8 @@ if __name__ == '__main__':
             f.close()
             
         for snap in snaps:
-            # if snap not in [35, 40, 48]:
-            #     continue
+            if snap not in np.arange(60, 100):
+                continue
             print(snap, flush=True)
             path = select_prefix(m, check, mstar, Rstar, beta, n, compton)
             if alice:
