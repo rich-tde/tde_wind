@@ -94,22 +94,15 @@ if which_plot == 'MdotM':
         photo = np.load(f'{abspath}/data/{folder}/photo/{check}_photo{snap}.npz')
         x_ph, y_ph, z_ph, Lum_ph = photo['x'], photo['y'], photo['z'], photo['Lum']
         r_ph = np.sqrt(x_ph**2 + y_ph**2 + z_ph**2)
-        if m == 4:
-            trap = load_and_smooth_rtrap(f'{abspath}/data/{folder}/trap', check, snap)
-            x_tr, y_tr, z_tr = trap['x_tr'], trap['y_tr'], trap['z_tr']
-            r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
-            if choice in ['tenths','azimuthal', 'funnel', '3d_arch', 'split_stream']:
-                mask = []
-                rph_slab = np.zeros(len(indices_obs))
-                for i, indices in enumerate(indices_obs):
-                    mask.append(r_tr[indices] > 0)
-            else:
-                mask = r_tr[indices_obs] > 0
-            indices_sec = [row[m] for row, m in zip(indices_obs, mask)]
-            rtr_sec.append([np.median(r_tr[row]) for row in indices_sec])
+        trap = load_and_smooth_rtrap(f'{abspath}/data/{folder}/trap', check, snap)
+        x_tr, y_tr, z_tr = trap['x_tr'], trap['y_tr'], trap['z_tr']
+        r_tr = np.sqrt(x_tr**2 + y_tr**2 + z_tr**2)
+        mask = []
+        for i, indices in enumerate(indices_obs):
+            mask.append(r_tr[indices] > 0)
+        indices_sec = [row[m] for row, m in zip(indices_obs, mask)]
+        rtr_sec.append([np.median(r_tr[row]) for row in indices_sec])
         rph_sec.append([np.median(r_ph[row]) for row in indices_sec])
-            # rtr_sec.append(np.mean(r_tr[indices_obs], axis = 1))
-            # rph_sec.append(np.mean(r_ph[indices_obs], axis = 1))
     rph_sec = np.transpose(np.array(rph_sec))
     if m == 4:
         rtr_sec = np.transpose(np.array(rtr_sec))
@@ -240,7 +233,7 @@ if which_plot == 'MdotL_conv':
         Lum_ph = photo['Lum']
         if choice in ['tenths','azimuthal', 'funnel', '3d_arch', 'split_stream']:
             Lum_slab = np.zeros(len(indices_obs))
-            rph_slab = np.zeros(len(indices_obs))
+            # rph_slab = np.zeros(len(indices_obs))
             for i, indices in enumerate(indices_obs):
                 Lum_slab[i] = np.mean(Lum_ph[indices])
             Lum_sec.append(Lum_slab)
@@ -274,7 +267,7 @@ if which_plot == 'MdotL_conv':
         Lum_ph = photo[-2]
         if choice in ['tenths','azimuthal', 'funnel', '3d_arch', 'split_stream']:
             Lum_slab = np.zeros(len(indices_obs))
-            rph_slab = np.zeros(len(indices_obs))
+            # rph_slab = np.zeros(len(indices_obs))
             for i, indices in enumerate(indices_obs):
                 Lum_slab[i] = np.mean(Lum_ph[indices])
             Lum_secM.append(Lum_slab)

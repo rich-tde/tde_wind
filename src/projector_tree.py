@@ -11,7 +11,7 @@ abspath = '/Users/paolamartire/shocks'
 from Utilities.isalice import isalice
 alice, plot = isalice()
 if alice:
-    prepath = '/data1/martirep/shocks/shock_capturing'
+    prepath = '/data1/martirep/postprocess/tde'
     compute = True
 else:
     prepath = '/Users/paolamartire/shocks'

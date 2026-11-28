@@ -31,7 +31,7 @@ from Utilities.sections import make_slices
 import src.orbits as orb
 
 #%% Choose parameters -----------------------------------------------------------------
-m = 4
+m = 5
 Mbh = 10**m
 beta = 1
 mstar = .5
@@ -412,8 +412,8 @@ if __name__ == '__main__':
 
     if compute:
         for snap in snaps: 
-            # if snap < 109 or snap > 130:
-            #     continue
+            if snap not in np.arange(200,230):
+                continue
             if alice:
                 loadpath = f'{pre}/snap_{snap}'
                 print(snap, flush=True)
